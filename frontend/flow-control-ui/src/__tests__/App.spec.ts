@@ -1,11 +1,29 @@
-import { describe, it, expect } from 'vitest'
+// @vitest-environment jsdom
 
-import { mount } from '@vue/test-utils'
-import App from '../App.vue'
+import { createPinia } from 'pinia';
+import { mount } from '@vue/test-utils';
+import { createMemoryHistory, createRouter } from 'vue-router';
+import { describe, expect, it } from 'vitest';
+
+import App from '../App.vue';
+
+const FlowListStub = { template: '<h1>Flows</h1>' };
 
 describe('App', () => {
-  it('mounts renders properly', () => {
-    const wrapper = mount(App)
-    expect(wrapper.text()).toContain('You did it!')
-  })
-})
+  it('renders the current route inside the application shell', async () => {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: '/flows', name: 'flows', component: FlowListStub }]
+    });
+
+    await router.push('/flows');
+    await router.isReady();
+
+    const wrapper = mount(App, {
+      global: { plugins: [createPinia(), router] }
+    });
+
+    expect(wrapper.get('.brand').text()).toContain('Flow Control');
+    expect(wrapper.get('main h1').text()).toBe('Flows');
+  });
+});
