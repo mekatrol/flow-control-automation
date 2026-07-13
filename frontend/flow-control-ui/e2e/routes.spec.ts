@@ -1,0 +1,629 @@
+import { expect, test } from '@playwright/test';
+
+import { sampleFlows } from '../src/features/flows/__tests__/fixtures/sampleFlows';
+
+test.beforeEach(async ({ page }) => {
+  await page.route('**/api/flows', async (route) => {
+    if (route.request().method() === 'POST') {
+      const { name } = route.request().postDataJSON() as { name: string };
+      const id = name.toLocaleLowerCase().replaceAll(/[^a-z0-9]+/g, '-').replaceAll(/^-|-$/g, '');
+      await route.fulfill({
+        json: {
+          id,
+          name,
+          description: '',
+          status: 'draft',
+          updatedAt: '2026-07-13T12:00:00+10:00',
+          nodes: [],
+          connections: []
+        }
+      });
+      return;
+    }
+    await route.fulfill({ json: sampleFlows });
+  });
+  await page.route('**/api/flows/*', async (route) => {
+    const flowId = decodeURIComponent(new URL(route.request().url()).pathname.split('/').at(-1) ?? '');
+    const flow = sampleFlows.find(({ id }) => id === flowId);
+    if (!flow) {
+      await route.fulfill({ status: 404, json: { message: 'not found' } });
+      return;
+    }
+    if (route.request().method() === 'DELETE') {
+      await route.fulfill({ status: 204 });
+      return;
+    }
+    if (route.request().method() === 'PUT') {
+      await route.fulfill({ json: route.request().postDataJSON() });
+      return;
+    }
+    await route.fulfill({ json: flow });
+  });
+  await page.route('**/api/flows/*/runtime', async (route) => {
+    const flowId = decodeURIComponent(new URL(route.request().url()).pathname.split('/').at(-2) ?? '');
+    await route.fulfill({
+      json: {
+        flowId,
+        state: 'stopped',
+        updatedAt: '2026-07-14T08:00:00+10:00',
+        nodes: {}
+      }
+    });
+  });
+});
+
+test('confirms deployment and announces successful and failed runtime updates', async ({ page }) => {
+  let deployShouldFail = false;
+  await page.route('**/api/flows/climate-control/deploy', async (route) => {
+    if (deployShouldFail) {
+      await route.fulfill({ status: 503, json: { message: 'startup failed' } });
+      return;
+    }
+    await route.fulfill({
+      json: {
+        flowId: 'climate-control',
+        state: 'running',
+        updatedAt: '2026-07-14T08:01:00+10:00',
+        nodes: {
+          'temperature-average': {
+            state: 'running',
+            value: '22.4 C',
+            updatedAt: '2026-07-14T08:01:00+10:00'
+          }
+        }
+      }
+    });
+  });
+
+  await page.goto('/flows/climate-control');
+  await expect(page.getByRole('status', { name: 'Runtime state: stopped' })).toBeVisible();
+  await page.getByRole('button', { name: 'Deploy flow' }).click();
+  await expect(page.getByRole('alertdialog', { name: 'Deploy this flow?' })).toBeVisible();
+  await page.getByRole('button', { name: 'Deploy now' }).click();
+
+  await expect(page.getByRole('status', { name: 'Runtime state: running' })).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: /Average temperature, Calculator node, running/ })
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: /Average temperature, Calculator node, running, 22.4 C/ })
+  ).toBeVisible();
+
+  deployShouldFail = true;
+  await page.getByRole('button', { name: 'Deploy flow' }).click();
+  await page.getByRole('button', { name: 'Deploy now' }).click();
+  await expect(page.getByRole('alert')).toContainText('status 503');
+  await expect(page.getByRole('status', { name: 'Runtime state: running' })).toBeVisible();
+});
+
+test('announces runtime errors and clears stale node values after disconnect', async ({ page }) => {
+  let connected = true;
+  await page.route('**/api/flows/climate-control/runtime', async (route) => {
+    if (!connected) {
+      await route.fulfill({ status: 503 });
+      return;
+    }
+    await route.fulfill({
+      json: {
+        flowId: 'climate-control',
+        state: 'error',
+        updatedAt: '2026-07-14T08:02:00+10:00',
+        nodes: {
+          'temperature-average': {
+            state: 'error',
+            value: 'Sensor unavailable',
+            updatedAt: '2026-07-14T08:02:00+10:00'
+          }
+        }
+      }
+    });
+  });
+
+  await page.goto('/flows/climate-control');
+  await expect(page.getByRole('status', { name: 'Runtime state: error' })).toBeVisible();
+  await expect(
+    page.getByRole('button', {
+      name: /Average temperature, Calculator node, error, Sensor unavailable/
+    })
+  ).toBeVisible();
+
+  connected = false;
+  await page.getByRole('button', { name: 'Refresh runtime' }).click();
+  await expect(page.getByRole('alert')).toContainText('status 503');
+  await expect(page.getByRole('status', { name: 'Runtime state: disconnected' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Sensor unavailable/ })).toHaveCount(0);
+});
+
+test('opens the flow library and navigates to a designer', async ({ page }) => {
+  await page.goto('/flows');
+
+  await expect(page.getByRole('heading', { name: 'Flows' })).toBeVisible();
+  await page.getByRole('link', { name: /Climate control/ }).click();
+
+  await expect(page).toHaveURL(/\/flows\/climate-control$/);
+  await expect(page.getByRole('heading', { name: 'Climate control' })).toBeVisible();
+  await expect(page.getByRole('img', { name: 'Climate control flow graph' })).toBeVisible();
+});
+
+test('shows flow-library loading, empty, error, and retry states', async ({ page }) => {
+  await page.unroute('**/api/flows');
+  let releaseEmpty!: () => void;
+  const emptyReady = new Promise<void>((resolve) => {
+    releaseEmpty = resolve;
+  });
+  await page.route('**/api/flows', async (route) => {
+    await emptyReady;
+    await route.fulfill({ json: [] });
+  });
+
+  await page.goto('/flows');
+  await expect(page.getByRole('status')).toHaveText('Loading flows…');
+  releaseEmpty();
+  await expect(page.getByRole('heading', { name: 'No flows yet' })).toBeVisible();
+
+  await page.unroute('**/api/flows');
+  let shouldFail = true;
+  await page.route('**/api/flows', async (route) => {
+    if (shouldFail) {
+      await route.fulfill({ status: 503, json: { message: 'offline' } });
+      return;
+    }
+    await route.fulfill({ json: sampleFlows });
+  });
+  await page.reload();
+  await expect(page.getByRole('alert')).toContainText('status 503');
+  shouldFail = false;
+  await page.getByRole('button', { name: 'Retry' }).click();
+  await expect(page.getByRole('link', { name: /Climate control/ })).toBeVisible();
+});
+
+test('creates, opens, renames, and deletes a flow through the API', async ({ page }) => {
+  await page.unroute('**/api/flows');
+  await page.unroute('**/api/flows/*');
+  let serverFlows = structuredClone(sampleFlows);
+  await page.route('**/api/flows', async (route) => {
+    if (route.request().method() === 'POST') {
+      const { name } = route.request().postDataJSON() as { name: string };
+      const created = {
+        id: 'new-automation',
+        name,
+        description: '',
+        status: 'draft' as const,
+        updatedAt: '2026-07-13T12:00:00+10:00',
+        nodes: [],
+        connections: []
+      };
+      serverFlows.push(created);
+      await route.fulfill({ json: created });
+      return;
+    }
+    await route.fulfill({ json: serverFlows });
+  });
+  await page.route('**/api/flows/*', async (route) => {
+    const id = new URL(route.request().url()).pathname.split('/').at(-1);
+    const index = serverFlows.findIndex((flow) => flow.id === id);
+    if (index < 0) {
+      await route.fulfill({ status: 404 });
+      return;
+    }
+    if (route.request().method() === 'PUT') {
+      serverFlows[index] = route.request().postDataJSON();
+      await route.fulfill({ json: serverFlows[index] });
+      return;
+    }
+    if (route.request().method() === 'DELETE') {
+      serverFlows = serverFlows.filter((flow) => flow.id !== id);
+      await route.fulfill({ status: 204 });
+      return;
+    }
+    await route.fulfill({ json: serverFlows[index] });
+  });
+
+  await page.goto('/flows');
+  await page.getByRole('textbox', { name: 'New flow name' }).fill('New automation');
+  await page.getByRole('button', { name: 'New flow' }).click();
+  await expect(page.getByRole('link', { name: /New automation/ })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Rename' }).last().click();
+  await page.getByRole('textbox', { name: 'Rename New automation' }).fill('Renamed automation');
+  await page.getByRole('button', { name: 'Save name' }).click();
+  await page.getByRole('link', { name: /Renamed automation/ }).click();
+  await expect(page.getByRole('heading', { name: 'Renamed automation' })).toBeVisible();
+  await expect(page.getByText('0 nodes', { exact: true })).toBeVisible();
+
+  await page.getByRole('link', { name: 'All flows' }).click();
+  const renamedCard = page.getByRole('article').filter({ hasText: 'Renamed automation' });
+  await renamedCard.getByRole('button', { name: 'Delete' }).click();
+  await renamedCard.getByRole('button', { name: 'Confirm delete' }).click();
+  await expect(page.getByRole('link', { name: /Renamed automation/ })).toHaveCount(0);
+});
+
+test('opens a flow designer directly', async ({ page }) => {
+  await page.goto('/flows/climate-control');
+
+  await expect(page.getByRole('heading', { name: 'Climate control' })).toBeVisible();
+  await expect(page.getByText('4 nodes', { exact: true })).toBeVisible();
+  await expect(page.getByText('2 connections', { exact: true })).toBeVisible();
+  await expect(page.locator('[data-connection-id]')).toHaveCount(2);
+  await expect(page.getByRole('button', { name: /Average temperature, Calculator node, draft/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Comfort pulse, Pulse node, draft/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Manual override, Override node, draft/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Zone outputs, Split node, draft/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Values, input, number/ })).toBeVisible();
+
+  const viewport = page.getByLabel(/Scrollable designer viewport/);
+  await viewport.focus();
+  await expect(viewport).toBeFocused();
+
+  const initialWidth = await page.getByRole('img', { name: 'Climate control flow graph' }).evaluate((element) =>
+    element.getBoundingClientRect().width
+  );
+  await page.getByRole('button', { name: 'Zoom in' }).click();
+  await expect(page.getByText('125%', { exact: true })).toBeVisible();
+  await expect
+    .poll(() =>
+      page.getByRole('img', { name: 'Climate control flow graph' }).evaluate((element) =>
+        element.getBoundingClientRect().width
+      )
+    )
+    .toBeGreaterThan(initialWidth);
+
+  const canReachWholeGraph = await viewport.evaluate(
+    (element) => element.scrollWidth >= element.clientWidth && element.scrollHeight >= element.clientHeight
+  );
+  expect(canReachWholeGraph).toBe(true);
+});
+
+test('renders a validated mocked API payload and rejects an invalid one visibly', async ({ page }) => {
+  await page.unroute('**/api/flows/*');
+  const payload = structuredClone(sampleFlows[0]!);
+  payload.nodes[0]!.label = 'Temperature from API';
+  await page.route('**/api/flows/climate-control', (route) => route.fulfill({ json: payload }));
+
+  await page.goto('/flows/climate-control');
+  await expect(page.getByRole('button', { name: /Temperature from API, Calculator node/ })).toBeVisible();
+
+  await page.unroute('**/api/flows/climate-control');
+  const invalidPayload = structuredClone(payload);
+  invalidPayload.connections[0]!.end.nodeId = 'missing-node';
+  await page.route('**/api/flows/climate-control', (route) => route.fulfill({ json: invalidPayload }));
+  await page.reload();
+
+  await expect(page.getByRole('alert')).toContainText('invalid flow');
+  await expect(page.getByText('Flow not found', { exact: true })).toBeVisible();
+  await expect(page.getByRole('img', { name: /flow graph/ })).toHaveCount(0);
+});
+
+test('saves an unchanged mocked flow without losing graph data', async ({ page }) => {
+  await page.unroute('**/api/flows/*');
+  const payload = structuredClone(sampleFlows[0]!);
+  let savedPayload: unknown;
+  await page.route('**/api/flows/climate-control', async (route) => {
+    if (route.request().method() === 'PUT') {
+      savedPayload = route.request().postDataJSON();
+      await route.fulfill({ json: savedPayload });
+      return;
+    }
+    await route.fulfill({ json: payload });
+  });
+
+  await page.goto('/flows/climate-control');
+  await expect(page.getByRole('status')).toBeHidden();
+  await page.getByRole('button', { name: 'Save flow' }).click();
+
+  await expect.poll(() => savedPayload).toEqual(payload);
+  await expect(page.getByRole('button', { name: 'Save flow' })).toBeEnabled();
+});
+
+test('keeps the newest route response during rapid navigation', async ({ page }) => {
+  await page.unroute('**/api/flows/*');
+  let releaseClimate!: () => void;
+  const climateReady = new Promise<void>((resolve) => {
+    releaseClimate = resolve;
+  });
+  await page.route('**/api/flows/*', async (route) => {
+    const id = new URL(route.request().url()).pathname.split('/').at(-1);
+    if (id === 'climate-control') await climateReady;
+    const flow = sampleFlows.find((candidate) => candidate.id === id);
+    await route.fulfill({ status: flow ? 200 : 404, json: flow ?? {} });
+  });
+
+  await page.goto('/flows/climate-control');
+  await expect(page.getByText('Loading latest flow…')).toBeVisible();
+  await page.getByRole('link', { name: 'Flows', exact: true }).click();
+  await page.getByRole('link', { name: /Garden irrigation/ }).click();
+  await expect(page.getByRole('heading', { name: 'Garden irrigation' })).toBeVisible();
+  releaseClimate();
+  await expect(page.getByRole('heading', { name: 'Garden irrigation' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Climate control' })).toHaveCount(0);
+});
+
+test('recovers from a failed save without losing edits', async ({ page }) => {
+  await page.unroute('**/api/flows/*');
+  let persistedPayload = structuredClone(sampleFlows[0]!);
+  let failNextSave = true;
+  let releaseFailedSave!: () => void;
+  const failedSaveReady = new Promise<void>((resolve) => {
+    releaseFailedSave = resolve;
+  });
+  await page.route('**/api/flows/climate-control', async (route) => {
+    if (route.request().method() === 'PUT') {
+      if (failNextSave) {
+        failNextSave = false;
+        await failedSaveReady;
+        await route.fulfill({ status: 503, json: { message: 'try again' } });
+        return;
+      }
+      persistedPayload = route.request().postDataJSON();
+    }
+    await route.fulfill({ json: persistedPayload });
+  });
+
+  await page.goto('/flows/climate-control');
+  await page.getByRole('button', { name: /Average temperature, Calculator node/ }).click();
+  await page.getByRole('textbox', { name: 'Node label' }).fill('Retry-safe average');
+  await page.getByRole('button', { name: 'Save flow' }).click();
+
+  await expect(page.getByRole('button', { name: 'Saving…' })).toBeDisabled();
+  releaseFailedSave();
+  await expect(page.getByRole('alert')).toContainText('status 503');
+  await expect(page.getByRole('button', { name: /Retry-safe average, Calculator node/ })).toBeVisible();
+  await expect(page.getByText('Unsaved changes', { exact: true })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Save flow' }).click();
+  await expect.poll(() => persistedPayload.nodes[0]?.label).toBe('Retry-safe average');
+  await expect(page.getByText('Unsaved changes', { exact: true })).toBeHidden();
+  await page.reload();
+  await expect(page.getByRole('button', { name: /Retry-safe average, Calculator node/ })).toBeVisible();
+});
+
+test('announces deployed node state independently of colour', async ({ page }) => {
+  await page.goto('/flows/garden-irrigation');
+
+  await expect(page.getByRole('button', { name: /Watering pulse, Pulse node, deployed/ })).toBeVisible();
+});
+
+test('selects and clears a node with pointer and keyboard controls', async ({ page }) => {
+  await page.goto('/flows/climate-control');
+
+  const node = page.getByRole('button', { name: /Average temperature, Calculator node/ });
+  await node.click();
+  await expect(page.getByText('Selected: temperature-average')).toBeVisible();
+
+  await page.locator('[data-canvas-background]').click({ position: { x: 20, y: 20 } });
+  await expect(page.getByText('Selected: temperature-average')).toBeHidden();
+
+  await node.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByText('Selected: temperature-average')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByText('Selected: temperature-average')).toBeHidden();
+});
+
+test('drags a node to a snapped position and keeps it after route navigation', async ({ page }) => {
+  await page.unroute('**/api/flows/*');
+  let persistedPayload = structuredClone(sampleFlows[0]!);
+  await page.route('**/api/flows/climate-control', async (route) => {
+    if (route.request().method() === 'PUT') {
+      persistedPayload = route.request().postDataJSON();
+    }
+    await route.fulfill({ json: persistedPayload });
+  });
+  await page.goto('/flows/climate-control');
+
+  const node = page.getByRole('button', { name: /Average temperature, Calculator node/ });
+  const initialTransform = await node.getAttribute('transform');
+  const box = await node.boundingBox();
+  expect(box).not.toBeNull();
+
+  await page.mouse.move(box!.x + 80, box!.y + 30);
+  await page.mouse.down();
+  await page.mouse.move(box!.x + 170, box!.y + 110, { steps: 4 });
+  await page.mouse.up();
+
+  await expect(node).not.toHaveAttribute('transform', initialTransform);
+  const movedTransform = await node.evaluate((element) => element.getAttribute('transform'));
+  const coordinates = movedTransform?.match(/translate\((\d+) (\d+)\)/);
+  expect(Number(coordinates?.[1]) % 24).toBe(0);
+  expect(Number(coordinates?.[2]) % 24).toBe(0);
+
+  await page.getByRole('button', { name: 'Save flow' }).click();
+  await expect.poll(() => persistedPayload.nodes[0]?.x).toBe(Number(coordinates?.[1]));
+  await expect(page.getByRole('button', { name: 'Save flow' })).toBeEnabled();
+
+  await page.getByRole('link', { name: 'All flows' }).click();
+  await page.getByRole('link', { name: /Climate control/ }).click();
+  await expect(node).toHaveAttribute('transform', movedTransform!);
+});
+
+test('enables z-order commands at valid boundaries and changes render order', async ({ page }) => {
+  await page.goto('/flows/climate-control');
+
+  const node = page.getByRole('button', { name: /Average temperature, Calculator node/ });
+  const order = () => page.locator('[data-node-id]').evaluateAll((nodes) => nodes.map((item) => item.getAttribute('data-node-id')));
+  await node.click();
+
+  await expect(page.getByRole('button', { name: 'Send to back' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Bring to front' })).toBeEnabled();
+
+  await page.getByRole('button', { name: 'Bring to front' }).click();
+  expect(await order()).toEqual(['comfort-pulse', 'manual-override', 'zone-split', 'temperature-average']);
+  await expect(page.getByRole('button', { name: 'Bring to front' })).toBeDisabled();
+
+  await page.getByRole('button', { name: 'Send backward' }).click();
+  expect(await order()).toEqual(['comfort-pulse', 'manual-override', 'temperature-average', 'zone-split']);
+
+  await page.getByRole('button', { name: 'Send to back' }).click();
+  expect(await order()).toEqual(['temperature-average', 'comfort-pulse', 'manual-override', 'zone-split']);
+
+  await page.getByRole('button', { name: 'Bring forward' }).click();
+  expect(await order()).toEqual(['comfort-pulse', 'temperature-average', 'manual-override', 'zone-split']);
+});
+
+test('moves and deletes with the keyboard while safeguarding editable controls', async ({ page }) => {
+  await page.goto('/flows/climate-control');
+
+  const node = page.getByRole('button', { name: /Average temperature, Calculator node/ });
+  await node.focus();
+  await page.keyboard.press('Enter');
+
+  const gridToggle = page.getByLabel('Snap to grid');
+  await gridToggle.focus();
+  await page.keyboard.press('Delete');
+  await expect(node).toBeVisible();
+
+  await node.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(node).toHaveAttribute('transform', 'translate(114 110)');
+
+  await page.keyboard.press('Delete');
+  await expect(node).toBeHidden();
+  await expect(page.locator('[data-connection-id]')).toHaveCount(1);
+  await expect(page.getByLabel(/Scrollable designer viewport/)).toBeFocused();
+});
+
+test('highlights compatible connectors, previews a link, and rejects invalid completion', async ({ page }) => {
+  await page.goto('/flows/climate-control');
+
+  const source = page.getByRole('button', { name: /Average, output, number/ });
+  await source.click();
+  await expect(page.getByRole('button', { name: /Automatic, input, number, compatible destination/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Value, input, number, compatible destination/ })).toHaveCount(0);
+
+  const preview = page.locator('[data-connection-id="connection-preview"] .flow-connection');
+  await expect(preview).toBeVisible();
+  const initialPath = await preview.getAttribute('d');
+  const canvasBox = await page.getByRole('img', { name: 'Climate control flow graph' }).boundingBox();
+  expect(canvasBox).not.toBeNull();
+  // Dispatch directly to the SVG so the preview assertion is deterministic in
+  // both mouse-oriented desktop projects and touch-emulating mobile projects.
+  await page.getByRole('img', { name: 'Climate control flow graph' }).dispatchEvent('pointermove', {
+    clientX: canvasBox!.x + 330,
+    clientY: canvasBox!.y + 300,
+    pointerId: 1
+  });
+  await expect(preview).not.toHaveAttribute('d', initialPath);
+  await page.keyboard.press('Escape');
+  await expect(preview).toBeHidden();
+
+  await page.getByRole('button', { name: /Values, input, number/ }).click();
+  await expect(page.getByRole('alert')).toContainText('Start a connection from an output');
+
+  await source.click();
+  await page.getByRole('button', { name: /Value, input, number/ }).click();
+  await expect(page.getByRole('alert')).toContainText('already exists');
+  await expect(page.locator('[data-connection-id]:not([data-connection-id="connection-preview"])')).toHaveCount(2);
+});
+
+test('creates a connection with the keyboard and deletes a selected connection', async ({ page }) => {
+  await page.goto('/flows/climate-control');
+
+  const source = page.getByRole('button', { name: /Average, output, number/ });
+  const destination = page.getByRole('button', { name: /Automatic, input, number/ });
+  await source.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('[data-connection-id="connection-preview"]')).toBeVisible();
+  await destination.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('[data-connection-id]:not([data-connection-id="connection-preview"])')).toHaveCount(3);
+
+  const connection = page.getByRole('button', { name: 'Connection from temperature-average to comfort-pulse' });
+  await connection.click();
+  await expect(page.getByText('Selected connection: temperature-to-pulse')).toBeVisible();
+  await page.keyboard.press('Delete');
+
+  await expect(connection).toBeHidden();
+  await expect(page.locator('[data-connection-id]:not([data-connection-id="connection-preview"])')).toHaveCount(2);
+  await expect(page.getByLabel(/Scrollable designer viewport/)).toBeFocused();
+
+  const keyboardConnection = page.getByRole('button', {
+    name: 'Connection from temperature-average to manual-override'
+  });
+  await keyboardConnection.focus();
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Delete');
+  await expect(keyboardConnection).toBeHidden();
+  await expect(page.locator('[data-connection-id]:not([data-connection-id="connection-preview"])')).toHaveCount(1);
+});
+
+test('searches the node palette and adds registry-backed nodes', async ({ page }) => {
+  await page.goto('/flows/climate-control');
+
+  const search = page.getByRole('searchbox', { name: 'Find a node' });
+  await search.fill('timing');
+  await expect(page.getByRole('button', { name: 'Add Pulse node' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Add Calculator node' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Add Pulse node' }).click();
+
+  const pulse = page.getByRole('button', { name: /New Pulse, Pulse node/ });
+  await expect(pulse).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByText('5 nodes', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Trigger, input, any/ })).toBeVisible();
+
+  await search.fill('routing');
+  await page.getByRole('button', { name: 'Add Split node' }).click();
+  await expect(page.getByRole('button', { name: /New Split, Split node/ })).toBeVisible();
+  await expect(page.getByText('6 nodes', { exact: true })).toBeVisible();
+});
+
+test('validates, saves, and reloads typed node configuration', async ({ page }) => {
+  await page.unroute('**/api/flows/*');
+  let persistedPayload = structuredClone(sampleFlows[0]!);
+  await page.route('**/api/flows/climate-control', async (route) => {
+    if (route.request().method() === 'PUT') persistedPayload = route.request().postDataJSON();
+    await route.fulfill({ json: persistedPayload });
+  });
+  await page.goto('/flows/climate-control');
+  await expect(page.getByText('Loading latest flow…')).toBeHidden();
+
+  await page.getByRole('button', { name: /Average temperature, Calculator node/ }).click();
+  const label = page.getByRole('textbox', { name: 'Node label' });
+  await label.fill('   ');
+  await expect(page.getByRole('alert')).toHaveText('Node label is required.');
+  await label.fill('Whole house average');
+  await page.getByRole('combobox', { name: 'Operation' }).selectOption('sum');
+  await expect(page.getByText('Unsaved changes', { exact: true })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Save flow' }).click();
+  await expect.poll(() => persistedPayload.nodes[0]?.label).toBe('Whole house average');
+  expect(persistedPayload.nodes[0]?.configuration.operation).toBe('sum');
+  await expect(page.getByText('Unsaved changes', { exact: true })).toBeHidden();
+
+  await page.reload();
+  const savedNode = page.getByRole('button', { name: /Whole house average, Calculator node/ });
+  await expect(savedNode).toBeVisible();
+  await savedNode.click();
+  await expect(page.getByRole('combobox', { name: 'Operation' })).toHaveValue('sum');
+});
+
+test('protects dirty navigation and supports explicit discard', async ({ page }) => {
+  await page.goto('/flows/climate-control');
+  await expect(page.getByText('Loading latest flow…')).toBeHidden();
+
+  const node = page.getByRole('button', { name: /Average temperature, Calculator node/ });
+  await node.focus();
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('ArrowRight');
+  await expect(page.getByText('Unsaved changes', { exact: true })).toBeVisible();
+
+  await page.getByRole('link', { name: 'All flows' }).click();
+  await expect(page.getByRole('alertdialog', { name: 'Discard unsaved changes?' })).toBeVisible();
+  await expect(page).toHaveURL(/\/flows\/climate-control$/);
+  await page.getByRole('button', { name: 'Keep editing' }).click();
+  await expect(page.getByRole('alertdialog')).toBeHidden();
+
+  await page.getByRole('link', { name: 'All flows' }).click();
+  await page.getByRole('button', { name: 'Discard changes' }).click();
+  await expect(page).toHaveURL(/\/flows$/);
+  await page.getByRole('link', { name: /Climate control/ }).click();
+  await expect(node).toHaveAttribute('transform', 'translate(90 110)');
+});
+
+test('shows a useful message for an unknown flow', async ({ page }) => {
+  await page.goto('/flows/not-a-flow');
+
+  await expect(page.getByText('Flow not found', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'There is no flow named “not-a-flow”.' })).toBeVisible();
+  await page.getByRole('link', { name: 'Return to flows' }).click();
+  await expect(page).toHaveURL(/\/flows$/);
+});
