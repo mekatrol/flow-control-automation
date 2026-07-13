@@ -142,7 +142,40 @@ test('opens the flow library and navigates to a designer', async ({ page }) => {
 
   await expect(page).toHaveURL(/\/flows\/climate-control$/);
   await expect(page.getByRole('heading', { name: 'Climate control' })).toBeVisible();
-  await expect(page.getByRole('img', { name: 'Climate control flow graph' })).toBeVisible();
+  await expect(page.getByRole('group', { name: 'Climate control flow graph' })).toBeVisible();
+});
+
+test('supports bypass navigation and modal use with only the keyboard', async ({ page }) => {
+  await page.goto('/flows');
+
+  await page.keyboard.press('Tab');
+  const skipLink = page.getByRole('link', { name: 'Skip to main content' });
+  await expect(skipLink).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#main-content')).toBeFocused();
+
+  await page.goto('/flows/climate-control');
+  const deployButton = page.getByRole('button', { name: 'Deploy flow' });
+  await deployButton.focus();
+  await page.keyboard.press('Enter');
+
+  const dialog = page.getByRole('alertdialog', { name: 'Deploy this flow?' });
+  const cancelButton = dialog.getByRole('button', { name: 'Cancel' });
+  const confirmButton = dialog.getByRole('button', { name: 'Deploy now' });
+  await expect(cancelButton).toBeFocused();
+
+  await page.keyboard.press('Shift+Tab');
+  await expect(confirmButton).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(cancelButton).toBeFocused();
+
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  await expect(deployButton).toBeFocused();
+
+  const graph = page.getByRole('group', { name: 'Climate control flow graph' });
+  await expect(graph.getByRole('button', { name: /Average temperature/ })).toBeVisible();
+  await expect(graph.getByRole('button', { name: /Values, input, number/ })).toBeVisible();
 });
 
 test('shows flow-library loading, empty, error, and retry states', async ({ page }) => {
@@ -255,14 +288,14 @@ test('opens a flow designer directly', async ({ page }) => {
   await viewport.focus();
   await expect(viewport).toBeFocused();
 
-  const initialWidth = await page.getByRole('img', { name: 'Climate control flow graph' }).evaluate((element) =>
+  const initialWidth = await page.getByRole('group', { name: 'Climate control flow graph' }).evaluate((element) =>
     element.getBoundingClientRect().width
   );
   await page.getByRole('button', { name: 'Zoom in' }).click();
   await expect(page.getByText('125%', { exact: true })).toBeVisible();
   await expect
     .poll(() =>
-      page.getByRole('img', { name: 'Climate control flow graph' }).evaluate((element) =>
+      page.getByRole('group', { name: 'Climate control flow graph' }).evaluate((element) =>
         element.getBoundingClientRect().width
       )
     )
@@ -291,7 +324,7 @@ test('renders a validated mocked API payload and rejects an invalid one visibly'
 
   await expect(page.getByRole('alert')).toContainText('invalid flow');
   await expect(page.getByText('Flow not found', { exact: true })).toBeVisible();
-  await expect(page.getByRole('img', { name: /flow graph/ })).toHaveCount(0);
+  await expect(page.getByRole('group', { name: /flow graph/ })).toHaveCount(0);
 });
 
 test('saves an unchanged mocked flow without losing graph data', async ({ page }) => {
@@ -493,11 +526,11 @@ test('highlights compatible connectors, previews a link, and rejects invalid com
   const preview = page.locator('[data-connection-id="connection-preview"] .flow-connection');
   await expect(preview).toBeVisible();
   const initialPath = await preview.getAttribute('d');
-  const canvasBox = await page.getByRole('img', { name: 'Climate control flow graph' }).boundingBox();
+  const canvasBox = await page.getByRole('group', { name: 'Climate control flow graph' }).boundingBox();
   expect(canvasBox).not.toBeNull();
   // Dispatch directly to the SVG so the preview assertion is deterministic in
   // both mouse-oriented desktop projects and touch-emulating mobile projects.
-  await page.getByRole('img', { name: 'Climate control flow graph' }).dispatchEvent('pointermove', {
+  await page.getByRole('group', { name: 'Climate control flow graph' }).dispatchEvent('pointermove', {
     clientX: canvasBox!.x + 330,
     clientY: canvasBox!.y + 300,
     pointerId: 1

@@ -9,6 +9,7 @@ import { FlowApiError, flowApi } from '../api/flowApi';
 import { flowRuntimeApi } from '../api/flowRuntimeApi';
 import { createLatestRequestGuard } from '../api/latestRequest';
 import { useFlowRuntimeStore } from '../stores/flowRuntime';
+import { useModalFocus } from '../composables/useModalFocus';
 import type { FlowConfigurationValue, FlowConnectionEndpoint, FlowNode } from '../types';
 
 const props = defineProps<{
@@ -26,12 +27,23 @@ const loadError = ref<string>();
 const saveError = ref<string>();
 const runtimeError = ref<string>();
 const showDeployConfirmation = ref(false);
+const deployDialog = ref<HTMLElement>();
+const discardDialog = ref<HTMLElement>();
 const runtime = computed(() => runtimeStore.snapshotFor(props.flowId));
 const deploying = computed(() => runtimeStore.isDeploying(props.flowId));
 let loadController: AbortController | undefined;
 const loadGuard = createLatestRequestGuard();
 const pendingRoute = ref<string>();
 let allowNavigation = false;
+
+const closeDeployConfirmation = (): void => {
+  showDeployConfirmation.value = false;
+};
+const { handleKeydown: handleDeployDialogKeydown } = useModalFocus(
+  deployDialog,
+  showDeployConfirmation,
+  closeDeployConfirmation
+);
 
 const moveNode = (nodeId: string, x: number, y: number): void => {
   flowStore.moveNode(props.flowId, nodeId, x, y);
@@ -164,6 +176,12 @@ const handleBeforeUnload = (event: BeforeUnloadEvent): void => {
 const keepEditing = (): void => {
   pendingRoute.value = undefined;
 };
+const discardDialogOpen = computed(() => Boolean(pendingRoute.value));
+const { handleKeydown: handleDiscardDialogKeydown } = useModalFocus(
+  discardDialog,
+  discardDialogOpen,
+  keepEditing
+);
 
 const discardChanges = async (): Promise<void> => {
   const target = pendingRoute.value;
@@ -195,30 +213,42 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', handleBeforeUnl
     <p v-if="runtimeError" class="request-error" role="alert">{{ runtimeError }}</p>
     <div v-if="showDeployConfirmation" class="dialog-backdrop">
       <section
+        ref="deployDialog"
         class="discard-dialog"
         role="alertdialog"
         aria-labelledby="deploy-title"
+        aria-describedby="deploy-description"
         aria-modal="true"
+        tabindex="-1"
+        @keydown="handleDeployDialogKeydown"
       >
         <h2 id="deploy-title">Deploy this flow?</h2>
-        <p>The latest saved definition will replace the currently running version.</p>
+        <p id="deploy-description">
+          The latest saved definition will replace the currently running version.
+        </p>
         <div>
-          <button type="button" @click="showDeployConfirmation = false">Cancel</button>
+          <button type="button" data-dialog-initial-focus @click="closeDeployConfirmation">
+            Cancel
+          </button>
           <button type="button" class="deploy-confirm" @click="deployFlow">Deploy now</button>
         </div>
       </section>
     </div>
     <div v-if="pendingRoute" class="dialog-backdrop">
       <section
+        ref="discardDialog"
         class="discard-dialog"
         role="alertdialog"
         aria-labelledby="discard-title"
+        aria-describedby="discard-description"
         aria-modal="true"
+        tabindex="-1"
+        @keydown="handleDiscardDialogKeydown"
       >
         <h2 id="discard-title">Discard unsaved changes?</h2>
-        <p>This flow has changes that have not been saved.</p>
+        <p id="discard-description">This flow has changes that have not been saved.</p>
         <div>
-          <button type="button" @click="keepEditing">Keep editing</button>
+          <button type="button" data-dialog-initial-focus @click="keepEditing">Keep editing</button>
           <button type="button" @click="discardChanges">Discard changes</button>
         </div>
       </section>

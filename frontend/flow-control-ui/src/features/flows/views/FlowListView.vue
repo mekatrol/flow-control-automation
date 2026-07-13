@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia';
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, type ComponentPublicInstance } from 'vue';
 
 import { flowApi } from '../api/flowApi';
 import { useFlowsStore } from '../stores/flows';
+import { useModalFocus } from '../composables/useModalFocus';
 
 const flowStore = useFlowsStore();
 const { flows } = storeToRefs(flowStore);
@@ -16,7 +17,22 @@ const renameValue = ref('');
 const renaming = ref(false);
 const confirmingDeleteId = ref<string>();
 const deleting = ref(false);
+const deleteDialog = ref<HTMLElement>();
 let listController: AbortController | undefined;
+
+const setDeleteDialog = (element: Element | ComponentPublicInstance | null): void => {
+  deleteDialog.value = element instanceof HTMLElement ? element : undefined;
+};
+
+const closeDeleteConfirmation = (): void => {
+  confirmingDeleteId.value = undefined;
+};
+const deleteDialogOpen = computed(() => Boolean(confirmingDeleteId.value));
+const { handleKeydown: handleDeleteDialogKeydown } = useModalFocus(
+  deleteDialog,
+  deleteDialogOpen,
+  closeDeleteConfirmation
+);
 
 const loadFlows = async (): Promise<void> => {
   // A retry can overlap the previous request. Only the controller still owned by
@@ -61,6 +77,10 @@ const beginRename = (flowId: string, name: string): void => {
   renameValue.value = name;
 };
 
+const beginDelete = (flowId: string): void => {
+  confirmingDeleteId.value = flowId;
+};
+
 const renameFlow = async (flowId: string): Promise<void> => {
   const payload = flowStore.flowPayload(flowId);
   const name = renameValue.value.trim();
@@ -90,7 +110,7 @@ const deleteFlow = async (flowId: string): Promise<void> => {
     // Keep the card visible if the server rejects deletion. Local state changes
     // only after the backend confirms that the flow is gone.
     flowStore.removeConfirmedFlow(flowId);
-    confirmingDeleteId.value = undefined;
+    closeDeleteConfirmation();
   } catch (caught) {
     error.value = caught instanceof Error ? caught.message : 'Unable to delete the flow.';
   } finally {
@@ -144,7 +164,7 @@ onBeforeUnmount(() => listController?.abort());
           <span class="status" :class="flow.status">{{ flow.status }}</span>
           <div class="card-actions">
             <button type="button" @click="beginRename(flow.id, flow.name)">Rename</button>
-            <button type="button" @click="confirmingDeleteId = flow.id">Delete</button>
+            <button type="button" @click="beginDelete(flow.id)">Delete</button>
           </div>
         </div>
         <form
@@ -175,15 +195,22 @@ onBeforeUnmount(() => listController?.abort());
         </dl>
         <div
           v-if="confirmingDeleteId === flow.id"
+          :ref="setDeleteDialog"
           class="delete-confirmation"
           role="alertdialog"
           :aria-label="`Delete ${flow.name}?`"
+          :aria-describedby="`delete-description-${flow.id}`"
+          aria-modal="true"
+          tabindex="-1"
+          @keydown="handleDeleteDialogKeydown"
         >
-          <span>Delete this flow?</span>
+          <span :id="`delete-description-${flow.id}`">Delete this flow?</span>
           <button type="button" :disabled="deleting" @click="deleteFlow(flow.id)">
             Confirm delete
           </button>
-          <button type="button" @click="confirmingDeleteId = undefined">Cancel</button>
+          <button type="button" data-dialog-initial-focus @click="closeDeleteConfirmation">
+            Cancel
+          </button>
         </div>
       </article>
     </div>

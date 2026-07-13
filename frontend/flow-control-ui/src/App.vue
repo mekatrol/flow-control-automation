@@ -1,5 +1,6 @@
 <template>
   <div class="app-shell">
+    <a class="skip-link" href="#main-content">Skip to main content</a>
     <header class="app-header">
       <RouterLink class="brand" :to="{ name: 'flows' }">
         <span class="brand-mark" aria-hidden="true">FC</span>
@@ -14,8 +15,26 @@
       </nav>
     </header>
 
-    <main>
+    <main id="main-content" tabindex="-1">
       <RouterView />
     </main>
   </div>
 </template>
+
+<style scoped>
+.skip-link {
+  position: fixed;
+  z-index: 100;
+  top: 8px;
+  left: 8px;
+  padding: 10px 14px;
+  color: #fff;
+  background: #102133;
+  border-radius: 7px;
+  transform: translateY(-160%);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+</style>

@@ -113,3 +113,9 @@ a {
     display: none;
   }
 }
+/* A visible focus indicator must not depend on each feature remembering to add
+   one. This ring covers native controls and custom SVG controls consistently. */
+:focus-visible {
+  outline: 3px solid #e07718;
+  outline-offset: 3px;
+}

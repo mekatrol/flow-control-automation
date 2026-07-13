@@ -1,42 +1,57 @@
-# flow-control-ui
+# Flow Control UI
 
-This template should help get you started developing with Vue 3 in Vite.
+Vue 3 and TypeScript frontend for creating, editing, saving, and deploying Flow
+Control automation graphs. The designer uses accessible HTML controls around an
+interactive SVG canvas and obtains persisted and runtime state from the backend API.
 
-## Recommended IDE Setup
+## Requirements
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+- Node.js 22.18 or newer (or 24.12 or newer)
+- npm
+- A current Chromium-based browser. Desktop Chrome/Chromium and the Chromium
+  mobile viewport are the supported and continuously tested browser targets.
 
-## Recommended Browser Setup
-
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
-
-## Type Support for `.vue` Imports in TS
-
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
+## Development and verification
 
 ```sh
 npm install
-```
-
-### Compile and Hot-Reload for Development
-
-```sh
 npm run dev
 ```
 
-### Type-Check, Compile and Minify for Production
+The development server proxies no API by itself; run the repository's Go backend
+or use deterministic Playwright route fixtures. Before merging frontend changes,
+run the same checks required by the completed migration:
 
 ```sh
+npm run format
+npm run lint
+npm run test:unit -- --run
+npm run test:e2e
 npm run build
 ```
+
+Playwright starts its own Vite server and covers desktop and mobile Chromium. Its
+route suite includes direct designer URLs and reloads, responsive overflow, the
+critical create/edit/save/deploy lifecycle, keyboard interaction, and a 120-node
+graph fixture.
+
+## Production base path
+
+The default build uses `/` as its public base. Set `VITE_BASE_PATH` when the UI is
+served below a Docker reverse-proxy or Home Assistant ingress prefix. Include both
+leading and trailing slashes:
+
+```sh
+VITE_BASE_PATH=/flow-control/ npm run build
+```
+
+The web server must return `index.html` for unknown frontend routes such as
+`/flow-control/flows/example`; Vue Router then resolves the direct URL. API calls
+remain rooted at `/api` and should be routed to the Go backend by the deployment.
+
+## Architecture references
+
+- [Flow DTO schema](../../.codex/ui-flow-schema.md)
+- [Runtime API contract](../../.codex/ui-runtime-api.md)
+- [Legacy retirement record](../../.codex/ui-legacy-retirement.md)
+- [Completed migration plan](../../.codex/ui-migration-plan.md)

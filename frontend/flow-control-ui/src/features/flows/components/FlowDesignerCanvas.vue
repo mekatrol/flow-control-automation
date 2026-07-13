@@ -93,6 +93,14 @@ const connectionEndpoints = (connection: FlowConnectionModel) => ({
   start: connectorPoint(connection.start.nodeId, connection.start.connectorId),
   end: connectorPoint(connection.end.nodeId, connection.end.connectorId)
 });
+const renderedConnections = computed(() =>
+  // Resolve each pair once per graph update. A large graph previously repeated
+  // both node and connector lookups for the start and end template bindings.
+  props.flow.connections.map((connection) => ({
+    connection,
+    ...connectionEndpoints(connection)
+  }))
+);
 const connectorAt = (endpoint: FlowConnectionEndpoint) =>
   nodesById.value
     .get(endpoint.nodeId)
@@ -354,7 +362,7 @@ const handleDragCancel = (event: PointerEvent): void => {
         class="designer-canvas"
         :viewBox="`0 0 ${DESIGNER_WIDTH} ${DESIGNER_HEIGHT}`"
         :style="{ width: `${canvasSize.width}px`, height: `${canvasSize.height}px` }"
-        role="img"
+        role="group"
         :aria-label="`${flow.name} flow graph`"
         @click.self="clearCanvasState"
         @pointermove="handlePointerMove"
@@ -377,13 +385,13 @@ const handleDragCancel = (event: PointerEvent): void => {
 
         <g class="connections">
           <FlowConnection
-            v-for="connection in flow.connections"
-            :key="connection.id"
-            :id="connection.id"
-            :start="connectionEndpoints(connection).start"
-            :end="connectionEndpoints(connection).end"
-            :selected="connection.id === selectedConnectionId"
-            :label="`Connection from ${connection.start.nodeId} to ${connection.end.nodeId}`"
+            v-for="rendered in renderedConnections"
+            :key="rendered.connection.id"
+            :id="rendered.connection.id"
+            :start="rendered.start"
+            :end="rendered.end"
+            :selected="rendered.connection.id === selectedConnectionId"
+            :label="`Connection from ${rendered.connection.start.nodeId} to ${rendered.connection.end.nodeId}`"
             @select="handleConnectionSelection"
           />
           <FlowConnection

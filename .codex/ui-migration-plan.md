@@ -3,6 +3,9 @@
 This is the restartable plan for migrating the remaining designer behaviour from
 `../HtmlSvg` into `frontend/flow-control-ui`.
 
+**Status: complete.** The legacy project is no longer a build or runtime dependency.
+Final behavior decisions are recorded in `.codex/ui-legacy-retirement.md`.
+
 The old project is a behavioural and visual reference. It is not an architecture
 template. New code must use the current UI project's Vue, Vue Router, Pinia,
 TypeScript, lint, format, accessibility, and testing conventions.
@@ -246,17 +249,17 @@ Complete this phase before adding mutable designer behaviour.
 
 ### Phase 8 — Hardening and legacy retirement
 
-- [ ] Complete keyboard-only and screen-reader-oriented accessibility review.
-- [ ] Add stable e2e coverage for critical flow create/edit/save/deploy journeys.
-- [ ] Add visual regression snapshots only for stable designer states where they
+- [x] Complete keyboard-only and screen-reader-oriented accessibility review.
+- [x] Add stable e2e coverage for critical flow create/edit/save/deploy journeys.
+- [x] Add visual regression snapshots only for stable designer states where they
   provide value beyond behavioural assertions.
-- [ ] Test large graphs and remove avoidable reactive/rendering bottlenecks.
-- [ ] Verify supported browsers, responsive layouts, Docker base paths, and direct
+- [x] Test large graphs and remove avoidable reactive/rendering bottlenecks.
+- [x] Verify supported browsers, responsive layouts, Docker base paths, and direct
   route reloads.
-- [ ] Compare the finished UI against every row in the legacy behaviour inventory.
-- [ ] Document deliberately dropped legacy behaviour and why it is no longer needed.
-- [ ] Remove obsolete migration fixtures, compatibility code, and unused assets.
-- [ ] Update project documentation and mark this migration plan complete.
+- [x] Compare the finished UI against every row in the legacy behaviour inventory.
+- [x] Document deliberately dropped legacy behaviour and why it is no longer needed.
+- [x] Remove obsolete migration fixtures, compatibility code, and unused assets.
+- [x] Update project documentation and mark this migration plan complete.
 
 ## Per-slice definition of done
 
@@ -278,6 +281,40 @@ template for each slice and record the result in the handoff log.
 ## Handoff log
 
 Add the newest entry first. Keep entries concise and include exact commands/results.
+
+### 2026-07-14 — Phase 8 complete and legacy retired
+
+- Added a stable create/edit/save/deploy/reload journey and a 120-node,
+  119-connection render fixture across desktop and mobile Chromium. Connection
+  endpoints are now resolved once per connection per graph update.
+- Added configurable `VITE_BASE_PATH`, corrected base-aware favicon output, and
+  verified `/flow-control/flows/direct-check` returns the built SPA with prefixed
+  assets. Existing route tests cover direct reload and responsive overflow.
+- Compared every legacy inventory row and documented replacements, deliberately
+  dropped behavior, the decision against brittle visual snapshots, and cleanup in
+  `.codex/ui-legacy-retirement.md`. Removed the generated Playwright result file,
+  ignored future test artifacts, and replaced the starter frontend README.
+- Verified at completion: `npm run format`, `npm run lint`,
+  `npm run test:unit -- --run` (65 tests), `npm run test:e2e` (48 tests across
+  desktop and mobile Chromium), and `npm run build`.
+- Additional deployment verification: `VITE_BASE_PATH=/flow-control/ npm run build`
+  and a preview request to `/flow-control/flows/direct-check` returned HTTP 200 with
+  `/flow-control/` asset URLs. **The UI migration is complete.**
+
+### 2026-07-14 — Phase 8 accessibility review
+
+- Completed the keyboard-only and screen-reader-oriented review: added a main-content
+  bypass link and consistent focus indicators, exposed the interactive SVG graph as
+  a labelled group, and made deploy, discard, and delete confirmations trap focus,
+  close with Escape, describe their consequences, and restore opener focus.
+- Added focused modal unit coverage and a keyboard-only Playwright journey covering
+  bypass navigation, modal focus cycling, Escape, focus restoration, and graph
+  control exposure to the accessibility tree.
+- Verified at completion: `npm run format`, `npm run lint`,
+  `npm run test:unit -- --run` (65 tests), `npm run test:e2e` (44 tests across
+  desktop and mobile Chromium), and `npm run build`.
+- Resume with: **Phase 8 — add stable e2e coverage for critical flow
+  create/edit/save/deploy journeys**.
 
 ### 2026-07-14 — Phase 7 deploy and runtime status
 
