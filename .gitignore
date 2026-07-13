@@ -1,6 +1,18 @@
 # Prerequisites
 *.d
 
+# Go build output
+backend/bin/
+
+# Vue and Vite output
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+frontend/.env.*.local
+
+# Local editor and operating system files
+.DS_Store
+
 # Compiled Object files
 *.slo
 *.lo
