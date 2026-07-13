@@ -88,6 +88,27 @@ func TestSaveRejectsInvalidGraphWithoutReplacingStoredFlow(t *testing.T) {
 	}
 }
 
+func TestSaveAcceptsAverageNodeEmittedByEditor(t *testing.T) {
+	store, err := OpenStore(filepath.Join(t.TempDir(), "flows.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := NewHandler(store)
+	created := requestFlow(t, handler, http.MethodPost, "/api/flows", `{"name":"Clothes line light"}`, http.StatusCreated)
+	created.Nodes = []Node{{
+		ID: "average-1", Kind: "average", Label: "Average", X: 10, Y: 20, ZOrder: 1,
+		Color: "#ef8354", Connectors: []Connector{}, Configuration: map[string]any{"enabled": true},
+	}}
+	body, err := json.Marshal(created)
+	if err != nil {
+		t.Fatal(err)
+	}
+	saved := requestFlow(t, handler, http.MethodPut, "/api/flows/"+created.ID, string(body), http.StatusOK)
+	if len(saved.Nodes) != 1 || saved.Nodes[0].Kind != "average" {
+		t.Fatalf("average node was not saved: %#v", saved)
+	}
+}
+
 func TestSaveRequiresMatchingPathIDAndExistingFlow(t *testing.T) {
 	store, err := OpenStore(filepath.Join(t.TempDir(), "flows.json"))
 	if err != nil {
@@ -100,6 +121,52 @@ func TestSaveRequiresMatchingPathIDAndExistingFlow(t *testing.T) {
 	created.ID = "different"
 	body, _ = json.Marshal(created)
 	requestStatus(t, handler, http.MethodPut, "/api/flows/one", string(body), http.StatusBadRequest)
+}
+
+func TestRuntimeStartsStoppedAndDeploysSavedFlow(t *testing.T) {
+	store, err := OpenStore(filepath.Join(t.TempDir(), "flows.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := NewHandler(store)
+	created := requestFlow(t, handler, http.MethodPost, "/api/flows", `{"name":"Runtime flow"}`, http.StatusCreated)
+
+	stopped := requestRuntime(t, handler, http.MethodGet, "/api/flows/"+created.ID+"/runtime", http.StatusOK)
+	if stopped.FlowID != created.ID || stopped.State != "stopped" || stopped.Nodes == nil {
+		t.Fatalf("unexpected initial runtime snapshot: %#v", stopped)
+	}
+
+	running := requestRuntime(t, handler, http.MethodPost, "/api/flows/"+created.ID+"/deploy", http.StatusOK)
+	if running.FlowID != created.ID || running.State != "running" {
+		t.Fatalf("unexpected deployed runtime snapshot: %#v", running)
+	}
+	reloaded := requestRuntime(t, handler, http.MethodGet, "/api/flows/"+created.ID+"/runtime", http.StatusOK)
+	if reloaded.State != "running" {
+		t.Fatalf("runtime state was not retained: %#v", reloaded)
+	}
+}
+
+func TestRuntimeRoutesReturnNotFoundForMissingFlow(t *testing.T) {
+	store, err := OpenStore(filepath.Join(t.TempDir(), "flows.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := NewHandler(store)
+	requestStatus(t, handler, http.MethodGet, "/api/flows/missing/runtime", "", http.StatusNotFound)
+	requestStatus(t, handler, http.MethodPost, "/api/flows/missing/deploy", "", http.StatusNotFound)
+}
+
+func requestRuntime(t *testing.T, handler http.Handler, method, path string, status int) RuntimeSnapshot {
+	t.Helper()
+	response := request(t, handler, method, path, "")
+	if response.Code != status {
+		t.Fatalf("%s %s returned %d: %s", method, path, response.Code, response.Body.String())
+	}
+	var snapshot RuntimeSnapshot
+	if err := json.NewDecoder(response.Body).Decode(&snapshot); err != nil {
+		t.Fatal(err)
+	}
+	return snapshot
 }
 
 func requestFlow(t *testing.T, handler http.Handler, method, path, body string, status int) Flow {

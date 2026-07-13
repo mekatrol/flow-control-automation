@@ -55,8 +55,15 @@ describe('flow API client', () => {
     vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(response({ nope: true })));
     await expect(flowApi.getFlow('bad')).rejects.toMatchObject({ kind: 'validation' });
 
-    vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(response({}, 503)));
-    await expect(flowApi.getFlow('offline')).rejects.toMatchObject({ kind: 'http', status: 503 });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof fetch>().mockResolvedValue(response({ message: 'runtime unavailable' }, 503))
+    );
+    await expect(flowApi.getFlow('offline')).rejects.toMatchObject({
+      kind: 'http',
+      status: 503,
+      message: 'Flow request failed: runtime unavailable'
+    });
 
     vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(response({ nope: true })));
     await expect(flowApi.listFlows()).rejects.toMatchObject({ kind: 'validation' });

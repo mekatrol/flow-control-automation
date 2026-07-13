@@ -13,6 +13,31 @@ export class FlowApiError extends Error {
   }
 }
 
+const httpError = async (response: Response): Promise<FlowApiError> => {
+  let serverMessage: string | undefined;
+  try {
+    const payload: unknown = await response.json();
+    if (
+      typeof payload === 'object' &&
+      payload !== null &&
+      'message' in payload &&
+      typeof payload.message === 'string'
+    ) {
+      serverMessage = payload.message;
+    }
+  } catch {
+    // Some proxies return an HTML or empty error response. The status remains a
+    // useful fallback when no structured backend message is available.
+  }
+  return new FlowApiError(
+    'http',
+    serverMessage
+      ? `Flow request failed: ${serverMessage}`
+      : `Flow request failed with status ${response.status}.`,
+    response.status
+  );
+};
+
 // A successful HTTP status is not enough to trust a flow. The server response is
 // still external data, so every response passes through the graph validator before
 // it can reach Pinia or any editing component.
@@ -20,11 +45,7 @@ const requestFlow = async (url: string, init: RequestInit): Promise<FlowDto> => 
   try {
     const response = await fetch(url, init);
     if (!response.ok) {
-      throw new FlowApiError(
-        'http',
-        `Flow request failed with status ${response.status}.`,
-        response.status
-      );
+      throw await httpError(response);
     }
 
     let payload: unknown;
@@ -53,11 +74,7 @@ const requestFlows = async (url: string, init: RequestInit): Promise<FlowDto[]> 
   try {
     const response = await fetch(url, init);
     if (!response.ok) {
-      throw new FlowApiError(
-        'http',
-        `Flow request failed with status ${response.status}.`,
-        response.status
-      );
+      throw await httpError(response);
     }
     let payload: unknown;
     try {
@@ -89,11 +106,7 @@ const requestEmpty = async (url: string, init: RequestInit): Promise<void> => {
   try {
     const response = await fetch(url, init);
     if (!response.ok) {
-      throw new FlowApiError(
-        'http',
-        `Flow request failed with status ${response.status}.`,
-        response.status
-      );
+      throw await httpError(response);
     }
   } catch (error) {
     if (error instanceof FlowApiError) throw error;

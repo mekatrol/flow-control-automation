@@ -11,10 +11,13 @@ import (
 
 const maxRequestBytes = 10 << 20
 
-type API struct{ store *Store }
+type API struct {
+	store   *Store
+	runtime *RuntimeStore
+}
 
 func NewHandler(store *Store) http.Handler {
-	api := &API{store: store}
+	api := &API{store: store, runtime: NewRuntimeStore()}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/health", api.health)
 	mux.HandleFunc("GET /api/flows", api.list)
@@ -22,7 +25,35 @@ func NewHandler(store *Store) http.Handler {
 	mux.HandleFunc("GET /api/flows/{flowId}", api.get)
 	mux.HandleFunc("PUT /api/flows/{flowId}", api.save)
 	mux.HandleFunc("DELETE /api/flows/{flowId}", api.delete)
+	mux.HandleFunc("POST /api/flows/{flowId}/deploy", api.deploy)
+	mux.HandleFunc("GET /api/flows/{flowId}/runtime", api.getRuntime)
 	return mux
+}
+
+func (api *API) deploy(response http.ResponseWriter, request *http.Request) {
+	flow, err := api.store.Get(request.PathValue("flowId"))
+	if errors.Is(err, ErrNotFound) {
+		writeError(response, http.StatusNotFound, "flow not found")
+		return
+	}
+	if err != nil {
+		writeError(response, http.StatusServiceUnavailable, "runtime service unavailable")
+		return
+	}
+	writeJSON(response, http.StatusOK, api.runtime.Deploy(flow))
+}
+
+func (api *API) getRuntime(response http.ResponseWriter, request *http.Request) {
+	flow, err := api.store.Get(request.PathValue("flowId"))
+	if errors.Is(err, ErrNotFound) {
+		writeError(response, http.StatusNotFound, "flow not found")
+		return
+	}
+	if err != nil {
+		writeError(response, http.StatusServiceUnavailable, "runtime service unavailable")
+		return
+	}
+	writeJSON(response, http.StatusOK, api.runtime.Get(flow))
 }
 
 func (api *API) health(response http.ResponseWriter, _ *http.Request) {
@@ -65,10 +96,12 @@ func (api *API) save(response http.ResponseWriter, request *http.Request) {
 }
 
 func (api *API) delete(response http.ResponseWriter, request *http.Request) {
-	if err := api.store.Delete(request.PathValue("flowId")); err != nil {
+	flowID := request.PathValue("flowId")
+	if err := api.store.Delete(flowID); err != nil {
 		api.writeResult(response, Flow{}, err, http.StatusNoContent)
 		return
 	}
+	api.runtime.Delete(flowID)
 	response.WriteHeader(http.StatusNoContent)
 }
 

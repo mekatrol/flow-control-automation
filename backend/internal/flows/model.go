@@ -50,7 +50,14 @@ type Connection struct {
 }
 
 var (
-	validKinds      = values("calculator", "override", "pulse", "split")
+	// Keep this wire-level catalogue aligned with the node kinds emitted by the
+	// browser. Execution support can vary by kind, but every graph the editor can
+	// construct must remain saveable.
+	validKinds = values(
+		"and", "average", "calculator", "calendar", "clamp", "comparator",
+		"delay", "if", "invert", "line", "max", "min", "or", "override",
+		"pulse", "schedule", "selector", "sequence", "split", "timer", "xnor", "xor",
+	)
 	validStatuses   = values("draft", "deployed")
 	validDirections = values("input", "output")
 	validDataTypes  = values("any", "boolean", "event", "number", "string")
