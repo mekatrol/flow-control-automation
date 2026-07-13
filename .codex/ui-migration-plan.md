@@ -206,6 +206,8 @@ Complete this phase before adding mutable designer behaviour.
   - Unit coverage: filtering/grouping and default-node creation.
   - E2e coverage: search and add representative node kinds.
 - [x] Add node creation by command and optional drag/drop onto the canvas.
+  - Restored the complete legacy `FlowNodeFunctionType` catalogue and exposed it
+    in a left-hand function-block toolbox with click and drag/drop creation.
   - Unit coverage: ID generation, default connector creation, and placement.
   - E2e coverage: add, position, and select a new node.
 - [x] Add the node configuration panel with typed editors and validation messages.

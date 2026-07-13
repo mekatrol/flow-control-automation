@@ -6,6 +6,7 @@ import type {
   FlowNodeKind,
   FlowStatus
 } from '../types';
+import { flowNodeKinds } from '../nodeKinds';
 
 export interface FlowNodeConnectorDto {
   id: string;
@@ -57,7 +58,7 @@ export class FlowDtoValidationError extends Error {
   }
 }
 
-const nodeKinds = new Set<FlowNodeKind>(['calculator', 'override', 'pulse', 'split']);
+const nodeKinds = new Set<FlowNodeKind>(flowNodeKinds);
 const statuses = new Set<FlowStatus>(['draft', 'deployed']);
 const directions = new Set<ConnectorDirection>(['input', 'output']);
 const dataTypes = new Set<ConnectorDataType>(['any', 'boolean', 'event', 'number', 'string']);

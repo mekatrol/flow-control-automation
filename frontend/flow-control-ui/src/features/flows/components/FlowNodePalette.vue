@@ -36,10 +36,16 @@ import type { FlowNodeKind } from '../types';
 const emit = defineEmits<{ add: [kind: FlowNodeKind] }>();
 const query = ref('');
 const groups = computed(() => groupNodeKinds(filterNodeKinds(query.value)));
+
+const startPaletteDrag = (kind: FlowNodeKind, event: DragEvent): void => {
+  event.dataTransfer?.setData('application/x-flow-node-function-type', kind);
+  if (event.dataTransfer) event.dataTransfer.effectAllowed = 'copy';
+};
 </script>
 
 <template>
-  <aside class="node-palette" aria-label="Node palette">
+  <aside class="node-palette" aria-label="Function block toolbox">
+    <h2>Function blocks</h2>
     <label>
       <span>Find a node</span>
       <input v-model="query" type="search" placeholder="Search nodes" />
@@ -51,7 +57,9 @@ const groups = computed(() => groupNodeKinds(filterNodeKinds(query.value)));
           v-for="definition in definitions"
           :key="definition.kind"
           type="button"
+          draggable="true"
           @click="emit('add', definition.kind)"
+          @dragstart="startPaletteDrag(definition.kind, $event)"
         >
           <span aria-hidden="true">{{ definition.icon }}</span>
           Add {{ definition.label }} node
@@ -64,13 +72,21 @@ const groups = computed(() => groupNodeKinds(filterNodeKinds(query.value)));
 
 <style scoped>
 .node-palette {
-  padding: 12px 16px;
+  width: 220px;
+  min-width: 220px;
+  padding: 14px;
   background: #f8fbfd;
-  border-bottom: 1px solid #d8e2ea;
+  border-right: 1px solid #d8e2ea;
+}
+
+.node-palette > h2 {
+  margin: 0 0 12px;
+  color: #244052;
+  font-size: 14px;
 }
 
 label {
-  display: flex;
+  display: grid;
   gap: 10px;
   align-items: center;
   color: #34495b;
@@ -79,27 +95,26 @@ label {
 }
 
 input {
-  width: min(260px, 100%);
+  width: 100%;
   padding: 7px 9px;
   border: 1px solid #cbd8e2;
   border-radius: 6px;
 }
 
 .palette-groups {
-  display: flex;
-  gap: 18px;
+  display: grid;
+  gap: 14px;
   margin-top: 10px;
-  overflow-x: auto;
 }
 
 section {
-  display: flex;
+  display: grid;
   gap: 5px;
   align-items: center;
 }
 
 h3 {
-  margin: 0 3px 0 0;
+  margin: 0 0 3px;
   color: #718394;
   font-size: 9px;
   letter-spacing: 0.08em;
@@ -107,6 +122,7 @@ h3 {
 }
 
 button {
+  width: 100%;
   padding: 6px 8px;
   color: #244052;
   font-size: 10px;
@@ -115,6 +131,8 @@ button {
   border-radius: 6px;
   cursor: pointer;
   white-space: nowrap;
+  text-align: left;
+  touch-action: none;
 }
 
 p {

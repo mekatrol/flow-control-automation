@@ -1,6 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const port = 5174;
+// Allow parallel worktrees or a developer's existing preview server to coexist
+// with an isolated test run while preserving the usual local default.
+const port = Number(process.env.FLOW_UI_E2E_PORT ?? 5174);
 const baseURL = `http://127.0.0.1:${port}`;
 
 export default defineConfig({

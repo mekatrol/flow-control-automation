@@ -1,6 +1,34 @@
 export type FlowStatus = 'draft' | 'deployed';
 
-export type FlowNodeKind = 'calculator' | 'override' | 'pulse' | 'split';
+// These are the function blocks supported by the legacy flow engine. The enum
+// is also the persisted wire value, so adding a block does not require a second
+// translation table between the toolbox, graph, and API payload.
+export enum FlowNodeFunctionType {
+  And = 'and',
+  Average = 'average',
+  Calculator = 'calculator',
+  Calendar = 'calendar',
+  Clamp = 'clamp',
+  Comparator = 'comparator',
+  Delay = 'delay',
+  If = 'if',
+  Invert = 'invert',
+  Line = 'line',
+  Max = 'max',
+  Min = 'min',
+  Or = 'or',
+  Override = 'override',
+  Pulse = 'pulse',
+  Schedule = 'schedule',
+  Selector = 'selector',
+  Sequence = 'sequence',
+  Split = 'split',
+  Timer = 'timer',
+  Xnor = 'xnor',
+  Xor = 'xor'
+}
+
+export type FlowNodeKind = FlowNodeFunctionType;
 
 export type ConnectorDirection = 'input' | 'output';
 

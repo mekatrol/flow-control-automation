@@ -449,10 +449,22 @@ test('drags a node to a snapped position and keeps it after route navigation', a
   const box = await node.boundingBox();
   expect(box).not.toBeNull();
 
-  await page.mouse.move(box!.x + 80, box!.y + 30);
-  await page.mouse.down();
-  await page.mouse.move(box!.x + 170, box!.y + 110, { steps: 4 });
-  await page.mouse.up();
+  const canvas = page.getByRole('group', { name: 'Climate control flow graph' });
+  // Pointer events exercise the component's actual input contract and work in
+  // both mouse and touch-emulating projects; Playwright's mouse is intentionally
+  // suppressed by mobile browser contexts.
+  await node.dispatchEvent('pointerdown', {
+    button: 0,
+    clientX: box!.x + 80,
+    clientY: box!.y + 30,
+    pointerId: 7
+  });
+  await canvas.dispatchEvent('pointermove', {
+    clientX: box!.x + 170,
+    clientY: box!.y + 110,
+    pointerId: 7
+  });
+  await canvas.dispatchEvent('pointerup', { pointerId: 7 });
 
   await expect(node).not.toHaveAttribute('transform', initialTransform);
   const movedTransform = await node.evaluate((element) => element.getAttribute('transform'));
@@ -597,6 +609,31 @@ test('searches the node palette and adds registry-backed nodes', async ({ page }
   await page.getByRole('button', { name: 'Add Split node' }).click();
   await expect(page.getByRole('button', { name: /New Split, Split node/ })).toBeVisible();
   await expect(page.getByText('6 nodes', { exact: true })).toBeVisible();
+});
+
+test('drags a legacy function block from the toolbox onto the canvas', async ({ page }) => {
+  await page.goto('/flows/climate-control');
+
+  const search = page.getByRole('searchbox', { name: 'Find a node' });
+  await search.fill('average');
+  const average = page.getByRole('button', { name: 'Add Average node' });
+  await expect(average).toHaveAttribute('draggable', 'true');
+  const canvas = page.getByRole('group', { name: 'Climate control flow graph' });
+  const canvasBox = await canvas.boundingBox();
+  expect(canvasBox).not.toBeNull();
+  // Native mouse drag synthesis is unavailable in touch-emulating projects and
+  // can target a node painted above the SVG background. Dispatch the same HTML
+  // drag payload to the canvas at an explicit empty graph coordinate instead.
+  const transfer = await page.evaluateHandle(() => new DataTransfer());
+  await average.dispatchEvent('dragstart', { dataTransfer: transfer });
+  await canvas.dispatchEvent('drop', {
+    clientX: canvasBox!.x + 760,
+    clientY: canvasBox!.y + 470,
+    dataTransfer: transfer
+  });
+
+  await expect(page.getByRole('button', { name: /New Average, Average node/ })).toBeVisible();
+  await expect(page.getByText('5 nodes', { exact: true })).toBeVisible();
 });
 
 test('validates, saves, and reloads typed node configuration', async ({ page }) => {

@@ -4,7 +4,10 @@ import { flowNodeKinds, nodeKindRegistry } from '../nodeKinds';
 
 describe('node-kind registry', () => {
   it('contains complete rendering, connector, and editor metadata for every supported kind', () => {
-    expect(flowNodeKinds).toEqual(['calculator', 'override', 'pulse', 'split']);
+    expect(flowNodeKinds).toHaveLength(22);
+    expect(flowNodeKinds).toEqual(
+      expect.arrayContaining(['and', 'average', 'calculator', 'xnor', 'xor'])
+    );
 
     for (const kind of flowNodeKinds) {
       const definition = nodeKindRegistry[kind];

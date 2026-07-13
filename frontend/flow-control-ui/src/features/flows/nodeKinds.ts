@@ -1,4 +1,4 @@
-import type { FlowNodeConnector, FlowNodeKind } from './types';
+import { FlowNodeFunctionType, type FlowNodeConnector, type FlowNodeKind } from './types';
 
 export interface NodeEditorField {
   key: string;
@@ -22,9 +22,43 @@ export interface NodeKindDefinition {
 // Each node kind declares everything the palette, canvas, and inspector need.
 // Keeping these concerns together prevents their labels, connectors, and
 // configuration defaults from drifting into incompatible versions.
+const numberConnectors = (): FlowNodeConnector[] => [
+  { id: 'input', label: 'Values', direction: 'input', dataType: 'number', side: 'left' },
+  { id: 'output', label: 'Result', direction: 'output', dataType: 'number', side: 'right' }
+];
+const anyConnectors = (): FlowNodeConnector[] => [
+  { id: 'input', label: 'Input', direction: 'input', dataType: 'any', side: 'left' },
+  { id: 'output', label: 'Output', direction: 'output', dataType: 'any', side: 'right' }
+];
+const definition = (
+  kind: FlowNodeFunctionType,
+  category: NodeKindDefinition['category'],
+  icon: string,
+  color: string,
+  connectors = anyConnectors()
+): NodeKindDefinition => ({
+  kind,
+  label: kind.charAt(0).toUpperCase() + kind.slice(1),
+  category,
+  icon,
+  color,
+  defaultSize: { width: 210, height: 64 },
+  connectors,
+  editor: [{ key: 'enabled', label: 'Enabled', input: 'checkbox' }],
+  defaultConfiguration: { enabled: true }
+});
+
 export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
-  calculator: {
-    kind: 'calculator',
+  [FlowNodeFunctionType.And]: definition(FlowNodeFunctionType.And, 'logic', '∧', '#7f8cff'),
+  [FlowNodeFunctionType.Average]: definition(
+    FlowNodeFunctionType.Average,
+    'maths',
+    'x̄',
+    '#ef8354',
+    numberConnectors()
+  ),
+  [FlowNodeFunctionType.Calculator]: {
+    kind: FlowNodeFunctionType.Calculator,
     label: 'Calculator',
     category: 'maths',
     icon: '∑',
@@ -39,8 +73,53 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     ],
     defaultConfiguration: { operation: 'average' }
   },
-  override: {
-    kind: 'override',
+  [FlowNodeFunctionType.Calendar]: definition(
+    FlowNodeFunctionType.Calendar,
+    'timing',
+    '▦',
+    '#a879d8'
+  ),
+  [FlowNodeFunctionType.Clamp]: definition(
+    FlowNodeFunctionType.Clamp,
+    'maths',
+    '⊣',
+    '#ef8354',
+    numberConnectors()
+  ),
+  [FlowNodeFunctionType.Comparator]: definition(
+    FlowNodeFunctionType.Comparator,
+    'logic',
+    '≷',
+    '#7f8cff',
+    numberConnectors()
+  ),
+  [FlowNodeFunctionType.Delay]: definition(FlowNodeFunctionType.Delay, 'timing', '◷', '#f5b942'),
+  [FlowNodeFunctionType.If]: definition(FlowNodeFunctionType.If, 'logic', '?', '#7f8cff'),
+  [FlowNodeFunctionType.Invert]: definition(FlowNodeFunctionType.Invert, 'logic', '¬', '#7f8cff'),
+  [FlowNodeFunctionType.Line]: definition(
+    FlowNodeFunctionType.Line,
+    'maths',
+    '╱',
+    '#ef8354',
+    numberConnectors()
+  ),
+  [FlowNodeFunctionType.Max]: definition(
+    FlowNodeFunctionType.Max,
+    'maths',
+    '↑',
+    '#ef8354',
+    numberConnectors()
+  ),
+  [FlowNodeFunctionType.Min]: definition(
+    FlowNodeFunctionType.Min,
+    'maths',
+    '↓',
+    '#ef8354',
+    numberConnectors()
+  ),
+  [FlowNodeFunctionType.Or]: definition(FlowNodeFunctionType.Or, 'logic', '∨', '#7f8cff'),
+  [FlowNodeFunctionType.Override]: {
+    kind: FlowNodeFunctionType.Override,
     label: 'Override',
     category: 'logic',
     icon: '↯',
@@ -53,8 +132,8 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     editor: [{ key: 'enabled', label: 'Override enabled', input: 'checkbox' }],
     defaultConfiguration: { enabled: false }
   },
-  pulse: {
-    kind: 'pulse',
+  [FlowNodeFunctionType.Pulse]: {
+    kind: FlowNodeFunctionType.Pulse,
     label: 'Pulse',
     category: 'timing',
     icon: '⌁',
@@ -67,8 +146,26 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     editor: [{ key: 'durationSeconds', label: 'Duration (seconds)', input: 'number' }],
     defaultConfiguration: { durationSeconds: 30 }
   },
-  split: {
-    kind: 'split',
+  [FlowNodeFunctionType.Schedule]: definition(
+    FlowNodeFunctionType.Schedule,
+    'timing',
+    '▤',
+    '#f5b942'
+  ),
+  [FlowNodeFunctionType.Selector]: definition(
+    FlowNodeFunctionType.Selector,
+    'routing',
+    '⇥',
+    '#64a7ff'
+  ),
+  [FlowNodeFunctionType.Sequence]: definition(
+    FlowNodeFunctionType.Sequence,
+    'routing',
+    '⋯',
+    '#64a7ff'
+  ),
+  [FlowNodeFunctionType.Split]: {
+    kind: FlowNodeFunctionType.Split,
     label: 'Split',
     category: 'routing',
     icon: '⑂',
@@ -80,7 +177,10 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     ],
     editor: [{ key: 'outputs', label: 'Output count', input: 'number' }],
     defaultConfiguration: { outputs: 2 }
-  }
+  },
+  [FlowNodeFunctionType.Timer]: definition(FlowNodeFunctionType.Timer, 'timing', '◴', '#f5b942'),
+  [FlowNodeFunctionType.Xnor]: definition(FlowNodeFunctionType.Xnor, 'logic', '⊙', '#7f8cff'),
+  [FlowNodeFunctionType.Xor]: definition(FlowNodeFunctionType.Xor, 'logic', '⊕', '#7f8cff')
 };
 
 export const flowNodeKinds = Object.keys(nodeKindRegistry) as FlowNodeKind[];

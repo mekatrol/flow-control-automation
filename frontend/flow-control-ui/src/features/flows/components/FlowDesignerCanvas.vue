@@ -30,6 +30,7 @@ import type {
   FlowDefinition,
   FlowNode as FlowNodeModel
 } from '../types';
+import { flowNodeKinds } from '../nodeKinds';
 import type { FlowRuntimeSnapshot } from '../api/flowRuntimeApi';
 
 const props = defineProps<{
@@ -152,6 +153,34 @@ const handleAddNode = (kind: FlowNodeModel['kind']): void => {
   emit('addNode', node);
   selectNode(node.id);
 };
+const addNodeAt = (kind: FlowNodeModel['kind'], position: Point): void => {
+  const zOrder = Math.max(-1, ...props.flow.nodes.map((node) => node.zOrder)) + 1;
+  const size = getNodeKind(kind).defaultSize;
+  const constrained = constrainNodePosition(position, {
+    width: DESIGNER_WIDTH,
+    height: DESIGNER_HEIGHT,
+    nodeWidth: size.width,
+    nodeHeight: size.height
+  });
+  const node = createDefaultNode(kind, constrained, zOrder);
+  emit('addNode', node);
+  selectNode(node.id);
+};
+
+const handlePaletteDrop = (event: DragEvent): void => {
+  event.preventDefault();
+  const kind = event.dataTransfer?.getData('application/x-flow-node-function-type');
+  if (!kind || !flowNodeKinds.includes(kind as FlowNodeModel['kind'])) return;
+  const point = pointerToCanvas(event as unknown as PointerEvent);
+  if (!point) return;
+  const size = getNodeKind(kind as FlowNodeModel['kind']).defaultSize;
+  // Centre the new block under the cursor instead of placing its top-left corner
+  // there, which makes the drop position match the user's drag intent.
+  addNodeAt(kind as FlowNodeModel['kind'], {
+    x: point.x - size.width / 2,
+    y: point.y - size.height / 2
+  });
+};
 const handleReorder = (command: ZOrderCommand): void => {
   if (selectedNodeId.value) emit('reorderNode', selectedNodeId.value, command);
 };
@@ -249,7 +278,13 @@ const handleDragStart = (nodeId: string, event: PointerEvent): void => {
   selectNode(nodeId);
   // Pointer capture keeps delivering move and release events to this gesture
   // even when a fast drag leaves the node or the visible SVG boundary.
-  (event.currentTarget as Element).setPointerCapture?.(event.pointerId);
+  try {
+    (event.currentTarget as Element).setPointerCapture?.(event.pointerId);
+  } catch {
+    // Synthetic accessibility tests and a pointer cancelled by the browser
+    // between dispatch and capture have no active pointer to capture. The drag
+    // can still proceed through the canvas-level move and release listeners.
+  }
   startDrag({
     nodeId,
     pointerId: event.pointerId,
@@ -337,91 +372,96 @@ const handleDragCancel = (event: PointerEvent): void => {
       />
     </div>
 
-    <FlowNodePalette @add="handleAddNode" />
-
-    <FlowNodeConfigurationPanel
-      v-if="selectedNode"
-      :node="selectedNode"
-      @update-label="emit('updateNodeLabel', selectedNode.id, $event)"
-      @update-configuration="
-        (key, value) => emit('updateNodeConfiguration', selectedNode!.id, key, value)
-      "
-    />
-
-    <p v-if="connectionError" class="connection-error" role="alert">{{ connectionError }}</p>
-
-    <div
-      ref="viewportElement"
-      class="canvas-viewport"
-      tabindex="0"
-      :aria-label="`Scrollable designer viewport, ${Math.round(viewportWidth)} pixels wide`"
-      @keydown="handleCanvasKeydown"
-    >
-      <svg
-        ref="canvasElement"
-        class="designer-canvas"
-        :viewBox="`0 0 ${DESIGNER_WIDTH} ${DESIGNER_HEIGHT}`"
-        :style="{ width: `${canvasSize.width}px`, height: `${canvasSize.height}px` }"
-        role="group"
-        :aria-label="`${flow.name} flow graph`"
-        @click.self="clearCanvasState"
-        @pointermove="handlePointerMove"
-        @pointerup="handleDragEnd"
-        @pointercancel="handleDragCancel"
-      >
-        <defs>
-          <pattern id="designer-grid" width="24" height="24" patternUnits="userSpaceOnUse">
-            <path d="M24 0H0V24" fill="none" stroke="#d8e2ea" stroke-width="1" />
-          </pattern>
-        </defs>
-
-        <rect
-          data-canvas-background
-          :width="DESIGNER_WIDTH"
-          :height="DESIGNER_HEIGHT"
-          fill="url(#designer-grid)"
-          @click="clearCanvasState"
+    <div class="designer-workspace">
+      <FlowNodePalette @add="handleAddNode" />
+      <div class="canvas-column">
+        <FlowNodeConfigurationPanel
+          v-if="selectedNode"
+          :node="selectedNode"
+          @update-label="emit('updateNodeLabel', selectedNode.id, $event)"
+          @update-configuration="
+            (key, value) => emit('updateNodeConfiguration', selectedNode!.id, key, value)
+          "
         />
 
-        <g class="connections">
-          <FlowConnection
-            v-for="rendered in renderedConnections"
-            :key="rendered.connection.id"
-            :id="rendered.connection.id"
-            :start="rendered.start"
-            :end="rendered.end"
-            :selected="rendered.connection.id === selectedConnectionId"
-            :label="`Connection from ${rendered.connection.start.nodeId} to ${rendered.connection.end.nodeId}`"
-            @select="handleConnectionSelection"
-          />
-          <FlowConnection
-            v-if="previewStart && previewEnd"
-            id="connection-preview"
-            :start="previewStart"
-            :end="previewEnd"
-            preview
-          />
-        </g>
+        <p v-if="connectionError" class="connection-error" role="alert">{{ connectionError }}</p>
 
-        <FlowNode
-          v-for="node in orderedNodes"
-          :key="node.id"
-          :node="node"
-          :selected="node.id === selectedNodeId"
-          :status="runtime?.nodes[node.id]?.state ?? flow.status"
-          :status-value="runtime?.nodes[node.id]?.value"
-          :connection-start="connectionStart"
-          :compatible-connector-keys="compatibleConnectorKeys"
-          @select="handleNodeSelection"
-          @dragstart="handleDragStart"
-          @connectoractivate="handleConnectorActivate"
-          @connectorpreview="handleConnectorPreview"
-        />
+        <div
+          ref="viewportElement"
+          class="canvas-viewport"
+          tabindex="0"
+          :aria-label="`Scrollable designer viewport, ${Math.round(viewportWidth)} pixels wide`"
+          @keydown="handleCanvasKeydown"
+        >
+          <svg
+            ref="canvasElement"
+            class="designer-canvas"
+            :viewBox="`0 0 ${DESIGNER_WIDTH} ${DESIGNER_HEIGHT}`"
+            :style="{ width: `${canvasSize.width}px`, height: `${canvasSize.height}px` }"
+            role="group"
+            :aria-label="`${flow.name} flow graph`"
+            @click.self="clearCanvasState"
+            @pointermove="handlePointerMove"
+            @pointerup="handleDragEnd"
+            @pointercancel="handleDragCancel"
+            @dragover.prevent
+            @drop="handlePaletteDrop"
+          >
+            <defs>
+              <pattern id="designer-grid" width="24" height="24" patternUnits="userSpaceOnUse">
+                <path d="M24 0H0V24" fill="none" stroke="#d8e2ea" stroke-width="1" />
+              </pattern>
+            </defs>
 
-        <text v-if="flow.nodes.length === 0" class="empty-message" x="550" y="280">
-          This flow does not have any nodes yet.
-        </text>
-      </svg>
+            <rect
+              data-canvas-background
+              :width="DESIGNER_WIDTH"
+              :height="DESIGNER_HEIGHT"
+              fill="url(#designer-grid)"
+              @click="clearCanvasState"
+            />
+
+            <g class="connections">
+              <FlowConnection
+                v-for="rendered in renderedConnections"
+                :key="rendered.connection.id"
+                :id="rendered.connection.id"
+                :start="rendered.start"
+                :end="rendered.end"
+                :selected="rendered.connection.id === selectedConnectionId"
+                :label="`Connection from ${rendered.connection.start.nodeId} to ${rendered.connection.end.nodeId}`"
+                @select="handleConnectionSelection"
+              />
+              <FlowConnection
+                v-if="previewStart && previewEnd"
+                id="connection-preview"
+                :start="previewStart"
+                :end="previewEnd"
+                preview
+              />
+            </g>
+
+            <FlowNode
+              v-for="node in orderedNodes"
+              :key="node.id"
+              :node="node"
+              :selected="node.id === selectedNodeId"
+              :status="runtime?.nodes[node.id]?.state ?? flow.status"
+              :status-value="runtime?.nodes[node.id]?.value"
+              :connection-start="connectionStart"
+              :compatible-connector-keys="compatibleConnectorKeys"
+              @select="handleNodeSelection"
+              @dragstart="handleDragStart"
+              @connectoractivate="handleConnectorActivate"
+              @connectorpreview="handleConnectorPreview"
+            />
+
+            <text v-if="flow.nodes.length === 0" class="empty-message" x="550" y="280">
+              This flow does not have any nodes yet.
+            </text>
+          </svg>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -446,6 +486,28 @@ const handleDragCancel = (event: PointerEvent): void => {
   font-weight: 650;
   background: #f8fbfd;
   border-bottom: 1px solid #d8e2ea;
+}
+
+.designer-workspace {
+  display: flex;
+  min-height: 560px;
+}
+
+.canvas-column {
+  min-width: 0;
+  flex: 1;
+}
+
+@media (max-width: 720px) {
+  .designer-workspace {
+    display: block;
+  }
+
+  .designer-workspace :deep(.node-palette) {
+    width: auto;
+    border-right: 0;
+    border-bottom: 1px solid #d8e2ea;
+  }
 }
 
 .selection {

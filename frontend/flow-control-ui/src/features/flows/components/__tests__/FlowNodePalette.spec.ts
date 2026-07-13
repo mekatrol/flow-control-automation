@@ -5,7 +5,16 @@ import { filterNodeKinds, groupNodeKinds } from '../FlowNodePalette.vue';
 describe('node palette filtering and grouping', () => {
   it('filters by label and category without case sensitivity', () => {
     expect(filterNodeKinds('PULSE').map(({ kind }) => kind)).toEqual(['pulse']);
-    expect(filterNodeKinds('logic').map(({ kind }) => kind)).toEqual(['override']);
+    expect(filterNodeKinds('logic').map(({ kind }) => kind)).toEqual([
+      'and',
+      'comparator',
+      'if',
+      'invert',
+      'or',
+      'override',
+      'xnor',
+      'xor'
+    ]);
     expect(filterNodeKinds('missing')).toEqual([]);
   });
 
@@ -13,6 +22,13 @@ describe('node palette filtering and grouping', () => {
     const groups = groupNodeKinds(filterNodeKinds(''));
 
     expect(Object.keys(groups).sort()).toEqual(['logic', 'maths', 'routing', 'timing']);
-    expect(groups.maths?.map(({ kind }) => kind)).toEqual(['calculator']);
+    expect(groups.maths?.map(({ kind }) => kind)).toEqual([
+      'average',
+      'calculator',
+      'clamp',
+      'line',
+      'max',
+      'min'
+    ]);
   });
 });
