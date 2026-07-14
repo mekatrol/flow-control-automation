@@ -1,23 +1,57 @@
 import type { Point } from './connectorLayout';
+import type { ConnectorSide } from '../types';
 
-export const connectionPath = (start?: Point, end?: Point): string => {
+const calculateControlOffset = (distance: number, curvature: number): number => {
+  if (distance >= 0) return 0.5 * distance;
+
+  return curvature * 25 * Math.sqrt(-distance);
+};
+
+const controlPoint = (
+  side: ConnectorSide,
+  point: Point,
+  oppositePoint: Point,
+  curvature: number
+): Point => {
+  switch (side) {
+    case 'left':
+      return {
+        x: point.x - calculateControlOffset(point.x - oppositePoint.x, curvature),
+        y: point.y
+      };
+    case 'right':
+      return {
+        x: point.x + calculateControlOffset(oppositePoint.x - point.x, curvature),
+        y: point.y
+      };
+    case 'top':
+      return {
+        x: point.x,
+        y: point.y - calculateControlOffset(point.y - oppositePoint.y, curvature)
+      };
+    case 'bottom':
+      return {
+        x: point.x,
+        y: point.y + calculateControlOffset(oppositePoint.y - point.y, curvature)
+      };
+  }
+};
+
+export const connectionPath = (
+  start?: Point,
+  end?: Point,
+  startSide: ConnectorSide = 'right',
+  endSide: ConnectorSide = 'left',
+  curvature = 0.25
+): string => {
   if (!start || !end) return '';
 
-  const horizontalDistance = end.x - start.x;
-  const verticalDistance = end.y - start.y;
+  // React Flow's Bezier router derives each control point from the handle side.
+  // For handles facing one another, the controls meet halfway. When a handle
+  // points away from its destination, the square-root offset creates a compact
+  // loop without making close connections bulge excessively.
+  const startControl = controlPoint(startSide, start, end, curvature);
+  const endControl = controlPoint(endSide, end, start, curvature);
 
-  // A mostly vertical connection bends above and below its endpoints. This keeps
-  // the line clear of the node edges instead of forcing a sideways loop first.
-  if (Math.abs(verticalDistance) > Math.abs(horizontalDistance) * 1.5) {
-    const offset = Math.max(60, Math.abs(verticalDistance) * 0.45);
-    const direction = Math.sign(verticalDistance) || 1;
-    return `M ${start.x} ${start.y} C ${start.x} ${start.y + offset * direction}, ${end.x} ${end.y - offset * direction}, ${end.x} ${end.y}`;
-  }
-
-  // SVG paths use M to move to the first point and C for a cubic Bezier curve.
-  // Its two control points pull the line horizontally away from both nodes. A
-  // minimum offset prevents nearby connectors from producing a cramped corner.
-  const offset = Math.max(80, Math.abs(horizontalDistance) * 0.45);
-  const startDirection = horizontalDistance >= 0 ? 1 : -1;
-  return `M ${start.x} ${start.y} C ${start.x + offset * startDirection} ${start.y}, ${end.x - offset * startDirection} ${end.y}, ${end.x} ${end.y}`;
+  return `M ${start.x} ${start.y} C ${startControl.x} ${startControl.y}, ${endControl.x} ${endControl.y}, ${end.x} ${end.y}`;
 };

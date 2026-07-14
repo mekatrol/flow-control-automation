@@ -92,7 +92,9 @@ const connectorPoint = (nodeId: string, connectorId: string): Point | undefined 
 
 const connectionEndpoints = (connection: FlowConnectionModel) => ({
   start: connectorPoint(connection.start.nodeId, connection.start.connectorId),
-  end: connectorPoint(connection.end.nodeId, connection.end.connectorId)
+  end: connectorPoint(connection.end.nodeId, connection.end.connectorId),
+  startSide: connectorAt(connection.start)?.side,
+  endSide: connectorAt(connection.end)?.side
 });
 const renderedConnections = computed(() =>
   // Resolve each pair once per graph update. A large graph previously repeated
@@ -125,6 +127,9 @@ const previewStart = computed(() =>
   connectionStart.value
     ? connectorPoint(connectionStart.value.nodeId, connectionStart.value.connectorId)
     : undefined
+);
+const previewStartSide = computed(() =>
+  connectionStart.value ? connectorAt(connectionStart.value)?.side : undefined
 );
 
 const orderedNodes = computed(() =>
@@ -454,6 +459,8 @@ const handleDragCancel = (event: PointerEvent): void => {
                 :id="rendered.connection.id"
                 :start="rendered.start"
                 :end="rendered.end"
+                :start-side="rendered.startSide"
+                :end-side="rendered.endSide"
                 :selected="rendered.connection.id === selectedConnectionId"
                 :label="`Connection from ${rendered.connection.start.nodeId} to ${rendered.connection.end.nodeId}`"
                 @select="handleConnectionSelection"
@@ -463,6 +470,7 @@ const handleDragCancel = (event: PointerEvent): void => {
                 id="connection-preview"
                 :start="previewStart"
                 :end="previewEnd"
+                :start-side="previewStartSide"
                 preview
               />
             </g>

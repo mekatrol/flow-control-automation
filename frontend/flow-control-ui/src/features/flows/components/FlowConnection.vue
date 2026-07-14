@@ -3,11 +3,14 @@ import { computed } from 'vue';
 
 import { connectionPath } from '../geometry/connectionPath';
 import type { Point } from '../geometry/connectorLayout';
+import type { ConnectorSide } from '../types';
 
 const props = defineProps<{
   id: string;
   start?: Point;
   end?: Point;
+  startSide?: ConnectorSide;
+  endSide?: ConnectorSide;
   selected?: boolean;
   preview?: boolean;
   label?: string;
@@ -15,7 +18,9 @@ const props = defineProps<{
 const emit = defineEmits<{ select: [id: string] }>();
 // The same calculated curve drives both the visible stroke and its larger hit
 // target, ensuring selection follows exactly what the user sees.
-const path = computed(() => connectionPath(props.start, props.end));
+const path = computed(() =>
+  connectionPath(props.start, props.end, props.startSide, props.endSide)
+);
 </script>
 
 <template>
