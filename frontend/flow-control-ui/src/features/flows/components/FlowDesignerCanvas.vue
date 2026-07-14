@@ -241,6 +241,12 @@ const handleConnectorActivate = (endpoint: FlowConnectionEndpoint): void => {
     return;
   }
 
+  if (
+    connectionStart.value.nodeId === endpoint.nodeId &&
+    connectionStart.value.connectorId === endpoint.connectorId
+  )
+    return;
+
   const validation = validateConnection(props.flow, connectionStart.value, endpoint);
   if (!validation.valid) {
     reportConnectionError(validation.message ?? 'That connection is not valid.');
@@ -250,9 +256,29 @@ const handleConnectorActivate = (endpoint: FlowConnectionEndpoint): void => {
   cancelConnection();
 };
 
+const handleConnectorPress = (endpoint: FlowConnectionEndpoint): void => {
+  // Pointer-down starts a possible drag. When a connection is already active,
+  // defer completion to either pointer release (drag) or click (two clicks).
+  if (!connectionStart.value) handleConnectorActivate(endpoint);
+};
+
 const handleConnectorPreview = (endpoint: FlowConnectionEndpoint): void => {
+  const start = connectionStart.value;
+  // Pointer-down focuses the source connector. Do not let that focus event fold
+  // the just-created preview back onto its own start point.
+  if (start?.nodeId === endpoint.nodeId && start.connectorId === endpoint.connectorId) return;
   const point = connectorPoint(endpoint.nodeId, endpoint.connectorId);
   if (point) updatePreview(point);
+};
+
+const handleConnectorRelease = (endpoint: FlowConnectionEndpoint): void => {
+  const start = connectionStart.value;
+  if (!start) return;
+  // Releasing on the connector where the gesture began is a normal click: keep
+  // the preview active so the established click-source, click-destination flow
+  // still works. Releasing over a different port completes a pointer drag.
+  if (start.nodeId === endpoint.nodeId && start.connectorId === endpoint.connectorId) return;
+  handleConnectorActivate(endpoint);
 };
 
 const clearCanvasState = (): void => {
@@ -452,7 +478,9 @@ const handleDragCancel = (event: PointerEvent): void => {
               :compatible-connector-keys="compatibleConnectorKeys"
               @select="handleNodeSelection"
               @dragstart="handleDragStart"
+              @connectorpress="handleConnectorPress"
               @connectoractivate="handleConnectorActivate"
+              @connectorrelease="handleConnectorRelease"
               @connectorpreview="handleConnectorPreview"
             />
 

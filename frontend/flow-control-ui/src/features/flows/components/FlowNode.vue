@@ -22,7 +22,9 @@ const props = defineProps<{
 const emit = defineEmits<{
   select: [nodeId: string];
   dragstart: [nodeId: string, event: PointerEvent];
+  connectorpress: [endpoint: FlowConnectionEndpoint];
   connectoractivate: [endpoint: FlowConnectionEndpoint];
+  connectorrelease: [endpoint: FlowConnectionEndpoint];
   connectorpreview: [endpoint: FlowConnectionEndpoint];
 }>();
 
@@ -80,7 +82,9 @@ const connectorKey = (connectorId: string): string => `${props.node.id}:${connec
       :active="
         connectionStart?.nodeId === node.id && connectionStart.connectorId === layout.connector.id
       "
+      @press="emit('connectorpress', { nodeId: node.id, connectorId: layout.connector.id })"
       @activate="emit('connectoractivate', { nodeId: node.id, connectorId: layout.connector.id })"
+      @release="emit('connectorrelease', { nodeId: node.id, connectorId: layout.connector.id })"
       @preview="emit('connectorpreview', { nodeId: node.id, connectorId: layout.connector.id })"
     />
   </g>

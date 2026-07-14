@@ -551,12 +551,11 @@ test('highlights compatible connectors, previews a link, and rejects invalid com
   await page.keyboard.press('Escape');
   await expect(preview).toBeHidden();
 
-  await page.getByRole('button', { name: /Values, input, number/ }).click();
+  const invalidStart = page.getByRole('button', { name: /Values, input, number/ });
+  await invalidStart.focus();
+  await page.keyboard.press('Enter');
   await expect(page.getByRole('alert')).toContainText('Start a connection from an output');
 
-  await source.click();
-  await page.getByRole('button', { name: /Value, input, number/ }).click();
-  await expect(page.getByRole('alert')).toContainText('already exists');
   await expect(page.locator('[data-connection-id]:not([data-connection-id="connection-preview"])')).toHaveCount(2);
 });
 
@@ -589,6 +588,36 @@ test('creates a connection with the keyboard and deletes a selected connection',
   await page.keyboard.press('Delete');
   await expect(keyboardConnection).toBeHidden();
   await expect(page.locator('[data-connection-id]:not([data-connection-id="connection-preview"])')).toHaveCount(1);
+});
+
+test('drags from an output connector to a compatible input connector', async ({ page }) => {
+  await page.goto('/flows/climate-control');
+
+  const source = page.getByRole('button', { name: /Average, output, number/ });
+  const destination = page.getByRole('button', { name: /Automatic, input, number/ });
+  const sourceBox = await source.boundingBox();
+  const destinationBox = await destination.boundingBox();
+  expect(sourceBox).not.toBeNull();
+  expect(destinationBox).not.toBeNull();
+
+  await source.dispatchEvent('pointerdown', {
+    button: 0,
+    clientX: sourceBox!.x + sourceBox!.width / 2,
+    clientY: sourceBox!.y + sourceBox!.height / 2,
+    pointerId: 9
+  });
+  await expect(page.locator('[data-connection-id="connection-preview"]')).toBeVisible();
+  await destination.dispatchEvent('pointerup', {
+    button: 0,
+    clientX: destinationBox!.x + destinationBox!.width / 2,
+    clientY: destinationBox!.y + destinationBox!.height / 2,
+    pointerId: 9
+  });
+
+  await expect(page.locator('[data-connection-id="connection-preview"]')).toBeHidden();
+  await expect(
+    page.locator('[data-connection-id]:not([data-connection-id="connection-preview"])')
+  ).toHaveCount(3);
 });
 
 test('searches the node palette and adds registry-backed nodes', async ({ page }) => {

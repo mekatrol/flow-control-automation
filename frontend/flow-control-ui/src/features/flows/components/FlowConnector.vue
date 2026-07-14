@@ -5,7 +5,7 @@ defineProps<{ layout: ConnectorLayout; compatible?: boolean; active?: boolean }>
 
 // SVG groups are not native controls. The template supplies button semantics and
 // keyboard activation, and stops pointer-down from starting the node's drag.
-const emit = defineEmits<{ activate: []; preview: [] }>();
+const emit = defineEmits<{ press: []; activate: []; release: []; preview: [] }>();
 </script>
 
 <template>
@@ -18,12 +18,16 @@ const emit = defineEmits<{ activate: []; preview: [] }>();
     :aria-label="`${layout.connector.label}, ${layout.connector.direction}, ${layout.connector.dataType}${compatible ? ', compatible destination' : ''}`"
     :aria-pressed="active"
     @click.stop="emit('activate')"
-    @pointerdown.stop
+    @pointerdown.left.stop="emit('press')"
+    @pointerup.left.stop="emit('release')"
     @focus="emit('preview')"
     @keydown.enter.prevent.stop="emit('activate')"
     @keydown.space.prevent.stop="emit('activate')"
   >
-    <circle r="6" />
+    <!-- SVG only hit-tests painted geometry. This transparent circle gives the
+    connector a forgiving pointer target without making the visible port huge. -->
+    <circle class="connector-hit-target" r="14" />
+    <circle class="connector-port" r="6" />
     <title>
       {{ layout.connector.label }} — {{ layout.connector.direction }}
       {{ layout.connector.dataType }}
@@ -32,7 +36,12 @@ const emit = defineEmits<{ activate: []; preview: [] }>();
 </template>
 
 <style scoped>
-.flow-connector circle {
+.connector-hit-target {
+  fill: transparent;
+  stroke: none;
+}
+
+.connector-port {
   fill: #f8fbfd;
   stroke: #102133;
   stroke-width: 2;
@@ -43,14 +52,14 @@ const emit = defineEmits<{ activate: []; preview: [] }>();
   outline: none;
 }
 
-.flow-connector:focus circle,
-.flow-connector.compatible circle {
+.flow-connector:focus .connector-port,
+.flow-connector.compatible .connector-port {
   fill: #dff6ee;
   stroke: #087f6f;
   stroke-width: 4;
 }
 
-.flow-connector.active circle {
+.flow-connector.active .connector-port {
   fill: #102133;
   stroke: #65d6ad;
   stroke-width: 4;
