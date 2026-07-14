@@ -98,6 +98,14 @@ const asEnum = <Value extends string>(value: unknown, allowed: Set<Value>, path:
   return text as Value;
 };
 
+const asNodeKind = (value: unknown, path: string): FlowNodeKind => {
+  // `invert` was the original persisted name for the NOT gate. Normalize it at
+  // the API boundary so existing flows open as NOT nodes and are upgraded the
+  // next time they are saved.
+  if (value === 'invert') return 'not' as FlowNodeKind;
+  return asEnum(value, nodeKinds, path);
+};
+
 const assertUnique = (ids: string[], path: string): void => {
   const seen = new Set<string>();
   for (const id of ids) {
@@ -149,7 +157,7 @@ const parseNode = (value: unknown, path: string): FlowNodeDto => {
   );
   return {
     id: asString(source.id, `${path}.id`),
-    kind: asEnum(source.kind, nodeKinds, `${path}.kind`),
+    kind: asNodeKind(source.kind, `${path}.kind`),
     label: asString(source.label, `${path}.label`),
     x: asFiniteNumber(source.x, `${path}.x`),
     y: asFiniteNumber(source.y, `${path}.y`),

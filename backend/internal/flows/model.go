@@ -55,7 +55,7 @@ var (
 	// construct must remain saveable.
 	validKinds = values(
 		"and", "average", "calculator", "calendar", "clamp", "comparator",
-		"delay", "if", "invert", "line", "max", "min", "or", "override",
+		"delay", "if", "invert", "line", "max", "min", "nand", "nor", "not", "or", "override",
 		"pulse", "schedule", "selector", "sequence", "split", "timer", "xnor", "xor",
 	)
 	validStatuses   = values("draft", "deployed")

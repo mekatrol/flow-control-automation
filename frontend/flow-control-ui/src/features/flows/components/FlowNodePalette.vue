@@ -139,6 +139,12 @@ button img {
   width: 18px;
   height: 18px;
   margin-right: 6px;
+  /*
+   * Palette buttons have a light background. Normalize both black-authored and
+   * white-authored SVG assets to black so every block's icon remains visible;
+   * canvas nodes apply their own light/dark theme treatment separately.
+   */
+  filter: brightness(0);
   vertical-align: middle;
 }
 

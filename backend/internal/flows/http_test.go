@@ -88,24 +88,28 @@ func TestSaveRejectsInvalidGraphWithoutReplacingStoredFlow(t *testing.T) {
 	}
 }
 
-func TestSaveAcceptsAverageNodeEmittedByEditor(t *testing.T) {
-	store, err := OpenStore(filepath.Join(t.TempDir(), "flows.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	handler := NewHandler(store)
-	created := requestFlow(t, handler, http.MethodPost, "/api/flows", `{"name":"Clothes line light"}`, http.StatusCreated)
-	created.Nodes = []Node{{
-		ID: "average-1", Kind: "average", Label: "Average", X: 10, Y: 20, ZOrder: 1,
-		Color: "#ef8354", Connectors: []Connector{}, Configuration: map[string]any{"enabled": true},
-	}}
-	body, err := json.Marshal(created)
-	if err != nil {
-		t.Fatal(err)
-	}
-	saved := requestFlow(t, handler, http.MethodPut, "/api/flows/"+created.ID, string(body), http.StatusOK)
-	if len(saved.Nodes) != 1 || saved.Nodes[0].Kind != "average" {
-		t.Fatalf("average node was not saved: %#v", saved)
+func TestSaveAcceptsNodeKindsEmittedByEditor(t *testing.T) {
+	for _, kind := range []string{"average", "invert", "nand", "nor", "not"} {
+		t.Run(kind, func(t *testing.T) {
+			store, err := OpenStore(filepath.Join(t.TempDir(), "flows.json"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			handler := NewHandler(store)
+			created := requestFlow(t, handler, http.MethodPost, "/api/flows", `{"name":"Editor node"}`, http.StatusCreated)
+			created.Nodes = []Node{{
+				ID: kind + "-1", Kind: kind, Label: kind, X: 10, Y: 20, ZOrder: 1,
+				Color: "#7f8cff", Connectors: []Connector{}, Configuration: map[string]any{"enabled": true},
+			}}
+			body, err := json.Marshal(created)
+			if err != nil {
+				t.Fatal(err)
+			}
+			saved := requestFlow(t, handler, http.MethodPut, "/api/flows/"+created.ID, string(body), http.StatusOK)
+			if len(saved.Nodes) != 1 || saved.Nodes[0].Kind != kind {
+				t.Fatalf("%s node was not saved: %#v", kind, saved)
+			}
+		})
 	}
 }
 

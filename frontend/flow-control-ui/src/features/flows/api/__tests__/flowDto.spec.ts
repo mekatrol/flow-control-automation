@@ -10,6 +10,13 @@ describe('flow DTO validation', () => {
     expect(parseFlowDto(validFlow())).toEqual(sampleFlows[0]);
   });
 
+  it('migrates the legacy invert node kind to not', () => {
+    const payload = validFlow() as (typeof sampleFlows)[number];
+    (payload.nodes[0] as unknown as { kind: string }).kind = 'invert';
+
+    expect(parseFlowDto(payload).nodes[0]?.kind).toBe('not');
+  });
+
   it('rejects a connection whose node does not exist', () => {
     const payload = validFlow() as (typeof sampleFlows)[number];
     payload.connections[0]!.end.nodeId = 'missing';

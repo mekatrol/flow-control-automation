@@ -100,12 +100,6 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     '#f5b942'
   ),
   [FlowNodeFunctionType.If]: definition(FlowNodeFunctionType.If, 'logic', 'if', '#7f8cff'),
-  [FlowNodeFunctionType.Invert]: definition(
-    FlowNodeFunctionType.Invert,
-    'logic',
-    'invert',
-    '#7f8cff'
-  ),
   [FlowNodeFunctionType.Line]: definition(
     FlowNodeFunctionType.Line,
     'maths',
@@ -127,6 +121,14 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     '#ef8354',
     numberConnectors()
   ),
+  [FlowNodeFunctionType.Nand]: definition(
+    FlowNodeFunctionType.Nand,
+    'logic',
+    'nand',
+    '#7f8cff'
+  ),
+  [FlowNodeFunctionType.Nor]: definition(FlowNodeFunctionType.Nor, 'logic', 'nor', '#7f8cff'),
+  [FlowNodeFunctionType.Not]: definition(FlowNodeFunctionType.Not, 'logic', 'not', '#7f8cff'),
   [FlowNodeFunctionType.Or]: definition(FlowNodeFunctionType.Or, 'logic', 'or', '#7f8cff'),
   [FlowNodeFunctionType.Override]: {
     kind: FlowNodeFunctionType.Override,
