@@ -1,5 +1,5 @@
 <script lang="ts">
-import { flowNodeKinds, getNodeKind, type NodeKindDefinition } from '../nodeKinds';
+import { flowNodeKinds, getNodeIconUrl, getNodeKind, type NodeKindDefinition } from '../nodeKinds';
 
 export const filterNodeKinds = (query: string): NodeKindDefinition[] => {
   const search = query.trim().toLocaleLowerCase();
@@ -61,7 +61,7 @@ const startPaletteDrag = (kind: FlowNodeKind, event: DragEvent): void => {
           @click="emit('add', definition.kind)"
           @dragstart="startPaletteDrag(definition.kind, $event)"
         >
-          <span aria-hidden="true">{{ definition.icon }}</span>
+          <img :src="getNodeIconUrl(definition.icon)" alt="" />
           Add {{ definition.label }} node
         </button>
       </section>
@@ -133,6 +133,13 @@ button {
   white-space: nowrap;
   text-align: left;
   touch-action: none;
+}
+
+button img {
+  width: 18px;
+  height: 18px;
+  margin-right: 6px;
+  vertical-align: middle;
 }
 
 p {

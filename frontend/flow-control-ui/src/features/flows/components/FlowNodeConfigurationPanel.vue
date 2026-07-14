@@ -29,7 +29,7 @@ export const editorValueFromInput = (
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 
-import { getNodeKind } from '../nodeKinds';
+import { getNodeIconUrl, getNodeKind } from '../nodeKinds';
 import type { NodeEditorField } from '../nodeKinds';
 import type { FlowConfigurationValue, FlowNode } from '../types';
 
@@ -68,7 +68,7 @@ const updateField = (field: NodeEditorField, event: Event): void => {
   <aside class="configuration-panel" aria-label="Node configuration">
     <div class="panel-heading">
       <div>
-        <span>{{ definition.icon }}</span>
+        <img :src="getNodeIconUrl(definition.icon)" alt="" />
         <strong>Configure {{ definition.label }}</strong>
       </div>
       <small>{{ node.id }}</small>
@@ -140,6 +140,11 @@ const updateField = (field: NodeEditorField, event: Event): void => {
 .panel-heading small {
   color: #718394;
   font-size: 10px;
+}
+
+.panel-heading img {
+  width: 22px;
+  height: 22px;
 }
 
 .fields {

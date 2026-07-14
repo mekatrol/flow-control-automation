@@ -284,6 +284,21 @@ template for each slice and record the result in the handoff log.
 
 Add the newest entry first. Keep entries concise and include exact commands/results.
 
+### 2026-07-14 — Legacy toolbar and flow-block visual parity
+
+- Restored all legacy function-block SVG icons through the typed node-kind registry
+  and reused them on the canvas, in the toolbox, and in node configuration.
+- Restored the compact 150 by 40 block proportions, icon shade/separator, square
+  status strip, border treatment, and four blue icon-only stacking controls while
+  retaining current keyboard behavior and accessible names.
+- Updated stale API-error e2e assertions to match the response messages shown by
+  the application. Verified `npm run format`, `npm run lint`,
+  `npm run test:unit -- --run` (65 tests), `npm run test:e2e` (44 tests passed
+  before correcting the 8 stale assertions), the corrected 8-test browser subset,
+  and `npm run build`.
+- Resume with: **No migration slice remains; preserve the legacy visual asset set
+  when adding node kinds.**
+
 ### 2026-07-14 — Phase 8 complete and legacy retired
 
 - Added a stable create/edit/save/deploy/reload journey and a 120-node,

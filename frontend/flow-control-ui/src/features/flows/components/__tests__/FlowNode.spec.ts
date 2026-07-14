@@ -16,7 +16,9 @@ describe('FlowNode', () => {
     expect(wrapper.attributes('aria-label')).toBe(
       'Average temperature, Calculator node, running, 21.5 °C'
     );
-    expect(wrapper.text()).toContain('∑');
+    expect(wrapper.get('.node-icon image').attributes('href')).toBe(
+      '/icons/flow-nodes/calculator.svg'
+    );
     expect(wrapper.text()).toContain('Calculator');
     expect(wrapper.text()).toContain('!');
     expect(wrapper.get('.node-status').attributes('aria-label')).toBe('running: 21.5 °C');

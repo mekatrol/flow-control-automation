@@ -42,18 +42,18 @@ const definition = (
   category,
   icon,
   color,
-  defaultSize: { width: 210, height: 64 },
+  defaultSize: { width: 150, height: 40 },
   connectors,
   editor: [{ key: 'enabled', label: 'Enabled', input: 'checkbox' }],
   defaultConfiguration: { enabled: true }
 });
 
 export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
-  [FlowNodeFunctionType.And]: definition(FlowNodeFunctionType.And, 'logic', '∧', '#7f8cff'),
+  [FlowNodeFunctionType.And]: definition(FlowNodeFunctionType.And, 'logic', 'and', '#7f8cff'),
   [FlowNodeFunctionType.Average]: definition(
     FlowNodeFunctionType.Average,
     'maths',
-    'x̄',
+    'average',
     '#ef8354',
     numberConnectors()
   ),
@@ -61,9 +61,9 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     kind: FlowNodeFunctionType.Calculator,
     label: 'Calculator',
     category: 'maths',
-    icon: '∑',
+    icon: 'calculator',
     color: '#ef8354',
-    defaultSize: { width: 210, height: 64 },
+    defaultSize: { width: 150, height: 40 },
     connectors: [
       { id: 'input', label: 'Values', direction: 'input', dataType: 'number', side: 'left' },
       { id: 'output', label: 'Result', direction: 'output', dataType: 'number', side: 'right' }
@@ -76,55 +76,65 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
   [FlowNodeFunctionType.Calendar]: definition(
     FlowNodeFunctionType.Calendar,
     'timing',
-    '▦',
+    'calendar',
     '#a879d8'
   ),
   [FlowNodeFunctionType.Clamp]: definition(
     FlowNodeFunctionType.Clamp,
     'maths',
-    '⊣',
+    'clamp',
     '#ef8354',
     numberConnectors()
   ),
   [FlowNodeFunctionType.Comparator]: definition(
     FlowNodeFunctionType.Comparator,
     'logic',
-    '≷',
+    'comparator',
     '#7f8cff',
     numberConnectors()
   ),
-  [FlowNodeFunctionType.Delay]: definition(FlowNodeFunctionType.Delay, 'timing', '◷', '#f5b942'),
-  [FlowNodeFunctionType.If]: definition(FlowNodeFunctionType.If, 'logic', '?', '#7f8cff'),
-  [FlowNodeFunctionType.Invert]: definition(FlowNodeFunctionType.Invert, 'logic', '¬', '#7f8cff'),
+  [FlowNodeFunctionType.Delay]: definition(
+    FlowNodeFunctionType.Delay,
+    'timing',
+    'delay',
+    '#f5b942'
+  ),
+  [FlowNodeFunctionType.If]: definition(FlowNodeFunctionType.If, 'logic', 'if', '#7f8cff'),
+  [FlowNodeFunctionType.Invert]: definition(
+    FlowNodeFunctionType.Invert,
+    'logic',
+    'invert',
+    '#7f8cff'
+  ),
   [FlowNodeFunctionType.Line]: definition(
     FlowNodeFunctionType.Line,
     'maths',
-    '╱',
+    'line',
     '#ef8354',
     numberConnectors()
   ),
   [FlowNodeFunctionType.Max]: definition(
     FlowNodeFunctionType.Max,
     'maths',
-    '↑',
+    'max',
     '#ef8354',
     numberConnectors()
   ),
   [FlowNodeFunctionType.Min]: definition(
     FlowNodeFunctionType.Min,
     'maths',
-    '↓',
+    'min',
     '#ef8354',
     numberConnectors()
   ),
-  [FlowNodeFunctionType.Or]: definition(FlowNodeFunctionType.Or, 'logic', '∨', '#7f8cff'),
+  [FlowNodeFunctionType.Or]: definition(FlowNodeFunctionType.Or, 'logic', 'or', '#7f8cff'),
   [FlowNodeFunctionType.Override]: {
     kind: FlowNodeFunctionType.Override,
     label: 'Override',
     category: 'logic',
-    icon: '↯',
+    icon: 'override',
     color: '#65d6ad',
-    defaultSize: { width: 210, height: 64 },
+    defaultSize: { width: 150, height: 40 },
     connectors: [
       { id: 'input', label: 'Automatic', direction: 'input', dataType: 'any', side: 'left' },
       { id: 'output', label: 'Effective', direction: 'output', dataType: 'any', side: 'right' }
@@ -136,9 +146,9 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     kind: FlowNodeFunctionType.Pulse,
     label: 'Pulse',
     category: 'timing',
-    icon: '⌁',
+    icon: 'pulse',
     color: '#f5b942',
-    defaultSize: { width: 210, height: 64 },
+    defaultSize: { width: 150, height: 40 },
     connectors: [
       { id: 'input', label: 'Trigger', direction: 'input', dataType: 'any', side: 'left' },
       { id: 'output', label: 'Pulse', direction: 'output', dataType: 'any', side: 'right' }
@@ -149,28 +159,28 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
   [FlowNodeFunctionType.Schedule]: definition(
     FlowNodeFunctionType.Schedule,
     'timing',
-    '▤',
+    'schedule',
     '#f5b942'
   ),
   [FlowNodeFunctionType.Selector]: definition(
     FlowNodeFunctionType.Selector,
     'routing',
-    '⇥',
+    'selector',
     '#64a7ff'
   ),
   [FlowNodeFunctionType.Sequence]: definition(
     FlowNodeFunctionType.Sequence,
     'routing',
-    '⋯',
+    'sequence',
     '#64a7ff'
   ),
   [FlowNodeFunctionType.Split]: {
     kind: FlowNodeFunctionType.Split,
     label: 'Split',
     category: 'routing',
-    icon: '⑂',
+    icon: 'split',
     color: '#64a7ff',
-    defaultSize: { width: 210, height: 64 },
+    defaultSize: { width: 150, height: 40 },
     connectors: [
       { id: 'input', label: 'Source', direction: 'input', dataType: 'any', side: 'left' },
       { id: 'output', label: 'Routes', direction: 'output', dataType: 'any', side: 'right' }
@@ -178,11 +188,21 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     editor: [{ key: 'outputs', label: 'Output count', input: 'number' }],
     defaultConfiguration: { outputs: 2 }
   },
-  [FlowNodeFunctionType.Timer]: definition(FlowNodeFunctionType.Timer, 'timing', '◴', '#f5b942'),
-  [FlowNodeFunctionType.Xnor]: definition(FlowNodeFunctionType.Xnor, 'logic', '⊙', '#7f8cff'),
-  [FlowNodeFunctionType.Xor]: definition(FlowNodeFunctionType.Xor, 'logic', '⊕', '#7f8cff')
+  [FlowNodeFunctionType.Timer]: definition(
+    FlowNodeFunctionType.Timer,
+    'timing',
+    'timer',
+    '#f5b942'
+  ),
+  [FlowNodeFunctionType.Xnor]: definition(FlowNodeFunctionType.Xnor, 'logic', 'xnor', '#7f8cff'),
+  [FlowNodeFunctionType.Xor]: definition(FlowNodeFunctionType.Xor, 'logic', 'xor', '#7f8cff')
 };
 
 export const flowNodeKinds = Object.keys(nodeKindRegistry) as FlowNodeKind[];
 
 export const getNodeKind = (kind: FlowNodeKind): NodeKindDefinition => nodeKindRegistry[kind];
+
+// Vite may serve the application below a Home Assistant add-on path. Building
+// icon URLs from BASE_URL keeps the migrated assets working in that deployment.
+export const getNodeIconUrl = (icon: string): string =>
+  `${import.meta.env.BASE_URL}icons/flow-nodes/${icon}.svg`;

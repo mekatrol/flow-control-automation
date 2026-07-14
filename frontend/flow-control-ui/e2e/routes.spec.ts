@@ -204,7 +204,7 @@ test('shows flow-library loading, empty, error, and retry states', async ({ page
     await route.fulfill({ json: sampleFlows });
   });
   await page.reload();
-  await expect(page.getByRole('alert')).toContainText('status 503');
+  await expect(page.getByRole('alert')).toContainText('offline');
   shouldFail = false;
   await page.getByRole('button', { name: 'Retry' }).click();
   await expect(page.getByRole('link', { name: /Climate control/ })).toBeVisible();
@@ -399,7 +399,7 @@ test('recovers from a failed save without losing edits', async ({ page }) => {
 
   await expect(page.getByRole('button', { name: 'Saving…' })).toBeDisabled();
   releaseFailedSave();
-  await expect(page.getByRole('alert')).toContainText('status 503');
+  await expect(page.getByRole('alert')).toContainText('try again');
   await expect(page.getByRole('button', { name: /Retry-safe average, Calculator node/ })).toBeVisible();
   await expect(page.getByText('Unsaved changes', { exact: true })).toBeVisible();
 

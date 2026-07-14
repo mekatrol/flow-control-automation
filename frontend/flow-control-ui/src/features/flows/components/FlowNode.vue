@@ -65,15 +65,18 @@ const connectorKey = (connectorId: string): string => `${props.node.id}:${connec
       class="node-body"
       :width="definition.defaultSize.width"
       :height="definition.defaultSize.height"
-      rx="12"
+      rx="2"
       :fill="node.color || definition.color"
     />
-    <rect class="node-icon-panel" width="58" :height="definition.defaultSize.height" rx="12" />
-    <path class="node-icon-panel-end" :d="`M46 0h12v${definition.defaultSize.height}H46z`" />
     <FlowNodeIcon :icon="definition.icon" />
     <FlowNodeLabel :label="node.label" :kind-label="definition.label" />
-    <FlowNodeStatus v-if="status" :status="status" :value="statusValue" />
-    <text v-if="marker" class="node-marker" x="198" y="57" text-anchor="end">{{ marker }}</text>
+    <FlowNodeStatus
+      v-if="status"
+      :status="status"
+      :value="statusValue"
+      :width="definition.defaultSize.width"
+    />
+    <text v-if="marker" class="node-marker" x="144" y="35" text-anchor="end">{{ marker }}</text>
     <FlowConnector
       v-for="layout in connectorLayouts"
       :key="layout.connector.id"
@@ -94,18 +97,11 @@ const connectorKey = (connectorId: string): string => `${props.node.id}:${connec
 .flow-node {
   cursor: pointer;
   outline: none;
-  filter: drop-shadow(0 6px 10px rgb(16 33 51 / 14%));
 }
 
 .node-body {
-  stroke: rgb(16 33 51 / 50%);
-  stroke-width: 1.5;
-}
-
-.node-icon-panel,
-.node-icon-panel-end {
-  fill: rgb(16 33 51 / 16%);
-  pointer-events: none;
+  stroke: #666;
+  stroke-width: 1;
 }
 
 .node-marker {
