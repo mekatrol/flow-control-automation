@@ -11,7 +11,7 @@ must use `flowDomainToDto` rather than serialising transient designer state.
 | Numeric flow-element IDs | String IDs are used for stable URL/API identifiers and readable fixtures. |
 | `flow.nodes` and `flow.connections` only | A flow also persists its ID, display metadata, deployment status, and update timestamp. |
 | Node `type` enum | Renamed to the descriptive `kind` string union. |
-| Node `cssClass` | Replaced by an explicit colour for now; visual defaults move to the node-kind registry in Phase 2. |
+| Node `cssClass` | Removed. Colours and other theme choices belong to the node-kind registry and are not persisted. |
 | Node `zOrder` | Preserved as a number. |
 | Connector `type` | Renamed to `dataType`; supported values are validated at the boundary. |
 | Connector `direction` | Preserved as validated `input`/`output` values. |
@@ -19,8 +19,10 @@ must use `flowDomainToDto` rather than serialising transient designer state.
 | No node label or configuration | Added as user-authored node data; configuration values are restricted to JSON scalar values initially. |
 | Numeric connection endpoint IDs | Replaced by string `nodeId`/`connectorId` references and validated against the graph. |
 
-The DTO intentionally does not contain selection, pointer/drag state, SVG paths,
-DOM references, component instances, runtime status, or other view state.
+The DTO intentionally does not contain colours, icons, selection, pointer/drag
+state, SVG paths, DOM references, component instances, runtime status, or other
+view state. A node's persisted `kind` resolves its current visual metadata through
+the frontend node-kind registry.
 
 ## Frontend HTTP operations
 

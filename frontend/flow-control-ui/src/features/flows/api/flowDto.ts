@@ -23,7 +23,6 @@ export interface FlowNodeDto {
   x: number;
   y: number;
   zOrder: number;
-  color: string;
   connectors: FlowNodeConnectorDto[];
   configuration: Record<string, FlowConfigurationValue>;
 }
@@ -162,7 +161,6 @@ const parseNode = (value: unknown, path: string): FlowNodeDto => {
     x: asFiniteNumber(source.x, `${path}.x`),
     y: asFiniteNumber(source.y, `${path}.y`),
     zOrder: asFiniteNumber(source.zOrder, `${path}.zOrder`),
-    color: asString(source.color, `${path}.color`),
     connectors,
     configuration: parseConfiguration(source.configuration, `${path}.configuration`)
   };

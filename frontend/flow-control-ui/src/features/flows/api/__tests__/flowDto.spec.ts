@@ -10,6 +10,13 @@ describe('flow DTO validation', () => {
     expect(parseFlowDto(validFlow())).toEqual(sampleFlows[0]);
   });
 
+  it('drops obsolete visual metadata from legacy saved nodes', () => {
+    const payload = validFlow() as (typeof sampleFlows)[number];
+    (payload.nodes[0] as unknown as Record<string, unknown>).color = '#123456';
+
+    expect(parseFlowDto(payload).nodes[0]).not.toHaveProperty('color');
+  });
+
   it('migrates the legacy invert node kind to not', () => {
     const payload = validFlow() as (typeof sampleFlows)[number];
     (payload.nodes[0] as unknown as { kind: string }).kind = 'invert';

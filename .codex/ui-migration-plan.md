@@ -284,6 +284,88 @@ template for each slice and record the result in the handoff log.
 
 Add the newest entry first. Keep entries concise and include exact commands/results.
 
+### 2026-07-14 — Functional-only saved node schema
+
+- Removed node colour from the frontend domain and DTO types, graph creation,
+  fixtures, backend Go model and validation, and the existing on-disk flow data.
+  Canvas colour now resolves exclusively from the typed node-kind registry.
+- Legacy payloads with visual colour metadata remain readable, but validation
+  drops that unknown field and every subsequent API/store write omits it. Updated
+  the persistence schema and added frontend and backend serialization coverage.
+- Verified `npm run format`, `npm run lint`, `npm run test:unit -- --run`
+  (74 tests), `npm run build`, `go test ./...`, and `npm run test:e2e`
+  (52 tests across desktop and mobile Chromium).
+
+### 2026-07-14 — Saved-flow theme migration
+
+- Fixed saved nodes retaining obsolete colours after restart by normalising known
+  former category defaults at the DTO/domain boundary. The current themes now
+  appear immediately on load and are persisted on the next save.
+- Limited migration to shipped legacy default values so arbitrary custom colours
+  remain untouched. Added mapper coverage for Logic, Override, Routing, Timing,
+  and custom colours plus browser coverage for a stale saved Override.
+- Verified `npm run format`, `npm run lint`, `npm run test:unit -- --run`
+  (73 tests), `npm run build`, and `npm run test:e2e` (52 tests across desktop
+  and mobile Chromium).
+
+### 2026-07-14 — Dedicated Override function group
+
+- Moved Override out of Logic into its own toolbox group and restored its
+  green `#65d6ad` theme for registry defaults and persisted examples.
+- Updated palette filtering/grouping tests, category registry coverage, and the
+  browser journey to verify the dedicated heading and rendered green block.
+- Verified `npm run format`, `npm run lint`, `npm run test:unit -- --run`
+  (72 tests), `npm run build`, and `npm run test:e2e` (52 tests across desktop
+  and mobile Chromium).
+
+### 2026-07-14 — Logic and routing theme swap
+
+- Applied the former routing blue to every logic-category block, including the
+  previously exceptional Override block. Applied the former timing amber to
+  Selector, Sequence, and Split, and updated persisted example colours.
+- Centralised both category colours in the node-kind registry and added
+  category-wide unit assertions plus browser coverage for a new Split block.
+- Verified `npm run format`, `npm run lint`, `npm run test:unit -- --run`
+  (71 tests), `npm run build`, and `npm run test:e2e` (52 tests across desktop
+  and mobile Chromium).
+
+### 2026-07-14 — Unified timing-block colour scheme
+
+- Changed Delay, Pulse, Schedule, and Timer to Calendar's purple colour and
+  centralised the timing-group colour in the typed node registry. Updated the
+  existing flow fixtures so persisted examples show the same scheme.
+- Added registry coverage for all timing functions and a browser assertion for
+  a newly added Pulse block.
+- Verified `npm run format`, `npm run lint`, `npm run test:unit -- --run`
+  (70 tests), `npm run build`, and `npm run test:e2e` (52 tests across desktop
+  and mobile Chromium).
+
+### 2026-07-14 — Clear stacking-order toolbar icons
+
+- Replaced the ambiguous filled-box stacking icons with a consistent pair of
+  overlapping layers and directional arrows. Bring/send-to-edge actions include
+  a terminal bar, while one-step forward/backward actions use an arrow alone.
+- Preserved the existing button labels, disabled states, keyboard behaviour, and
+  z-order commands. Added focused component coverage for all four symbols and
+  emitted commands.
+- Verified `npm run format`, `npm run lint`, `npm run test:unit -- --run`
+  (69 tests), `npm run build`, and `npm run test:e2e` (52 tests across desktop
+  and mobile Chromium).
+
+### 2026-07-14 — Legacy node detail parity
+
+- Restored the legacy 10 by 10 rounded-square connector geometry and the full
+  multi-port definitions: Calculator now has two inputs and two outputs, while
+  Split has one input and two typed outputs.
+- Restored the three top-edge function indicators as an orange square, green
+  triangle, and blue circle. Retained the runtime-backed status strip and added
+  browser coverage for its displayed value alongside the restored geometry.
+- Verified `npm run format`, `npm run lint`, `npm run test:unit -- --run`
+  (68 tests), `npm run build`, and `npm run test:e2e` (52 tests across desktop
+  and mobile Chromium).
+- Resume with: **No migration slice remains; keep node visual metadata and port
+  definitions in the typed registry when runtime behaviour is expanded.**
+
 ### 2026-07-14 — Legacy toolbar and flow-block visual parity
 
 - Restored all legacy function-block SVG icons through the typed node-kind registry

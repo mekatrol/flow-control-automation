@@ -3,6 +3,7 @@ import { computed } from 'vue';
 
 import FlowNodeIcon from './FlowNodeIcon.vue';
 import FlowNodeLabel from './FlowNodeLabel.vue';
+import FlowNodeMarker from './FlowNodeMarker.vue';
 import FlowNodeStatus from './FlowNodeStatus.vue';
 import FlowConnector from './FlowConnector.vue';
 import { layoutConnectors } from '../geometry/connectorLayout';
@@ -14,7 +15,6 @@ const props = defineProps<{
   selected: boolean;
   status?: 'draft' | 'deployed' | 'idle' | 'running' | 'stopped' | 'error';
   statusValue?: string;
-  marker?: string;
   connectionStart?: FlowConnectionEndpoint;
   compatibleConnectorKeys?: string[];
 }>();
@@ -66,7 +66,7 @@ const connectorKey = (connectorId: string): string => `${props.node.id}:${connec
       :width="definition.defaultSize.width"
       :height="definition.defaultSize.height"
       rx="2"
-      :fill="node.color || definition.color"
+      :fill="definition.color"
     />
     <FlowNodeIcon :icon="definition.icon" />
     <FlowNodeLabel :label="node.label" :kind-label="definition.label" />
@@ -76,7 +76,12 @@ const connectorKey = (connectorId: string): string => `${props.node.id}:${connec
       :value="statusValue"
       :width="definition.defaultSize.width"
     />
-    <text v-if="marker" class="node-marker" x="144" y="35" text-anchor="end">{{ marker }}</text>
+    <!-- These legacy function indicators intentionally overlap the top edge.
+    Their shape as well as colour communicates state, so they remain distinct
+    for people who cannot distinguish the colours. -->
+    <FlowNodeMarker shape="square" color="orange" :x="90" />
+    <FlowNodeMarker shape="triangle" color="green" :x="110" />
+    <FlowNodeMarker shape="circle" color="blue" :x="130" />
     <FlowConnector
       v-for="layout in connectorLayouts"
       :key="layout.connector.id"
@@ -102,13 +107,6 @@ const connectorKey = (connectorId: string): string => `${props.node.id}:${connec
 .node-body {
   stroke: #666;
   stroke-width: 1;
-}
-
-.node-marker {
-  fill: #102133;
-  font-size: 9px;
-  font-weight: 800;
-  pointer-events: none;
 }
 
 .flow-node:hover .node-body,

@@ -19,4 +19,12 @@ describe('flow DTO mapping', () => {
 
     expect(flowDomainToDto(flowDtoToDomain(dto))).toEqual(dto);
   });
+
+  it('does not add visual metadata to persisted nodes', () => {
+    const dto = parseFlowDto(structuredClone(sampleFlows[0]));
+
+    const saved = flowDomainToDto(flowDtoToDomain(dto));
+
+    expect(saved.nodes.every((node) => !('color' in node))).toBe(true);
+  });
 });

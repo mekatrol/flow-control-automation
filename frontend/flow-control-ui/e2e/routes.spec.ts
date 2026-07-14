@@ -88,6 +88,10 @@ test('confirms deployment and announces successful and failed runtime updates', 
   await expect(
     page.getByRole('button', { name: /Average temperature, Calculator node, running, 22.4 C/ })
   ).toBeVisible();
+  const runtimeNode = page.locator('[data-node-id="temperature-average"]');
+  await expect(runtimeNode.locator('.node-status')).toContainText('22.4 C');
+  await expect(runtimeNode.locator('.node-marker')).toHaveCount(3);
+  await expect(runtimeNode.locator('rect.connector-port')).toHaveCount(2);
 
   deployShouldFail = true;
   await page.getByRole('button', { name: 'Deploy flow' }).click();
@@ -311,10 +315,15 @@ test('renders a validated mocked API payload and rejects an invalid one visibly'
   await page.unroute('**/api/flows/*');
   const payload = structuredClone(sampleFlows[0]!);
   payload.nodes[0]!.label = 'Temperature from API';
+  (payload.nodes[2] as unknown as Record<string, unknown>).color = '#64a7ff';
   await page.route('**/api/flows/climate-control', (route) => route.fulfill({ json: payload }));
 
   await page.goto('/flows/climate-control');
   await expect(page.getByRole('button', { name: /Temperature from API, Calculator node/ })).toBeVisible();
+  await expect(page.locator('[data-node-id="manual-override"] .node-body')).toHaveAttribute(
+    'fill',
+    '#65d6ad'
+  );
 
   await page.unroute('**/api/flows/climate-control');
   const invalidPayload = structuredClone(payload);
@@ -631,13 +640,23 @@ test('searches the node palette and adds registry-backed nodes', async ({ page }
 
   const pulse = page.getByRole('button', { name: /New Pulse, Pulse node/ });
   await expect(pulse).toHaveAttribute('aria-pressed', 'true');
+  await expect(pulse.locator('.node-body')).toHaveAttribute('fill', '#a879d8');
   await expect(page.getByText('5 nodes', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: /Trigger, input, any/ })).toBeVisible();
 
   await search.fill('routing');
   await page.getByRole('button', { name: 'Add Split node' }).click();
-  await expect(page.getByRole('button', { name: /New Split, Split node/ })).toBeVisible();
+  const split = page.getByRole('button', { name: /New Split, Split node/ });
+  await expect(split).toBeVisible();
+  await expect(split.locator('.node-body')).toHaveAttribute('fill', '#f5b942');
+  await expect(split.locator('rect.connector-port')).toHaveCount(3);
   await expect(page.getByText('6 nodes', { exact: true })).toBeVisible();
+
+  await search.fill('override');
+  await expect(page.getByRole('heading', { name: 'override', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Add Override node' }).click();
+  const override = page.getByRole('button', { name: /New Override, Override node/ });
+  await expect(override.locator('.node-body')).toHaveAttribute('fill', '#65d6ad');
 });
 
 test('drags a legacy function block from the toolbox onto the canvas', async ({ page }) => {

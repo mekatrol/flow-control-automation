@@ -25,7 +25,6 @@ type Node struct {
 	X             float64        `json:"x"`
 	Y             float64        `json:"y"`
 	ZOrder        float64        `json:"zOrder"`
-	Color         string         `json:"color"`
 	Connectors    []Connector    `json:"connectors"`
 	Configuration map[string]any `json:"configuration"`
 }
@@ -93,8 +92,8 @@ func (flow Flow) Validate() error {
 		if _, duplicate := nodes[node.ID]; duplicate {
 			return fmt.Errorf("nodes: duplicate id %q", node.ID)
 		}
-		if !validKinds[node.Kind] || strings.TrimSpace(node.Color) == "" {
-			return fmt.Errorf("nodes[%d]: unsupported kind or empty color", nodeIndex)
+		if !validKinds[node.Kind] {
+			return fmt.Errorf("nodes[%d]: unsupported kind", nodeIndex)
 		}
 		if math.IsNaN(node.X) || math.IsInf(node.X, 0) || math.IsNaN(node.Y) || math.IsInf(node.Y, 0) || math.IsNaN(node.ZOrder) || math.IsInf(node.ZOrder, 0) {
 			return fmt.Errorf("nodes[%d]: coordinates and zOrder must be finite", nodeIndex)

@@ -18,7 +18,6 @@ export const createDefaultNode = (
     x: position.x,
     y: position.y,
     zOrder,
-    color: definition.color,
     connectors: definition.connectors.map((connector) => ({ ...connector })),
     configuration: { ...definition.defaultConfiguration }
   };

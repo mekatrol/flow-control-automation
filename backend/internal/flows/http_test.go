@@ -26,11 +26,14 @@ func TestFlowCRUDPersistsAcrossStoreRestart(t *testing.T) {
 	created.Description = "Persisted graph"
 	created.Nodes = []Node{{
 		ID: "pulse-1", Kind: "pulse", Label: "Every minute", X: 10, Y: 20, ZOrder: 1,
-		Color: "#ffffff", Connectors: []Connector{}, Configuration: map[string]any{"interval": float64(60)},
+		Connectors: []Connector{}, Configuration: map[string]any{"interval": float64(60)},
 	}}
 	body, err := json.Marshal(created)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if bytes.Contains(body, []byte(`"color"`)) {
+		t.Fatalf("functional flow payload contains visual color metadata: %s", body)
 	}
 	saved := requestFlow(t, handler, http.MethodPut, "/api/flows/climate-control", string(body), http.StatusOK)
 	if saved.Name != "Renamed climate" || saved.UpdatedAt == "" {
@@ -74,7 +77,7 @@ func TestSaveRejectsInvalidGraphWithoutReplacingStoredFlow(t *testing.T) {
 	handler := NewHandler(store)
 	created := requestFlow(t, handler, http.MethodPost, "/api/flows", `{"name":"Safe flow"}`, http.StatusCreated)
 	created.Nodes = []Node{{
-		ID: "bad", Kind: "unknown", Label: "Bad", Color: "#fff",
+		ID: "bad", Kind: "unknown", Label: "Bad",
 		Connectors: []Connector{}, Configuration: map[string]any{},
 	}}
 	body, err := json.Marshal(created)
@@ -99,7 +102,7 @@ func TestSaveAcceptsNodeKindsEmittedByEditor(t *testing.T) {
 			created := requestFlow(t, handler, http.MethodPost, "/api/flows", `{"name":"Editor node"}`, http.StatusCreated)
 			created.Nodes = []Node{{
 				ID: kind + "-1", Kind: kind, Label: kind, X: 10, Y: 20, ZOrder: 1,
-				Color: "#7f8cff", Connectors: []Connector{}, Configuration: map[string]any{"enabled": true},
+				Connectors: []Connector{}, Configuration: map[string]any{"enabled": true},
 			}}
 			body, err := json.Marshal(created)
 			if err != nil {

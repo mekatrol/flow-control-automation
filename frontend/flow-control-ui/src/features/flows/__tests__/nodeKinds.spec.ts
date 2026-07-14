@@ -28,4 +28,50 @@ describe('node-kind registry', () => {
       );
     }
   });
+
+  it('preserves the legacy multi-port calculator and split blocks', () => {
+    expect(nodeKindRegistry.calculator.connectors).toHaveLength(4);
+    expect(
+      nodeKindRegistry.calculator.connectors.filter(({ side }) => side === 'left')
+    ).toHaveLength(2);
+    expect(
+      nodeKindRegistry.calculator.connectors.filter(({ side }) => side === 'right')
+    ).toHaveLength(2);
+    expect(nodeKindRegistry.split.connectors).toHaveLength(3);
+    expect(nodeKindRegistry.split.connectors.filter(({ side }) => side === 'right')).toHaveLength(
+      2
+    );
+  });
+
+  it('uses the calendar colour scheme for every timing block', () => {
+    const calendarColor = nodeKindRegistry.calendar.color;
+    const relatedKinds = ['delay', 'pulse', 'schedule', 'timer'] as const;
+    expect(relatedKinds.map((kind) => nodeKindRegistry[kind].color)).toEqual(
+      Array(relatedKinds.length).fill(calendarColor)
+    );
+  });
+
+  it('uses blue for logic and the former timing amber for routing blocks', () => {
+    const logicDefinitions = Object.values(nodeKindRegistry).filter(
+      ({ category }) => category === 'logic'
+    );
+    expect(new Set(logicDefinitions.map(({ color }) => color))).toEqual(new Set(['#64a7ff']));
+
+    const routingDefinitions = Object.values(nodeKindRegistry).filter(
+      ({ category }) => category === 'routing'
+    );
+    expect(routingDefinitions.map(({ kind }) => kind).sort()).toEqual([
+      'selector',
+      'sequence',
+      'split'
+    ]);
+    expect(new Set(routingDefinitions.map(({ color }) => color))).toEqual(new Set(['#f5b942']));
+  });
+
+  it('keeps Override in its own green function group', () => {
+    expect(nodeKindRegistry.override).toMatchObject({
+      category: 'override',
+      color: '#65d6ad'
+    });
+  });
 });

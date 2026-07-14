@@ -10,7 +10,7 @@ describe('FlowNode', () => {
   it('uses registry metadata and exposes an accessible node name and status', () => {
     const node = sampleFlows[0]!.nodes[0]!;
     const wrapper = mount(FlowNode, {
-      props: { node, selected: false, marker: '!', status: 'running', statusValue: '21.5 °C' }
+      props: { node, selected: false, status: 'running', statusValue: '21.5 °C' }
     });
 
     expect(wrapper.attributes('aria-label')).toBe(
@@ -20,8 +20,12 @@ describe('FlowNode', () => {
       '/icons/flow-nodes/calculator.svg'
     );
     expect(wrapper.text()).toContain('Calculator');
-    expect(wrapper.text()).toContain('!');
     expect(wrapper.get('.node-status').attributes('aria-label')).toBe('running: 21.5 °C');
+    expect(wrapper.findAll('.node-marker')).toHaveLength(3);
+    expect(wrapper.get('.node-marker.orange rect').exists()).toBe(true);
+    expect(wrapper.get('.node-marker.green path').exists()).toBe(true);
+    expect(wrapper.get('.node-marker.blue circle').exists()).toBe(true);
+    expect(wrapper.findAll('rect.connector-port')).toHaveLength(node.connectors.length);
   });
 
   it('emits selection from keyboard activation', async () => {

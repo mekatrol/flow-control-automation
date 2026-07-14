@@ -13,17 +13,18 @@ describe('node palette filtering and grouping', () => {
       'nor',
       'not',
       'or',
-      'override',
       'xnor',
       'xor'
     ]);
+    expect(filterNodeKinds('override').map(({ kind }) => kind)).toEqual(['override']);
     expect(filterNodeKinds('missing')).toEqual([]);
   });
 
   it('groups registry entries by authoring category', () => {
     const groups = groupNodeKinds(filterNodeKinds(''));
 
-    expect(Object.keys(groups).sort()).toEqual(['logic', 'maths', 'routing', 'timing']);
+    expect(Object.keys(groups).sort()).toEqual(['logic', 'maths', 'override', 'routing', 'timing']);
+    expect(groups.override?.map(({ kind }) => kind)).toEqual(['override']);
     expect(groups.maths?.map(({ kind }) => kind)).toEqual([
       'average',
       'calculator',

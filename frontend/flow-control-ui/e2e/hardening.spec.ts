@@ -79,7 +79,6 @@ test('renders a large validated graph without dropping nodes or connections', as
     x: 20 + (index % 5) * 230,
     y: 20 + (index % 8) * 65,
     zOrder: index,
-    color: '#ef8354',
     connectors: [
       { id: 'input', label: 'Values', direction: 'input', dataType: 'number', side: 'left' },
       { id: 'output', label: 'Result', direction: 'output', dataType: 'number', side: 'right' }

@@ -13,10 +13,14 @@ describe('default node creation', () => {
       x: 120,
       y: 144,
       zOrder: 4,
-      color: '#ef8354',
       configuration: { operation: 'average' }
     });
-    expect(node.connectors.map(({ id }) => id)).toEqual(['input', 'output']);
+    expect(node.connectors.map(({ id }) => id)).toEqual([
+      'analogue-input',
+      'digital-input',
+      'analogue-output',
+      'digital-output'
+    ]);
     expect(() => JSON.stringify(node)).not.toThrow();
   });
 

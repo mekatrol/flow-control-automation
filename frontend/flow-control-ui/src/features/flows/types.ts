@@ -58,7 +58,6 @@ export interface FlowNode {
   x: number;
   y: number;
   zOrder: number;
-  color: string;
   connectors: FlowNodeConnector[];
   configuration: Record<string, FlowConfigurationValue>;
 }

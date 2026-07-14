@@ -10,7 +10,7 @@ export interface NodeEditorField {
 export interface NodeKindDefinition {
   kind: FlowNodeKind;
   label: string;
-  category: 'logic' | 'maths' | 'routing' | 'timing';
+  category: 'logic' | 'maths' | 'override' | 'routing' | 'timing';
   icon: string;
   color: string;
   defaultSize: { width: number; height: number };
@@ -30,6 +30,13 @@ const anyConnectors = (): FlowNodeConnector[] => [
   { id: 'input', label: 'Input', direction: 'input', dataType: 'any', side: 'left' },
   { id: 'output', label: 'Output', direction: 'output', dataType: 'any', side: 'right' }
 ];
+// Timing blocks belong to one toolbox group and use one visual identity. Keep
+// the colour in one place so adding another clock-driven function cannot
+// accidentally introduce a different scheme.
+const timingColor = '#a879d8';
+const logicColor = '#64a7ff';
+const overrideColor = '#65d6ad';
+const routingColor = '#f5b942';
 const definition = (
   kind: FlowNodeFunctionType,
   category: NodeKindDefinition['category'],
@@ -49,7 +56,7 @@ const definition = (
 });
 
 export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
-  [FlowNodeFunctionType.And]: definition(FlowNodeFunctionType.And, 'logic', 'and', '#7f8cff'),
+  [FlowNodeFunctionType.And]: definition(FlowNodeFunctionType.And, 'logic', 'and', logicColor),
   [FlowNodeFunctionType.Average]: definition(
     FlowNodeFunctionType.Average,
     'maths',
@@ -65,8 +72,34 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     color: '#ef8354',
     defaultSize: { width: 150, height: 40 },
     connectors: [
-      { id: 'input', label: 'Values', direction: 'input', dataType: 'number', side: 'left' },
-      { id: 'output', label: 'Result', direction: 'output', dataType: 'number', side: 'right' }
+      {
+        id: 'analogue-input',
+        label: 'Analogue input',
+        direction: 'input',
+        dataType: 'number',
+        side: 'left'
+      },
+      {
+        id: 'digital-input',
+        label: 'Digital input',
+        direction: 'input',
+        dataType: 'boolean',
+        side: 'left'
+      },
+      {
+        id: 'analogue-output',
+        label: 'Analogue output',
+        direction: 'output',
+        dataType: 'number',
+        side: 'right'
+      },
+      {
+        id: 'digital-output',
+        label: 'Digital output',
+        direction: 'output',
+        dataType: 'boolean',
+        side: 'right'
+      }
     ],
     editor: [
       { key: 'operation', label: 'Operation', input: 'select', options: ['average', 'sum'] }
@@ -77,7 +110,7 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     FlowNodeFunctionType.Calendar,
     'timing',
     'calendar',
-    '#a879d8'
+    timingColor
   ),
   [FlowNodeFunctionType.Clamp]: definition(
     FlowNodeFunctionType.Clamp,
@@ -90,16 +123,16 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     FlowNodeFunctionType.Comparator,
     'logic',
     'comparator',
-    '#7f8cff',
+    logicColor,
     numberConnectors()
   ),
   [FlowNodeFunctionType.Delay]: definition(
     FlowNodeFunctionType.Delay,
     'timing',
     'delay',
-    '#f5b942'
+    timingColor
   ),
-  [FlowNodeFunctionType.If]: definition(FlowNodeFunctionType.If, 'logic', 'if', '#7f8cff'),
+  [FlowNodeFunctionType.If]: definition(FlowNodeFunctionType.If, 'logic', 'if', logicColor),
   [FlowNodeFunctionType.Line]: definition(
     FlowNodeFunctionType.Line,
     'maths',
@@ -121,21 +154,16 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     '#ef8354',
     numberConnectors()
   ),
-  [FlowNodeFunctionType.Nand]: definition(
-    FlowNodeFunctionType.Nand,
-    'logic',
-    'nand',
-    '#7f8cff'
-  ),
-  [FlowNodeFunctionType.Nor]: definition(FlowNodeFunctionType.Nor, 'logic', 'nor', '#7f8cff'),
-  [FlowNodeFunctionType.Not]: definition(FlowNodeFunctionType.Not, 'logic', 'not', '#7f8cff'),
-  [FlowNodeFunctionType.Or]: definition(FlowNodeFunctionType.Or, 'logic', 'or', '#7f8cff'),
+  [FlowNodeFunctionType.Nand]: definition(FlowNodeFunctionType.Nand, 'logic', 'nand', logicColor),
+  [FlowNodeFunctionType.Nor]: definition(FlowNodeFunctionType.Nor, 'logic', 'nor', logicColor),
+  [FlowNodeFunctionType.Not]: definition(FlowNodeFunctionType.Not, 'logic', 'not', logicColor),
+  [FlowNodeFunctionType.Or]: definition(FlowNodeFunctionType.Or, 'logic', 'or', logicColor),
   [FlowNodeFunctionType.Override]: {
     kind: FlowNodeFunctionType.Override,
     label: 'Override',
-    category: 'logic',
+    category: 'override',
     icon: 'override',
-    color: '#65d6ad',
+    color: overrideColor,
     defaultSize: { width: 150, height: 40 },
     connectors: [
       { id: 'input', label: 'Automatic', direction: 'input', dataType: 'any', side: 'left' },
@@ -149,7 +177,7 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     label: 'Pulse',
     category: 'timing',
     icon: 'pulse',
-    color: '#f5b942',
+    color: timingColor,
     defaultSize: { width: 150, height: 40 },
     connectors: [
       { id: 'input', label: 'Trigger', direction: 'input', dataType: 'any', side: 'left' },
@@ -162,30 +190,43 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     FlowNodeFunctionType.Schedule,
     'timing',
     'schedule',
-    '#f5b942'
+    timingColor
   ),
   [FlowNodeFunctionType.Selector]: definition(
     FlowNodeFunctionType.Selector,
     'routing',
     'selector',
-    '#64a7ff'
+    routingColor
   ),
   [FlowNodeFunctionType.Sequence]: definition(
     FlowNodeFunctionType.Sequence,
     'routing',
     'sequence',
-    '#64a7ff'
+    routingColor
   ),
   [FlowNodeFunctionType.Split]: {
     kind: FlowNodeFunctionType.Split,
     label: 'Split',
     category: 'routing',
     icon: 'split',
-    color: '#64a7ff',
+    color: routingColor,
     defaultSize: { width: 150, height: 40 },
     connectors: [
       { id: 'input', label: 'Source', direction: 'input', dataType: 'any', side: 'left' },
-      { id: 'output', label: 'Routes', direction: 'output', dataType: 'any', side: 'right' }
+      {
+        id: 'analogue-output',
+        label: 'Analogue route',
+        direction: 'output',
+        dataType: 'number',
+        side: 'right'
+      },
+      {
+        id: 'digital-output',
+        label: 'Digital route',
+        direction: 'output',
+        dataType: 'boolean',
+        side: 'right'
+      }
     ],
     editor: [{ key: 'outputs', label: 'Output count', input: 'number' }],
     defaultConfiguration: { outputs: 2 }
@@ -194,10 +235,10 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     FlowNodeFunctionType.Timer,
     'timing',
     'timer',
-    '#f5b942'
+    timingColor
   ),
-  [FlowNodeFunctionType.Xnor]: definition(FlowNodeFunctionType.Xnor, 'logic', 'xnor', '#7f8cff'),
-  [FlowNodeFunctionType.Xor]: definition(FlowNodeFunctionType.Xor, 'logic', 'xor', '#7f8cff')
+  [FlowNodeFunctionType.Xnor]: definition(FlowNodeFunctionType.Xnor, 'logic', 'xnor', logicColor),
+  [FlowNodeFunctionType.Xor]: definition(FlowNodeFunctionType.Xor, 'logic', 'xor', logicColor)
 };
 
 export const flowNodeKinds = Object.keys(nodeKindRegistry) as FlowNodeKind[];

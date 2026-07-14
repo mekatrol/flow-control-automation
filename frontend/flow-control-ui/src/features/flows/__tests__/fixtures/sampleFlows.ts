@@ -15,7 +15,6 @@ export const sampleFlows: FlowDefinition[] = [
         x: 90,
         y: 110,
         zOrder: 0,
-        color: '#ef8354',
         connectors: [
           { id: 'input', label: 'Values', direction: 'input', dataType: 'number', side: 'left' },
           { id: 'output', label: 'Average', direction: 'output', dataType: 'number', side: 'right' }
@@ -29,7 +28,6 @@ export const sampleFlows: FlowDefinition[] = [
         x: 430,
         y: 220,
         zOrder: 1,
-        color: '#f5b942',
         connectors: [
           { id: 'input', label: 'Value', direction: 'input', dataType: 'number', side: 'left' },
           { id: 'output', label: 'Pulse', direction: 'output', dataType: 'number', side: 'right' }
@@ -43,7 +41,6 @@ export const sampleFlows: FlowDefinition[] = [
         x: 780,
         y: 320,
         zOrder: 2,
-        color: '#65d6ad',
         connectors: [
           { id: 'input', label: 'Automatic', direction: 'input', dataType: 'number', side: 'left' },
           {
@@ -63,7 +60,6 @@ export const sampleFlows: FlowDefinition[] = [
         x: 780,
         y: 90,
         zOrder: 3,
-        color: '#64a7ff',
         connectors: [
           { id: 'input', label: 'Source', direction: 'input', dataType: 'number', side: 'left' },
           { id: 'output', label: 'Zones', direction: 'output', dataType: 'number', side: 'right' }
@@ -98,7 +94,6 @@ export const sampleFlows: FlowDefinition[] = [
         x: 120,
         y: 120,
         zOrder: 0,
-        color: '#f5b942',
         connectors: [
           {
             id: 'input',
