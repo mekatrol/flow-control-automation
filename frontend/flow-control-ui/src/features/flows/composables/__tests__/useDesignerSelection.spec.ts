@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { useDesignerSelection } from '../useDesignerSelection';
+import { useDesignerSelection } from '@/features/flows/composables/useDesignerSelection';
 
 describe('designer selection', () => {
   it('moves selection between nodes and connections', () => {

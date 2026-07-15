@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { interpretDesignerKey } from '../keyboardCommands';
+import { interpretDesignerKey } from '@/features/flows/graph/keyboardCommands';
 
 describe('designer keyboard commands', () => {
   it('maps arrow, Delete, and Backspace keys', () => {

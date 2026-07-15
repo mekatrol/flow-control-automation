@@ -14,7 +14,7 @@
 </template>
 
 <script setup lang="ts">
-import { getNodeIconUrl } from '../nodeKinds';
+import { getNodeIconUrl } from '@/features/flows/nodeKinds';
 
 defineProps<{ icon: string }>();
 </script>

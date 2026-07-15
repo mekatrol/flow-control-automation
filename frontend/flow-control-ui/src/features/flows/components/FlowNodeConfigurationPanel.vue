@@ -52,8 +52,8 @@
 </template>
 
 <script lang="ts">
-import type { FlowConfigurationValue as EditorValue } from '../types';
-import type { NodeEditorField as EditorField } from '../nodeKinds';
+import type { FlowConfigurationValue as EditorValue } from '@/features/flows/types';
+import type { NodeEditorField as EditorField } from '@/features/flows/nodeKinds';
 
 export const validateNodeLabel = (label: string): string | undefined =>
   label.trim() ? undefined : 'Node label is required.';
@@ -82,9 +82,9 @@ export const editorValueFromInput = (
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 
-import { getNodeIconUrl, getNodeKind } from '../nodeKinds';
-import type { NodeEditorField } from '../nodeKinds';
-import type { FlowConfigurationValue, FlowNode } from '../types';
+import { getNodeIconUrl, getNodeKind } from '@/features/flows/nodeKinds';
+import type { NodeEditorField } from '@/features/flows/nodeKinds';
+import type { FlowConfigurationValue, FlowNode } from '@/features/flows/types';
 
 const props = defineProps<{ node: FlowNode }>();
 const emit = defineEmits<{

@@ -3,8 +3,8 @@
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 
-import FlowNode from '../FlowNode.vue';
-import { sampleFlows } from '../../__tests__/fixtures/sampleFlows';
+import FlowNode from '@/features/flows/components/FlowNode.vue';
+import { sampleFlows } from '@/features/flows/__tests__/fixtures/sampleFlows';
 
 describe('FlowNode', () => {
   it('uses registry metadata and exposes an accessible node name and status', () => {

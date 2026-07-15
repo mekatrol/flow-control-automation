@@ -5,8 +5,8 @@ import type {
   FlowConfigurationValue,
   FlowNodeKind,
   FlowStatus
-} from '../types';
-import { flowNodeKinds } from '../nodeKinds';
+} from '@/features/flows/types';
+import { flowNodeKinds } from '@/features/flows/nodeKinds';
 
 export interface FlowNodeConnectorDto {
   id: string;

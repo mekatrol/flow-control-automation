@@ -105,15 +105,19 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
 
-import FlowDesignerCanvas from '../components/FlowDesignerCanvas.vue';
-import { useFlowsStore } from '../stores/flows';
-import type { ZOrderCommand } from '../graph/zOrder';
-import { FlowApiError, flowApi } from '../api/flowApi';
-import { flowRuntimeApi } from '../api/flowRuntimeApi';
-import { createLatestRequestGuard } from '../api/latestRequest';
-import { useFlowRuntimeStore } from '../stores/flowRuntime';
-import { useModalFocus } from '../composables/useModalFocus';
-import type { FlowConfigurationValue, FlowConnectionEndpoint, FlowNode } from '../types';
+import FlowDesignerCanvas from '@/features/flows/components/FlowDesignerCanvas.vue';
+import { useFlowsStore } from '@/features/flows/stores/flows';
+import type { ZOrderCommand } from '@/features/flows/graph/zOrder';
+import { FlowApiError, flowApi } from '@/features/flows/api/flowApi';
+import { flowRuntimeApi } from '@/features/flows/api/flowRuntimeApi';
+import { createLatestRequestGuard } from '@/features/flows/api/latestRequest';
+import { useFlowRuntimeStore } from '@/features/flows/stores/flowRuntime';
+import { useModalFocus } from '@/features/flows/composables/useModalFocus';
+import type {
+  FlowConfigurationValue,
+  FlowConnectionEndpoint,
+  FlowNode
+} from '@/features/flows/types';
 
 const props = defineProps<{
   flowId: string;

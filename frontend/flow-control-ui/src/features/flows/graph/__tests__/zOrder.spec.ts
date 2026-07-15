@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { sampleFlows } from '../../__tests__/fixtures/sampleFlows';
-import { canReorderNode, reorderNode, type ZOrderCommand } from '../zOrder';
+import { sampleFlows } from '@/features/flows/__tests__/fixtures/sampleFlows';
+import { canReorderNode, reorderNode, type ZOrderCommand } from '@/features/flows/graph/zOrder';
 
 const ids = (command: ZOrderCommand): string[] =>
   reorderNode(sampleFlows[0]!.nodes, 'comfort-pulse', command).map((node) => node.id);

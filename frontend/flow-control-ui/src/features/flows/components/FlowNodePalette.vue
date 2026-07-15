@@ -26,7 +26,12 @@
 </template>
 
 <script lang="ts">
-import { flowNodeKinds, getNodeIconUrl, getNodeKind, type NodeKindDefinition } from '../nodeKinds';
+import {
+  flowNodeKinds,
+  getNodeIconUrl,
+  getNodeKind,
+  type NodeKindDefinition
+} from '@/features/flows/nodeKinds';
 
 export const filterNodeKinds = (query: string): NodeKindDefinition[] => {
   const search = query.trim().toLocaleLowerCase();
@@ -58,7 +63,7 @@ export const groupNodeKinds = (
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 
-import type { FlowNodeKind } from '../types';
+import type { FlowNodeKind } from '@/features/flows/types';
 
 const emit = defineEmits<{ add: [kind: FlowNodeKind] }>();
 const query = ref('');

@@ -149,20 +149,20 @@ import {
   DESIGNER_HEIGHT,
   DESIGNER_WIDTH,
   useDesignerViewport
-} from '../composables/useDesignerViewport';
-import { useDesignerSelection } from '../composables/useDesignerSelection';
-import { useConnectionEditing } from '../composables/useConnectionEditing';
+} from '@/features/flows/composables/useDesignerViewport';
+import { useDesignerSelection } from '@/features/flows/composables/useDesignerSelection';
+import { useConnectionEditing } from '@/features/flows/composables/useConnectionEditing';
 import {
   calculateDraggedPosition,
   constrainNodePosition,
   useNodeDragging
-} from '../composables/useNodeDragging';
-import { layoutConnectors, type Point } from '../geometry/connectorLayout';
-import { getNodeKind } from '../nodeKinds';
-import { canReorderNode, type ZOrderCommand } from '../graph/zOrder';
-import { interpretDesignerKey } from '../graph/keyboardCommands';
-import { validateConnection } from '../graph/connections';
-import { createDefaultNode } from '../graph/createNode';
+} from '@/features/flows/composables/useNodeDragging';
+import { layoutConnectors, type Point } from '@/features/flows/geometry/connectorLayout';
+import { getNodeKind } from '@/features/flows/nodeKinds';
+import { canReorderNode, type ZOrderCommand } from '@/features/flows/graph/zOrder';
+import { interpretDesignerKey } from '@/features/flows/graph/keyboardCommands';
+import { validateConnection } from '@/features/flows/graph/connections';
+import { createDefaultNode } from '@/features/flows/graph/createNode';
 import type {
   ConnectorSide,
   FlowConnection as FlowConnectionModel,
@@ -170,9 +170,9 @@ import type {
   FlowDefinition,
   FlowNodeConnector,
   FlowNode as FlowNodeModel
-} from '../types';
-import { flowNodeKinds } from '../nodeKinds';
-import type { FlowRuntimeSnapshot } from '../api/flowRuntimeApi';
+} from '@/features/flows/types';
+import { flowNodeKinds } from '@/features/flows/nodeKinds';
+import type { FlowRuntimeSnapshot } from '@/features/flows/api/flowRuntimeApi';
 
 const props = defineProps<{
   flow: FlowDefinition;

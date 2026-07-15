@@ -1,7 +1,7 @@
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { useFlowRuntimeStore } from '../flowRuntime';
+import { useFlowRuntimeStore } from '@/features/flows/stores/flowRuntime';
 
 const snapshot = {
   flowId: 'climate-control',

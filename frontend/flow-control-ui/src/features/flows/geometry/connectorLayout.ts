@@ -1,4 +1,4 @@
-import type { ConnectorSide, FlowNodeConnector } from '../types';
+import type { ConnectorSide, FlowNodeConnector } from '@/features/flows/types';
 
 export interface Point {
   x: number;

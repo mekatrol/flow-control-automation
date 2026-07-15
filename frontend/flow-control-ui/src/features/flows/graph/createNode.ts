@@ -1,5 +1,5 @@
-import { getNodeKind } from '../nodeKinds';
-import type { FlowNode, FlowNodeKind } from '../types';
+import { getNodeKind } from '@/features/flows/nodeKinds';
+import type { FlowNode, FlowNodeKind } from '@/features/flows/types';
 
 export const createDefaultNode = (
   kind: FlowNodeKind,

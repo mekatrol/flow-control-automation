@@ -1,6 +1,6 @@
 import { computed, onBeforeUnmount, onMounted, ref, type ComputedRef, type Ref } from 'vue';
 
-import type { Point } from '../geometry/connectorLayout';
+import type { Point } from '@/features/flows/geometry/connectorLayout';
 
 export const DESIGNER_WIDTH = 1100;
 export const DESIGNER_HEIGHT = 560;
@@ -35,9 +35,7 @@ export interface DesignerViewport {
   setZoom: (nextZoom: number) => void;
 }
 
-export const useDesignerViewport = (
-  element: Ref<HTMLElement | undefined>
-): DesignerViewport => {
+export const useDesignerViewport = (element: Ref<HTMLElement | undefined>): DesignerViewport => {
   const zoom = ref(1);
   const width = ref(0);
   let observer: ResizeObserver | undefined;

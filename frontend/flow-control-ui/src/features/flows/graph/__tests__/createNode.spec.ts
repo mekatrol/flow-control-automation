@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { createDefaultNode } from '../createNode';
+import { createDefaultNode } from '@/features/flows/graph/createNode';
 
 describe('default node creation', () => {
   it('creates a serialisable node from registry defaults and a supplied ID', () => {

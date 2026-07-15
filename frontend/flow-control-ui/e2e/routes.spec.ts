@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { sampleFlows } from '../src/features/flows/__tests__/fixtures/sampleFlows';
+import { sampleFlows } from '@/features/flows/__tests__/fixtures/sampleFlows';
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/api/flows', async (route) => {

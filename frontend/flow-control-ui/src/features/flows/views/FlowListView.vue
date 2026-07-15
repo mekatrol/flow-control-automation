@@ -89,9 +89,9 @@
 import { storeToRefs } from 'pinia';
 import { computed, onBeforeUnmount, onMounted, ref, type ComponentPublicInstance } from 'vue';
 
-import { flowApi } from '../api/flowApi';
-import { useFlowsStore } from '../stores/flows';
-import { useModalFocus } from '../composables/useModalFocus';
+import { flowApi } from '@/features/flows/api/flowApi';
+import { useFlowsStore } from '@/features/flows/stores/flows';
+import { useModalFocus } from '@/features/flows/composables/useModalFocus';
 
 const flowStore = useFlowsStore();
 const { flows } = storeToRefs(flowStore);

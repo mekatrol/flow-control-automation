@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { connectionPath } from '../connectionPath';
+import { connectionPath } from '@/features/flows/geometry/connectionPath';
 
 describe('connection path', () => {
   it('draws forward and reverse horizontal splines', () => {

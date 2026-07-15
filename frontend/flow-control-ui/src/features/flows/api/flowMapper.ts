@@ -1,4 +1,4 @@
-import type { FlowDefinition } from '../types';
+import type { FlowDefinition } from '@/features/flows/types';
 import type { FlowDto } from './flowDto';
 
 // API data and editable data must not share nested objects. Editing a connector or

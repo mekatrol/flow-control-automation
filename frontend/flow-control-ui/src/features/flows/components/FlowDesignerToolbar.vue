@@ -58,7 +58,7 @@
 </template>
 
 <script setup lang="ts">
-import type { ZOrderCommand } from '../graph/zOrder';
+import type { ZOrderCommand } from '@/features/flows/graph/zOrder';
 
 defineProps<{
   selectedNodeId?: string;

@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { sampleFlows } from '../../__tests__/fixtures/sampleFlows';
-import type { FlowNodeConnector } from '../../types';
-import { addConnection, connectorsAreCompatible, validateConnection } from '../connections';
+import { sampleFlows } from '@/features/flows/__tests__/fixtures/sampleFlows';
+import type { FlowNodeConnector } from '@/features/flows/types';
+import {
+  addConnection,
+  connectorsAreCompatible,
+  validateConnection
+} from '@/features/flows/graph/connections';
 
 const connector = (
   direction: FlowNodeConnector['direction'],

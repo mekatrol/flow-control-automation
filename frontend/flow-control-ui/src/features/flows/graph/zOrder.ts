@@ -1,4 +1,4 @@
-import type { FlowNode } from '../types';
+import type { FlowNode } from '@/features/flows/types';
 
 export type ZOrderCommand = 'front' | 'forward' | 'backward' | 'back';
 

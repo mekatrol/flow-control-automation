@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { useConnectionEditing } from '../useConnectionEditing';
+import { useConnectionEditing } from '@/features/flows/composables/useConnectionEditing';
 
 describe('connection editing state', () => {
   it('starts, previews, reports an error, and cancels without persisted view state', () => {

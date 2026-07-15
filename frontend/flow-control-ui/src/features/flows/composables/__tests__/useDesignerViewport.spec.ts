@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { clampZoom, clientToSvgPoint } from '../useDesignerViewport';
+import { clampZoom, clientToSvgPoint } from '@/features/flows/composables/useDesignerViewport';
 
 describe('designer viewport calculations', () => {
   it('clamps zoom to usable boundaries', () => {

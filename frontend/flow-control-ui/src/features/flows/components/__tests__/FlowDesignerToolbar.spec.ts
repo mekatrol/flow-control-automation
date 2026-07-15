@@ -3,7 +3,7 @@
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 
-import FlowDesignerToolbar from '../FlowDesignerToolbar.vue';
+import FlowDesignerToolbar from '@/features/flows/components/FlowDesignerToolbar.vue';
 
 describe('FlowDesignerToolbar', () => {
   it('uses distinct directional and terminal icons for all stacking operations', async () => {

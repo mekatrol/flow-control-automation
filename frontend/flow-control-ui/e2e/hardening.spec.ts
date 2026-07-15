@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import type { FlowDefinition, FlowNode } from '../src/features/flows/types';
+import type { FlowDefinition, FlowNode } from '@/features/flows/types';
 
 const emptyFlow = (): FlowDefinition => ({
   id: 'critical-journey',

@@ -5,7 +5,7 @@ import { mount } from '@vue/test-utils';
 import { createMemoryHistory, createRouter } from 'vue-router';
 import { describe, expect, it } from 'vitest';
 
-import App from '../App.vue';
+import App from '@/App.vue';
 
 const FlowListStub = { template: '<h1>Flows</h1>' };
 

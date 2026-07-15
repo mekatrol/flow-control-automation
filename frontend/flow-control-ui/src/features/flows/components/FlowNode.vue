@@ -58,9 +58,9 @@ import FlowNodeLabel from './FlowNodeLabel.vue';
 import FlowNodeMarker from './FlowNodeMarker.vue';
 import FlowNodeStatus from './FlowNodeStatus.vue';
 import FlowConnector from './FlowConnector.vue';
-import { layoutConnectors } from '../geometry/connectorLayout';
-import { getNodeKind } from '../nodeKinds';
-import type { FlowConnectionEndpoint, FlowNode } from '../types';
+import { layoutConnectors } from '@/features/flows/geometry/connectorLayout';
+import { getNodeKind } from '@/features/flows/nodeKinds';
+import type { FlowConnectionEndpoint, FlowNode } from '@/features/flows/types';
 
 const props = defineProps<{
   node: FlowNode;

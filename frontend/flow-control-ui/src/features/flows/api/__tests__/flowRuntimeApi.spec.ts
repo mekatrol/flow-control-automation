@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { flowRuntimeApi, parseFlowRuntimeSnapshot } from '../flowRuntimeApi';
+import { flowRuntimeApi, parseFlowRuntimeSnapshot } from '@/features/flows/api/flowRuntimeApi';
 
 const snapshot = {
   flowId: 'climate-control',

@@ -1,7 +1,7 @@
 import { ref, type Ref } from 'vue';
 
-import type { Point } from '../geometry/connectorLayout';
-import type { FlowConnectionEndpoint } from '../types';
+import type { Point } from '@/features/flows/geometry/connectorLayout';
+import type { FlowConnectionEndpoint } from '@/features/flows/types';
 
 export interface ConnectionEditing {
   connectionStart: Ref<FlowConnectionEndpoint | undefined>;

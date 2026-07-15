@@ -1,5 +1,5 @@
 import type { Point } from './connectorLayout';
-import type { ConnectorSide } from '../types';
+import type { ConnectorSide } from '@/features/flows/types';
 
 const calculateControlOffset = (distance: number, curvature: number): number => {
   if (distance >= 0) return 0.5 * distance;

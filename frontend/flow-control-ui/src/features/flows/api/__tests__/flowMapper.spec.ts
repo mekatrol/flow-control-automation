@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { sampleFlows } from '../../__tests__/fixtures/sampleFlows';
-import { parseFlowDto } from '../flowDto';
-import { flowDomainToDto, flowDtoToDomain } from '../flowMapper';
+import { sampleFlows } from '@/features/flows/__tests__/fixtures/sampleFlows';
+import { parseFlowDto } from '@/features/flows/api/flowDto';
+import { flowDomainToDto, flowDtoToDomain } from '@/features/flows/api/flowMapper';
 
 describe('flow DTO mapping', () => {
   it('maps a validated DTO to editable domain data', () => {

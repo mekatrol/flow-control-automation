@@ -1,12 +1,16 @@
 import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
 
-import { reorderNode as reorderNodeGraph, type ZOrderCommand } from '../graph/zOrder';
-import { parseFlowDto, type FlowDto } from '../api/flowDto';
-import { flowDomainToDto, flowDtoToDomain } from '../api/flowMapper';
-import { addConnection as addGraphConnection } from '../graph/connections';
-import type { FlowConfigurationValue, FlowConnectionEndpoint, FlowNode } from '../types';
-import type { FlowDefinition } from '../types';
+import { reorderNode as reorderNodeGraph, type ZOrderCommand } from '@/features/flows/graph/zOrder';
+import { parseFlowDto, type FlowDto } from '@/features/flows/api/flowDto';
+import { flowDomainToDto, flowDtoToDomain } from '@/features/flows/api/flowMapper';
+import { addConnection as addGraphConnection } from '@/features/flows/graph/connections';
+import type {
+  FlowConfigurationValue,
+  FlowConnectionEndpoint,
+  FlowNode
+} from '@/features/flows/types';
+import type { FlowDefinition } from '@/features/flows/types';
 
 export const useFlowsStore = defineStore('flows', () => {
   // The store starts empty and only accepts API payloads after schema validation.

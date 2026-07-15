@@ -1,6 +1,6 @@
 import { ref, type Ref } from 'vue';
 
-import type { Point } from '../geometry/connectorLayout';
+import type { Point } from '@/features/flows/geometry/connectorLayout';
 
 export interface NodeDragState {
   nodeId: string;

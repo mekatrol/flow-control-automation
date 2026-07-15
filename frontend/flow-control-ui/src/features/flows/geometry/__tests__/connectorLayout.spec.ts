@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import type { FlowNodeConnector } from '../../types';
-import { layoutConnectors } from '../connectorLayout';
+import type { FlowNodeConnector } from '@/features/flows/types';
+import { layoutConnectors } from '@/features/flows/geometry/connectorLayout';
 
 const connector = (id: string, side: FlowNodeConnector['side']): FlowNodeConnector => ({
   id,

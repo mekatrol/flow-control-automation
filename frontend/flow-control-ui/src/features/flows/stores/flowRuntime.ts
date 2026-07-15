@@ -1,7 +1,7 @@
 import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
 
-import type { FlowRuntimeSnapshot } from '../api/flowRuntimeApi';
+import type { FlowRuntimeSnapshot } from '@/features/flows/api/flowRuntimeApi';
 
 export const useFlowRuntimeStore = defineStore('flow-runtime', () => {
   // Runtime snapshots deliberately live outside the editable flow store. Deploy

@@ -3,7 +3,7 @@
 import { nextTick, ref } from 'vue';
 import { describe, expect, it } from 'vitest';
 
-import { useModalFocus } from '../useModalFocus';
+import { useModalFocus } from '@/features/flows/composables/useModalFocus';
 
 describe('useModalFocus', () => {
   it('moves focus into a modal, traps Tab, closes with Escape, and restores focus', async () => {

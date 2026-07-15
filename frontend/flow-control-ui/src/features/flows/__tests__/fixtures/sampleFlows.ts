@@ -1,4 +1,4 @@
-import type { FlowDefinition } from '../../types';
+import type { FlowDefinition } from '@/features/flows/types';
 
 export const sampleFlows: FlowDefinition[] = [
   {

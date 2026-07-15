@@ -26,7 +26,7 @@
 </template>
 
 <script setup lang="ts">
-import type { ConnectorLayout } from '../geometry/connectorLayout';
+import type { ConnectorLayout } from '@/features/flows/geometry/connectorLayout';
 
 defineProps<{ layout: ConnectorLayout; compatible?: boolean; active?: boolean }>();
 

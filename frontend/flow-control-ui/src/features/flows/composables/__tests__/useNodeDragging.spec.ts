@@ -6,7 +6,7 @@ import {
   snapCoordinate,
   useNodeDragging,
   type NodeDragState
-} from '../useNodeDragging';
+} from '@/features/flows/composables/useNodeDragging';
 
 const state: NodeDragState = {
   nodeId: 'node-1',

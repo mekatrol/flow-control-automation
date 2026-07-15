@@ -1,9 +1,9 @@
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { sampleFlows } from '../../__tests__/fixtures/sampleFlows';
-import { createDefaultNode } from '../../graph/createNode';
-import { useFlowsStore } from '../flows';
+import { sampleFlows } from '@/features/flows/__tests__/fixtures/sampleFlows';
+import { createDefaultNode } from '@/features/flows/graph/createNode';
+import { useFlowsStore } from '@/features/flows/stores/flows';
 
 describe('flows store', () => {
   beforeEach(() => {

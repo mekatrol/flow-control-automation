@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { flowNodeKinds, nodeKindRegistry } from '../nodeKinds';
+import { flowNodeKinds, nodeKindRegistry } from '@/features/flows/nodeKinds';
 
 describe('node-kind registry', () => {
   it('contains complete rendering, connector, and editor metadata for every supported kind', () => {

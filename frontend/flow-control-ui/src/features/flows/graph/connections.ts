@@ -3,7 +3,7 @@ import type {
   FlowConnectionEndpoint,
   FlowDefinition,
   FlowNodeConnector
-} from '../types';
+} from '@/features/flows/types';
 
 export interface ConnectionValidation {
   valid: boolean;

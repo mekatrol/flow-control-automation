@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { createLatestRequestGuard } from '../latestRequest';
+import { createLatestRequestGuard } from '@/features/flows/api/latestRequest';
 
 describe('latest request guard', () => {
   it('rejects stale route responses and invalidates work on unmount', () => {

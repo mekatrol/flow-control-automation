@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { sampleFlows } from '../../__tests__/fixtures/sampleFlows';
-import { FlowDtoValidationError, parseFlowDto, parseFlowDtoJson } from '../flowDto';
+import { sampleFlows } from '@/features/flows/__tests__/fixtures/sampleFlows';
+import {
+  FlowDtoValidationError,
+  parseFlowDto,
+  parseFlowDtoJson
+} from '@/features/flows/api/flowDto';
 
 const validFlow = (): unknown => structuredClone(sampleFlows[0]);
 

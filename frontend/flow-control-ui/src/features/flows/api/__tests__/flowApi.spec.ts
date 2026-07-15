@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { sampleFlows } from '../../__tests__/fixtures/sampleFlows';
-import { FlowApiError, flowApi } from '../flowApi';
+import { sampleFlows } from '@/features/flows/__tests__/fixtures/sampleFlows';
+import { FlowApiError, flowApi } from '@/features/flows/api/flowApi';
 
 const response = (body: unknown, status = 200): Response =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
