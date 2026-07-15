@@ -64,6 +64,17 @@ export default defineConfigWithVueTs(
       ],
       'no-unused-vars': 'off',
       'no-var': 'error',
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['../**'],
+              message: "Use a configured path alias for imports outside the current directory. Same-directory './' imports are allowed.",
+            },
+          ],
+        },
+      ],
       'prefer-arrow-callback': 'error',
       'func-style': ['error', 'expression', { allowArrowFunctions: true }],
       '@typescript-eslint/no-unused-vars': [
