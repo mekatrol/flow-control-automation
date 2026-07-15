@@ -1,3 +1,142 @@
+<template>
+  <div class="canvas-frame">
+    <div class="canvas-toolbar">
+      <span>{{ flow.nodes.length }} nodes</span>
+      <span>{{ flow.connections.length }} connections</span>
+      <span v-if="selectedNodeId" class="selection">Selected: {{ selectedNodeId }}</span>
+      <span v-else-if="selectedConnectionId" class="selection">
+        Selected connection: {{ selectedConnectionId }}
+      </span>
+      <div class="zoom-controls" aria-label="Canvas zoom controls">
+        <button
+          type="button"
+          aria-label="Zoom out"
+          :disabled="zoom <= 0.5"
+          @click="setZoom(zoom - 0.25)"
+        >
+          −
+        </button>
+        <output aria-live="polite">{{ Math.round(zoom * 100) }}%</output>
+        <button
+          type="button"
+          aria-label="Zoom in"
+          :disabled="zoom >= 2"
+          @click="setZoom(zoom + 0.25)"
+        >
+          +
+        </button>
+      </div>
+      <label class="grid-toggle">
+        <input v-model="snapToGrid" type="checkbox" />
+        Snap to grid
+      </label>
+      <FlowDesignerToolbar
+        :selected-node-id="selectedNodeId"
+        :can-move-front="canMoveFront"
+        :can-move-back="canMoveBack"
+        @reorder="handleReorder"
+      />
+    </div>
+
+    <div class="designer-workspace">
+      <FlowNodePalette @add="handleAddNode" />
+      <div class="canvas-column">
+        <FlowNodeConfigurationPanel
+          v-if="selectedNode"
+          :node="selectedNode"
+          @update-label="emit('updateNodeLabel', selectedNode.id, $event)"
+          @update-configuration="
+            (key, value) => emit('updateNodeConfiguration', selectedNode!.id, key, value)
+          "
+        />
+
+        <p v-if="connectionError" class="connection-error" role="alert">{{ connectionError }}</p>
+
+        <div
+          ref="viewportElement"
+          class="canvas-viewport"
+          tabindex="0"
+          :aria-label="`Scrollable designer viewport, ${Math.round(viewportWidth)} pixels wide`"
+          @keydown="handleCanvasKeydown"
+        >
+          <svg
+            ref="canvasElement"
+            class="designer-canvas"
+            :viewBox="`0 0 ${DESIGNER_WIDTH} ${DESIGNER_HEIGHT}`"
+            :style="{ width: `${canvasSize.width}px`, height: `${canvasSize.height}px` }"
+            role="group"
+            :aria-label="`${flow.name} flow graph`"
+            @click.self="clearCanvasState"
+            @pointermove="handlePointerMove"
+            @pointerup="handleDragEnd"
+            @pointercancel="handleDragCancel"
+            @dragover.prevent
+            @drop="handlePaletteDrop"
+          >
+            <defs>
+              <pattern id="designer-grid" width="24" height="24" patternUnits="userSpaceOnUse">
+                <path d="M24 0H0V24" fill="none" stroke="#d8e2ea" stroke-width="1" />
+              </pattern>
+            </defs>
+
+            <rect
+              data-canvas-background
+              :width="DESIGNER_WIDTH"
+              :height="DESIGNER_HEIGHT"
+              fill="url(#designer-grid)"
+              @click="clearCanvasState"
+            />
+
+            <g class="connections">
+              <FlowConnection
+                v-for="rendered in renderedConnections"
+                :key="rendered.connection.id"
+                :id="rendered.connection.id"
+                :start="rendered.start"
+                :end="rendered.end"
+                :start-side="rendered.startSide"
+                :end-side="rendered.endSide"
+                :selected="rendered.connection.id === selectedConnectionId"
+                :label="`Connection from ${rendered.connection.start.nodeId} to ${rendered.connection.end.nodeId}`"
+                @select="handleConnectionSelection"
+              />
+              <FlowConnection
+                v-if="previewStart && previewEnd"
+                id="connection-preview"
+                :start="previewStart"
+                :end="previewEnd"
+                :start-side="previewStartSide"
+                preview
+              />
+            </g>
+
+            <FlowNode
+              v-for="node in orderedNodes"
+              :key="node.id"
+              :node="node"
+              :selected="node.id === selectedNodeId"
+              :status="runtime?.nodes[node.id]?.state ?? flow.status"
+              :status-value="runtime?.nodes[node.id]?.value"
+              :connection-start="connectionStart"
+              :compatible-connector-keys="compatibleConnectorKeys"
+              @select="handleNodeSelection"
+              @dragstart="handleDragStart"
+              @connectorpress="handleConnectorPress"
+              @connectoractivate="handleConnectorActivate"
+              @connectorrelease="handleConnectorRelease"
+              @connectorpreview="handleConnectorPreview"
+            />
+
+            <text v-if="flow.nodes.length === 0" class="empty-message" x="550" y="280">
+              This flow does not have any nodes yet.
+            </text>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue';
 
@@ -25,9 +164,11 @@ import { interpretDesignerKey } from '../graph/keyboardCommands';
 import { validateConnection } from '../graph/connections';
 import { createDefaultNode } from '../graph/createNode';
 import type {
+  ConnectorSide,
   FlowConnection as FlowConnectionModel,
   FlowConnectionEndpoint,
   FlowDefinition,
+  FlowNodeConnector,
   FlowNode as FlowNodeModel
 } from '../types';
 import { flowNodeKinds } from '../nodeKinds';
@@ -90,7 +231,14 @@ const connectorPoint = (nodeId: string, connectorId: string): Point | undefined 
   return layout ? { x: node.x + layout.x, y: node.y + layout.y } : undefined;
 };
 
-const connectionEndpoints = (connection: FlowConnectionModel) => ({
+interface ConnectionEndpoints {
+  start: Point | undefined;
+  end: Point | undefined;
+  startSide: ConnectorSide | undefined;
+  endSide: ConnectorSide | undefined;
+}
+
+const connectionEndpoints = (connection: FlowConnectionModel): ConnectionEndpoints => ({
   start: connectorPoint(connection.start.nodeId, connection.start.connectorId),
   end: connectorPoint(connection.end.nodeId, connection.end.connectorId),
   startSide: connectorAt(connection.start)?.side,
@@ -104,7 +252,7 @@ const renderedConnections = computed(() =>
     ...connectionEndpoints(connection)
   }))
 );
-const connectorAt = (endpoint: FlowConnectionEndpoint) =>
+const connectorAt = (endpoint: FlowConnectionEndpoint): FlowNodeConnector | undefined =>
   nodesById.value
     .get(endpoint.nodeId)
     ?.connectors.find((connector) => connector.id === endpoint.connectorId);
@@ -362,145 +510,6 @@ const handleDragCancel = (event: PointerEvent): void => {
   }
 };
 </script>
-
-<template>
-  <div class="canvas-frame">
-    <div class="canvas-toolbar">
-      <span>{{ flow.nodes.length }} nodes</span>
-      <span>{{ flow.connections.length }} connections</span>
-      <span v-if="selectedNodeId" class="selection">Selected: {{ selectedNodeId }}</span>
-      <span v-else-if="selectedConnectionId" class="selection">
-        Selected connection: {{ selectedConnectionId }}
-      </span>
-      <div class="zoom-controls" aria-label="Canvas zoom controls">
-        <button
-          type="button"
-          aria-label="Zoom out"
-          :disabled="zoom <= 0.5"
-          @click="setZoom(zoom - 0.25)"
-        >
-          −
-        </button>
-        <output aria-live="polite">{{ Math.round(zoom * 100) }}%</output>
-        <button
-          type="button"
-          aria-label="Zoom in"
-          :disabled="zoom >= 2"
-          @click="setZoom(zoom + 0.25)"
-        >
-          +
-        </button>
-      </div>
-      <label class="grid-toggle">
-        <input v-model="snapToGrid" type="checkbox" />
-        Snap to grid
-      </label>
-      <FlowDesignerToolbar
-        :selected-node-id="selectedNodeId"
-        :can-move-front="canMoveFront"
-        :can-move-back="canMoveBack"
-        @reorder="handleReorder"
-      />
-    </div>
-
-    <div class="designer-workspace">
-      <FlowNodePalette @add="handleAddNode" />
-      <div class="canvas-column">
-        <FlowNodeConfigurationPanel
-          v-if="selectedNode"
-          :node="selectedNode"
-          @update-label="emit('updateNodeLabel', selectedNode.id, $event)"
-          @update-configuration="
-            (key, value) => emit('updateNodeConfiguration', selectedNode!.id, key, value)
-          "
-        />
-
-        <p v-if="connectionError" class="connection-error" role="alert">{{ connectionError }}</p>
-
-        <div
-          ref="viewportElement"
-          class="canvas-viewport"
-          tabindex="0"
-          :aria-label="`Scrollable designer viewport, ${Math.round(viewportWidth)} pixels wide`"
-          @keydown="handleCanvasKeydown"
-        >
-          <svg
-            ref="canvasElement"
-            class="designer-canvas"
-            :viewBox="`0 0 ${DESIGNER_WIDTH} ${DESIGNER_HEIGHT}`"
-            :style="{ width: `${canvasSize.width}px`, height: `${canvasSize.height}px` }"
-            role="group"
-            :aria-label="`${flow.name} flow graph`"
-            @click.self="clearCanvasState"
-            @pointermove="handlePointerMove"
-            @pointerup="handleDragEnd"
-            @pointercancel="handleDragCancel"
-            @dragover.prevent
-            @drop="handlePaletteDrop"
-          >
-            <defs>
-              <pattern id="designer-grid" width="24" height="24" patternUnits="userSpaceOnUse">
-                <path d="M24 0H0V24" fill="none" stroke="#d8e2ea" stroke-width="1" />
-              </pattern>
-            </defs>
-
-            <rect
-              data-canvas-background
-              :width="DESIGNER_WIDTH"
-              :height="DESIGNER_HEIGHT"
-              fill="url(#designer-grid)"
-              @click="clearCanvasState"
-            />
-
-            <g class="connections">
-              <FlowConnection
-                v-for="rendered in renderedConnections"
-                :key="rendered.connection.id"
-                :id="rendered.connection.id"
-                :start="rendered.start"
-                :end="rendered.end"
-                :start-side="rendered.startSide"
-                :end-side="rendered.endSide"
-                :selected="rendered.connection.id === selectedConnectionId"
-                :label="`Connection from ${rendered.connection.start.nodeId} to ${rendered.connection.end.nodeId}`"
-                @select="handleConnectionSelection"
-              />
-              <FlowConnection
-                v-if="previewStart && previewEnd"
-                id="connection-preview"
-                :start="previewStart"
-                :end="previewEnd"
-                :start-side="previewStartSide"
-                preview
-              />
-            </g>
-
-            <FlowNode
-              v-for="node in orderedNodes"
-              :key="node.id"
-              :node="node"
-              :selected="node.id === selectedNodeId"
-              :status="runtime?.nodes[node.id]?.state ?? flow.status"
-              :status-value="runtime?.nodes[node.id]?.value"
-              :connection-start="connectionStart"
-              :compatible-connector-keys="compatibleConnectorKeys"
-              @select="handleNodeSelection"
-              @dragstart="handleDragStart"
-              @connectorpress="handleConnectorPress"
-              @connectoractivate="handleConnectorActivate"
-              @connectorrelease="handleConnectorRelease"
-              @connectorpreview="handleConnectorPreview"
-            />
-
-            <text v-if="flow.nodes.length === 0" class="empty-message" x="550" y="280">
-              This flow does not have any nodes yet.
-            </text>
-          </svg>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
 
 <style scoped>
 .canvas-frame {

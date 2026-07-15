@@ -1,3 +1,90 @@
+<template>
+  <section class="flow-library">
+    <div class="page-heading">
+      <div>
+        <p class="eyebrow">Automation workspace</p>
+        <h1>Flows</h1>
+        <p>Design, inspect, and deploy independent automation flows.</p>
+      </div>
+      <form class="create-flow" @submit.prevent="createFlow">
+        <label for="new-flow-name">New flow name</label>
+        <input id="new-flow-name" v-model="newFlowName" type="text" />
+        <button type="submit" :disabled="creating">
+          {{ creating ? 'Creating…' : 'New flow' }}
+        </button>
+      </form>
+    </div>
+
+    <p v-if="loading" class="request-status" role="status">Loading flows…</p>
+    <div v-if="error" class="request-error" role="alert">
+      <span>{{ error }}</span>
+      <button type="button" @click="loadFlows">Retry</button>
+    </div>
+
+    <div v-if="!loading && !error && flows.length === 0" class="empty-state">
+      <h2>No flows yet</h2>
+      <p>Create a flow to start designing an automation.</p>
+    </div>
+
+    <div class="flow-grid">
+      <article v-for="flow in flows" :key="flow.id" class="flow-card">
+        <div class="flow-card-heading">
+          <span class="status" :class="flow.status">{{ flow.status }}</span>
+          <div class="card-actions">
+            <button type="button" @click="beginRename(flow.id, flow.name)">Rename</button>
+            <button type="button" @click="beginDelete(flow.id)">Delete</button>
+          </div>
+        </div>
+        <form
+          v-if="editingFlowId === flow.id"
+          class="rename-flow"
+          @submit.prevent="renameFlow(flow.id)"
+        >
+          <label :for="`rename-${flow.id}`">Rename {{ flow.name }}</label>
+          <input :id="`rename-${flow.id}`" v-model="renameValue" type="text" />
+          <button type="submit" :disabled="renaming">Save name</button>
+          <button type="button" @click="editingFlowId = undefined">Cancel</button>
+        </form>
+        <h2 v-else>
+          <RouterLink :to="{ name: 'flow-designer', params: { flowId: flow.id } }">
+            {{ flow.name }} <span aria-hidden="true">→</span>
+          </RouterLink>
+        </h2>
+        <p>{{ flow.description }}</p>
+        <dl>
+          <div>
+            <dt>Nodes</dt>
+            <dd>{{ flow.nodes.length }}</dd>
+          </div>
+          <div>
+            <dt>Updated</dt>
+            <dd>{{ formatUpdatedAt(flow.updatedAt) }}</dd>
+          </div>
+        </dl>
+        <div
+          v-if="confirmingDeleteId === flow.id"
+          :ref="setDeleteDialog"
+          class="delete-confirmation"
+          role="alertdialog"
+          :aria-label="`Delete ${flow.name}?`"
+          :aria-describedby="`delete-description-${flow.id}`"
+          aria-modal="true"
+          tabindex="-1"
+          @keydown="handleDeleteDialogKeydown"
+        >
+          <span :id="`delete-description-${flow.id}`">Delete this flow?</span>
+          <button type="button" :disabled="deleting" @click="deleteFlow(flow.id)">
+            Confirm delete
+          </button>
+          <button type="button" data-dialog-initial-focus @click="closeDeleteConfirmation">
+            Cancel
+          </button>
+        </div>
+      </article>
+    </div>
+  </section>
+</template>
+
 <script setup lang="ts">
 import { storeToRefs } from 'pinia';
 import { computed, onBeforeUnmount, onMounted, ref, type ComponentPublicInstance } from 'vue';
@@ -129,93 +216,6 @@ const formatUpdatedAt = (updatedAt: string): string =>
 onMounted(() => void loadFlows());
 onBeforeUnmount(() => listController?.abort());
 </script>
-
-<template>
-  <section class="flow-library">
-    <div class="page-heading">
-      <div>
-        <p class="eyebrow">Automation workspace</p>
-        <h1>Flows</h1>
-        <p>Design, inspect, and deploy independent automation flows.</p>
-      </div>
-      <form class="create-flow" @submit.prevent="createFlow">
-        <label for="new-flow-name">New flow name</label>
-        <input id="new-flow-name" v-model="newFlowName" type="text" />
-        <button type="submit" :disabled="creating">
-          {{ creating ? 'Creating…' : 'New flow' }}
-        </button>
-      </form>
-    </div>
-
-    <p v-if="loading" class="request-status" role="status">Loading flows…</p>
-    <div v-if="error" class="request-error" role="alert">
-      <span>{{ error }}</span>
-      <button type="button" @click="loadFlows">Retry</button>
-    </div>
-
-    <div v-if="!loading && !error && flows.length === 0" class="empty-state">
-      <h2>No flows yet</h2>
-      <p>Create a flow to start designing an automation.</p>
-    </div>
-
-    <div class="flow-grid">
-      <article v-for="flow in flows" :key="flow.id" class="flow-card">
-        <div class="flow-card-heading">
-          <span class="status" :class="flow.status">{{ flow.status }}</span>
-          <div class="card-actions">
-            <button type="button" @click="beginRename(flow.id, flow.name)">Rename</button>
-            <button type="button" @click="beginDelete(flow.id)">Delete</button>
-          </div>
-        </div>
-        <form
-          v-if="editingFlowId === flow.id"
-          class="rename-flow"
-          @submit.prevent="renameFlow(flow.id)"
-        >
-          <label :for="`rename-${flow.id}`">Rename {{ flow.name }}</label>
-          <input :id="`rename-${flow.id}`" v-model="renameValue" type="text" />
-          <button type="submit" :disabled="renaming">Save name</button>
-          <button type="button" @click="editingFlowId = undefined">Cancel</button>
-        </form>
-        <h2 v-else>
-          <RouterLink :to="{ name: 'flow-designer', params: { flowId: flow.id } }">
-            {{ flow.name }} <span aria-hidden="true">→</span>
-          </RouterLink>
-        </h2>
-        <p>{{ flow.description }}</p>
-        <dl>
-          <div>
-            <dt>Nodes</dt>
-            <dd>{{ flow.nodes.length }}</dd>
-          </div>
-          <div>
-            <dt>Updated</dt>
-            <dd>{{ formatUpdatedAt(flow.updatedAt) }}</dd>
-          </div>
-        </dl>
-        <div
-          v-if="confirmingDeleteId === flow.id"
-          :ref="setDeleteDialog"
-          class="delete-confirmation"
-          role="alertdialog"
-          :aria-label="`Delete ${flow.name}?`"
-          :aria-describedby="`delete-description-${flow.id}`"
-          aria-modal="true"
-          tabindex="-1"
-          @keydown="handleDeleteDialogKeydown"
-        >
-          <span :id="`delete-description-${flow.id}`">Delete this flow?</span>
-          <button type="button" :disabled="deleting" @click="deleteFlow(flow.id)">
-            Confirm delete
-          </button>
-          <button type="button" data-dialog-initial-focus @click="closeDeleteConfirmation">
-            Cancel
-          </button>
-        </div>
-      </article>
-    </div>
-  </section>
-</template>
 
 <style scoped>
 .flow-library {

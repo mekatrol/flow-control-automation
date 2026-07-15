@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { sampleFlows } from '../../__tests__/fixtures/sampleFlows';
 import { canReorderNode, reorderNode, type ZOrderCommand } from '../zOrder';
 
-const ids = (command: ZOrderCommand) =>
+const ids = (command: ZOrderCommand): string[] =>
   reorderNode(sampleFlows[0]!.nodes, 'comfort-pulse', command).map((node) => node.id);
 
 describe('z-order operations', () => {

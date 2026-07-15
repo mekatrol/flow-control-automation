@@ -1,4 +1,10 @@
-export const createLatestRequestGuard = () => {
+export interface LatestRequestGuard {
+  begin: () => number;
+  isCurrent: (requestGeneration: number) => boolean;
+  invalidate: () => void;
+}
+
+export const createLatestRequestGuard = (): LatestRequestGuard => {
   // Aborting fetch saves work, but a response may already be queued when a route
   // changes. A monotonically increasing generation also prevents that stale
   // response from replacing the graph for the newer route.

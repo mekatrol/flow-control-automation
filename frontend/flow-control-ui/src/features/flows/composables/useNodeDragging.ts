@@ -1,4 +1,4 @@
-import { ref } from 'vue';
+import { ref, type Ref } from 'vue';
 
 import type { Point } from '../geometry/connectorLayout';
 
@@ -45,7 +45,14 @@ export const calculateDraggedPosition = (
     bounds
   );
 
-export const useNodeDragging = () => {
+export interface NodeDragging {
+  dragState: Ref<NodeDragState | undefined>;
+  startDrag: (state: NodeDragState) => void;
+  finishDrag: (pointerId: number) => boolean;
+  cancelDrag: (pointerId: number) => Point | undefined;
+}
+
+export const useNodeDragging = (): NodeDragging => {
   const dragState = ref<NodeDragState>();
 
   const startDrag = (state: NodeDragState): void => {

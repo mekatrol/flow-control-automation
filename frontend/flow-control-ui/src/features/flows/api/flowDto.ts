@@ -183,7 +183,11 @@ const parseConnection = (value: unknown, path: string): FlowConnectionDto => {
   };
 };
 
-const findConnector = (nodes: FlowNodeDto[], endpoint: FlowConnectionEndpointDto, path: string) => {
+const findConnector = (
+  nodes: FlowNodeDto[],
+  endpoint: FlowConnectionEndpointDto,
+  path: string
+): FlowNodeConnectorDto => {
   const node = nodes.find((candidate) => candidate.id === endpoint.nodeId);
   if (!node) return fail(`${path}.nodeId`, `unknown node “${endpoint.nodeId}”`);
   const connector = node.connectors.find((candidate) => candidate.id === endpoint.connectorId);

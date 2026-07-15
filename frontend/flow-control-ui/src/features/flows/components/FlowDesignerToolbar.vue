@@ -1,15 +1,3 @@
-<script setup lang="ts">
-import type { ZOrderCommand } from '../graph/zOrder';
-
-defineProps<{
-  selectedNodeId?: string;
-  canMoveFront: boolean;
-  canMoveBack: boolean;
-}>();
-
-const emit = defineEmits<{ reorder: [command: ZOrderCommand] }>();
-</script>
-
 <template>
   <div class="z-order-controls" role="toolbar" aria-label="Node stacking order">
     <button
@@ -68,6 +56,18 @@ const emit = defineEmits<{ reorder: [command: ZOrderCommand] }>();
     </button>
   </div>
 </template>
+
+<script setup lang="ts">
+import type { ZOrderCommand } from '../graph/zOrder';
+
+defineProps<{
+  selectedNodeId?: string;
+  canMoveFront: boolean;
+  canMoveBack: boolean;
+}>();
+
+const emit = defineEmits<{ reorder: [command: ZOrderCommand] }>();
+</script>
 
 <style scoped>
 .z-order-controls {

@@ -11,9 +11,9 @@ export const useFlowRuntimeStore = defineStore('flow-runtime', () => {
   const deploymentErrors = ref<Record<string, string | undefined>>({});
   const connected = ref<Record<string, boolean>>({});
 
-  const snapshotFor = (flowId: string) => snapshots.value[flowId];
+  const snapshotFor = (flowId: string): FlowRuntimeSnapshot | undefined => snapshots.value[flowId];
   const isDeploying = (flowId: string): boolean => deploymentPending.value[flowId] === true;
-  const deploymentError = (flowId: string) => deploymentErrors.value[flowId];
+  const deploymentError = (flowId: string): string | undefined => deploymentErrors.value[flowId];
   const isConnected = (flowId: string): boolean => connected.value[flowId] === true;
 
   const beginDeployment = (flowId: string): void => {

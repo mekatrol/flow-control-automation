@@ -1,6 +1,16 @@
-import { computed, ref } from 'vue';
+import { computed, ref, type ComputedRef, type Ref } from 'vue';
 
-export const useDesignerSelection = () => {
+export interface DesignerSelection {
+  selectedNodeId: Ref<string | undefined>;
+  selectedConnectionId: Ref<string | undefined>;
+  canDelete: ComputedRef<boolean>;
+  selectNode: (nodeId: string) => void;
+  selectConnection: (connectionId: string) => void;
+  clearSelection: () => void;
+  handleSelectionKeydown: (event: Pick<KeyboardEvent, 'key' | 'preventDefault'>) => boolean;
+}
+
+export const useDesignerSelection = (): DesignerSelection => {
   const selectedNodeId = ref<string>();
   const selectedConnectionId = ref<string>();
 

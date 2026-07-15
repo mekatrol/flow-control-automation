@@ -1,9 +1,19 @@
-import { ref } from 'vue';
+import { ref, type Ref } from 'vue';
 
 import type { Point } from '../geometry/connectorLayout';
 import type { FlowConnectionEndpoint } from '../types';
 
-export const useConnectionEditing = () => {
+export interface ConnectionEditing {
+  connectionStart: Ref<FlowConnectionEndpoint | undefined>;
+  previewEnd: Ref<Point | undefined>;
+  connectionError: Ref<string | undefined>;
+  beginConnection: (endpoint: FlowConnectionEndpoint, point: Point) => void;
+  updatePreview: (point: Point) => void;
+  reportConnectionError: (message: string) => void;
+  cancelConnection: () => void;
+}
+
+export const useConnectionEditing = (): ConnectionEditing => {
   // An unfinished connection is interaction state, not part of the persisted
   // flow. Keeping it separate prevents a pointer gesture from making the flow
   // dirty until both endpoints pass validation.

@@ -1,3 +1,21 @@
+<template>
+  <g
+    v-if="path"
+    class="connection-group"
+    :class="{ selected, preview }"
+    :data-connection-id="id"
+    :role="preview ? undefined : 'button'"
+    :tabindex="preview ? undefined : 0"
+    :aria-label="preview ? undefined : label || `Connection ${id}`"
+    @click.stop="!preview && emit('select', id)"
+    @keydown.enter.prevent="!preview && emit('select', id)"
+    @keydown.space.prevent="!preview && emit('select', id)"
+  >
+    <path v-if="!preview" class="connection-hit-area" :d="path" />
+    <path class="flow-connection" :d="path" />
+  </g>
+</template>
+
 <script setup lang="ts">
 import { computed } from 'vue';
 
@@ -22,24 +40,6 @@ const path = computed(() =>
   connectionPath(props.start, props.end, props.startSide, props.endSide)
 );
 </script>
-
-<template>
-  <g
-    v-if="path"
-    class="connection-group"
-    :class="{ selected, preview }"
-    :data-connection-id="id"
-    :role="preview ? undefined : 'button'"
-    :tabindex="preview ? undefined : 0"
-    :aria-label="preview ? undefined : label || `Connection ${id}`"
-    @click.stop="!preview && emit('select', id)"
-    @keydown.enter.prevent="!preview && emit('select', id)"
-    @keydown.space.prevent="!preview && emit('select', id)"
-  >
-    <path v-if="!preview" class="connection-hit-area" :d="path" />
-    <path class="flow-connection" :d="path" />
-  </g>
-</template>
 
 <style scoped>
 .flow-connection {

@@ -1,13 +1,3 @@
-<script setup lang="ts">
-import type { ConnectorLayout } from '../geometry/connectorLayout';
-
-defineProps<{ layout: ConnectorLayout; compatible?: boolean; active?: boolean }>();
-
-// SVG groups are not native controls. The template supplies button semantics and
-// keyboard activation, and stops pointer-down from starting the node's drag.
-const emit = defineEmits<{ press: []; activate: []; release: []; preview: [] }>();
-</script>
-
 <template>
   <g
     class="flow-connector"
@@ -34,6 +24,16 @@ const emit = defineEmits<{ press: []; activate: []; release: []; preview: [] }>(
     </title>
   </g>
 </template>
+
+<script setup lang="ts">
+import type { ConnectorLayout } from '../geometry/connectorLayout';
+
+defineProps<{ layout: ConnectorLayout; compatible?: boolean; active?: boolean }>();
+
+// SVG groups are not native controls. The template supplies button semantics and
+// keyboard activation, and stops pointer-down from starting the node's drag.
+const emit = defineEmits<{ press: []; activate: []; release: []; preview: [] }>();
+</script>
 
 <style scoped>
 .connector-hit-target {

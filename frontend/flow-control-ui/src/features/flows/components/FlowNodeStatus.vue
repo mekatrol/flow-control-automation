@@ -1,11 +1,3 @@
-<script setup lang="ts">
-defineProps<{
-  status: 'draft' | 'deployed' | 'idle' | 'running' | 'stopped' | 'error';
-  value?: string;
-  width: number;
-}>();
-</script>
-
 <template>
   <g
     class="node-status"
@@ -18,6 +10,14 @@ defineProps<{
     <title>{{ value ? `${status}: ${value}` : status }}</title>
   </g>
 </template>
+
+<script setup lang="ts">
+defineProps<{
+  status: 'draft' | 'deployed' | 'idle' | 'running' | 'stopped' | 'error';
+  value?: string;
+  width: number;
+}>();
+</script>
 
 <style scoped>
 .status-background {

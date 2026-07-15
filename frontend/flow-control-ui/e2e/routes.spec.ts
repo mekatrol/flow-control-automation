@@ -494,7 +494,10 @@ test('enables z-order commands at valid boundaries and changes render order', as
   await page.goto('/flows/climate-control');
 
   const node = page.getByRole('button', { name: /Average temperature, Calculator node/ });
-  const order = () => page.locator('[data-node-id]').evaluateAll((nodes) => nodes.map((item) => item.getAttribute('data-node-id')));
+  const order = (): Promise<(string | null)[]> =>
+    page
+      .locator('[data-node-id]')
+      .evaluateAll((nodes) => nodes.map((item) => item.getAttribute('data-node-id')));
   await node.click();
 
   await expect(page.getByRole('button', { name: 'Send to back' })).toBeDisabled();

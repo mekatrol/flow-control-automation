@@ -2,7 +2,7 @@ import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
 
 import { reorderNode as reorderNodeGraph, type ZOrderCommand } from '../graph/zOrder';
-import { parseFlowDto } from '../api/flowDto';
+import { parseFlowDto, type FlowDto } from '../api/flowDto';
 import { flowDomainToDto, flowDtoToDomain } from '../api/flowMapper';
 import { addConnection as addGraphConnection } from '../graph/connections';
 import type { FlowConfigurationValue, FlowConnectionEndpoint, FlowNode } from '../types';
@@ -53,13 +53,13 @@ export const useFlowsStore = defineStore('flows', () => {
   const removeConfirmedFlow = (flowId: string): boolean => {
     if (!findFlow(flowId)) return false;
     flows.value = flows.value.filter(({ id }) => id !== flowId);
-    const { [flowId]: _removed, ...remainingBaselines } = baselineFlows.value;
+    const { [flowId]: _, ...remainingBaselines } = baselineFlows.value;
     baselineFlows.value = remainingBaselines;
     if (activeFlowId.value === flowId) activeFlowId.value = undefined;
     return true;
   };
 
-  const flowPayload = (flowId: string) => {
+  const flowPayload = (flowId: string): FlowDto | undefined => {
     const flow = findFlow(flowId);
     return flow ? flowDomainToDto(flow) : undefined;
   };

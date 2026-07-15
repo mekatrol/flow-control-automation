@@ -1,3 +1,56 @@
+<template>
+  <aside class="configuration-panel" aria-label="Node configuration">
+    <div class="panel-heading">
+      <div>
+        <img :src="getNodeIconUrl(definition.icon)" alt="" />
+        <strong>Configure {{ definition.label }}</strong>
+      </div>
+      <small>{{ node.id }}</small>
+    </div>
+
+    <div class="fields">
+      <label>
+        <span>Node label</span>
+        <input
+          :value="node.label"
+          type="text"
+          :aria-invalid="Boolean(errors.label)"
+          @input="updateLabel"
+        />
+        <small v-if="errors.label" role="alert">{{ errors.label }}</small>
+      </label>
+
+      <label v-for="field in definition.editor" :key="field.key">
+        <span>{{ field.label }}</span>
+        <input
+          v-if="field.input === 'checkbox'"
+          type="checkbox"
+          :checked="Boolean(node.configuration[field.key])"
+          @change="updateField(field, $event)"
+        />
+        <input
+          v-else-if="field.input === 'number'"
+          type="number"
+          :value="node.configuration[field.key]"
+          :aria-invalid="Boolean(errors[field.key])"
+          @input="updateField(field, $event)"
+        />
+        <select
+          v-else
+          :value="node.configuration[field.key]"
+          :aria-invalid="Boolean(errors[field.key])"
+          @change="updateField(field, $event)"
+        >
+          <option v-for="option in field.options" :key="option" :value="option">
+            {{ option }}
+          </option>
+        </select>
+        <small v-if="errors[field.key]" role="alert">{{ errors[field.key] }}</small>
+      </label>
+    </div>
+  </aside>
+</template>
+
 <script lang="ts">
 import type { FlowConfigurationValue as EditorValue } from '../types';
 import type { NodeEditorField as EditorField } from '../nodeKinds';
@@ -63,59 +116,6 @@ const updateField = (field: NodeEditorField, event: Event): void => {
   }
 };
 </script>
-
-<template>
-  <aside class="configuration-panel" aria-label="Node configuration">
-    <div class="panel-heading">
-      <div>
-        <img :src="getNodeIconUrl(definition.icon)" alt="" />
-        <strong>Configure {{ definition.label }}</strong>
-      </div>
-      <small>{{ node.id }}</small>
-    </div>
-
-    <div class="fields">
-      <label>
-        <span>Node label</span>
-        <input
-          :value="node.label"
-          type="text"
-          :aria-invalid="Boolean(errors.label)"
-          @input="updateLabel"
-        />
-        <small v-if="errors.label" role="alert">{{ errors.label }}</small>
-      </label>
-
-      <label v-for="field in definition.editor" :key="field.key">
-        <span>{{ field.label }}</span>
-        <input
-          v-if="field.input === 'checkbox'"
-          type="checkbox"
-          :checked="Boolean(node.configuration[field.key])"
-          @change="updateField(field, $event)"
-        />
-        <input
-          v-else-if="field.input === 'number'"
-          type="number"
-          :value="node.configuration[field.key]"
-          :aria-invalid="Boolean(errors[field.key])"
-          @input="updateField(field, $event)"
-        />
-        <select
-          v-else
-          :value="node.configuration[field.key]"
-          :aria-invalid="Boolean(errors[field.key])"
-          @change="updateField(field, $event)"
-        >
-          <option v-for="option in field.options" :key="option" :value="option">
-            {{ option }}
-          </option>
-        </select>
-        <small v-if="errors[field.key]" role="alert">{{ errors[field.key] }}</small>
-      </label>
-    </div>
-  </aside>
-</template>
 
 <style scoped>
 .configuration-panel {

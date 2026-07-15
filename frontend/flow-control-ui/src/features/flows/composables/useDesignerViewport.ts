@@ -1,4 +1,4 @@
-import { computed, onBeforeUnmount, onMounted, ref, type Ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, type ComputedRef, type Ref } from 'vue';
 
 import type { Point } from '../geometry/connectorLayout';
 
@@ -28,7 +28,16 @@ export const clientToSvgPoint = (
   y: viewBox.y + ((client.y - rect.top) / rect.height) * viewBox.height
 });
 
-export const useDesignerViewport = (element: Ref<HTMLElement | undefined>) => {
+export interface DesignerViewport {
+  zoom: Ref<number>;
+  width: Ref<number>;
+  canvasSize: ComputedRef<{ width: number; height: number }>;
+  setZoom: (nextZoom: number) => void;
+}
+
+export const useDesignerViewport = (
+  element: Ref<HTMLElement | undefined>
+): DesignerViewport => {
   const zoom = ref(1);
   const width = ref(0);
   let observer: ResizeObserver | undefined;

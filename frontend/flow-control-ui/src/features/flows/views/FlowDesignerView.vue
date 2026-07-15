@@ -1,3 +1,106 @@
+<template>
+  <section class="designer-page">
+    <p v-if="loading" class="request-status" role="status">Loading latest flow…</p>
+    <p v-if="loadError" class="request-error" role="alert">{{ loadError }}</p>
+    <p v-if="saveError" class="request-error" role="alert">{{ saveError }}</p>
+    <p v-if="runtimeError" class="request-error" role="alert">{{ runtimeError }}</p>
+    <div v-if="showDeployConfirmation" class="dialog-backdrop">
+      <section
+        ref="deployDialog"
+        class="discard-dialog"
+        role="alertdialog"
+        aria-labelledby="deploy-title"
+        aria-describedby="deploy-description"
+        aria-modal="true"
+        tabindex="-1"
+        @keydown="handleDeployDialogKeydown"
+      >
+        <h2 id="deploy-title">Deploy this flow?</h2>
+        <p id="deploy-description">
+          The latest saved definition will replace the currently running version.
+        </p>
+        <div>
+          <button type="button" data-dialog-initial-focus @click="closeDeployConfirmation">
+            Cancel
+          </button>
+          <button type="button" class="deploy-confirm" @click="deployFlow">Deploy now</button>
+        </div>
+      </section>
+    </div>
+    <div v-if="pendingRoute" class="dialog-backdrop">
+      <section
+        ref="discardDialog"
+        class="discard-dialog"
+        role="alertdialog"
+        aria-labelledby="discard-title"
+        aria-describedby="discard-description"
+        aria-modal="true"
+        tabindex="-1"
+        @keydown="handleDiscardDialogKeydown"
+      >
+        <h2 id="discard-title">Discard unsaved changes?</h2>
+        <p id="discard-description">This flow has changes that have not been saved.</p>
+        <div>
+          <button type="button" data-dialog-initial-focus @click="keepEditing">Keep editing</button>
+          <button type="button" @click="discardChanges">Discard changes</button>
+        </div>
+      </section>
+    </div>
+    <template v-if="flow">
+      <div class="designer-heading">
+        <div>
+          <RouterLink :to="{ name: 'flows' }">← All flows</RouterLink>
+          <div class="title-row">
+            <h1>{{ flow.name }}</h1>
+            <span :class="flow.status">{{ flow.status }}</span>
+            <span v-if="dirty" class="dirty-state" role="status">Unsaved changes</span>
+            <span
+              class="runtime-state"
+              role="status"
+              :aria-label="`Runtime state: ${runtime?.state ?? 'disconnected'}`"
+            >
+              {{ runtime?.state ?? 'disconnected' }}
+            </span>
+          </div>
+          <p>{{ flow.description }}</p>
+        </div>
+        <div class="heading-actions">
+          <button type="button" :disabled="saving" @click="saveFlow">
+            {{ saving ? 'Saving…' : 'Save flow' }}
+          </button>
+          <button
+            type="button"
+            :disabled="dirty || deploying"
+            @click="showDeployConfirmation = true"
+          >
+            {{ deploying ? 'Deploying…' : 'Deploy flow' }}
+          </button>
+          <button type="button" @click="refreshRuntime()">Refresh runtime</button>
+        </div>
+      </div>
+
+      <FlowDesignerCanvas
+        :flow="flow"
+        :runtime="runtime"
+        @move-node="moveNode"
+        @reorder-node="reorderNode"
+        @delete-node="deleteNode"
+        @add-connection="addConnection"
+        @delete-connection="deleteConnection"
+        @add-node="addNode"
+        @update-node-label="updateNodeLabel"
+        @update-node-configuration="updateNodeConfiguration"
+      />
+    </template>
+
+    <div v-else-if="!loading" class="not-found">
+      <p class="eyebrow">Flow not found</p>
+      <h1>There is no flow named “{{ flowId }}”.</h1>
+      <RouterLink :to="{ name: 'flows' }">Return to flows</RouterLink>
+    </div>
+  </section>
+</template>
+
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
@@ -204,109 +307,6 @@ onBeforeRouteLeave((to) => {
 onMounted(() => window.addEventListener('beforeunload', handleBeforeUnload));
 onBeforeUnmount(() => window.removeEventListener('beforeunload', handleBeforeUnload));
 </script>
-
-<template>
-  <section class="designer-page">
-    <p v-if="loading" class="request-status" role="status">Loading latest flow…</p>
-    <p v-if="loadError" class="request-error" role="alert">{{ loadError }}</p>
-    <p v-if="saveError" class="request-error" role="alert">{{ saveError }}</p>
-    <p v-if="runtimeError" class="request-error" role="alert">{{ runtimeError }}</p>
-    <div v-if="showDeployConfirmation" class="dialog-backdrop">
-      <section
-        ref="deployDialog"
-        class="discard-dialog"
-        role="alertdialog"
-        aria-labelledby="deploy-title"
-        aria-describedby="deploy-description"
-        aria-modal="true"
-        tabindex="-1"
-        @keydown="handleDeployDialogKeydown"
-      >
-        <h2 id="deploy-title">Deploy this flow?</h2>
-        <p id="deploy-description">
-          The latest saved definition will replace the currently running version.
-        </p>
-        <div>
-          <button type="button" data-dialog-initial-focus @click="closeDeployConfirmation">
-            Cancel
-          </button>
-          <button type="button" class="deploy-confirm" @click="deployFlow">Deploy now</button>
-        </div>
-      </section>
-    </div>
-    <div v-if="pendingRoute" class="dialog-backdrop">
-      <section
-        ref="discardDialog"
-        class="discard-dialog"
-        role="alertdialog"
-        aria-labelledby="discard-title"
-        aria-describedby="discard-description"
-        aria-modal="true"
-        tabindex="-1"
-        @keydown="handleDiscardDialogKeydown"
-      >
-        <h2 id="discard-title">Discard unsaved changes?</h2>
-        <p id="discard-description">This flow has changes that have not been saved.</p>
-        <div>
-          <button type="button" data-dialog-initial-focus @click="keepEditing">Keep editing</button>
-          <button type="button" @click="discardChanges">Discard changes</button>
-        </div>
-      </section>
-    </div>
-    <template v-if="flow">
-      <div class="designer-heading">
-        <div>
-          <RouterLink :to="{ name: 'flows' }">← All flows</RouterLink>
-          <div class="title-row">
-            <h1>{{ flow.name }}</h1>
-            <span :class="flow.status">{{ flow.status }}</span>
-            <span v-if="dirty" class="dirty-state" role="status">Unsaved changes</span>
-            <span
-              class="runtime-state"
-              role="status"
-              :aria-label="`Runtime state: ${runtime?.state ?? 'disconnected'}`"
-            >
-              {{ runtime?.state ?? 'disconnected' }}
-            </span>
-          </div>
-          <p>{{ flow.description }}</p>
-        </div>
-        <div class="heading-actions">
-          <button type="button" :disabled="saving" @click="saveFlow">
-            {{ saving ? 'Saving…' : 'Save flow' }}
-          </button>
-          <button
-            type="button"
-            :disabled="dirty || deploying"
-            @click="showDeployConfirmation = true"
-          >
-            {{ deploying ? 'Deploying…' : 'Deploy flow' }}
-          </button>
-          <button type="button" @click="refreshRuntime()">Refresh runtime</button>
-        </div>
-      </div>
-
-      <FlowDesignerCanvas
-        :flow="flow"
-        :runtime="runtime"
-        @move-node="moveNode"
-        @reorder-node="reorderNode"
-        @delete-node="deleteNode"
-        @add-connection="addConnection"
-        @delete-connection="deleteConnection"
-        @add-node="addNode"
-        @update-node-label="updateNodeLabel"
-        @update-node-configuration="updateNodeConfiguration"
-      />
-    </template>
-
-    <div v-else-if="!loading" class="not-found">
-      <p class="eyebrow">Flow not found</p>
-      <h1>There is no flow named “{{ flowId }}”.</h1>
-      <RouterLink :to="{ name: 'flows' }">Return to flows</RouterLink>
-    </div>
-  </section>
-</template>
 
 <style scoped>
 .designer-page {

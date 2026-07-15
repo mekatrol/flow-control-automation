@@ -1,3 +1,30 @@
+<template>
+  <aside class="node-palette" aria-label="Function block toolbox">
+    <h2>Function blocks</h2>
+    <label>
+      <span>Find a node</span>
+      <input v-model="query" type="search" placeholder="Search nodes" />
+    </label>
+    <div v-if="Object.keys(groups).length" class="palette-groups">
+      <section v-for="(definitions, category) in groups" :key="category">
+        <h3>{{ category }}</h3>
+        <button
+          v-for="definition in definitions"
+          :key="definition.kind"
+          type="button"
+          draggable="true"
+          @click="emit('add', definition.kind)"
+          @dragstart="startPaletteDrag(definition.kind, $event)"
+        >
+          <img :src="getNodeIconUrl(definition.icon)" alt="" />
+          Add {{ definition.label }} node
+        </button>
+      </section>
+    </div>
+    <p v-else>No node kinds match “{{ query }}”.</p>
+  </aside>
+</template>
+
 <script lang="ts">
 import { flowNodeKinds, getNodeIconUrl, getNodeKind, type NodeKindDefinition } from '../nodeKinds';
 
@@ -42,33 +69,6 @@ const startPaletteDrag = (kind: FlowNodeKind, event: DragEvent): void => {
   if (event.dataTransfer) event.dataTransfer.effectAllowed = 'copy';
 };
 </script>
-
-<template>
-  <aside class="node-palette" aria-label="Function block toolbox">
-    <h2>Function blocks</h2>
-    <label>
-      <span>Find a node</span>
-      <input v-model="query" type="search" placeholder="Search nodes" />
-    </label>
-    <div v-if="Object.keys(groups).length" class="palette-groups">
-      <section v-for="(definitions, category) in groups" :key="category">
-        <h3>{{ category }}</h3>
-        <button
-          v-for="definition in definitions"
-          :key="definition.kind"
-          type="button"
-          draggable="true"
-          @click="emit('add', definition.kind)"
-          @dragstart="startPaletteDrag(definition.kind, $event)"
-        >
-          <img :src="getNodeIconUrl(definition.icon)" alt="" />
-          Add {{ definition.label }} node
-        </button>
-      </section>
-    </div>
-    <p v-else>No node kinds match “{{ query }}”.</p>
-  </aside>
-</template>
 
 <style scoped>
 .node-palette {

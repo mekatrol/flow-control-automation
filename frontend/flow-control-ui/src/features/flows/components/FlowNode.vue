@@ -1,51 +1,3 @@
-<script setup lang="ts">
-import { computed } from 'vue';
-
-import FlowNodeIcon from './FlowNodeIcon.vue';
-import FlowNodeLabel from './FlowNodeLabel.vue';
-import FlowNodeMarker from './FlowNodeMarker.vue';
-import FlowNodeStatus from './FlowNodeStatus.vue';
-import FlowConnector from './FlowConnector.vue';
-import { layoutConnectors } from '../geometry/connectorLayout';
-import { getNodeKind } from '../nodeKinds';
-import type { FlowConnectionEndpoint, FlowNode } from '../types';
-
-const props = defineProps<{
-  node: FlowNode;
-  selected: boolean;
-  status?: 'draft' | 'deployed' | 'idle' | 'running' | 'stopped' | 'error';
-  statusValue?: string;
-  connectionStart?: FlowConnectionEndpoint;
-  compatibleConnectorKeys?: string[];
-}>();
-
-const emit = defineEmits<{
-  select: [nodeId: string];
-  dragstart: [nodeId: string, event: PointerEvent];
-  connectorpress: [endpoint: FlowConnectionEndpoint];
-  connectoractivate: [endpoint: FlowConnectionEndpoint];
-  connectorrelease: [endpoint: FlowConnectionEndpoint];
-  connectorpreview: [endpoint: FlowConnectionEndpoint];
-}>();
-
-// A node is positioned by translating one SVG group. Its body, label, status,
-// and connectors can then use stable coordinates local to that group. Because an
-// SVG group has no native control semantics, the template also supplies focus,
-// button behaviour, and an announced selected state.
-const transform = computed(() => `translate(${props.node.x} ${props.node.y})`);
-const definition = computed(() => getNodeKind(props.node.kind));
-const connectorLayouts = computed(() =>
-  // Connector coordinates come from the kind's declared size rather than the
-  // browser's measured pixels, so persisted paths remain deterministic at zoom.
-  layoutConnectors(
-    props.node.connectors,
-    definition.value.defaultSize.width,
-    definition.value.defaultSize.height
-  )
-);
-const connectorKey = (connectorId: string): string => `${props.node.id}:${connectorId}`;
-</script>
-
 <template>
   <g
     class="flow-node"
@@ -97,6 +49,54 @@ const connectorKey = (connectorId: string): string => `${props.node.id}:${connec
     />
   </g>
 </template>
+
+<script setup lang="ts">
+import { computed } from 'vue';
+
+import FlowNodeIcon from './FlowNodeIcon.vue';
+import FlowNodeLabel from './FlowNodeLabel.vue';
+import FlowNodeMarker from './FlowNodeMarker.vue';
+import FlowNodeStatus from './FlowNodeStatus.vue';
+import FlowConnector from './FlowConnector.vue';
+import { layoutConnectors } from '../geometry/connectorLayout';
+import { getNodeKind } from '../nodeKinds';
+import type { FlowConnectionEndpoint, FlowNode } from '../types';
+
+const props = defineProps<{
+  node: FlowNode;
+  selected: boolean;
+  status?: 'draft' | 'deployed' | 'idle' | 'running' | 'stopped' | 'error';
+  statusValue?: string;
+  connectionStart?: FlowConnectionEndpoint;
+  compatibleConnectorKeys?: string[];
+}>();
+
+const emit = defineEmits<{
+  select: [nodeId: string];
+  dragstart: [nodeId: string, event: PointerEvent];
+  connectorpress: [endpoint: FlowConnectionEndpoint];
+  connectoractivate: [endpoint: FlowConnectionEndpoint];
+  connectorrelease: [endpoint: FlowConnectionEndpoint];
+  connectorpreview: [endpoint: FlowConnectionEndpoint];
+}>();
+
+// A node is positioned by translating one SVG group. Its body, label, status,
+// and connectors can then use stable coordinates local to that group. Because an
+// SVG group has no native control semantics, the template also supplies focus,
+// button behaviour, and an announced selected state.
+const transform = computed(() => `translate(${props.node.x} ${props.node.y})`);
+const definition = computed(() => getNodeKind(props.node.kind));
+const connectorLayouts = computed(() =>
+  // Connector coordinates come from the kind's declared size rather than the
+  // browser's measured pixels, so persisted paths remain deterministic at zoom.
+  layoutConnectors(
+    props.node.connectors,
+    definition.value.defaultSize.width,
+    definition.value.defaultSize.height
+  )
+);
+const connectorKey = (connectorId: string): string => `${props.node.id}:${connectorId}`;
+</script>
 
 <style scoped>
 .flow-node {
