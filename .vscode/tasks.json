@@ -8,7 +8,15 @@
       "options": {
         "cwd": "${workspaceFolder}/backend"
       },
-      "problemMatcher": "$go",
+      "isBackground": true,
+      "problemMatcher": {
+        "base": "$go",
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*",
+          "endsPattern": "^.*Go server listening on http://localhost.*$"
+        }
+      },
       "presentation": {
         "group": "development",
         "panel": "dedicated",
@@ -22,7 +30,18 @@
       "options": {
         "cwd": "${workspaceFolder}/frontend/flow-control-ui"
       },
-      "problemMatcher": [],
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "vite",
+        "pattern": {
+          "regexp": "^(?!)$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^.*VITE.*$",
+          "endsPattern": "^.*Local:.*http://localhost:5173/.*$"
+        }
+      },
       "presentation": {
         "group": "development",
         "panel": "dedicated",
