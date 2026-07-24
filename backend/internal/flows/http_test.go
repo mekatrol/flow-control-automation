@@ -3,6 +3,7 @@ package flows
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -66,6 +67,49 @@ func TestCreateMakesUniqueReadableIDs(t *testing.T) {
 	second := requestFlow(t, handler, http.MethodPost, "/api/flows", `{"name":"Heating & Cooling"}`, http.StatusCreated)
 	if first.ID != "heating-cooling" || second.ID != "heating-cooling-2" {
 		t.Fatalf("unexpected ids %q and %q", first.ID, second.ID)
+	}
+}
+
+func TestListFiltersSortsAndPaginates(t *testing.T) {
+	store, err := OpenStore(filepath.Join(t.TempDir(), "flows.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := NewHandler(store)
+	for index := 1; index <= 25; index++ {
+		name := fmt.Sprintf("Flow %02d", index)
+		requestFlow(t, handler, http.MethodPost, "/api/flows", `{"name":"`+name+`"}`, http.StatusCreated)
+	}
+
+	response := request(t, handler, http.MethodGet, "/api/flows?page=2&pageSize=10&filter=Flow&sort=descending", "")
+	if response.Code != http.StatusOK {
+		t.Fatalf("list returned %d: %s", response.Code, response.Body.String())
+	}
+	var page FlowPage
+	if err := json.NewDecoder(response.Body).Decode(&page); err != nil {
+		t.Fatal(err)
+	}
+	if page.TotalItems != 25 || page.PageCount != 3 || page.Page != 2 || len(page.Items) != 10 {
+		t.Fatalf("unexpected page metadata: %#v", page)
+	}
+	if page.Items[0].Name != "Flow 15" || page.Items[9].Name != "Flow 06" {
+		t.Fatalf("unexpected sorted page: %q through %q", page.Items[0].Name, page.Items[9].Name)
+	}
+}
+
+func TestListRejectsInvalidPagination(t *testing.T) {
+	store, err := OpenStore(filepath.Join(t.TempDir(), "flows.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := NewHandler(store)
+	for _, path := range []string{
+		"/api/flows?page=0",
+		"/api/flows?page=nope",
+		"/api/flows?pageSize=100",
+		"/api/flows?sort=sideways",
+	} {
+		requestStatus(t, handler, http.MethodGet, path, "", http.StatusBadRequest)
 	}
 }
 

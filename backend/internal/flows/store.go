@@ -15,6 +15,21 @@ import (
 
 var ErrNotFound = errors.New("flow not found")
 
+type ListOptions struct {
+	Filter        string
+	Page          int
+	PageSize      int
+	SortDirection string
+}
+
+type FlowPage struct {
+	Items      []Flow `json:"items"`
+	TotalItems int    `json:"totalItems"`
+	Page       int    `json:"page"`
+	PageSize   int    `json:"pageSize"`
+	PageCount  int    `json:"pageCount"`
+}
+
 type Store struct {
 	mu    sync.RWMutex
 	path  string
@@ -56,6 +71,42 @@ func (store *Store) List() []Flow {
 	}
 	sort.Slice(result, func(i, j int) bool { return result[i].Name < result[j].Name })
 	return result
+}
+
+func (store *Store) ListPage(options ListOptions) FlowPage {
+	store.mu.RLock()
+	defer store.mu.RUnlock()
+
+	filter := strings.ToLower(strings.TrimSpace(options.Filter))
+	matches := make([]Flow, 0, len(store.flows))
+	for _, flow := range store.flows {
+		if filter == "" || strings.Contains(strings.ToLower(flow.Name), filter) {
+			matches = append(matches, flow)
+		}
+	}
+	sort.Slice(matches, func(i, j int) bool {
+		left := strings.ToLower(matches[i].Name)
+		right := strings.ToLower(matches[j].Name)
+		if left == right {
+			left, right = matches[i].ID, matches[j].ID
+		}
+		if options.SortDirection == "descending" {
+			return left > right
+		}
+		return left < right
+	})
+
+	pageCount := max(1, (len(matches)+options.PageSize-1)/options.PageSize)
+	page := min(max(1, options.Page), pageCount)
+	start := min((page-1)*options.PageSize, len(matches))
+	end := min(start+options.PageSize, len(matches))
+	return FlowPage{
+		Items:      matches[start:end],
+		TotalItems: len(matches),
+		Page:       page,
+		PageSize:   options.PageSize,
+		PageCount:  pageCount,
+	}
 }
 
 func (store *Store) Get(id string) (Flow, error) {

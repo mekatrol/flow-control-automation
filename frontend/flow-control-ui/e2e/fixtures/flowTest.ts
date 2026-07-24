@@ -1,8 +1,37 @@
 import { expect, test as base, type Page } from '@playwright/test';
 
 import { sampleFlows } from '@/features/flows/__tests__/fixtures/sampleFlows';
+import type { FlowDefinition } from '@/features/flows/types';
 
 export { expect };
+
+export const flowsCollectionPattern = /\/api\/flows(?:\?.*)?$/;
+
+export const pagedFlows = (flows: FlowDefinition[], requestUrl: string): {
+  items: FlowDefinition[];
+  totalItems: number;
+  page: number;
+  pageSize: number;
+  pageCount: number;
+} => {
+  const query = new URL(requestUrl).searchParams;
+  const filter = (query.get('filter') ?? '').toLocaleLowerCase();
+  const pageSize = Number(query.get('pageSize') ?? 10);
+  const direction = query.get('sort') === 'descending' ? -1 : 1;
+  const matches = flows
+    .filter((flow) => flow.name.toLocaleLowerCase().includes(filter))
+    .sort((left, right) => direction * left.name.localeCompare(right.name));
+  const pageCount = Math.max(1, Math.ceil(matches.length / pageSize));
+  const page = Math.min(Number(query.get('page') ?? 1), pageCount);
+  const start = (page - 1) * pageSize;
+  return {
+    items: matches.slice(start, start + pageSize),
+    totalItems: matches.length,
+    page,
+    pageSize,
+    pageCount
+  };
+};
 
 /**
  * Extend Playwright with an automatic API fixture instead of an imported hook.
@@ -12,7 +41,7 @@ export { expect };
 export const test = base.extend<{ mockFlowsApi: void }>({
   mockFlowsApi: [
     async ({ page }, use) => {
-      await page.route('**/api/flows', async (route) => {
+      await page.route(flowsCollectionPattern, async (route) => {
         if (route.request().method() === 'POST') {
           const { name } = route.request().postDataJSON() as { name: string };
           const id = name
@@ -32,7 +61,7 @@ export const test = base.extend<{ mockFlowsApi: void }>({
           });
           return;
         }
-        await route.fulfill({ json: sampleFlows });
+        await route.fulfill({ json: pagedFlows(sampleFlows, route.request().url()) });
       });
       await page.route('**/api/flows/*', async (route) => {
         const flowId = decodeURIComponent(
@@ -83,13 +112,13 @@ export const test = base.extend<{ mockFlowsApi: void }>({
  * one operation from hiding a failure in a later operation.
  */
 export const useMutableFlowsApi = async (page: Page): Promise<void> => {
-  await page.unroute('**/api/flows');
+  await page.unroute(flowsCollectionPattern);
   await page.unroute('**/api/flows/*');
   let serverFlows = structuredClone(sampleFlows);
 
   // Model the collection endpoint closely enough to verify that the library
   // renders server state after a create instead of merely updating local UI.
-  await page.route('**/api/flows', async (route) => {
+  await page.route(flowsCollectionPattern, async (route) => {
     if (route.request().method() === 'POST') {
       const { name } = route.request().postDataJSON() as { name: string };
       const created = {
@@ -105,7 +134,7 @@ export const useMutableFlowsApi = async (page: Page): Promise<void> => {
       await route.fulfill({ json: created });
       return;
     }
-    await route.fulfill({ json: serverFlows });
+    await route.fulfill({ json: pagedFlows(serverFlows, route.request().url()) });
   });
 
   // Model item reads and mutations against the same in-memory collection. Each

@@ -5,6 +5,13 @@ import { FlowApiError, flowApi } from '@/features/flows/api/flowApi';
 
 const response = (body: unknown, status = 200): Response =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
+const flowPage = {
+  items: sampleFlows,
+  totalItems: sampleFlows.length,
+  page: 1,
+  pageSize: 10,
+  pageCount: 1
+};
 
 describe('flow API client', () => {
   afterEach(() => vi.unstubAllGlobals());
@@ -31,14 +38,20 @@ describe('flow API client', () => {
   it('lists, creates, and deletes flows through typed endpoints', async () => {
     const fetchMock = vi
       .fn<typeof fetch>()
-      .mockResolvedValueOnce(response(sampleFlows))
+      .mockResolvedValueOnce(response(flowPage))
       .mockResolvedValueOnce(response(sampleFlows[0]))
       .mockResolvedValueOnce(new Response(null, { status: 204 }));
     vi.stubGlobal('fetch', fetchMock);
 
-    await expect(flowApi.listFlows()).resolves.toEqual(sampleFlows);
+    await expect(
+      flowApi.listFlows({ filter: '', page: 1, pageSize: 10, sort: 'ascending' })
+    ).resolves.toEqual(flowPage);
     await expect(flowApi.createFlow('Climate control')).resolves.toEqual(sampleFlows[0]);
     await expect(flowApi.deleteFlow('climate control')).resolves.toBeUndefined();
+    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/flows?filter=&page=1&pageSize=10&sort=ascending', {
+      method: 'GET',
+      signal: undefined
+    });
     expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/flows', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -66,7 +79,9 @@ describe('flow API client', () => {
     });
 
     vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(response({ nope: true })));
-    await expect(flowApi.listFlows()).rejects.toMatchObject({ kind: 'validation' });
+    await expect(
+      flowApi.listFlows({ filter: '', page: 1, pageSize: 10, sort: 'ascending' })
+    ).rejects.toMatchObject({ kind: 'validation' });
   });
 
   it('reports network failure and cancellation separately', async () => {

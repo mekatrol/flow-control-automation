@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { pagedFlows } from './fixtures/flowTest';
+
 import type { FlowDefinition, FlowNode } from '@/features/flows/types';
 
 const emptyFlow = (): FlowDefinition => ({
@@ -35,7 +37,9 @@ test('creates, edits, saves, deploys, and reloads a flow as one critical journey
       return;
     }
     if (path === '/api/flows' && request.method() === 'GET') {
-      await route.fulfill({ json: savedFlow ? [savedFlow] : [] });
+      await route.fulfill({
+        json: pagedFlows(savedFlow ? [savedFlow] : [], request.url())
+      });
       return;
     }
     if (path === '/api/flows' && request.method() === 'POST') {

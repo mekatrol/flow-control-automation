@@ -70,7 +70,30 @@ const requestFlow = async (url: string, init: RequestInit): Promise<FlowDto> => 
   }
 };
 
-const requestFlows = async (url: string, init: RequestInit): Promise<FlowDto[]> => {
+export interface FlowListParameters {
+  filter: string;
+  page: number;
+  pageSize: number;
+  sort: 'ascending' | 'descending';
+}
+
+export interface FlowPage {
+  items: FlowDto[];
+  totalItems: number;
+  page: number;
+  pageSize: number;
+  pageCount: number;
+}
+
+const positiveIntegerField = (payload: Record<string, unknown>, key: string): number => {
+  const value = payload[key];
+  if (!Number.isInteger(value) || (value as number) < 1) {
+    throw new FlowApiError('validation', `The server returned an invalid ${key}.`);
+  }
+  return value as number;
+};
+
+const requestFlows = async (url: string, init: RequestInit): Promise<FlowPage> => {
   try {
     const response = await fetch(url, init);
     if (!response.ok) {
@@ -82,12 +105,22 @@ const requestFlows = async (url: string, init: RequestInit): Promise<FlowDto[]> 
     } catch {
       throw new FlowApiError('validation', 'The server returned malformed JSON.');
     }
-    if (!Array.isArray(payload)) {
+    if (typeof payload !== 'object' || payload === null || !('items' in payload)) {
+      throw new FlowApiError('validation', 'The server returned an invalid flow list.');
+    }
+    const pagePayload = payload as Record<string, unknown>;
+    if (!Array.isArray(pagePayload.items) || typeof pagePayload.totalItems !== 'number' || pagePayload.totalItems < 0) {
       throw new FlowApiError('validation', 'The server returned an invalid flow list.');
     }
     // Validate the whole list before the store replaces its current state. One bad
     // graph therefore cannot leave the library half updated.
-    return payload.map(parseFlowDto);
+    return {
+      items: pagePayload.items.map(parseFlowDto),
+      totalItems: pagePayload.totalItems,
+      page: positiveIntegerField(pagePayload, 'page'),
+      pageSize: positiveIntegerField(pagePayload, 'pageSize'),
+      pageCount: positiveIntegerField(pagePayload, 'pageCount')
+    };
   } catch (error) {
     if (error instanceof FlowApiError) throw error;
     if (error instanceof FlowDtoValidationError) {
@@ -118,7 +151,7 @@ const requestEmpty = async (url: string, init: RequestInit): Promise<void> => {
 };
 
 export interface FlowApiClient {
-  listFlows(signal?: AbortSignal): Promise<FlowDto[]>;
+  listFlows(parameters: FlowListParameters, signal?: AbortSignal): Promise<FlowPage>;
   createFlow(name: string, signal?: AbortSignal): Promise<FlowDto>;
   getFlow(flowId: string, signal?: AbortSignal): Promise<FlowDto>;
   saveFlow(flow: FlowDto, signal?: AbortSignal): Promise<FlowDto>;
@@ -126,7 +159,15 @@ export interface FlowApiClient {
 }
 
 export const flowApi: FlowApiClient = {
-  listFlows: (signal) => requestFlows('/api/flows', { method: 'GET', signal }),
+  listFlows: (parameters, signal) => {
+    const query = new URLSearchParams({
+      filter: parameters.filter,
+      page: String(parameters.page),
+      pageSize: String(parameters.pageSize),
+      sort: parameters.sort
+    });
+    return requestFlows(`/api/flows?${query}`, { method: 'GET', signal });
+  },
   createFlow: (name, signal) =>
     requestFlow('/api/flows', {
       method: 'POST',

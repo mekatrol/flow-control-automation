@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -60,8 +61,40 @@ func (api *API) health(response http.ResponseWriter, _ *http.Request) {
 	writeJSON(response, http.StatusOK, map[string]string{"status": "ok"})
 }
 
-func (api *API) list(response http.ResponseWriter, _ *http.Request) {
-	writeJSON(response, http.StatusOK, api.store.List())
+func (api *API) list(response http.ResponseWriter, request *http.Request) {
+	query := request.URL.Query()
+	page, err := positiveQueryInteger(query.Get("page"), 1)
+	if err != nil {
+		writeError(response, http.StatusBadRequest, "page must be a positive integer")
+		return
+	}
+	pageSize, err := positiveQueryInteger(query.Get("pageSize"), 10)
+	if err != nil || (pageSize != 10 && pageSize != 20 && pageSize != 50) {
+		writeError(response, http.StatusBadRequest, "pageSize must be 10, 20, or 50")
+		return
+	}
+	direction := query.Get("sort")
+	if direction == "" {
+		direction = "ascending"
+	}
+	if direction != "ascending" && direction != "descending" {
+		writeError(response, http.StatusBadRequest, "sort must be ascending or descending")
+		return
+	}
+	writeJSON(response, http.StatusOK, api.store.ListPage(ListOptions{
+		Filter: query.Get("filter"), Page: page, PageSize: pageSize, SortDirection: direction,
+	}))
+}
+
+func positiveQueryInteger(value string, fallback int) (int, error) {
+	if value == "" {
+		return fallback, nil
+	}
+	parsed, err := strconv.Atoi(value)
+	if err != nil || parsed < 1 {
+		return 0, errors.New("value must be a positive integer")
+	}
+	return parsed, nil
 }
 
 func (api *API) create(response http.ResponseWriter, request *http.Request) {

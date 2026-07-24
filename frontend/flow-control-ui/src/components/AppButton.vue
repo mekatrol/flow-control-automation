@@ -1,5 +1,5 @@
 <template>
-  <button data-app-button :type="type" :aria-label="hideText ? text : undefined">
+  <button data-app-button :type="type" :aria-label="hideText ? text : ariaLabel">
     <slot name="icon">
       <span
         v-if="icon"
@@ -17,11 +17,13 @@ withDefaults(
   defineProps<{
     text: string;
     icon?: string;
+    ariaLabel?: string;
     hideText?: boolean;
     type?: 'button' | 'submit' | 'reset';
   }>(),
   {
     icon: undefined,
+    ariaLabel: undefined,
     hideText: false,
     type: 'button'
   }
@@ -29,7 +31,15 @@ withDefaults(
 </script>
 
 <style scoped>
+button {
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  justify-content: center;
+}
+
 .button-icon {
+  display: inline-block;
   width: 18px;
   height: 18px;
   flex: 0 0 auto;

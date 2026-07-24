@@ -1,4 +1,10 @@
-import { expect, test, useMutableFlowsApi } from './fixtures/flowTest';
+import {
+  expect,
+  flowsCollectionPattern,
+  pagedFlows,
+  test,
+  useMutableFlowsApi
+} from './fixtures/flowTest';
 
 import { sampleFlows } from '@/features/flows/__tests__/fixtures/sampleFlows';
 
@@ -21,14 +27,14 @@ test('opens the flow library and navigates to a designer', async ({ page }) => {
 });
 
 test('shows flow-library loading, empty, error, and retry states', async ({ page }) => {
-  await page.unroute('**/api/flows');
+  await page.unroute(flowsCollectionPattern);
   let releaseEmpty!: () => void;
   const emptyReady = new Promise<void>((resolve) => {
     releaseEmpty = resolve;
   });
-  await page.route('**/api/flows', async (route) => {
+  await page.route(flowsCollectionPattern, async (route) => {
     await emptyReady;
-    await route.fulfill({ json: [] });
+    await route.fulfill({ json: pagedFlows([], route.request().url()) });
   });
 
   await page.goto('/flows');
@@ -36,14 +42,14 @@ test('shows flow-library loading, empty, error, and retry states', async ({ page
   releaseEmpty();
   await expect(page.getByRole('heading', { name: 'No flows yet' })).toBeVisible();
 
-  await page.unroute('**/api/flows');
+  await page.unroute(flowsCollectionPattern);
   let shouldFail = true;
-  await page.route('**/api/flows', async (route) => {
+  await page.route(flowsCollectionPattern, async (route) => {
     if (shouldFail) {
       await route.fulfill({ status: 503, json: { message: 'offline' } });
       return;
     }
-    await route.fulfill({ json: sampleFlows });
+    await route.fulfill({ json: pagedFlows(sampleFlows, route.request().url()) });
   });
   await page.reload();
   await expect(page.getByRole('alert')).toContainText('offline');
@@ -81,9 +87,9 @@ test('renames a flow and opens the renamed designer', async ({ page }) => {
   await useMutableFlowsApi(page);
   await page.goto('/flows');
 
-  // Act: rename the existing climate flow from its library card.
-  const climateCard = page.getByRole('article').filter({ hasText: 'Climate control' });
-  await climateCard.getByRole('button', { name: 'Rename' }).click();
+  // Act: rename the existing climate flow from its table row.
+  const climateRow = page.getByRole('row').filter({ hasText: 'Climate control' });
+  await climateRow.getByRole('button', { name: 'Rename' }).click();
   await page.getByRole('textbox', { name: 'Rename Climate control' }).fill('Renamed climate');
   await page.getByRole('button', { name: 'Save name' }).click();
 
@@ -95,17 +101,60 @@ test('renames a flow and opens the renamed designer', async ({ page }) => {
 });
 
 test('deletes a flow only after explicit confirmation', async ({ page }) => {
-  // Arrange: locate one known server-backed card in a clean flow library.
+  // Arrange: locate one known server-backed row in a clean flow library.
   await useMutableFlowsApi(page);
   await page.goto('/flows');
-  const climateCard = page.getByRole('article').filter({ hasText: 'Climate control' });
+  const climateRow = page.getByRole('row').filter({ hasText: 'Climate control' });
 
   // Act: request deletion, then use the destructive confirmation control.
-  await climateCard.getByRole('button', { name: 'Delete' }).click();
-  await climateCard.getByRole('button', { name: 'Confirm delete' }).click();
+  await climateRow.getByRole('button', { name: 'Delete' }).click();
+  await climateRow.getByRole('button', { name: 'Confirm delete' }).click();
 
   // Assert: the card disappears only after the API accepts the DELETE request.
   await expect(page.getByRole('link', { name: /Climate control/ })).toHaveCount(0);
+});
+
+test('filters, sorts, and paginates the semantic flow table', async ({ page }) => {
+  await page.unroute(flowsCollectionPattern);
+  const manyFlows = Array.from({ length: 25 }, (_, index) => ({
+    ...structuredClone(sampleFlows[0]!),
+    id: `flow-${index + 1}`,
+    name: `Flow ${String(index + 1).padStart(2, '0')}`
+  }));
+  await page.route(flowsCollectionPattern, async (route) => {
+    await route.fulfill({ json: pagedFlows(manyFlows, route.request().url()) });
+  });
+
+  await page.goto('/flows');
+  const table = page.getByRole('table', { name: 'Flows' });
+  await expect(table).toBeVisible();
+  await expect(table.getByRole('columnheader', { name: /Name/ })).toHaveAttribute(
+    'aria-sort',
+    'ascending'
+  );
+  await expect(table.getByRole('row')).toHaveCount(11);
+
+  const sortButton = page.getByRole('button', { name: /Name, sorted ascending/ });
+  await expect(sortButton.locator('.button-icon')).toHaveCount(1);
+  expect(await sortButton.locator('.button-icon').evaluate((icon) => icon.getBoundingClientRect().width)).toBe(18);
+  await sortButton.click();
+  await expect(table.getByRole('row').nth(1)).toContainText('Flow 25');
+
+  await page.getByRole('searchbox', { name: 'Filter by name' }).fill('Flow 2');
+  await expect(page).toHaveURL(/filter=Flow(?:%20|\+)2/);
+  await expect(table.getByRole('row')).toHaveCount(7);
+  await expect(page.getByText('1–6 of 6')).toBeVisible();
+
+  await page.getByRole('searchbox', { name: 'Filter by name' }).fill('Flow');
+  await page.getByLabel('Items per page').selectOption('20');
+  const nextPageButton = page.getByRole('button', { name: 'Next page' });
+  await expect(nextPageButton.locator('.button-icon')).toHaveCount(1);
+  expect(await nextPageButton.locator('.button-icon').evaluate((icon) => icon.getBoundingClientRect().width)).toBe(18);
+  await nextPageButton.click();
+  await expect(page).toHaveURL(/page=2/);
+  await expect(page).toHaveURL(/pageSize=20/);
+  await expect(page).toHaveURL(/filter=Flow/);
+  await expect(page.getByText('21–25 of 25')).toBeVisible();
 });
 
 test('uses the shared button contract for visible and icon-only actions', async ({ page }) => {

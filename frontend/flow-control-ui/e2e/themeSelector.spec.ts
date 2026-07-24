@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { flowsCollectionPattern, pagedFlows } from './fixtures/flowTest';
+
 const themeStates = [
   {
     preference: 'system',
@@ -22,8 +24,8 @@ const themeStates = [
 ] as const;
 
 test.beforeEach(async ({ page }) => {
-  await page.route('**/api/flows', async (route) => {
-    await route.fulfill({ json: [] });
+  await page.route(flowsCollectionPattern, async (route) => {
+    await route.fulfill({ json: pagedFlows([], route.request().url()) });
   });
   await page.goto('/flows');
 });
