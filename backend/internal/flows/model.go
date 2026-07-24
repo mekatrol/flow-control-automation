@@ -13,6 +13,7 @@ type Flow struct {
 	Name        string       `json:"name"`
 	Description string       `json:"description"`
 	Status      string       `json:"status"`
+	Disabled    bool         `json:"disabled"`
 	UpdatedAt   string       `json:"updatedAt"`
 	Nodes       []Node       `json:"nodes"`
 	Connections []Connection `json:"connections"`

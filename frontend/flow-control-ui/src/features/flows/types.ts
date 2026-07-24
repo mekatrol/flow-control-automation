@@ -81,6 +81,7 @@ export interface FlowDefinition {
   name: string;
   description: string;
   status: FlowStatus;
+  disabled: boolean;
   updatedAt: string;
   nodes: FlowNode[];
   connections: FlowConnection[];

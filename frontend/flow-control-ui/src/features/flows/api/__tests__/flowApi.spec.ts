@@ -35,11 +35,13 @@ describe('flow API client', () => {
     });
   });
 
-  it('lists, creates, and deletes flows through typed endpoints', async () => {
+  it('lists, creates, disables, enables, and deletes flows through typed endpoints', async () => {
     const fetchMock = vi
       .fn<typeof fetch>()
       .mockResolvedValueOnce(response(flowPage))
       .mockResolvedValueOnce(response(sampleFlows[0]))
+      .mockResolvedValueOnce(response({ ...sampleFlows[1], disabled: true }))
+      .mockResolvedValueOnce(response(sampleFlows[1]))
       .mockResolvedValueOnce(new Response(null, { status: 204 }));
     vi.stubGlobal('fetch', fetchMock);
 
@@ -47,6 +49,12 @@ describe('flow API client', () => {
       flowApi.listFlows({ filter: '', statuses: [], page: 1, pageSize: 10, sort: 'ascending' })
     ).resolves.toEqual(flowPage);
     await expect(flowApi.createFlow('Climate control')).resolves.toEqual(sampleFlows[0]);
+    await expect(flowApi.setFlowDisabled('garden irrigation', true)).resolves.toMatchObject({
+      disabled: true
+    });
+    await expect(flowApi.setFlowDisabled('garden irrigation', false)).resolves.toMatchObject({
+      disabled: false
+    });
     await expect(flowApi.deleteFlow('climate control')).resolves.toBeUndefined();
     expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/flows?filter=&page=1&pageSize=10&sort=ascending', {
       method: 'GET',
@@ -58,7 +66,15 @@ describe('flow API client', () => {
       body: JSON.stringify({ name: 'Climate control' }),
       signal: undefined
     });
-    expect(fetchMock).toHaveBeenNthCalledWith(3, '/api/flows/climate%20control', {
+    expect(fetchMock).toHaveBeenNthCalledWith(3, '/api/flows/garden%20irrigation/disable', {
+      method: 'POST',
+      signal: undefined
+    });
+    expect(fetchMock).toHaveBeenNthCalledWith(4, '/api/flows/garden%20irrigation/enable', {
+      method: 'POST',
+      signal: undefined
+    });
+    expect(fetchMock).toHaveBeenNthCalledWith(5, '/api/flows/climate%20control', {
       method: 'DELETE',
       signal: undefined
     });

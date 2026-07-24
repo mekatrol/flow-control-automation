@@ -66,6 +66,7 @@
           <div class="title-row">
             <h1>{{ flow.name }}</h1>
             <span :class="flow.status">{{ flow.status }}</span>
+            <span v-if="flow.disabled" class="disabled">disabled</span>
             <span v-if="dirty" class="dirty-state" role="status">Unsaved changes</span>
             <span
               class="runtime-state"
@@ -89,6 +90,20 @@
             :icon="deployIcon"
             :disabled="dirty || deploying"
             @click="showDeployConfirmation = true"
+          />
+          <AppButton
+            v-if="flow.status === 'deployed'"
+            :text="
+              togglingDisabled
+                ? flow.disabled
+                  ? 'Enabling…'
+                  : 'Disabling…'
+                : flow.disabled
+                  ? 'Enable flow'
+                  : 'Disable flow'
+            "
+            :disabled="togglingDisabled"
+            @click="setFlowDisabled(!flow.disabled)"
           />
           <AppButton text="Refresh runtime" :icon="refreshIcon" @click="refreshRuntime()" />
         </div>
@@ -152,6 +167,7 @@ const flow = computed(() => flowStore.findFlow(props.flowId));
 const dirty = computed(() => flowStore.isFlowDirty(props.flowId));
 const loading = ref(false);
 const saving = ref(false);
+const togglingDisabled = ref(false);
 const loadError = ref<string>();
 const saveError = ref<string>();
 const runtimeError = ref<string>();
@@ -264,6 +280,21 @@ const deployFlow = async (): Promise<void> => {
     const message = error instanceof Error ? error.message : 'Unable to deploy this flow.';
     runtimeStore.failDeployment(props.flowId, message);
     runtimeError.value = message;
+  }
+};
+
+const setFlowDisabled = async (disabled: boolean): Promise<void> => {
+  togglingDisabled.value = true;
+  runtimeError.value = undefined;
+  try {
+    const saved = await flowApi.setFlowDisabled(props.flowId, disabled);
+    flowStore.replaceFlowFromPayload(saved);
+    await refreshRuntime();
+  } catch (error) {
+    runtimeError.value =
+      error instanceof Error ? error.message : 'Unable to change the flow execution state.';
+  } finally {
+    togglingDisabled.value = false;
   }
 };
 
@@ -395,6 +426,11 @@ h1 {
 .title-row span.deployed {
   color: var(--color-action-primary-strong);
   background: var(--color-action-primary-surface);
+}
+
+.title-row span.disabled {
+  color: var(--color-text-secondary);
+  border-color: var(--color-text-secondary);
 }
 
 .title-row .dirty-state {

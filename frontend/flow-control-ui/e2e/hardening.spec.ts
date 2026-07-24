@@ -9,6 +9,7 @@ const emptyFlow = (): FlowDefinition => ({
   name: 'Critical journey',
   description: '',
   status: 'draft',
+  disabled: false,
   updatedAt: '2026-07-14T09:00:00+10:00',
   nodes: [],
   connections: []
@@ -58,7 +59,7 @@ test('creates, edits, saves, deploys, and reloads a flow as one critical journey
   await page.goto('/flows');
   await page.getByRole('textbox', { name: 'New flow name' }).fill('Critical journey');
   await page.getByRole('button', { name: 'New flow' }).click();
-  await page.getByRole('link', { name: /Critical journey/ }).click();
+  await expect(page.getByRole('heading', { name: 'Critical journey' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Add Calculator node' }).click();
   await page.getByRole('textbox', { name: 'Node label' }).fill('Verified calculation');
@@ -94,6 +95,7 @@ test('renders a large validated graph without dropping nodes or connections', as
     name: 'Large graph',
     description: 'Render hardening fixture',
     status: 'draft',
+    disabled: false,
     updatedAt: '2026-07-14T09:00:00+10:00',
     nodes,
     connections: nodes.slice(1).map((node, index) => ({

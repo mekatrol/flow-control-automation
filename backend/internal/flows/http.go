@@ -27,6 +27,8 @@ func NewHandler(store *Store) http.Handler {
 	mux.HandleFunc("PUT /api/flows/{flowId}", api.save)
 	mux.HandleFunc("DELETE /api/flows/{flowId}", api.delete)
 	mux.HandleFunc("POST /api/flows/{flowId}/deploy", api.deploy)
+	mux.HandleFunc("POST /api/flows/{flowId}/disable", api.disable)
+	mux.HandleFunc("POST /api/flows/{flowId}/enable", api.enable)
 	mux.HandleFunc("GET /api/flows/{flowId}/runtime", api.getRuntime)
 	return mux
 }
@@ -42,6 +44,19 @@ func (api *API) deploy(response http.ResponseWriter, request *http.Request) {
 		return
 	}
 	writeJSON(response, http.StatusOK, api.runtime.Deploy(flow))
+}
+
+func (api *API) disable(response http.ResponseWriter, request *http.Request) {
+	flow, err := api.store.SetDisabled(request.PathValue("flowId"), true)
+	if err == nil {
+		api.runtime.Stop(flow)
+	}
+	api.writeResult(response, flow, err, http.StatusOK)
+}
+
+func (api *API) enable(response http.ResponseWriter, request *http.Request) {
+	flow, err := api.store.SetDisabled(request.PathValue("flowId"), false)
+	api.writeResult(response, flow, err, http.StatusOK)
 }
 
 func (api *API) getRuntime(response http.ResponseWriter, request *http.Request) {

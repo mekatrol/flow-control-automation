@@ -220,6 +220,33 @@ func TestRuntimeStartsStoppedAndDeploysSavedFlow(t *testing.T) {
 	}
 }
 
+func TestDisabledFlowRemainsDeployedAndCannotExecute(t *testing.T) {
+	store, err := OpenStore(filepath.Join(t.TempDir(), "flows.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := NewHandler(store)
+	created := requestFlow(t, handler, http.MethodPost, "/api/flows", `{"name":"Runtime flow"}`, http.StatusCreated)
+	created.Status = "deployed"
+	body, _ := json.Marshal(created)
+	requestFlow(t, handler, http.MethodPut, "/api/flows/"+created.ID, string(body), http.StatusOK)
+	requestRuntime(t, handler, http.MethodPost, "/api/flows/"+created.ID+"/deploy", http.StatusOK)
+
+	disabled := requestFlow(t, handler, http.MethodPost, "/api/flows/"+created.ID+"/disable", "", http.StatusOK)
+	if !disabled.Disabled || disabled.Status != "deployed" {
+		t.Fatalf("disabled flow lost deployment state: %#v", disabled)
+	}
+	snapshot := requestRuntime(t, handler, http.MethodPost, "/api/flows/"+created.ID+"/deploy", http.StatusOK)
+	if snapshot.State != "stopped" {
+		t.Fatalf("disabled flow executed: %#v", snapshot)
+	}
+
+	enabled := requestFlow(t, handler, http.MethodPost, "/api/flows/"+created.ID+"/enable", "", http.StatusOK)
+	if enabled.Disabled || enabled.Status != "deployed" {
+		t.Fatalf("enabled flow lost deployment state: %#v", enabled)
+	}
+}
+
 func TestRuntimeRoutesReturnNotFoundForMissingFlow(t *testing.T) {
 	store, err := OpenStore(filepath.Join(t.TempDir(), "flows.json"))
 	if err != nil {

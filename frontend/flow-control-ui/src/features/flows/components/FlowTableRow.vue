@@ -38,12 +38,22 @@
       </RouterLink>
       <span class="description">{{ flow.description }}</span>
     </td>
-    <td><span class="status" :class="flow.status">{{ flow.status }}</span></td>
+    <td>
+      <span class="status" :class="[flow.status, { disabled: flow.disabled }]">
+        {{ flow.disabled ? `${flow.status} · disabled` : flow.status }}
+      </span>
+    </td>
     <td>{{ flow.nodes.length }}</td>
     <td>
       <time :datetime="flow.updatedAt">{{ formattedUpdatedAt }}</time>
     </td>
     <td class="actions" @click.stop>
+      <AppButton
+        :text="flow.disabled ? 'Enable flow' : 'Disable flow'"
+        :icon="flow.disabled ? enableFlowIcon : disableFlowIcon"
+        :disabled="togglingDisabled"
+        @click="$emit('toggleDisabled', flow.id, !flow.disabled)"
+      />
       <AppButton
         text="Rename"
         :icon="renameFlowIcon"
@@ -85,6 +95,8 @@ import { useRouter } from 'vue-router';
 
 import cancelIcon from '@/assets/cancel-icon.svg';
 import deleteFlowIcon from '@/assets/delete-flow-icon.svg';
+import disableFlowIcon from '@/assets/disable-flow-icon.svg';
+import enableFlowIcon from '@/assets/enable-flow-icon.svg';
 import renameFlowIcon from '@/assets/rename-flow-icon.svg';
 import saveIcon from '@/assets/save-icon.svg';
 import AppButton from '@/components/AppButton.vue';
@@ -98,6 +110,7 @@ const props = defineProps<{
   renaming: boolean;
   confirmingDelete: boolean;
   deleting: boolean;
+  togglingDisabled: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -108,6 +121,7 @@ const emit = defineEmits<{
   beginDelete: [flowId: string];
   confirmDelete: [flowId: string];
   cancelDelete: [];
+  toggleDisabled: [flowId: string, disabled: boolean];
 }>();
 
 const router = useRouter();

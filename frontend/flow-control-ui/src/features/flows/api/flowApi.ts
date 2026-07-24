@@ -156,6 +156,7 @@ export interface FlowApiClient {
   createFlow(name: string, signal?: AbortSignal): Promise<FlowDto>;
   getFlow(flowId: string, signal?: AbortSignal): Promise<FlowDto>;
   saveFlow(flow: FlowDto, signal?: AbortSignal): Promise<FlowDto>;
+  setFlowDisabled(flowId: string, disabled: boolean, signal?: AbortSignal): Promise<FlowDto>;
   deleteFlow(flowId: string, signal?: AbortSignal): Promise<void>;
 }
 
@@ -186,6 +187,11 @@ export const flowApi: FlowApiClient = {
       body: JSON.stringify(flow),
       signal
     }),
+  setFlowDisabled: (flowId, disabled, signal) =>
+    requestFlow(
+      `/api/flows/${encodeURIComponent(flowId)}/${disabled ? 'disable' : 'enable'}`,
+      { method: 'POST', signal }
+    ),
   deleteFlow: (flowId, signal) =>
     requestEmpty(`/api/flows/${encodeURIComponent(flowId)}`, { method: 'DELETE', signal })
 };

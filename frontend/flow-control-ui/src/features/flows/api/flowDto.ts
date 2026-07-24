@@ -43,6 +43,7 @@ export interface FlowDto {
   name: string;
   description: string;
   status: FlowStatus;
+  disabled: boolean;
   updatedAt: string;
   nodes: FlowNodeDto[];
   connections: FlowConnectionDto[];
@@ -239,6 +240,12 @@ export const parseFlowDto = (value: unknown): FlowDto => {
         ? source.description
         : fail('flow.description', 'expected a string'),
     status: asEnum(source.status, statuses, 'flow.status'),
+    disabled:
+      source.disabled === undefined
+        ? false
+        : typeof source.disabled === 'boolean'
+          ? source.disabled
+          : fail('flow.disabled', 'expected a boolean'),
     updatedAt,
     nodes,
     connections

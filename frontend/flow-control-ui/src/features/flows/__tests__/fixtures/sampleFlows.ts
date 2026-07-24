@@ -6,6 +6,7 @@ export const sampleFlows: FlowDefinition[] = [
     name: 'Climate control',
     description: 'Balances temperature inputs and applies the configured override.',
     status: 'draft',
+    disabled: false,
     updatedAt: '2026-07-13T09:30:00+10:00',
     nodes: [
       {
@@ -85,6 +86,7 @@ export const sampleFlows: FlowDefinition[] = [
     name: 'Garden irrigation',
     description: 'Runs watering zones from a schedule and moisture readings.',
     status: 'deployed',
+    disabled: false,
     updatedAt: '2026-07-12T18:15:00+10:00',
     nodes: [
       {

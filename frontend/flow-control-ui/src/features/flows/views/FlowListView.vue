@@ -72,6 +72,7 @@
           :renaming="renaming"
           :confirming-delete-id="confirmingDeleteId"
           :deleting="deleting"
+          :toggling-disabled-id="togglingDisabledId"
           @toggle-sort="toggleSortDirection"
           @begin-rename="beginRename"
           @update:rename-value="renameValue = $event"
@@ -80,6 +81,7 @@
           @begin-delete="beginDelete"
           @confirm-delete="deleteFlow"
           @cancel-delete="closeDeleteConfirmation"
+          @toggle-disabled="setFlowDisabled"
         />
         <TablePagination
           :page="page"
@@ -126,6 +128,7 @@ const renameValue = ref('');
 const renaming = ref(false);
 const confirmingDeleteId = ref<string>();
 const deleting = ref(false);
+const togglingDisabledId = ref<string>();
 let listController: AbortController | undefined;
 let listTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -299,6 +302,20 @@ const deleteFlow = async (flowId: string): Promise<void> => {
     error.value = caught instanceof Error ? caught.message : 'Unable to delete the flow.';
   } finally {
     deleting.value = false;
+  }
+};
+
+const setFlowDisabled = async (flowId: string, disabled: boolean): Promise<void> => {
+  togglingDisabledId.value = flowId;
+  error.value = undefined;
+  try {
+    const saved = await flowApi.setFlowDisabled(flowId, disabled);
+    flowStore.replaceFlowFromPayload(saved);
+  } catch (caught) {
+    error.value =
+      caught instanceof Error ? caught.message : 'Unable to change the flow execution state.';
+  } finally {
+    togglingDisabledId.value = undefined;
   }
 };
 

@@ -25,6 +25,7 @@
         :renaming="renaming"
         :confirming-delete="confirmingDeleteId === flow.id"
         :deleting="deleting"
+        :toggling-disabled="togglingDisabledId === flow.id"
         @begin-rename="(...args) => $emit('beginRename', ...args)"
         @update:rename-value="$emit('update:renameValue', $event)"
         @save-rename="$emit('saveRename', $event)"
@@ -32,6 +33,7 @@
         @begin-delete="$emit('beginDelete', $event)"
         @confirm-delete="$emit('confirmDelete', $event)"
         @cancel-delete="$emit('cancelDelete')"
+        @toggle-disabled="(...args) => $emit('toggleDisabled', ...args)"
       />
     </template>
   </AppTable>
@@ -52,6 +54,7 @@ defineProps<{
   renaming: boolean;
   confirmingDeleteId?: string;
   deleting: boolean;
+  togglingDisabledId?: string;
 }>();
 
 defineEmits<{
@@ -63,5 +66,6 @@ defineEmits<{
   beginDelete: [flowId: string];
   confirmDelete: [flowId: string];
   cancelDelete: [];
+  toggleDisabled: [flowId: string, disabled: boolean];
 }>();
 </script>

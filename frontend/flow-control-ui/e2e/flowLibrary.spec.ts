@@ -116,6 +116,44 @@ test('deletes a flow only after explicit confirmation', async ({ page }) => {
   await expect(page.getByRole('link', { name: /Climate control/ })).toHaveCount(0);
 });
 
+test('enables and disables a flow from the table with matching text and icons', async ({
+  page
+}) => {
+  let disabled = false;
+  const responseFlow = () => ({ ...structuredClone(sampleFlows[1]!), disabled });
+  await page.route('**/api/flows/garden-irrigation/disable', async (route) => {
+    disabled = true;
+    await route.fulfill({ json: responseFlow() });
+  });
+  await page.route('**/api/flows/garden-irrigation/enable', async (route) => {
+    disabled = false;
+    await route.fulfill({ json: responseFlow() });
+  });
+  await page.goto('/flows');
+
+  const gardenRow = page.getByRole('row').filter({ hasText: 'Garden irrigation' });
+  const disableButton = gardenRow.getByRole('button', { name: 'Disable flow' });
+  await expect(disableButton).toBeVisible();
+  const disableMask = await disableButton
+    .locator('.button-icon')
+    .evaluate((icon) => getComputedStyle(icon).maskImage);
+  expect(disableMask).not.toBe('none');
+  await disableButton.click();
+
+  const enableButton = gardenRow.getByRole('button', { name: 'Enable flow' });
+  await expect(enableButton).toBeVisible();
+  await expect(gardenRow.getByText('deployed · disabled', { exact: true })).toBeVisible();
+  const enableMask = await enableButton
+    .locator('.button-icon')
+    .evaluate((icon) => getComputedStyle(icon).maskImage);
+  expect(enableMask).not.toBe('none');
+  expect(enableMask).not.toBe(disableMask);
+  await enableButton.click();
+
+  await expect(gardenRow.getByRole('button', { name: 'Disable flow' })).toBeVisible();
+  await expect(gardenRow.getByText('deployed', { exact: true })).toBeVisible();
+});
+
 test('filters, sorts, and paginates the semantic flow table', async ({ page }) => {
   await page.unroute(flowsCollectionPattern);
   const manyFlows = Array.from({ length: 25 }, (_, index) => ({

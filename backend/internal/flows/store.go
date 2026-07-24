@@ -174,6 +174,24 @@ func (store *Store) Save(id string, flow Flow) (Flow, error) {
 	return flow, nil
 }
 
+func (store *Store) SetDisabled(id string, disabled bool) (Flow, error) {
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	flow, found := store.flows[id]
+	if !found {
+		return Flow{}, ErrNotFound
+	}
+	previous := flow
+	flow.Disabled = disabled
+	flow.UpdatedAt = store.timestamp()
+	store.flows[id] = flow
+	if err := store.persistLocked(); err != nil {
+		store.flows[id] = previous
+		return Flow{}, err
+	}
+	return flow, nil
+}
+
 func (store *Store) Delete(id string) error {
 	store.mu.Lock()
 	defer store.mu.Unlock()

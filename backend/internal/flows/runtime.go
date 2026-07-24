@@ -30,6 +30,9 @@ func NewRuntimeStore() *RuntimeStore {
 }
 
 func (store *RuntimeStore) Get(flow Flow) RuntimeSnapshot {
+	if flow.Disabled {
+		return store.Stop(flow)
+	}
 	store.mu.RLock()
 	snapshot, found := store.snapshots[flow.ID]
 	store.mu.RUnlock()
@@ -40,7 +43,18 @@ func (store *RuntimeStore) Get(flow Flow) RuntimeSnapshot {
 }
 
 func (store *RuntimeStore) Deploy(flow Flow) RuntimeSnapshot {
+	if flow.Disabled {
+		return store.Stop(flow)
+	}
 	snapshot := store.snapshot(flow, "running", "running")
+	store.mu.Lock()
+	store.snapshots[flow.ID] = snapshot
+	store.mu.Unlock()
+	return snapshot
+}
+
+func (store *RuntimeStore) Stop(flow Flow) RuntimeSnapshot {
+	snapshot := store.snapshot(flow, "stopped", "stopped")
 	store.mu.Lock()
 	store.snapshots[flow.ID] = snapshot
 	store.mu.Unlock()

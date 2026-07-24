@@ -1,5 +1,7 @@
 import { expect, test } from './fixtures/flowTest';
 
+import { sampleFlows } from '@/features/flows/__tests__/fixtures/sampleFlows';
+
 /**
  * Runtime end-to-end coverage.
  *
@@ -101,4 +103,44 @@ test('announces deployed node state independently of colour', async ({ page }) =
   await expect(
     page.getByRole('button', { name: /Watering pulse, Pulse node, deployed/ })
   ).toBeVisible();
+});
+
+test('disables execution without changing deployment status', async ({ page }) => {
+  let disabled = false;
+  const deployedFlow = () => ({
+    ...structuredClone(sampleFlows[1]!),
+    disabled
+  });
+  await page.route('**/api/flows/garden-irrigation', async (route) => {
+    await route.fulfill({ json: deployedFlow() });
+  });
+  await page.route('**/api/flows/garden-irrigation/disable', async (route) => {
+    disabled = true;
+    await route.fulfill({ json: deployedFlow() });
+  });
+  await page.route('**/api/flows/garden-irrigation/enable', async (route) => {
+    disabled = false;
+    await route.fulfill({ json: deployedFlow() });
+  });
+  await page.route('**/api/flows/garden-irrigation/runtime', async (route) => {
+    await route.fulfill({
+      json: {
+        flowId: 'garden-irrigation',
+        state: disabled ? 'stopped' : 'running',
+        updatedAt: '2026-07-14T08:01:00+10:00',
+        nodes: {}
+      }
+    });
+  });
+
+  await page.goto('/flows/garden-irrigation');
+  await page.getByRole('button', { name: 'Disable flow' }).click();
+  const titleRow = page.locator('.title-row');
+  await expect(titleRow.getByText('deployed', { exact: true })).toBeVisible();
+  await expect(titleRow.getByText('disabled', { exact: true })).toBeVisible();
+  await expect(page.getByRole('status', { name: 'Runtime state: stopped' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Enable flow' }).click();
+  await expect(titleRow.getByText('disabled', { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('status', { name: 'Runtime state: running' })).toBeVisible();
 });
