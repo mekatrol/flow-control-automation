@@ -8,7 +8,9 @@ interface Item {
 }
 
 const makeItems = (count: number): Item[] =>
-  Array.from({ length: count }, (_, index) => ({ name: `Flow ${String(index + 1).padStart(2, '0')}` }));
+  Array.from({ length: count }, (_, index) => ({
+    name: `Flow ${String(index + 1).padStart(2, '0')}`
+  }));
 
 describe('usePaginatedCollection', () => {
   it('filters and paginates within the filtered result set', async () => {

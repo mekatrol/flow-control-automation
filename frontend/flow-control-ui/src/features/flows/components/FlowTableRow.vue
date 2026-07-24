@@ -14,19 +14,8 @@
           type="text"
           @input="$emit('update:renameValue', ($event.target as HTMLInputElement).value)"
         />
-        <AppButton
-          type="submit"
-          text="Save name"
-          :icon="saveIcon"
-          hide-text
-          :disabled="renaming"
-        />
-        <AppButton
-          text="Cancel"
-          :icon="cancelIcon"
-          hide-text
-          @click="$emit('cancelRename')"
-        />
+        <AppButton type="submit" text="Save name" :icon="saveIcon" hide-text :disabled="renaming" />
+        <AppButton text="Cancel" :icon="cancelIcon" hide-text @click="$emit('cancelRename')" />
       </form>
       <RouterLink
         v-else
@@ -49,7 +38,7 @@
     </td>
     <td class="actions" @click.stop>
       <AppButton
-        :text="flow.disabled ? 'Enable flow' : 'Disable flow'"
+        :text="flow.disabled ? 'Enable' : 'Disable'"
         :icon="flow.disabled ? enableFlowIcon : disableFlowIcon"
         :disabled="togglingDisabled"
         @click="$emit('toggleDisabled', flow.id, !flow.disabled)"

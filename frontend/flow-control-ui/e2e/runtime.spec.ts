@@ -1,6 +1,7 @@
 import { expect, test } from './fixtures/flowTest';
 
 import { sampleFlows } from '@/features/flows/__tests__/fixtures/sampleFlows';
+import type { FlowDefinition } from '@/features/flows/types';
 
 /**
  * Runtime end-to-end coverage.
@@ -107,7 +108,7 @@ test('announces deployed node state independently of colour', async ({ page }) =
 
 test('disables execution without changing deployment status', async ({ page }) => {
   let disabled = false;
-  const deployedFlow = () => ({
+  const deployedFlow = (): FlowDefinition => ({
     ...structuredClone(sampleFlows[1]!),
     disabled
   });
@@ -134,13 +135,13 @@ test('disables execution without changing deployment status', async ({ page }) =
   });
 
   await page.goto('/flows/garden-irrigation');
-  await page.getByRole('button', { name: 'Disable flow' }).click();
+  await page.getByRole('button', { name: 'Disable' }).click();
   const titleRow = page.locator('.title-row');
   await expect(titleRow.getByText('deployed', { exact: true })).toBeVisible();
   await expect(titleRow.getByText('disabled', { exact: true })).toBeVisible();
   await expect(page.getByRole('status', { name: 'Runtime state: stopped' })).toBeVisible();
 
-  await page.getByRole('button', { name: 'Enable flow' }).click();
+  await page.getByRole('button', { name: 'Enable' }).click();
   await expect(titleRow.getByText('disabled', { exact: true })).toHaveCount(0);
   await expect(page.getByRole('status', { name: 'Runtime state: running' })).toBeVisible();
 });

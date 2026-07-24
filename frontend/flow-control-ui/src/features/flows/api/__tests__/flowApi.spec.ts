@@ -56,10 +56,14 @@ describe('flow API client', () => {
       disabled: false
     });
     await expect(flowApi.deleteFlow('climate control')).resolves.toBeUndefined();
-    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/flows?filter=&page=1&pageSize=10&sort=ascending', {
-      method: 'GET',
-      signal: undefined
-    });
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      '/api/flows?filter=&page=1&pageSize=10&sort=ascending',
+      {
+        method: 'GET',
+        signal: undefined
+      }
+    );
     expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/flows', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },

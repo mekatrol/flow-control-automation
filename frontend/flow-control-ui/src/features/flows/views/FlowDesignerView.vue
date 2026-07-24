@@ -99,8 +99,8 @@
                   ? 'Enabling…'
                   : 'Disabling…'
                 : flow.disabled
-                  ? 'Enable flow'
-                  : 'Disable flow'
+                  ? 'Enable'
+                  : 'Disable'
             "
             :disabled="togglingDisabled"
             @click="setFlowDisabled(!flow.disabled)"

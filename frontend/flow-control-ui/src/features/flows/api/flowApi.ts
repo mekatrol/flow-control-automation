@@ -110,7 +110,11 @@ const requestFlows = async (url: string, init: RequestInit): Promise<FlowPage> =
       throw new FlowApiError('validation', 'The server returned an invalid flow list.');
     }
     const pagePayload = payload as Record<string, unknown>;
-    if (!Array.isArray(pagePayload.items) || typeof pagePayload.totalItems !== 'number' || pagePayload.totalItems < 0) {
+    if (
+      !Array.isArray(pagePayload.items) ||
+      typeof pagePayload.totalItems !== 'number' ||
+      pagePayload.totalItems < 0
+    ) {
       throw new FlowApiError('validation', 'The server returned an invalid flow list.');
     }
     // Validate the whole list before the store replaces its current state. One bad
@@ -188,10 +192,10 @@ export const flowApi: FlowApiClient = {
       signal
     }),
   setFlowDisabled: (flowId, disabled, signal) =>
-    requestFlow(
-      `/api/flows/${encodeURIComponent(flowId)}/${disabled ? 'disable' : 'enable'}`,
-      { method: 'POST', signal }
-    ),
+    requestFlow(`/api/flows/${encodeURIComponent(flowId)}/${disabled ? 'disable' : 'enable'}`, {
+      method: 'POST',
+      signal
+    }),
   deleteFlow: (flowId, signal) =>
     requestEmpty(`/api/flows/${encodeURIComponent(flowId)}`, { method: 'DELETE', signal })
 };

@@ -31,10 +31,7 @@
       <AppButton text="Retry" :icon="retryIcon" @click="loadFlows" />
     </div>
 
-    <div
-      v-if="!loading && !error && totalItems === 0 && !hasActiveFilters"
-      class="empty-state"
-    >
+    <div v-if="!loading && !error && totalItems === 0 && !hasActiveFilters" class="empty-state">
       <h2>No flows yet</h2>
       <p>Create a flow to start designing an automation.</p>
     </div>
@@ -106,9 +103,7 @@ import { useRoute, useRouter } from 'vue-router';
 import newFlowIcon from '@/assets/new-flow-icon.svg';
 import retryIcon from '@/assets/retry-icon.svg';
 import AppButton from '@/components/AppButton.vue';
-import MultiSelectDropdown, {
-  type MultiSelectOption
-} from '@/components/MultiSelectDropdown.vue';
+import MultiSelectDropdown, { type MultiSelectOption } from '@/components/MultiSelectDropdown.vue';
 import TablePagination from '@/components/TablePagination.vue';
 import { useServerPagination } from '@/composables/useServerPagination';
 import { flowApi, type FlowListParameters } from '@/features/flows/api/flowApi';
@@ -218,15 +213,18 @@ const loadFlows = async (): Promise<void> => {
   loading.value = true;
   error.value = undefined;
   try {
-    const result = await flowApi.listFlows({
-      filter: query.value.trim(),
+    const result = await flowApi.listFlows(
+      {
+        filter: query.value.trim(),
         statuses: statusFilters.value.filter(
           (status): status is 'draft' | 'deployed' => status === 'draft' || status === 'deployed'
         ),
-      page: page.value,
-      pageSize: pageSize.value,
-      sort: sortDirection.value
-    }, controller.signal);
+        page: page.value,
+        pageSize: pageSize.value,
+        sort: sortDirection.value
+      },
+      controller.signal
+    );
     if (listController === controller) {
       flowStore.replaceAllFlowsFromPayloads(result.items);
       applyPageMetadata(result);
@@ -486,6 +484,5 @@ h1 {
     align-items: stretch;
     flex-direction: column;
   }
-
 }
 </style>

@@ -44,10 +44,12 @@ export const usePaginatedCollection = <T>(
       : [...source.value];
 
     return matchingItems.sort((left, right) => {
-      const comparison = options.sortValue(left).localeCompare(options.sortValue(right), undefined, {
-        numeric: true,
-        sensitivity: 'base'
-      });
+      const comparison = options
+        .sortValue(left)
+        .localeCompare(options.sortValue(right), undefined, {
+          numeric: true,
+          sensitivity: 'base'
+        });
       return sortDirection.value === 'ascending' ? comparison : -comparison;
     });
   });
@@ -58,7 +60,9 @@ export const usePaginatedCollection = <T>(
     const start = (page.value - 1) * pageSize.value;
     return filteredItems.value.slice(start, start + pageSize.value);
   });
-  const rangeStart = computed(() => (totalItems.value === 0 ? 0 : (page.value - 1) * pageSize.value + 1));
+  const rangeStart = computed(() =>
+    totalItems.value === 0 ? 0 : (page.value - 1) * pageSize.value + 1
+  );
   const rangeEnd = computed(() => Math.min(page.value * pageSize.value, totalItems.value));
 
   const setPage = (nextPage: number): void => {

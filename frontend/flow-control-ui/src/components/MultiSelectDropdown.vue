@@ -59,7 +59,8 @@ const emit = defineEmits<{
 const root = ref<HTMLElement>();
 const open = ref(false);
 const allSelected = computed(
-  () => props.options.length > 0 && props.options.every(({ value }) => props.modelValue.includes(value))
+  () =>
+    props.options.length > 0 && props.options.every(({ value }) => props.modelValue.includes(value))
 );
 const summary = computed(() => {
   if (allSelected.value) return props.allLabel;

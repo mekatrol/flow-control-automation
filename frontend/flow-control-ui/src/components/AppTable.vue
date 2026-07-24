@@ -2,7 +2,9 @@
   <div class="table-scroll" tabindex="0" role="region" :aria-label="`${caption} table`">
     <table>
       <caption>
-        {{ caption }}
+        {{
+          caption
+        }}
       </caption>
       <thead>
         <slot name="head"></slot>

@@ -7,6 +7,7 @@ import {
 } from './fixtures/flowTest';
 
 import { sampleFlows } from '@/features/flows/__tests__/fixtures/sampleFlows';
+import type { FlowDefinition } from '@/features/flows/types';
 
 /**
  * Flow library end-to-end coverage.
@@ -120,7 +121,10 @@ test('enables and disables a flow from the table with matching text and icons', 
   page
 }) => {
   let disabled = false;
-  const responseFlow = () => ({ ...structuredClone(sampleFlows[1]!), disabled });
+  const responseFlow = (): FlowDefinition => ({
+    ...structuredClone(sampleFlows[1]!),
+    disabled
+  });
   await page.route('**/api/flows/garden-irrigation/disable', async (route) => {
     disabled = true;
     await route.fulfill({ json: responseFlow() });
@@ -132,7 +136,7 @@ test('enables and disables a flow from the table with matching text and icons', 
   await page.goto('/flows');
 
   const gardenRow = page.getByRole('row').filter({ hasText: 'Garden irrigation' });
-  const disableButton = gardenRow.getByRole('button', { name: 'Disable flow' });
+  const disableButton = gardenRow.getByRole('button', { name: 'Disable' });
   await expect(disableButton).toBeVisible();
   const disableMask = await disableButton
     .locator('.button-icon')
@@ -140,7 +144,7 @@ test('enables and disables a flow from the table with matching text and icons', 
   expect(disableMask).not.toBe('none');
   await disableButton.click();
 
-  const enableButton = gardenRow.getByRole('button', { name: 'Enable flow' });
+  const enableButton = gardenRow.getByRole('button', { name: 'Enable' });
   await expect(enableButton).toBeVisible();
   await expect(gardenRow.getByText('deployed · disabled', { exact: true })).toBeVisible();
   const enableMask = await enableButton
@@ -150,7 +154,7 @@ test('enables and disables a flow from the table with matching text and icons', 
   expect(enableMask).not.toBe(disableMask);
   await enableButton.click();
 
-  await expect(gardenRow.getByRole('button', { name: 'Disable flow' })).toBeVisible();
+  await expect(gardenRow.getByRole('button', { name: 'Disable' })).toBeVisible();
   await expect(gardenRow.getByText('deployed', { exact: true })).toBeVisible();
 });
 
