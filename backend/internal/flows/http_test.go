@@ -95,6 +95,28 @@ func TestListFiltersSortsAndPaginates(t *testing.T) {
 	if page.Items[0].Name != "Flow 15" || page.Items[9].Name != "Flow 06" {
 		t.Fatalf("unexpected sorted page: %q through %q", page.Items[0].Name, page.Items[9].Name)
 	}
+
+	first := page.Items[0]
+	first.Status = "deployed"
+	body, err := json.Marshal(first)
+	if err != nil {
+		t.Fatal(err)
+	}
+	requestFlow(t, handler, http.MethodPut, "/api/flows/"+first.ID, string(body), http.StatusOK)
+	response = request(t, handler, http.MethodGet, "/api/flows?status=deployed&pageSize=10", "")
+	if err := json.NewDecoder(response.Body).Decode(&page); err != nil {
+		t.Fatal(err)
+	}
+	if page.TotalItems != 1 || len(page.Items) != 1 || page.Items[0].Status != "deployed" {
+		t.Fatalf("status filter returned unexpected page: %#v", page)
+	}
+	response = request(t, handler, http.MethodGet, "/api/flows?status=deployed&status=draft&pageSize=10", "")
+	if err := json.NewDecoder(response.Body).Decode(&page); err != nil {
+		t.Fatal(err)
+	}
+	if page.TotalItems != 25 {
+		t.Fatalf("multi-status filter returned %d items, want 25", page.TotalItems)
+	}
 }
 
 func TestListRejectsInvalidPagination(t *testing.T) {
@@ -108,6 +130,7 @@ func TestListRejectsInvalidPagination(t *testing.T) {
 		"/api/flows?page=nope",
 		"/api/flows?pageSize=100",
 		"/api/flows?sort=sideways",
+		"/api/flows?status=paused",
 	} {
 		requestStatus(t, handler, http.MethodGet, path, "", http.StatusBadRequest)
 	}

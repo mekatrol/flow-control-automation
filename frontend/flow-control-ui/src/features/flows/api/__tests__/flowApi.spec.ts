@@ -44,7 +44,7 @@ describe('flow API client', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     await expect(
-      flowApi.listFlows({ filter: '', page: 1, pageSize: 10, sort: 'ascending' })
+      flowApi.listFlows({ filter: '', statuses: [], page: 1, pageSize: 10, sort: 'ascending' })
     ).resolves.toEqual(flowPage);
     await expect(flowApi.createFlow('Climate control')).resolves.toEqual(sampleFlows[0]);
     await expect(flowApi.deleteFlow('climate control')).resolves.toBeUndefined();
@@ -80,7 +80,7 @@ describe('flow API client', () => {
 
     vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(response({ nope: true })));
     await expect(
-      flowApi.listFlows({ filter: '', page: 1, pageSize: 10, sort: 'ascending' })
+      flowApi.listFlows({ filter: '', statuses: [], page: 1, pageSize: 10, sort: 'ascending' })
     ).rejects.toMatchObject({ kind: 'validation' });
   });
 

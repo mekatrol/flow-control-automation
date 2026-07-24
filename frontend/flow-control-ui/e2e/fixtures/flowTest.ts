@@ -16,10 +16,15 @@ export const pagedFlows = (flows: FlowDefinition[], requestUrl: string): {
 } => {
   const query = new URL(requestUrl).searchParams;
   const filter = (query.get('filter') ?? '').toLocaleLowerCase();
+  const statuses = query.getAll('status');
   const pageSize = Number(query.get('pageSize') ?? 10);
   const direction = query.get('sort') === 'descending' ? -1 : 1;
   const matches = flows
-    .filter((flow) => flow.name.toLocaleLowerCase().includes(filter))
+    .filter(
+      (flow) =>
+        flow.name.toLocaleLowerCase().includes(filter) &&
+        (statuses.length === 0 || statuses.includes(flow.status))
+    )
     .sort((left, right) => direction * left.name.localeCompare(right.name));
   const pageCount = Math.max(1, Math.ceil(matches.length / pageSize));
   const page = Math.min(Number(query.get('page') ?? 1), pageCount);

@@ -72,6 +72,7 @@ const requestFlow = async (url: string, init: RequestInit): Promise<FlowDto> => 
 
 export interface FlowListParameters {
   filter: string;
+  statuses: Array<'draft' | 'deployed'>;
   page: number;
   pageSize: number;
   sort: 'ascending' | 'descending';
@@ -166,6 +167,7 @@ export const flowApi: FlowApiClient = {
       pageSize: String(parameters.pageSize),
       sort: parameters.sort
     });
+    for (const status of parameters.statuses) query.append('status', status);
     return requestFlows(`/api/flows?${query}`, { method: 'GET', signal });
   },
   createFlow: (name, signal) =>

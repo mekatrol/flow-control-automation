@@ -17,6 +17,7 @@ var ErrNotFound = errors.New("flow not found")
 
 type ListOptions struct {
 	Filter        string
+	Statuses      []string
 	Page          int
 	PageSize      int
 	SortDirection string
@@ -78,9 +79,15 @@ func (store *Store) ListPage(options ListOptions) FlowPage {
 	defer store.mu.RUnlock()
 
 	filter := strings.ToLower(strings.TrimSpace(options.Filter))
+	statuses := make(map[string]bool, len(options.Statuses))
+	for _, status := range options.Statuses {
+		statuses[status] = true
+	}
 	matches := make([]Flow, 0, len(store.flows))
 	for _, flow := range store.flows {
-		if filter == "" || strings.Contains(strings.ToLower(flow.Name), filter) {
+		nameMatches := filter == "" || strings.Contains(strings.ToLower(flow.Name), filter)
+		statusMatches := len(statuses) == 0 || statuses[flow.Status]
+		if nameMatches && statusMatches {
 			matches = append(matches, flow)
 		}
 	}

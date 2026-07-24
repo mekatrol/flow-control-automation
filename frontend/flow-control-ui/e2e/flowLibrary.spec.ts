@@ -119,7 +119,8 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
   const manyFlows = Array.from({ length: 25 }, (_, index) => ({
     ...structuredClone(sampleFlows[0]!),
     id: `flow-${index + 1}`,
-    name: `Flow ${String(index + 1).padStart(2, '0')}`
+    name: `Flow ${String(index + 1).padStart(2, '0')}`,
+    status: index % 2 === 0 ? 'deployed' as const : 'draft' as const
   }));
   await page.route(flowsCollectionPattern, async (route) => {
     await route.fulfill({ json: pagedFlows(manyFlows, route.request().url()) });
@@ -134,18 +135,26 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
   );
   await expect(table.getByRole('row')).toHaveCount(11);
 
+  const nameFilter = page.getByRole('searchbox', { name: 'Filter by name' });
+  await nameFilter.fill('No matching flow');
+  await expect(page.getByText('No flows match the selected filters.')).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Deployment status: All' })
+  ).toBeVisible();
+  await nameFilter.fill('');
+
   const sortButton = page.getByRole('button', { name: /Name, sorted ascending/ });
   await expect(sortButton.locator('.button-icon')).toHaveCount(1);
   expect(await sortButton.locator('.button-icon').evaluate((icon) => icon.getBoundingClientRect().width)).toBe(18);
   await sortButton.click();
   await expect(table.getByRole('row').nth(1)).toContainText('Flow 25');
 
-  await page.getByRole('searchbox', { name: 'Filter by name' }).fill('Flow 2');
+  await nameFilter.fill('Flow 2');
   await expect(page).toHaveURL(/filter=Flow(?:%20|\+)2/);
   await expect(table.getByRole('row')).toHaveCount(7);
   await expect(page.getByText('1–6 of 6')).toBeVisible();
 
-  await page.getByRole('searchbox', { name: 'Filter by name' }).fill('Flow');
+  await nameFilter.fill('Flow');
   await page.getByLabel('Items per page').selectOption('20');
   const nextPageButton = page.getByRole('button', { name: 'Next page' });
   await expect(nextPageButton.locator('.button-icon')).toHaveCount(1);
@@ -155,6 +164,28 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
   await expect(page).toHaveURL(/pageSize=20/);
   await expect(page).toHaveURL(/filter=Flow/);
   await expect(page.getByText('21–25 of 25')).toBeVisible();
+
+  const statusDropdown = page.getByRole('button', {
+    name: 'Deployment status: All'
+  });
+  await statusDropdown.click();
+  await page.getByRole('checkbox', { name: 'Draft' }).uncheck();
+  await page.getByRole('button', { name: 'Deployment status: Deployed' }).click();
+  await expect(page).toHaveURL(/status=deployed/);
+  await expect(page).not.toHaveURL(/page=2/);
+  await expect(page.getByText('1–13 of 13')).toBeVisible();
+  await expect(table.getByRole('row')).toHaveCount(14);
+
+  await page.getByLabel('Items per page').selectOption('10');
+  await page.getByRole('button', { name: 'Next page' }).click();
+  await expect(page).toHaveURL(/status=deployed/);
+  await expect(page.getByText('11–13 of 13')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Deployment status: Deployed' }).click();
+  await page.getByRole('checkbox', { name: 'All' }).check();
+  await expect(page).toHaveURL(/status=deployed/);
+  await expect(page).toHaveURL(/status=draft/);
+  await expect(page.getByText('1–10 of 25')).toBeVisible();
 });
 
 test('uses the shared button contract for visible and icon-only actions', async ({ page }) => {

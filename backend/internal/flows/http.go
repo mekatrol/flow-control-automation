@@ -81,8 +81,15 @@ func (api *API) list(response http.ResponseWriter, request *http.Request) {
 		writeError(response, http.StatusBadRequest, "sort must be ascending or descending")
 		return
 	}
+	statuses := query["status"]
+	for _, status := range statuses {
+		if status != "draft" && status != "deployed" {
+			writeError(response, http.StatusBadRequest, "each status must be draft or deployed")
+			return
+		}
+	}
 	writeJSON(response, http.StatusOK, api.store.ListPage(ListOptions{
-		Filter: query.Get("filter"), Page: page, PageSize: pageSize, SortDirection: direction,
+		Filter: query.Get("filter"), Statuses: statuses, Page: page, PageSize: pageSize, SortDirection: direction,
 	}))
 }
 

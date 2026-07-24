@@ -31,28 +31,39 @@
       <AppButton text="Retry" :icon="retryIcon" @click="loadFlows" />
     </div>
 
-    <div v-if="!loading && !error && flows.length === 0" class="empty-state">
+    <div
+      v-if="!loading && !error && totalItems === 0 && !hasActiveFilters"
+      class="empty-state"
+    >
       <h2>No flows yet</h2>
       <p>Create a flow to start designing an automation.</p>
     </div>
 
-    <div v-if="!loading && !error && flows.length > 0" class="flow-results">
+    <div v-if="!loading && !error" class="flow-results">
       <div class="table-tools">
-        <label for="flow-filter">Filter by name</label>
-        <input
-          id="flow-filter"
-          v-model="query"
-          type="search"
-          autocomplete="off"
-          placeholder="Search flow names"
+        <div class="filter-control">
+          <label for="flow-filter">Filter by name</label>
+          <input
+            id="flow-filter"
+            v-model="query"
+            type="search"
+            autocomplete="off"
+            placeholder="Search flow names"
+          />
+        </div>
+        <MultiSelectDropdown
+          v-model="statusFilters"
+          label="Deployment status"
+          all-label="All"
+          :options="statusOptions"
         />
       </div>
 
-      <p v-if="totalItems === 0" class="empty-state" role="status">
-        No flows match “{{ query.trim() }}”.
+      <p v-if="totalItems === 0 && hasActiveFilters" class="empty-state" role="status">
+        No flows match the selected filters.
       </p>
 
-      <template v-else>
+      <template v-if="totalItems > 0">
         <FlowTable
           :flows="items"
           :sort-direction="sortDirection"
@@ -93,6 +104,9 @@ import { useRoute, useRouter } from 'vue-router';
 import newFlowIcon from '@/assets/new-flow-icon.svg';
 import retryIcon from '@/assets/retry-icon.svg';
 import AppButton from '@/components/AppButton.vue';
+import MultiSelectDropdown, {
+  type MultiSelectOption
+} from '@/components/MultiSelectDropdown.vue';
 import TablePagination from '@/components/TablePagination.vue';
 import { useServerPagination } from '@/composables/useServerPagination';
 import { flowApi, type FlowListParameters } from '@/features/flows/api/flowApi';
@@ -124,7 +138,23 @@ const requestedPageSize = positiveInteger(route.query.pageSize, 10);
 const initialPageSize = [10, 20, 50].includes(requestedPageSize) ? requestedPageSize : 10;
 const initialSortDirection: FlowListParameters['sort'] =
   route.query.sort === 'descending' ? 'descending' : 'ascending';
-
+const statusOptions: MultiSelectOption[] = [
+  { label: 'Draft', value: 'draft' },
+  { label: 'Deployed', value: 'deployed' }
+];
+const requestedStatuses = Array.isArray(route.query.status)
+  ? route.query.status
+  : route.query.status
+    ? [route.query.status]
+    : [];
+const validRequestedStatuses = requestedStatuses.filter(
+  (status): status is 'draft' | 'deployed' => status === 'draft' || status === 'deployed'
+);
+const statusFilters = ref<string[]>(
+  validRequestedStatuses.length > 0
+    ? validRequestedStatuses
+    : statusOptions.map(({ value }) => value)
+);
 const {
   query,
   page,
@@ -143,18 +173,36 @@ const {
   initialPageSize,
   initialSortDirection
 });
+const hasActiveFilters = computed(
+  () =>
+    query.value.trim().length > 0 ||
+    !statusOptions.every(({ value }) => statusFilters.value.includes(value))
+);
 const items = computed(() => flows.value);
 
-watch([query, page, pageSize, sortDirection], ([filter, currentPage, currentPageSize, sort]) => {
-  const nextQuery: Record<string, string> = {};
-  if (filter.trim()) nextQuery.filter = filter;
-  if (currentPage > 1) nextQuery.page = String(currentPage);
-  if (currentPageSize !== 10) nextQuery.pageSize = String(currentPageSize);
-  if (sort !== 'ascending') nextQuery.sort = sort;
-  void router.replace({ query: nextQuery });
-  clearTimeout(listTimer);
-  listTimer = setTimeout(() => void loadFlows(), 200);
-});
+watch(
+  statusFilters,
+  () => {
+    page.value = 1;
+  },
+  { deep: true, flush: 'sync' }
+);
+
+watch(
+  [query, statusFilters, page, pageSize, sortDirection],
+  ([filter, statuses, currentPage, currentPageSize, sort]) => {
+    const nextQuery: Record<string, string | string[]> = {};
+    if (filter.trim()) nextQuery.filter = filter;
+    if (statuses.length > 0) nextQuery.status = [...statuses];
+    if (currentPage > 1) nextQuery.page = String(currentPage);
+    if (currentPageSize !== 10) nextQuery.pageSize = String(currentPageSize);
+    if (sort !== 'ascending') nextQuery.sort = sort;
+    void router.replace({ query: nextQuery });
+    clearTimeout(listTimer);
+    listTimer = setTimeout(() => void loadFlows(), 200);
+  },
+  { deep: true }
+);
 
 const closeDeleteConfirmation = (): void => {
   confirmingDeleteId.value = undefined;
@@ -169,6 +217,9 @@ const loadFlows = async (): Promise<void> => {
   try {
     const result = await flowApi.listFlows({
       filter: query.value.trim(),
+        statuses: statusFilters.value.filter(
+          (status): status is 'draft' | 'deployed' => status === 'draft' || status === 'deployed'
+        ),
       page: page.value,
       pageSize: pageSize.value,
       sort: sortDirection.value
@@ -381,6 +432,12 @@ h1 {
   margin-bottom: 16px;
 }
 
+.filter-control {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 .table-tools input {
   width: min(360px, 100%);
 }
@@ -404,5 +461,11 @@ h1 {
     align-items: stretch;
     flex-direction: column;
   }
+
+  .filter-control {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
 }
 </style>
