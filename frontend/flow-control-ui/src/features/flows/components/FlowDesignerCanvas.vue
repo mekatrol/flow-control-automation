@@ -513,6 +513,7 @@ const handleDragCancel = (event: PointerEvent): void => {
 
 <style scoped>
 .canvas-frame {
+  min-width: 0;
   background: #fff;
   border: 1px solid #d8e2ea;
   border-radius: 14px;
@@ -615,6 +616,7 @@ const handleDragCancel = (event: PointerEvent): void => {
 }
 
 .canvas-viewport {
+  width: 100%;
   max-width: 100%;
   overflow: auto;
   outline-offset: -3px;

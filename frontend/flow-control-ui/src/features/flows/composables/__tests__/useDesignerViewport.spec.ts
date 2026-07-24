@@ -1,12 +1,37 @@
 import { describe, expect, it } from 'vitest';
 
-import { clampZoom, clientToSvgPoint } from '@/features/flows/composables/useDesignerViewport';
+import {
+  calculateCanvasSize,
+  clampZoom,
+  clientToSvgPoint
+} from '@/features/flows/composables/useDesignerViewport';
 
 describe('designer viewport calculations', () => {
   it('clamps zoom to usable boundaries', () => {
     expect(clampZoom(0.1)).toBe(0.5);
     expect(clampZoom(1.25)).toBe(1.25);
     expect(clampZoom(3)).toBe(2);
+  });
+
+  it('fits the canvas to the available viewport width', () => {
+    expect(calculateCanvasSize(880, 1)).toEqual({
+      width: 880,
+      height: 448
+    });
+  });
+
+  it('applies zoom to the responsive canvas size', () => {
+    expect(calculateCanvasSize(880, 1.5)).toEqual({
+      width: 1320,
+      height: 672
+    });
+  });
+
+  it('uses the designer dimensions until the viewport has been measured', () => {
+    expect(calculateCanvasSize(0, 1)).toEqual({
+      width: 1100,
+      height: 560
+    });
   });
 
   it('converts client coordinates into SVG coordinates', () => {

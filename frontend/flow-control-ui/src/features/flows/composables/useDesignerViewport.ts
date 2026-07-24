@@ -16,6 +16,19 @@ export interface ViewportRect {
 
 export const clampZoom = (zoom: number): number => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom));
 
+export const calculateCanvasSize = (
+  viewportWidth: number,
+  zoom: number
+): { width: number; height: number } => {
+  const responsiveWidth = viewportWidth > 0 ? viewportWidth : DESIGNER_WIDTH;
+  const width = responsiveWidth * clampZoom(zoom);
+
+  return {
+    width,
+    height: (width * DESIGNER_HEIGHT) / DESIGNER_WIDTH
+  };
+};
+
 export const clientToSvgPoint = (
   client: Point,
   rect: ViewportRect,
@@ -40,12 +53,7 @@ export const useDesignerViewport = (element: Ref<HTMLElement | undefined>): Desi
   const width = ref(0);
   let observer: ResizeObserver | undefined;
 
-  const canvasSize = computed(() => ({
-    // Zoom changes the displayed CSS size but leaves graph coordinates fixed.
-    // Persisted node positions therefore do not change as the user zooms.
-    width: DESIGNER_WIDTH * zoom.value,
-    height: DESIGNER_HEIGHT * zoom.value
-  }));
+  const canvasSize = computed(() => calculateCanvasSize(width.value, zoom.value));
 
   const setZoom = (nextZoom: number): void => {
     zoom.value = clampZoom(nextZoom);
