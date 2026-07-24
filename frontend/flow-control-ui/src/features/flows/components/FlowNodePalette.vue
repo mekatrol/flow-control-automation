@@ -8,18 +8,19 @@
     <div v-if="Object.keys(groups).length" class="palette-groups">
       <section v-for="(definitions, category) in groups" :key="category">
         <h3>{{ category }}</h3>
-        <button
+        <AppButton
           v-for="definition in definitions"
           :key="definition.kind"
-          type="button"
+          :text="definition.label"
           draggable="true"
           :aria-label="`Add ${definition.label} node`"
           @click="emit('add', definition.kind)"
           @dragstart="startPaletteDrag(definition.kind, $event)"
         >
-          <img :src="getNodeIconUrl(definition.icon)" alt="" />
-          <span>{{ definition.label }}</span>
-        </button>
+          <template #icon>
+            <img :src="getNodeIconUrl(definition.icon)" alt="" />
+          </template>
+        </AppButton>
       </section>
     </div>
     <p v-else>No node kinds match “{{ query }}”.</p>
@@ -64,6 +65,7 @@ export const groupNodeKinds = (
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 
+import AppButton from '@/components/AppButton.vue';
 import type { FlowNodeKind } from '@/features/flows/types';
 
 const emit = defineEmits<{ add: [kind: FlowNodeKind] }>();

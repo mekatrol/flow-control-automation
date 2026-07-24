@@ -28,11 +28,9 @@ describe('FlowNode', () => {
     expect(wrapper.find('.node-marker.blue circle').exists()).toBe(true);
     expect(wrapper.findAll('rect.connector-port')).toHaveLength(node.connectors.length);
     expect(wrapper.get('.node-body').attributes('width')).toBe('170');
-    expect(wrapper.findAll('.node-marker').map((marker) => marker.attributes('transform'))).toEqual([
-      'translate(110 -8)',
-      'translate(130 -8)',
-      'translate(150 -8)'
-    ]);
+    expect(wrapper.findAll('.node-marker').map((marker) => marker.attributes('transform'))).toEqual(
+      ['translate(110 -8)', 'translate(130 -8)', 'translate(150 -8)']
+    );
     expect(
       wrapper
         .findAll('.flow-connector')

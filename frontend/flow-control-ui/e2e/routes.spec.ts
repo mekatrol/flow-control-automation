@@ -315,6 +315,40 @@ test('creates, opens, renames, and deletes a flow through the API', async ({ pag
   await expect(page.getByRole('link', { name: /Renamed automation/ })).toHaveCount(0);
 });
 
+test('uses the shared button contract for visible and icon-only actions', async ({ page }) => {
+  await page.goto('/flows');
+
+  const renderedButtons = page.locator('button');
+  await expect(renderedButtons.first()).toBeVisible();
+  expect(await renderedButtons.count()).toBeGreaterThan(0);
+  expect(
+    await renderedButtons.evaluateAll((buttons) =>
+      buttons.every((button) => button.hasAttribute('data-app-button'))
+    )
+  ).toBe(true);
+
+  const newFlowButton = page.getByRole('button', { name: 'New flow' });
+  await expect(newFlowButton.locator('.button-text')).toHaveText('New flow');
+  await expect(newFlowButton).not.toHaveAttribute('aria-label');
+
+  await page.getByRole('button', { name: 'Rename' }).first().click();
+  const iconOnlyButtons = [
+    ['Save name', page.getByRole('button', { name: 'Save name' })],
+    ['Cancel', page.getByRole('button', { name: 'Cancel' })]
+  ] as const;
+
+  for (const [label, button] of iconOnlyButtons) {
+    await expect(button).toHaveAttribute('aria-label', label);
+    await expect(button.locator('.button-text')).toHaveCount(0);
+    await expect(button.locator('.button-icon')).toHaveCount(1);
+    await expect
+      .poll(() =>
+        button.locator('.button-icon').evaluate((icon) => getComputedStyle(icon).maskImage)
+      )
+      .not.toBe('none');
+  }
+});
+
 test('opens a flow designer directly', async ({ page }) => {
   await page.goto('/flows/climate-control');
 

@@ -1,63 +1,72 @@
 <template>
   <div class="z-order-controls" role="toolbar" aria-label="Node stacking order">
-    <button
-      type="button"
-      aria-label="Bring to front"
+    <AppButton
+      text="Bring to front"
+      hide-text
       title="Bring to front"
       :disabled="!selectedNodeId || !canMoveFront"
       @click="emit('reorder', 'front')"
     >
-      <svg data-icon="front" aria-hidden="true" viewBox="0 0 28 28">
-        <rect class="layer layer-back" x="2" y="9" width="13" height="13" rx="2" />
-        <rect class="layer layer-front" x="7" y="4" width="13" height="13" rx="2" />
-        <path class="direction" d="M 24 20 V 7 M 20.5 10.5 L 24 7 L 27.5 10.5" />
-        <path class="destination" d="M 20.5 4 H 27.5" />
-      </svg>
-    </button>
-    <button
-      type="button"
-      aria-label="Bring forward"
+      <template #icon>
+        <svg data-icon="front" aria-hidden="true" viewBox="0 0 28 28">
+          <rect class="layer layer-back" x="2" y="9" width="13" height="13" rx="2" />
+          <rect class="layer layer-front" x="7" y="4" width="13" height="13" rx="2" />
+          <path class="direction" d="M 24 20 V 7 M 20.5 10.5 L 24 7 L 27.5 10.5" />
+          <path class="destination" d="M 20.5 4 H 27.5" />
+        </svg>
+      </template>
+    </AppButton>
+    <AppButton
+      text="Bring forward"
+      hide-text
       title="Bring forward"
       :disabled="!selectedNodeId || !canMoveFront"
       @click="emit('reorder', 'forward')"
     >
-      <svg data-icon="forward" aria-hidden="true" viewBox="0 0 28 28">
-        <rect class="layer layer-back" x="2" y="9" width="13" height="13" rx="2" />
-        <rect class="layer layer-front" x="7" y="4" width="13" height="13" rx="2" />
-        <path class="direction" d="M 24 21 V 8 M 20.5 11.5 L 24 8 L 27.5 11.5" />
-      </svg>
-    </button>
-    <button
-      type="button"
-      aria-label="Send backward"
+      <template #icon>
+        <svg data-icon="forward" aria-hidden="true" viewBox="0 0 28 28">
+          <rect class="layer layer-back" x="2" y="9" width="13" height="13" rx="2" />
+          <rect class="layer layer-front" x="7" y="4" width="13" height="13" rx="2" />
+          <path class="direction" d="M 24 21 V 8 M 20.5 11.5 L 24 8 L 27.5 11.5" />
+        </svg>
+      </template>
+    </AppButton>
+    <AppButton
+      text="Send backward"
+      hide-text
       title="Send backward"
       :disabled="!selectedNodeId || !canMoveBack"
       @click="emit('reorder', 'backward')"
     >
-      <svg data-icon="backward" aria-hidden="true" viewBox="0 0 28 28">
-        <rect class="layer layer-back" x="2" y="9" width="13" height="13" rx="2" />
-        <rect class="layer layer-front" x="7" y="4" width="13" height="13" rx="2" />
-        <path class="direction" d="M 24 7 V 20 M 20.5 16.5 L 24 20 L 27.5 16.5" />
-      </svg>
-    </button>
-    <button
-      type="button"
-      aria-label="Send to back"
+      <template #icon>
+        <svg data-icon="backward" aria-hidden="true" viewBox="0 0 28 28">
+          <rect class="layer layer-back" x="2" y="9" width="13" height="13" rx="2" />
+          <rect class="layer layer-front" x="7" y="4" width="13" height="13" rx="2" />
+          <path class="direction" d="M 24 7 V 20 M 20.5 16.5 L 24 20 L 27.5 16.5" />
+        </svg>
+      </template>
+    </AppButton>
+    <AppButton
+      text="Send to back"
+      hide-text
       title="Send to back"
       :disabled="!selectedNodeId || !canMoveBack"
       @click="emit('reorder', 'back')"
     >
-      <svg data-icon="back" aria-hidden="true" viewBox="0 0 28 28">
-        <rect class="layer layer-back" x="2" y="9" width="13" height="13" rx="2" />
-        <rect class="layer layer-front" x="7" y="4" width="13" height="13" rx="2" />
-        <path class="direction" d="M 24 7 V 20 M 20.5 16.5 L 24 20 L 27.5 16.5" />
-        <path class="destination" d="M 20.5 23 H 27.5" />
-      </svg>
-    </button>
+      <template #icon>
+        <svg data-icon="back" aria-hidden="true" viewBox="0 0 28 28">
+          <rect class="layer layer-back" x="2" y="9" width="13" height="13" rx="2" />
+          <rect class="layer layer-front" x="7" y="4" width="13" height="13" rx="2" />
+          <path class="direction" d="M 24 7 V 20 M 20.5 16.5 L 24 20 L 27.5 16.5" />
+          <path class="destination" d="M 20.5 23 H 27.5" />
+        </svg>
+      </template>
+    </AppButton>
   </div>
 </template>
 
 <script setup lang="ts">
+import AppButton from '@/components/AppButton.vue';
 import type { ZOrderCommand } from '@/features/flows/graph/zOrder';
 
 defineProps<{

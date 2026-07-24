@@ -1,15 +1,17 @@
 <template>
-  <button
+  <AppButton
     class="theme-selector"
-    type="button"
-    :aria-label="themeButtonLabel"
+    :text="themeButtonLabel"
+    hide-text
     aria-describedby="theme-selector-help"
     :title="themeButtonLabel"
     :data-theme-preference="themePreference"
     @click="selectNextTheme"
   >
-    <span class="theme-selector-icon" :style="themeIconStyle" aria-hidden="true" />
-  </button>
+    <template #icon>
+      <span class="theme-selector-icon" :style="themeIconStyle" aria-hidden="true" />
+    </template>
+  </AppButton>
   <span id="theme-selector-help" class="visually-hidden">
     Cycles between system, dark, and light theme preferences.
   </span>
@@ -24,6 +26,7 @@ import { computed, onMounted, ref } from 'vue';
 import darkThemeIcon from '@/assets/dark-mode-toggle-icon.svg';
 import lightThemeIcon from '@/assets/light-mode-toggle-icon.svg';
 import systemThemeIcon from '@/assets/system-mode-toggle-icon.svg';
+import AppButton from '@/components/AppButton.vue';
 
 type ThemePreference = 'light' | 'system' | 'dark';
 

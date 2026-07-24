@@ -23,8 +23,7 @@ export const calculateCanvasSize = (
 ): { width: number; height: number } => {
   const availableWidth = viewportWidth > 0 ? viewportWidth : DESIGNER_WIDTH;
   const responsiveScale = Math.min(1, availableWidth / DESIGNER_WIDTH);
-  const availableHeight =
-    viewportHeight > 0 ? viewportHeight : DESIGNER_HEIGHT * responsiveScale;
+  const availableHeight = viewportHeight > 0 ? viewportHeight : DESIGNER_HEIGHT * responsiveScale;
   const viewBoxHeight = Math.max(DESIGNER_HEIGHT, availableHeight / responsiveScale);
 
   return {

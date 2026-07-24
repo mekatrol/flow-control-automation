@@ -16,28 +16,19 @@
           type="text"
           placeholder="Enter new flow name"
         />
-        <button type="submit" :disabled="creating || !newFlowName.trim()">
-          <span
-            class="button-icon"
-            :style="{ maskImage: `url(&quot;${newFlowIcon}&quot;)` }"
-            aria-hidden="true"
-          />
-          {{ creating ? 'Creating…' : 'New flow' }}
-        </button>
+        <AppButton
+          type="submit"
+          :disabled="creating || !newFlowName.trim()"
+          :text="creating ? 'Creating…' : 'New flow'"
+          :icon="newFlowIcon"
+        />
       </form>
     </div>
 
     <p v-if="loading" class="request-status" role="status">Loading flows…</p>
     <div v-if="error" class="request-error" role="alert">
       <span>{{ error }}</span>
-      <button type="button" @click="loadFlows">
-        <span
-          class="button-icon"
-          :style="{ maskImage: `url(&quot;${retryIcon}&quot;)` }"
-          aria-hidden="true"
-        />
-        Retry
-      </button>
+      <AppButton text="Retry" :icon="retryIcon" @click="loadFlows" />
     </div>
 
     <div v-if="!loading && !error && flows.length === 0" class="empty-state">
@@ -50,22 +41,12 @@
         <div class="flow-card-heading">
           <span class="status" :class="flow.status">{{ flow.status }}</span>
           <div class="card-actions">
-            <button type="button" @click="beginRename(flow.id, flow.name)">
-              <span
-                class="button-icon"
-                :style="{ maskImage: `url(&quot;${renameFlowIcon}&quot;)` }"
-                aria-hidden="true"
-              />
-              Rename
-            </button>
-            <button type="button" @click="beginDelete(flow.id)">
-              <span
-                class="button-icon"
-                :style="{ maskImage: `url(&quot;${deleteFlowIcon}&quot;)` }"
-                aria-hidden="true"
-              />
-              Delete
-            </button>
+            <AppButton
+              text="Rename"
+              :icon="renameFlowIcon"
+              @click="beginRename(flow.id, flow.name)"
+            />
+            <AppButton text="Delete" :icon="deleteFlowIcon" @click="beginDelete(flow.id)" />
           </div>
         </div>
         <form
@@ -75,22 +56,19 @@
         >
           <label :for="`rename-${flow.id}`">Rename {{ flow.name }}</label>
           <input :id="`rename-${flow.id}`" v-model="renameValue" type="text" />
-          <button type="submit" :disabled="renaming">
-            <span
-              class="button-icon"
-              :style="{ maskImage: `url(&quot;${saveIcon}&quot;)` }"
-              aria-hidden="true"
-            />
-            Save name
-          </button>
-          <button type="button" @click="editingFlowId = undefined">
-            <span
-              class="button-icon"
-              :style="{ maskImage: `url(&quot;${cancelIcon}&quot;)` }"
-              aria-hidden="true"
-            />
-            Cancel
-          </button>
+          <AppButton
+            type="submit"
+            text="Save name"
+            :icon="saveIcon"
+            hide-text
+            :disabled="renaming"
+          />
+          <AppButton
+            text="Cancel"
+            :icon="cancelIcon"
+            hide-text
+            @click="editingFlowId = undefined"
+          />
         </form>
         <h2 v-else>
           <RouterLink :to="{ name: 'flow-designer', params: { flowId: flow.id } }">
@@ -120,22 +98,18 @@
           @keydown="handleDeleteDialogKeydown"
         >
           <span :id="`delete-description-${flow.id}`">Delete this flow?</span>
-          <button type="button" :disabled="deleting" @click="deleteFlow(flow.id)">
-            <span
-              class="button-icon"
-              :style="{ maskImage: `url(&quot;${deleteFlowIcon}&quot;)` }"
-              aria-hidden="true"
-            />
-            Confirm delete
-          </button>
-          <button type="button" data-dialog-initial-focus @click="closeDeleteConfirmation">
-            <span
-              class="button-icon"
-              :style="{ maskImage: `url(&quot;${cancelIcon}&quot;)` }"
-              aria-hidden="true"
-            />
-            Cancel
-          </button>
+          <AppButton
+            text="Confirm delete"
+            :icon="deleteFlowIcon"
+            :disabled="deleting"
+            @click="deleteFlow(flow.id)"
+          />
+          <AppButton
+            text="Cancel"
+            :icon="cancelIcon"
+            data-dialog-initial-focus
+            @click="closeDeleteConfirmation"
+          />
         </div>
       </article>
     </div>
@@ -152,6 +126,7 @@ import newFlowIcon from '@/assets/new-flow-icon.svg';
 import renameFlowIcon from '@/assets/rename-flow-icon.svg';
 import retryIcon from '@/assets/retry-icon.svg';
 import saveIcon from '@/assets/save-icon.svg';
+import AppButton from '@/components/AppButton.vue';
 import { flowApi } from '@/features/flows/api/flowApi';
 import { useFlowsStore } from '@/features/flows/stores/flows';
 import { useModalFocus } from '@/features/flows/composables/useModalFocus';
@@ -346,16 +321,6 @@ button:disabled {
   background: var(--color-surface-disabled);
   border-color: var(--color-text-muted);
   border-style: dashed;
-}
-
-.button-icon {
-  width: 18px;
-  height: 18px;
-  flex: 0 0 auto;
-  background-color: currentcolor;
-  mask-position: center;
-  mask-repeat: no-repeat;
-  mask-size: contain;
 }
 
 .create-flow button:not(:disabled),

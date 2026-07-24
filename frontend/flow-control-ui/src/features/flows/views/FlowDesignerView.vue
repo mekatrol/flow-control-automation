@@ -20,22 +20,18 @@
           The latest saved definition will replace the currently running version.
         </p>
         <div>
-          <button type="button" data-dialog-initial-focus @click="closeDeployConfirmation">
-            <span
-              class="button-icon"
-              :style="{ maskImage: `url(&quot;${cancelIcon}&quot;)` }"
-              aria-hidden="true"
-            />
-            Cancel
-          </button>
-          <button type="button" class="deploy-confirm" @click="deployFlow">
-            <span
-              class="button-icon"
-              :style="{ maskImage: `url(&quot;${deployIcon}&quot;)` }"
-              aria-hidden="true"
-            />
-            Deploy now
-          </button>
+          <AppButton
+            text="Cancel"
+            :icon="cancelIcon"
+            data-dialog-initial-focus
+            @click="closeDeployConfirmation"
+          />
+          <AppButton
+            class="deploy-confirm"
+            text="Deploy now"
+            :icon="deployIcon"
+            @click="deployFlow"
+          />
         </div>
       </section>
     </div>
@@ -53,22 +49,13 @@
         <h2 id="discard-title">Discard unsaved changes?</h2>
         <p id="discard-description">This flow has changes that have not been saved.</p>
         <div>
-          <button type="button" data-dialog-initial-focus @click="keepEditing">
-            <span
-              class="button-icon"
-              :style="{ maskImage: `url(&quot;${renameFlowIcon}&quot;)` }"
-              aria-hidden="true"
-            />
-            Keep editing
-          </button>
-          <button type="button" @click="discardChanges">
-            <span
-              class="button-icon"
-              :style="{ maskImage: `url(&quot;${discardIcon}&quot;)` }"
-              aria-hidden="true"
-            />
-            Discard changes
-          </button>
+          <AppButton
+            text="Keep editing"
+            :icon="renameFlowIcon"
+            data-dialog-initial-focus
+            @click="keepEditing"
+          />
+          <AppButton text="Discard changes" :icon="discardIcon" @click="discardChanges" />
         </div>
       </section>
     </div>
@@ -91,34 +78,19 @@
           <p>{{ flow.description }}</p>
         </div>
         <div class="heading-actions">
-          <button type="button" :disabled="saving" @click="saveFlow">
-            <span
-              class="button-icon"
-              :style="{ maskImage: `url(&quot;${saveIcon}&quot;)` }"
-              aria-hidden="true"
-            />
-            {{ saving ? 'Saving…' : 'Save flow' }}
-          </button>
-          <button
-            type="button"
+          <AppButton
+            :text="saving ? 'Saving…' : 'Save flow'"
+            :icon="saveIcon"
+            :disabled="saving"
+            @click="saveFlow"
+          />
+          <AppButton
+            :text="deploying ? 'Deploying…' : 'Deploy flow'"
+            :icon="deployIcon"
             :disabled="dirty || deploying"
             @click="showDeployConfirmation = true"
-          >
-            <span
-              class="button-icon"
-              :style="{ maskImage: `url(&quot;${deployIcon}&quot;)` }"
-              aria-hidden="true"
-            />
-            {{ deploying ? 'Deploying…' : 'Deploy flow' }}
-          </button>
-          <button type="button" @click="refreshRuntime()">
-            <span
-              class="button-icon"
-              :style="{ maskImage: `url(&quot;${refreshIcon}&quot;)` }"
-              aria-hidden="true"
-            />
-            Refresh runtime
-          </button>
+          />
+          <AppButton text="Refresh runtime" :icon="refreshIcon" @click="refreshRuntime()" />
         </div>
       </div>
 
@@ -154,6 +126,7 @@ import discardIcon from '@/assets/discard-icon.svg';
 import refreshIcon from '@/assets/refresh-icon.svg';
 import renameFlowIcon from '@/assets/rename-flow-icon.svg';
 import saveIcon from '@/assets/save-icon.svg';
+import AppButton from '@/components/AppButton.vue';
 import FlowDesignerCanvas from '@/features/flows/components/FlowDesignerCanvas.vue';
 import { useFlowsStore } from '@/features/flows/stores/flows';
 import type { ZOrderCommand } from '@/features/flows/graph/zOrder';
@@ -451,16 +424,6 @@ button {
   background: var(--color-badge-neutral-surface);
   border: 0;
   border-radius: 9px;
-}
-
-.button-icon {
-  width: 18px;
-  height: 18px;
-  flex: 0 0 auto;
-  background-color: currentcolor;
-  mask-position: center;
-  mask-repeat: no-repeat;
-  mask-size: contain;
 }
 
 .heading-actions {

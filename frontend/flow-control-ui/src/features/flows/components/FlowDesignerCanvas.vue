@@ -7,27 +7,21 @@
         Selected connection: {{ selectedConnectionId }}
       </span>
       <div class="zoom-controls" aria-label="Canvas zoom controls">
-        <button
-          type="button"
-          aria-label="Zoom out"
-          :disabled="zoom <= 0.5"
-          @click="setZoom(zoom - 0.25)"
-        >
-          <svg aria-hidden="true" viewBox="0 0 24 24">
-            <path d="M5 12h14" />
-          </svg>
-        </button>
+        <AppButton text="Zoom out" hide-text :disabled="zoom <= 0.5" @click="setZoom(zoom - 0.25)">
+          <template #icon>
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="M5 12h14" />
+            </svg>
+          </template>
+        </AppButton>
         <output aria-live="polite">{{ Math.round(zoom * 100) }}%</output>
-        <button
-          type="button"
-          aria-label="Zoom in"
-          :disabled="zoom >= 2"
-          @click="setZoom(zoom + 0.25)"
-        >
-          <svg aria-hidden="true" viewBox="0 0 24 24">
-            <path d="M5 12h14M12 5v14" />
-          </svg>
-        </button>
+        <AppButton text="Zoom in" hide-text :disabled="zoom >= 2" @click="setZoom(zoom + 0.25)">
+          <template #icon>
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="M5 12h14M12 5v14" />
+            </svg>
+          </template>
+        </AppButton>
       </div>
       <label class="grid-toggle">
         <input v-model="snapToGrid" type="checkbox" />
@@ -152,6 +146,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue';
 
+import AppButton from '@/components/AppButton.vue';
 import FlowConnection from './FlowConnection.vue';
 import FlowDesignerToolbar from './FlowDesignerToolbar.vue';
 import FlowNode from './FlowNode.vue';
