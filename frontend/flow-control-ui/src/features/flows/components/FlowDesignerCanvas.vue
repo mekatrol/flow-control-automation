@@ -519,7 +519,11 @@ const handleDragCancel = (event: PointerEvent): void => {
 
 <style scoped>
 .canvas-frame {
+  display: flex;
   min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  flex-direction: column;
   background: #fff;
   border: 1px solid #d8e2ea;
   border-radius: 14px;
@@ -541,22 +545,39 @@ const handleDragCancel = (event: PointerEvent): void => {
 }
 
 .designer-workspace {
+  position: relative;
   display: flex;
-  min-height: 560px;
+  min-height: 0;
+  padding-left: 220px;
+  flex: 1;
+  overflow: hidden;
+}
+
+.designer-workspace :deep(.node-palette) {
+  position: absolute;
+  inset: 0 auto 0 0;
 }
 
 .canvas-column {
+  display: flex;
   min-width: 0;
+  min-height: 0;
   flex: 1;
+  flex-direction: column;
 }
 
 @media (max-width: 720px) {
   .designer-workspace {
-    display: block;
+    padding-left: 0;
+    flex-direction: column;
   }
 
   .designer-workspace :deep(.node-palette) {
+    position: static;
     width: auto;
+    min-width: 0;
+    max-height: min(240px, 35%);
+    overflow-y: auto;
     border-right: 0;
     border-bottom: 1px solid #d8e2ea;
   }
@@ -624,7 +645,9 @@ const handleDragCancel = (event: PointerEvent): void => {
 .canvas-viewport {
   width: 100%;
   max-width: 100%;
+  min-height: 0;
   overflow: auto;
+  flex: 1;
   outline-offset: -3px;
 }
 

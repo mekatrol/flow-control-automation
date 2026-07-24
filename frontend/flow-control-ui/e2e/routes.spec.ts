@@ -292,6 +292,24 @@ test('opens a flow designer directly', async ({ page }) => {
   await viewport.focus();
   await expect(viewport).toBeFocused();
 
+  const pageHasVerticalOverflow = await page.evaluate(
+    () => document.documentElement.scrollHeight > document.documentElement.clientHeight
+  );
+  expect(pageHasVerticalOverflow).toBe(false);
+
+  const toolbox = page.getByRole('complementary', { name: 'Function block toolbox' });
+  const toolboxScroll = await toolbox.evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+    return {
+      canScroll: element.scrollHeight > element.clientHeight,
+      scrollTop: element.scrollTop,
+      windowScrollY: window.scrollY
+    };
+  });
+  expect(toolboxScroll.canScroll).toBe(true);
+  expect(toolboxScroll.scrollTop).toBeGreaterThan(0);
+  expect(toolboxScroll.windowScrollY).toBe(0);
+
   const initialWidth = await page.getByRole('group', { name: 'Climate control flow graph' }).evaluate((element) =>
     element.getBoundingClientRect().width
   );

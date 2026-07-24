@@ -314,9 +314,19 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', handleBeforeUnl
 
 <style scoped>
 .designer-page {
+  display: flex;
+  height: calc(100dvh - 72px);
   width: calc(100% - 40px);
+  min-height: 0;
   margin: 0 auto;
-  padding: 34px 0 60px;
+  padding: 34px 0 24px;
+  overflow: hidden;
+  flex-direction: column;
+}
+
+.designer-page :deep(.canvas-frame) {
+  min-height: 0;
+  flex: 1;
 }
 
 .designer-heading {
@@ -486,7 +496,7 @@ button {
 @media (max-width: 760px) {
   .designer-page {
     width: calc(100% - 28px);
-    overflow-x: hidden;
+    padding-top: 20px;
   }
 
   .designer-heading {

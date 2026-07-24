@@ -80,8 +80,11 @@ const startPaletteDrag = (kind: FlowNodeKind, event: DragEvent): void => {
   width: 220px;
   min-width: 220px;
   padding: 14px;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
   background: #f8fbfd;
   border-right: 1px solid #d8e2ea;
+  scrollbar-gutter: stable;
 }
 
 .node-palette > h2 {
