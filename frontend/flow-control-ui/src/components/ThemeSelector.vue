@@ -106,22 +106,22 @@ onMounted(() => {
   height: 40px;
   padding: 4px;
   place-items: center;
-  color: #b9cad8;
-  background: transparent;
+  color: var(--color-header-nav-text);
+  background: var(--color-transparent);
   border: 0;
   border-radius: 8px;
   cursor: pointer;
 }
 
 .theme-selector:hover {
-  color: #fff;
-  background: #20384d;
+  color: var(--color-text-on-strong);
+  background: var(--color-header-nav-background-active);
 }
 
 .theme-selector-icon {
   width: 64px;
   height: 32px;
-  background-color: currentColor;
+  background-color: var(--color-current);
   mask: var(--theme-icon) center / contain no-repeat;
 }
 

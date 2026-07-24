@@ -1,70 +1,326 @@
-:root {
-  color-scheme: light dark;
+/*
+ * Application theme tokens
+ *
+ * Components must consume these purpose-named variables instead of defining
+ * fixed colours. Light is the default; the media query supplies the system
+ * dark theme, while data-theme lets the theme selector override the system.
+ */
 
-  --font-family-base:
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    sans-serif;
+:root,
+:root[data-theme='light'] {
+  color-scheme: light;
 
+  --font-family-base: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-size-base: 1rem;
   --line-height-base: 1.6;
   --line-height-heading: 1.1;
 
-  --color-surface: #f8fafc;
+  /* Page canvas behind all application content. */
+  --color-page-background: #f4f7fa;
+  /* Default high-emphasis text on light surfaces. */
+  --color-text-primary: #102133;
+  /* Strong body text used for labels and field content. */
+  --color-text-secondary: #34495b;
+  /* Supporting copy and metadata. */
+  --color-text-muted: #627587;
+  /* Low-emphasis hints, dates, and disabled copy. */
+  --color-text-subtle: #718394;
+  /* Faint placeholder text. */
+  --color-text-placeholder: #9cabb7;
+  /* Text and icons displayed on strong coloured surfaces. */
+  --color-text-on-strong: #ffffff;
+  /* Fully clear paint used for hit areas and tap highlights. */
+  --color-transparent: transparent;
+  /* Paint that intentionally follows the element's computed text colour. */
+  --color-current: currentcolor;
+
+  /* Standard elevated card, panel, input, and dialog surface. */
   --color-surface-raised: #ffffff;
-  --color-surface-subtle: #eef2f7;
-  --color-text: #18181b;
-  --color-text-muted: #52525b;
-  --color-border: #d4d4d8;
-  --color-accent: #2563eb;
-  --color-accent-strong: #1d4ed8;
-  --color-danger: #b91c1c;
-  --color-success: #15803d;
+  /* Quiet workspace and side-panel surface. */
+  --color-surface-subtle: #f8fbfd;
+  /* Very faint inset or empty-area surface. */
+  --color-surface-inset: #fbfdfe;
+  /* Neutral status-chip and divider surface. */
+  --color-surface-neutral: #edf1f4;
+  /* Disabled control surface. */
+  --color-surface-disabled: #e5eaee;
+
+  /* Default border around cards and form controls. */
+  --color-border-default: #cbd8e2;
+  /* Softer separators between content regions. */
+  --color-border-subtle: #d8e2ea;
+  /* Faint card outline. */
+  --color-border-faint: #dce5ec;
+  /* Dashed empty-state border. */
+  --color-border-empty: #b9c8d3;
+
+  /* Dark application-header background. */
+  --color-header-background: var(--color-text-primary);
+  /* Header divider against the page canvas. */
+  --color-header-border: #213b52;
+  /* Primary header text. */
+  --color-header-text: #eef6ff;
+  /* Secondary brand text in the header. */
+  --color-header-text-muted: #a9bdcf;
+  /* Inactive header navigation text. */
+  --color-header-nav-text: #b9cad8;
+  /* Hovered and selected header navigation background. */
+  --color-header-nav-background-active: #20384d;
+
+  /* Primary teal action and selected-connection colour. */
+  --color-action-primary: #0b7568;
+  /* Darker teal text for positive state badges. */
+  --color-action-primary-strong: #0b655b;
+  /* Teal text with increased contrast on pale surfaces. */
+  --color-action-primary-text: #0b6e63;
+  /* Teal connector and status indicator. */
+  --color-action-primary-indicator: #087f6f;
+  /* Pale positive or selected-state background. */
+  --color-action-primary-surface: #dff6ee;
+  /* Subtle selected form-section background. */
+  --color-action-primary-surface-subtle: #eef6f4;
+  /* Border for selected form sections. */
+  --color-action-primary-border: #c4ded8;
+  /* Border for focused teal inputs. */
+  --color-action-primary-border-strong: #abc9c2;
+  /* Hover border for interactive cards. */
+  --color-action-primary-border-hover: #91b9b1;
+  /* Mint brand mark and active connector accent. */
+  --color-brand-accent: #65d6ad;
+
+  /* Informational message text. */
+  --color-info-text: #31566e;
+  /* Informational message background. */
+  --color-info-surface: #e9f4fa;
+  /* Main toolbar action background. */
+  --color-button-primary: #1e90ff;
+
+  /* Warning message text. */
+  --color-warning-text: #8a4b16;
+  /* Warning message background. */
+  --color-warning-surface: #fff0d8;
+  /* Global keyboard-focus ring. */
+  --color-focus-ring: #e07718;
+
+  /* Destructive and validation message text. */
+  --color-danger-text: #8e3021;
+  /* Strong destructive action background. */
+  --color-danger-strong: #a13928;
+  /* Invalid input border and error status indicator. */
+  --color-danger-border: #b43c28;
+  /* Destructive message background. */
+  --color-danger-surface: #fbe9e5;
+  /* Divider beneath destructive messages. */
+  --color-danger-border-subtle: #efc9c0;
+  /* Low-emphasis destructive helper text. */
+  --color-danger-text-muted: #a64f38;
+
+  /* Default flow connection line. */
+  --color-connection-default: #4f7b96;
+  /* Neutral node outline and toolbar control. */
+  --color-control-neutral: #666666;
+  /* Muted toolbar foreground. */
+  --color-control-neutral-text: #dddddd;
+  /* High-contrast toolbar background and icon paint. */
+  --color-control-contrast: #000000;
+  /* Secondary node-icon outline. */
+  --color-node-icon-outline: #444444;
+
+  /* Blue diagnostic marker fill. */
+  --color-marker-blue-fill: #53a3f3;
+  /* Blue diagnostic marker outline. */
+  --color-marker-blue-stroke: #4587c9;
+  /* Green diagnostic marker fill. */
+  --color-marker-green-fill: #6df168;
+  /* Green diagnostic marker outline. */
+  --color-marker-green-stroke: #57bd53;
+  /* Orange diagnostic marker fill. */
+  --color-marker-orange-fill: #ff6600;
+  /* Orange diagnostic marker outline. */
+  --color-marker-orange-stroke: #bd4b00;
+
+  /* Light fill behind neutral node status glyphs. */
+  --color-node-status-surface: #fcfcfc;
+  /* Neutral node status glyph. */
+  --color-node-status-fill: #687784;
+  /* Neutral node status outline. */
+  --color-node-status-stroke: #4f5c66;
+  /* Dark stopped-state node status glyph. */
+  --color-node-status-stopped: #222222;
+
+  /* Backdrop that separates a modal from the workspace. */
+  --color-modal-backdrop: rgb(16 33 51 / 45%);
+  /* Deep dialog shadow. */
+  --color-shadow-dialog: rgb(16 33 51 / 25%);
+  /* Standard floating-panel shadow. */
+  --color-shadow-panel: rgb(31 55 75 / 8%);
+  /* Resting card shadow. */
+  --color-shadow-card: rgb(31 55 75 / 5%);
+  /* Hovered card shadow. */
+  --color-shadow-card-hover: rgb(31 55 75 / 10%);
+
+  /* Disabled and secondary label text. */
+  --color-text-disabled: #76909d;
+  /* Additional subdued status text. */
+  --color-text-status-muted: #6b7680;
+  /* Timestamp and tertiary metadata text. */
+  --color-text-tertiary: #8594a1;
+  /* Muted node label and status text. */
+  --color-node-text-muted: var(--color-node-status-fill);
+  /* Neutral badge background. */
+  --color-badge-neutral-surface: #e5ecef;
+  /* Strong palette heading text. */
+  --color-palette-heading: #244052;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --color-surface: #18181b;
-    --color-surface-raised: #27272a;
-    --color-surface-subtle: #3f3f46;
-    --color-text: #fafafa;
-    --color-text-muted: #d4d4d8;
-    --color-border: #3f3f46;
-    --color-accent: #93c5fd;
-    --color-accent-strong: #bfdbfe;
-    --color-danger: #fca5a5;
-    --color-success: #86efac;
+  :root:not([data-theme]) {
+    color-scheme: dark;
+
+    --color-page-background: #111820;
+    --color-text-primary: #eef6ff;
+    --color-text-secondary: #d4e0e9;
+    --color-text-muted: #a9bdcf;
+    --color-text-subtle: #91a7b8;
+    --color-text-placeholder: #718394;
+    --color-text-on-strong: #ffffff;
+    --color-surface-raised: #1c2a36;
+    --color-surface-subtle: #16232e;
+    --color-surface-inset: #13202a;
+    --color-surface-neutral: #263642;
+    --color-surface-disabled: #2b3944;
+    --color-border-default: #42596a;
+    --color-border-subtle: #344b5d;
+    --color-border-faint: #2b4050;
+    --color-border-empty: #536b7c;
+    --color-header-background: #091521;
+    --color-header-border: #294258;
+    --color-header-text: #eef6ff;
+    --color-header-text-muted: #b9cad8;
+    --color-header-nav-text: #cad8e3;
+    --color-header-nav-background-active: #29465e;
+    --color-action-primary: #65d6ad;
+    --color-action-primary-strong: #81e3c0;
+    --color-action-primary-text: #7bddbb;
+    --color-action-primary-indicator: #65d6ad;
+    --color-action-primary-surface: #183d35;
+    --color-action-primary-surface-subtle: #1c342f;
+    --color-action-primary-border: #315b52;
+    --color-action-primary-border-strong: #4b786e;
+    --color-action-primary-border-hover: #70a398;
+    --color-brand-accent: #65d6ad;
+    --color-info-text: #a9d2ea;
+    --color-info-surface: #203746;
+    --color-button-primary: #278fe8;
+    --color-warning-text: #ffd08a;
+    --color-warning-surface: #49351c;
+    --color-focus-ring: #ffad5c;
+    --color-danger-text: #ffb4a8;
+    --color-danger-strong: #b84c3a;
+    --color-danger-border: #df7664;
+    --color-danger-surface: #482925;
+    --color-danger-border-subtle: #75433b;
+    --color-danger-text-muted: #e99a87;
+    --color-connection-default: #82acc5;
+    --color-control-neutral: #526675;
+    --color-control-neutral-text: #edf4f8;
+    --color-control-contrast: #f5f8fa;
+    --color-node-icon-outline: #c1d0da;
+    --color-marker-blue-fill: #69b4ff;
+    --color-marker-blue-stroke: #a3d2ff;
+    --color-marker-green-fill: #71e66d;
+    --color-marker-green-stroke: #a7efa4;
+    --color-marker-orange-fill: #ff8a3d;
+    --color-marker-orange-stroke: #ffc096;
+    --color-node-status-surface: #263642;
+    --color-node-status-fill: #a9bdcf;
+    --color-node-status-stroke: #8296a5;
+    --color-node-status-stopped: #d8e2ea;
+    --color-modal-backdrop: rgb(0 7 13 / 65%);
+    --color-shadow-dialog: rgb(0 0 0 / 45%);
+    --color-shadow-panel: rgb(0 0 0 / 24%);
+    --color-shadow-card: rgb(0 0 0 / 18%);
+    --color-shadow-card-hover: rgb(0 0 0 / 32%);
+    --color-text-disabled: #7f95a5;
+    --color-text-status-muted: #a2b2be;
+    --color-text-tertiary: #91a4b2;
+    --color-node-text-muted: #9aafbd;
+    --color-badge-neutral-surface: #2b3c48;
+    --color-palette-heading: #c3d7e5;
   }
-}
-
-:root[data-theme='light'] {
-  color-scheme: light;
-
-  --color-surface: #f8fafc;
-  --color-surface-raised: #ffffff;
-  --color-surface-subtle: #eef2f7;
-  --color-text: #18181b;
-  --color-text-muted: #52525b;
-  --color-border: #d4d4d8;
-  --color-accent: #2563eb;
-  --color-accent-strong: #1d4ed8;
-  --color-danger: #b91c1c;
-  --color-success: #15803d;
 }
 
 :root[data-theme='dark'] {
   color-scheme: dark;
 
-  --color-surface: #18181b;
-  --color-surface-raised: #27272a;
-  --color-surface-subtle: #3f3f46;
-  --color-text: #fafafa;
-  --color-text-muted: #d4d4d8;
-  --color-border: #3f3f46;
-  --color-accent: #93c5fd;
-  --color-accent-strong: #bfdbfe;
-  --color-danger: #fca5a5;
-  --color-success: #86efac;
+  --color-page-background: #111820;
+  --color-text-primary: #eef6ff;
+  --color-text-secondary: #d4e0e9;
+  --color-text-muted: #a9bdcf;
+  --color-text-subtle: #91a7b8;
+  --color-text-placeholder: #718394;
+  --color-text-on-strong: #ffffff;
+  --color-surface-raised: #1c2a36;
+  --color-surface-subtle: #16232e;
+  --color-surface-inset: #13202a;
+  --color-surface-neutral: #263642;
+  --color-surface-disabled: #2b3944;
+  --color-border-default: #42596a;
+  --color-border-subtle: #344b5d;
+  --color-border-faint: #2b4050;
+  --color-border-empty: #536b7c;
+  --color-header-background: #091521;
+  --color-header-border: #294258;
+  --color-header-text: #eef6ff;
+  --color-header-text-muted: #b9cad8;
+  --color-header-nav-text: #cad8e3;
+  --color-header-nav-background-active: #29465e;
+  --color-action-primary: #65d6ad;
+  --color-action-primary-strong: #81e3c0;
+  --color-action-primary-text: #7bddbb;
+  --color-action-primary-indicator: #65d6ad;
+  --color-action-primary-surface: #183d35;
+  --color-action-primary-surface-subtle: #1c342f;
+  --color-action-primary-border: #315b52;
+  --color-action-primary-border-strong: #4b786e;
+  --color-action-primary-border-hover: #70a398;
+  --color-brand-accent: #65d6ad;
+  --color-info-text: #a9d2ea;
+  --color-info-surface: #203746;
+  --color-button-primary: #278fe8;
+  --color-warning-text: #ffd08a;
+  --color-warning-surface: #49351c;
+  --color-focus-ring: #ffad5c;
+  --color-danger-text: #ffb4a8;
+  --color-danger-strong: #b84c3a;
+  --color-danger-border: #df7664;
+  --color-danger-surface: #482925;
+  --color-danger-border-subtle: #75433b;
+  --color-danger-text-muted: #e99a87;
+  --color-connection-default: #82acc5;
+  --color-control-neutral: #526675;
+  --color-control-neutral-text: #edf4f8;
+  --color-control-contrast: #f5f8fa;
+  --color-node-icon-outline: #c1d0da;
+  --color-marker-blue-fill: #69b4ff;
+  --color-marker-blue-stroke: #a3d2ff;
+  --color-marker-green-fill: #71e66d;
+  --color-marker-green-stroke: #a7efa4;
+  --color-marker-orange-fill: #ff8a3d;
+  --color-marker-orange-stroke: #ffc096;
+  --color-node-status-surface: #263642;
+  --color-node-status-fill: #a9bdcf;
+  --color-node-status-stroke: #8296a5;
+  --color-node-status-stopped: #d8e2ea;
+  --color-modal-backdrop: rgb(0 7 13 / 65%);
+  --color-shadow-dialog: rgb(0 0 0 / 45%);
+  --color-shadow-panel: rgb(0 0 0 / 24%);
+  --color-shadow-card: rgb(0 0 0 / 18%);
+  --color-shadow-card-hover: rgb(0 0 0 / 32%);
+  --color-text-disabled: #7f95a5;
+  --color-text-status-muted: #a2b2be;
+  --color-text-tertiary: #91a4b2;
+  --color-node-text-muted: #9aafbd;
+  --color-badge-neutral-surface: #2b3c48;
+  --color-palette-heading: #c3d7e5;
 }

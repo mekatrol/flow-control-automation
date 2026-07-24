@@ -105,14 +105,14 @@ const connectorKey = (connectorId: string): string => `${props.node.id}:${connec
 }
 
 .node-body {
-  stroke: #666;
+  stroke: var(--color-control-neutral);
   stroke-width: 1;
 }
 
 .flow-node:hover .node-body,
 .flow-node:focus .node-body,
 .flow-node.selected .node-body {
-  stroke: #0b6e63;
+  stroke: var(--color-action-primary-text);
   stroke-width: 4;
 }
 </style>

@@ -75,7 +75,12 @@
           >
             <defs>
               <pattern id="designer-grid" width="24" height="24" patternUnits="userSpaceOnUse">
-                <path d="M24 0H0V24" fill="none" stroke="#d8e2ea" stroke-width="1" />
+                <path
+                  d="M24 0H0V24"
+                  fill="none"
+                  stroke="var(--color-border-subtle)"
+                  stroke-width="1"
+                />
               </pattern>
             </defs>
 
@@ -201,8 +206,13 @@ const emit = defineEmits<{
 const viewportElement = ref<HTMLElement>();
 const canvasElement = ref<SVGSVGElement>();
 const snapToGrid = ref(true);
-const { zoom, width: viewportWidth, canvasSize, viewBoxSize, setZoom } =
-  useDesignerViewport(viewportElement);
+const {
+  zoom,
+  width: viewportWidth,
+  canvasSize,
+  viewBoxSize,
+  setZoom
+} = useDesignerViewport(viewportElement);
 const {
   selectedNodeId,
   selectedConnectionId,
@@ -449,11 +459,11 @@ const pointerToCanvas = (event: PointerEvent): Point | undefined => {
   if (!rect || rect.width === 0 || rect.height === 0) return undefined;
   // Pointer coordinates use displayed CSS pixels. Convert them into the
   // responsive SVG viewBox so zoom does not change graph-space movement.
-  return clientToSvgPoint(
-    { x: event.clientX, y: event.clientY },
-    rect,
-    { x: 0, y: 0, ...viewBoxSize.value }
-  );
+  return clientToSvgPoint({ x: event.clientX, y: event.clientY }, rect, {
+    x: 0,
+    y: 0,
+    ...viewBoxSize.value
+  });
 };
 
 const handleDragStart = (nodeId: string, event: PointerEvent): void => {
@@ -524,10 +534,10 @@ const handleDragCancel = (event: PointerEvent): void => {
   min-height: 0;
   overflow: hidden;
   flex-direction: column;
-  background: #fff;
-  border: 1px solid #d8e2ea;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 14px;
-  box-shadow: 0 18px 45px rgb(31 55 75 / 8%);
+  box-shadow: 0 18px 45px var(--color-shadow-panel);
 }
 
 .canvas-toolbar {
@@ -537,11 +547,11 @@ const handleDragCancel = (event: PointerEvent): void => {
   align-items: center;
   min-height: 44px;
   padding: 0 16px;
-  color: #627587;
+  color: var(--color-text-muted);
   font-size: 12px;
   font-weight: 650;
-  background: #f8fbfd;
-  border-bottom: 1px solid #d8e2ea;
+  background: var(--color-surface-subtle);
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .designer-workspace {
@@ -579,23 +589,23 @@ const handleDragCancel = (event: PointerEvent): void => {
     max-height: min(240px, 35%);
     overflow-y: auto;
     border-right: 0;
-    border-bottom: 1px solid #d8e2ea;
+    border-bottom: 1px solid var(--color-border-subtle);
   }
 }
 
 .selection {
   margin-left: auto;
-  color: #0b6e63;
+  color: var(--color-action-primary-text);
 }
 
 .connection-error {
   margin: 0;
   padding: 9px 16px;
-  color: #8e3021;
+  color: var(--color-danger-text);
   font-size: 12px;
   font-weight: 650;
-  background: #fbe9e5;
-  border-bottom: 1px solid #efc9c0;
+  background: var(--color-danger-surface);
+  border-bottom: 1px solid var(--color-danger-border-subtle);
 }
 
 .zoom-controls {
@@ -615,21 +625,21 @@ const handleDragCancel = (event: PointerEvent): void => {
   height: 28px;
   padding: 0;
   place-items: center;
-  color: #102133;
-  background: #fff;
-  border: 1px solid #cbd8e2;
+  color: var(--color-text-primary);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-default);
   border-radius: 6px;
   cursor: pointer;
 }
 
 .zoom-controls button:disabled {
-  color: #9cabb7;
+  color: var(--color-text-placeholder);
   cursor: default;
 }
 
 .zoom-controls output {
   width: 38px;
-  color: #34495b;
+  color: var(--color-text-secondary);
   font-size: 11px;
   text-align: center;
 }
@@ -638,7 +648,7 @@ const handleDragCancel = (event: PointerEvent): void => {
   display: flex;
   gap: 6px;
   align-items: center;
-  color: #34495b;
+  color: var(--color-text-secondary);
   white-space: nowrap;
 }
 
@@ -654,11 +664,11 @@ const handleDragCancel = (event: PointerEvent): void => {
 .designer-canvas {
   display: block;
   max-width: none;
-  background: #fbfdfe;
+  background: var(--color-surface-inset);
 }
 
 .empty-message {
-  fill: #718394;
+  fill: var(--color-text-subtle);
   font-size: 14px;
   text-anchor: middle;
 }

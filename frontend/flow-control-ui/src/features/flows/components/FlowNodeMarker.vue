@@ -25,17 +25,17 @@ defineProps<{
 }
 
 .blue {
-  fill: #53a3f3;
-  stroke: #4587c9;
+  fill: var(--color-marker-blue-fill);
+  stroke: var(--color-marker-blue-stroke);
 }
 
 .green {
-  fill: #6df168;
-  stroke: #57bd53;
+  fill: var(--color-marker-green-fill);
+  stroke: var(--color-marker-green-stroke);
 }
 
 .orange {
-  fill: #f60;
-  stroke: #bd4b00;
+  fill: var(--color-marker-orange-fill);
+  stroke: var(--color-marker-orange-stroke);
 }
 </style>

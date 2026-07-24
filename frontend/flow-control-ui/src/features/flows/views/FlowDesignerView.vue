@@ -339,7 +339,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', handleBeforeUnl
 
 .designer-heading a,
 .not-found a {
-  color: #0b7568;
+  color: var(--color-action-primary);
   font-size: 13px;
   font-weight: 700;
   text-decoration: none;
@@ -354,48 +354,48 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', handleBeforeUnl
 
 h1 {
   margin: 0;
-  color: #102133;
+  color: var(--color-text-primary);
   font-size: clamp(28px, 4vw, 38px);
   letter-spacing: -0.035em;
 }
 
 .title-row span {
   padding: 5px 8px;
-  color: #687784;
+  color: var(--color-node-status-fill);
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.08em;
-  background: #e5eaee;
+  background: var(--color-surface-disabled);
   border-radius: 999px;
   text-transform: uppercase;
 }
 
 .title-row span.deployed {
-  color: #0b655b;
-  background: #dff6ee;
+  color: var(--color-action-primary-strong);
+  background: var(--color-action-primary-surface);
 }
 
 .title-row .dirty-state {
-  color: #8a4b16;
-  background: #fff0d8;
+  color: var(--color-warning-text);
+  background: var(--color-warning-surface);
 }
 
 .title-row .runtime-state {
-  color: #31566e;
-  background: #e9f4fa;
+  color: var(--color-info-text);
+  background: var(--color-info-surface);
 }
 
 .designer-heading p {
   margin: 7px 0 0;
-  color: #627587;
+  color: var(--color-text-muted);
   font-size: 14px;
 }
 
 button {
   padding: 11px 16px;
-  color: #76909d;
+  color: var(--color-text-disabled);
   font-weight: 700;
-  background: #e5ecef;
+  background: var(--color-badge-neutral-surface);
   border: 0;
   border-radius: 9px;
 }
@@ -406,8 +406,8 @@ button {
 }
 
 .heading-actions button:first-child:not(:disabled) {
-  color: #fff;
-  background: #0b7568;
+  color: var(--color-text-on-strong);
+  background: var(--color-action-primary);
   cursor: pointer;
 }
 
@@ -417,8 +417,8 @@ button {
 
 .heading-actions button:nth-child(2):not(:disabled),
 .deploy-confirm {
-  color: #fff;
-  background: #0b7568;
+  color: var(--color-text-on-strong);
+  background: var(--color-action-primary);
 }
 
 .request-status,
@@ -435,24 +435,24 @@ button {
   inset: 0;
   place-items: center;
   padding: 20px;
-  background: rgb(16 33 51 / 45%);
+  background: var(--color-modal-backdrop);
 }
 
 .discard-dialog {
   width: min(430px, 100%);
   padding: 24px;
-  background: #fff;
+  background: var(--color-surface-raised);
   border-radius: 12px;
-  box-shadow: 0 20px 60px rgb(16 33 51 / 25%);
+  box-shadow: 0 20px 60px var(--color-shadow-dialog);
 }
 
 .discard-dialog h2 {
   margin: 0;
-  color: #102133;
+  color: var(--color-text-primary);
 }
 
 .discard-dialog p {
-  color: #627587;
+  color: var(--color-text-muted);
 }
 
 .discard-dialog > div {
@@ -462,18 +462,18 @@ button {
 }
 
 .discard-dialog button:last-child {
-  color: #fff;
-  background: #a13928;
+  color: var(--color-text-on-strong);
+  background: var(--color-danger-strong);
 }
 
 .request-status {
-  color: #31566e;
-  background: #e9f4fa;
+  color: var(--color-info-text);
+  background: var(--color-info-surface);
 }
 
 .request-error {
-  color: #8e3021;
-  background: #fbe9e5;
+  color: var(--color-danger-text);
+  background: var(--color-danger-surface);
 }
 
 .not-found {
@@ -482,7 +482,7 @@ button {
 
 .eyebrow {
   margin: 0 0 10px;
-  color: #a64f38;
+  color: var(--color-danger-text-muted);
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.13em;

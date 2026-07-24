@@ -33,8 +33,8 @@ import ThemeSelector from '@/components/ThemeSelector.vue';
   top: 8px;
   left: 8px;
   padding: 10px 14px;
-  color: #fff;
-  background: #102133;
+  color: var(--color-text-on-strong);
+  background: var(--color-header-background);
   border-radius: 7px;
   transform: translateY(-160%);
 }

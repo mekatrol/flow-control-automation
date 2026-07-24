@@ -37,13 +37,13 @@ const emit = defineEmits<{ press: []; activate: []; release: []; preview: [] }>(
 
 <style scoped>
 .connector-hit-target {
-  fill: transparent;
+  fill: var(--color-transparent);
   stroke: none;
 }
 
 .connector-port {
-  fill: #f8fbfd;
-  stroke: #102133;
+  fill: var(--color-surface-subtle);
+  stroke: var(--color-text-primary);
   stroke-width: 2;
 }
 
@@ -54,14 +54,14 @@ const emit = defineEmits<{ press: []; activate: []; release: []; preview: [] }>(
 
 .flow-connector:focus .connector-port,
 .flow-connector.compatible .connector-port {
-  fill: #dff6ee;
-  stroke: #087f6f;
+  fill: var(--color-action-primary-surface);
+  stroke: var(--color-action-primary-indicator);
   stroke-width: 4;
 }
 
 .flow-connector.active .connector-port {
-  fill: #102133;
-  stroke: #65d6ad;
+  fill: var(--color-text-primary);
+  stroke: var(--color-brand-accent);
   stroke-width: 4;
 }
 </style>

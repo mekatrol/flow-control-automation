@@ -21,27 +21,27 @@ defineProps<{
 
 <style scoped>
 .status-background {
-  fill: #fcfcfc;
+  fill: var(--color-node-status-surface);
   fill-opacity: 0.9;
 }
 
 .status-indicator {
-  fill: #687784;
-  stroke: #4f5c66;
+  fill: var(--color-node-status-fill);
+  stroke: var(--color-node-status-stroke);
   stroke-width: 1;
 }
 
 .node-status[aria-label^='deployed'] .status-indicator,
 .node-status[aria-label^='running'] .status-indicator {
-  fill: #087f6f;
+  fill: var(--color-action-primary-indicator);
 }
 
 .node-status[aria-label^='error'] .status-indicator {
-  fill: #b43c28;
+  fill: var(--color-danger-border);
 }
 
 .node-status text {
-  fill: #222;
+  fill: var(--color-node-status-stopped);
   font-size: 11px;
   text-transform: uppercase;
 }

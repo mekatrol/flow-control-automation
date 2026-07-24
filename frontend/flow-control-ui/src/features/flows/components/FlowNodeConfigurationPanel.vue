@@ -120,8 +120,8 @@ const updateField = (field: NodeEditorField, event: Event): void => {
 <style scoped>
 .configuration-panel {
   padding: 12px 16px;
-  background: #eef6f4;
-  border-bottom: 1px solid #c4ded8;
+  background: var(--color-action-primary-surface-subtle);
+  border-bottom: 1px solid var(--color-action-primary-border);
 }
 
 .panel-heading,
@@ -134,11 +134,11 @@ const updateField = (field: NodeEditorField, event: Event): void => {
 
 .panel-heading {
   justify-content: space-between;
-  color: #244052;
+  color: var(--color-palette-heading);
 }
 
 .panel-heading small {
-  color: #718394;
+  color: var(--color-text-subtle);
   font-size: 10px;
 }
 
@@ -155,7 +155,7 @@ label {
   display: grid;
   gap: 4px;
   min-width: 180px;
-  color: #34495b;
+  color: var(--color-text-secondary);
   font-size: 10px;
   font-weight: 700;
 }
@@ -164,17 +164,17 @@ input:not([type='checkbox']),
 select {
   min-height: 32px;
   padding: 6px 8px;
-  background: #fff;
-  border: 1px solid #abc9c2;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-action-primary-border-strong);
   border-radius: 6px;
 }
 
 [aria-invalid='true'] {
-  border-color: #b43c28 !important;
+  border-color: var(--color-danger-border) !important;
 }
 
 label small {
-  color: #a13928;
+  color: var(--color-danger-strong);
 }
 
 @media (max-width: 760px) {

@@ -42,13 +42,13 @@ defineProps<{ icon: string }>();
 }
 
 .node-icon-shade {
-  fill: #000;
+  fill: var(--color-control-contrast);
   fill-opacity: 0.3;
 }
 
 .node-icon-separator {
   fill: none;
-  stroke: #444;
+  stroke: var(--color-node-icon-outline);
   stroke-opacity: 0.4;
 }
 </style>

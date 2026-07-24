@@ -80,20 +80,20 @@ button {
   width: 40px;
   height: 40px;
   padding: 6px;
-  color: #fff;
-  background: #1e90ff;
+  color: var(--color-text-on-strong);
+  background: var(--color-button-primary);
   border: 0;
   cursor: pointer;
 }
 
 button:hover:not(:disabled),
 button:focus-visible {
-  background: #000;
+  background: var(--color-control-contrast);
 }
 
 button:disabled {
-  color: #ddd;
-  background: #666;
+  color: var(--color-control-neutral-text);
+  background: var(--color-control-neutral);
   cursor: default;
 }
 
@@ -101,14 +101,14 @@ svg {
   width: 28px;
   height: 28px;
   fill: none;
-  stroke: currentcolor;
+  stroke: var(--color-current);
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
 .layer-front {
-  fill: currentcolor;
+  fill: var(--color-current);
   fill-opacity: 0.28;
 }
 

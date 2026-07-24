@@ -234,7 +234,7 @@ onBeforeUnmount(() => listController?.abort());
 
 .eyebrow {
   margin: 0 0 8px;
-  color: #0b7568;
+  color: var(--color-action-primary);
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.13em;
@@ -243,7 +243,7 @@ onBeforeUnmount(() => listController?.abort());
 
 h1 {
   margin: 0;
-  color: #102133;
+  color: var(--color-text-primary);
   font-size: clamp(34px, 5vw, 52px);
   letter-spacing: -0.04em;
 }
@@ -251,14 +251,14 @@ h1 {
 .page-heading p:last-child {
   max-width: 560px;
   margin: 10px 0 0;
-  color: #627587;
+  color: var(--color-text-muted);
 }
 
 button {
   padding: 11px 16px;
-  color: #76909d;
+  color: var(--color-text-disabled);
   font-weight: 700;
-  background: #e5ecef;
+  background: var(--color-badge-neutral-surface);
   border: 0;
   border-radius: 9px;
 }
@@ -287,7 +287,7 @@ button:not(:disabled) {
 .rename-flow input {
   min-width: 180px;
   padding: 9px;
-  border: 1px solid #cbd8e2;
+  border: 1px solid var(--color-border-default);
   border-radius: 7px;
 }
 
@@ -300,20 +300,20 @@ button:not(:disabled) {
 }
 
 .request-status {
-  color: #31566e;
-  background: #e9f4fa;
+  color: var(--color-info-text);
+  background: var(--color-info-surface);
 }
 
 .request-error {
   justify-content: space-between;
-  color: #8e3021;
-  background: #fbe9e5;
+  color: var(--color-danger-text);
+  background: var(--color-danger-surface);
 }
 
 .empty-state {
-  color: #627587;
-  background: #fff;
-  border: 1px dashed #b9c8d3;
+  color: var(--color-text-muted);
+  background: var(--color-surface-raised);
+  border: 1px dashed var(--color-border-empty);
 }
 
 .empty-state h2 {
@@ -329,10 +329,10 @@ button:not(:disabled) {
 .flow-card {
   padding: 22px;
   color: inherit;
-  background: #fff;
-  border: 1px solid #dce5ec;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-faint);
   border-radius: 14px;
-  box-shadow: 0 12px 30px rgb(31 55 75 / 5%);
+  box-shadow: 0 12px 30px var(--color-shadow-card);
   transition:
     border-color 160ms ease,
     transform 160ms ease,
@@ -340,8 +340,8 @@ button:not(:disabled) {
 }
 
 .flow-card:hover {
-  border-color: #91b9b1;
-  box-shadow: 0 18px 38px rgb(31 55 75 / 10%);
+  border-color: var(--color-action-primary-border-hover);
+  box-shadow: 0 18px 38px var(--color-shadow-card-hover);
   outline: none;
   transform: translateY(-2px);
 }
@@ -354,18 +354,18 @@ button:not(:disabled) {
 
 .status {
   padding: 5px 8px;
-  color: #6b7680;
+  color: var(--color-text-status-muted);
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.08em;
-  background: #edf1f4;
+  background: var(--color-surface-neutral);
   border-radius: 999px;
   text-transform: uppercase;
 }
 
 .status.deployed {
-  color: #0b655b;
-  background: #dff6ee;
+  color: var(--color-action-primary-strong);
+  background: var(--color-action-primary-surface);
 }
 
 .card-actions button,
@@ -377,7 +377,7 @@ button:not(:disabled) {
 
 h2 {
   margin: 22px 0 8px;
-  color: #102133;
+  color: var(--color-text-primary);
   font-size: 19px;
 }
 
@@ -388,13 +388,13 @@ h2 a {
 
 h2 a:hover,
 h2 a:focus-visible {
-  color: #0b7568;
+  color: var(--color-action-primary);
 }
 
 .flow-card > p {
   min-height: 44px;
   margin: 0;
-  color: #627587;
+  color: var(--color-text-muted);
   font-size: 14px;
   line-height: 1.55;
 }
@@ -402,8 +402,8 @@ h2 a:focus-visible {
 .delete-confirmation {
   margin-top: 14px;
   padding-top: 12px;
-  color: #8e3021;
-  border-top: 1px solid #edf1f4;
+  color: var(--color-danger-text);
+  border-top: 1px solid var(--color-surface-neutral);
 }
 
 dl {
@@ -411,12 +411,12 @@ dl {
   gap: 34px;
   margin: 24px 0 0;
   padding-top: 18px;
-  border-top: 1px solid #edf1f4;
+  border-top: 1px solid var(--color-surface-neutral);
 }
 
 dt {
   margin-bottom: 4px;
-  color: #8594a1;
+  color: var(--color-text-tertiary);
   font-size: 10px;
   font-weight: 750;
   letter-spacing: 0.08em;
@@ -425,7 +425,7 @@ dt {
 
 dd {
   margin: 0;
-  color: #34495b;
+  color: var(--color-text-secondary);
   font-size: 12px;
   font-weight: 650;
 }

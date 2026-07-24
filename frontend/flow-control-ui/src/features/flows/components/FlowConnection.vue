@@ -42,7 +42,7 @@ const path = computed(() => connectionPath(props.start, props.end, props.startSi
 <style scoped>
 .flow-connection {
   fill: none;
-  stroke: #4f7b96;
+  stroke: var(--color-connection-default);
   stroke-width: 3;
 }
 
@@ -55,14 +55,14 @@ const path = computed(() => connectionPath(props.start, props.end, props.startSi
   /* A three-pixel SVG stroke is difficult to click or tap. This transparent
      stroke enlarges its pointer target without changing the rendered line. */
   fill: none;
-  stroke: transparent;
+  stroke: var(--color-transparent);
   stroke-width: 16;
 }
 
 .connection-group:hover .flow-connection,
 .connection-group:focus .flow-connection,
 .connection-group.selected .flow-connection {
-  stroke: #0b7568;
+  stroke: var(--color-action-primary);
   stroke-width: 5;
 }
 
@@ -73,7 +73,7 @@ const path = computed(() => connectionPath(props.start, props.end, props.startSi
 }
 
 .connection-group.preview .flow-connection {
-  stroke: #0b7568;
+  stroke: var(--color-action-primary);
   stroke-dasharray: 8 6;
   opacity: 0.8;
 }

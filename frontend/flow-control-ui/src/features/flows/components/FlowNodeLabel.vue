@@ -8,7 +8,7 @@ defineProps<{ label: string; kindLabel: string }>();
 
 <style scoped>
 .node-label {
-  fill: #102133;
+  fill: var(--color-text-primary);
   pointer-events: none;
   font-size: 16px;
   font-weight: 500;

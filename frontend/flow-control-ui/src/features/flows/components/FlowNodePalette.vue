@@ -82,14 +82,14 @@ const startPaletteDrag = (kind: FlowNodeKind, event: DragEvent): void => {
   padding: 14px;
   overflow-y: auto;
   overscroll-behavior-y: contain;
-  background: #f8fbfd;
-  border-right: 1px solid #d8e2ea;
+  background: var(--color-surface-subtle);
+  border-right: 1px solid var(--color-border-subtle);
   scrollbar-gutter: stable;
 }
 
 .node-palette > h2 {
   margin: 0 0 12px;
-  color: #244052;
+  color: var(--color-palette-heading);
   font-size: 14px;
 }
 
@@ -97,7 +97,7 @@ label {
   display: grid;
   gap: 10px;
   align-items: center;
-  color: #34495b;
+  color: var(--color-text-secondary);
   font-size: 11px;
   font-weight: 700;
 }
@@ -105,7 +105,7 @@ label {
 input {
   width: 100%;
   padding: 7px 9px;
-  border: 1px solid #cbd8e2;
+  border: 1px solid var(--color-border-default);
   border-radius: 6px;
 }
 
@@ -123,7 +123,7 @@ section {
 
 h3 {
   margin: 0 0 3px;
-  color: #718394;
+  color: var(--color-text-subtle);
   font-size: 9px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -132,10 +132,10 @@ h3 {
 button {
   width: 100%;
   padding: 6px 8px;
-  color: #244052;
+  color: var(--color-palette-heading);
   font-size: 10px;
-  background: #fff;
-  border: 1px solid #cbd8e2;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-default);
   border-radius: 6px;
   cursor: pointer;
   white-space: nowrap;
@@ -158,7 +158,7 @@ button img {
 
 p {
   margin: 10px 0 0;
-  color: #718394;
+  color: var(--color-text-subtle);
   font-size: 11px;
 }
 </style>
