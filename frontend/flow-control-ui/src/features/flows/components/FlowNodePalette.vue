@@ -148,11 +148,10 @@ button img {
   height: 18px;
   margin-right: 6px;
   /*
-   * Palette buttons have a light background. Normalize both black-authored and
-   * white-authored SVG assets to black so every block's icon remains visible;
-   * canvas nodes apply their own light/dark theme treatment separately.
+   * External SVG assets cannot inherit the button's currentColor. Apply the
+   * shared theme filter so palette avatars remain visible on either surface.
    */
-  filter: brightness(0);
+  filter: var(--filter-node-icon-foreground);
   vertical-align: middle;
 }
 

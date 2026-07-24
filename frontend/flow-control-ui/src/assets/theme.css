@@ -125,6 +125,8 @@
   --color-control-contrast: #000000;
   /* Secondary node-icon outline. */
   --color-node-icon-outline: #444444;
+  /* Normalizes external SVG node icons to dark paint on light surfaces. */
+  --filter-node-icon-foreground: brightness(0);
 
   /* Blue diagnostic marker fill. */
   --color-marker-blue-fill: #53a3f3;
@@ -226,6 +228,7 @@
     --color-control-neutral-text: #edf4f8;
     --color-control-contrast: #f5f8fa;
     --color-node-icon-outline: #c1d0da;
+    --filter-node-icon-foreground: brightness(0) invert(1);
     --color-marker-blue-fill: #69b4ff;
     --color-marker-blue-stroke: #a3d2ff;
     --color-marker-green-fill: #71e66d;
@@ -302,6 +305,7 @@
   --color-control-neutral-text: #edf4f8;
   --color-control-contrast: #f5f8fa;
   --color-node-icon-outline: #c1d0da;
+  --filter-node-icon-foreground: brightness(0) invert(1);
   --color-marker-blue-fill: #69b4ff;
   --color-marker-blue-stroke: #a3d2ff;
   --color-marker-green-fill: #71e66d;

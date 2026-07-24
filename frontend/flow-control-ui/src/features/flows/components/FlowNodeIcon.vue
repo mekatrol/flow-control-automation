@@ -27,18 +27,11 @@ defineProps<{ icon: string }>();
 .node-icon-foreground {
   /*
    * These files are loaded as external SVG images, so their internal fill and
-   * stroke values cannot inherit `currentColor` from this document. First
-   * collapse every authored colour to black, then invert it for dark system
-   * themes. This gives black icons in light mode and white icons in dark mode
-   * regardless of whether the source SVG was originally black or white.
+   * stroke values cannot inherit `currentColor` from this document. The theme
+   * filter normalizes both black- and white-authored assets for the active
+   * light, dark, or system theme.
    */
-  filter: brightness(0);
-}
-
-@media (prefers-color-scheme: dark) {
-  .node-icon-foreground {
-    filter: brightness(0) invert(1);
-  }
+  filter: var(--filter-node-icon-foreground);
 }
 
 .node-icon-shade {
