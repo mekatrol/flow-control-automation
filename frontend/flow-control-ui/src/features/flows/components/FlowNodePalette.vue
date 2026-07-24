@@ -13,11 +13,12 @@
           :key="definition.kind"
           type="button"
           draggable="true"
+          :aria-label="`Add ${definition.label} node`"
           @click="emit('add', definition.kind)"
           @dragstart="startPaletteDrag(definition.kind, $event)"
         >
           <img :src="getNodeIconUrl(definition.icon)" alt="" />
-          Add {{ definition.label }} node
+          <span>{{ definition.label }}</span>
         </button>
       </section>
     </div>
@@ -130,10 +131,13 @@ h3 {
 }
 
 button {
+  display: flex;
+  gap: 8px;
+  align-items: center;
   width: 100%;
-  padding: 6px 8px;
+  padding: 8px 10px;
   color: var(--color-palette-heading);
-  font-size: 10px;
+  font-size: 13px;
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-default);
   border-radius: 6px;
@@ -144,15 +148,14 @@ button {
 }
 
 button img {
-  width: 18px;
-  height: 18px;
-  margin-right: 6px;
+  flex: 0 0 26px;
+  width: 26px;
+  height: 26px;
   /*
    * External SVG assets cannot inherit the button's currentColor. Apply the
    * shared theme filter so palette avatars remain visible on either surface.
    */
   filter: var(--filter-node-icon-foreground);
-  vertical-align: middle;
 }
 
 p {
