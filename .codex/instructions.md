@@ -47,6 +47,25 @@ For every change under `frontend/flow-control-ui`:
   frontend change as complete while formatting, lint, tests, type-checking, or the
   production build fails.
 
+## Frontend end-to-end test organisation
+
+- Segregate Playwright tests into separate spec files by user-facing function.
+  Keep library management, runtime/deployment, designer nodes, connections,
+  toolbox, and configuration behaviours in their own clearly named files; do
+  not accumulate unrelated feature groups in a general-purpose route spec.
+- Each test must verify one independently meaningful behaviour. Do not combine
+  create, rename, delete, deployment success, deployment failure, or unrelated
+  accessibility behaviours into one long scenario merely to reuse setup.
+- Extract repeated route mocks and setup into narrowly scoped helpers or
+  fixtures. Every test must receive fresh mutable state and must be runnable by
+  itself without relying on another test's side effects or execution order.
+- Comment non-obvious tests generously. Use Arrange, Act, and Assert comments to
+  explain the user contract, why unusual event synthesis or mocking is needed,
+  and what regression each important assertion prevents. Do not add comments
+  that only restate an immediately obvious Playwright call.
+- Prefer role- and label-based locators. Keep direct CSS/SVG selectors limited to
+  graph details that do not expose an accessible locator.
+
 The backend executes deployed flows in one of two ways:
 
 1. In response to events, such as MQTT messages.
