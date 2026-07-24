@@ -169,6 +169,12 @@
   --color-text-tertiary: #8594a1;
   /* Muted node label and status text. */
   --color-node-text-muted: var(--color-node-status-fill);
+  /* Legacy function-family fills. Dark mode supplies AA-safe counterparts. */
+  --color-node-logic: #64a7ff;
+  --color-node-maths: #ef8354;
+  --color-node-override: #65d6ad;
+  --color-node-routing: #f5b942;
+  --color-node-timing: #a879d8;
   /* Neutral badge background. */
   --color-badge-neutral-surface: #e5ecef;
   /* Strong palette heading text. */
@@ -248,6 +254,12 @@
     --color-text-status-muted: #a2b2be;
     --color-text-tertiary: #91a4b2;
     --color-node-text-muted: #9aafbd;
+    /* Each fill has at least 5.3:1 contrast with #eef6ff node text. */
+    --color-node-logic: #2367a8;
+    --color-node-maths: #a94421;
+    --color-node-override: #08735e;
+    --color-node-routing: #8a5a00;
+    --color-node-timing: #7142a0;
     --color-badge-neutral-surface: #2b3c48;
     --color-palette-heading: #c3d7e5;
   }
@@ -325,6 +337,12 @@
   --color-text-status-muted: #a2b2be;
   --color-text-tertiary: #91a4b2;
   --color-node-text-muted: #9aafbd;
+  /* Each fill has at least 5.3:1 contrast with #eef6ff node text. */
+  --color-node-logic: #2367a8;
+  --color-node-maths: #a94421;
+  --color-node-override: #08735e;
+  --color-node-routing: #8a5a00;
+  --color-node-timing: #7142a0;
   --color-badge-neutral-surface: #2b3c48;
   --color-palette-heading: #c3d7e5;
 }

@@ -2,6 +2,7 @@
   <g
     class="flow-node"
     :data-node-id="node.id"
+    :data-node-category="definition.category"
     :class="{ selected }"
     :transform="transform"
     role="button"
@@ -18,7 +19,6 @@
       :width="definition.defaultSize.width"
       :height="definition.defaultSize.height"
       rx="2"
-      :fill="definition.color"
     />
     <FlowNodeIcon :icon="definition.icon" />
     <FlowNodeLabel :label="node.label" :kind-label="definition.label" />
@@ -107,6 +107,26 @@ const connectorKey = (connectorId: string): string => `${props.node.id}:${connec
 .node-body {
   stroke: var(--color-control-neutral);
   stroke-width: 1;
+}
+
+.flow-node[data-node-category='logic'] .node-body {
+  fill: var(--color-node-logic);
+}
+
+.flow-node[data-node-category='maths'] .node-body {
+  fill: var(--color-node-maths);
+}
+
+.flow-node[data-node-category='override'] .node-body {
+  fill: var(--color-node-override);
+}
+
+.flow-node[data-node-category='routing'] .node-body {
+  fill: var(--color-node-routing);
+}
+
+.flow-node[data-node-category='timing'] .node-body {
+  fill: var(--color-node-timing);
 }
 
 .flow-node:hover .node-body,

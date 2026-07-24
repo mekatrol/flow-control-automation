@@ -17,7 +17,6 @@ describe('node-kind registry', () => {
       // this exact mapping prevents the draggable palette from showing another
       // block's otherwise-valid icon after registry edits.
       expect(definition.icon).toBe(kind);
-      expect(definition.color).toMatch(/^#[\da-f]{6}$/i);
       expect(definition.defaultSize.width).toBeGreaterThan(0);
       expect(definition.defaultSize.height).toBeGreaterThan(0);
       expect(definition.connectors.some(({ direction }) => direction === 'input')).toBe(true);
@@ -43,19 +42,18 @@ describe('node-kind registry', () => {
     );
   });
 
-  it('uses the calendar colour scheme for every timing block', () => {
-    const calendarColor = nodeKindRegistry.calendar.color;
+  it('groups every clock-driven function with the calendar timing category', () => {
     const relatedKinds = ['delay', 'pulse', 'schedule', 'timer'] as const;
-    expect(relatedKinds.map((kind) => nodeKindRegistry[kind].color)).toEqual(
-      Array(relatedKinds.length).fill(calendarColor)
+    expect(relatedKinds.map((kind) => nodeKindRegistry[kind].category)).toEqual(
+      Array(relatedKinds.length).fill('timing')
     );
   });
 
-  it('uses blue for logic and the former timing amber for routing blocks', () => {
+  it('keeps logic and routing blocks in their presentation categories', () => {
     const logicDefinitions = Object.values(nodeKindRegistry).filter(
       ({ category }) => category === 'logic'
     );
-    expect(new Set(logicDefinitions.map(({ color }) => color))).toEqual(new Set(['#64a7ff']));
+    expect(logicDefinitions).not.toHaveLength(0);
 
     const routingDefinitions = Object.values(nodeKindRegistry).filter(
       ({ category }) => category === 'routing'
@@ -65,13 +63,11 @@ describe('node-kind registry', () => {
       'sequence',
       'split'
     ]);
-    expect(new Set(routingDefinitions.map(({ color }) => color))).toEqual(new Set(['#f5b942']));
   });
 
-  it('keeps Override in its own green function group', () => {
+  it('keeps Override in its own function group', () => {
     expect(nodeKindRegistry.override).toMatchObject({
-      category: 'override',
-      color: '#65d6ad'
+      category: 'override'
     });
   });
 });
