@@ -8,8 +8,20 @@
       </div>
       <form class="create-flow" @submit.prevent="createFlow">
         <label for="new-flow-name">New flow name</label>
-        <input id="new-flow-name" v-model="newFlowName" type="text" />
-        <button type="submit" :disabled="creating">
+        <input
+          id="new-flow-name"
+          v-model="newFlowName"
+          autocomplete="off"
+          name="new-flow-name"
+          type="text"
+          placeholder="Enter new flow name"
+        />
+        <button type="submit" :disabled="creating || !newFlowName.trim()">
+          <span
+            class="button-icon"
+            :style="{ maskImage: `url(&quot;${newFlowIcon}&quot;)` }"
+            aria-hidden="true"
+          />
           {{ creating ? 'Creating…' : 'New flow' }}
         </button>
       </form>
@@ -31,8 +43,22 @@
         <div class="flow-card-heading">
           <span class="status" :class="flow.status">{{ flow.status }}</span>
           <div class="card-actions">
-            <button type="button" @click="beginRename(flow.id, flow.name)">Rename</button>
-            <button type="button" @click="beginDelete(flow.id)">Delete</button>
+            <button type="button" @click="beginRename(flow.id, flow.name)">
+              <span
+                class="button-icon"
+                :style="{ maskImage: `url(&quot;${renameFlowIcon}&quot;)` }"
+                aria-hidden="true"
+              />
+              Rename
+            </button>
+            <button type="button" @click="beginDelete(flow.id)">
+              <span
+                class="button-icon"
+                :style="{ maskImage: `url(&quot;${deleteFlowIcon}&quot;)` }"
+                aria-hidden="true"
+              />
+              Delete
+            </button>
           </div>
         </div>
         <form
@@ -89,6 +115,9 @@
 import { storeToRefs } from 'pinia';
 import { computed, onBeforeUnmount, onMounted, ref, type ComponentPublicInstance } from 'vue';
 
+import deleteFlowIcon from '@/assets/delete-flow-icon.svg';
+import newFlowIcon from '@/assets/new-flow-icon.svg';
+import renameFlowIcon from '@/assets/rename-flow-icon.svg';
 import { flowApi } from '@/features/flows/api/flowApi';
 import { useFlowsStore } from '@/features/flows/stores/flows';
 import { useModalFocus } from '@/features/flows/composables/useModalFocus';
@@ -251,20 +280,67 @@ h1 {
 .page-heading p:last-child {
   max-width: 560px;
   margin: 10px 0 0;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
 }
 
 button {
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  justify-content: center;
   padding: 11px 16px;
-  color: var(--color-text-disabled);
+  color: var(--color-text-secondary);
   font-weight: 700;
-  background: var(--color-badge-neutral-surface);
-  border: 0;
+  background: var(--color-surface-neutral);
+  border: 1px solid var(--color-text-muted);
   border-radius: 9px;
 }
 
 button:not(:disabled) {
   cursor: pointer;
+}
+
+button:not(:disabled):hover {
+  color: var(--color-action-primary-strong);
+  background: var(--color-action-primary-surface);
+  border-color: var(--color-action-primary);
+}
+
+button:disabled {
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+  background: var(--color-surface-disabled);
+  border-color: var(--color-text-muted);
+  border-style: dashed;
+}
+
+.button-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  background-color: currentcolor;
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+}
+
+.create-flow button:not(:disabled),
+.rename-flow button[type='submit']:not(:disabled) {
+  color: var(--color-text-on-primary);
+  background: var(--color-action-primary);
+  border-color: var(--color-action-primary);
+}
+
+.create-flow button:not(:disabled):hover,
+.rename-flow button[type='submit']:not(:disabled):hover {
+  background: var(--color-action-primary-strong);
+  border-color: var(--color-action-primary-strong);
+}
+
+.delete-confirmation button:first-of-type:not(:disabled) {
+  color: var(--color-text-on-strong);
+  background: var(--color-danger-strong);
+  border-color: var(--color-danger-strong);
 }
 
 .create-flow,
@@ -279,6 +355,7 @@ button:not(:disabled) {
 
 .create-flow label,
 .rename-flow label {
+  color: var(--color-text-primary);
   font-size: 11px;
   font-weight: 700;
 }
@@ -287,8 +364,16 @@ button:not(:disabled) {
 .rename-flow input {
   min-width: 180px;
   padding: 9px;
-  border: 1px solid var(--color-border-default);
+  color: var(--color-text-secondary);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-text-muted);
   border-radius: 7px;
+}
+
+.create-flow input::placeholder,
+.rename-flow input::placeholder {
+  color: var(--color-text-muted);
+  opacity: 1;
 }
 
 .request-status,
@@ -340,7 +425,7 @@ button:not(:disabled) {
 }
 
 .flow-card:hover {
-  border-color: var(--color-action-primary-border-hover);
+  border-color: var(--color-action-primary);
   box-shadow: 0 18px 38px var(--color-shadow-card-hover);
   outline: none;
   transform: translateY(-2px);
@@ -354,7 +439,7 @@ button:not(:disabled) {
 
 .status {
   padding: 5px 8px;
-  color: var(--color-text-status-muted);
+  color: var(--color-text-secondary);
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -368,11 +453,17 @@ button:not(:disabled) {
   background: var(--color-action-primary-surface);
 }
 
-.card-actions button,
 .delete-confirmation button,
 .rename-flow button {
   padding: 6px 8px;
   font-size: 10px;
+}
+
+.card-actions button {
+  gap: 8px;
+  min-height: 40px;
+  padding: 9px 12px;
+  font-size: 13px;
 }
 
 h2 {
@@ -416,7 +507,7 @@ dl {
 
 dt {
   margin-bottom: 4px;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-muted);
   font-size: 10px;
   font-weight: 750;
   letter-spacing: 0.08em;

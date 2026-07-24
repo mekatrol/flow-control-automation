@@ -257,8 +257,48 @@ test('creates, opens, renames, and deletes a flow through the API', async ({ pag
   });
 
   await page.goto('/flows');
-  await page.getByRole('textbox', { name: 'New flow name' }).fill('New automation');
-  await page.getByRole('button', { name: 'New flow' }).click();
+  const newFlowName = page.getByRole('textbox', { name: 'New flow name' });
+  const newFlowButton = page.getByRole('button', { name: 'New flow' });
+  await expect(newFlowName).toHaveAttribute('placeholder', 'Enter new flow name');
+  await expect(newFlowName).toHaveAttribute('autocomplete', 'off');
+  await expect(newFlowButton).toBeDisabled();
+  const actionButtons = [
+    newFlowButton,
+    page.getByRole('button', { name: 'Rename' }).first(),
+    page.getByRole('button', { name: 'Delete' }).first()
+  ];
+  for (const button of actionButtons) {
+    const icon = button.locator('.button-icon');
+    await expect(icon).toHaveCount(1);
+    await expect
+      .poll(() =>
+        button.evaluate((element) => {
+          const iconElement = element.querySelector<HTMLElement>('.button-icon');
+          return {
+            buttonColor: getComputedStyle(element).color,
+            iconColor: iconElement ? getComputedStyle(iconElement).backgroundColor : '',
+            hasSvgMask: iconElement ? getComputedStyle(iconElement).maskImage !== 'none' : false
+          };
+        })
+      )
+      .toMatchObject({ hasSvgMask: true });
+    const colors = await button.evaluate((element) => {
+      const iconElement = element.querySelector<HTMLElement>('.button-icon')!;
+      return [getComputedStyle(element).color, getComputedStyle(iconElement).backgroundColor];
+    });
+    expect(colors[1]).toBe(colors[0]);
+  }
+  const disabledBackground = await newFlowButton.evaluate(
+    (button) => getComputedStyle(button).backgroundColor
+  );
+  await expect(newFlowButton).toHaveCSS('border-style', 'dashed');
+  await newFlowName.fill('   ');
+  await expect(newFlowButton).toBeDisabled();
+  await newFlowName.fill('New automation');
+  await expect(newFlowButton).toBeEnabled();
+  await expect(newFlowButton).not.toHaveCSS('background-color', disabledBackground);
+  await expect(newFlowButton).toHaveCSS('border-style', 'solid');
+  await newFlowButton.click();
   await expect(page.getByRole('link', { name: /New automation/ })).toBeVisible();
 
   await page.getByRole('button', { name: 'Rename' }).last().click();

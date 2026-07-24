@@ -29,6 +29,8 @@
   --color-text-placeholder: #9cabb7;
   /* Text and icons displayed on strong coloured surfaces. */
   --color-text-on-strong: #ffffff;
+  /* Text displayed on the primary action colour. */
+  --color-text-on-primary: #ffffff;
   /* Fully clear paint used for hit areas and tap highlights. */
   --color-transparent: transparent;
   /* Paint that intentionally follows the element's computed text colour. */
@@ -192,6 +194,7 @@
     --color-text-subtle: #91a7b8;
     --color-text-placeholder: #718394;
     --color-text-on-strong: #ffffff;
+    --color-text-on-primary: #102133;
     --color-surface-raised: #1c2a36;
     --color-surface-subtle: #16232e;
     --color-surface-inset: #13202a;
@@ -275,6 +278,7 @@
   --color-text-subtle: #91a7b8;
   --color-text-placeholder: #718394;
   --color-text-on-strong: #ffffff;
+  --color-text-on-primary: #102133;
   --color-surface-raised: #1c2a36;
   --color-surface-subtle: #16232e;
   --color-surface-inset: #13202a;
