@@ -41,7 +41,9 @@ test('shows flow-library loading, empty, error, and retry states', async ({ page
   await page.goto('/flows');
   await expect(page.locator('.request-status')).toHaveText('Loading flows…');
   releaseEmpty();
-  await expect(page.getByRole('heading', { name: 'No flows yet' })).toBeVisible();
+  const emptyTable = page.getByRole('table', { name: 'Flows' });
+  await expect(emptyTable).toBeVisible();
+  await expect(emptyTable.getByRole('row')).toHaveCount(1);
 
   await page.unroute(flowsCollectionPattern);
   let shouldFail = true;
@@ -182,6 +184,8 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
   const nameFilter = page.getByRole('searchbox', { name: 'Filter by name' });
   await nameFilter.fill('No matching flow');
   await expect(page.getByText('No flows match the selected filters.')).toBeVisible();
+  await expect(table).toBeVisible();
+  await expect(table.getByRole('row')).toHaveCount(1);
   await expect(
     page.getByRole('button', { name: 'Deployment status: All' })
   ).toBeVisible();

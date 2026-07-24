@@ -31,11 +31,6 @@
       <AppButton text="Retry" :icon="retryIcon" @click="loadFlows" />
     </div>
 
-    <div v-if="!loading && !error && totalItems === 0 && !hasActiveFilters" class="empty-state">
-      <h2>No flows yet</h2>
-      <p>Create a flow to start designing an automation.</p>
-    </div>
-
     <div v-if="!error" class="flow-results">
       <div class="table-tools">
         <div class="filter-control">
@@ -60,37 +55,36 @@
         No flows match the selected filters.
       </p>
 
-      <template v-if="totalItems > 0">
-        <FlowTable
-          :flows="items"
-          :sort-direction="sortDirection"
-          :editing-flow-id="editingFlowId"
-          :rename-value="renameValue"
-          :renaming="renaming"
-          :confirming-delete-id="confirmingDeleteId"
-          :deleting="deleting"
-          :toggling-disabled-id="togglingDisabledId"
-          @toggle-sort="toggleSortDirection"
-          @begin-rename="beginRename"
-          @update:rename-value="renameValue = $event"
-          @save-rename="renameFlow"
-          @cancel-rename="editingFlowId = undefined"
-          @begin-delete="beginDelete"
-          @confirm-delete="deleteFlow"
-          @cancel-delete="closeDeleteConfirmation"
-          @toggle-disabled="setFlowDisabled"
-        />
-        <TablePagination
-          :page="page"
-          :page-count="pageCount"
-          :page-size="pageSize"
-          :range-start="rangeStart"
-          :range-end="rangeEnd"
-          :total-items="totalItems"
-          @update:page="setPage"
-          @update:page-size="pageSize = $event"
-        />
-      </template>
+      <FlowTable
+        :flows="items"
+        :sort-direction="sortDirection"
+        :editing-flow-id="editingFlowId"
+        :rename-value="renameValue"
+        :renaming="renaming"
+        :confirming-delete-id="confirmingDeleteId"
+        :deleting="deleting"
+        :toggling-disabled-id="togglingDisabledId"
+        @toggle-sort="toggleSortDirection"
+        @begin-rename="beginRename"
+        @update:rename-value="renameValue = $event"
+        @save-rename="renameFlow"
+        @cancel-rename="editingFlowId = undefined"
+        @begin-delete="beginDelete"
+        @confirm-delete="deleteFlow"
+        @cancel-delete="closeDeleteConfirmation"
+        @toggle-disabled="setFlowDisabled"
+      />
+      <TablePagination
+        v-if="totalItems > 0"
+        :page="page"
+        :page-count="pageCount"
+        :page-size="pageSize"
+        :range-start="rangeStart"
+        :range-end="rangeEnd"
+        :total-items="totalItems"
+        @update:page="setPage"
+        @update:page-size="pageSize = $event"
+      />
     </div>
   </section>
 </template>
