@@ -194,7 +194,7 @@ test('shows flow-library loading, empty, error, and retry states', async ({ page
   });
 
   await page.goto('/flows');
-  await expect(page.getByRole('status')).toHaveText('Loading flows…');
+  await expect(page.locator('.request-status')).toHaveText('Loading flows…');
   releaseEmpty();
   await expect(page.getByRole('heading', { name: 'No flows yet' })).toBeVisible();
 
@@ -368,7 +368,7 @@ test('saves an unchanged mocked flow without losing graph data', async ({ page }
   });
 
   await page.goto('/flows/climate-control');
-  await expect(page.getByRole('status')).toBeHidden();
+  await expect(page.locator('.request-status')).toBeHidden();
   await page.getByRole('button', { name: 'Save flow' }).click();
 
   await expect.poll(() => savedPayload).toEqual(payload);
