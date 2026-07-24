@@ -22,9 +22,9 @@ describe('FlowNode', () => {
     expect(wrapper.text()).toContain('Calculator');
     expect(wrapper.get('.node-status').attributes('aria-label')).toBe('running: 21.5 °C');
     expect(wrapper.findAll('.node-marker')).toHaveLength(3);
-    expect(wrapper.get('.node-marker.orange rect').exists()).toBe(true);
-    expect(wrapper.get('.node-marker.green path').exists()).toBe(true);
-    expect(wrapper.get('.node-marker.blue circle').exists()).toBe(true);
+    expect(wrapper.find('.node-marker.orange rect').exists()).toBe(true);
+    expect(wrapper.find('.node-marker.green path').exists()).toBe(true);
+    expect(wrapper.find('.node-marker.blue circle').exists()).toBe(true);
     expect(wrapper.findAll('rect.connector-port')).toHaveLength(node.connectors.length);
   });
 

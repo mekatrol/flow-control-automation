@@ -493,7 +493,7 @@ test('drags a node to a snapped position and keeps it after route navigation', a
   });
   await canvas.dispatchEvent('pointerup', { pointerId: 7 });
 
-  await expect(node).not.toHaveAttribute('transform', initialTransform);
+  await expect(node).not.toHaveAttribute('transform', initialTransform!);
   const movedTransform = await node.evaluate((element) => element.getAttribute('transform'));
   const coordinates = movedTransform?.match(/translate\((\d+) (\d+)\)/);
   expect(Number(coordinates?.[1]) % 24).toBe(0);
@@ -577,7 +577,7 @@ test('highlights compatible connectors, previews a link, and rejects invalid com
     clientY: canvasBox!.y + 300,
     pointerId: 1
   });
-  await expect(preview).not.toHaveAttribute('d', initialPath);
+  await expect(preview).not.toHaveAttribute('d', initialPath!);
   await page.keyboard.press('Escape');
   await expect(preview).toBeHidden();
 

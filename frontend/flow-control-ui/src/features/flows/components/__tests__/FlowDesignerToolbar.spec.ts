@@ -14,8 +14,8 @@ describe('FlowDesignerToolbar', () => {
     expect(wrapper.findAll('svg[data-icon]')).toHaveLength(4);
     expect(wrapper.findAll('svg[data-icon] path.direction')).toHaveLength(4);
     expect(wrapper.findAll('svg[data-icon] path.destination')).toHaveLength(2);
-    expect(wrapper.get('svg[data-icon="front"] path.destination').exists()).toBe(true);
-    expect(wrapper.get('svg[data-icon="back"] path.destination').exists()).toBe(true);
+    expect(wrapper.find('svg[data-icon="front"] path.destination').exists()).toBe(true);
+    expect(wrapper.find('svg[data-icon="back"] path.destination').exists()).toBe(true);
 
     const buttons = wrapper.findAll('button');
     for (const button of buttons) await button.trigger('click');

@@ -90,8 +90,8 @@
             <g class="connections">
               <FlowConnection
                 v-for="rendered in renderedConnections"
-                :key="rendered.connection.id"
                 :id="rendered.connection.id"
+                :key="rendered.connection.id"
                 :start="rendered.start"
                 :end="rendered.end"
                 :start-side="rendered.startSide"

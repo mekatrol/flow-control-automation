@@ -30,7 +30,10 @@ export enum FlowNodeFunctionType {
   Xor = 'xor'
 }
 
-export type FlowNodeKind = FlowNodeFunctionType;
+// Persisted flow JSON contains the enum's string values, not enum members.
+// Keep those wire values assignable while deriving the union from the enum so
+// the accepted kinds cannot drift from the registry.
+export type FlowNodeKind = `${FlowNodeFunctionType}`;
 
 export type ConnectorDirection = 'input' | 'output';
 
