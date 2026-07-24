@@ -314,7 +314,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', handleBeforeUnl
 
 <style scoped>
 .designer-page {
-  width: min(1280px, calc(100% - 40px));
+  width: calc(100% - 40px);
   margin: 0 auto;
   padding: 34px 0 60px;
 }
