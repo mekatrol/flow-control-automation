@@ -1,11 +1,11 @@
 <template>
   <aside class="configuration-panel" aria-label="Node configuration">
     <div class="panel-heading">
-      <div>
-        <img :src="getNodeIconUrl(definition.icon)" alt="" />
+      <img :src="getNodeIconUrl(definition.icon)" alt="" />
+      <div class="heading-copy">
         <strong>Configure {{ definition.label }}</strong>
+        <small>{{ node.id }}</small>
       </div>
-      <small>{{ node.id }}</small>
     </div>
 
     <div class="fields">
@@ -119,42 +119,50 @@ const updateField = (field: NodeEditorField, event: Event): void => {
 
 <style scoped>
 .configuration-panel {
-  padding: 12px 16px;
-  background: var(--color-action-primary-surface-subtle);
-  border-bottom: 1px solid var(--color-action-primary-border);
-}
-
-.panel-heading,
-.panel-heading > div,
-.fields {
-  display: flex;
-  gap: 10px;
-  align-items: center;
+  min-height: 0;
+  padding: 16px;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  background: var(--color-surface-subtle);
+  border-left: 1px solid var(--color-border-subtle);
+  scrollbar-gutter: stable;
 }
 
 .panel-heading {
-  justify-content: space-between;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
   color: var(--color-palette-heading);
+}
+
+.heading-copy {
+  display: grid;
+  min-width: 0;
 }
 
 .panel-heading small {
   color: var(--color-text-subtle);
   font-size: 10px;
+  overflow-wrap: anywhere;
 }
 
 .panel-heading img {
+  flex: 0 0 22px;
   width: 22px;
   height: 22px;
+  filter: var(--filter-node-icon-foreground);
 }
 
 .fields {
-  margin-top: 10px;
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
 }
 
 label {
   display: grid;
   gap: 4px;
-  min-width: 180px;
+  min-width: 0;
   color: var(--color-text-secondary);
   font-size: 10px;
   font-weight: 700;
@@ -162,6 +170,7 @@ label {
 
 input:not([type='checkbox']),
 select {
+  width: 100%;
   min-height: 32px;
   padding: 6px 8px;
   background: var(--color-surface-raised);
@@ -175,12 +184,5 @@ select {
 
 label small {
   color: var(--color-danger-strong);
-}
-
-@media (max-width: 760px) {
-  .fields {
-    align-items: start;
-    overflow-x: auto;
-  }
 }
 </style>

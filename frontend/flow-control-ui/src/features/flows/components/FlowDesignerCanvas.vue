@@ -3,8 +3,7 @@
     <div class="canvas-toolbar">
       <span>{{ flow.nodes.length }} nodes</span>
       <span>{{ flow.connections.length }} connections</span>
-      <span v-if="selectedNodeId" class="selection">Selected: {{ selectedNodeId }}</span>
-      <span v-else-if="selectedConnectionId" class="selection">
+      <span v-if="selectedConnectionId" class="selection">
         Selected connection: {{ selectedConnectionId }}
       </span>
       <div class="zoom-controls" aria-label="Canvas zoom controls">
@@ -41,15 +40,6 @@
     <div class="designer-workspace">
       <FlowNodePalette @add="handleAddNode" />
       <div class="canvas-column">
-        <FlowNodeConfigurationPanel
-          v-if="selectedNode"
-          :node="selectedNode"
-          @update-label="emit('updateNodeLabel', selectedNode.id, $event)"
-          @update-configuration="
-            (key, value) => emit('updateNodeConfiguration', selectedNode!.id, key, value)
-          "
-        />
-
         <p v-if="connectionError" class="connection-error" role="alert">{{ connectionError }}</p>
 
         <div
@@ -143,6 +133,14 @@
           </svg>
         </div>
       </div>
+      <FlowNodeConfigurationPanel
+        v-if="selectedNode"
+        :node="selectedNode"
+        @update-label="emit('updateNodeLabel', selectedNode.id, $event)"
+        @update-configuration="
+          (key, value) => emit('updateNodeConfiguration', selectedNode!.id, key, value)
+        "
+      />
     </div>
   </div>
 </template>
@@ -568,6 +566,11 @@ const handleDragCancel = (event: PointerEvent): void => {
   inset: 0 auto 0 0;
 }
 
+.designer-workspace :deep(.configuration-panel) {
+  width: 280px;
+  min-width: 280px;
+}
+
 .canvas-column {
   display: flex;
   min-width: 0;
@@ -590,6 +593,11 @@ const handleDragCancel = (event: PointerEvent): void => {
     overflow-y: auto;
     border-right: 0;
     border-bottom: 1px solid var(--color-border-subtle);
+  }
+
+  .designer-workspace :deep(.configuration-panel) {
+    width: min(280px, 42vw);
+    min-width: min(280px, 42vw);
   }
 }
 

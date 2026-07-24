@@ -446,16 +446,16 @@ test('selects and clears a node with pointer and keyboard controls', async ({ pa
 
   const node = page.getByRole('button', { name: /Average temperature, Calculator node/ });
   await node.click();
-  await expect(page.getByText('Selected: temperature-average')).toBeVisible();
+  await expect(page.getByRole('complementary', { name: 'Node configuration' })).toBeVisible();
 
   await page.locator('[data-canvas-background]').click({ position: { x: 20, y: 20 } });
-  await expect(page.getByText('Selected: temperature-average')).toBeHidden();
+  await expect(page.getByRole('complementary', { name: 'Node configuration' })).toBeHidden();
 
   await node.focus();
   await page.keyboard.press('Enter');
-  await expect(page.getByText('Selected: temperature-average')).toBeVisible();
+  await expect(page.getByRole('complementary', { name: 'Node configuration' })).toBeVisible();
   await page.keyboard.press('Escape');
-  await expect(page.getByText('Selected: temperature-average')).toBeHidden();
+  await expect(page.getByRole('complementary', { name: 'Node configuration' })).toBeHidden();
 });
 
 test('drags a node to a snapped position and keeps it after route navigation', async ({ page }) => {
