@@ -213,8 +213,14 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
     name: 'Deployment status: All'
   });
   await statusDropdown.click();
-  await page.getByRole('checkbox', { name: 'Draft' }).uncheck();
-  await page.getByRole('button', { name: 'Deployment status: Deployed' }).click();
+  // Keep the filter controls interactive while the previous debounced list
+  // request settles. FlowListView deliberately retains this DOM during refresh.
+  await page.getByRole('checkbox', { name: 'Draft' }).click();
+  const deployedStatusDropdown = page.getByRole('button', {
+    name: 'Deployment status: Deployed'
+  });
+  await expect(deployedStatusDropdown).toBeVisible();
+  await deployedStatusDropdown.click();
   await expect(page).toHaveURL(/status=deployed/);
   await expect(page).not.toHaveURL(/page=2/);
   await expect(page.getByText('1–13 of 13')).toBeVisible();
@@ -225,8 +231,8 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
   await expect(page).toHaveURL(/status=deployed/);
   await expect(page.getByText('11–13 of 13')).toBeVisible();
 
-  await page.getByRole('button', { name: 'Deployment status: Deployed' }).click();
-  await page.getByRole('checkbox', { name: 'All' }).check();
+  await deployedStatusDropdown.click();
+  await page.getByRole('checkbox', { name: 'All' }).click();
   await expect(page).toHaveURL(/status=deployed/);
   await expect(page).toHaveURL(/status=draft/);
   await expect(page.getByText('1–10 of 25')).toBeVisible();

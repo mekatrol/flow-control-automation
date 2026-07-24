@@ -10,6 +10,8 @@
     "preview": "vite preview",
     "test:unit": "vitest src eslint-rules",
     "test:e2e": "playwright test",
+    "test:e2e:install": "playwright install chromium firefox",
+    "test:e2e:install:edge": "playwright install msedge",
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
     "lint": "run-s \"lint:*\"",

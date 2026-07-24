@@ -36,7 +36,7 @@
       <p>Create a flow to start designing an automation.</p>
     </div>
 
-    <div v-if="!loading && !error" class="flow-results">
+    <div v-if="!error" class="flow-results">
       <div class="table-tools">
         <div class="filter-control">
           <label for="flow-filter">Filter by name</label>
