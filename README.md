@@ -88,6 +88,26 @@ npm run test:e2e
 npm run build
 ```
 
+Playwright runs the end-to-end tests headlessly by default, so
+`npm run test:e2e` does not open a browser window. To watch the tests run in a
+browser, use:
+
+```sh
+npm run test:e2e -- --headed
+```
+
+To open Playwright's interactive test runner, use:
+
+```sh
+npm run test:e2e -- --ui
+```
+
+To run the tests with a visible browser and Playwright's debugger, use:
+
+```sh
+npm run test:e2e -- --debug
+```
+
 To use breakpoints in both applications, open VS Code's **Run and Debug** view
 and select **Debug full stack**. This starts the Go debugger, starts Vite without
 opening an extra browser window, and launches the Vue app in the VS Code Chrome

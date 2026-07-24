@@ -12,7 +12,7 @@ node_modules
 dist
 dist-ssr
 coverage
-test-results
+/test-results/
 playwright-report
 *.local
 
