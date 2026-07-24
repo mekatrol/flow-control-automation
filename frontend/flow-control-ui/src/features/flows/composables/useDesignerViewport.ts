@@ -18,15 +18,29 @@ export const clampZoom = (zoom: number): number => Math.min(MAX_ZOOM, Math.max(M
 
 export const calculateCanvasSize = (
   viewportWidth: number,
-  zoom: number
+  zoom: number,
+  viewportHeight = 0
 ): { width: number; height: number } => {
-  const responsiveWidth = viewportWidth > 0 ? viewportWidth : DESIGNER_WIDTH;
-  const width = responsiveWidth * clampZoom(zoom);
+  const availableWidth = viewportWidth > 0 ? viewportWidth : DESIGNER_WIDTH;
+  const responsiveScale = Math.min(1, availableWidth / DESIGNER_WIDTH);
+  const availableHeight =
+    viewportHeight > 0 ? viewportHeight : DESIGNER_HEIGHT * responsiveScale;
+  const viewBoxHeight = Math.max(DESIGNER_HEIGHT, availableHeight / responsiveScale);
 
   return {
-    width,
-    height: (width * DESIGNER_HEIGHT) / DESIGNER_WIDTH
+    width: availableWidth * clampZoom(zoom),
+    height: viewBoxHeight * responsiveScale * clampZoom(zoom)
   };
+};
+
+export const calculateViewBoxWidth = (viewportWidth: number): number =>
+  Math.max(DESIGNER_WIDTH, viewportWidth);
+
+export const calculateViewBoxHeight = (viewportWidth: number, viewportHeight: number): number => {
+  const availableWidth = viewportWidth > 0 ? viewportWidth : DESIGNER_WIDTH;
+  const availableHeight = viewportHeight > 0 ? viewportHeight : DESIGNER_HEIGHT;
+  const responsiveScale = Math.min(1, availableWidth / DESIGNER_WIDTH);
+  return Math.max(DESIGNER_HEIGHT, availableHeight / responsiveScale);
 };
 
 export const clientToSvgPoint = (
@@ -44,35 +58,51 @@ export const clientToSvgPoint = (
 export interface DesignerViewport {
   zoom: Ref<number>;
   width: Ref<number>;
+  height: Ref<number>;
   canvasSize: ComputedRef<{ width: number; height: number }>;
+  viewBoxSize: ComputedRef<{ width: number; height: number }>;
   setZoom: (nextZoom: number) => void;
 }
 
 export const useDesignerViewport = (element: Ref<HTMLElement | undefined>): DesignerViewport => {
   const zoom = ref(1);
   const width = ref(0);
+  const height = ref(0);
   let observer: ResizeObserver | undefined;
 
-  const canvasSize = computed(() => calculateCanvasSize(width.value, zoom.value));
+  const canvasSize = computed(() => calculateCanvasSize(width.value, zoom.value, height.value));
+  const viewBoxSize = computed(() => ({
+    width: calculateViewBoxWidth(width.value),
+    height: calculateViewBoxHeight(width.value, height.value)
+  }));
 
   const setZoom = (nextZoom: number): void => {
     zoom.value = clampZoom(nextZoom);
   };
 
+  const measureViewport = (): void => {
+    if (!element.value) return;
+    const rect = element.value.getBoundingClientRect();
+    width.value = element.value.clientWidth;
+    height.value = Math.max(0, window.innerHeight - rect.top);
+  };
+
   onMounted(() => {
     if (!element.value) return;
-    width.value = element.value.clientWidth;
+    measureViewport();
     // A ResizeObserver also catches layout changes that do not resize the whole
     // browser window, such as an inspector or navigation panel opening.
-    observer = new ResizeObserver(([entry]) => {
-      if (entry) width.value = entry.contentRect.width;
-    });
+    observer = new ResizeObserver(measureViewport);
     observer.observe(element.value);
+    window.addEventListener('resize', measureViewport);
   });
 
   // Observers retain their target until disconnected, so release it when Vue
   // removes the designer to avoid work against a detached element.
-  onBeforeUnmount(() => observer?.disconnect());
+  onBeforeUnmount(() => {
+    observer?.disconnect();
+    window.removeEventListener('resize', measureViewport);
+  });
 
-  return { zoom, width, canvasSize, setZoom };
+  return { zoom, width, height, canvasSize, viewBoxSize, setZoom };
 };

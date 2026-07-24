@@ -62,7 +62,7 @@
           <svg
             ref="canvasElement"
             class="designer-canvas"
-            :viewBox="`0 0 ${DESIGNER_WIDTH} ${DESIGNER_HEIGHT}`"
+            :viewBox="`0 0 ${viewBoxSize.width} ${viewBoxSize.height}`"
             :style="{ width: `${canvasSize.width}px`, height: `${canvasSize.height}px` }"
             role="group"
             :aria-label="`${flow.name} flow graph`"
@@ -81,8 +81,8 @@
 
             <rect
               data-canvas-background
-              :width="DESIGNER_WIDTH"
-              :height="DESIGNER_HEIGHT"
+              :width="viewBoxSize.width"
+              :height="viewBoxSize.height"
               fill="url(#designer-grid)"
               @click="clearCanvasState"
             />
@@ -127,7 +127,12 @@
               @connectorpreview="handleConnectorPreview"
             />
 
-            <text v-if="flow.nodes.length === 0" class="empty-message" x="550" y="280">
+            <text
+              v-if="flow.nodes.length === 0"
+              class="empty-message"
+              :x="viewBoxSize.width / 2"
+              :y="viewBoxSize.height / 2"
+            >
               This flow does not have any nodes yet.
             </text>
           </svg>
@@ -146,8 +151,7 @@ import FlowNode from './FlowNode.vue';
 import FlowNodePalette from './FlowNodePalette.vue';
 import FlowNodeConfigurationPanel from './FlowNodeConfigurationPanel.vue';
 import {
-  DESIGNER_HEIGHT,
-  DESIGNER_WIDTH,
+  clientToSvgPoint,
   useDesignerViewport
 } from '@/features/flows/composables/useDesignerViewport';
 import { useDesignerSelection } from '@/features/flows/composables/useDesignerSelection';
@@ -197,7 +201,8 @@ const emit = defineEmits<{
 const viewportElement = ref<HTMLElement>();
 const canvasElement = ref<SVGSVGElement>();
 const snapToGrid = ref(true);
-const { zoom, width: viewportWidth, canvasSize, setZoom } = useDesignerViewport(viewportElement);
+const { zoom, width: viewportWidth, canvasSize, viewBoxSize, setZoom } =
+  useDesignerViewport(viewportElement);
 const {
   selectedNodeId,
   selectedConnectionId,
@@ -310,8 +315,8 @@ const addNodeAt = (kind: FlowNodeModel['kind'], position: Point): void => {
   const zOrder = Math.max(-1, ...props.flow.nodes.map((node) => node.zOrder)) + 1;
   const size = getNodeKind(kind).defaultSize;
   const constrained = constrainNodePosition(position, {
-    width: DESIGNER_WIDTH,
-    height: DESIGNER_HEIGHT,
+    width: viewBoxSize.value.width,
+    height: viewBoxSize.value.height,
     nodeWidth: size.width,
     nodeHeight: size.height
   });
@@ -369,8 +374,8 @@ const handleCanvasKeydown = (event: KeyboardEvent): void => {
   const position = constrainNodePosition(
     { x: node.x + command.deltaX, y: node.y + command.deltaY },
     {
-      width: DESIGNER_WIDTH,
-      height: DESIGNER_HEIGHT,
+      width: viewBoxSize.value.width,
+      height: viewBoxSize.value.height,
       nodeWidth: size.width,
       nodeHeight: size.height
     }
@@ -442,12 +447,13 @@ const clearCanvasState = (): void => {
 const pointerToCanvas = (event: PointerEvent): Point | undefined => {
   const rect = canvasElement.value?.getBoundingClientRect();
   if (!rect || rect.width === 0 || rect.height === 0) return undefined;
-  // Pointer coordinates use displayed CSS pixels. Convert them into the fixed
-  // SVG viewBox so zoom does not change how far a node moves in graph units.
-  return {
-    x: ((event.clientX - rect.left) / rect.width) * DESIGNER_WIDTH,
-    y: ((event.clientY - rect.top) / rect.height) * DESIGNER_HEIGHT
-  };
+  // Pointer coordinates use displayed CSS pixels. Convert them into the
+  // responsive SVG viewBox so zoom does not change graph-space movement.
+  return clientToSvgPoint(
+    { x: event.clientX, y: event.clientY },
+    rect,
+    { x: 0, y: 0, ...viewBoxSize.value }
+  );
 };
 
 const handleDragStart = (nodeId: string, event: PointerEvent): void => {
@@ -487,8 +493,8 @@ const handlePointerMove = (event: PointerEvent): void => {
     state,
     point,
     {
-      width: DESIGNER_WIDTH,
-      height: DESIGNER_HEIGHT,
+      width: viewBoxSize.value.width,
+      height: viewBoxSize.value.height,
       nodeWidth: size.width,
       nodeHeight: size.height
     },

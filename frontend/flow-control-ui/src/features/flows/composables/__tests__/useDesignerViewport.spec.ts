@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
   calculateCanvasSize,
+  calculateViewBoxHeight,
+  calculateViewBoxWidth,
   clampZoom,
   clientToSvgPoint
 } from '@/features/flows/composables/useDesignerViewport';
@@ -18,6 +20,34 @@ describe('designer viewport calculations', () => {
       width: 880,
       height: 448
     });
+  });
+
+  it('fills a wide viewport without enlarging the graph', () => {
+    expect(calculateCanvasSize(1400, 1)).toEqual({
+      width: 1400,
+      height: 560
+    });
+    expect(calculateViewBoxWidth(1400)).toBe(1400);
+  });
+
+  it('keeps the full logical graph width on a narrow viewport', () => {
+    expect(calculateViewBoxWidth(880)).toBe(1100);
+  });
+
+  it('fills a tall viewport without enlarging the graph', () => {
+    expect(calculateCanvasSize(1400, 1, 760)).toEqual({
+      width: 1400,
+      height: 760
+    });
+    expect(calculateViewBoxHeight(1400, 760)).toBe(760);
+  });
+
+  it('keeps vertical scaling proportional on a narrow viewport', () => {
+    expect(calculateCanvasSize(880, 1, 600)).toEqual({
+      width: 880,
+      height: 600
+    });
+    expect(calculateViewBoxHeight(880, 600)).toBe(750);
   });
 
   it('applies zoom to the responsive canvas size', () => {
