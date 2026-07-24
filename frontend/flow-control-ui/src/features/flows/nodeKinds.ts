@@ -18,6 +18,8 @@ export interface NodeKindDefinition {
   defaultConfiguration: Record<string, boolean | number | string | null>;
 }
 
+const defaultNodeSize = (): NodeKindDefinition['defaultSize'] => ({ width: 170, height: 40 });
+
 // Each node kind declares everything the palette, canvas, and inspector need.
 // Keeping these concerns together prevents their labels, connectors, and
 // configuration defaults from drifting into incompatible versions.
@@ -39,7 +41,7 @@ const definition = (
   label: kind.charAt(0).toUpperCase() + kind.slice(1),
   category,
   icon,
-  defaultSize: { width: 150, height: 40 },
+  defaultSize: defaultNodeSize(),
   connectors,
   editor: [{ key: 'enabled', label: 'Enabled', input: 'checkbox' }],
   defaultConfiguration: { enabled: true }
@@ -58,7 +60,7 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     label: 'Calculator',
     category: 'maths',
     icon: 'calculator',
-    defaultSize: { width: 150, height: 40 },
+    defaultSize: defaultNodeSize(),
     connectors: [
       {
         id: 'analogue-input',
@@ -136,7 +138,7 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     label: 'Override',
     category: 'override',
     icon: 'override',
-    defaultSize: { width: 150, height: 40 },
+    defaultSize: defaultNodeSize(),
     connectors: [
       { id: 'input', label: 'Automatic', direction: 'input', dataType: 'any', side: 'left' },
       { id: 'output', label: 'Effective', direction: 'output', dataType: 'any', side: 'right' }
@@ -149,7 +151,7 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     label: 'Pulse',
     category: 'timing',
     icon: 'pulse',
-    defaultSize: { width: 150, height: 40 },
+    defaultSize: defaultNodeSize(),
     connectors: [
       { id: 'input', label: 'Trigger', direction: 'input', dataType: 'any', side: 'left' },
       { id: 'output', label: 'Pulse', direction: 'output', dataType: 'any', side: 'right' }
@@ -165,7 +167,7 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     label: 'Split',
     category: 'routing',
     icon: 'split',
-    defaultSize: { width: 150, height: 40 },
+    defaultSize: defaultNodeSize(),
     connectors: [
       { id: 'input', label: 'Source', direction: 'input', dataType: 'any', side: 'left' },
       {

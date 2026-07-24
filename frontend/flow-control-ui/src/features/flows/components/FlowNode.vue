@@ -31,9 +31,9 @@
     <!-- These legacy function indicators intentionally overlap the top edge.
     Their shape as well as colour communicates state, so they remain distinct
     for people who cannot distinguish the colours. -->
-    <FlowNodeMarker shape="square" color="orange" :x="90" />
-    <FlowNodeMarker shape="triangle" color="green" :x="110" />
-    <FlowNodeMarker shape="circle" color="blue" :x="130" />
+    <FlowNodeMarker shape="square" color="orange" :x="definition.defaultSize.width - 60" />
+    <FlowNodeMarker shape="triangle" color="green" :x="definition.defaultSize.width - 40" />
+    <FlowNodeMarker shape="circle" color="blue" :x="definition.defaultSize.width - 20" />
     <FlowConnector
       v-for="layout in connectorLayouts"
       :key="layout.connector.id"

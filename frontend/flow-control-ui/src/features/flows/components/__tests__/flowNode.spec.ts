@@ -27,6 +27,17 @@ describe('FlowNode', () => {
     expect(wrapper.find('.node-marker.green path').exists()).toBe(true);
     expect(wrapper.find('.node-marker.blue circle').exists()).toBe(true);
     expect(wrapper.findAll('rect.connector-port')).toHaveLength(node.connectors.length);
+    expect(wrapper.get('.node-body').attributes('width')).toBe('170');
+    expect(wrapper.findAll('.node-marker').map((marker) => marker.attributes('transform'))).toEqual([
+      'translate(110 -8)',
+      'translate(130 -8)',
+      'translate(150 -8)'
+    ]);
+    expect(
+      wrapper
+        .findAll('.flow-connector')
+        .some((connector) => connector.attributes('transform')?.startsWith('translate(170 '))
+    ).toBe(true);
   });
 
   it('emits selection from keyboard activation', async () => {
