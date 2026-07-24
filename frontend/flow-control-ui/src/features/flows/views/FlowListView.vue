@@ -246,9 +246,12 @@ const createFlow = async (): Promise<void> => {
   creating.value = true;
   error.value = undefined;
   try {
-    await flowApi.createFlow(name);
+    const createdFlow = await flowApi.createFlow(name);
     newFlowName.value = '';
-    await loadFlows();
+    await router.push({
+      name: 'flow-designer',
+      params: { flowId: createdFlow.id }
+    });
   } catch (caught) {
     error.value = caught instanceof Error ? caught.message : 'Unable to create the flow.';
   } finally {

@@ -58,7 +58,7 @@ test('shows flow-library loading, empty, error, and retry states', async ({ page
   await expect(page.getByRole('link', { name: /Climate control/ })).toBeVisible();
 });
 
-test('creates a flow through the API', async ({ page }) => {
+test('creates a flow and opens its designer', async ({ page }) => {
   // Arrange: start from the flow library backed by an isolated mutable API.
   await useMutableFlowsApi(page);
   await page.goto('/flows');
@@ -78,8 +78,10 @@ test('creates a flow through the API', async ({ page }) => {
   await expect(newFlowButton).toBeEnabled();
   await newFlowButton.click();
 
-  // Assert: the collection response is rendered as a new library card.
-  await expect(page.getByRole('link', { name: /New automation/ })).toBeVisible();
+  // Assert: creation opens the new flow immediately so it is ready to edit.
+  await expect(page).toHaveURL(/\/flows\/new-automation$/);
+  await expect(page.getByRole('heading', { name: 'New automation' })).toBeVisible();
+  await expect(page.getByRole('group', { name: 'New automation flow graph' })).toBeVisible();
 });
 
 test('renames a flow and opens the renamed designer', async ({ page }) => {
