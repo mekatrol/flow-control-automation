@@ -21,9 +21,21 @@
         </p>
         <div>
           <button type="button" data-dialog-initial-focus @click="closeDeployConfirmation">
+            <span
+              class="button-icon"
+              :style="{ maskImage: `url(&quot;${cancelIcon}&quot;)` }"
+              aria-hidden="true"
+            />
             Cancel
           </button>
-          <button type="button" class="deploy-confirm" @click="deployFlow">Deploy now</button>
+          <button type="button" class="deploy-confirm" @click="deployFlow">
+            <span
+              class="button-icon"
+              :style="{ maskImage: `url(&quot;${deployIcon}&quot;)` }"
+              aria-hidden="true"
+            />
+            Deploy now
+          </button>
         </div>
       </section>
     </div>
@@ -41,8 +53,22 @@
         <h2 id="discard-title">Discard unsaved changes?</h2>
         <p id="discard-description">This flow has changes that have not been saved.</p>
         <div>
-          <button type="button" data-dialog-initial-focus @click="keepEditing">Keep editing</button>
-          <button type="button" @click="discardChanges">Discard changes</button>
+          <button type="button" data-dialog-initial-focus @click="keepEditing">
+            <span
+              class="button-icon"
+              :style="{ maskImage: `url(&quot;${renameFlowIcon}&quot;)` }"
+              aria-hidden="true"
+            />
+            Keep editing
+          </button>
+          <button type="button" @click="discardChanges">
+            <span
+              class="button-icon"
+              :style="{ maskImage: `url(&quot;${discardIcon}&quot;)` }"
+              aria-hidden="true"
+            />
+            Discard changes
+          </button>
         </div>
       </section>
     </div>
@@ -66,6 +92,11 @@
         </div>
         <div class="heading-actions">
           <button type="button" :disabled="saving" @click="saveFlow">
+            <span
+              class="button-icon"
+              :style="{ maskImage: `url(&quot;${saveIcon}&quot;)` }"
+              aria-hidden="true"
+            />
             {{ saving ? 'Saving…' : 'Save flow' }}
           </button>
           <button
@@ -73,9 +104,21 @@
             :disabled="dirty || deploying"
             @click="showDeployConfirmation = true"
           >
+            <span
+              class="button-icon"
+              :style="{ maskImage: `url(&quot;${deployIcon}&quot;)` }"
+              aria-hidden="true"
+            />
             {{ deploying ? 'Deploying…' : 'Deploy flow' }}
           </button>
-          <button type="button" @click="refreshRuntime()">Refresh runtime</button>
+          <button type="button" @click="refreshRuntime()">
+            <span
+              class="button-icon"
+              :style="{ maskImage: `url(&quot;${refreshIcon}&quot;)` }"
+              aria-hidden="true"
+            />
+            Refresh runtime
+          </button>
         </div>
       </div>
 
@@ -105,6 +148,12 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
 
+import cancelIcon from '@/assets/cancel-icon.svg';
+import deployIcon from '@/assets/deploy-icon.svg';
+import discardIcon from '@/assets/discard-icon.svg';
+import refreshIcon from '@/assets/refresh-icon.svg';
+import renameFlowIcon from '@/assets/rename-flow-icon.svg';
+import saveIcon from '@/assets/save-icon.svg';
 import FlowDesignerCanvas from '@/features/flows/components/FlowDesignerCanvas.vue';
 import { useFlowsStore } from '@/features/flows/stores/flows';
 import type { ZOrderCommand } from '@/features/flows/graph/zOrder';
@@ -392,12 +441,26 @@ h1 {
 }
 
 button {
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  justify-content: center;
   padding: 11px 16px;
   color: var(--color-text-disabled);
   font-weight: 700;
   background: var(--color-badge-neutral-surface);
   border: 0;
   border-radius: 9px;
+}
+
+.button-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  background-color: currentcolor;
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
 }
 
 .heading-actions {

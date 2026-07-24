@@ -30,7 +30,14 @@
     <p v-if="loading" class="request-status" role="status">Loading flows…</p>
     <div v-if="error" class="request-error" role="alert">
       <span>{{ error }}</span>
-      <button type="button" @click="loadFlows">Retry</button>
+      <button type="button" @click="loadFlows">
+        <span
+          class="button-icon"
+          :style="{ maskImage: `url(&quot;${retryIcon}&quot;)` }"
+          aria-hidden="true"
+        />
+        Retry
+      </button>
     </div>
 
     <div v-if="!loading && !error && flows.length === 0" class="empty-state">
@@ -68,8 +75,22 @@
         >
           <label :for="`rename-${flow.id}`">Rename {{ flow.name }}</label>
           <input :id="`rename-${flow.id}`" v-model="renameValue" type="text" />
-          <button type="submit" :disabled="renaming">Save name</button>
-          <button type="button" @click="editingFlowId = undefined">Cancel</button>
+          <button type="submit" :disabled="renaming">
+            <span
+              class="button-icon"
+              :style="{ maskImage: `url(&quot;${saveIcon}&quot;)` }"
+              aria-hidden="true"
+            />
+            Save name
+          </button>
+          <button type="button" @click="editingFlowId = undefined">
+            <span
+              class="button-icon"
+              :style="{ maskImage: `url(&quot;${cancelIcon}&quot;)` }"
+              aria-hidden="true"
+            />
+            Cancel
+          </button>
         </form>
         <h2 v-else>
           <RouterLink :to="{ name: 'flow-designer', params: { flowId: flow.id } }">
@@ -100,9 +121,19 @@
         >
           <span :id="`delete-description-${flow.id}`">Delete this flow?</span>
           <button type="button" :disabled="deleting" @click="deleteFlow(flow.id)">
+            <span
+              class="button-icon"
+              :style="{ maskImage: `url(&quot;${deleteFlowIcon}&quot;)` }"
+              aria-hidden="true"
+            />
             Confirm delete
           </button>
           <button type="button" data-dialog-initial-focus @click="closeDeleteConfirmation">
+            <span
+              class="button-icon"
+              :style="{ maskImage: `url(&quot;${cancelIcon}&quot;)` }"
+              aria-hidden="true"
+            />
             Cancel
           </button>
         </div>
@@ -116,8 +147,11 @@ import { storeToRefs } from 'pinia';
 import { computed, onBeforeUnmount, onMounted, ref, type ComponentPublicInstance } from 'vue';
 
 import deleteFlowIcon from '@/assets/delete-flow-icon.svg';
+import cancelIcon from '@/assets/cancel-icon.svg';
 import newFlowIcon from '@/assets/new-flow-icon.svg';
 import renameFlowIcon from '@/assets/rename-flow-icon.svg';
+import retryIcon from '@/assets/retry-icon.svg';
+import saveIcon from '@/assets/save-icon.svg';
 import { flowApi } from '@/features/flows/api/flowApi';
 import { useFlowsStore } from '@/features/flows/stores/flows';
 import { useModalFocus } from '@/features/flows/composables/useModalFocus';

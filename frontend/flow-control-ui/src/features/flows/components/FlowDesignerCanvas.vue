@@ -13,7 +13,9 @@
           :disabled="zoom <= 0.5"
           @click="setZoom(zoom - 0.25)"
         >
-          −
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            <path d="M5 12h14" />
+          </svg>
         </button>
         <output aria-live="polite">{{ Math.round(zoom * 100) }}%</output>
         <button
@@ -22,7 +24,9 @@
           :disabled="zoom >= 2"
           @click="setZoom(zoom + 0.25)"
         >
-          +
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            <path d="M5 12h14M12 5v14" />
+          </svg>
         </button>
       </div>
       <label class="grid-toggle">
@@ -643,6 +647,15 @@ const handleDragCancel = (event: PointerEvent): void => {
 .zoom-controls button:disabled {
   color: var(--color-text-placeholder);
   cursor: default;
+}
+
+.zoom-controls button svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 2;
+  stroke-linecap: round;
 }
 
 .zoom-controls output {
