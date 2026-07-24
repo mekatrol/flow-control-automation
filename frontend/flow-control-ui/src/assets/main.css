@@ -89,6 +89,12 @@ a {
   font-size: 11px;
 }
 
+.app-header nav {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 .app-header nav a {
   padding: 9px 13px;
   color: #b9cad8;

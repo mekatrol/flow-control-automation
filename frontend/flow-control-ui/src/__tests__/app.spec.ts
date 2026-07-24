@@ -25,6 +25,7 @@ describe('App', () => {
 
     expect(wrapper.get('.brand').text()).toContain('Flow Control');
     expect(wrapper.get('.skip-link').attributes('href')).toBe('#main-content');
+    expect(wrapper.get('.theme-selector').attributes('data-theme-preference')).toBe('system');
     expect(wrapper.get('main').attributes('id')).toBe('main-content');
     expect(wrapper.get('main h1').text()).toBe('Flows');
   });

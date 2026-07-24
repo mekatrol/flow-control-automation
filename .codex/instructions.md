@@ -31,6 +31,22 @@ Every frontend migration slice must:
 - pass format, lint, unit test, e2e test, type-check, and production build checks
   before its checklist item is marked complete.
 
+## Frontend lint and formatting
+
+For every change under `frontend/flow-control-ui`:
+
+- Follow the rules in `eslint.config.ts`, including expression-style functions,
+  explicit TypeScript return types, alias imports across directories, and Vue
+  block ordering.
+- Run `npm run format` and then `npm run lint` from
+  `frontend/flow-control-ui` after editing.
+- Treat formatter and linter auto-fixes as source changes: inspect the resulting
+  diff, revert unrelated rewrites, and rerun both commands until they exit
+  successfully.
+- Run the relevant tests and `npm run build` after lint passes. Do not report a
+  frontend change as complete while formatting, lint, tests, type-checking, or the
+  production build fails.
+
 The backend executes deployed flows in one of two ways:
 
 1. In response to events, such as MQTT messages.

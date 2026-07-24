@@ -25,6 +25,8 @@ const DEFAULT_PASCAL_CASE_DIRECTORIES: readonly string[] = [
   'classes'
 ];
 
+const TEST_DIRECTORIES: readonly string[] = ['__tests__', 'tests'];
+
 const DEFAULT_IGNORED_FILENAMES: readonly string[] = [
   'index',
   'main',
@@ -396,7 +398,8 @@ const requireFilenameCase = createRule<Options, MessageIds>({
         const requiresPascalCase =
           extension === '.vue' ||
           hasPrimaryClassExport(node) ||
-          isInsideDirectory(absoluteFilename, pascalCaseDirectories);
+          (isInsideDirectory(absoluteFilename, pascalCaseDirectories) &&
+            !isInsideDirectory(absoluteFilename, TEST_DIRECTORIES));
 
         if (normalizedFilename.includes('-')) {
           context.report({

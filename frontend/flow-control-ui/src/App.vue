@@ -12,6 +12,7 @@
 
       <nav aria-label="Primary navigation">
         <RouterLink :to="{ name: 'flows' }">Flows</RouterLink>
+        <ThemeSelector />
       </nav>
     </header>
 
@@ -20,6 +21,10 @@
     </main>
   </div>
 </template>
+
+<script setup lang="ts">
+import ThemeSelector from '@/components/ThemeSelector.vue';
+</script>
 
 <style scoped>
 .skip-link {
