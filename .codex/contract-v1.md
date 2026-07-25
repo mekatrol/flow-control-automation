@@ -18,7 +18,7 @@ This file is the compact parity reference for the fixtures under
 | Execution mode | `event`, `interval` |
 
 Enum values are case-sensitive wire values. User-facing labels may differ, but
-YAML, normalized JSON, Go, and TypeScript use these spellings.
+YAML, normalized JSON, C#, and TypeScript use these spellings.
 
 ## Point-to-connector mapping
 

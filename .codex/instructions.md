@@ -93,30 +93,22 @@ flowchart LR
 
 When a flow is deployed, the backend starts an isolated runtime for it. Each runtime must support execution, updates, and graceful shutdown without affecting other flows.
 
-## Go Design Rationale
+## .NET Design Rationale
 
-Go provides the required concurrency and type safety:
+.NET provides the required concurrency and type safety:
 
-- Goroutines allow independent flows to run with low overhead.
-- Channels, `select`, and tickers support event-driven execution, timed execution, and graceful shutdown.
+- Hosted services and asynchronous tasks allow independent flows to run with low overhead.
+- `CancellationToken`, channels, and `PeriodicTimer` support event-driven execution, timed execution, and graceful shutdown.
 - Typed structures provide validation when mapping frontend JSON flow graphs to backend models.
 
 Conceptual flow runner:
 
-```go
-go func() {
-	ticker := time.NewTicker(5 * time.Minute)
-	defer ticker.Stop()
+```csharp
+using var timer = new PeriodicTimer(TimeSpan.FromMinutes(5));
 
-	for {
-		select {
-		case <-ticker.C:
-			executeFlowLogic()
-		case message := <-mqttChannel:
-			executeMqttLogic(message)
-		case <-stopChannel:
-			return
-		}
-	}
-}()
+while (!stoppingToken.IsCancellationRequested)
+{
+    await timer.WaitForNextTickAsync(stoppingToken);
+    await ExecuteFlowLogicAsync(stoppingToken);
+}
 ```

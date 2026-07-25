@@ -27,7 +27,8 @@ the frontend node-kind registry.
 ## Frontend HTTP operations
 
 The Phase 6 frontend expects these JSON operations. Browser tests provide
-deterministic route fixtures until the Go server implements the matching API.
+deterministic route fixtures until the ASP.NET Core server implements the
+matching API.
 
 | Method and path | Request | Successful response |
 | --- | --- | --- |

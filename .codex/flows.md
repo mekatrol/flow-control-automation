@@ -3,9 +3,9 @@
 ## Purpose
 
 A flow is a persisted, directed graph of automation functions. Users create and
-connect nodes in the Vue designer, save a draft through the Go API, and deploy a
-validated snapshot to the runtime. Flows may run in this application or target
-a physical controller with a smaller feature set.
+connect nodes in the Vue designer, save a draft through the ASP.NET Core API,
+and deploy a validated snapshot to the runtime. Flows may run in this
+application or target a physical controller with a smaller feature set.
 
 This document is the technical reference for future implementation work. The
 combined delivery sequence is in `.codex/implementation-plan.md`; point
@@ -67,7 +67,7 @@ analog/integer or engineering-unit mismatches.
 Node configuration is intentionally restricted to JSON scalar values. New
 structured requirements should receive an explicit versioned contract rather
 than placing arbitrary browser objects in persisted state. Node kinds are wire
-values and the Go validator, TypeScript enum, node registry, icons, fixtures,
+values and the C# validator, TypeScript enum, node registry, icons, fixtures,
 and controller-template function vocabulary must remain aligned.
 
 Unknown or invalid graph content must fail at API boundaries with a useful data

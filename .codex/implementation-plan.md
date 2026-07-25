@@ -1,7 +1,7 @@
 # Points, flows, and controller templates implementation plan
 
-> Historical plan: backend paths and Go commands below describe the retired
-> implementation. Current backend work belongs in `backend/Server`.
+> Current backend implementation paths and commands target .NET under
+> `backend/Server`.
 
 ## Implementation status
 
@@ -9,7 +9,7 @@ Last updated: 25 July 2026.
 
 | Phase | Status | Notes |
 | --- | --- | --- |
-| 0 - Contract fixtures and compatibility baseline | Complete | Shared YAML/JSON fixtures, strict Go/TypeScript parity tests, invalid-input coverage, legacy-flow regression coverage, test helpers, and baseline results are in place. |
+| 0 - Contract fixtures and compatibility baseline | Complete | Shared YAML/JSON fixtures, strict C#/TypeScript parity tests, invalid-input coverage, legacy-flow regression coverage, test helpers, and baseline results are in place. |
 | 1 - Point-source foundation and live connectivity testing | Complete | Typed source contracts, strict YAML/JSON storage, safe staged connectivity testing, CRUD API, accessible catalogue/editor UI, and automated coverage are in place. |
 | 2 - Backend point and group domain model | Complete | Typed .NET domain vocabulary, centralized validation/compatibility predicates, source-specific mappings, and automated coverage are in place. |
 | 2A - Controller-template domain and built-in default | Complete | Typed .NET capabilities, strict YAML validation, the exhaustive built-in default, centralized support predicates, and automated coverage are in place. |
@@ -23,10 +23,10 @@ Detailed Phase 0 verification results are recorded in
 ## 1. Goal
 
 Implement the point and flow models described in `.codex/point-types.md` and
-`.codex/flows.md` across the Go backend and Vue frontend. Controller templates
-form part of the same implementation because they constrain point definitions,
-flow functions, graph connections, deployment, and runtime behaviour. Users
-must be able to:
+`.codex/flows.md` across the ASP.NET Core backend and Vue frontend. Controller
+templates form part of the same implementation because they constrain point
+definitions, flow functions, graph connections, deployment, and runtime
+behaviour. Users must be able to:
 
 - create, view, edit, and delete point definitions;
 - create reusable Home Assistant, MQTT, and HTTP/JSON point sources and test
@@ -102,11 +102,12 @@ own design and threat/safety review before implementation.
 
 ### 3.1 User configuration and internal persistence
 
-Create a new backend package, `backend/go/internal/points`, rather than extending
-the flow store. All user-editable source, group, point, and controller
-configuration is exposed and imported/exported as YAML. The backend strictly
-parses YAML into typed domain models, validates it, and persists normalized
-internal state as JSON. Users never edit the JSON persistence files directly.
+Create the point contracts and services under `backend/Server/Server.Services`,
+rather than extending the flow store. All user-editable source, group, point,
+and controller configuration is exposed and imported/exported as YAML. The
+backend strictly parses YAML into typed domain models, validates it, and
+persists normalized internal state as JSON. Users never edit the JSON
+persistence files directly.
 
 Use separate JSON files configured by `POINT_DATA_FILE` and
 `POINT_SOURCE_DATA_FILE`, defaulting to `data/points.json` and
@@ -198,7 +199,7 @@ selector, or relative path and JSON selector. A source can be referenced by
 multiple points and multiple groups.
 
 Typed defaults and limits must be represented without losing type information.
-Go validation and frontend DTO validation must apply the same rules:
+C# validation and frontend DTO validation must apply the same rules:
 
 - analog values are finite JSON numbers;
 - integer values are safe whole JSON numbers;
@@ -425,7 +426,7 @@ empty list above is descriptive only. Absence of a capability means unsupported.
 Unknown capability names, duplicate entries, invalid limits, unsupported schema
 versions, a mismatched file/id, and YAML aliases or tags that weaken deterministic
 parsing are rejected. Bound parsing size and nesting depth. YAML is converted
-into the same typed Go/TypeScript DTO used by validation; application code must
+into the same typed C#/TypeScript DTO used by validation; application code must
 not inspect arbitrary YAML maps.
 
 Custom template writes use YAML parse, schema validation, semantic validation,
@@ -488,7 +489,8 @@ A phase is complete only when:
 Run the following full quality gate before every phase commit:
 
 ```sh
-(cd backend/go && gofmt -w <changed-go-files> && go test ./...)
+dotnet format backend/Server/Server.slnx --verify-no-changes
+dotnet test backend/Server/Server.slnx
 (cd frontend/flow-control-ui && npm run format)
 (cd frontend/flow-control-ui && npm run lint)
 (cd frontend/flow-control-ui && npm run test:unit -- --run)
@@ -526,10 +528,10 @@ new persisted concepts.
 **Unit/integration tests**
 
 - Existing flow fixtures decode, validate, save, and reload unchanged.
-- YAML configuration and normalized JSON fixtures agree between Go decoding and
+- YAML configuration and normalized JSON fixtures agree between C# decoding and
   TypeScript DTO parsing without semantic loss.
 - Template fixtures produce equivalent typed capabilities and diagnostics in
-  Go and TypeScript.
+  C# and TypeScript.
 - Unknown fields and unsupported schema versions fail.
 
 **E2E/smoke**
@@ -599,7 +601,9 @@ persists credentials/test results.
 
 **Implementation**
 
-- Create `backend/go/internal/points/model.go`.
+- Create point domain contracts under
+  `backend/Server/Server.Services/Contracts` and validation under
+  `backend/Server/Server.Services/Implementation`.
 - Define enums and typed validation for definitions, groups, labels, limits,
   defaults, capabilities, safe policies, source references, and source-specific
   point/group mappings.
@@ -634,8 +638,9 @@ layers depend on it.
 
 **Implementation**
 
-- Add `backend/go/internal/controllers` typed capability, limit, and diagnostic
-  models plus strict bounded YAML parsing.
+- Add controller typed capability, limit, and diagnostic models under
+  `backend/Server/Server.Services/Contracts`, plus strict bounded YAML parsing
+  and validation under `backend/Server/Server.Services/Implementation`.
 - Embed the exhaustive, read-only default template and derive/check its
   flow-function entries against the canonical backend node registry.
 - Centralize predicates for point, connector, function, execution-mode, and
@@ -672,7 +677,7 @@ layers depend on it.
 
 - Empty/missing file startup; round-trip every type.
 - Atomic create/update/delete and rollback after injected write/rename failure.
-- Concurrent operations under `go test -race ./...`.
+- Concurrent operations under `dotnet test backend/Server/Server.slnx`.
 - Stale revision conflicts, group-in-use conflicts, duplicate names/IDs,
   orphaned group/source references, corrupt JSON, and unsupported versions.
 - Make-standalone updates all members or none.
@@ -872,7 +877,7 @@ to assistive technology without relying on colour.
 
 **Implementation**
 
-- Extend Go and TypeScript node-kind enums with `read-point` and `write-point`.
+- Extend C# and TypeScript node-kind enums with `read-point` and `write-point`.
 - Add themed SVG icons and a `points` palette category.
 - Create nodes with typed connectors and a required `pointId` contract snapshot.
 - Add accessible inspector comboboxes:
@@ -888,7 +893,7 @@ to assistive technology without relying on colour.
 
 **Unit tests**
 
-- Registry/Go catalogue parity and icon existence.
+- Registry/C# catalogue parity and icon existence.
 - Node creation for all point types.
 - Capability/direction filtering and accessible selection.
 - DTO round-trip of new and legacy nodes.
@@ -958,7 +963,7 @@ flows deploy as before.
 
 **Implementation**
 
-- Add `level-shifter` to Go/TypeScript registries and the maths/conversion
+- Add `level-shifter` to C#/TypeScript registries and the maths/conversion
   palette with a themed SVG icon.
 - Add mode-dependent connectors and inspector fields.
 - Implement shared-equivalent validation rules, including mandatory hysteresis.
@@ -1152,20 +1157,15 @@ combined `state` enum.
 By the end of phase 9, the repository should contain at least:
 
 ```text
-backend/go/internal/points/model_test.go
-backend/go/internal/points/store_test.go
-backend/go/internal/points/http_test.go
-backend/go/internal/points/service_test.go
-backend/go/internal/points/source_model_test.go
-backend/go/internal/points/source_store_test.go
-backend/go/internal/points/source_connectivity_test.go
-backend/go/internal/points/source_read_test.go
-backend/go/internal/flows/point_validation_test.go
-backend/go/internal/flows/level_shifter_test.go
-backend/go/internal/controllers/model_test.go
-backend/go/internal/controllers/store_test.go
-backend/go/internal/controllers/http_test.go
-backend/go/internal/flows/controller_validation_test.go
+backend/Server/Tests.Unit/Contracts/ConfigurationFixtureTests.cs
+backend/Server/Tests.Unit/Points/PointDefinitionValidatorTests.cs
+backend/Server/Tests.Unit/Points/PointDefinitionStoreTests.cs
+backend/Server/Tests.Unit/Points/PointDefinitionEndpointTests.cs
+backend/Server/Tests.Unit/PointSources/PointSourceEndpointTests.cs
+backend/Server/Tests.Unit/Connectivity/ConnectivityEndpointTests.cs
+backend/Server/Tests.Unit/Connectivity/ProtocolCheckTests.cs
+backend/Server/Tests.Unit/Controllers/ControllerTemplateValidatorTests.cs
+backend/Server/Tests.Unit/Flows/FlowServiceTests.cs
 
 frontend/flow-control-ui/src/features/points/**/__tests__/*.spec.ts
 frontend/flow-control-ui/src/features/flows/**/__tests__/*point*.spec.ts

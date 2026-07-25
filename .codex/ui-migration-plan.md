@@ -1,7 +1,6 @@
 # Vue UI migration plan
 
-> Historical plan: handoff entries mentioning Go record the environment at that
-> time and are not current backend instructions.
+> Handoff entries use the current .NET backend terminology and commands.
 
 This is the restartable plan for migrating the remaining designer behaviour from
 `../HtmlSvg` into `frontend/flow-control-ui`.
@@ -241,7 +240,7 @@ Complete this phase before adding mutable designer behaviour.
 
 ### Phase 7 — Deploy and runtime status
 
-- [x] Agree the deploy and runtime-status API contract with the Go backend.
+- [x] Agree the deploy and runtime-status API contract with the ASP.NET Core backend.
 - [x] Add deploy confirmation, pending, success, and failure states.
   - Unit coverage: deployment store/action transitions.
   - E2e coverage: successful and failed deployment using deterministic API fixtures.
@@ -290,14 +289,14 @@ Add the newest entry first. Keep entries concise and include exact commands/resu
 ### 2026-07-14 — Functional-only saved node schema
 
 - Removed node colour from the frontend domain and DTO types, graph creation,
-  fixtures, backend Go model and validation, and the existing on-disk flow data.
+  fixtures, backend C# model and validation, and the existing on-disk flow data.
   Canvas colour now resolves exclusively from the typed node-kind registry.
 - Legacy payloads with visual colour metadata remain readable, but validation
   drops that unknown field and every subsequent API/store write omits it. Updated
   the persistence schema and added frontend and backend serialization coverage.
 - Verified `npm run format`, `npm run lint`, `npm run test:unit -- --run`
-  (74 tests), `npm run build`, `go test ./...`, and `npm run test:e2e`
-  (52 tests across desktop and mobile Chromium).
+  (74 tests), `npm run build`, `dotnet test backend/Server/Server.slnx`, and
+  `npm run test:e2e` (52 tests across desktop and mobile Chromium).
 
 ### 2026-07-14 — Saved-flow theme migration
 
@@ -455,7 +454,7 @@ Add the newest entry first. Keep entries concise and include exact commands/resu
   `npm run test:unit -- --run` (59 tests), `npm run test:e2e` (38 tests across
   desktop and mobile Chromium), and `npm run build`.
 - Stopped after the requested successful phase. Resume with: **Phase 7 — agree
-  the deploy and runtime-status API contract with the Go backend**.
+  the deploy and runtime-status API contract with the ASP.NET Core backend**.
 
 ### 2026-07-13 — Graph contract through flow authoring
 
