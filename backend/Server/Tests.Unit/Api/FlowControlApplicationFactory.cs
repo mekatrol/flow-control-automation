@@ -24,6 +24,7 @@ internal sealed class FlowControlApplicationFactory : WebApplicationFactory<Serv
     }
 
     public string DatabasePath => Path.Combine(_temporaryDirectory, "flow-control.db");
+    public string ControllerDataPath => Path.Combine(_temporaryDirectory, "controllers.json");
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -36,6 +37,8 @@ internal sealed class FlowControlApplicationFactory : WebApplicationFactory<Serv
                     $"Data Source={DatabasePath}",
                 [nameof(global::Server.Services.ServerOptions.CredentialEncryptionKey)] =
                     TestCredentialEncryptionKey,
+                [global::Server.Services.ServerOptions.ControllerDataFileConfigurationKey] =
+                    ControllerDataPath,
             });
         });
         builder.ConfigureServices(services =>
@@ -47,6 +50,8 @@ internal sealed class FlowControlApplicationFactory : WebApplicationFactory<Serv
                         $"Data Source={DatabasePath}",
                     [nameof(global::Server.Services.ServerOptions.CredentialEncryptionKey)] =
                         TestCredentialEncryptionKey,
+                    [global::Server.Services.ServerOptions.ControllerDataFileConfigurationKey] =
+                        ControllerDataPath,
                 })
                 .Build();
             services.AddFlowControlData(configuration);

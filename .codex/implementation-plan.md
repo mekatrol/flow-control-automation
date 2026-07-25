@@ -15,7 +15,8 @@ Last updated: 25 July 2026.
 | 2A - Controller-template domain and built-in default | Complete | Typed .NET capabilities, strict YAML validation, the exhaustive built-in default, centralized support predicates, and automated coverage are in place. |
 | 3 - Durable backend point and group store | Complete | SQLite/EF persistence, migrations, revision-safe CRUD, deterministic listing, referential integrity, startup validation, and atomic make-standalone support are in place. |
 | 4 - Point and group HTTP and YAML API | Complete | Canonical YAML CRUD, JSON catalogues, stable diagnostics, revision/reference conflicts, and API E2E coverage are in place. |
-| 4A onward | Not started | Phase 4A is next; follow the sequence below, including the remaining controller-template sub-phases. |
+| 4A - Controller-template store and HTTP API | Complete | Atomic normalized JSON persistence, revision-safe CRUD, the protected built-in default, stable YAML diagnostics, and API/E2E coverage are in place. |
+| 5 onward | Not started | Phase 5 is next; follow the sequence below, including the remaining controller-template sub-phases. |
 
 Detailed Phase 0 verification results are recorded in
 `.codex/phase-0-baseline.md`.
@@ -729,6 +730,8 @@ and all suites pass.
 **Suggested commit:** `feat(points): expose point and group definition API`
 
 ### Phase 4A - Controller-template store and HTTP API
+
+**Completed:** 25 July 2026.
 
 **Purpose:** Safely manage custom YAML templates and expose the default example.
 

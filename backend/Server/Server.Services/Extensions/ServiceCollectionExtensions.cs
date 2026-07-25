@@ -24,6 +24,13 @@ public static class ServiceCollectionExtensions
                 {
                     options.CredentialEncryptionKey = environmentKey;
                 }
+
+                var controllerDataFile =
+                    configuration[ServerOptions.ControllerDataFileConfigurationKey];
+                if (!string.IsNullOrWhiteSpace(controllerDataFile))
+                {
+                    options.ControllerDataFile = controllerDataFile;
+                }
             })
             .Validate(
                 options => !string.IsNullOrWhiteSpace(options.ServerAddress),
@@ -44,6 +51,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IPointSourceValidator, PointSourceValidator>();
         services.AddSingleton<IPointDefinitionValidator, PointDefinitionValidator>();
         services.AddSingleton<IControllerTemplateValidator, ControllerTemplateValidator>();
+        services.AddSingleton<IControllerTemplateStore, ControllerTemplateFileStore>();
         services.AddScoped<IPointDefinitionStore, PointDefinitionDatabaseStore>();
         services.AddScoped<IPointSourceService, PointSourceDatabaseService>();
         services.AddScoped<CredentialDatabaseService>();

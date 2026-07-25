@@ -42,7 +42,7 @@ export default defineConfig({
       ? [
           {
             command:
-              'dotnet run --no-launch-profile --project ../../backend/Server/Server.Api/Server.Api.csproj',
+              'dotnet run --no-build --no-launch-profile --project ../../backend/Server/Server.Api/Server.Api.csproj',
             url: `${backendURL}/api/health`,
             reuseExistingServer: false,
             timeout: 60_000,

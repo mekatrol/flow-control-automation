@@ -9,4 +9,7 @@ public sealed record ControllerTemplate
     public bool ReadOnly { get; init; }
     public ControllerCapabilities Capabilities { get; init; } = new();
     public ControllerLimits Limits { get; init; } = new();
+    public int Revision { get; init; }
+    public string? CreatedAt { get; init; }
+    public string? UpdatedAt { get; init; }
 }

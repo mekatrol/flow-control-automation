@@ -41,7 +41,10 @@ public static class ConfigurationYaml
     private static readonly IReadOnlySet<string> TimeoutFields =
         new HashSet<string>(["connectMilliseconds", "requestMilliseconds"]);
     private static readonly IReadOnlySet<string> ControllerFields = new HashSet<string>(
-        ["schemaVersion", "id", "name", "description", "readOnly", "capabilities", "limits"]);
+        [
+            "schemaVersion", "id", "name", "description", "readOnly", "capabilities", "limits",
+            "revision", "createdAt", "updatedAt",
+        ]);
     private static readonly IReadOnlySet<string> CapabilityFields = new HashSet<string>(
         [
             "pointTypes", "pointDirections", "pointFeatures", "connectorDataTypes",

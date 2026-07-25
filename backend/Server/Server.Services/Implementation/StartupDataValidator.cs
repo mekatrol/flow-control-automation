@@ -8,6 +8,7 @@ internal sealed class StartupDataValidator(
     IPointSourceValidator pointSourceValidator,
     IPointDefinitionStore pointDefinitions,
     IPointDefinitionValidator pointDefinitionValidator,
+    IControllerTemplateStore controllerTemplates,
     ICredentialStore credentials,
     ICredentialResolver credentialResolver) : IStartupDataValidator
 {
@@ -53,6 +54,8 @@ internal sealed class StartupDataValidator(
                 Points = await pointDefinitions.ListPointsAsync(cancellationToken),
             },
             sources);
+
+        await controllerTemplates.ListAsync(cancellationToken);
 
         foreach (var credential in await credentials.ListAsync(cancellationToken))
         {
