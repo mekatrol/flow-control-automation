@@ -1,5 +1,8 @@
 # Points, flows, and controller templates implementation plan
 
+> Historical plan: backend paths and Go commands below describe the retired
+> implementation. Current backend work belongs in `backend/Server`.
+
 ## Implementation status
 
 Last updated: 25 July 2026.

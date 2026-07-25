@@ -1,5 +1,8 @@
 # Phase 0 compatibility baseline
 
+> Historical record: the Go implementation and its commands were removed after
+> the completed .NET cutover. They are not supported workflows.
+
 Recorded on 25 July 2026 in the repository development environment.
 
 | Gate | Result |

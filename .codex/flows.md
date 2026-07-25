@@ -307,7 +307,7 @@ shutdown behaviour. Output commands carry flow source and correlation IDs for
 arbitration and audit.
 
 Errors are contained to the affected flow and exposed as runtime diagnostics.
-Panics are recovered at the flow boundary, recorded without sensitive data, and
+Unhandled exceptions are recovered at the flow boundary, recorded without sensitive data, and
 must not terminate unrelated runtimes. Updates build and validate a replacement
 before swapping it into service so a failed redeployment leaves the prior
 deployment intact.
@@ -315,10 +315,11 @@ deployment intact.
 ## API and persistence
 
 Existing flow CRUD and runtime endpoints remain the public boundary described
-in `.codex/ui-flow-schema.md` and `.codex/ui-runtime-api.md`. Flow persistence
-continues to use `FLOW_DATA_FILE`. Point definitions, live point state,
-controller templates, deployed snapshots, commands, and audit/history have
-separate stores because they have different consistency and safety needs.
+in `.codex/ui-flow-schema.md` and `.codex/ui-runtime-api.md`. Durable backend
+configuration is stored in EF Core/SQLite through the checked-in migrations.
+Point definitions, live point state, controller templates, deployed snapshots,
+commands, and audit/history remain separate domains because they have different
+consistency and safety needs.
 
 All configuration intended for user editing—point sources, point groups, point
 definitions, and controller templates—is represented as validated YAML. The

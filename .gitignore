@@ -1,9 +1,6 @@
 # Prerequisites
 *.d
 
-# Go build output
-backend/go/bin/
-
 # .NET build and tooling output
 [Bb]in/
 [Oo]bj/

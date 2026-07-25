@@ -1,5 +1,8 @@
 # Go to .NET Backend Migration Plan
 
+**Status: complete.** The .NET backend passed cutover and rollback verification,
+and the retired Go implementation has been removed.
+
 ## Goal
 
 Replace the Go server in `backend/go` with the ASP.NET Core server in

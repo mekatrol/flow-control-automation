@@ -1,5 +1,8 @@
 # Vue UI migration plan
 
+> Historical plan: handoff entries mentioning Go record the environment at that
+> time and are not current backend instructions.
+
 This is the restartable plan for migrating the remaining designer behaviour from
 `../HtmlSvg` into `frontend/flow-control-ui`.
 
