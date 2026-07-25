@@ -15,7 +15,7 @@ export default defineConfig({
     // the separately running Go process so the UI uses the durable store rather
     // than requiring cross-origin URLs or development-only CORS permissions.
     proxy: {
-      '/api': process.env.VITE_API_PROXY || 'http://localhost:8080'
+      '/api': process.env.VITE_API_PROXY || 'http://localhost:5008'
     }
   },
   plugins: [vue(), vueDevTools()],

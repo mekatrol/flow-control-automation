@@ -60,13 +60,27 @@ one VS Code window. Run **Tasks: Run Task** from the Command Palette and choose
 - `npm run dev` from `frontend/flow-control-ui/`
 
 The ASP.NET Core API listens on `http://localhost:5008` under the development
-launch profile. Until the frontend proxy default is changed, set
-`VITE_API_PROXY=http://localhost:5008` when running Vite against this backend.
-The health endpoint is:
+launch profile, and Vite proxies `/api` to that address by default. The health
+endpoint is:
 
 ```text
 GET http://localhost:5008/api/health
 ```
+
+Credential encryption requires a Base64-encoded 32-byte key. Generate a
+development-only key in the ignored local settings file before first startup:
+
+```sh
+key="$(openssl rand -base64 32)"
+printf '{\n  "CredentialEncryptionKey": "%s"\n}\n' "$key" \
+  > backend/Server/Server.Api/appsettings.Local.json
+unset key
+```
+
+Deployment environments should provide the same setting through the
+`CREDENTIAL_ENCRYPTION_KEY` environment variable and retain it in their secret
+manager. Losing or rotating the key without re-encrypting stored credentials
+makes those credentials unreadable.
 
 ### Backend tasks
 
@@ -144,8 +158,17 @@ npm run format
 npm run lint
 npm run test:unit -- --run
 npm run test:e2e
+npm run test:e2e:dotnet
 npm run build
 ```
+
+`test:e2e:dotnet` starts an isolated ASP.NET Core server and Vite proxy, then
+smoke-tests health, flow save/deploy, credential metadata, and point-source
+persistence against the real backend. It uses only temporary test data and a
+test-only encryption key.
+
+Production cutover, backup, canary, and rollback instructions are in
+[`docs/backend-cutover.md`](docs/backend-cutover.md).
 
 Playwright runs the end-to-end tests headlessly by default, so
 `npm run test:e2e` does not open a browser window. To watch the tests run in a

@@ -37,8 +37,8 @@
             <th scope="row">
               <RouterLink :to="{ name: 'point-source-detail', params: { sourceId: source.id } }">
                 {{ source.name }}
-              </RouterLink
-              ><small>{{ source.description }}</small>
+              </RouterLink>
+              <small>{{ source.description }}</small>
             </th>
             <td>{{ kindLabel(source.kind) }}</td>
             <td>{{ source.enabled ? 'Enabled' : 'Disabled' }}</td>

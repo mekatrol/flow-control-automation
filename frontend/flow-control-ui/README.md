@@ -60,15 +60,17 @@ npm run test:e2e -- --project=desktop-edge
 CI images must likewise install Edge at `/opt/microsoft/msedge/msedge` before
 running the complete Playwright suite.
 
-The development server proxies no API by itself; run the repository's Go backend
-or use deterministic Playwright route fixtures. Before merging frontend changes,
-run the same checks required by the completed migration:
+The development server proxies `/api` to the ASP.NET Core backend at
+`http://localhost:5008` by default. Set `VITE_API_PROXY` to override that
+address. Before merging frontend changes, run the same checks required by the
+completed migration:
 
 ```sh
 npm run format
 npm run lint
 npm run test:unit -- --run
 npm run test:e2e
+npm run test:e2e:dotnet
 npm run build
 ```
 
@@ -89,7 +91,7 @@ VITE_BASE_PATH=/flow-control/ npm run build
 
 The web server must return `index.html` for unknown frontend routes such as
 `/flow-control/flows/example`; Vue Router then resolves the direct URL. API calls
-remain rooted at `/api` and should be routed to the Go backend by the deployment.
+remain rooted at `/api` and should be routed to `Server.Api` by the deployment.
 
 ## Architecture references
 

@@ -56,6 +56,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IHttpProtocolCheck, HttpProtocolCheck>();
         services.AddSingleton<IMqttProtocolCheck, MqttProtocolCheck>();
         services.AddScoped<IConnectivityService, ConnectivityService>();
+        services.AddScoped<IStartupDataValidator, StartupDataValidator>();
         return services;
     }
 }

@@ -35,6 +35,9 @@ public partial class Program
         {
             var context = scope.ServiceProvider.GetRequiredService<IFlowControlDbContext>();
             await context.InitializeDatabase(app.Lifetime.ApplicationStopping);
+            var dataValidator =
+                scope.ServiceProvider.GetRequiredService<IStartupDataValidator>();
+            await dataValidator.ValidateAsync(app.Lifetime.ApplicationStopping);
         }
 
         app.MapFlowControlEndpoints();

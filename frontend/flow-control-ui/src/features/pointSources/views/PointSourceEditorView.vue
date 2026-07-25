@@ -63,10 +63,10 @@
               name="example-source-kind"
               :value="option.kind"
             />
-            <span
-            ><strong>{{ option.name }}</strong
-            ><small>{{ option.summary }}</small></span
-            >
+            <span>
+              <strong>{{ option.name }}</strong>
+              <small>{{ option.summary }}</small>
+            </span>
           </label>
         </fieldset>
         <h3>{{ selectedExample.name }} YAML</h3>

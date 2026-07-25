@@ -75,7 +75,7 @@ Flows may communicate with home automation controllers through their supported p
 
 ## Technology Stack
 
-- Go backend for the server API and automation engine.
+- ASP.NET Core backend for the server API and automation engine.
 - Vue.js frontend with SVG components for the graphical flow designer.
 
 ## Execution Architecture
@@ -84,7 +84,7 @@ The backend must manage multiple independent flows concurrently.
 
 ```mermaid
 flowchart LR
-    UI[Vue.js interface] --> API[Go web API]
+    UI[Vue.js interface] --> API[ASP.NET Core API]
     API --> State[(Persistent state)]
     State --> Engine[Execution engine]
     Engine --> EventFlow[Event-driven flow]

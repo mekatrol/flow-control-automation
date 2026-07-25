@@ -4,6 +4,9 @@ import { defineConfig, devices } from '@playwright/test';
 // with an isolated test run while preserving the usual local default.
 const port = Number(process.env.FLOW_UI_E2E_PORT ?? 5174);
 const baseURL = `http://127.0.0.1:${port}`;
+const useDotnetBackend = process.env.FLOW_UI_E2E_BACKEND === 'dotnet';
+const backendURL = 'http://127.0.0.1:5008';
+const testEncryptionKey = 'AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=';
 
 export default defineConfig({
   testDir: './e2e',
@@ -34,10 +37,29 @@ export default defineConfig({
       use: { ...devices['Pixel 7'] }
     }
   ],
-  webServer: {
-    command: `npm run dev:debug -- --host 127.0.0.1 --port ${port} --strictPort`,
-    url: baseURL,
-    reuseExistingServer: !process.env.CI,
-    timeout: 30_000
-  }
+  webServer: [
+    ...(useDotnetBackend
+      ? [
+          {
+            command:
+              'dotnet run --no-launch-profile --project ../../backend/Server/Server.Api/Server.Api.csproj',
+            url: `${backendURL}/api/health`,
+            reuseExistingServer: false,
+            timeout: 60_000,
+            env: {
+              SERVER_ADDRESS: backendURL,
+              CREDENTIAL_ENCRYPTION_KEY: testEncryptionKey,
+              ConnectionStrings__FlowControl: `Data Source=/tmp/flow-control-e2e-${process.pid}.db`
+            }
+          }
+        ]
+      : []),
+    {
+      command: `npm run dev:debug -- --host 127.0.0.1 --port ${port} --strictPort`,
+      url: baseURL,
+      reuseExistingServer: !process.env.CI,
+      timeout: 30_000,
+      env: useDotnetBackend ? { VITE_API_PROXY: backendURL } : {}
+    }
+  ]
 });
