@@ -8,6 +8,9 @@ namespace Tests.Unit.Api;
 
 internal sealed class FlowControlApplicationFactory : WebApplicationFactory<Server.Api.Program>
 {
+    private const string TestCredentialEncryptionKey =
+        "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=";
+
     private readonly string _temporaryDirectory = Path.Combine(
         Path.GetTempPath(),
         $"flow-control-tests-{Guid.NewGuid():N}");
@@ -23,6 +26,8 @@ internal sealed class FlowControlApplicationFactory : WebApplicationFactory<Serv
             {
                 [$"{DatabaseOptions.SectionName}:{DatabaseOptions.FlowControlConfigurationKey}"] =
                     $"Data Source={DatabasePath}",
+                [nameof(global::Server.Services.ServerOptions.CredentialEncryptionKey)] =
+                    TestCredentialEncryptionKey,
             });
         });
         builder.ConfigureServices(services =>
@@ -32,6 +37,8 @@ internal sealed class FlowControlApplicationFactory : WebApplicationFactory<Serv
                 {
                     [$"{DatabaseOptions.SectionName}:{DatabaseOptions.FlowControlConfigurationKey}"] =
                         $"Data Source={DatabasePath}",
+                    [nameof(global::Server.Services.ServerOptions.CredentialEncryptionKey)] =
+                        TestCredentialEncryptionKey,
                 })
                 .Build();
             services.AddFlowControlData(configuration);

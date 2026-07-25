@@ -13,6 +13,22 @@ public sealed class ServerOptions
     [ConfigurationKeyName(AddressConfigurationKey)]
     public string ServerAddress { get; set; } = DefaultAddress;
 
-    [ConfigurationKeyName(CredentialEncryptionKeyConfigurationKey)]
     public string? CredentialEncryptionKey { get; set; }
+
+    public static bool HasValidCredentialEncryptionKey(ServerOptions options)
+    {
+        if (string.IsNullOrWhiteSpace(options.CredentialEncryptionKey))
+        {
+            return false;
+        }
+
+        try
+        {
+            return Convert.FromBase64String(options.CredentialEncryptionKey).Length == 32;
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
+    }
 }

@@ -37,7 +37,8 @@ public sealed class RegistrationTests
     public void RegistrationBindsConfigurationModels()
     {
         const string address = "http://localhost:9876";
-        const string encryptionKey = "test-encryption-key";
+        const string encryptionKey =
+            "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=";
         const string connectionString = "Data Source=bound.db";
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
