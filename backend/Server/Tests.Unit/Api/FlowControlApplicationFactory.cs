@@ -21,6 +21,7 @@ internal sealed class FlowControlApplicationFactory(
 
     public string DatabasePath => Path.Combine(_temporaryDirectory, "flow-control.db");
     public string ControllerDataPath => Path.Combine(_temporaryDirectory, "controllers.json");
+    private string DatabaseConnectionString => $"Data Source={DatabasePath};Pooling=False";
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -29,12 +30,9 @@ internal sealed class FlowControlApplicationFactory(
         {
             configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                [$"{DatabaseOptions.SectionName}:{DatabaseOptions.FlowControlConfigurationKey}"] =
-                    $"Data Source={DatabasePath}",
-                [nameof(global::Server.Services.ServerOptions.CredentialEncryptionKey)] =
-                    TestCredentialEncryptionKey,
-                [global::Server.Services.ServerOptions.ControllerDataFileConfigurationKey] =
-                    ControllerDataPath
+                [$"{DatabaseOptions.SectionName}:{DatabaseOptions.FlowControlConfigurationKey}"] = DatabaseConnectionString,
+                [nameof(global::Server.Services.ServerOptions.CredentialEncryptionKey)] = TestCredentialEncryptionKey,
+                [global::Server.Services.ServerOptions.ControllerDataFileConfigurationKey] = ControllerDataPath
             });
         });
         builder.ConfigureServices(services =>
@@ -43,7 +41,7 @@ internal sealed class FlowControlApplicationFactory(
                 .AddInMemoryCollection(new Dictionary<string, string?>
                 {
                     [$"{DatabaseOptions.SectionName}:{DatabaseOptions.FlowControlConfigurationKey}"] =
-                        $"Data Source={DatabasePath}",
+                        DatabaseConnectionString,
                     [nameof(global::Server.Services.ServerOptions.CredentialEncryptionKey)] =
                         TestCredentialEncryptionKey,
                     [global::Server.Services.ServerOptions.ControllerDataFileConfigurationKey] =
