@@ -12,7 +12,9 @@ Last updated: 25 July 2026.
 | 0 - Contract fixtures and compatibility baseline | Complete | Shared YAML/JSON fixtures, strict Go/TypeScript parity tests, invalid-input coverage, legacy-flow regression coverage, test helpers, and baseline results are in place. |
 | 1 - Point-source foundation and live connectivity testing | Complete | Typed source contracts, strict YAML/JSON storage, safe staged connectivity testing, CRUD API, accessible catalogue/editor UI, and automated coverage are in place. |
 | 2 - Backend point and group domain model | Complete | Typed .NET domain vocabulary, centralized validation/compatibility predicates, source-specific mappings, and automated coverage are in place. |
-| 2A onward | Not started | Phase 2A is next; follow the sequence below, including the remaining controller-template sub-phases. |
+| 2A - Controller-template domain and built-in default | Complete | Typed .NET capabilities, strict YAML validation, the exhaustive built-in default, centralized support predicates, and automated coverage are in place. |
+| 3 - Durable backend point and group store | Complete | SQLite/EF persistence, migrations, revision-safe CRUD, deterministic listing, referential integrity, startup validation, and atomic make-standalone support are in place. |
+| 4 onward | Not started | Phase 4 is next; follow the sequence below, including the remaining controller-template sub-phases. |
 
 Detailed Phase 0 verification results are recorded in
 `.codex/phase-0-baseline.md`.
@@ -624,6 +626,8 @@ and the existing application builds/runs unchanged.
 
 ### Phase 2A - Controller-template domain and built-in default
 
+**Completed:** 25 July 2026.
+
 **Purpose:** Establish the capability vocabulary before API, UI, or deployment
 layers depend on it.
 
@@ -649,6 +653,8 @@ layers depend on it.
 **Suggested commit:** `feat(controllers): define validated capability templates`
 
 ### Phase 3 - Durable backend point and group store
+
+**Completed:** 25 July 2026.
 
 **Purpose:** Persist point/group definitions atomically.
 

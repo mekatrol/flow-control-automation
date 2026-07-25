@@ -50,7 +50,7 @@ public sealed class DatabaseTests
         command.CommandText =
             "SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'UpdateRowVersion%'";
         var triggerCount = Convert.ToInt32(await command.ExecuteScalarAsync());
-        Assert.That(triggerCount, Is.EqualTo(3));
+        Assert.That(triggerCount, Is.EqualTo(5));
     }
 
     [Test]

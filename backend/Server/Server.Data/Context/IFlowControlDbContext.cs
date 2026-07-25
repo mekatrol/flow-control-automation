@@ -9,6 +9,10 @@ public interface IFlowControlDbContext
 
     DbSet<PointSourceEntity> PointSources { get; }
 
+    DbSet<PointEntity> Points { get; }
+
+    DbSet<PointGroupEntity> PointGroups { get; }
+
     DbSet<CredentialEntity> Credentials { get; }
 
     DbSet<TEntity> Set<TEntity>()

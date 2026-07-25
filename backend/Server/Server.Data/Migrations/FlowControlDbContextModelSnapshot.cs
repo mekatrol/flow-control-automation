@@ -17,6 +17,8 @@ internal sealed class FlowControlDbContextModelSnapshot : ModelSnapshot
         BuildEntity<CredentialEntity>(modelBuilder, "Credentials");
         BuildEntity<FlowEntity>(modelBuilder, "Flows");
         BuildEntity<PointSourceEntity>(modelBuilder, "PointSources");
+        BuildEntity<PointEntity>(modelBuilder, "Points");
+        BuildEntity<PointGroupEntity>(modelBuilder, "PointGroups");
     }
 
     private static void BuildEntity<TEntity>(ModelBuilder modelBuilder, string tableName)

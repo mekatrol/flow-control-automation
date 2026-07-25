@@ -158,9 +158,23 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
     {
         if (implementation == PointImplementation.Virtual)
         {
-            if (point.GroupId is not null || point.SourceId is not null || point.Mapping is not null)
+            if (point.SourceId is not null || point.Mapping is not null)
             {
-                Fail("virtual points cannot have a group, source, or mapping");
+                Fail("virtual points cannot have a source or mapping");
+            }
+
+            if (point.GroupId is not null)
+            {
+                if (!context.Groups.TryGetValue(point.GroupId, out var virtualGroup))
+                {
+                    Fail($"groupId \"{point.GroupId}\" does not exist");
+                }
+
+                if (virtualGroup!.SourceId is not null
+                    || virtualGroup.MappingDefaults.Count != 0)
+                {
+                    Fail("virtual points cannot join a source-bound group");
+                }
             }
 
             return (null, null);

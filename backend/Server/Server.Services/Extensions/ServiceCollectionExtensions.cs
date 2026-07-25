@@ -43,6 +43,8 @@ public static class ServiceCollectionExtensions
             static provider => provider.GetRequiredService<FlowDatabaseService>());
         services.AddSingleton<IPointSourceValidator, PointSourceValidator>();
         services.AddSingleton<IPointDefinitionValidator, PointDefinitionValidator>();
+        services.AddSingleton<IControllerTemplateValidator, ControllerTemplateValidator>();
+        services.AddScoped<IPointDefinitionStore, PointDefinitionDatabaseStore>();
         services.AddScoped<IPointSourceService, PointSourceDatabaseService>();
         services.AddScoped<CredentialDatabaseService>();
         services.AddScoped<ICredentialStore>(

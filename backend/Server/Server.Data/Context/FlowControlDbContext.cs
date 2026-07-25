@@ -6,11 +6,16 @@ namespace Server.Data.Context;
 internal sealed class FlowControlDbContext(DbContextOptions<FlowControlDbContext> options)
     : DbContext(options), IFlowControlDbContext
 {
-    private static readonly string[] TableNames = ["Flows", "PointSources", "Credentials"];
+    private static readonly string[] TableNames =
+        ["Flows", "PointSources", "Points", "PointGroups", "Credentials"];
 
     public DbSet<FlowEntity> Flows => Set<FlowEntity>();
 
     public DbSet<PointSourceEntity> PointSources => Set<PointSourceEntity>();
+
+    public DbSet<PointEntity> Points => Set<PointEntity>();
+
+    public DbSet<PointGroupEntity> PointGroups => Set<PointGroupEntity>();
 
     public DbSet<CredentialEntity> Credentials => Set<CredentialEntity>();
 
@@ -43,6 +48,8 @@ internal sealed class FlowControlDbContext(DbContextOptions<FlowControlDbContext
     {
         ConfigureEntity(modelBuilder.Entity<FlowEntity>());
         ConfigureEntity(modelBuilder.Entity<PointSourceEntity>());
+        ConfigureEntity(modelBuilder.Entity<PointEntity>());
+        ConfigureEntity(modelBuilder.Entity<PointGroupEntity>());
         ConfigureEntity(modelBuilder.Entity<CredentialEntity>());
     }
 
