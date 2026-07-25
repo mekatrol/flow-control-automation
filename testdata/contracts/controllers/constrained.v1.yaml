@@ -1,0 +1,19 @@
+schemaVersion: 1
+id: compact-digital
+name: Compact digital controller
+description: Interval-only target with digital I/O
+readOnly: false
+capabilities:
+  pointTypes: [digital]
+  pointDirections: [input, output]
+  pointFeatures: [read, command]
+  connectorDataTypes: [boolean]
+  flowFunctions: [and, not, or, read-point, write-point]
+  executionModes: [interval]
+  runtimeFeatures: [bound_points]
+limits:
+  maxFlows: 8
+  maxNodesPerFlow: 64
+  maxConnectionsPerFlow: 96
+  minimumIntervalMilliseconds: 100
+

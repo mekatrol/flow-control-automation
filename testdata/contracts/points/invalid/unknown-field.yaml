@@ -1,0 +1,15 @@
+schemaVersion: 1
+groups: []
+points:
+  - id: invalid-point
+    name: Invalid point
+    description: Contains a field outside the version 1 contract
+    enabled: true
+    implementation: virtual
+    direction: value
+    valueType: digital
+    readable: true
+    commandable: true
+    persistence: volatile
+    surprise: true
+

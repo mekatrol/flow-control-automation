@@ -194,7 +194,12 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
   const sortButton = page.getByRole('button', { name: /Name, sorted ascending/ });
   await expect(sortButton.locator('.button-icon')).toHaveCount(1);
   expect(await sortButton.locator('.button-icon').evaluate((icon) => icon.getBoundingClientRect().width)).toBe(18);
+  const descendingResponse = page.waitForResponse((response) => {
+    const url = new URL(response.url());
+    return url.pathname === '/api/flows' && url.searchParams.get('sort') === 'descending';
+  });
   await sortButton.click();
+  await descendingResponse;
   await expect(table.getByRole('row').nth(1)).toContainText('Flow 25');
 
   await nameFilter.fill('Flow 2');

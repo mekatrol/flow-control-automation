@@ -1,0 +1,20 @@
+schemaVersion: 1
+id: invalid-controller
+name: Invalid controller
+description: Contains a field outside the version 1 contract
+readOnly: false
+capabilities:
+  pointTypes: [digital]
+  pointDirections: [input]
+  pointFeatures: [read]
+  connectorDataTypes: [boolean]
+  flowFunctions: [read-point]
+  executionModes: [interval]
+  runtimeFeatures: [bound_points]
+limits:
+  maxFlows: 1
+  maxNodesPerFlow: 8
+  maxConnectionsPerFlow: 8
+  minimumIntervalMilliseconds: 100
+firmwareImage: forbidden.bin
+

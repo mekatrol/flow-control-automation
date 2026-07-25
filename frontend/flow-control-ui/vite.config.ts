@@ -21,7 +21,8 @@ export default defineConfig({
   plugins: [vue(), vueDevTools()],
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url))
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+      '@contracts': fileURLToPath(new URL('../../testdata/contracts', import.meta.url))
     }
   }
 });

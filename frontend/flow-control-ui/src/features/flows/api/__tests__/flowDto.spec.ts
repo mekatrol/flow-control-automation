@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import legacyFlows from '@contracts/flows/legacy.json';
 
 import { sampleFlows } from '@/features/flows/__tests__/fixtures/sampleFlows';
 import {
@@ -10,6 +11,12 @@ import {
 const validFlow = (): unknown => structuredClone(sampleFlows[0]);
 
 describe('flow DTO validation', () => {
+  it('loads legacy contract fixtures without changing their graph semantics', () => {
+    const parsed = legacyFlows.map((flow) => parseFlowDto(flow));
+
+    expect(parsed).toEqual(legacyFlows);
+  });
+
   it('accepts a valid graph payload', () => {
     expect(parseFlowDto(validFlow())).toEqual(sampleFlows[0]);
   });

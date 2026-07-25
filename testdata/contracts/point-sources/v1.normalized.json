@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "sources": [
+    {
+      "id": "home-assistant",
+      "name": "Home Assistant",
+      "description": "Building automation host",
+      "enabled": true,
+      "kind": "home_assistant",
+      "connection": {"baseUrl": "https://ha.example.test", "subscribeEvents": true},
+      "credentialRef": "env:HOME_ASSISTANT_TOKEN",
+      "tls": {"verifyServerCertificate": true},
+      "timeouts": {"connectMilliseconds": 2000, "requestMilliseconds": 5000},
+      "revision": 1,
+      "createdAt": "2026-01-01T00:00:00Z",
+      "updatedAt": "2026-01-01T00:00:00Z"
+    },
+    {
+      "id": "plant-mqtt",
+      "name": "Plant MQTT",
+      "description": "Read-only plant telemetry",
+      "enabled": true,
+      "kind": "mqtt",
+      "connection": {"brokerUrl": "mqtts://mqtt.example.test:8883", "clientIdPrefix": "flow-control", "qos": 1, "cleanStart": true, "keepAliveSeconds": 30},
+      "credentialRef": "env:PLANT_MQTT_CREDENTIAL",
+      "tls": {"verifyServerCertificate": true},
+      "timeouts": {"connectMilliseconds": 3000},
+      "revision": 1,
+      "createdAt": "2026-01-01T00:00:00Z",
+      "updatedAt": "2026-01-01T00:00:00Z"
+    },
+    {
+      "id": "weather-api",
+      "name": "Weather API",
+      "description": "Read-only JSON weather service",
+      "enabled": true,
+      "kind": "http_json",
+      "connection": {"baseUrl": "https://weather.example.test", "allowedReadMethods": ["GET"], "defaultPollMilliseconds": 60000, "followRedirects": false, "maximumResponseBytes": 65536},
+      "credentialRef": "env:WEATHER_API_TOKEN",
+      "tls": {"verifyServerCertificate": true},
+      "timeouts": {"connectMilliseconds": 2000, "requestMilliseconds": 5000},
+      "revision": 1,
+      "createdAt": "2026-01-01T00:00:00Z",
+      "updatedAt": "2026-01-01T00:00:00Z"
+    }
+  ]
+}
+

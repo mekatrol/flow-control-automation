@@ -1,5 +1,18 @@
 # Points, flows, and controller templates implementation plan
 
+## Implementation status
+
+Last updated: 25 July 2026.
+
+| Phase | Status | Notes |
+| --- | --- | --- |
+| 0 - Contract fixtures and compatibility baseline | Complete | Shared YAML/JSON fixtures, strict Go/TypeScript parity tests, invalid-input coverage, legacy-flow regression coverage, test helpers, and baseline results are in place. |
+| 1 - Point-source foundation and live connectivity testing | Next | Not started. |
+| 2 onward | Not started | Follow the sequence below, including the controller-template sub-phases. |
+
+Detailed Phase 0 verification results are recorded in
+`.codex/phase-0-baseline.md`.
+
 ## 1. Goal
 
 Implement the point and flow models described in `.codex/point-types.md` and
@@ -481,7 +494,11 @@ files; inspect the diff before committing.
 
 ## 5. Implementation phases
 
-### Phase 0 - Contract fixtures and compatibility baseline
+### Phase 0 - Contract fixtures and compatibility baseline — Complete
+
+**Completed:** 25 July 2026. All implementation, unit/integration, and
+E2E/smoke items below are complete. The full recorded quality baseline is in
+`.codex/phase-0-baseline.md`.
 
 **Purpose:** Freeze current behavior and create shared examples before adding
 new persisted concepts.

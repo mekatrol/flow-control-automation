@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "templates": [
+    {
+      "id": "default",
+      "name": "Flow Control Automation",
+      "description": "Built-in unrestricted application target",
+      "readOnly": true,
+      "capabilities": {
+        "pointTypes": ["analog", "digital", "multi_state", "integer", "text"],
+        "pointDirections": ["input", "output", "input_output", "value"],
+        "pointFeatures": ["read", "command", "retain", "override", "relinquish", "quality", "alarms", "trends"],
+        "connectorDataTypes": ["any", "boolean", "event", "number", "string"],
+        "flowFunctions": ["and", "average", "calculator", "calendar", "clamp", "comparator", "delay", "if", "invert", "level-shifter", "line", "max", "min", "nand", "nor", "not", "or", "override", "point-changed", "pulse", "read-point", "release-point-command", "schedule", "selector", "sequence", "split", "timer", "write-point", "xnor", "xor"],
+        "executionModes": ["event", "interval"],
+        "runtimeFeatures": ["virtual_points", "bound_points", "command_arbitration", "quality_propagation"]
+      },
+      "limits": {
+        "maxFlows": null,
+        "maxNodesPerFlow": null,
+        "maxConnectionsPerFlow": null,
+        "minimumIntervalMilliseconds": null
+      },
+      "revision": 1,
+      "createdAt": "2026-01-01T00:00:00Z",
+      "updatedAt": "2026-01-01T00:00:00Z"
+    }
+  ]
+}
+

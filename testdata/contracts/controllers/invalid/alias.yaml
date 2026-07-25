@@ -1,0 +1,15 @@
+schemaVersion: 1
+id: aliased-controller
+name: Aliased controller
+description: YAML aliases are deliberately unsupported
+readOnly: false
+capabilities: &capabilities
+  pointTypes: [digital]
+  pointDirections: [input]
+  pointFeatures: [read]
+  connectorDataTypes: [boolean]
+  flowFunctions: [read-point]
+  executionModes: [interval]
+  runtimeFeatures: [bound_points]
+limits: *capabilities
+

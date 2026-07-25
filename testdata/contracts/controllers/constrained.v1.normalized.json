@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "templates": [
+    {
+      "id": "compact-digital",
+      "name": "Compact digital controller",
+      "description": "Interval-only target with digital I/O",
+      "readOnly": false,
+      "capabilities": {
+        "pointTypes": ["digital"],
+        "pointDirections": ["input", "output"],
+        "pointFeatures": ["read", "command"],
+        "connectorDataTypes": ["boolean"],
+        "flowFunctions": ["and", "not", "or", "read-point", "write-point"],
+        "executionModes": ["interval"],
+        "runtimeFeatures": ["bound_points"]
+      },
+      "limits": {
+        "maxFlows": 8,
+        "maxNodesPerFlow": 64,
+        "maxConnectionsPerFlow": 96,
+        "minimumIntervalMilliseconds": 100
+      },
+      "revision": 1,
+      "createdAt": "2026-01-01T00:00:00Z",
+      "updatedAt": "2026-01-01T00:00:00Z"
+    }
+  ]
+}
+

@@ -1,0 +1,45 @@
+[
+  {
+    "id": "legacy-climate",
+    "name": "Legacy climate",
+    "description": "Contains only pre-points node kinds",
+    "status": "draft",
+    "disabled": false,
+    "updatedAt": "2026-01-01T00:00:00Z",
+    "nodes": [
+      {
+        "id": "pulse-1",
+        "kind": "pulse",
+        "label": "Every minute",
+        "x": 20,
+        "y": 40,
+        "zOrder": 1,
+        "connectors": [
+          {"id": "trigger", "label": "Trigger", "direction": "output", "dataType": "event", "side": "right"}
+        ],
+        "configuration": {"interval": 60}
+      },
+      {
+        "id": "delay-1",
+        "kind": "delay",
+        "label": "Delay",
+        "x": 240,
+        "y": 40,
+        "zOrder": 2,
+        "connectors": [
+          {"id": "trigger", "label": "Trigger", "direction": "input", "dataType": "event", "side": "left"},
+          {"id": "complete", "label": "Complete", "direction": "output", "dataType": "event", "side": "right"}
+        ],
+        "configuration": {"duration": 5}
+      }
+    ],
+    "connections": [
+      {
+        "id": "pulse-to-delay",
+        "start": {"nodeId": "pulse-1", "connectorId": "trigger"},
+        "end": {"nodeId": "delay-1", "connectorId": "trigger"}
+      }
+    ]
+  }
+]
+

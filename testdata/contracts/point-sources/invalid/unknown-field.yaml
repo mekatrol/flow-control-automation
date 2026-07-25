@@ -1,0 +1,12 @@
+schemaVersion: 1
+sources:
+  - id: invalid-source
+    name: Invalid source
+    description: Contains an unknown field
+    enabled: true
+    kind: http_json
+    connection:
+      baseUrl: https://example.test
+      allowedReadMethods: [GET]
+    plaintextPassword: forbidden
+

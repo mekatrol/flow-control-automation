@@ -6,9 +6,54 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 )
+
+func TestLegacyFixtureValidatesSavesAndReloadsUnchanged(t *testing.T) {
+	fixturePath := filepath.Join("..", "..", "..", "testdata", "contracts", "flows", "legacy.json")
+	fixture, err := os.ReadFile(fixturePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var flows []Flow
+	if err := json.Unmarshal(fixture, &flows); err != nil {
+		t.Fatal(err)
+	}
+	if len(flows) == 0 {
+		t.Fatal("legacy fixture must contain at least one flow")
+	}
+
+	dataFile := filepath.Join(t.TempDir(), "flows.json")
+	if err := os.WriteFile(dataFile, fixture, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	store, err := OpenStore(dataFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for index := range flows {
+		want := flows[index]
+		if err := want.Validate(); err != nil {
+			t.Fatalf("fixture flow %q is invalid: %v", want.ID, err)
+		}
+		saved, err := store.Save(want.ID, want)
+		if err != nil {
+			t.Fatal(err)
+		}
+		flows[index].UpdatedAt = saved.UpdatedAt
+	}
+
+	reopened, err := OpenStore(dataFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := reopened.ListUnsafe(); !reflect.DeepEqual(got, flows) {
+		t.Fatalf("legacy flows changed after save/reload:\ngot:  %#v\nwant: %#v", got, flows)
+	}
+}
 
 func TestFlowCRUDPersistsAcrossStoreRestart(t *testing.T) {
 	dataFile := filepath.Join(t.TempDir(), "nested", "flows.json")

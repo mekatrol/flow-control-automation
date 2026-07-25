@@ -1,0 +1,98 @@
+schemaVersion: 1
+groups:
+  - id: air-handler
+    name: Air Handler
+    description: Shared Home Assistant mappings
+    sourceId: home-assistant
+    mappingDefaults:
+      domain: sensor
+points:
+  - id: outside-air-temperature
+    name: Outside air temperature
+    description: Standalone HTTP temperature
+    enabled: true
+    implementation: bound
+    direction: input
+    valueType: analog
+    units: degC
+    readable: true
+    commandable: false
+    persistence: volatile
+    sourceId: weather-api
+    mapping:
+      path: /current
+      method: GET
+      jsonPointer: /temperature
+  - id: supply-fan-enable
+    name: Supply fan enable
+    description: Grouped digital output
+    enabled: true
+    groupId: air-handler
+    implementation: bound
+    direction: output
+    valueType: digital
+    stateLabels:
+      false: Stopped
+      true: Running
+    readable: true
+    commandable: true
+    persistence: volatile
+    mapping:
+      entityId: switch.supply_fan
+      stateProperty: state
+      commandService: turn_on_off
+    safeDisablePolicy:
+      startup: relinquish
+      shutdown: relinquish
+      communicationLoss: relinquish
+      disable: relinquish
+  - id: operating-mode
+    name: Operating mode
+    description: Retained virtual mode
+    enabled: true
+    implementation: virtual
+    direction: value
+    valueType: multi_state
+    stateLabels:
+      - key: "off"
+        label: "Off"
+      - key: heat
+        label: Heat
+      - key: cool
+        label: Cool
+    readable: true
+    commandable: true
+    persistence: retained
+    relinquishDefault: "off"
+  - id: filter-hours
+    name: Filter hours
+    description: Volatile integer counter
+    enabled: true
+    implementation: virtual
+    direction: value
+    valueType: integer
+    units: h
+    readable: true
+    commandable: true
+    persistence: volatile
+    limits:
+      minimum: 0
+      maximum: 9007199254740991
+  - id: plant-status
+    name: Plant status
+    description: MQTT text status
+    enabled: true
+    implementation: bound
+    direction: input
+    valueType: text
+    readable: true
+    commandable: false
+    persistence: volatile
+    sourceId: plant-mqtt
+    mapping:
+      stateTopic: plant/status
+      jsonPointer: /message
+      qos: 1
+    limits:
+      maximumLength: 256
+
