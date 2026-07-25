@@ -3,9 +3,9 @@ using System.Text.RegularExpressions;
 
 namespace Server.Services.Implementation;
 
-internal static partial class PointSourceValidator
+internal sealed partial class PointSourceValidator : IPointSourceValidator
 {
-    public static void Validate(PointSource source)
+    public void Validate(PointSource source)
     {
         ArgumentNullException.ThrowIfNull(source);
         if (!Identifier().IsMatch(source.Id))

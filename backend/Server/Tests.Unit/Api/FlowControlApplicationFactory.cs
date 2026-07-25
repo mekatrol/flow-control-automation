@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Server.Data;
 using Server.Data.Extensions;
 
@@ -14,6 +15,13 @@ internal sealed class FlowControlApplicationFactory : WebApplicationFactory<Serv
     private readonly string _temporaryDirectory = Path.Combine(
         Path.GetTempPath(),
         $"flow-control-tests-{Guid.NewGuid():N}");
+    private readonly Action<IServiceCollection>? _configureServices;
+
+    public FlowControlApplicationFactory(
+        Action<IServiceCollection>? configureServices = null)
+    {
+        _configureServices = configureServices;
+    }
 
     public string DatabasePath => Path.Combine(_temporaryDirectory, "flow-control.db");
 
@@ -42,6 +50,7 @@ internal sealed class FlowControlApplicationFactory : WebApplicationFactory<Serv
                 })
                 .Build();
             services.AddFlowControlData(configuration);
+            _configureServices?.Invoke(services);
         });
     }
 

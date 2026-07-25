@@ -16,6 +16,8 @@ public static class PointSourceEndpointRouteBuilderExtensions
         endpoints.MapGet("/api/point-sources/{sourceId}", Get);
         endpoints.MapPut("/api/point-sources/{sourceId}", Update);
         endpoints.MapDelete("/api/point-sources/{sourceId}", Delete);
+        endpoints.MapPost("/api/point-sources/test", TestUnsaved);
+        endpoints.MapPost("/api/point-sources/{sourceId}/test", TestSaved);
         return endpoints;
     }
 
@@ -153,6 +155,40 @@ public static class PointSourceEndpointRouteBuilderExtensions
         }
     }
 
+    private static async Task<IResult> TestUnsaved(
+        HttpRequest request,
+        IConnectivityService connectivity,
+        CancellationToken cancellationToken)
+    {
+        var decoded = await Decode(request, cancellationToken);
+        return decoded.Error
+            ?? Results.Json(await connectivity.TestAsync(
+                decoded.Source!,
+                ClientKey(request),
+                cancellationToken));
+    }
+
+    private static async Task<IResult> TestSaved(
+        string sourceId,
+        HttpRequest request,
+        IPointSourceService sources,
+        IConnectivityService connectivity,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var source = await sources.GetAsync(sourceId, cancellationToken);
+            return Results.Json(await connectivity.TestAsync(
+                source,
+                ClientKey(request),
+                cancellationToken));
+        }
+        catch (PointSourceNotFoundException)
+        {
+            return Error(StatusCodes.Status404NotFound, "point source not found");
+        }
+    }
+
     private static async Task<IResult> WriteSource(
         HttpResponse response,
         Func<Task<PointSource>> operation,
@@ -242,4 +278,7 @@ public static class PointSourceEndpointRouteBuilderExtensions
 
     private static IResult Error(int status, string message) =>
         Results.Json(new ErrorResponse(message), statusCode: status);
+
+    private static string ClientKey(HttpRequest request) =>
+        request.HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
 }

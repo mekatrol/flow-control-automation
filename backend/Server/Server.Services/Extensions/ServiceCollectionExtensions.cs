@@ -41,12 +41,21 @@ public static class ServiceCollectionExtensions
             static provider => provider.GetRequiredService<FlowDatabaseService>());
         services.AddScoped<IFlowStore>(
             static provider => provider.GetRequiredService<FlowDatabaseService>());
+        services.AddSingleton<IPointSourceValidator, PointSourceValidator>();
         services.AddScoped<IPointSourceService, PointSourceDatabaseService>();
         services.AddScoped<CredentialDatabaseService>();
         services.AddScoped<ICredentialStore>(
             static provider => provider.GetRequiredService<CredentialDatabaseService>());
         services.AddScoped<ICredentialResolver>(
             static provider => provider.GetRequiredService<CredentialDatabaseService>());
+        services.AddSingleton<IConnectivityClock, ConnectivityClock>();
+        services.AddSingleton<ConnectivityRateLimiter>();
+        services.AddSingleton<IDnsLookup, DnsLookup>();
+        services.AddSingleton<ITcpConnectionFactory, TcpConnectionFactory>();
+        services.AddSingleton<ITlsHandshake, TlsHandshake>();
+        services.AddSingleton<IHttpProtocolCheck, HttpProtocolCheck>();
+        services.AddSingleton<IMqttProtocolCheck, MqttProtocolCheck>();
+        services.AddScoped<IConnectivityService, ConnectivityService>();
         return services;
     }
 }

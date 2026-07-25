@@ -9,7 +9,8 @@ namespace Server.Services.Implementation;
 
 internal sealed class PointSourceDatabaseService(
     IFlowControlDbContext context,
-    TimeProvider timeProvider) : IPointSourceService
+    TimeProvider timeProvider,
+    IPointSourceValidator validator) : IPointSourceService
 {
     public async Task<PaginatedResult<PointSource>> ListAsync(
         PointSourceListOptions options,
@@ -61,7 +62,7 @@ internal sealed class PointSourceDatabaseService(
         PointSource source,
         CancellationToken cancellationToken)
     {
-        PointSourceValidator.Validate(source);
+        validator.Validate(source);
         await EnsureNameAvailable(source.Name, exceptId: null, cancellationToken);
         var now = timeProvider.GetUtcNow();
         var created = source with
@@ -113,7 +114,7 @@ internal sealed class PointSourceDatabaseService(
             throw new PointSourceConflictException("stale revision");
         }
 
-        PointSourceValidator.Validate(source);
+        validator.Validate(source);
         await EnsureNameAvailable(source.Name, id, cancellationToken);
         var now = timeProvider.GetUtcNow();
         var updated = source with
