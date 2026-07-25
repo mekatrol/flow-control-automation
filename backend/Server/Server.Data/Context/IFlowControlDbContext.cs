@@ -16,5 +16,8 @@ public interface IFlowControlDbContext
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 
+    Task ReloadAsync<TEntity>(TEntity entity, CancellationToken cancellationToken)
+        where TEntity : class;
+
     Task InitializeDatabase(CancellationToken cancellationToken = default);
 }

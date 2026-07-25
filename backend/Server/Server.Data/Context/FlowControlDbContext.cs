@@ -14,6 +14,10 @@ internal sealed class FlowControlDbContext(DbContextOptions<FlowControlDbContext
 
     public DbSet<CredentialEntity> Credentials => Set<CredentialEntity>();
 
+    public Task ReloadAsync<TEntity>(TEntity entity, CancellationToken cancellationToken)
+        where TEntity : class =>
+        Entry(entity).ReloadAsync(cancellationToken);
+
     public async Task InitializeDatabase(CancellationToken cancellationToken = default)
     {
         await Database.MigrateAsync(cancellationToken);

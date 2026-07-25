@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Server.Data.Extensions;
+using Server.Services.Implementation;
 
 namespace Server.Services.Extensions;
 
@@ -19,6 +20,12 @@ public static class ServiceCollectionExtensions
             .ValidateOnStart();
 
         services.AddFlowControlData(configuration);
+        services.AddSingleton(TimeProvider.System);
+        services.AddScoped<FlowDatabaseService>();
+        services.AddScoped<IFlowService>(
+            static provider => provider.GetRequiredService<FlowDatabaseService>());
+        services.AddScoped<IFlowStore>(
+            static provider => provider.GetRequiredService<FlowDatabaseService>());
         return services;
     }
 }

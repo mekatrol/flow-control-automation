@@ -77,6 +77,11 @@ public sealed class RegistrationTests
         public Task<int> SaveChangesAsync(CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
+        public Task ReloadAsync<TEntity>(
+            TEntity entity,
+            CancellationToken cancellationToken)
+            where TEntity : class => throw new NotSupportedException();
+
         public Task InitializeDatabase(CancellationToken cancellationToken = default) =>
             throw new NotSupportedException();
     }
