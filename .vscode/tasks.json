@@ -51,6 +51,21 @@
       }
     },
     {
+      "label": "build: backend-debug",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "build",
+        "${workspaceFolder}/backend/Server/Server.slnx"
+      ],
+      "dependsOrder": "sequence",
+      "problemMatcher": "$msCompile",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
       "label": "dev: backend",
       "type": "process",
       "command": "dotnet",
@@ -65,7 +80,7 @@
       "options": {
         "cwd": "${workspaceFolder}/backend/Server"
       },
-      "dependsOn": "build: backend",
+      "dependsOn": "build: backend-debug",
       "isBackground": true,
       "problemMatcher": {
         "owner": "dotnet",
