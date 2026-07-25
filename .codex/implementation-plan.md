@@ -9,6 +9,8 @@ flow functions, graph connections, deployment, and runtime behaviour. Users
 must be able to:
 
 - create, view, edit, and delete point definitions;
+- create reusable Home Assistant, MQTT, and HTTP/JSON point sources and test
+  their connectivity in real time before mapping points;
 - create, view, edit, and delete point groups;
 - keep a point standalone or assign it to exactly one visible group;
 - add typed point-read and point-write blocks to a flow;
@@ -19,7 +21,9 @@ must be able to:
   saved flows;
 - choose the controller targeted by a flow;
 - view the built-in, read-only default controller template;
-- create and edit custom controller templates as validated YAML; and
+- create and edit custom controller templates as validated YAML;
+- edit all user-facing point, group, source, and controller configuration as
+  validated YAML while the backend retains normalized JSON persistence; and
 - see precise authoring and deployment diagnostics when a target does not
   support a point type, point capability, connector type, flow function, or
   runtime feature.
@@ -31,7 +35,7 @@ backward compatible.
 
 ## 2. Scope and delivery boundaries
 
-### Initial usable release (phases 0-8)
+### Initial usable release (phases 0-9)
 
 The first release covers point and point-group definition management, flow
 authoring, deployment validation, and a level shifter. It supports all initial
@@ -43,13 +47,14 @@ value types from the point model:
 - `integer`
 - `text`
 
-This release stores binding configuration but does not implement protocol
-drivers. Point blocks are valid graph endpoints, but a deployed block cannot
-exchange a live value until the runtime work in later phases is present.
-Deployment must report that limitation explicitly; it must never pretend that a
+This release implements reusable Home Assistant, MQTT, and HTTP/JSON source
+adapters early enough to test connectivity and read mapped input values. It
+does not yet enable arbitrary output writes or field-protocol drivers. Point
+blocks are valid graph endpoints, but deployment must report any runtime
+limitation explicitly; it must never pretend that an unreadable or disconnected
 bound point is live.
 
-### Runtime release (phases 9-12)
+### Runtime release (phases 10-13)
 
 The subsequent release adds runtime values, drivers, command arbitration,
 quality propagation, commissioning, alarms, trends, and audit history. These
@@ -61,7 +66,7 @@ history have different persistence and safety requirements.
 The following should not be smuggled into an earlier phase:
 
 - a production credential store;
-- individual BACnet, Modbus, KNX, MQTT, Home Assistant, and HTTP drivers;
+- BACnet, Modbus, KNX, and other field-protocol drivers;
 - unit conversion beyond exact-unit compatibility;
 - user/role authorization;
 - alarm notification delivery and long-term trend storage;
@@ -75,13 +80,18 @@ own design and threat/safety review before implementation.
 
 ## 3. Architectural decisions
 
-### 3.1 Point and group persistence
+### 3.1 User configuration and internal persistence
 
 Create a new backend package, `backend/internal/points`, rather than extending
-the flow store. Use a separate JSON definition file configured by
-`POINT_DATA_FILE`, defaulting to `data/points.json`. This preserves the existing
-`FLOW_DATA_FILE` contract and prevents live point data from being written into
-flow definitions.
+the flow store. All user-editable source, group, point, and controller
+configuration is exposed and imported/exported as YAML. The backend strictly
+parses YAML into typed domain models, validates it, and persists normalized
+internal state as JSON. Users never edit the JSON persistence files directly.
+
+Use separate JSON files configured by `POINT_DATA_FILE` and
+`POINT_SOURCE_DATA_FILE`, defaulting to `data/points.json` and
+`data/point-sources.json`. This preserves the existing `FLOW_DATA_FILE`
+contract and prevents live point data from being written into definitions.
 
 Persist one versioned document:
 
@@ -97,6 +107,12 @@ Persist one versioned document:
 Use atomic temporary-file-and-rename persistence, matching the existing flow
 store. Reject duplicate IDs, duplicate case-insensitive names, invalid
 references, and unsupported schema versions when loading.
+
+YAML endpoints accept and return canonical user configuration. JSON API
+responses may still carry list metadata, runtime envelopes, diagnostics, and
+internal DTOs used by the SPA; this does not make JSON a user-editable
+configuration format. YAML writes and JSON persistence must round-trip without
+semantic loss, and only the backend may add revisions and timestamps.
 
 Do **not** persist a hidden `__StandalonePointGroup__` initially. A nullable
 `groupId` is simpler and accurately represents a standalone point. The store
@@ -120,7 +136,8 @@ stateLabels?
 readable, commandable
 persistence               volatile | retained
 relinquishDefault?
-binding?
+sourceId?
+mapping?
 limits?
 safeDisablePolicy?
 revision, createdAt, updatedAt
@@ -130,16 +147,35 @@ The initial `PointGroup` contract is:
 
 ```text
 id, name, description
-binding?
+sourceId?
+mappingDefaults?
 revision, createdAt, updatedAt
 ```
 
-A group's optional binding contains the shared transport/address configuration
-for atomic or batched updates. A point's optional binding contains its member
-mapping within that transport. Keep both as typed envelopes with `driver` and
-driver-specific `configuration`; do not accept arbitrary properties at the
-top-level API boundary. Secrets are credential references, never literal
+A group's optional source and mapping defaults support shared subscriptions,
+polls, and atomic/batched updates. A point contains its source-relative mapping
+and may inherit the group's source. Server/broker connection details live only
+in the referenced source. Secrets are credential references, never literal
 credentials.
+
+The initial `PointSource` contract is:
+
+```text
+id, name, description, enabled
+kind                      home_assistant | mqtt | http_json
+connection                typed, kind-specific non-secret settings
+credentialRef?
+tls?
+timeouts?
+revision, createdAt, updatedAt
+```
+
+Home Assistant defines base URL and event/API options; MQTT defines broker,
+client, QoS/session, TLS, and reconnect options; HTTP/JSON defines base URL,
+allowed read methods, headers without secrets, polling defaults, TLS, redirect,
+and response-size policies. Point mappings define the entity, topic and payload
+selector, or relative path and JSON selector. A source can be referenced by
+multiple points and multiple groups.
 
 Typed defaults and limits must be represented without losing type information.
 Go validation and frontend DTO validation must apply the same rules:
@@ -155,7 +191,8 @@ Go validation and frontend DTO validation must apply the same rules:
 - `output` points are commandable, with readability determined by readback;
 - `input_output` and virtual `value` points may be both;
 - virtual points have no external binding;
-- bound points require a binding either on themselves or their group;
+- bound points require a valid source either directly or through their group
+  and a mapping compatible with that source kind;
 - a retained virtual point has a valid `relinquishDefault`; and
 - output definitions require explicit startup, shutdown, communication-loss,
   and disable policies before runtime writes are enabled.
@@ -174,6 +211,9 @@ must offer an explicit transaction to make those points standalone before
 retrying deletion. Point deletion is rejected with `409 Conflict` while any
 flow references it. The response includes the referencing flow IDs so the user
 can repair them. Do not silently delete graph nodes or cascade-delete points.
+Source deletion is rejected while any point or group references it and returns
+the referencing IDs. A source-kind change reports all affected mappings and
+requires explicit confirmation.
 
 Because points and flows use separate files, cross-store checks must occur under
 a service layer that serializes definition mutations. A later database
@@ -196,7 +236,25 @@ GET    /api/point-groups/{groupId}
 PUT    /api/point-groups/{groupId}
 DELETE /api/point-groups/{groupId}?revision={revision}
 POST   /api/point-groups/{groupId}/make-points-standalone
+
+GET    /api/point-sources
+POST   /api/point-sources
+GET    /api/point-sources/{sourceId}
+PUT    /api/point-sources/{sourceId}
+DELETE /api/point-sources/{sourceId}?revision={revision}
+POST   /api/point-sources/test
+POST   /api/point-sources/{sourceId}/test
+
+GET    /api/points/{pointId}/runtime
 ```
+
+Configuration create/update/get operations support canonical YAML media types;
+list, test, diagnostics, and runtime endpoints use JSON. The unsaved-source test
+accepts candidate YAML without persisting it. Both test endpoints return or
+stream structured stages (`dns`, `tcp`, `tls`, `authentication`, `protocol`)
+with bounded latency and redacted diagnostics, and support cancellation. Tests
+are read-only: no publish, Home Assistant service call, command-topic write, or
+mutating HTTP request is permitted.
 
 List endpoints support server-side `filter`, `page`, `pageSize`, and `sort`, as
 well as point filters for `groupId`, `implementation`, `direction`,
@@ -283,6 +341,9 @@ views, components, and unit tests. Add primary navigation routes:
 /point-groups
 /point-groups/new
 /point-groups/:groupId
+/point-sources
+/point-sources/new
+/point-sources/:sourceId
 ```
 
 Use semantic landmarks, headings, tables, fieldsets, legends, labels, status
@@ -296,11 +357,21 @@ patterns where appropriate. Use SVG icons in
 `public/icons/flow-nodes/`, with `currentColor`/theme-compatible styling and the
 same sizing/view-box conventions as existing node icons.
 
+Source, group, and point detail screens use an accessible labelled YAML editor
+for configuration. Typed summaries and safe helper controls may accompany it,
+but YAML remains the canonical user-editable representation. The point detail
+screen separately displays the live runtime envelope: present value, units,
+quality/reliability, source timestamp, last-update age, connection state, and
+live/cached/simulated/unavailable status. It subscribes when supported and
+otherwise polls with cancellation, pauses when hidden, and never presents a
+stale value as current.
+
 ### 3.8 Controller templates and target binding
 
 A controller template is a versioned capability contract, not a deployed
-controller instance. Store user templates as YAML under a configurable
-`CONTROLLER_TEMPLATE_DIR`; keep the built-in `default` template embedded in the
+controller instance. Expose custom templates as user-editable YAML, then persist
+their normalized internal state as JSON under `CONTROLLER_DATA_FILE`, defaulting
+to `data/controllers.json`. Keep the built-in `default` template embedded in the
 application so it is always available, cannot be changed or deleted, and
 represents every feature supported by this project.
 
@@ -337,11 +408,11 @@ parsing are rejected. Bound parsing size and nesting depth. YAML is converted
 into the same typed Go/TypeScript DTO used by validation; application code must
 not inspect arbitrary YAML maps.
 
-Custom template writes use parse, schema validation, semantic validation, then
-atomic temporary-file-and-rename. Reject an ID or filename of `default`, path
-traversal, symlinks escaping the configured directory, and stale revisions.
-Return line/column information for syntax errors and stable field paths for
-semantic errors. Never expose filesystem paths in API errors.
+Custom template writes use YAML parse, schema validation, semantic validation,
+normalization, then atomic JSON temporary-file-and-rename persistence. Reject
+an ID of `default` and stale revisions. Return line/column information for
+syntax errors and stable field paths for semantic errors. Never expose
+filesystem paths in API errors.
 
 Add `controllerTemplateId` to each flow, defaulting missing legacy values to
 `default` at the API/domain boundary. Drafts may retain unsupported elements so
@@ -354,7 +425,7 @@ cannot mutate running behaviour. Redeployment is required to adopt changes.
 The template service owns:
 
 - listing and retrieving the built-in and custom templates;
-- validating and atomically storing custom YAML;
+- validating custom YAML and atomically storing normalized JSON state;
 - calculating structured compatibility diagnostics;
 - preventing deletion while a flow targets the template;
 - reporting affected flow IDs before a capability-reducing edit; and
@@ -417,7 +488,8 @@ new persisted concepts.
 
 **Implementation**
 
-- Add version-1 point/group JSON contract fixtures covering every value type,
+- Add canonical version-1 point/group/source YAML fixtures plus normalized
+  internal JSON fixtures covering every value and source type,
   standalone/grouped points, virtual/bound implementations, and invalid cases.
 - Add version-1 controller-template YAML fixtures for the exhaustive built-in
   target, constrained physical targets, and syntax/semantic failures.
@@ -430,7 +502,8 @@ new persisted concepts.
 **Unit/integration tests**
 
 - Existing flow fixtures decode, validate, save, and reload unchanged.
-- Contract fixtures agree between Go JSON decoding and TypeScript DTO parsing.
+- YAML configuration and normalized JSON fixtures agree between Go decoding and
+  TypeScript DTO parsing without semantic loss.
 - Template fixtures produce equivalent typed capabilities and diagnostics in
   Go and TypeScript.
 - Unknown fields and unsupported schema versions fail.
@@ -444,7 +517,55 @@ pass.
 
 **Suggested commit:** `test: establish points contract compatibility baseline`
 
-### Phase 1 - Backend point and group domain model
+### Phase 1 - Point-source foundation and live connectivity testing
+
+**Purpose:** Define and verify reusable external systems before bound points or
+groups can map values from them.
+
+**Implementation**
+
+- Add typed Home Assistant, MQTT, and HTTP/JSON source contracts, canonical YAML
+  parsing/rendering, normalized JSON persistence, revisions, CRUD service/API,
+  and reference-safe deletion.
+- Implement read-only connectivity adapters with staged, cancellable, bounded
+  DNS/TCP/TLS/authentication/protocol checks and redacted diagnostics.
+- Enforce credential references, TLS policy, redirect/outbound-network policy,
+  SSRF protection, unique short-lived MQTT test clients, response-size limits,
+  rate limits, and audit events without secrets.
+- Define a credential-resolver interface and an initial deployment-secret/
+  environment reference implementation; building a general credential-management
+  UI remains deferred.
+- Add accessible `/point-sources` catalogue and YAML create/detail/edit screens
+  with a live Test connection action, progress/status announcements, focusable
+  error summary, retry/cancel, dirty-navigation protection, and last-test result
+  kept as transient UI state.
+
+**Unit/integration tests**
+
+- YAML/typed/JSON semantic round trips for each source kind.
+- Validation for URLs, broker schemes, TLS, timeouts, credentials, headers,
+  redirects, unknown fields, duplicate YAML keys, tags/aliases, size/depth, and
+  stale revisions.
+- Deterministic connectivity tests for success, DNS/TCP/TLS/auth/protocol
+  failures, cancellation, timeout, oversized response, forbidden address and
+  redirect, MQTT cleanup, and redaction.
+- Atomic store rollback, restart, concurrent tests, rate limiting, and deletion
+  reference conflicts.
+
+**E2E/smoke**
+
+- Add `e2e/pointSources.spec.ts`: create unsaved YAML for each kind, run mocked
+  staged tests, fix a failure, save/reload/edit/delete, cancel a slow test, and
+  verify keyboard-only operation and axe scans at desktop/mobile sizes and
+  light/dark themes.
+
+**Commit gate:** A user can define and safely test each initial source without
+creating a point; connectivity testing never mutates the external system or
+persists credentials/test results.
+
+**Suggested commit:** `feat(points): add reusable point sources and connectivity tests`
+
+### Phase 2 - Backend point and group domain model
 
 **Purpose:** Introduce validated domain types without HTTP or UI changes.
 
@@ -452,7 +573,8 @@ pass.
 
 - Create `backend/internal/points/model.go`.
 - Define enums and typed validation for definitions, groups, labels, limits,
-  defaults, capabilities, safe policies, and binding envelopes.
+  defaults, capabilities, safe policies, source references, and source-specific
+  point/group mappings.
 - Centralize compatibility and capability predicates so HTTP and flow
   validation do not invent separate rules.
 - Reserve the hidden-group name.
@@ -461,9 +583,10 @@ pass.
 
 - Table-test every valid value type/direction/implementation combination.
 - Cover NaN/infinity, integer precision, ranges, labels, defaults, units,
-  capabilities, missing bindings, credential literals, unsafe output policies,
-  whitespace, duplicate names, and reserved names.
-- Fuzz JSON decode and validation; it must never panic.
+  capabilities, missing/conflicting sources, invalid mappings, credential
+  literals, unsafe output policies, whitespace, duplicate names, and reserved
+  names.
+- Fuzz YAML and JSON decode and validation; they must never panic.
 
 **E2E/smoke**
 
@@ -474,7 +597,7 @@ and the existing application builds/runs unchanged.
 
 **Suggested commit:** `feat(points): add validated point definition model`
 
-### Phase 1A - Controller-template domain and built-in default
+### Phase 2A - Controller-template domain and built-in default
 
 **Purpose:** Establish the capability vocabulary before API, UI, or deployment
 layers depend on it.
@@ -500,7 +623,7 @@ layers depend on it.
 
 **Suggested commit:** `feat(controllers): define validated capability templates`
 
-### Phase 2 - Durable backend store
+### Phase 3 - Durable backend point and group store
 
 **Purpose:** Persist point/group definitions atomically.
 
@@ -508,7 +631,8 @@ layers depend on it.
 
 - Add the versioned document and `Store` with list/get/create/update/delete.
 - Enforce unique IDs/names, one-or-zero group membership, revisions, referential
-  integrity, and deterministic persistence order.
+  integrity, valid source inheritance/references, and deterministic persistence
+  order.
 - Add the explicit make-standalone transaction.
 - Wire `POINT_DATA_FILE` into server startup, but expose no routes yet.
 
@@ -518,7 +642,7 @@ layers depend on it.
 - Atomic create/update/delete and rollback after injected write/rename failure.
 - Concurrent operations under `go test -race ./...`.
 - Stale revision conflicts, group-in-use conflicts, duplicate names/IDs,
-  orphaned group references, corrupt JSON, and unsupported versions.
+  orphaned group/source references, corrupt JSON, and unsupported versions.
 - Make-standalone updates all members or none.
 
 **E2E/smoke**
@@ -531,13 +655,14 @@ endpoint is public yet.
 
 **Suggested commit:** `feat(points): persist point and group definitions`
 
-### Phase 3 - Point and group HTTP API
+### Phase 4 - Point and group HTTP and YAML API
 
 **Purpose:** Make definition management available to clients.
 
 **Implementation**
 
-- Add point/group service and handlers with bounded JSON bodies.
+- Add point/group service and handlers with bounded canonical YAML
+  create/update/get bodies plus JSON lists, diagnostics, and runtime envelopes.
 - Add paging/filter/sort, stable error codes, revision conflicts, and reference
   details.
 - Extend the handler constructor to receive both stores explicitly.
@@ -546,39 +671,42 @@ endpoint is public yet.
 **Unit/integration tests**
 
 - Handler tests for success, all validation failures, unknown IDs, malformed
-  query/body values, trailing JSON, oversized requests, persistence failures,
-  stale revisions, membership conflicts, and content types.
+  query/YAML values, duplicate keys, trailing documents, oversized requests,
+  persistence failures, stale revisions, membership/source conflicts, and
+  content types.
 - Pagination/filter/sort determinism.
-- API-created data survives store reopen.
+- API-created YAML survives normalized JSON store reopen and returns
+  semantically equivalent canonical YAML.
 
 **E2E/smoke**
 
 - Add `e2e/pointsApi.spec.ts`: create group, create member and standalone
-  points, edit, filter, make standalone, delete, reload server-backed data.
+  points mapped to shared and direct sources, edit, filter, make standalone,
+  delete, and reload server-backed data.
 
 **Commit gate:** API is complete enough for the UI; frontend remains unchanged
 and all suites pass.
 
 **Suggested commit:** `feat(points): expose point and group definition API`
 
-### Phase 3A - Controller-template store and HTTP API
+### Phase 4A - Controller-template store and HTTP API
 
 **Purpose:** Safely manage custom YAML templates and expose the default example.
 
 **Implementation**
 
-- Add directory-backed atomic persistence, revisions, deterministic listing,
-  reserved-default protection, safe path handling, and reference conflicts.
+- Add atomic normalized JSON persistence, revisions, deterministic listing,
+  reserved-default protection, YAML round trips, and reference conflicts.
 - Add the controller-template endpoints from section 3.8 with bounded bodies,
   stable diagnostics, and YAML/JSON content types.
-- Wire `CONTROLLER_TEMPLATE_DIR` into startup; an absent directory means no
-  custom templates.
+- Wire `CONTROLLER_DATA_FILE` into startup; an absent file means no custom
+  templates.
 
 **Tests**
 
 - Cover create/validate/update/delete/reopen, syntax line/column diagnostics,
-  semantic paths, stale revisions, default mutations, traversal/symlink
-  attempts, malformed/oversized input, rollback, and concurrent access.
+  semantic paths, stale revisions, default mutations, malformed/oversized
+  input, YAML/JSON round trips, rollback, and concurrent access.
 - Add API E2E coverage for viewing the default and round-tripping a constrained
   custom YAML template.
 
@@ -587,9 +715,10 @@ leave the prior file and in-memory state intact.
 
 **Suggested commit:** `feat(controllers): expose YAML template API`
 
-### Phase 4 - Frontend data layer and read-only catalogue
+### Phase 5 - Frontend data layer and read-only catalogue
 
-**Purpose:** Show point data before enabling mutations.
+**Purpose:** Show point definitions and source relationships before enabling
+point/group mutations.
 
 **Implementation**
 
@@ -600,8 +729,9 @@ leave the prior file and in-memory state intact.
   `/controller-templates` catalogue showing built-in/custom and read-only state.
 - Build semantic, responsive, paginated catalogue tables with filters, empty,
   loading, stale-request, and error states.
-- Display membership, implementation, direction, value type, units,
-  capabilities, and enabled state. Do not display fake live values.
+- Display membership, source, implementation, direction, value type, units,
+  capabilities, and enabled state. Catalogue values are shown only when backed
+  by a runtime envelope and are never fabricated.
 
 **Unit tests**
 
@@ -624,39 +754,60 @@ backend returning 404 by showing an actionable unavailable state.
 
 **Suggested commit:** `feat(ui): add accessible point catalogues`
 
-### Phase 5 - Frontend point and group CRUD
+### Phase 6 - Point/group YAML editing and live value detail
 
-**Purpose:** Complete definition management.
+**Purpose:** Complete YAML definition management and show a mapped point's real
+value on its definition screen.
 
 **Implementation**
 
-- Add create/edit forms with value-type-specific fieldsets and dependent fields.
-- Add group assignment and group binding/member mapping editors.
+- Add accessible labelled YAML create/edit screens with value-type and
+  source-specific examples, validation summary, line/column and field-path
+  diagnostics, and optional safe helper controls.
+- Add group source/default mapping and point source/mapping configuration. Point
+  source selection includes every compatible saved source and clearly shows
+  whether the source is direct or inherited from the group.
 - Add confirmation flows for deletion, conflicts, and make-standalone.
 - Preserve unsaved input after server validation/conflict errors.
 - Refresh revisions after successful writes and warn before navigating away
   with dirty forms.
+- Add the backend `PointReadService` and `/api/points/{pointId}/runtime`
+  envelope. Resolve direct/inherited source mappings and perform bounded,
+  read-only Home Assistant entity reads, MQTT state subscriptions, and
+  HTTP/JSON reads. Share connections safely where possible and mark every
+  timeout, disconnect, parse failure, or stale sample with explicit quality.
+- After a bound point is saved, start its read-only adapter and show the live
+  typed runtime envelope on the same point definition screen. Subscribe where
+  the source supports it; otherwise poll. Show value, units, quality,
+  reliability, source timestamp, age, connection state, and
+  live/cached/simulated/unavailable status with pause/retry controls.
 
 **Unit tests**
 
-- Conditional fields and defaults for all types.
+- YAML parsing/rendering, examples, and helper synchronization for all point
+  types and source mappings.
 - Client validation mirrors backend validation without replacing it.
-- Group reassignment, revision conflicts, delete conflicts, focus management,
-  dirty navigation, submission lock, and API failure recovery.
+- Direct/inherited source mapping, group reassignment, source-kind mismatch,
+  revision/delete conflicts, focus management, dirty navigation, submission
+  lock, runtime subscription/poll cancellation, stale-value presentation, and
+  API failure recovery.
 
 **E2E/smoke**
 
 - Add `e2e/pointsCrud.spec.ts`: create/edit/reload/delete every point type;
-  create a group with input and output members; move points between standalone
-  and grouped; reject group deletion while occupied; resolve conflict; verify
-  keyboard-only use and WCAG scans.
+  map Home Assistant, MQTT, and HTTP/JSON points; create a group whose members
+  share one source; move points between standalone and grouped; observe live
+  value/quality/timestamp changes on point detail; show disconnected and stale
+  states honestly; reject group deletion while occupied; resolve conflict; and
+  verify keyboard-only use and WCAG scans.
 
-**Commit gate:** Every CRUD journey survives a browser reload and no operation
-can create an orphan or multi-group membership.
+**Commit gate:** Every CRUD journey survives a browser reload, no operation can
+create an orphan or multi-group/source conflict, and a saved mapped point's
+definition screen shows its real value or an explicit unavailable state.
 
 **Suggested commit:** `feat(ui): manage points and point groups`
 
-### Phase 5A - Accessible custom-template YAML editing
+### Phase 6A - Accessible custom-template YAML editing
 
 **Purpose:** Let users manage custom targets without prematurely building a
 graphical schema editor.
@@ -681,7 +832,7 @@ to assistive technology without relying on colour.
 
 **Suggested commit:** `feat(ui): manage controller template YAML`
 
-### Phase 6 - Point nodes in the flow schema and toolbox
+### Phase 7 - Point nodes in the flow schema and toolbox
 
 **Purpose:** Make point endpoints authorable while keeping old flows valid.
 
@@ -719,11 +870,11 @@ to assistive technology without relying on colour.
 
 **Commit gate:** Existing flows load byte-semantically unchanged; new draft
 flows with point nodes save and reload; deployment remains guarded until phase
-7 validation is present.
+8 validation is present.
 
 **Suggested commit:** `feat(flows): add typed point nodes to the designer`
 
-### Phase 7 - Cross-resource validation and safe deletion
+### Phase 8 - Cross-resource validation and safe deletion
 
 **Purpose:** Ensure saved/deployed flows cannot reference incompatible points.
 
@@ -767,7 +918,7 @@ flows deploy as before.
 
 **Suggested commit:** `feat(points): validate flow references and safe deletion`
 
-### Phase 8 - Level-shifter authoring and validation
+### Phase 9 - Level-shifter authoring and validation
 
 **Purpose:** Provide an explicit, safe analog/digital conversion boundary.
 
@@ -801,9 +952,10 @@ cannot contain an invalid hysteresis configuration.
 
 **Suggested commit:** `feat(flows): add validated level shifter block`
 
-### Phase 9 - Runtime value store and virtual points
+### Phase 10 - Runtime value store and complete point detail
 
-**Purpose:** Execute point reads/writes safely for virtual points.
+**Purpose:** Promote on-demand mapped reads into the complete point runtime and
+execute virtual-point reads/writes safely.
 
 **Implementation**
 
@@ -813,7 +965,9 @@ cannot contain an invalid hysteresis configuration.
 - Implement read/write point execution and the level-shifter evaluator.
 - Add point snapshot/change APIs; use polling first if subscriptions are not yet
   available, while preserving sequence semantics for a future stream.
-- Mark bound points `bad/binding_not_configured` until a driver owns them.
+- Reuse the Phase 1 source adapters and Phase 6 point-detail envelopes rather
+  than opening duplicate connections; manage shared subscriptions/pollers by
+  source and group.
 - Refuse runtime construction when the deployed snapshot requests a capability
   outside its captured target contract.
 
@@ -827,15 +981,15 @@ cannot contain an invalid hysteresis configuration.
 **E2E/smoke**
 
 - Add `e2e/pointRuntime.spec.ts`: deploy a virtual-point flow, observe typed
-  values and quality, restart persistence fixture, and display unavailable
-  bound points honestly.
+  values and quality, restart persistence fixtures, share one source across
+  multiple points/groups, and preserve honest disconnected/stale bound states.
 
-**Commit gate:** Runtime supports virtual points only and cannot write external
-  equipment.
+**Commit gate:** Runtime reads mapped bound inputs and supports virtual points,
+but cannot write external equipment until command and safe-output phases.
 
 **Suggested commit:** `feat(points): execute virtual point values`
 
-### Phase 10 - Command arbitration and flow lifecycle
+### Phase 11 - Command arbitration and flow lifecycle
 
 **Purpose:** Make writable point behavior deterministic and safe.
 
@@ -864,16 +1018,18 @@ release protected commands.
 
 **Suggested commit:** `feat(points): add deterministic command arbitration`
 
-### Phase 11 - Binding/driver boundary and point-group I/O
+### Phase 12 - Binding/driver expansion and point-group I/O
 
-**Purpose:** Connect bound points without coupling protocols to the core model.
+**Purpose:** Expand beyond initial read adapters and connect safe bound outputs
+without coupling protocols to the core model.
 
 **Implementation**
 
 - Define driver interfaces for lifecycle, capability discovery, samples,
   commands, health, and group-level atomic/batched payloads.
-- Implement one low-risk reference driver (in-memory/test or loopback) before a
-  real protocol.
+- Make the Phase 1 Home Assistant, MQTT, and HTTP/JSON adapters satisfy the
+  shared driver contract; implement an in-memory/loopback conformance driver
+  before enabling writes or adding field protocols.
 - Apply input/output pipelines, timeouts, reconnection, scaling, explicit safe
   policies, and group update semantics.
 - Keep credential material behind references and redact it from logs/errors.
@@ -896,7 +1052,7 @@ output bindings without complete safe policies remain disabled.
 
 **Suggested commit:** `feat(points): add safe grouped binding runtime`
 
-### Phase 12 - Quality-aware flows, commissioning, alarms, and history
+### Phase 13 - Quality-aware flows, commissioning, alarms, and history
 
 **Purpose:** Complete the operational model from `.codex/point-types.md`.
 
@@ -937,10 +1093,11 @@ combined `state` enum.
 ## 6. Migration and compatibility strategy
 
 - Absence of `data/points.json` means an empty version-1 catalogue.
-- Absence of `controllerTemplateId` means the embedded `default`; absence of a
-  custom template directory means only the default is available.
+- Absence of `data/point-sources.json` means an empty source catalogue.
+- Absence of `controllerTemplateId` means the embedded `default`; absence of
+  `data/controllers.json` means only the default is available.
 - Never persist or overwrite the embedded default. Template schema changes
-  require fixture-tested migrations for custom YAML.
+  require fixture-tested YAML contract and normalized JSON migrations.
 - Never rewrite `flows.json` merely because the server starts.
 - Old flow node kinds and connector contracts remain accepted.
 - New fields added to point documents require a schema-version migration with
@@ -958,13 +1115,17 @@ combined `state` enum.
 
 ## 7. Test inventory
 
-By the end of phase 8, the repository should contain at least:
+By the end of phase 9, the repository should contain at least:
 
 ```text
 backend/internal/points/model_test.go
 backend/internal/points/store_test.go
 backend/internal/points/http_test.go
 backend/internal/points/service_test.go
+backend/internal/points/source_model_test.go
+backend/internal/points/source_store_test.go
+backend/internal/points/source_connectivity_test.go
+backend/internal/points/source_read_test.go
 backend/internal/flows/point_validation_test.go
 backend/internal/flows/level_shifter_test.go
 backend/internal/controllers/model_test.go
@@ -978,6 +1139,7 @@ frontend/flow-control-ui/src/features/flows/**/__tests__/*levelShifter*.spec.ts
 frontend/flow-control-ui/src/features/controllers/**/__tests__/*.spec.ts
 
 frontend/flow-control-ui/e2e/pointsApi.spec.ts
+frontend/flow-control-ui/e2e/pointSources.spec.ts
 frontend/flow-control-ui/e2e/pointsCatalogue.spec.ts
 frontend/flow-control-ui/e2e/pointsCrud.spec.ts
 frontend/flow-control-ui/e2e/designerPoints.spec.ts
@@ -995,6 +1157,11 @@ journeys rather than repeat the entire validation matrix.
 Before merging each phase, review:
 
 - **Persistence:** Is the write atomic, versioned, deterministic, and recoverable?
+- **Configuration boundary:** Are user-edited point/source/group/controller
+  documents canonical YAML while normalized durable state remains JSON?
+- **Sources:** Can one source safely serve many points/groups, are mappings
+  validated, and are connectivity tests bounded, cancellable, read-only, and
+  redacted?
 - **Compatibility:** Can the previous release's files and flows still load?
 - **Integrity:** Can a point be orphaned, multiply grouped, or silently cascaded?
 - **Targeting:** Is the default exhaustive/read-only, is custom YAML validated,
@@ -1006,6 +1173,8 @@ Before merging each phase, review:
 - **Accessibility:** Are semantics, labels, errors, focus, contrast, zoom, and
   keyboard paths covered?
 - **Observability:** Are operational failures visible without leaking secrets?
+- **Live value:** Does point detail show value, quality, timestamp, age, and
+  connection state without presenting cached or failed data as live?
 - **Testing:** Are positive, negative, persistence-failure, and regression cases
   present at the appropriate layer?
 - **Releaseability:** Can this exact commit build, run, and be rolled back

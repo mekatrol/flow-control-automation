@@ -97,6 +97,40 @@ Bad or missing input never silently becomes zero, false, or empty text. Quality,
 fallback, and inhibition are explicit runtime behaviour. Multiple writers use
 command arbitration rather than last-write-wins.
 
+## Point sources and live values
+
+A point source is a reusable external connection. Initial source kinds are Home
+Assistant, MQTT, and HTTP/JSON. The source owns server or broker location, TLS,
+timeouts, reconnect behaviour, and a credential reference. It never contains a
+literal secret. One source can serve many standalone points, multiple groups,
+and all members of those groups.
+
+A bound point maps to a source-relative entity, topic, JSON selector, or device
+address. A group can select a source and shared mapping defaults so members can
+share a subscription, poll, or atomic/batched operation. A point may inherit
+the group source or select one explicitly when group rules allow it. Deleting
+or changing a source is blocked while incompatible point/group references
+remain.
+
+Point sources are implemented before bound-point authoring. While editing an
+unsaved or saved source, the user can test connectivity in real time. The test
+reports cancellable DNS, TCP, TLS, authentication, and protocol stages with
+latency and redacted diagnostics. It is strictly read-only: it cannot publish
+MQTT, call a Home Assistant service, command a point, or issue mutating HTTP
+requests. Tests have bounded time, response size, redirect count, and
+concurrency, and HTTP destinations are subject to an explicit outbound-network
+policy to prevent SSRF.
+
+After a point is saved and mapped, its definition screen shows the actual typed
+present value with units, quality/reliability, source timestamp, age, source
+connection state, and whether it is live, cached, simulated, or unavailable.
+The screen subscribes where possible and otherwise polls with cancellation. A
+failure or stale timestamp changes the displayed status; the last known value
+must never continue to look current.
+
+Point configuration and live state stay separate. Editing YAML cannot overwrite
+a runtime value, and a connectivity test result is not a point sample.
+
 ## Controller templates
 
 A controller template declares what a target can represent and execute. It is a
@@ -286,11 +320,20 @@ continues to use `FLOW_DATA_FILE`. Point definitions, live point state,
 controller templates, deployed snapshots, commands, and audit/history have
 separate stores because they have different consistency and safety needs.
 
-User controller templates live under `CONTROLLER_TEMPLATE_DIR`. The embedded
-default is not copied into that directory and custom files cannot shadow it.
-Template APIs list/retrieve metadata, retrieve YAML, validate without saving,
-create, update, and delete. Mutations return revision conflicts rather than
-silently overwriting another editor.
+All configuration intended for user editing—point sources, point groups, point
+definitions, and controller templates—is represented as validated YAML. The
+backend converts it to typed models and persists normalized internal state as
+JSON. JSON remains the backend persistence format and may be used for runtime,
+list, and diagnostic API payloads, but it is not the user-editable
+configuration format. YAML and normalized JSON must round-trip without semantic
+loss.
+
+Custom controller templates are edited through YAML and persisted as normalized
+JSON under `CONTROLLER_DATA_FILE`. The embedded default is never written to that
+store and custom definitions cannot shadow it. Template APIs list/retrieve
+metadata, retrieve YAML, validate without saving, create, update, and delete.
+Mutations return revision conflicts rather than silently overwriting another
+editor.
 
 Cross-resource mutations and deployments go through a service layer capable of
 holding consistent snapshots across the flow, point, and template stores. A

@@ -35,8 +35,11 @@ the same time. A single `state` enum cannot describe all of those facts.
 The following terms have precise meanings:
 
 - **Point definition**: persistent configuration and metadata.
+- **Point source**: reusable connection configuration for an external system,
+  broker, API, or controller. One source can serve many points and groups.
 - **Point binding**: how a point exchanges data with memory, hardware, or an
-  external system.
+  external system through a point source, including the entity, topic, path, or
+  address that identifies this particular value.
 - **Present value**: the effective value currently exposed to flows and users.
 - **Raw value**: the unscaled value received from a binding, where applicable.
 - **Command**: a request from a flow, schedule, operator, safety function, or
@@ -98,9 +101,90 @@ but may not correspond to a wire. The UI may display friendlier subtypes such as
 **Physical I/O** and **External system**, while the engine treats both as bound
 points with different drivers.
 
-Each binding should define its address, read/write capability, polling or
-subscription behaviour, timeout, conversion, and reconnect policy. Secrets must
-be referenced through a credential store rather than embedded in the point.
+### Point sources and mappings
+
+A bound point does not duplicate server or broker connection settings. It
+references a reusable point source and supplies only its point-specific mapping.
+Initial source kinds are:
+
+- **Home Assistant**: base URL, credential reference, TLS policy, request
+  timeout, and optional event subscription settings;
+- **MQTT**: broker URL, credential/TLS references, client settings, keepalive,
+  and reconnect policy; and
+- **HTTP/JSON**: base URL, authentication/credential reference, TLS policy,
+  request timeout, polling defaults, and response-size limits.
+
+The dependency and creation order is:
+
+```text
+Create first                 Create second (optional)       Create last
+
++------------------+         +------------------+           +------------------+
+|   Point source   |<--------|   Point group    |<----------|  Grouped point   |
+|                  |         |                  |           |                  |
+| Home Assistant   |         | source_id        |           | group_id         |
+| MQTT             |         | mapping defaults |           | member mapping   |
+| HTTP/JSON        |         +------------------+           +------------------+
++------------------+
+        ^
+        |
+        | direct source_id
+        |
++------------------+
+| Standalone point |
+|                  |
+| source_id        |
+| point mapping    |
++------------------+
+
+Reference arrows point toward the dependency:
+
+  grouped point ----> point group ----> point source
+  standalone point -------------------> point source
+```
+
+Therefore a source must exist before a group can reference it, and a group must
+exist before a grouped point can reference the group. The group layer is
+optional: a standalone bound point can reference an existing source directly.
+Virtual points have no source dependency.
+
+Later field-protocol and controller drivers use the same boundary. A source can
+be referenced by any number of points and point groups. A group may declare a
+`source_id` and shared mapping defaults for efficient subscriptions, polling,
+or batched/atomic updates. A member point either inherits that source or
+explicitly selects a source; an explicit point source must not conflict with a
+group rule that requires one shared source.
+
+A point mapping contains only source-relative information:
+
+- Home Assistant entity ID and readable/commandable property or service;
+- MQTT state topic, optional command topic, QoS, retain policy, and payload
+  extraction/encoding;
+- HTTP relative path, method, headers that contain no secrets, JSON Pointer or
+  another explicitly supported selector, polling interval, and write mapping;
+  or
+- driver-specific channel/address and conversion settings.
+
+Each mapping defines read/write capability, polling or subscription behaviour,
+timeout overrides, conversion, and reconnect behaviour where applicable.
+Secrets are referenced through a credential store and are never embedded in a
+source, group, point, YAML document, log, diagnostic, or browser response.
+
+While creating or editing a source, the user can run a non-persistent real-time
+connectivity test. A test validates DNS/TCP/TLS/authentication and a lightweight
+protocol operation, returns structured stages, latency, server identity where
+safe, and a redacted failure reason. It does not save the source, publish MQTT
+messages, call Home Assistant services, or invoke mutating HTTP methods.
+Connectivity success is advisory rather than permanent: save is allowed after
+validation even when the external service is temporarily unreachable, but the
+UI records that the latest test failed or was not run.
+
+Connectivity testing must have bounded time, response size, redirects, and
+concurrency; cancellation must stop in-flight work. HTTP sources require an
+explicit server-side outbound-network policy to prevent SSRF, including rules
+for redirects and private/link-local destinations. MQTT client IDs used for
+tests are unique and short-lived. Test results and credentials are never
+persisted as live point values.
 
 ### Direction and capability
 
@@ -183,7 +267,8 @@ readable              whether clients and flows may read it
 commandable           whether authorised clients and flows may command it
 persistence           volatile | retained
 relinquish_default    value used when no command is active
-binding               driver-specific configuration, for bound points
+source_id             reusable source reference, for bound points
+mapping               source-relative entity/topic/path/address configuration
 limits                valid range, clamp/reject policy, and rate limits
 alarm                  optional alarm configuration
 history                optional trend configuration
@@ -467,6 +552,25 @@ complete runtime envelope rather than the value alone.
 
 ## Example points
 
+### Home Assistant source
+
+```yaml
+schemaVersion: 1
+id: home
+name: Home Assistant
+kind: home_assistant
+connection:
+  baseUrl: https://homeassistant.local:8123
+credentialRef: secret://home-assistant/api-token
+timeouts:
+  connectSeconds: 5
+  requestSeconds: 10
+```
+
+This YAML is user-editable configuration. The token is resolved only by the
+backend and is never returned to the browser or persisted in normalized JSON.
+The source can serve many points and groups.
+
 ### Supply-air temperature
 
 ```text
@@ -474,7 +578,8 @@ implementation: bound
 direction: input
 value_type: analog
 units: degC
-binding: controller AI-3
+source_id: home
+mapping: entity sensor.supply_air_temperature, property state
 range: -20 to 80 degC
 stale_timeout: 30 seconds
 ```
@@ -508,7 +613,8 @@ implementation: bound
 direction: output
 value_type: digital
 states: stopped/running
-binding: controller DO-2
+source_id: plant-controller
+mapping: channel DO-2
 minimum_off_time: 120 seconds
 safe_disable_policy: relinquish
 ```
@@ -536,10 +642,14 @@ feedback input.
 
 ## Backend and persistence expectations
 
-The backend should keep point definitions, current runtime state, commands, and
-history in separate stores or records. Definition updates are validated and
-versioned. Runtime updates use optimistic revision numbers or monotonic sequence
-numbers so clients can order events and reject stale writes.
+The backend should keep point sources, point/group definitions, current runtime
+state, commands, and history in separate stores or records. Point, group,
+source, and controller configuration exposed for user editing is YAML. The
+backend parses it into typed models and persists normalized internal state as
+JSON; YAML is not the runtime database and internal JSON is not presented as a
+user-editable configuration file. Definition updates are validated and
+versioned. Runtime updates use optimistic revision numbers or monotonic
+sequence numbers so clients can order events and reject stale writes.
 
 On restart:
 
@@ -565,7 +675,14 @@ The point manager should show, at a glance:
 - effective command source and priority; and
 - read/write capability.
 
-Point detail should separate configuration from live commissioning. A
+The point definition screen shows the current typed present value, units,
+quality/reliability, source timestamp, last update age, source connection state,
+and whether the value is live, cached, simulated, or unavailable. It subscribes
+to changes when streaming is available and otherwise polls with request
+cancellation and a visible refresh interval. A stale or failed read never
+continues to look live, and the last known value is labelled with its timestamp.
+
+Point detail should separate YAML configuration from live commissioning. A
 commissioning view should expose raw/source/present values, scaling, quality
 reason, binding health, command table, and readback. Potentially hazardous
 actions—taking a point out of service, persistent override, release all, or
