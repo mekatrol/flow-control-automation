@@ -13,6 +13,7 @@ TestResults/
 *.suo
 *.userosscache
 *.sln.docstates
+**/appsettings.Local.json
 
 # Vue and Vite output
 node_modules/
