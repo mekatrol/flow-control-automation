@@ -118,6 +118,30 @@ internal sealed class ProtocolCheckTests
             Is.EqualTo("MQTT credential must be JSON with username and password"));
     }
 
+    [TestCase(0x01, "MQTT connection rejected: unacceptable protocol version")]
+    [TestCase(0x02, "MQTT connection rejected: client identifier rejected")]
+    [TestCase(0x03, "MQTT connection rejected: broker unavailable")]
+    [TestCase(0x04, "MQTT connection rejected: bad username or password")]
+    [TestCase(0x05, "MQTT connection rejected: not authorized")]
+    [TestCase(0x80, "MQTT connection rejected: unknown CONNACK code 0x80")]
+    public async Task MqttCheckReportsConnackRejectionReason(
+        byte returnCode,
+        string expectedDiagnostic)
+    {
+        await using var stream = new ScriptedStream([0x20, 0x02, 0x00, returnCode]);
+        using var factory = new Api.FlowControlApplicationFactory();
+        await using var scope = factory.Services.CreateAsyncScope();
+        var check = scope.ServiceProvider.GetRequiredService<IMqttProtocolCheck>();
+
+        var diagnostic = await check.CheckAsync(
+            stream,
+            MqttSource(),
+            """{"username":"reader","password":"mqtt-secret"}""",
+            CancellationToken.None);
+
+        Assert.That(diagnostic, Is.EqualTo(expectedDiagnostic));
+    }
+
     private static Api.FlowControlApplicationFactory Factory(IDnsLookup dns) =>
         new(services =>
         {

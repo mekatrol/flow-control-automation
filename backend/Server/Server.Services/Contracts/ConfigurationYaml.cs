@@ -129,7 +129,6 @@ public static class ConfigurationYaml
     {
         var json = JsonSerializer.SerializeToNode(value, FlowControlJson.Options);
         return new SerializerBuilder()
-            .JsonCompatible()
             .DisableAliases()
             .Build()
             .Serialize(ToYamlValue(json));

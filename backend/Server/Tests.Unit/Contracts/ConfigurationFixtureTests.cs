@@ -153,7 +153,12 @@ public sealed class ConfigurationFixtureTests
             yaml,
             ConfigurationKind.PointSources);
 
-        var rendered = Encoding.UTF8.GetBytes(ConfigurationYaml.Render(document));
+        var renderedText = ConfigurationYaml.Render(document);
+        Assert.That(renderedText, Does.StartWith("schemaVersion: 1\nsources:\n"));
+        Assert.That(renderedText, Does.Contain("\n- id:"));
+        Assert.That(renderedText.TrimStart(), Does.Not.StartWith("{"));
+
+        var rendered = Encoding.UTF8.GetBytes(renderedText);
         var reparsed = ConfigurationYaml.Parse<PointSourceDocument>(
             rendered,
             ConfigurationKind.PointSources);

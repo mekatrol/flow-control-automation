@@ -53,9 +53,14 @@ internal sealed class MqttProtocolCheck(IConnectivityClock clock) : IMqttProtoco
             await stream.WriteAsync(Packet(0x10, payload), operationToken);
             var reply = new byte[4];
             await stream.ReadExactlyAsync(reply, operationToken);
-            if (reply[0] != 0x20 || reply[3] != 0)
+            if (reply[0] != 0x20 || reply[1] != 0x02)
             {
-                return "MQTT CONNACK rejected";
+                return "invalid MQTT CONNACK";
+            }
+
+            if (reply[3] != 0)
+            {
+                return MqttConnackRejection(reply[3]);
             }
 
             if (!string.IsNullOrEmpty(source.Connection.TestTopic))
@@ -125,6 +130,17 @@ internal sealed class MqttProtocolCheck(IConnectivityClock clock) : IMqttProtoco
         bytes.CopyTo(result, 2);
         return result;
     }
+
+    private static string MqttConnackRejection(byte returnCode) =>
+        returnCode switch
+        {
+            0x01 => "MQTT connection rejected: unacceptable protocol version",
+            0x02 => "MQTT connection rejected: client identifier rejected",
+            0x03 => "MQTT connection rejected: broker unavailable",
+            0x04 => "MQTT connection rejected: bad username or password",
+            0x05 => "MQTT connection rejected: not authorized",
+            _ => $"MQTT connection rejected: unknown CONNACK code 0x{returnCode:x2}",
+        };
 
     private sealed record MqttLogin(string Username, string Password);
 }

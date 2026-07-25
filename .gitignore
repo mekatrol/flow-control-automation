@@ -11,6 +11,7 @@ TestResults/
 *.userosscache
 *.sln.docstates
 **/appsettings.Local.json
+**/flow-control.db*
 
 # Vue and Vite output
 node_modules/
