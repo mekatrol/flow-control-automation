@@ -12,7 +12,7 @@ internal sealed class ControllerTemplateEndpointTests
     [Test]
     public async Task DefaultIsAlwaysAvailableAndReadOnly()
     {
-        using var factory = new Api.FlowControlApplicationFactory();
+        await using var factory = new Api.FlowControlApplicationFactory();
         using var client = factory.CreateClient();
 
         var template = await client.GetFromJsonAsync<ControllerTemplate>(
@@ -35,7 +35,7 @@ internal sealed class ControllerTemplateEndpointTests
     [Test]
     public async Task CustomTemplateRoundTripsWithRevisionAndReopens()
     {
-        using var factory = new Api.FlowControlApplicationFactory();
+        await using var factory = new Api.FlowControlApplicationFactory();
         using var client = factory.CreateClient();
         var input = Template();
 
@@ -86,7 +86,7 @@ internal sealed class ControllerTemplateEndpointTests
     [Test]
     public async Task ValidationReportsSemanticPathsAndSyntaxLocations()
     {
-        using var factory = new Api.FlowControlApplicationFactory();
+        await using var factory = new Api.FlowControlApplicationFactory();
         using var client = factory.CreateClient();
 
         using var semantic = await SendYaml(
@@ -109,7 +109,7 @@ internal sealed class ControllerTemplateEndpointTests
             Content = new StringContent(
                 "schemaVersion: 1\nid: [broken\n",
                 Encoding.UTF8,
-                "application/yaml"),
+                "application/yaml")
         };
         using var syntaxResponse = await client.SendAsync(syntax);
         var syntaxError = await syntaxResponse.Content.ReadFromJsonAsync<DefinitionErrorResponse>(
@@ -128,12 +128,12 @@ internal sealed class ControllerTemplateEndpointTests
     [Test]
     public async Task ListIsDeterministicAndIncludesDefault()
     {
-        using var factory = new Api.FlowControlApplicationFactory();
+        await using var factory = new Api.FlowControlApplicationFactory();
         using var client = factory.CreateClient();
         foreach (var template in new[]
         {
             Template() with { Id = "zulu", Name = "Zulu" },
-            Template() with { Id = "alpha", Name = "Alpha" },
+            Template() with { Id = "alpha", Name = "Alpha" }
         })
         {
             using var response = await SendYaml(
@@ -164,7 +164,7 @@ internal sealed class ControllerTemplateEndpointTests
             Content = new StringContent(
                 ControllerTemplateYaml.Render(template),
                 Encoding.UTF8,
-                "application/yaml"),
+                "application/yaml")
         };
         if (revision is not null)
         {
@@ -186,15 +186,15 @@ internal sealed class ControllerTemplateEndpointTests
             ConnectorDataTypes = ["boolean"],
             FlowFunctions = ["and", "read-point", "write-point"],
             ExecutionModes = ["interval"],
-            RuntimeFeatures = ["bound_points"],
+            RuntimeFeatures = ["bound_points"]
         },
         Limits = new()
         {
             MaxFlows = 8,
             MaxNodesPerFlow = 64,
             MaxConnectionsPerFlow = 96,
-            MinimumIntervalMilliseconds = 100,
-        },
+            MinimumIntervalMilliseconds = 100
+        }
     };
 
     private sealed record TemplateList(IReadOnlyList<ControllerTemplate> Items);

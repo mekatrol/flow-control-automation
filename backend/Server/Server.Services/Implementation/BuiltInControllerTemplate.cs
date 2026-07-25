@@ -28,7 +28,7 @@ public static class BuiltInControllerTemplate
             [
                 "virtual_points", "bound_points", "command_arbitration",
                 "quality_propagation",
-            ],
-        },
+            ]
+        }
     };
 }

@@ -26,14 +26,13 @@ internal sealed partial class CredentialDatabaseService(
 
     public async Task<IReadOnlyList<CredentialMetadata>> ListAsync(
         CancellationToken cancellationToken) =>
-        (await _context.Credentials
+        [.. (await _context.Credentials
                 .AsNoTracking()
                 .ToListAsync(cancellationToken))
             .Select(Deserialize)
             .Select(credential => credential.Metadata)
             .OrderBy(metadata => metadata.Name, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(metadata => metadata.Id, StringComparer.Ordinal)
-            .ToList();
+            .ThenBy(metadata => metadata.Id, StringComparer.Ordinal)];
 
     public async Task<CredentialMetadata> GetAsync(
         string id,
@@ -69,7 +68,7 @@ internal sealed partial class CredentialDatabaseService(
             Key = NormalizeName(metadata.Name),
             Json = Serialize(stored),
             Created = now,
-            Updated = now,
+            Updated = now
         });
 
         try
@@ -193,7 +192,7 @@ internal sealed partial class CredentialDatabaseService(
                     new Dictionary<string, string?>
                     {
                         ["username"] = credential.Metadata.Username,
-                        ["password"] = secret,
+                        ["password"] = secret
                     },
                     FlowControlJson.Options)
                 : secret;

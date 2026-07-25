@@ -10,5 +10,5 @@ public enum ConfigurationYamlError
     MultipleDocuments,
     UnsupportedSchema,
     UnknownField,
-    InvalidShape,
+    InvalidShape
 }

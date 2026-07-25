@@ -12,7 +12,7 @@ internal sealed class FlowEndpointTests
     [Test]
     public async Task CrudPersistsAcrossApplicationRestart()
     {
-        using var factory = new FlowControlApplicationFactory();
+        await using var factory = new FlowControlApplicationFactory();
         using var client = factory.CreateClient();
         var created = await CreateFlow(client, "Climate Control");
 
@@ -39,10 +39,10 @@ internal sealed class FlowEndpointTests
                     ZOrder = 1,
                     Configuration = new Dictionary<string, JsonElement>
                     {
-                        ["interval"] = JsonSerializer.SerializeToElement(60),
-                    },
+                        ["interval"] = JsonSerializer.SerializeToElement(60)
+                    }
                 },
-            ],
+            ]
         };
         using var saveResponse = await client.PutAsJsonAsync(
             $"/api/flows/{created.Id}",
@@ -74,7 +74,7 @@ internal sealed class FlowEndpointTests
     [Test]
     public async Task CreateMakesUniqueReadableIds()
     {
-        using var factory = new FlowControlApplicationFactory();
+        await using var factory = new FlowControlApplicationFactory();
         using var client = factory.CreateClient();
         var first = await CreateFlow(client, "Heating & Cooling");
         var second = await CreateFlow(client, "Heating & Cooling");
@@ -88,7 +88,7 @@ internal sealed class FlowEndpointTests
     [Test]
     public async Task ListFiltersSortsPaginatesAndClampsPage()
     {
-        using var factory = new FlowControlApplicationFactory();
+        await using var factory = new FlowControlApplicationFactory();
         using var client = factory.CreateClient();
         for (var index = 1; index <= 25; index++)
         {
@@ -122,7 +122,7 @@ internal sealed class FlowEndpointTests
     [TestCase("/api/flows?status=paused", "each status must be draft or deployed")]
     public async Task ListRejectsInvalidQueries(string path, string message)
     {
-        using var factory = new FlowControlApplicationFactory();
+        await using var factory = new FlowControlApplicationFactory();
         using var client = factory.CreateClient();
         using var response = await client.GetAsync(path);
         var error = await response.Content.ReadFromJsonAsync<Dictionary<string, string>>();
@@ -137,7 +137,7 @@ internal sealed class FlowEndpointTests
     [Test]
     public async Task SaveRejectsUnknownFieldsTrailingValuesAndMismatchedId()
     {
-        using var factory = new FlowControlApplicationFactory();
+        await using var factory = new FlowControlApplicationFactory();
         using var client = factory.CreateClient();
         var created = await CreateFlow(client, "Safe flow");
 
@@ -164,7 +164,7 @@ internal sealed class FlowEndpointTests
     [Test]
     public async Task RuntimeStartsStoppedDeploysAndHonorsDisableEnable()
     {
-        using var factory = new FlowControlApplicationFactory();
+        await using var factory = new FlowControlApplicationFactory();
         using var client = factory.CreateClient();
         var created = await CreateFlow(client, "Runtime flow");
 
@@ -207,7 +207,7 @@ internal sealed class FlowEndpointTests
     [Test]
     public async Task RuntimeRoutesReturnNotFoundForMissingFlow()
     {
-        using var factory = new FlowControlApplicationFactory();
+        await using var factory = new FlowControlApplicationFactory();
         using var client = factory.CreateClient();
         using var get = await client.GetAsync("/api/flows/missing/runtime");
         using var deploy = await client.PostAsync("/api/flows/missing/deploy", content: null);

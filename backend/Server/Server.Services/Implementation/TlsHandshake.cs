@@ -21,7 +21,7 @@ internal sealed class TlsHandshake : ITlsHandshake
                 new SslClientAuthenticationOptions
                 {
                     TargetHost = host,
-                    EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13,
+                    EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13
                 },
                 timeoutSource.Token);
             return tls;

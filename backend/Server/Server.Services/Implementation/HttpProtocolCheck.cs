@@ -35,7 +35,7 @@ internal sealed class HttpProtocolCheck(IDnsLookup dns) : IHttpProtocolCheck
             {
                 Timeout = TimeSpan.FromMilliseconds(
                     source.Timeouts.RequestMilliseconds
-                    ?? source.Timeouts.ConnectMilliseconds),
+                    ?? source.Timeouts.ConnectMilliseconds)
             };
             using var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
             if (credential.Length > 0)
@@ -163,7 +163,7 @@ internal sealed class HttpProtocolCheck(IDnsLookup dns) : IHttpProtocolCheck
             SslOptions = new SslClientAuthenticationOptions
             {
                 TargetHost = endpoint.Host,
-                EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13,
+                EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13
             },
             ConnectCallback = async (context, cancellationToken) =>
                 {

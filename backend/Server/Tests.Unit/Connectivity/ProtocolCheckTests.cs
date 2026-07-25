@@ -17,7 +17,7 @@ internal sealed class ProtocolCheckTests
         await using var server = await LoopbackHttpServer.Start(
             "HTTP/1.1 200 OK\r\nContent-Length: 20\r\nConnection: close\r\n\r\n"
             + "12345678901234567890");
-        using var factory = Factory(new FakeDns(IPAddress.Loopback));
+        await using var factory = Factory(new FakeDns(IPAddress.Loopback));
         await using var scope = factory.Services.CreateAsyncScope();
         var check = scope.ServiceProvider.GetRequiredService<IHttpProtocolCheck>();
         var source = HttpSource(server.Url) with
@@ -50,7 +50,7 @@ internal sealed class ProtocolCheckTests
             "HTTP/1.1 302 Found\r\n"
             + "Location: https://private.example.test/\r\n"
             + "Content-Length: 0\r\nConnection: close\r\n\r\n");
-        using var factory = Factory(new FakeDns(IPAddress.Parse("192.168.1.20")));
+        await using var factory = Factory(new FakeDns(IPAddress.Parse("192.168.1.20")));
         await using var scope = factory.Services.CreateAsyncScope();
         var check = scope.ServiceProvider.GetRequiredService<IHttpProtocolCheck>();
         var source = HttpSource(server.Url) with
@@ -75,10 +75,10 @@ internal sealed class ProtocolCheckTests
         var replies = new byte[]
         {
             0x20, 0x02, 0x00, 0x00,
-            0x90, 0x03, 0x00, 0x01, 0x01,
+            0x90, 0x03, 0x00, 0x01, 0x01
         };
         await using var stream = new ScriptedStream(replies);
-        using var factory = new Api.FlowControlApplicationFactory();
+        await using var factory = new Api.FlowControlApplicationFactory();
         await using var scope = factory.Services.CreateAsyncScope();
         var check = scope.ServiceProvider.GetRequiredService<IMqttProtocolCheck>();
         var source = MqttSource();
@@ -105,7 +105,7 @@ internal sealed class ProtocolCheckTests
     public async Task MqttCheckRejectsUnstructuredCredential()
     {
         await using var stream = new ScriptedStream([]);
-        using var factory = new Api.FlowControlApplicationFactory();
+        await using var factory = new Api.FlowControlApplicationFactory();
         await using var scope = factory.Services.CreateAsyncScope();
         var check = scope.ServiceProvider.GetRequiredService<IMqttProtocolCheck>();
         var diagnostic = await check.CheckAsync(
@@ -129,7 +129,7 @@ internal sealed class ProtocolCheckTests
         string expectedDiagnostic)
     {
         await using var stream = new ScriptedStream([0x20, 0x02, 0x00, returnCode]);
-        using var factory = new Api.FlowControlApplicationFactory();
+        await using var factory = new Api.FlowControlApplicationFactory();
         await using var scope = factory.Services.CreateAsyncScope();
         var check = scope.ServiceProvider.GetRequiredService<IMqttProtocolCheck>();
 
@@ -159,14 +159,14 @@ internal sealed class ProtocolCheckTests
             BaseUrl = uri.ToString(),
             AllowedReadMethods = ["GET"],
             FollowRedirects = false,
-            MaximumResponseBytes = 1024,
+            MaximumResponseBytes = 1024
         },
         Tls = new TlsOptions { VerifyServerCertificate = true },
         Timeouts = new PointSourceTimeouts
         {
             ConnectMilliseconds = 1000,
-            RequestMilliseconds = 1000,
-        },
+            RequestMilliseconds = 1000
+        }
     };
 
     private static PointSource MqttSource() => new()
@@ -179,14 +179,14 @@ internal sealed class ProtocolCheckTests
             BrokerUrl = "mqtt://example.test:1883",
             ClientIdPrefix = "test",
             TestTopic = "plant/temperature",
-            Qos = 1,
+            Qos = 1
         },
         Tls = new TlsOptions(),
         Timeouts = new PointSourceTimeouts
         {
             ConnectMilliseconds = 100,
-            RequestMilliseconds = 100,
-        },
+            RequestMilliseconds = 100
+        }
     };
 
     private sealed class FakeDns(IPAddress address) : IDnsLookup

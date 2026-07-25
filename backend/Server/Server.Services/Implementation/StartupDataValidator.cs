@@ -51,7 +51,7 @@ internal sealed class StartupDataValidator(
             new PointDocument
             {
                 Groups = groups,
-                Points = await pointDefinitions.ListPointsAsync(cancellationToken),
+                Points = await pointDefinitions.ListPointsAsync(cancellationToken)
             },
             sources);
 

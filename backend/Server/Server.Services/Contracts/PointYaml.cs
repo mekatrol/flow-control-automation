@@ -22,7 +22,7 @@ public static class PointYaml
         ArgumentNullException.ThrowIfNull(point);
         return ConfigurationYaml.Render(new PointDocument
         {
-            Points = [ForTransport(point)],
+            Points = [ForTransport(point)]
         });
     }
 
@@ -30,6 +30,6 @@ public static class PointYaml
     {
         Revision = 0,
         CreatedAt = null,
-        UpdatedAt = null,
+        UpdatedAt = null
     };
 }

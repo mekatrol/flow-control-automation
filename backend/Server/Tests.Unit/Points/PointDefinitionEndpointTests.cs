@@ -12,7 +12,7 @@ internal sealed class PointDefinitionEndpointTests
     [Test]
     public async Task PointAndGroupCrudUsesCanonicalYamlAndRevisions()
     {
-        using var factory = new Api.FlowControlApplicationFactory();
+        await using var factory = new Api.FlowControlApplicationFactory();
         using var client = factory.CreateClient();
 
         using var createGroup = await SendYaml(
@@ -92,7 +92,7 @@ internal sealed class PointDefinitionEndpointTests
     [Test]
     public async Task ListsFilterSortAndPaginateDeterministically()
     {
-        using var factory = new Api.FlowControlApplicationFactory();
+        await using var factory = new Api.FlowControlApplicationFactory();
         using var client = factory.CreateClient();
         using var group = await SendYaml(
             client,
@@ -142,7 +142,7 @@ internal sealed class PointDefinitionEndpointTests
     [TestCase("/api/point-groups?page=nope")]
     public async Task ListsRejectMalformedQueries(string path)
     {
-        using var factory = new Api.FlowControlApplicationFactory();
+        await using var factory = new Api.FlowControlApplicationFactory();
         using var client = factory.CreateClient();
         using var response = await client.GetAsync(path);
         await AssertError(response, HttpStatusCode.BadRequest, "invalid_query");
@@ -151,7 +151,7 @@ internal sealed class PointDefinitionEndpointTests
     [Test]
     public async Task StrictYamlBodyLimitsAndShapeAreEnforced()
     {
-        using var factory = new Api.FlowControlApplicationFactory();
+        await using var factory = new Api.FlowControlApplicationFactory();
         using var client = factory.CreateClient();
         const string duplicate = """
             schemaVersion: 1
@@ -207,7 +207,7 @@ internal sealed class PointDefinitionEndpointTests
     [Test]
     public async Task UnknownResourcesInvalidRevisionsAndPathMismatchAreStable()
     {
-        using var factory = new Api.FlowControlApplicationFactory();
+        await using var factory = new Api.FlowControlApplicationFactory();
         using var client = factory.CreateClient();
         using var missing = await client.GetAsync("/api/points/missing");
         await AssertError(missing, HttpStatusCode.NotFound, "not_found");
@@ -236,7 +236,7 @@ internal sealed class PointDefinitionEndpointTests
     [Test]
     public async Task RuntimeEnvelopeNeverFabricatesAnUninitializedValue()
     {
-        using var factory = new Api.FlowControlApplicationFactory();
+        await using var factory = new Api.FlowControlApplicationFactory();
         using var client = factory.CreateClient();
         using var created = await SendYaml(
             client,
@@ -271,13 +271,13 @@ internal sealed class PointDefinitionEndpointTests
         Direction = "value",
         ValueType = "analog",
         Readable = true,
-        Persistence = "volatile",
+        Persistence = "volatile"
     };
 
     private static PointGroup Group(string id, string name) => new()
     {
         Id = id,
-        Name = name,
+        Name = name
     };
 
     private static async Task<HttpResponseMessage> SendYaml(
@@ -289,7 +289,7 @@ internal sealed class PointDefinitionEndpointTests
     {
         var request = new HttpRequestMessage(method, path)
         {
-            Content = new StringContent(yaml, Encoding.UTF8, "application/yaml"),
+            Content = new StringContent(yaml, Encoding.UTF8, "application/yaml")
         };
         if (revision is not null)
         {

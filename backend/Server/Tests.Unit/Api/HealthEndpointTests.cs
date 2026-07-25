@@ -8,7 +8,7 @@ public sealed class HealthEndpointTests
     [Test]
     public async Task HealthReturnsCompatibleJson()
     {
-        using var factory = new FlowControlApplicationFactory();
+        await using var factory = new FlowControlApplicationFactory();
         using var client = factory.CreateClient();
 
         using var response = await client.GetAsync("/api/health");

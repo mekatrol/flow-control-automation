@@ -160,7 +160,7 @@ internal sealed class ControllerTemplateValidatorTests
                 MaxFlows = limit,
                 MaxNodesPerFlow = limit,
                 MaxConnectionsPerFlow = limit,
-                MinimumIntervalMilliseconds = limit,
+                MinimumIntervalMilliseconds = limit
             },
         };
 
@@ -247,7 +247,7 @@ internal sealed class ControllerTemplateValidatorTests
         {
             "schemaVersion: 1\nid: controller\nname: Controller\ncapabilities: &cap {}\nlimits: *cap\n",
             "schemaVersion: 1\nid: controller\nname: !custom Controller\ncapabilities: {}\nlimits: {}\n",
-            $"schemaVersion: 1\nid: controller\nname: Controller\ncapabilities:\n  pointTypes: [{string.Concat(Enumerable.Repeat("[", 21))}digital{string.Concat(Enumerable.Repeat("]", 21))}]\nlimits: {{}}\n",
+            $"schemaVersion: 1\nid: controller\nname: Controller\ncapabilities:\n  pointTypes: [{string.Concat(Enumerable.Repeat("[", 21))}digital{string.Concat(Enumerable.Repeat("]", 21))}]\nlimits: {{}}\n"
         };
 
         Assert.Multiple(() =>
@@ -300,8 +300,8 @@ internal sealed class ControllerTemplateValidatorTests
             MaxFlows = 8,
             MaxNodesPerFlow = 64,
             MaxConnectionsPerFlow = 96,
-            MinimumIntervalMilliseconds = 100,
-        },
+            MinimumIntervalMilliseconds = 100
+        }
     };
 
     private static ControllerCapabilities Capabilities() => new()
@@ -312,7 +312,7 @@ internal sealed class ControllerTemplateValidatorTests
         ConnectorDataTypes = ["boolean"],
         FlowFunctions = ["and", "read-point", "write-point"],
         ExecutionModes = ["interval"],
-        RuntimeFeatures = ["bound_points"],
+        RuntimeFeatures = ["bound_points"]
     };
 
     private static string Fixture(string file) =>

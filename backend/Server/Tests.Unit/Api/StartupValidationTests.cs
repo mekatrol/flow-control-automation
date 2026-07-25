@@ -14,7 +14,7 @@ internal sealed class StartupValidationTests
     [Test]
     public async Task ValidatorRejectsMalformedStoredFlow()
     {
-        using var factory = new FlowControlApplicationFactory();
+        await using var factory = new FlowControlApplicationFactory();
         using var client = factory.CreateClient();
         await using (var scope = factory.Services.CreateAsyncScope())
         {
@@ -25,7 +25,7 @@ internal sealed class StartupValidationTests
                 Key = "damaged",
                 Json = "{not-json",
                 Created = DateTimeOffset.UtcNow,
-                Updated = DateTimeOffset.UtcNow,
+                Updated = DateTimeOffset.UtcNow
             });
             await context.SaveChangesAsync(CancellationToken.None);
         }
@@ -40,7 +40,7 @@ internal sealed class StartupValidationTests
     [Test]
     public async Task ValidatorRejectsUndecryptableStoredCredential()
     {
-        using var factory = new FlowControlApplicationFactory();
+        await using var factory = new FlowControlApplicationFactory();
         using var client = factory.CreateClient();
         await using (var scope = factory.Services.CreateAsyncScope())
         {
@@ -51,7 +51,7 @@ internal sealed class StartupValidationTests
                     Id = "damaged",
                     Name = "Damaged",
                     Kind = "token",
-                    Token = "temporary-test-material",
+                    Token = "temporary-test-material"
                 },
                 CancellationToken.None);
         }

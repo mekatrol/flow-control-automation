@@ -71,7 +71,7 @@ internal sealed class ControllerTemplateFileStore(
                 ReadOnly = false,
                 Revision = 1,
                 CreatedAt = now,
-                UpdatedAt = now,
+                UpdatedAt = now
             };
             await Persist(
                 document with
@@ -119,15 +119,13 @@ internal sealed class ControllerTemplateFileStore(
                 ReadOnly = false,
                 Revision = previous.Revision + 1,
                 CreatedAt = previous.CreatedAt,
-                UpdatedAt = Timestamp(_timeProvider.GetUtcNow()),
+                UpdatedAt = Timestamp(_timeProvider.GetUtcNow())
             };
             await Persist(
                 document with
                 {
                     Revision = document.Revision + 1,
-                    Templates = document.Templates
-                        .Select(item => item.Id == id ? updated : item)
-                        .ToArray(),
+                    Templates = [.. document.Templates.Select(item => item.Id == id ? updated : item)]
                 },
                 cancellationToken);
             return updated;
@@ -159,7 +157,7 @@ internal sealed class ControllerTemplateFileStore(
                 document with
                 {
                     Revision = document.Revision + 1,
-                    Templates = document.Templates.Where(item => item.Id != id).ToArray(),
+                    Templates = [.. document.Templates.Where(item => item.Id != id)]
                 },
                 cancellationToken);
         }
@@ -230,9 +228,9 @@ internal sealed class ControllerTemplateFileStore(
                     stream,
                     document with
                     {
-                        Templates = document.Templates.OrderBy(
+                        Templates = [.. document.Templates.OrderBy(
                             item => item.Id,
-                            StringComparer.Ordinal).ToArray(),
+                            StringComparer.Ordinal)]
                     },
                     FlowControlJson.Options,
                     cancellationToken);

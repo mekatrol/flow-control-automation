@@ -79,7 +79,7 @@ public sealed class ConfigurationFixtureTests
             actual = new JsonObject
             {
                 ["schemaVersion"] = schemaVersion,
-                ["templates"] = new JsonArray(controller),
+                ["templates"] = new JsonArray(controller)
             };
         }
 
@@ -118,7 +118,7 @@ public sealed class ConfigurationFixtureTests
             ("schemaVersion: 1\nsources: []\n---\nschemaVersion: 1\nsources: []\n", ConfigurationYamlError.MultipleDocuments),
             (
                 $"schemaVersion: 1\nsources:\n  - id: source\n    name: source\n    enabled: true\n    kind: http_json\n    connection:\n{new string(' ', 8)}nested: [{string.Concat(Enumerable.Repeat("[", 21))}0{string.Concat(Enumerable.Repeat("]", 21))}]\n    tls: {{verifyServerCertificate: true}}\n    timeouts: {{connectMilliseconds: 100}}\n",
-                ConfigurationYamlError.ExcessiveNesting),
+                ConfigurationYamlError.ExcessiveNesting)
         };
 
         Assert.Multiple(() =>

@@ -11,7 +11,7 @@ internal sealed class PointSourceEndpointTests
     [Test]
     public async Task CrudUsesYamlEtagsAndRevisionConflicts()
     {
-        using var factory = new Api.FlowControlApplicationFactory();
+        await using var factory = new Api.FlowControlApplicationFactory();
         using var client = factory.CreateClient();
         var source = ValidHttpSource();
 
@@ -73,14 +73,14 @@ internal sealed class PointSourceEndpointTests
     [Test]
     public async Task ListFiltersSortsPaginatesAndPersistsAcrossScopes()
     {
-        using var factory = new Api.FlowControlApplicationFactory();
+        await using var factory = new Api.FlowControlApplicationFactory();
         using var client = factory.CreateClient();
         for (var index = 1; index <= 12; index++)
         {
             var source = ValidHttpSource() with
             {
                 Id = $"weather-{index}",
-                Name = $"Weather {index:00}",
+                Name = $"Weather {index:00}"
             };
             using var response = await SendYaml(
                 client,
@@ -114,7 +114,7 @@ internal sealed class PointSourceEndpointTests
     [TestCase("/api/point-sources?sort=sideways")]
     public async Task ListRejectsInvalidQueries(string path)
     {
-        using var factory = new Api.FlowControlApplicationFactory();
+        await using var factory = new Api.FlowControlApplicationFactory();
         using var client = factory.CreateClient();
         using var response = await client.GetAsync(path);
         var error = await response.Content.ReadFromJsonAsync<Dictionary<string, string>>();
@@ -128,7 +128,7 @@ internal sealed class PointSourceEndpointTests
     [Test]
     public async Task ValidationAndDuplicateNamesRollBack()
     {
-        using var factory = new Api.FlowControlApplicationFactory();
+        await using var factory = new Api.FlowControlApplicationFactory();
         using var client = factory.CreateClient();
         var source = ValidHttpSource();
         using var created = await SendYaml(client, HttpMethod.Post, "/api/point-sources", source);
@@ -149,7 +149,7 @@ internal sealed class PointSourceEndpointTests
             {
                 Id = "unsafe",
                 Name = "Unsafe",
-                Connection = source.Connection with { AllowedReadMethods = ["POST"] },
+                Connection = source.Connection with { AllowedReadMethods = ["POST"] }
             });
         Assert.That(unsafeMethod.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
 
@@ -160,7 +160,7 @@ internal sealed class PointSourceEndpointTests
     [Test]
     public async Task UpdateRequiresIfMatchAndMatchingPath()
     {
-        using var factory = new Api.FlowControlApplicationFactory();
+        await using var factory = new Api.FlowControlApplicationFactory();
         using var client = factory.CreateClient();
         var source = ValidHttpSource();
         using var created = await SendYaml(client, HttpMethod.Post, "/api/point-sources", source);
@@ -187,7 +187,7 @@ internal sealed class PointSourceEndpointTests
     [Test]
     public async Task StrictYamlAndRequestLimitAreEnforced()
     {
-        using var factory = new Api.FlowControlApplicationFactory();
+        await using var factory = new Api.FlowControlApplicationFactory();
         using var client = factory.CreateClient();
         const string duplicate = """
             schemaVersion: 1
@@ -229,14 +229,14 @@ internal sealed class PointSourceEndpointTests
             BaseUrl = "https://example.test",
             AllowedReadMethods = ["GET"],
             FollowRedirects = false,
-            MaximumResponseBytes = 1024,
+            MaximumResponseBytes = 1024
         },
         Tls = new TlsOptions { VerifyServerCertificate = true },
         Timeouts = new PointSourceTimeouts
         {
             ConnectMilliseconds = 100,
-            RequestMilliseconds = 100,
-        },
+            RequestMilliseconds = 100
+        }
     };
 
     private static async Task<HttpResponseMessage> SendYaml(
@@ -251,7 +251,7 @@ internal sealed class PointSourceEndpointTests
             Content = new StringContent(
                 PointSourceYaml.Render(source),
                 Encoding.UTF8,
-                "application/yaml"),
+                "application/yaml")
         };
         if (revision is not null)
         {

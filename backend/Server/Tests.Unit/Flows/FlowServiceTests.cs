@@ -114,7 +114,7 @@ public sealed class FlowServiceTests
                     {
                         Id = "node",
                         Kind = "unknown",
-                        Label = "Node",
+                        Label = "Node"
                     },
                 ],
             };
@@ -175,7 +175,7 @@ public sealed class FlowServiceTests
                 {
                     Configuration = new Dictionary<string, JsonElement>
                     {
-                        ["nested"] = JsonSerializer.Deserialize<JsonElement>("{}"),
+                        ["nested"] = JsonSerializer.Deserialize<JsonElement>("{}")
                     },
                 },
             ],
@@ -224,7 +224,7 @@ public sealed class FlowServiceTests
             {
                 [ServerOptions.AddressConfigurationKey] = "http://127.0.0.1:0",
                 [$"{DatabaseOptions.SectionName}:{DatabaseOptions.FlowControlConfigurationKey}"] =
-                    _connectionString,
+                    _connectionString
             })
             .Build();
         var services = new ServiceCollection();
@@ -245,7 +245,7 @@ public sealed class FlowServiceTests
         Label = id,
         Connectors =
         [
-            new("connector", "Connector", direction, dataType, "right"),
-        ],
+            new("connector", "Connector", direction, dataType, "right")
+        ]
     };
 }

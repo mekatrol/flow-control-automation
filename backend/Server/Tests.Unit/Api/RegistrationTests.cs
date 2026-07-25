@@ -19,7 +19,7 @@ public sealed class RegistrationTests
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 [$"{DatabaseOptions.SectionName}:{DatabaseOptions.FlowControlConfigurationKey}"] =
-                    "Data Source=:memory:",
+                    "Data Source=:memory:"
             })
             .Build();
         var services = new ServiceCollection();
@@ -46,7 +46,7 @@ public sealed class RegistrationTests
                 [ServerOptions.AddressConfigurationKey] = address,
                 [ServerOptions.CredentialEncryptionKeyConfigurationKey] = encryptionKey,
                 [$"{DatabaseOptions.SectionName}:{DatabaseOptions.FlowControlConfigurationKey}"] =
-                    connectionString,
+                    connectionString
             })
             .Build();
         var services = new ServiceCollection();

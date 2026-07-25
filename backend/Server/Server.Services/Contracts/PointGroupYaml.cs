@@ -28,9 +28,9 @@ public static class PointGroupYaml
                 {
                     Revision = 0,
                     CreatedAt = null,
-                    UpdatedAt = null,
-                },
-            ],
+                    UpdatedAt = null
+                }
+            ]
         });
     }
 }

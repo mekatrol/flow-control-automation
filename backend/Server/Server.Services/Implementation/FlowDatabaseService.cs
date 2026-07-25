@@ -101,7 +101,7 @@ internal sealed class FlowDatabaseService(
         {
             Id = id,
             Name = trimmedName,
-            UpdatedAt = now,
+            UpdatedAt = now
         };
         FlowValidator.Validate(flow);
         context.Flows.Add(new FlowEntity
@@ -110,7 +110,7 @@ internal sealed class FlowDatabaseService(
             Key = id,
             Json = Serialize(flow),
             Created = timeProvider.GetUtcNow(),
-            Updated = timeProvider.GetUtcNow(),
+            Updated = timeProvider.GetUtcNow()
         });
 
         try
@@ -155,7 +155,7 @@ internal sealed class FlowDatabaseService(
         var saved = Deserialize(entity) with
         {
             Disabled = disabled,
-            UpdatedAt = Timestamp(),
+            UpdatedAt = Timestamp()
         };
         entity.Json = Serialize(saved);
         entity.Updated = timeProvider.GetUtcNow();

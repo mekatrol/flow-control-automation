@@ -15,7 +15,7 @@ internal sealed class ConnectivityEndpointTests
     public async Task UnsavedTestRejectsPrivateAndLoopbackDestinations()
     {
         var dns = new FakeDns(IPAddress.Parse("192.168.1.20"));
-        using var factory = Factory(dns: dns);
+        await using var factory = Factory(dns: dns);
         using var client = factory.CreateClient();
 
         using var privateResponse = await TestUnsaved(client, ValidHttpSource());
@@ -29,7 +29,7 @@ internal sealed class ConnectivityEndpointTests
                 Connection = ValidHttpSource().Connection with
                 {
                     AllowPrivateNetwork = true,
-                },
+                }
             });
         var loopbackResult =
             await loopbackResponse.Content.ReadFromJsonAsync<ConnectivityResult>(
@@ -49,16 +49,14 @@ internal sealed class ConnectivityEndpointTests
     public async Task PrivateNetworkOptInPassesWithInjectedProtocolChecks()
     {
         var http = new FakeHttpCheck();
-        using var factory = Factory(
-            dns: new FakeDns(IPAddress.Parse("192.168.1.20")),
-            http: http);
+        await using var factory = Factory(dns: new FakeDns(IPAddress.Parse("192.168.1.20")), http: http);
         using var client = factory.CreateClient();
         var source = ValidHttpSource() with
         {
             Connection = ValidHttpSource().Connection with
             {
                 AllowPrivateNetwork = true,
-            },
+            }
         };
 
         using var response = await TestUnsaved(client, source);
@@ -79,7 +77,7 @@ internal sealed class ConnectivityEndpointTests
     {
         const string credential = "sensitive-connectivity-token";
         var http = new FakeHttpCheck();
-        using var factory = Factory(
+        await using var factory = Factory(
             dns: new FakeDns(IPAddress.Parse("8.8.8.8")),
             http: http,
             resolver: new FakeResolver(credential));
@@ -108,7 +106,7 @@ internal sealed class ConnectivityEndpointTests
     [Test]
     public async Task EleventhTestForClientIsRateLimited()
     {
-        using var factory = Factory(
+        await using var factory = Factory(
             dns: new FakeDns(IPAddress.Parse("8.8.8.8")));
         using var client = factory.CreateClient();
         ConnectivityResult? result = null;
@@ -130,7 +128,7 @@ internal sealed class ConnectivityEndpointTests
     [Test]
     public async Task CancellationProducesRedactedDiagnostic()
     {
-        using var factory = Factory(dns: new FakeDns(cancel: true));
+        await using var factory = Factory(dns: new FakeDns(cancel: true));
         using var client = factory.CreateClient();
         using var response = await TestUnsaved(client, ValidHttpSource());
         var result = await response.Content.ReadFromJsonAsync<ConnectivityResult>(
@@ -148,7 +146,7 @@ internal sealed class ConnectivityEndpointTests
     [Test]
     public async Task InvalidUnsavedSourceReturnsValidationStage()
     {
-        using var factory = Factory();
+        await using var factory = Factory();
         using var client = factory.CreateClient();
         var source = ValidHttpSource() with
         {
@@ -171,7 +169,7 @@ internal sealed class ConnectivityEndpointTests
     [Test]
     public async Task MissingSavedSourceReturnsNotFound()
     {
-        using var factory = Factory();
+        await using var factory = Factory();
         using var client = factory.CreateClient();
         using var response = await client.PostAsync(
             "/api/point-sources/missing/test",
@@ -226,14 +224,14 @@ internal sealed class ConnectivityEndpointTests
         {
             BaseUrl = "https://example.test",
             AllowedReadMethods = ["GET"],
-            MaximumResponseBytes = 1024,
+            MaximumResponseBytes = 1024
         },
         Tls = new TlsOptions { VerifyServerCertificate = true },
         Timeouts = new PointSourceTimeouts
         {
             ConnectMilliseconds = 100,
-            RequestMilliseconds = 100,
-        },
+            RequestMilliseconds = 100
+        }
     };
 
     private sealed class FakeDns(

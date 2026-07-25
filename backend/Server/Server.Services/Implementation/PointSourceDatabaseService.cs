@@ -41,7 +41,7 @@ internal sealed class PointSourceDatabaseService(
         var pageCount = Math.Max(1, (items.Count + options.PageSize - 1) / options.PageSize);
         var page = Math.Clamp(options.Page, 1, pageCount);
         return new(
-            items.Skip((page - 1) * options.PageSize).Take(options.PageSize).ToList(),
+            [.. items.Skip((page - 1) * options.PageSize).Take(options.PageSize)],
             items.Count,
             page,
             options.PageSize,
@@ -69,7 +69,7 @@ internal sealed class PointSourceDatabaseService(
         {
             Revision = 1,
             CreatedAt = Timestamp(now),
-            UpdatedAt = Timestamp(now),
+            UpdatedAt = Timestamp(now)
         };
         context.PointSources.Add(new PointSourceEntity
         {
@@ -80,7 +80,7 @@ internal sealed class PointSourceDatabaseService(
             Key = NormalizeName(created.Name),
             Json = Serialize(created),
             Created = now,
-            Updated = now,
+            Updated = now
         });
         try
         {
@@ -128,7 +128,7 @@ internal sealed class PointSourceDatabaseService(
         {
             Revision = previous.Revision + 1,
             CreatedAt = previous.CreatedAt,
-            UpdatedAt = Timestamp(now),
+            UpdatedAt = Timestamp(now)
         };
         entity.Json = Serialize(updated);
         entity.Key = NormalizeName(updated.Name);

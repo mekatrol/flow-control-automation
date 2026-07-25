@@ -24,7 +24,7 @@ public static class PointSourceYaml
         {
             Revision = 0,
             CreatedAt = null,
-            UpdatedAt = null,
+            UpdatedAt = null
         };
         return ConfigurationYaml.Render(
             new PointSourceDocument { Sources = [transportSource] });

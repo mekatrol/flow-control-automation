@@ -303,7 +303,10 @@ dotnet_naming_rule.private_readonly_fields_none.severity = none
 
 #### Diagnostic settings (Warning and Errors)  ####
 
-# CA1050: Declare types in namespaces.
+# CA1861: Avoid constant arrays as arguments
+dotnet_diagnostic.CA1861.severity = none
+
+# CA1050: Declare types in namespaces
 dotnet_diagnostic.CA1050.severity = error
 
 # CS8618: Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
@@ -312,10 +315,10 @@ dotnet_diagnostic.CS8618.severity = none
 # CS1591: Missing XML comment for publicly visible type or member
 dotnet_diagnostic.CS1591.severity = none
 
-# IDE0005: Using directive is unnecessary.
+# IDE0005: Using directive is unnecessary
 dotnet_diagnostic.IDE0005.severity = error
 
-# IDE0011: Enforce braces.
+# IDE0011: Enforce braces
 dotnet_diagnostic.IDE0011.severity = error
 
 # IDE0051: Remove unused headers
@@ -342,8 +345,14 @@ dotnet_diagnostic.IDE0130.severity = error
 # IDE0290: Use primary constructor
 dotnet_diagnostic.IDE0290.severity = error
 
+# IDE0305: Use collection expression for fluent
+dotnet_diagnostic.IDE0305.severity = error
+
 # Naming violation rule
 dotnet_diagnostic.IDE1006.severity = error
+
+# RCS1194: Implement exception constructors
+dotnet_diagnostic.RCS1194.severity = none
 
 # RCS1245: Remove redundant comma after last element in an initializer
 dotnet_diagnostic.RCS1245.severity = error

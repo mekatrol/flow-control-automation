@@ -14,11 +14,10 @@ internal sealed class PointDefinitionDatabaseStore(
 {
     public async Task<IReadOnlyList<Point>> ListPointsAsync(
         CancellationToken cancellationToken) =>
-        (await context.Points.AsNoTracking().ToListAsync(cancellationToken))
+        [.. (await context.Points.AsNoTracking().ToListAsync(cancellationToken))
         .Select(DeserializePoint)
         .OrderBy(point => point.Name, StringComparer.OrdinalIgnoreCase)
-        .ThenBy(point => point.Id, StringComparer.Ordinal)
-        .ToArray();
+        .ThenBy(point => point.Id, StringComparer.Ordinal)];
 
     public async Task<Point> GetPointAsync(
         string id,
@@ -42,7 +41,7 @@ internal sealed class PointDefinitionDatabaseStore(
         {
             Revision = 1,
             CreatedAt = Timestamp(now),
-            UpdatedAt = Timestamp(now),
+            UpdatedAt = Timestamp(now)
         };
         context.Points.Add(Entity(created, now));
         await SaveCreate("point ID or name already exists", cancellationToken);
@@ -69,7 +68,7 @@ internal sealed class PointDefinitionDatabaseStore(
         {
             Revision = previous.Revision + 1,
             CreatedAt = previous.CreatedAt,
-            UpdatedAt = Timestamp(now),
+            UpdatedAt = Timestamp(now)
         };
         Update(entity, updated, now);
         await SaveUpdate(entity, "point name already exists", cancellationToken);
@@ -89,11 +88,10 @@ internal sealed class PointDefinitionDatabaseStore(
 
     public async Task<IReadOnlyList<PointGroup>> ListGroupsAsync(
         CancellationToken cancellationToken) =>
-        (await context.PointGroups.AsNoTracking().ToListAsync(cancellationToken))
+        [.. (await context.PointGroups.AsNoTracking().ToListAsync(cancellationToken))
         .Select(DeserializeGroup)
         .OrderBy(group => group.Name, StringComparer.OrdinalIgnoreCase)
-        .ThenBy(group => group.Id, StringComparer.Ordinal)
-        .ToArray();
+        .ThenBy(group => group.Id, StringComparer.Ordinal)];
 
     public async Task<PointGroup> GetGroupAsync(
         string id,
@@ -117,7 +115,7 @@ internal sealed class PointDefinitionDatabaseStore(
         {
             Revision = 1,
             CreatedAt = Timestamp(now),
-            UpdatedAt = Timestamp(now),
+            UpdatedAt = Timestamp(now)
         };
         context.PointGroups.Add(Entity(created, now));
         await SaveCreate("group ID or name already exists", cancellationToken);
@@ -160,7 +158,7 @@ internal sealed class PointDefinitionDatabaseStore(
         {
             Revision = previous.Revision + 1,
             CreatedAt = previous.CreatedAt,
-            UpdatedAt = Timestamp(now),
+            UpdatedAt = Timestamp(now)
         };
         Update(entity, updated, now);
         await SaveUpdate(entity, "group name already exists", cancellationToken);
@@ -214,7 +212,7 @@ internal sealed class PointDefinitionDatabaseStore(
                 GroupId = null,
                 SourceId = point.SourceId ?? group.SourceId,
                 Revision = point.Revision + 1,
-                UpdatedAt = Timestamp(now),
+                UpdatedAt = Timestamp(now)
             };
             validator.Validate(standalone, validationContext);
             updates.Add((entity, standalone));
@@ -226,11 +224,10 @@ internal sealed class PointDefinitionDatabaseStore(
         }
 
         await SaveUpdate(entity: null, "unable to make points standalone", cancellationToken);
-        return updates
+        return [.. updates
             .Select(update => update.Point)
             .OrderBy(point => point.Name, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(point => point.Id, StringComparer.Ordinal)
-            .ToArray();
+            .ThenBy(point => point.Id, StringComparer.Ordinal)];
     }
 
     private async Task<PointValidationContext> Context(
@@ -311,7 +308,7 @@ internal sealed class PointDefinitionDatabaseStore(
         Key = NormalizeName(point.Name),
         Json = JsonSerializer.Serialize(point, FlowControlJson.Options),
         Created = now,
-        Updated = now,
+        Updated = now
     };
 
     private static PointGroupEntity Entity(PointGroup group, DateTimeOffset now) => new()
@@ -320,7 +317,7 @@ internal sealed class PointDefinitionDatabaseStore(
         Key = NormalizeName(group.Name),
         Json = JsonSerializer.Serialize(group, FlowControlJson.Options),
         Created = now,
-        Updated = now,
+        Updated = now
     };
 
     private static void Update(PointEntity entity, Point point, DateTimeOffset now)

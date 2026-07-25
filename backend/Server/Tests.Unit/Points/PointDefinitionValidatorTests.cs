@@ -24,7 +24,7 @@ internal sealed class PointDefinitionValidatorTests
         {
             ["ha"] = Source("ha", "home_assistant"),
             ["mqtt"] = Source("mqtt", "mqtt"),
-            ["http"] = Source("http", "http_json"),
+            ["http"] = Source("http", "http_json")
         };
     }
 
@@ -145,7 +145,7 @@ internal sealed class PointDefinitionValidatorTests
             StateLabels = new JsonArray
             {
                 new JsonObject { ["key"] = "off", ["label"] = "Off" },
-                new JsonObject { ["key"] = "off", ["label"] = "On" },
+                new JsonObject { ["key"] = "off", ["label"] = "On" }
             },
         };
 
@@ -173,7 +173,7 @@ internal sealed class PointDefinitionValidatorTests
     {
         var groups = new Dictionary<string, PointGroup>
         {
-            ["group"] = new() { Id = "group", Name = "Group", SourceId = "ha" },
+            ["group"] = new() { Id = "group", Name = "Group", SourceId = "ha" }
         };
         var inherited = BoundPoint("input", true, false) with
         {
@@ -213,7 +213,7 @@ internal sealed class PointDefinitionValidatorTests
             {
                 ["path"] = "/value",
                 ["method"] = "GET",
-                ["authorization"] = "Bearer literal",
+                ["authorization"] = "Bearer literal"
             },
         };
 
@@ -234,13 +234,13 @@ internal sealed class PointDefinitionValidatorTests
         var points = new[]
         {
             VirtualPoint("analog"),
-            VirtualPoint("analog") with { Id = "second", Name = "POINT" },
+            VirtualPoint("analog") with { Id = "second", Name = "POINT" }
         };
         var duplicate = new PointDocument { Points = points };
         var reserved = new PointGroup
         {
             Id = "standalone",
-            Name = "__standalonepointgroup__",
+            Name = "__standalonepointgroup__"
         };
 
         Assert.Multiple(() =>
@@ -337,7 +337,7 @@ internal sealed class PointDefinitionValidatorTests
             Commandable = commandable,
             Persistence = "volatile",
             SourceId = "mqtt",
-            Mapping = mqttMapping,
+            Mapping = mqttMapping
         };
     }
 
@@ -355,13 +355,13 @@ internal sealed class PointDefinitionValidatorTests
             "multi_state" => new JsonArray
             {
                 new JsonObject { ["key"] = "off", ["label"] = "Off" },
-                new JsonObject { ["key"] = "on", ["label"] = "On" },
+                new JsonObject { ["key"] = "on", ["label"] = "On" }
             },
             _ => null,
         },
         Readable = true,
         Commandable = false,
-        Persistence = "volatile",
+        Persistence = "volatile"
     };
 
     private static JsonObject Safety() => new()
@@ -369,7 +369,7 @@ internal sealed class PointDefinitionValidatorTests
         ["startup"] = "relinquish",
         ["shutdown"] = "relinquish",
         ["communicationLoss"] = "relinquish",
-        ["disable"] = "relinquish",
+        ["disable"] = "relinquish"
     };
 
     private static PointSource Source(string id, string kind) => new()
@@ -378,7 +378,7 @@ internal sealed class PointDefinitionValidatorTests
         Name = id,
         Enabled = true,
         Kind = kind,
-        Connection = new PointSourceConnection(),
+        Connection = new PointSourceConnection()
     };
 
     private static string Fixture(params string[] parts) =>

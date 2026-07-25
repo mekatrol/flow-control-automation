@@ -4,5 +4,5 @@ public enum ConfigurationKind
 {
     Points,
     PointSources,
-    Controller,
+    Controller
 }

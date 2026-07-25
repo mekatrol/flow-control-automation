@@ -111,7 +111,7 @@ public sealed class DatabaseTests
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 [$"{DatabaseOptions.SectionName}:{DatabaseOptions.FlowControlConfigurationKey}"] =
-                    _connectionString,
+                    _connectionString
             })
             .Build();
         services.AddFlowControlData(configuration);
@@ -124,6 +124,6 @@ public sealed class DatabaseTests
         Key = key,
         Json = "{}",
         Created = DateTimeOffset.UtcNow,
-        Updated = DateTimeOffset.UtcNow,
+        Updated = DateTimeOffset.UtcNow
     };
 }

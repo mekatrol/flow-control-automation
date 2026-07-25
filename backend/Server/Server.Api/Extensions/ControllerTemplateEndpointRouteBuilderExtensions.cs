@@ -187,7 +187,7 @@ public static class ControllerTemplateEndpointRouteBuilderExtensions
         {
             return Error(400, "validation_failed", exception.Message, new
             {
-                diagnostics = exception.Diagnostics,
+                diagnostics = exception.Diagnostics
             });
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
@@ -232,7 +232,7 @@ public static class ControllerTemplateEndpointRouteBuilderExtensions
             var details = exception.InnerException is not YamlException yaml ? null : new
             {
                 line = yaml.Start.Line,
-                column = yaml.Start.Column,
+                column = yaml.Start.Column
             };
             return (null, Error(
                 400,

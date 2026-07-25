@@ -14,7 +14,7 @@ internal sealed class PointDefinitionStoreTests
     [Test]
     public async Task EmptyDatabaseSupportsCrudAndDeterministicListing()
     {
-        using var factory = new FlowControlApplicationFactory();
+        await using var factory = new FlowControlApplicationFactory();
         _ = factory.CreateClient();
         await using var scope = factory.Services.CreateAsyncScope();
         var store = scope.ServiceProvider.GetRequiredService<IPointDefinitionStore>();
@@ -63,7 +63,7 @@ internal sealed class PointDefinitionStoreTests
     [Test]
     public async Task DefinitionsSurviveAServiceScopeAndApplicationRestart()
     {
-        using var factory = new FlowControlApplicationFactory();
+        await using var factory = new FlowControlApplicationFactory();
         _ = factory.CreateClient();
         await using (var createScope = factory.Services.CreateAsyncScope())
         {
@@ -82,7 +82,7 @@ internal sealed class PointDefinitionStoreTests
     [Test]
     public async Task DuplicateNamesAndStaleRevisionsAreRejected()
     {
-        using var factory = new FlowControlApplicationFactory();
+        await using var factory = new FlowControlApplicationFactory();
         _ = factory.CreateClient();
         await using var scope = factory.Services.CreateAsyncScope();
         var store = scope.ServiceProvider.GetRequiredService<IPointDefinitionStore>();
@@ -111,7 +111,7 @@ internal sealed class PointDefinitionStoreTests
     [Test]
     public async Task GroupDeletionIsBlockedUntilMembersAreMadeStandaloneAtomically()
     {
-        using var factory = new FlowControlApplicationFactory();
+        await using var factory = new FlowControlApplicationFactory();
         _ = factory.CreateClient();
         await InsertSource(factory, Source("http", "http_json"));
         await using var scope = factory.Services.CreateAsyncScope();
@@ -143,7 +143,7 @@ internal sealed class PointDefinitionStoreTests
     [Test]
     public async Task GroupSourceChangeRollsBackWhenItWouldInvalidateMembers()
     {
-        using var factory = new FlowControlApplicationFactory();
+        await using var factory = new FlowControlApplicationFactory();
         _ = factory.CreateClient();
         await InsertSource(factory, Source("http", "http_json"));
         await InsertSource(factory, Source("mqtt", "mqtt"));
@@ -169,7 +169,7 @@ internal sealed class PointDefinitionStoreTests
     [Test]
     public async Task ReferencedSourcesCannotChangeKindOrBeDeleted()
     {
-        using var factory = new FlowControlApplicationFactory();
+        await using var factory = new FlowControlApplicationFactory();
         _ = factory.CreateClient();
         var source = Source("http", "http_json");
         await InsertSource(factory, source);
@@ -198,7 +198,7 @@ internal sealed class PointDefinitionStoreTests
     [Test]
     public async Task ConcurrentUpdatesRejectTheStaleWriter()
     {
-        using var factory = new FlowControlApplicationFactory();
+        await using var factory = new FlowControlApplicationFactory();
         _ = factory.CreateClient();
         Point created;
         await using (var setupScope = factory.Services.CreateAsyncScope())
@@ -232,7 +232,7 @@ internal sealed class PointDefinitionStoreTests
     [Test]
     public async Task StartupRejectsCorruptStoredJson()
     {
-        using var factory = new FlowControlApplicationFactory();
+        await using var factory = new FlowControlApplicationFactory();
         _ = factory.CreateClient();
         await using (var scope = factory.Services.CreateAsyncScope())
         {
@@ -243,7 +243,7 @@ internal sealed class PointDefinitionStoreTests
                 Key = "CORRUPT",
                 Json = "{",
                 Created = DateTimeOffset.UtcNow,
-                Updated = DateTimeOffset.UtcNow,
+                Updated = DateTimeOffset.UtcNow
             });
             await context.SaveChangesAsync(default);
         }
@@ -269,7 +269,7 @@ internal sealed class PointDefinitionStoreTests
             Key = source.Name.ToUpperInvariant(),
             Json = JsonSerializer.Serialize(source, FlowControlJson.Options),
             Created = now,
-            Updated = now,
+            Updated = now
         });
         await context.SaveChangesAsync(default);
     }
@@ -277,7 +277,7 @@ internal sealed class PointDefinitionStoreTests
     private static PointGroup Group(string id, string name) => new()
     {
         Id = id,
-        Name = name,
+        Name = name
     };
 
     private static Point VirtualPoint(
@@ -293,7 +293,7 @@ internal sealed class PointDefinitionStoreTests
             Direction = "value",
             ValueType = "analog",
             Readable = true,
-            Persistence = "volatile",
+            Persistence = "volatile"
         };
 
     private static Point BoundPoint(string id, string? groupId) => new()
@@ -310,8 +310,8 @@ internal sealed class PointDefinitionStoreTests
         Mapping = new System.Text.Json.Nodes.JsonObject
         {
             ["path"] = "/value",
-            ["method"] = "GET",
-        },
+            ["method"] = "GET"
+        }
     };
 
     private static PointSource Source(string id, string kind) => new()
@@ -320,6 +320,6 @@ internal sealed class PointDefinitionStoreTests
         Name = id,
         Enabled = true,
         Kind = kind,
-        Connection = new PointSourceConnection(),
+        Connection = new PointSourceConnection()
     };
 }

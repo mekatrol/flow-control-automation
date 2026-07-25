@@ -16,7 +16,7 @@ internal sealed class CredentialEndpointTests
     [Test]
     public async Task StoreEncryptsSecretsAndResolverSurvivesScopeRestart()
     {
-        using var factory = new Api.FlowControlApplicationFactory();
+        await using var factory = new Api.FlowControlApplicationFactory();
         using var client = factory.CreateClient();
         var input = MqttCredential();
         using var response = await client.PostAsJsonAsync(
@@ -86,7 +86,7 @@ internal sealed class CredentialEndpointTests
     [Test]
     public async Task CrudListsMetadataAndPreservesSecretWhenUpdateOmitsIt()
     {
-        using var factory = new Api.FlowControlApplicationFactory();
+        await using var factory = new Api.FlowControlApplicationFactory();
         using var client = factory.CreateClient();
         var input = TokenCredential();
         var created = await Create(client, input);
@@ -130,15 +130,15 @@ internal sealed class CredentialEndpointTests
             "secret://weather-token",
             CancellationToken.None);
         Assert.That(
-            resolved == "weather-secret",
-            Is.True,
+            resolved,
+            Is.EqualTo("weather-secret"),
             "updating metadata changed the stored secret");
     }
 
     [Test]
     public async Task StaleRevisionMismatchedIdAndDuplicateNameConflict()
     {
-        using var factory = new Api.FlowControlApplicationFactory();
+        await using var factory = new Api.FlowControlApplicationFactory();
         using var client = factory.CreateClient();
         var first = TokenCredential();
         var created = await Create(client, first);
@@ -177,7 +177,7 @@ internal sealed class CredentialEndpointTests
     [Test]
     public async Task DeleteIsBlockedWhilePointSourceReferencesCredential()
     {
-        using var factory = new Api.FlowControlApplicationFactory();
+        await using var factory = new Api.FlowControlApplicationFactory();
         using var client = factory.CreateClient();
         var credential = await Create(client, TokenCredential());
         var source = ValidHttpSource() with
@@ -223,7 +223,7 @@ internal sealed class CredentialEndpointTests
         string? token,
         string message)
     {
-        using var factory = new Api.FlowControlApplicationFactory();
+        await using var factory = new Api.FlowControlApplicationFactory();
         using var client = factory.CreateClient();
         var input = new CredentialInput
         {
@@ -232,7 +232,7 @@ internal sealed class CredentialEndpointTests
             Kind = kind,
             Username = username,
             Password = password,
-            Token = token,
+            Token = token
         };
         using var response = await client.PostAsJsonAsync(
             "/api/credentials",
@@ -249,7 +249,7 @@ internal sealed class CredentialEndpointTests
     [Test]
     public async Task JsonDecoderRejectsUnknownTrailingAndOversizedBodies()
     {
-        using var factory = new Api.FlowControlApplicationFactory();
+        await using var factory = new Api.FlowControlApplicationFactory();
         using var client = factory.CreateClient();
         using var unknown = await PostRaw(
             client,
@@ -273,7 +273,7 @@ internal sealed class CredentialEndpointTests
     [Test]
     public async Task MissingCredentialAndInvalidDeleteRevisionMapCorrectly()
     {
-        using var factory = new Api.FlowControlApplicationFactory();
+        await using var factory = new Api.FlowControlApplicationFactory();
         using var client = factory.CreateClient();
         using var missing = await client.GetAsync("/api/credentials/missing");
         using var invalidDelete = await client.DeleteAsync(
@@ -315,7 +315,7 @@ internal sealed class CredentialEndpointTests
         Name = "Plant MQTT",
         Kind = "mqtt",
         Username = "reader",
-        Password = "highly-secret",
+        Password = "highly-secret"
     };
 
     private static CredentialInput TokenCredential() => new()
@@ -323,7 +323,7 @@ internal sealed class CredentialEndpointTests
         Id = "weather-token",
         Name = "Weather token",
         Kind = "token",
-        Token = "weather-secret",
+        Token = "weather-secret"
     };
 
     private static PointSource ValidHttpSource() => new()
@@ -336,14 +336,14 @@ internal sealed class CredentialEndpointTests
         {
             BaseUrl = "https://example.test",
             AllowedReadMethods = ["GET"],
-            MaximumResponseBytes = 1024,
+            MaximumResponseBytes = 1024
         },
         CredentialRef = null,
         Tls = new TlsOptions { VerifyServerCertificate = true },
         Timeouts = new PointSourceTimeouts
         {
             ConnectMilliseconds = 100,
-            RequestMilliseconds = 100,
-        },
+            RequestMilliseconds = 100
+        }
     };
 }

@@ -34,7 +34,7 @@ internal sealed class FlowControlApplicationFactory(
                 [nameof(global::Server.Services.ServerOptions.CredentialEncryptionKey)] =
                     TestCredentialEncryptionKey,
                 [global::Server.Services.ServerOptions.ControllerDataFileConfigurationKey] =
-                    ControllerDataPath,
+                    ControllerDataPath
             });
         });
         builder.ConfigureServices(services =>
@@ -47,7 +47,7 @@ internal sealed class FlowControlApplicationFactory(
                     [nameof(global::Server.Services.ServerOptions.CredentialEncryptionKey)] =
                         TestCredentialEncryptionKey,
                     [global::Server.Services.ServerOptions.ControllerDataFileConfigurationKey] =
-                        ControllerDataPath,
+                        ControllerDataPath
                 })
                 .Build();
             services.AddFlowControlData(configuration);
