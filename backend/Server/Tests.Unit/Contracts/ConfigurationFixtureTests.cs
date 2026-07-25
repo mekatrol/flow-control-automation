@@ -113,11 +113,11 @@ public sealed class ConfigurationFixtureTests
     {
         var cases = new[]
         {
-            ("schemaVersion: 1\nsources: []\nsources: []\n", ConfigurationYamlError.UnsupportedFeature),
-            ("schemaVersion: 1\nsources: !custom []\n", ConfigurationYamlError.UnsupportedFeature),
-            ("schemaVersion: 1\nsources: []\n---\nschemaVersion: 1\nsources: []\n", ConfigurationYamlError.MultipleDocuments),
+            ($"schemaVersion: 1{Environment.NewLine}sources: []\nsources: []{Environment.NewLine}", ConfigurationYamlError.UnsupportedFeature),
+            ($"schemaVersion: 1{Environment.NewLine}sources: !custom []{Environment.NewLine}", ConfigurationYamlError.UnsupportedFeature),
+            ($"schemaVersion: 1{Environment.NewLine}sources: []{Environment.NewLine}---\nschemaVersion: 1\nsources: []{Environment.NewLine}", ConfigurationYamlError.MultipleDocuments),
             (
-                $"schemaVersion: 1\nsources:\n  - id: source\n    name: source\n    enabled: true\n    kind: http_json\n    connection:\n{new string(' ', 8)}nested: [{string.Concat(Enumerable.Repeat("[", 21))}0{string.Concat(Enumerable.Repeat("]", 21))}]\n    tls: {{verifyServerCertificate: true}}\n    timeouts: {{connectMilliseconds: 100}}\n",
+                $"schemaVersion: 1{Environment.NewLine}sources:{Environment.NewLine}  - id: source{Environment.NewLine}    name: source{Environment.NewLine}    enabled: true{Environment.NewLine}    kind: http_json{Environment.NewLine}    connection:{Environment.NewLine}{new string(' ', 8)}nested: [{string.Concat(Enumerable.Repeat("[", 21))}0{string.Concat(Enumerable.Repeat("]", 21))}]{Environment.NewLine}    tls: {{verifyServerCertificate: true}}{Environment.NewLine}    timeouts: {{connectMilliseconds: 100}}{Environment.NewLine}",
                 ConfigurationYamlError.ExcessiveNesting)
         };
 
@@ -154,8 +154,8 @@ public sealed class ConfigurationFixtureTests
             ConfigurationKind.PointSources);
 
         var renderedText = ConfigurationYaml.Render(document);
-        Assert.That(renderedText, Does.StartWith("schemaVersion: 1\nsources:\n"));
-        Assert.That(renderedText, Does.Contain("\n- id:"));
+        Assert.That(renderedText, Does.StartWith($"schemaVersion: 1{Environment.NewLine}sources:{Environment.NewLine}"));
+        Assert.That(renderedText, Does.Contain($"{Environment.NewLine}- id:"));
         Assert.That(renderedText.TrimStart(), Does.Not.StartWith("{"));
 
         var rendered = Encoding.UTF8.GetBytes(renderedText);

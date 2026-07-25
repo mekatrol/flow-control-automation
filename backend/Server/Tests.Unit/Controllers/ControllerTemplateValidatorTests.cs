@@ -245,9 +245,9 @@ internal sealed class ControllerTemplateValidatorTests
     {
         var cases = new[]
         {
-            "schemaVersion: 1\nid: controller\nname: Controller\ncapabilities: &cap {}\nlimits: *cap\n",
-            "schemaVersion: 1\nid: controller\nname: !custom Controller\ncapabilities: {}\nlimits: {}\n",
-            $"schemaVersion: 1\nid: controller\nname: Controller\ncapabilities:\n  pointTypes: [{string.Concat(Enumerable.Repeat("[", 21))}digital{string.Concat(Enumerable.Repeat("]", 21))}]\nlimits: {{}}\n"
+            $"schemaVersion: 1{Environment.NewLine}id: controller{Environment.NewLine}name: Controller\ncapabilities: &cap {{}}{Environment.NewLine}limits: *cap{Environment.NewLine}",
+            $"schemaVersion: 1{Environment.NewLine}id: controller{Environment.NewLine}name: !custom Controller\ncapabilities: {{}}\nlimits: {{}}{Environment.NewLine}",
+            $"schemaVersion: 1{Environment.NewLine}id: controller{Environment.NewLine}name: Controller\ncapabilities:{Environment.NewLine}  pointTypes: [{string.Concat(Enumerable.Repeat("[", 21))}digital{string.Concat(Enumerable.Repeat("]", 21))}]{Environment.NewLine}limits: {{}}{Environment.NewLine}"
         };
 
         Assert.Multiple(() =>

@@ -21,7 +21,8 @@ public sealed class FlowServiceTests
             Path.GetTempPath(),
             $"flow-control-flow-tests-{Guid.NewGuid():N}");
         Directory.CreateDirectory(_temporaryDirectory);
-        _connectionString = $"Data Source={Path.Combine(_temporaryDirectory, "flows.db")}";
+
+        _connectionString = $"Data Source={Path.Combine(_temporaryDirectory, "flows.db")};Pooling=False";
     }
 
     [TearDown]

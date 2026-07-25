@@ -107,7 +107,7 @@ internal sealed class ControllerTemplateEndpointTests
             "/api/controller-templates/validate")
         {
             Content = new StringContent(
-                "schemaVersion: 1\nid: [broken\n",
+                $"schemaVersion: 1{Environment.NewLine}id: [broken{Environment.NewLine}",
                 Encoding.UTF8,
                 "application/yaml")
         };
