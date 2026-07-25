@@ -345,6 +345,17 @@ dotnet_diagnostic.IDE0290.severity = error
 # Naming violation rule
 dotnet_diagnostic.IDE1006.severity = error
 
+# RCS1245: Remove redundant comma after last element in an initializer
+dotnet_diagnostic.RCS1245.severity = error
+
+# RCS1260: Add/remove trailing comma
+roslynator_trailing_comma_style = omit
+dotnet_diagnostic.RCS1260.severity = error
+
+# RCS1261: Resource can be disposed asynchronously
+dotnet_diagnostic.RCS1261.severity = error
+
 # EF Core migration filenames intentionally retain their sortable timestamp prefix.
 [**/Migrations/*.cs]
 dotnet_diagnostic.SA1649.severity = none
+

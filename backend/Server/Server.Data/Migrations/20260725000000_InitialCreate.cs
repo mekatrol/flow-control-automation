@@ -38,7 +38,7 @@ internal sealed class InitialCreate : Migration
                 RowVersion = table.Column<int>(
                     type: "INTEGER",
                     nullable: false,
-                    defaultValue: 1),
+                    defaultValue: 1)
             },
             constraints: table => table.PrimaryKey($"PK_{tableName}", item => item.Id));
 
