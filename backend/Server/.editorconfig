@@ -4,6 +4,18 @@ root = true
 # C# files
 [*.cs]
 
+# Keep each top-level type in its own matching file.
+dotnet_analyzer_diagnostic.category-StyleCop.CSharp.DocumentationRules.severity = none
+dotnet_analyzer_diagnostic.category-StyleCop.CSharp.LayoutRules.severity = none
+dotnet_analyzer_diagnostic.category-StyleCop.CSharp.MaintainabilityRules.severity = none
+dotnet_analyzer_diagnostic.category-StyleCop.CSharp.NamingRules.severity = none
+dotnet_analyzer_diagnostic.category-StyleCop.CSharp.OrderingRules.severity = none
+dotnet_analyzer_diagnostic.category-StyleCop.CSharp.ReadabilityRules.severity = none
+dotnet_analyzer_diagnostic.category-StyleCop.CSharp.SpacingRules.severity = none
+dotnet_diagnostic.SA1402.severity = error
+dotnet_diagnostic.SA1649.severity = error
+dotnet_diagnostic.SA0001.severity = none
+
 #### Core EditorConfig Options ####
 
 # Indentation and spacing
@@ -329,3 +341,7 @@ dotnet_diagnostic.IDE0130.severity = error
 
 # Naming violation rule
 dotnet_diagnostic.IDE1006.severity = error
+
+# EF Core migration filenames intentionally retain their sortable timestamp prefix.
+[**/Migrations/*.cs]
+dotnet_diagnostic.SA1649.severity = none

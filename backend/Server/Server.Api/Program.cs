@@ -1,6 +1,7 @@
 using Server.Api.Extensions;
 using Server.Data.Context;
 using Server.Services;
+using Server.Services.Contracts;
 using Server.Services.Extensions;
 
 namespace Server.Api;
@@ -25,6 +26,8 @@ public partial class Program
         }
 
         builder.Services.AddFlowControlServer(builder.Configuration);
+        builder.Services.ConfigureHttpJsonOptions(
+            options => FlowControlJson.Configure(options.SerializerOptions));
 
         var app = builder.Build();
 

@@ -10,7 +10,7 @@
       "preLaunchTask": "build: backend",
       "env": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "ASPNETCORE_URLS": "http://localhost:5008"
+        "SERVER_ADDRESS": "http://localhost:5008"
       },
       "stopAtEntry": false
     },

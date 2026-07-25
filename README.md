@@ -74,9 +74,9 @@ The repository provides these VS Code tasks:
 
 - **clean: backend** — runs `dotnet clean`.
 - **check format: backend** — runs `dotnet format --verify-no-changes` against
-  `backend/Server/.editorconfig`.
-- **format: backend** — applies the formatting and code-style rules from
-  `backend/Server/.editorconfig`.
+  the formatting, code-style, and analyzer rules configured for the solution.
+- **format: backend** — applies fixable formatting, code-style, and analyzer
+  diagnostics configured by `backend/Server/.editorconfig`.
 - **build: backend** — verifies formatting first, then runs `dotnet build`. It is
   the default VS Code build task.
 - **dev: backend** — builds the backend, including the format check, then runs it
@@ -108,9 +108,34 @@ dotnet test Server.slnx --filter "FullyQualifiedName~DatabaseTests"
 Backend tests create a unique temporary SQLite database for each test and
 remove it when the test completes.
 
-When working from the command line, run the format verification before
-`dotnet build`; the VS Code **build: backend** task enforces this automatically.
-You can also run either **dev: backend** or **dev: frontend** on its own.
+The backend installs StyleCop Analyzers for every solution project through
+`backend/Server/Directory.Build.props`. The `.editorconfig` treats these rules
+as errors:
+
+- `SA1402`: each source file may contain only one top-level type.
+- `SA1649`: the source filename must match its type name.
+
+EF Core migration files are exempt from `SA1649` because their sortable
+timestamp prefixes are intentional. Other StyleCop rules are disabled unless
+they are explicitly enabled in `.editorconfig`.
+
+`dotnet format` runs installed third-party analyzers, including StyleCop, as
+part of its analyzer phase. To run or verify only analyzer fixes from
+`backend/Server`, use:
+
+```sh
+dotnet format Server.slnx analyzers
+dotnet format Server.slnx analyzers --verify-no-changes
+```
+
+Some analyzer diagnostics do not provide an automatic code fix. Therefore,
+`dotnet build Server.slnx` remains the authoritative enforcement gate for
+`SA1402` and `SA1649`; keep both the build and
+`dotnet format Server.slnx --verify-no-changes` in CI.
+
+When working from the command line, run format verification before the build;
+the VS Code **build: backend** task enforces this automatically. You can also
+run either **dev: backend** or **dev: frontend** on its own.
 
 Run the complete frontend quality suite from `frontend/flow-control-ui` with:
 
