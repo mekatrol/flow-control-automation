@@ -1,4 +1,4 @@
-namespace ServerApi;
+namespace Server.Api;
 
 public partial class Program
 {

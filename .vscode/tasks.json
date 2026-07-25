@@ -58,7 +58,7 @@
         "run",
         "--no-build",
         "--project",
-        "${workspaceFolder}/backend/Server/ServerApi/ServerApi.csproj",
+        "${workspaceFolder}/backend/Server/Server.Api/Server.Api.csproj",
         "--launch-profile",
         "http"
       ],

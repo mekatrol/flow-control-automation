@@ -5,8 +5,8 @@
       "name": "debug: backend",
       "type": "coreclr",
       "request": "launch",
-      "program": "${workspaceFolder}/backend/Server/ServerApi/bin/Debug/net10.0/ServerApi.dll",
-      "cwd": "${workspaceFolder}/backend/Server/ServerApi",
+      "program": "${workspaceFolder}/backend/Server/Server.Api/bin/Debug/net10.0/Server.Api.dll",
+      "cwd": "${workspaceFolder}/backend/Server/Server.Api",
       "preLaunchTask": "build: backend",
       "env": {
         "ASPNETCORE_ENVIRONMENT": "Development",

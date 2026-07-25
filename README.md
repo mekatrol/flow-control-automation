@@ -36,7 +36,7 @@ flow-control-automation/
 ├── backend/
 │   └── Server/
 │       ├── Server.slnx  .NET solution
-│       └── ServerApi/   ASP.NET Core API project
+│       └── Server.Api/   ASP.NET Core API project
 ├── frontend/
 │   └── flow-control-ui/ Vue application
 └── .vscode/             Development tasks and extension recommendations
@@ -56,7 +56,7 @@ After the Vue setup has installed its dependencies, open this repository root in
 one VS Code window. Run **Tasks: Run Task** from the Command Palette and choose
 **dev**. VS Code starts these tasks in separate integrated terminal panes:
 
-- `dotnet run` for `backend/Server/ServerApi/`
+- `dotnet run` for `backend/Server/Server.Api/`
 - `npm run dev` from `frontend/flow-control-ui/`
 
 The ASP.NET Core API listens on `http://localhost:5008`. Until the frontend proxy
@@ -88,7 +88,7 @@ dotnet clean backend/Server/Server.slnx
 dotnet format backend/Server/Server.slnx --verify-no-changes
 dotnet format backend/Server/Server.slnx
 dotnet build backend/Server/Server.slnx
-dotnet run --project backend/Server/ServerApi/ServerApi.csproj --launch-profile http
+dotnet run --project backend/Server/Server.Api/Server.Api.csproj --launch-profile http
 ```
 
 When working from the command line, run the format verification before
