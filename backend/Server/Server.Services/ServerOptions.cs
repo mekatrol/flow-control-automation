@@ -27,6 +27,24 @@ public sealed class ServerOptions
 
         try
         {
+            /*  This key can be generated with:
+             *  
+             *  C#
+             *       using System;
+             *       using System.Security.Cryptography;
+             *
+             *       byte[] key = RandomNumberGenerator.GetBytes(32);
+             *       string base64Key = Convert.ToBase64String(key);
+             *
+             *       Console.WriteLine(base64Key);
+             *  openssl:
+             *       openssl rand -base64 32
+             *  PowerShell:
+             *       $key = New-Object byte[] 32
+             *       [System.Security.Cryptography.RandomNumberGenerator]::Fill($key)
+             *       [Convert]::ToBase64String($key)
+             */
+
             return Convert.FromBase64String(options.CredentialEncryptionKey).Length == 32;
         }
         catch (FormatException)

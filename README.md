@@ -67,8 +67,37 @@ endpoint is:
 GET http://localhost:5008/api/health
 ```
 
-Credential encryption requires a Base64-encoded 32-byte key. Generate a
-development-only key in the ignored local settings file before first startup:
+Credential encryption requires a Base64-encoded 32-byte key. Generate one with
+any of the following methods.
+
+C#:
+
+```csharp
+using System;
+using System.Security.Cryptography;
+
+byte[] key = RandomNumberGenerator.GetBytes(32);
+string base64Key = Convert.ToBase64String(key);
+
+Console.WriteLine(base64Key);
+```
+
+OpenSSL:
+
+```sh
+openssl rand -base64 32
+```
+
+PowerShell:
+
+```powershell
+$key = New-Object byte[] 32
+[System.Security.Cryptography.RandomNumberGenerator]::Fill($key)
+[Convert]::ToBase64String($key)
+```
+
+For local development, save a generated key in the ignored local settings file
+before first startup. For example, with OpenSSL:
 
 ```sh
 key="$(openssl rand -base64 32)"
