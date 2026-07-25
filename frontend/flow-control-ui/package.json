@@ -33,6 +33,7 @@
     "yaml": "^2.9.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
     "@playwright/test": "^1.61.1",
     "@tsconfig/node24": "^24.0.4",
     "@types/node": "^24.13.2",

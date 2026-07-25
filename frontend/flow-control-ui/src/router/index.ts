@@ -23,6 +23,21 @@ const router = createRouter({
       props: (route) => ({ flowId: String(route.params.flowId) })
     },
     {
+      path: '/points',
+      name: 'points',
+      component: () => import('@/features/catalogues/views/PointsCatalogueView.vue')
+    },
+    {
+      path: '/point-groups',
+      name: 'point-groups',
+      component: () => import('@/features/catalogues/views/PointGroupsCatalogueView.vue')
+    },
+    {
+      path: '/controller-templates',
+      name: 'controller-templates',
+      component: () => import('@/features/catalogues/views/ControllerTemplatesCatalogueView.vue')
+    },
+    {
       path: '/point-sources',
       name: 'point-sources',
       component: () => import('@/features/pointSources/views/PointSourceListView.vue')

@@ -16,7 +16,8 @@ Last updated: 25 July 2026.
 | 3 - Durable backend point and group store | Complete | SQLite/EF persistence, migrations, revision-safe CRUD, deterministic listing, referential integrity, startup validation, and atomic make-standalone support are in place. |
 | 4 - Point and group HTTP and YAML API | Complete | Canonical YAML CRUD, JSON catalogues, stable diagnostics, revision/reference conflicts, and API E2E coverage are in place. |
 | 4A - Controller-template store and HTTP API | Complete | Atomic normalized JSON persistence, revision-safe CRUD, the protected built-in default, stable YAML diagnostics, and API/E2E coverage are in place. |
-| 5 onward | Not started | Phase 5 is next; follow the sequence below, including the remaining controller-template sub-phases. |
+| 5 - Frontend data layer and read-only catalogue | Complete | Strict DTO/API parsing, latest-request Pinia stores, responsive point/group/controller catalogues, compatibility states, and automated accessibility-oriented coverage are in place. |
+| 6 onward | Not started | Phase 6 is next; follow the sequence below, including the remaining controller-template sub-phases. |
 
 Detailed Phase 0 verification results are recorded in
 `.codex/phase-0-baseline.md`.
@@ -758,6 +759,8 @@ leave the prior file and in-memory state intact.
 **Suggested commit:** `feat(controllers): expose YAML template API`
 
 ### Phase 5 - Frontend data layer and read-only catalogue
+
+**Completed:** 25 July 2026.
 
 **Purpose:** Show point definitions and source relationships before enabling
 point/group mutations.

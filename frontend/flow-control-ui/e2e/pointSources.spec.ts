@@ -76,7 +76,9 @@ test('catalogue and YAML editor support create, test, retry, and keyboard use', 
   await page.goto('/point-sources');
   await expect(page.getByRole('heading', { name: 'Point sources' })).toBeVisible();
   await page.getByRole('link', { name: 'New source' }).press('Enter');
-  await expect(page.getByRole('textbox', { name: 'Point source YAML' })).toBeVisible({
+  // Monaco keeps its accessible textarea off-screen in Firefox while the
+  // interactive editor surface remains visible and keyboard operable.
+  await expect(page.locator('.monaco-editor')).toBeVisible({
     timeout: 60_000
   });
   await page.getByRole('radio', { name: /MQTT/ }).check();
@@ -103,7 +105,7 @@ test('reports schema and indentation errors before a source can be tested or sav
   page
 }) => {
   await page.goto('/point-sources/new');
-  await expect(page.getByRole('textbox', { name: 'Point source YAML' })).toBeVisible({
+  await expect(page.locator('.monaco-editor')).toBeVisible({
     timeout: 60_000
   });
   await page.locator('.monaco-editor .view-lines').click();
