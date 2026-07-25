@@ -28,14 +28,50 @@ const router = createRouter({
       component: () => import('@/features/catalogues/views/PointsCatalogueView.vue')
     },
     {
+      path: '/points/new',
+      name: 'point-new',
+      component: () => import('@/features/configuration/views/YamlResourceEditorView.vue'),
+      props: { kind: 'point' }
+    },
+    {
+      path: '/points/:resourceId',
+      name: 'point-detail',
+      component: () => import('@/features/configuration/views/YamlResourceEditorView.vue'),
+      props: (route) => ({ kind: 'point', resourceId: String(route.params.resourceId) })
+    },
+    {
       path: '/point-groups',
       name: 'point-groups',
       component: () => import('@/features/catalogues/views/PointGroupsCatalogueView.vue')
     },
     {
+      path: '/point-groups/new',
+      name: 'point-group-new',
+      component: () => import('@/features/configuration/views/YamlResourceEditorView.vue'),
+      props: { kind: 'group' }
+    },
+    {
+      path: '/point-groups/:resourceId',
+      name: 'point-group-detail',
+      component: () => import('@/features/configuration/views/YamlResourceEditorView.vue'),
+      props: (route) => ({ kind: 'group', resourceId: String(route.params.resourceId) })
+    },
+    {
       path: '/controller-templates',
       name: 'controller-templates',
       component: () => import('@/features/catalogues/views/ControllerTemplatesCatalogueView.vue')
+    },
+    {
+      path: '/controller-templates/new',
+      name: 'controller-template-new',
+      component: () => import('@/features/configuration/views/YamlResourceEditorView.vue'),
+      props: { kind: 'controller' }
+    },
+    {
+      path: '/controller-templates/:resourceId',
+      name: 'controller-template-detail',
+      component: () => import('@/features/configuration/views/YamlResourceEditorView.vue'),
+      props: (route) => ({ kind: 'controller', resourceId: String(route.params.resourceId) })
     },
     {
       path: '/point-sources',

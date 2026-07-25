@@ -16,6 +16,7 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
         endpoints.MapGet("/api/points/{pointId}", GetPoint);
         endpoints.MapPut("/api/points/{pointId}", UpdatePoint);
         endpoints.MapDelete("/api/points/{pointId}", DeletePoint);
+        endpoints.MapGet("/api/points/{pointId}/runtime", GetPointRuntime);
         endpoints.MapGet("/api/point-groups", ListGroups);
         endpoints.MapPost("/api/point-groups", CreateGroup);
         endpoints.MapGet("/api/point-groups/{groupId}", GetGroup);
@@ -25,6 +26,21 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
             "/api/point-groups/{groupId}/make-points-standalone",
             MakePointsStandalone);
         return endpoints;
+    }
+
+    private static async Task<IResult> GetPointRuntime(
+        string pointId,
+        IPointReadService reader,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return Results.Json(await reader.ReadAsync(pointId, cancellationToken));
+        }
+        catch (PointDefinitionNotFoundException)
+        {
+            return Error(404, "not_found", "point definition not found");
+        }
     }
 
     private static async Task<IResult> ListPoints(

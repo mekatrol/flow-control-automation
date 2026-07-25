@@ -6,6 +6,9 @@
         <h1 id="templates-heading">Controller templates</h1>
         <p>Review the capabilities and limits available to flow targets.</p>
       </div>
+      <RouterLink class="primary-link" :to="{ name: 'controller-template-new' }">
+        New template
+      </RouterLink>
     </div>
 
     <div class="catalogue-filter">
@@ -45,7 +48,14 @@
         <template #body>
           <tr v-for="template in store.result.items" :key="template.id">
             <th scope="row">
-              {{ template.name }}
+              <RouterLink
+                :to="{
+                  name: 'controller-template-detail',
+                  params: { resourceId: template.id }
+                }"
+              >
+                {{ template.name }}
+              </RouterLink>
               <small>{{ template.description || template.id }}</small>
             </th>
             <td>{{ template.readOnly ? 'Built-in, read-only' : 'Custom' }}</td>

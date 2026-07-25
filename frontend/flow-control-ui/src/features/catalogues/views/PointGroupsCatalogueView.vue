@@ -6,6 +6,7 @@
         <h1 id="groups-heading">Point groups</h1>
         <p>Review reusable membership and shared source relationships.</p>
       </div>
+      <RouterLink class="primary-link" :to="{ name: 'point-group-new' }">New group</RouterLink>
     </div>
 
     <form class="catalogue-filter" role="search" @submit.prevent="applyFilter">
@@ -39,7 +40,9 @@
         <template #body>
           <tr v-for="group in store.result.items" :key="group.id">
             <th scope="row">
-              {{ group.name }}
+              <RouterLink :to="{ name: 'point-group-detail', params: { resourceId: group.id } }">
+                {{ group.name }}
+              </RouterLink>
               <small>{{ group.description || group.id }}</small>
             </th>
             <td>{{ group.sourceId || 'None' }}</td>

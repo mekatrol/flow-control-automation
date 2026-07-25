@@ -233,6 +233,34 @@ internal sealed class PointDefinitionEndpointTests
         await AssertError(mismatch, HttpStatusCode.BadRequest, "validation_failed");
     }
 
+    [Test]
+    public async Task RuntimeEnvelopeNeverFabricatesAnUninitializedValue()
+    {
+        using var factory = new Api.FlowControlApplicationFactory();
+        using var client = factory.CreateClient();
+        using var created = await SendYaml(
+            client,
+            HttpMethod.Post,
+            "/api/points",
+            PointYaml.Render(Point("virtual-value", "Virtual value")));
+        Assert.That(created.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+
+        var runtime = await client.GetFromJsonAsync<PointRuntimeEnvelope>(
+            "/api/points/virtual-value/runtime",
+            FlowControlJson.Options);
+        Assert.Multiple(() =>
+        {
+            Assert.That(runtime?.Value, Is.Null);
+            Assert.That(runtime?.Status, Is.EqualTo("unavailable"));
+            Assert.That(runtime?.Quality, Is.EqualTo("unavailable"));
+            Assert.That(runtime?.Reliability, Is.EqualTo("not_initialized"));
+            Assert.That(runtime?.Diagnostic, Does.Contain("no commissioned runtime value"));
+        });
+
+        using var missing = await client.GetAsync("/api/points/missing/runtime");
+        await AssertError(missing, HttpStatusCode.NotFound, "not_found");
+    }
+
     private static Point Point(string id, string name, string? groupId = null) => new()
     {
         Id = id,

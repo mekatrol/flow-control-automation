@@ -545,6 +545,71 @@ a {
   border-radius: 10px;
 }
 
+.example-picker {
+  display: grid;
+  gap: 7px;
+  max-width: 360px;
+  margin-bottom: 18px;
+  font-weight: 700;
+}
+
+.example-picker select {
+  min-height: 44px;
+  padding: 8px 10px;
+  color: var(--color-text-primary);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-default);
+  border-radius: 8px;
+}
+
+.runtime-panel {
+  margin-top: 28px;
+  padding: 20px;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-default);
+  border-radius: 12px;
+}
+
+.runtime-panel > div:first-child,
+.runtime-panel dl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  align-items: center;
+}
+
+.runtime-panel h2 {
+  margin-right: auto;
+}
+
+.runtime-panel dl div {
+  min-width: 130px;
+}
+
+.runtime-panel dt {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+.runtime-panel dd {
+  margin: 4px 0 0;
+  font-weight: 650;
+}
+
+.runtime-diagnostic {
+  padding: 12px;
+  background: var(--color-surface-subtle);
+  border-radius: 8px;
+}
+
+/* Monaco intentionally dims folded/wrapped line numbers too aggressively for
+   the application's AA themes, so keep those informational numbers readable. */
+.monaco-editor .line-numbers.dimmed-line-number {
+  color: var(--color-text-secondary) !important;
+}
+
 @media (max-width: 720px) {
   .catalogue-page {
     width: min(100% - 20px, 1500px);

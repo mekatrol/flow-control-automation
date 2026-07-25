@@ -6,6 +6,7 @@
         <h1 id="points-heading">Points</h1>
         <p>Review standalone and grouped automation points and their capabilities.</p>
       </div>
+      <RouterLink class="primary-link" :to="{ name: 'point-new' }">New point</RouterLink>
     </div>
 
     <form class="catalogue-filter" role="search" @submit.prevent="applyFilter">
@@ -43,7 +44,9 @@
         <template #body>
           <tr v-for="point in store.result.items" :key="point.id">
             <th scope="row">
-              {{ point.name }}
+              <RouterLink :to="{ name: 'point-detail', params: { resourceId: point.id } }">
+                {{ point.name }}
+              </RouterLink>
               <small>{{ point.description || point.id }}</small>
             </th>
             <td>{{ point.groupId ? `Group: ${point.groupId}` : 'Standalone' }}</td>

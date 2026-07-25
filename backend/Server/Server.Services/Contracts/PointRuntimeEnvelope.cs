@@ -1,0 +1,15 @@
+using System.Text.Json.Nodes;
+
+namespace Server.Services.Contracts;
+
+public sealed record PointRuntimeEnvelope(
+    string PointId,
+    JsonNode? Value,
+    string? Units,
+    string Quality,
+    string Reliability,
+    string? SourceTimestamp,
+    string? UpdatedAt,
+    string ConnectionState,
+    string Status,
+    string Diagnostic);
