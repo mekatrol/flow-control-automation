@@ -27,6 +27,7 @@ public static class ServiceCollectionExtensions
             static provider => provider.GetRequiredService<FlowDatabaseService>());
         services.AddScoped<IFlowStore>(
             static provider => provider.GetRequiredService<FlowDatabaseService>());
+        services.AddScoped<IPointSourceService, PointSourceDatabaseService>();
         return services;
     }
 }

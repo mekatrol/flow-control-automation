@@ -24,6 +24,7 @@ public static class EndpointRouteBuilderExtensions
         endpoints.MapPost("/api/flows/{flowId}/disable", DisableFlow);
         endpoints.MapPost("/api/flows/{flowId}/enable", EnableFlow);
         endpoints.MapGet("/api/flows/{flowId}/runtime", GetRuntime);
+        endpoints.MapPointSourceEndpoints();
         return endpoints;
     }
 
