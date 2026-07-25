@@ -1,6 +1,6 @@
 {
   "recommendations": [
-    "golang.go",
+    "ms-dotnettools.csdevkit",
     "vue.volar"
   ]
 }

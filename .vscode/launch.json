@@ -2,12 +2,35 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "dev",
+      "name": "debug: backend",
+      "type": "coreclr",
+      "request": "launch",
+      "program": "${workspaceFolder}/backend/Server/ServerApi/bin/Debug/net10.0/ServerApi.dll",
+      "cwd": "${workspaceFolder}/backend/Server/ServerApi",
+      "preLaunchTask": "build: backend",
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "http://localhost:5008"
+      },
+      "stopAtEntry": false
+    },
+    {
+      "name": "debug: frontend",
       "type": "pwa-chrome",
       "request": "launch",
       "url": "http://localhost:5173",
       "webRoot": "${workspaceFolder}/frontend/flow-control-ui/src",
-      "preLaunchTask": "dev"
+      "preLaunchTask": "debug: frontend server"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "dev",
+      "configurations": [
+        "debug: backend",
+        "debug: frontend"
+      ],
+      "stopAll": true
     }
   ]
 }

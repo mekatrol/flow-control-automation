@@ -4,6 +4,16 @@
 # Go build output
 backend/go/bin/
 
+# .NET build and tooling output
+[Bb]in/
+[Oo]bj/
+.vs/
+TestResults/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
 # Vue and Vite output
 node_modules/
 frontend/dist/

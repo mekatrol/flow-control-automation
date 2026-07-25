@@ -26,7 +26,7 @@ fallback are documented in [`frontend/flow-control-ui/README.md`](frontend/flow-
 
 ## Technology
 
-- Go for the API server and automation execution engine.
+- ASP.NET Core on .NET 10 for the API server and automation execution engine.
 - Vue.js and SVG for the graphical flow designer.
 
 ## Project Structure
@@ -34,8 +34,9 @@ fallback are documented in [`frontend/flow-control-ui/README.md`](frontend/flow-
 ```text
 flow-control-automation/
 ├── backend/
-│   └── go/              Go module and API server
-│       └── cmd/server/  Server entry point
+│   └── Server/
+│       ├── Server.slnx  .NET solution
+│       └── ServerApi/   ASP.NET Core API project
 ├── frontend/
 │   └── flow-control-ui/ Vue application
 └── .vscode/             Development tasks and extension recommendations
@@ -43,7 +44,7 @@ flow-control-automation/
 
 ## Local Development
 
-Install Go 1.24 or later and a current Node.js/npm release. The Vue application
+Install the .NET 10 SDK and a current Node.js/npm release. The Vue application
 dependencies are installed from its project directory:
 
 ```sh
@@ -55,29 +56,44 @@ After the Vue setup has installed its dependencies, open this repository root in
 one VS Code window. Run **Tasks: Run Task** from the Command Palette and choose
 **dev**. VS Code starts these tasks in separate integrated terminal panes:
 
-- `go run ./cmd/server` from `backend/go/`
+- `dotnet run` for `backend/Server/ServerApi/`
 - `npm run dev` from `frontend/flow-control-ui/`
 
-The Go API listens on `http://localhost:8080`. Vite proxies browser requests under
-`/api` to that address during local development. Its health endpoint is:
+The ASP.NET Core API listens on `http://localhost:5008`. Until the frontend proxy
+default is changed, set `VITE_API_PROXY=http://localhost:5008` when running Vite
+against this backend. The starter endpoint is:
 
 ```text
-GET http://localhost:8080/api/health
+GET http://localhost:5008/weatherforecast
 ```
 
-Flow create, edit, save, and delete operations are persisted as JSON in
-`backend/go/data/flows.json`. Set `FLOW_DATA_FILE` to use another file, which is
-particularly useful for mounting a durable Docker or Home Assistant data volume.
-Set `VITE_API_PROXY` if the development backend listens somewhere other than
-`http://localhost:8080`.
+### Backend tasks
 
-Run the Go backend tests from `backend/go/` with:
+The repository provides these VS Code tasks:
+
+- **clean: backend** — runs `dotnet clean`.
+- **check format: backend** — runs `dotnet format --verify-no-changes` against
+  `backend/Server/.editorconfig`.
+- **format: backend** — applies the formatting and code-style rules from
+  `backend/Server/.editorconfig`.
+- **build: backend** — verifies formatting first, then runs `dotnet build`. It is
+  the default VS Code build task.
+- **dev: backend** — builds the backend, including the format check, then runs it
+  with the `http` launch profile.
+
+Run the equivalent commands from the repository root with:
 
 ```sh
-go test ./...
+dotnet clean backend/Server/Server.slnx
+dotnet format backend/Server/Server.slnx --verify-no-changes
+dotnet format backend/Server/Server.slnx
+dotnet build backend/Server/Server.slnx
+dotnet run --project backend/Server/ServerApi/ServerApi.csproj --launch-profile http
 ```
 
-You can also run either the **dev: backend** or **dev: frontend** task on its own.
+When working from the command line, run the format verification before
+`dotnet build`; the VS Code **build: backend** task enforces this automatically.
+You can also run either **dev: backend** or **dev: frontend** on its own.
 
 Run the complete frontend quality suite from `frontend/flow-control-ui` with:
 
@@ -110,7 +126,7 @@ npm run test:e2e -- --debug
 ```
 
 To use breakpoints in both applications, open VS Code's **Run and Debug** view
-and select **Debug full stack**. This starts the Go debugger, starts Vite without
-opening an extra browser window, and launches the Vue app in the VS Code Chrome
-debugger. The individual **Debug Go server** and **Debug Vue app** configurations
-are also available.
+and select **dev**. This builds and launches the ASP.NET Core API under the .NET
+debugger, starts Vite without opening an extra browser window, and launches the
+Vue app in the VS Code Chrome debugger. The individual **debug: backend** and
+**debug: frontend** configurations are also available.

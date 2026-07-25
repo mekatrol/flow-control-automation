@@ -2,19 +2,80 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "clean: backend",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "clean",
+        "${workspaceFolder}/backend/Server/Server.slnx"
+      ],
+      "problemMatcher": "$msCompile",
+      "group": "build"
+    },
+    {
+      "label": "check format: backend",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "format",
+        "${workspaceFolder}/backend/Server/Server.slnx",
+        "--verify-no-changes"
+      ],
+      "problemMatcher": "$msCompile",
+      "group": "test"
+    },
+    {
+      "label": "format: backend",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "format",
+        "${workspaceFolder}/backend/Server/Server.slnx"
+      ],
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "build: backend",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "build",
+        "${workspaceFolder}/backend/Server/Server.slnx"
+      ],
+      "dependsOrder": "sequence",
+      "dependsOn": "check format: backend",
+      "problemMatcher": "$msCompile",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
       "label": "dev: backend",
-      "type": "shell",
-      "command": "go run ./cmd/server",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "run",
+        "--no-build",
+        "--project",
+        "${workspaceFolder}/backend/Server/ServerApi/ServerApi.csproj",
+        "--launch-profile",
+        "http"
+      ],
       "options": {
-        "cwd": "${workspaceFolder}/backend/go"
+        "cwd": "${workspaceFolder}/backend/Server"
       },
+      "dependsOn": "build: backend",
       "isBackground": true,
       "problemMatcher": {
-        "base": "$go",
+        "owner": "dotnet",
+        "pattern": {
+          "regexp": "^(?!)$"
+        },
         "background": {
           "activeOnStart": true,
-          "beginsPattern": ".*",
-          "endsPattern": "^.*Go server listening on http://localhost.*$"
+          "beginsPattern": "^.*$",
+          "endsPattern": "^.*Now listening on: http://localhost:5008.*$"
         }
       },
       "presentation": {
