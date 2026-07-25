@@ -7,8 +7,8 @@ Last updated: 25 July 2026.
 | Phase | Status | Notes |
 | --- | --- | --- |
 | 0 - Contract fixtures and compatibility baseline | Complete | Shared YAML/JSON fixtures, strict Go/TypeScript parity tests, invalid-input coverage, legacy-flow regression coverage, test helpers, and baseline results are in place. |
-| 1 - Point-source foundation and live connectivity testing | Next | Not started. |
-| 2 onward | Not started | Follow the sequence below, including the controller-template sub-phases. |
+| 1 - Point-source foundation and live connectivity testing | Complete | Typed source contracts, strict YAML/JSON storage, safe staged connectivity testing, CRUD API, accessible catalogue/editor UI, and automated coverage are in place. |
+| 2 onward | Not started | Phase 2 is next; follow the sequence below, including the controller-template sub-phases. |
 
 Detailed Phase 0 verification results are recorded in
 `.codex/phase-0-baseline.md`.
@@ -535,6 +535,8 @@ pass.
 **Suggested commit:** `test: establish points contract compatibility baseline`
 
 ### Phase 1 - Point-source foundation and live connectivity testing
+
+**Completed:** 25 July 2026.
 
 **Purpose:** Define and verify reusable external systems before bound points or
 groups can map values from them.

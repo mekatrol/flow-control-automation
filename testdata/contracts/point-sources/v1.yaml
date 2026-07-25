@@ -22,6 +22,8 @@ sources:
     connection:
       brokerUrl: mqtts://mqtt.example.test:8883
       clientIdPrefix: flow-control
+      testTopic: plant/telemetry/temperature
+      allowPrivateNetwork: true
       qos: 1
       cleanStart: true
       keepAliveSeconds: 30
@@ -47,4 +49,3 @@ sources:
     timeouts:
       connectMilliseconds: 2000
       requestMilliseconds: 5000
-

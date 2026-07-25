@@ -22,7 +22,7 @@
       "description": "Read-only plant telemetry",
       "enabled": true,
       "kind": "mqtt",
-      "connection": {"brokerUrl": "mqtts://mqtt.example.test:8883", "clientIdPrefix": "flow-control", "qos": 1, "cleanStart": true, "keepAliveSeconds": 30},
+      "connection": {"brokerUrl": "mqtts://mqtt.example.test:8883", "clientIdPrefix": "flow-control", "testTopic": "plant/telemetry/temperature", "allowPrivateNetwork": true, "qos": 1, "cleanStart": true, "keepAliveSeconds": 30},
       "credentialRef": "env:PLANT_MQTT_CREDENTIAL",
       "tls": {"verifyServerCertificate": true},
       "timeouts": {"connectMilliseconds": 3000},
@@ -46,4 +46,3 @@
     }
   ]
 }
-

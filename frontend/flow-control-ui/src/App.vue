@@ -12,6 +12,8 @@
 
       <nav aria-label="Primary navigation">
         <RouterLink :to="{ name: 'flows' }">Flows</RouterLink>
+        <RouterLink to="/point-sources">Point sources</RouterLink>
+        <RouterLink to="/credentials">Credentials</RouterLink>
         <ThemeSelector />
       </nav>
     </header>

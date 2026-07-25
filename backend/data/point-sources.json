@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "sources": [
+    {
+      "id": "plant-mqtt",
+      "name": "Plant MQTT",
+      "description": "Read-only telemetry broker",
+      "enabled": true,
+      "kind": "mqtt",
+      "connection": {
+        "brokerUrl": "mqtt://mqtt.lan:8883",
+        "clientIdPrefix": "flow-control",
+        "testTopic": "plant/telemetry/temperature",
+        "qos": 1,
+        "cleanStart": true,
+        "keepAliveSeconds": 30
+      },
+      "credentialRef": "secret://ha-mqtt-cred",
+      "tls": {
+        "verifyServerCertificate": true
+      },
+      "timeouts": {
+        "connectMilliseconds": 3000
+      },
+      "revision": 3,
+      "createdAt": "2026-07-25T02:50:56.267702181Z",
+      "updatedAt": "2026-07-25T02:52:00.772930352Z"
+    }
+  ]
+}

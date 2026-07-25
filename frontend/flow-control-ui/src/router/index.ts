@@ -21,6 +21,27 @@ const router = createRouter({
       // Convert the route parameter at the boundary so the view receives a plain
       // string prop and does not need to understand router parameter shapes.
       props: (route) => ({ flowId: String(route.params.flowId) })
+    },
+    {
+      path: '/point-sources',
+      name: 'point-sources',
+      component: () => import('@/features/pointSources/views/PointSourceListView.vue')
+    },
+    {
+      path: '/point-sources/new',
+      name: 'point-source-new',
+      component: () => import('@/features/pointSources/views/PointSourceEditorView.vue')
+    },
+    {
+      path: '/point-sources/:sourceId',
+      name: 'point-source-detail',
+      component: () => import('@/features/pointSources/views/PointSourceEditorView.vue'),
+      props: (route) => ({ sourceId: String(route.params.sourceId) })
+    },
+    {
+      path: '/credentials',
+      name: 'credentials',
+      component: () => import('@/features/credentials/views/CredentialManagerView.vue')
     }
   ]
 });
