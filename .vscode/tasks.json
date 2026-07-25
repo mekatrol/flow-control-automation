@@ -6,7 +6,7 @@
       "type": "shell",
       "command": "go run ./cmd/server",
       "options": {
-        "cwd": "${workspaceFolder}/backend"
+        "cwd": "${workspaceFolder}/backend/go"
       },
       "isBackground": true,
       "problemMatcher": {

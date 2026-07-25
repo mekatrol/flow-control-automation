@@ -13,7 +13,7 @@ import (
 )
 
 func TestLegacyFixtureValidatesSavesAndReloadsUnchanged(t *testing.T) {
-	fixturePath := filepath.Join("..", "..", "..", "testdata", "contracts", "flows", "legacy.json")
+	fixturePath := filepath.Join("..", "..", "..", "..", "testdata", "contracts", "flows", "legacy.json")
 	fixture, err := os.ReadFile(fixturePath)
 	if err != nil {
 		t.Fatal(err)

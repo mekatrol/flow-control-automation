@@ -33,8 +33,9 @@ fallback are documented in [`frontend/flow-control-ui/README.md`](frontend/flow-
 
 ```text
 flow-control-automation/
-├── backend/             Go module and API server
-│   └── cmd/server/      Server entry point
+├── backend/
+│   └── go/              Go module and API server
+│       └── cmd/server/  Server entry point
 ├── frontend/
 │   └── flow-control-ui/ Vue application
 └── .vscode/             Development tasks and extension recommendations
@@ -54,7 +55,7 @@ After the Vue setup has installed its dependencies, open this repository root in
 one VS Code window. Run **Tasks: Run Task** from the Command Palette and choose
 **dev**. VS Code starts these tasks in separate integrated terminal panes:
 
-- `go run ./cmd/server` from `backend/`
+- `go run ./cmd/server` from `backend/go/`
 - `npm run dev` from `frontend/flow-control-ui/`
 
 The Go API listens on `http://localhost:8080`. Vite proxies browser requests under
@@ -65,12 +66,12 @@ GET http://localhost:8080/api/health
 ```
 
 Flow create, edit, save, and delete operations are persisted as JSON in
-`backend/data/flows.json`. Set `FLOW_DATA_FILE` to use another file, which is
+`backend/go/data/flows.json`. Set `FLOW_DATA_FILE` to use another file, which is
 particularly useful for mounting a durable Docker or Home Assistant data volume.
 Set `VITE_API_PROXY` if the development backend listens somewhere other than
 `http://localhost:8080`.
 
-Run the backend tests from `backend/` with:
+Run the Go backend tests from `backend/go/` with:
 
 ```sh
 go test ./...

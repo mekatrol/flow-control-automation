@@ -95,7 +95,7 @@ own design and threat/safety review before implementation.
 
 ### 3.1 User configuration and internal persistence
 
-Create a new backend package, `backend/internal/points`, rather than extending
+Create a new backend package, `backend/go/internal/points`, rather than extending
 the flow store. All user-editable source, group, point, and controller
 configuration is exposed and imported/exported as YAML. The backend strictly
 parses YAML into typed domain models, validates it, and persists normalized
@@ -481,7 +481,7 @@ A phase is complete only when:
 Run the following full quality gate before every phase commit:
 
 ```sh
-(cd backend && gofmt -w <changed-go-files> && go test ./...)
+(cd backend/go && gofmt -w <changed-go-files> && go test ./...)
 (cd frontend/flow-control-ui && npm run format)
 (cd frontend/flow-control-ui && npm run lint)
 (cd frontend/flow-control-ui && npm run test:unit -- --run)
@@ -590,7 +590,7 @@ persists credentials/test results.
 
 **Implementation**
 
-- Create `backend/internal/points/model.go`.
+- Create `backend/go/internal/points/model.go`.
 - Define enums and typed validation for definitions, groups, labels, limits,
   defaults, capabilities, safe policies, source references, and source-specific
   point/group mappings.
@@ -623,7 +623,7 @@ layers depend on it.
 
 **Implementation**
 
-- Add `backend/internal/controllers` typed capability, limit, and diagnostic
+- Add `backend/go/internal/controllers` typed capability, limit, and diagnostic
   models plus strict bounded YAML parsing.
 - Embed the exhaustive, read-only default template and derive/check its
   flow-function entries against the canonical backend node registry.
@@ -1137,20 +1137,20 @@ combined `state` enum.
 By the end of phase 9, the repository should contain at least:
 
 ```text
-backend/internal/points/model_test.go
-backend/internal/points/store_test.go
-backend/internal/points/http_test.go
-backend/internal/points/service_test.go
-backend/internal/points/source_model_test.go
-backend/internal/points/source_store_test.go
-backend/internal/points/source_connectivity_test.go
-backend/internal/points/source_read_test.go
-backend/internal/flows/point_validation_test.go
-backend/internal/flows/level_shifter_test.go
-backend/internal/controllers/model_test.go
-backend/internal/controllers/store_test.go
-backend/internal/controllers/http_test.go
-backend/internal/flows/controller_validation_test.go
+backend/go/internal/points/model_test.go
+backend/go/internal/points/store_test.go
+backend/go/internal/points/http_test.go
+backend/go/internal/points/service_test.go
+backend/go/internal/points/source_model_test.go
+backend/go/internal/points/source_store_test.go
+backend/go/internal/points/source_connectivity_test.go
+backend/go/internal/points/source_read_test.go
+backend/go/internal/flows/point_validation_test.go
+backend/go/internal/flows/level_shifter_test.go
+backend/go/internal/controllers/model_test.go
+backend/go/internal/controllers/store_test.go
+backend/go/internal/controllers/http_test.go
+backend/go/internal/flows/controller_validation_test.go
 
 frontend/flow-control-ui/src/features/points/**/__tests__/*.spec.ts
 frontend/flow-control-ui/src/features/flows/**/__tests__/*point*.spec.ts

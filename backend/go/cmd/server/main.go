@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/mekatrol/flow-control-automation/backend/internal/flows"
-	"github.com/mekatrol/flow-control-automation/backend/internal/points"
+	"github.com/mekatrol/flow-control-automation/backend/go/internal/flows"
+	"github.com/mekatrol/flow-control-automation/backend/go/internal/points"
 )
 
 const defaultAddress = ":8080"

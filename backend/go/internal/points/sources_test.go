@@ -12,7 +12,7 @@ import (
 )
 
 func TestSourceFixturesRoundTrip(t *testing.T) {
-	data, err := os.ReadFile(filepath.Join("..", "..", "..", "testdata", "contracts", "point-sources", "v1.yaml"))
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "testdata", "contracts", "point-sources", "v1.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}

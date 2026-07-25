@@ -12,7 +12,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-var contractRoot = filepath.Join("..", "..", "..", "testdata", "contracts")
+var contractRoot = filepath.Join("..", "..", "..", "..", "testdata", "contracts")
 
 func TestConfigurationYAMLMatchesNormalizedJSON(t *testing.T) {
 	tests := []struct {
