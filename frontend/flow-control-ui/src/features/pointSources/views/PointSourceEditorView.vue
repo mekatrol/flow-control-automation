@@ -26,20 +26,20 @@
     <p v-if="loading" role="status">Loading source…</p>
     <div v-else class="source-editor-layout" :class="{ 'has-guidance': isNew }">
       <form @submit.prevent="save">
-        <label for="source-yaml">Point source YAML</label>
-        <textarea
-          id="source-yaml"
+        <YamlEditor
           v-model="yaml"
-          rows="28"
-          spellcheck="false"
-          aria-describedby="yaml-help"
-        ></textarea>
-        <p id="yaml-help">
-          YAML is validated by the server. Connection tests never save this configuration.
-        </p>
+          label="Point source YAML"
+          help="Errors and suggestions use the point-source schema. The server validates again when you test or save."
+          :schema="pointSourceSchema"
+          schema-uri="app://schemas/point-source-v1.json"
+          min-height="650px"
+          @diagnostics="editorDiagnostics = $event"
+        />
         <div class="editor-actions">
-          <button type="submit" :disabled="saving">{{ saving ? 'Saving…' : 'Save' }}</button>
-          <button type="button" :disabled="testing" @click="testConnection">
+          <button type="submit" :disabled="saving || hasEditorErrors">
+            {{ saving ? 'Saving…' : 'Save' }}
+          </button>
+          <button type="button" :disabled="testing || hasEditorErrors" @click="testConnection">
             {{ testing ? 'Testing…' : 'Test connection' }}
           </button>
           <button v-if="testing" type="button" @click="cancelTest">Cancel test</button>
@@ -122,11 +122,13 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
+import YamlEditor, { type YamlDiagnostic } from '@/components/YamlEditor.vue';
 import {
   pointSourceApi,
   type ConnectionTestResult,
   type PointSourceKind
 } from '@/features/pointSources/api/pointSourceApi';
+import { pointSourceSchema } from '@/features/pointSources/pointSourceSchema';
 
 const props = defineProps<{ sourceId?: string }>();
 const router = useRouter();
@@ -225,6 +227,10 @@ const testing = ref(false);
 const error = ref('');
 const status = ref('');
 const testResult = ref<ConnectionTestResult>();
+const editorDiagnostics = ref<YamlDiagnostic[]>([]);
+const hasEditorErrors = computed(() =>
+  editorDiagnostics.value.some(({ severity }) => severity === 'error')
+);
 const errorSummary = ref<HTMLElement>();
 let loadController: AbortController | undefined;
 let testController: AbortController | undefined;

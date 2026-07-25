@@ -1,5 +1,9 @@
 import { expect, test } from '@playwright/test';
 
+// Monaco and its YAML worker are intentionally exercised in sequence within
+// each browser project so diagnostics are not distorted by resource contention.
+test.describe.configure({ mode: 'serial' });
+
 const sourceYAML = `schemaVersion: 1
 sources:
   - id: weather
@@ -72,21 +76,55 @@ test('catalogue and YAML editor support create, test, retry, and keyboard use', 
   await page.goto('/point-sources');
   await expect(page.getByRole('heading', { name: 'Point sources' })).toBeVisible();
   await page.getByRole('link', { name: 'New source' }).press('Enter');
-  const editor = page.getByLabel('Point source YAML');
+  await expect(page.getByRole('textbox', { name: 'Point source YAML' })).toBeVisible({
+    timeout: 60_000
+  });
   await page.getByRole('radio', { name: /MQTT/ }).check();
   await expect(page.getByLabel('MQTT example YAML')).toContainText('brokerUrl: mqtts://');
   await page.getByRole('button', { name: 'Use this example' }).click();
-  await expect(editor).toHaveValue(/kind: mqtt/);
+  await expect(page.locator('.monaco-editor .view-lines')).toContainText('kind: mqtt');
   await page.getByRole('radio', { name: /HTTP \/ JSON/ }).check();
   await expect(page.getByLabel('HTTP / JSON example YAML')).toContainText(
     'allowedReadMethods: [GET]'
   );
-  await editor.fill(sourceYAML);
+  await page.locator('.monaco-editor .view-lines').click();
+  await page.keyboard.press('ControlOrMeta+A');
+  await page.keyboard.insertText(sourceYAML);
   await page.getByRole('button', { name: 'Test connection' }).press('Enter');
   await expect(page.getByRole('heading', { name: 'Connection test: failed' })).toBeVisible();
   await page.getByRole('button', { name: 'Retry test' }).press('Enter');
   await expect(page.getByRole('heading', { name: 'Connection test: passed' })).toBeVisible();
   await page.getByRole('button', { name: 'Save' }).press('Enter');
   await expect(page).toHaveURL('/point-sources/weather');
-  await expect(page.getByLabel('Point source YAML')).toHaveValue(/Weather API/);
+  await expect(page.locator('.monaco-editor .view-lines')).toContainText('Weather API');
+});
+
+test('reports schema and indentation errors before a source can be tested or saved', async ({
+  page
+}) => {
+  await page.goto('/point-sources/new');
+  await expect(page.getByRole('textbox', { name: 'Point source YAML' })).toBeVisible({
+    timeout: 60_000
+  });
+  await page.locator('.monaco-editor .view-lines').click();
+  await page.keyboard.press('ControlOrMeta+A');
+  await page.keyboard.insertText(`schemaVersion: 1
+sources:
+  - id: broken-mqtt
+    name: Broken MQTT
+    enabled: true
+    kind: mqtt
+    connection:
+    brokerUrl: mqtt://mqtt.lan:1883
+    tls:
+      verifyServerCertificate: true
+    timeouts:
+      connectMilliseconds: 3000
+`);
+
+  const summary = page.getByRole('heading', { name: /YAML problems?/ });
+  await expect(summary).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Test connection' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /Line \d+, column \d+:/ }).first()).toBeVisible();
 });

@@ -9,7 +9,7 @@
       "enabled": true,
       "kind": "mqtt",
       "connection": {
-        "brokerUrl": "mqtt://mqtt.lan:8883",
+        "brokerUrl": "mqtt://mqtt.lan:1883",
         "clientIdPrefix": "flow-control",
         "testTopic": "plant/telemetry/temperature",
         "qos": 1,
@@ -23,9 +23,9 @@
       "timeouts": {
         "connectMilliseconds": 3000
       },
-      "revision": 3,
+      "revision": 4,
       "createdAt": "2026-07-25T02:50:56.267702181Z",
-      "updatedAt": "2026-07-25T02:52:00.772930352Z"
+      "updatedAt": "2026-07-25T03:13:58.396445449Z"
     }
   ]
 }
