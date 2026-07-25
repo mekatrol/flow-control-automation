@@ -21,6 +21,7 @@ public static class ServiceCollectionExtensions
 
         services.AddFlowControlData(configuration);
         services.AddSingleton(TimeProvider.System);
+        services.AddSingleton<IFlowRuntimeService, FlowRuntimeService>();
         services.AddScoped<FlowDatabaseService>();
         services.AddScoped<IFlowService>(
             static provider => provider.GetRequiredService<FlowDatabaseService>());

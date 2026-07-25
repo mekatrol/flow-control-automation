@@ -17,6 +17,7 @@ public static class FlowControlJson
         options.ReadCommentHandling = JsonCommentHandling.Disallow;
         options.AllowTrailingCommas = false;
         options.MaxDepth = 64;
+        options.UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow;
     }
 
     private static JsonSerializerOptions CreateOptions()
