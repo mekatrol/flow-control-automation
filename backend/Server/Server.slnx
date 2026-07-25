@@ -1,4 +1,6 @@
 <Solution>
   <Project Path="Server.Api/Server.Api.csproj" />
+  <Project Path="Server.Data/Server.Data.csproj" />
+  <Project Path="Server.Services/Server.Services.csproj" />
   <Project Path="Tests.Unit/Tests.Unit.csproj" />
 </Solution>
