@@ -22,7 +22,7 @@ public static class BuiltInControllerTemplate
                 "quality", "alarms", "trends",
             ],
             ConnectorDataTypes = ["any", "boolean", "event", "number", "string"],
-            FlowFunctions = FlowNodeRegistry.Functions.ToArray(),
+            FlowFunctions = [.. FlowNodeRegistry.Functions],
             ExecutionModes = ["event", "interval"],
             RuntimeFeatures =
             [

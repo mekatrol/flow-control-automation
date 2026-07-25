@@ -463,7 +463,7 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
     {
         var materialized = items.ToArray();
         return new PaginatedResult<T>(
-            materialized.Skip((page - 1) * pageSize).Take(pageSize).ToArray(),
+            [.. materialized.Skip((page - 1) * pageSize).Take(pageSize)],
             materialized.Length,
             page,
             pageSize,

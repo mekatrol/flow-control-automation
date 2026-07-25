@@ -204,7 +204,7 @@ public static class ConfigurationYaml
         {
             YamlMappingNode mapping => ConvertMapping(mapping),
             YamlSequenceNode sequence => new JsonArray(
-                sequence.Children.Select(ConvertNode).ToArray()),
+                [.. sequence.Children.Select(ConvertNode)]),
             YamlScalarNode scalar => ConvertScalar(scalar),
             _ => throw new ConfigurationYamlException(
                 ConfigurationYamlError.UnsupportedFeature,
