@@ -7,7 +7,7 @@ internal sealed class FlowControlDbContext(DbContextOptions<FlowControlDbContext
     : DbContext(options), IFlowControlDbContext
 {
     private static readonly string[] TableNames =
-        ["Flows", "PointSources", "Points", "PointGroups", "Credentials"];
+        [nameof(Flows), nameof(PointSources), nameof(Points), nameof(PointGroups), nameof(Credentials)];
 
     public DbSet<FlowEntity> Flows => Set<FlowEntity>();
 
