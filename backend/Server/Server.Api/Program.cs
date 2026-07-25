@@ -1,49 +1,33 @@
+using Server.Api.Extensions;
+using Server.Data.Context;
+using Server.Services;
+using Server.Services.Extensions;
+
 namespace Server.Api;
 
 public partial class Program
 {
-    private static void Main(string[] args)
+    private static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
+        var serverOptions = builder.Configuration.Get<ServerOptions>();
+        if (builder.Configuration.GetSection(ServerOptions.AddressConfigurationKey).Exists()
+            && serverOptions is not null)
+        {
+            builder.WebHost.UseUrls(serverOptions.ServerAddress);
+        }
 
-        // Add services to the container.
-        // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-        builder.Services.AddOpenApi();
+        builder.Services.AddFlowControlServer(builder.Configuration);
 
         var app = builder.Build();
 
-        // Configure the HTTP request pipeline.
-        if (app.Environment.IsDevelopment())
+        await using (var scope = app.Services.CreateAsyncScope())
         {
-            app.MapOpenApi();
+            var context = scope.ServiceProvider.GetRequiredService<IFlowControlDbContext>();
+            await context.InitializeDatabase(app.Lifetime.ApplicationStopping);
         }
 
-        app.UseHttpsRedirection();
-
-        var summaries = new[]
-        {
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-        app.MapGet("/weatherforecast", () =>
-        {
-            var forecast = Enumerable.Range(1, 5).Select(index =>
-                new WeatherForecast
-                (
-                    DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                    Random.Shared.Next(-20, 55),
-                    summaries[Random.Shared.Next(summaries.Length)]
-                ))
-                .ToArray();
-            return forecast;
-        })
-        .WithName("GetWeatherForecast");
-
-        app.Run();
+        app.MapFlowControlEndpoints();
+        await app.RunAsync();
     }
-}
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
 }

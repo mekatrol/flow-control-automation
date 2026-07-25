@@ -59,12 +59,13 @@ one VS Code window. Run **Tasks: Run Task** from the Command Palette and choose
 - `dotnet run` for `backend/Server/Server.Api/`
 - `npm run dev` from `frontend/flow-control-ui/`
 
-The ASP.NET Core API listens on `http://localhost:5008`. Until the frontend proxy
-default is changed, set `VITE_API_PROXY=http://localhost:5008` when running Vite
-against this backend. The starter endpoint is:
+The ASP.NET Core API listens on `http://localhost:5008` under the development
+launch profile. Until the frontend proxy default is changed, set
+`VITE_API_PROXY=http://localhost:5008` when running Vite against this backend.
+The health endpoint is:
 
 ```text
-GET http://localhost:5008/weatherforecast
+GET http://localhost:5008/api/health
 ```
 
 ### Backend tasks
@@ -88,8 +89,24 @@ dotnet clean backend/Server/Server.slnx
 dotnet format backend/Server/Server.slnx --verify-no-changes
 dotnet format backend/Server/Server.slnx
 dotnet build backend/Server/Server.slnx
+dotnet test backend/Server/Server.slnx
 dotnet run --project backend/Server/Server.Api/Server.Api.csproj --launch-profile http
 ```
+
+From `backend/Server`, run the backend unit tests with:
+
+```sh
+dotnet test Server.slnx
+```
+
+Run a specific test class by filtering its fully qualified name:
+
+```sh
+dotnet test Server.slnx --filter "FullyQualifiedName~DatabaseTests"
+```
+
+Backend tests create a unique temporary SQLite database for each test and
+remove it when the test completes.
 
 When working from the command line, run the format verification before
 `dotnet build`; the VS Code **build: backend** task enforces this automatically.

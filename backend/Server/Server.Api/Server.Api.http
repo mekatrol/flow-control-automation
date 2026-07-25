@@ -1,6 +1,6 @@
 @ServerApi_HostAddress = http://localhost:5008
 
-GET {{ServerApi_HostAddress}}/weatherforecast/
+GET {{ServerApi_HostAddress}}/api/health
 Accept: application/json
 
 ###
