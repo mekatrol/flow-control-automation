@@ -1,9 +1,12 @@
-# Points implementation plan
+# Points, flows, and controller templates implementation plan
 
 ## 1. Goal
 
-Implement the point model described in `.codex/point-types.md` across the Go
-backend and Vue frontend. Users must be able to:
+Implement the point and flow models described in `.codex/point-types.md` and
+`.codex/flows.md` across the Go backend and Vue frontend. Controller templates
+form part of the same implementation because they constrain point definitions,
+flow functions, graph connections, deployment, and runtime behaviour. Users
+must be able to:
 
 - create, view, edit, and delete point definitions;
 - create, view, edit, and delete point groups;
@@ -11,9 +14,15 @@ backend and Vue frontend. Users must be able to:
 - add typed point-read and point-write blocks to a flow;
 - select only points compatible with a block's direction;
 - connect blocks only when their value types are compatible;
-- explicitly convert analog and digital values with a level-shifter block; and
+- explicitly convert analog and digital values with a level-shifter block;
 - save, reload, and deploy valid point-backed flows without breaking existing
-  saved flows.
+  saved flows;
+- choose the controller targeted by a flow;
+- view the built-in, read-only default controller template;
+- create and edit custom controller templates as validated YAML; and
+- see precise authoring and deployment diagnostics when a target does not
+  support a point type, point capability, connector type, flow function, or
+  runtime feature.
 
 The work is divided into independently buildable and committable phases. Every
 phase includes its own tests and leaves the application deployable. Backend
@@ -56,7 +65,10 @@ The following should not be smuggled into an earlier phase:
 - unit conversion beyond exact-unit compatibility;
 - user/role authorization;
 - alarm notification delivery and long-term trend storage;
-- high-availability runtime coordination.
+- high-availability runtime coordination;
+- a graphical controller-template form builder;
+- automatic discovery of every physical controller capability; and
+- silently reducing or rewriting a flow to fit a smaller controller.
 
 The extension points for these features are defined below, but each needs its
 own design and threat/safety review before implementation.
@@ -284,6 +296,90 @@ patterns where appropriate. Use SVG icons in
 `public/icons/flow-nodes/`, with `currentColor`/theme-compatible styling and the
 same sizing/view-box conventions as existing node icons.
 
+### 3.8 Controller templates and target binding
+
+A controller template is a versioned capability contract, not a deployed
+controller instance. Store user templates as YAML under a configurable
+`CONTROLLER_TEMPLATE_DIR`; keep the built-in `default` template embedded in the
+application so it is always available, cannot be changed or deleted, and
+represents every feature supported by this project.
+
+The version-1 YAML contract must include:
+
+```yaml
+schemaVersion: 1
+id: default
+name: Flow Control Automation
+description: Built-in unrestricted application target
+readOnly: true
+capabilities:
+  pointTypes: [analog, digital, multi_state, integer, text]
+  pointDirections: [input, output, input_output, value]
+  pointFeatures:
+    [read, command, retain, override, relinquish, quality, alarms, trends]
+  connectorDataTypes: [any, boolean, event, number, string]
+  flowFunctions: [] # replaced by the complete catalogue shown in flows.md
+  executionModes: [event, interval]
+  runtimeFeatures:
+    [virtual_points, bound_points, command_arbitration, quality_propagation]
+limits:
+  maxFlows: null
+  maxNodesPerFlow: null
+  maxConnectionsPerFlow: null
+  minimumIntervalMilliseconds: null
+```
+
+The checked-in default example must enumerate `flowFunctions`; the abbreviated
+empty list above is descriptive only. Absence of a capability means unsupported.
+Unknown capability names, duplicate entries, invalid limits, unsupported schema
+versions, a mismatched file/id, and YAML aliases or tags that weaken deterministic
+parsing are rejected. Bound parsing size and nesting depth. YAML is converted
+into the same typed Go/TypeScript DTO used by validation; application code must
+not inspect arbitrary YAML maps.
+
+Custom template writes use parse, schema validation, semantic validation, then
+atomic temporary-file-and-rename. Reject an ID or filename of `default`, path
+traversal, symlinks escaping the configured directory, and stale revisions.
+Return line/column information for syntax errors and stable field paths for
+semantic errors. Never expose filesystem paths in API errors.
+
+Add `controllerTemplateId` to each flow, defaulting missing legacy values to
+`default` at the API/domain boundary. Drafts may retain unsupported elements so
+users can repair them or change target, but unsupported items are visibly
+diagnosed. Save validates graph integrity; deploy applies the selected template
+to the complete resolved graph and point catalogue. A deployment captures the
+template revision and validated flow/point snapshot so a later template edit
+cannot mutate running behaviour. Redeployment is required to adopt changes.
+
+The template service owns:
+
+- listing and retrieving the built-in and custom templates;
+- validating and atomically storing custom YAML;
+- calculating structured compatibility diagnostics;
+- preventing deletion while a flow targets the template;
+- reporting affected flow IDs before a capability-reducing edit; and
+- keeping frontend filtering and backend deployment validation aligned through
+  one canonical capability vocabulary.
+
+Expose JSON metadata plus YAML content through:
+
+```text
+GET    /api/controller-templates
+POST   /api/controller-templates/validate
+POST   /api/controller-templates
+GET    /api/controller-templates/{templateId}
+PUT    /api/controller-templates/{templateId}
+DELETE /api/controller-templates/{templateId}?revision={revision}
+GET    /api/controller-templates/{templateId}/yaml
+```
+
+The default resource returns `readOnly: true`; mutation attempts return `409`.
+The UI provides a semantic template catalogue and an accessible labelled YAML
+text editor with validation summary, line/column messages, keyboard operation,
+unsaved-change protection, and a read-only default example. Compatibility is
+never communicated by colour alone, and filtering the palette must be
+supplemented by explanatory text and server-side validation.
+
 ## 4. Definition of done for every phase
 
 A phase is complete only when:
@@ -323,6 +419,8 @@ new persisted concepts.
 
 - Add version-1 point/group JSON contract fixtures covering every value type,
   standalone/grouped points, virtual/bound implementations, and invalid cases.
+- Add version-1 controller-template YAML fixtures for the exhaustive built-in
+  target, constrained physical targets, and syntax/semantic failures.
 - Add legacy flow fixtures that contain only current node kinds.
 - Document canonical enum spellings and the point-to-connector mapping.
 - Add test helpers for temporary backend data files and Playwright point API
@@ -333,6 +431,8 @@ new persisted concepts.
 
 - Existing flow fixtures decode, validate, save, and reload unchanged.
 - Contract fixtures agree between Go JSON decoding and TypeScript DTO parsing.
+- Template fixtures produce equivalent typed capabilities and diagnostics in
+  Go and TypeScript.
 - Unknown fields and unsupported schema versions fail.
 
 **E2E/smoke**
@@ -373,6 +473,32 @@ pass.
 and the existing application builds/runs unchanged.
 
 **Suggested commit:** `feat(points): add validated point definition model`
+
+### Phase 1A - Controller-template domain and built-in default
+
+**Purpose:** Establish the capability vocabulary before API, UI, or deployment
+layers depend on it.
+
+**Implementation**
+
+- Add `backend/internal/controllers` typed capability, limit, and diagnostic
+  models plus strict bounded YAML parsing.
+- Embed the exhaustive, read-only default template and derive/check its
+  flow-function entries against the canonical backend node registry.
+- Centralize predicates for point, connector, function, execution-mode, and
+  runtime-feature support.
+
+**Tests**
+
+- Table-test valid constrained targets and every invalid enum, duplicate,
+  limit, ID, alias/tag, size, and nesting case.
+- Fuzz YAML parsing and semantic validation; it must never panic.
+- Assert the default includes every supported point type, feature, connector,
+  execution mode, runtime feature, and flow function.
+
+**Commit gate:** No route or persisted flow changes; all existing suites pass.
+
+**Suggested commit:** `feat(controllers): define validated capability templates`
 
 ### Phase 2 - Durable backend store
 
@@ -435,6 +561,32 @@ and all suites pass.
 
 **Suggested commit:** `feat(points): expose point and group definition API`
 
+### Phase 3A - Controller-template store and HTTP API
+
+**Purpose:** Safely manage custom YAML templates and expose the default example.
+
+**Implementation**
+
+- Add directory-backed atomic persistence, revisions, deterministic listing,
+  reserved-default protection, safe path handling, and reference conflicts.
+- Add the controller-template endpoints from section 3.8 with bounded bodies,
+  stable diagnostics, and YAML/JSON content types.
+- Wire `CONTROLLER_TEMPLATE_DIR` into startup; an absent directory means no
+  custom templates.
+
+**Tests**
+
+- Cover create/validate/update/delete/reopen, syntax line/column diagnostics,
+  semantic paths, stale revisions, default mutations, traversal/symlink
+  attempts, malformed/oversized input, rollback, and concurrent access.
+- Add API E2E coverage for viewing the default and round-tripping a constrained
+  custom YAML template.
+
+**Commit gate:** The default is always retrievable and custom write failures
+leave the prior file and in-memory state intact.
+
+**Suggested commit:** `feat(controllers): expose YAML template API`
+
 ### Phase 4 - Frontend data layer and read-only catalogue
 
 **Purpose:** Show point data before enabling mutations.
@@ -444,6 +596,8 @@ and all suites pass.
 - Add strict DTO parsing/mapping, API client, latest-request handling, and Pinia
   store.
 - Add `/points` and `/point-groups` routes and navigation.
+- Add strict controller-template DTO parsing/API/store code and a
+  `/controller-templates` catalogue showing built-in/custom and read-only state.
 - Build semantic, responsive, paginated catalogue tables with filters, empty,
   loading, stale-request, and error states.
 - Display membership, implementation, direction, value type, units,
@@ -462,6 +616,8 @@ and all suites pass.
 - Add `e2e/pointsCatalogue.spec.ts` for navigation, paging, filtering, reload,
   network failure, keyboard operation, and axe checks at desktop/mobile sizes
   and light/dark themes.
+- Add `e2e/controllerTemplates.spec.ts` for viewing and keyboard-navigating the
+  exhaustive read-only default template.
 
 **Commit gate:** Read-only screens tolerate an empty catalogue and an older
 backend returning 404 by showing an actionable unavailable state.
@@ -500,6 +656,31 @@ can create an orphan or multi-group membership.
 
 **Suggested commit:** `feat(ui): manage points and point groups`
 
+### Phase 5A - Accessible custom-template YAML editing
+
+**Purpose:** Let users manage custom targets without prematurely building a
+graphical schema editor.
+
+**Implementation**
+
+- Add create/edit routes with a labelled monospace textarea, template metadata,
+  validate/save actions, line/column and field-path diagnostics, revision
+  conflict handling, deletion confirmation, and dirty-navigation protection.
+- Make the default view read-only while keeping its YAML selectable and usable
+  as an example for a new custom template.
+
+**Tests**
+
+- Unit-test input preservation, diagnostic focus/associations, stale revisions,
+  default immutability, delete conflicts, focus restoration, and API failures.
+- E2E-test keyboard-only create/validate/fix/save/reload/delete and axe scans at
+  desktop/mobile sizes and light/dark themes.
+
+**Commit gate:** Invalid YAML cannot be persisted and all errors are available
+to assistive technology without relying on colour.
+
+**Suggested commit:** `feat(ui): manage controller template YAML`
+
 ### Phase 6 - Point nodes in the flow schema and toolbox
 
 **Purpose:** Make point endpoints authorable while keeping old flows valid.
@@ -515,6 +696,10 @@ can create an orphan or multi-group membership.
 - Support search and group labels without making group membership part of flow
   identity.
 - Preserve a node with a missing/changed point as an invalid placeholder.
+- Persist `controllerTemplateId`, treating a missing legacy value as `default`,
+  and add an accessible target selector to flow settings.
+- Filter/annotate point choices and palette functions using the target
+  capabilities while preserving already-saved unsupported nodes for repair.
 
 **Unit tests**
 
@@ -523,6 +708,8 @@ can create an orphan or multi-group membership.
 - Capability/direction filtering and accessible selection.
 - DTO round-trip of new and legacy nodes.
 - Missing, disabled, direction-changed, and type-changed point behavior.
+- Legacy default-target migration, target switching, palette/point filtering,
+  and unsupported-node diagnostics.
 
 **E2E/smoke**
 
@@ -551,6 +738,12 @@ flows with point nodes save and reload; deployment remains guarded until phase
   or unit-changed point references.
 - Add point delete-reference checks and return referencing flow IDs.
 - Surface server diagnostics in the designer and link users to affected nodes.
+- Resolve the selected controller template and validate all graph functions,
+  connector types, point contracts, execution mode, limits, and runtime
+  features before deployment.
+- Capture template revision with the deployed snapshot; block deletion or
+  capability-reducing edits when referenced unless the explicit conflict flow
+  is completed.
 
 **Unit/integration tests**
 
@@ -560,6 +753,8 @@ flows with point nodes save and reload; deployment remains guarded until phase
   deterministic result.
 - Point deletion is blocked for every reference and succeeds after repair.
 - Legacy flows without point nodes are unaffected.
+- Missing templates, stale template revisions, every capability family, limit
+  boundaries, edits racing deployment, and unchanged running snapshots.
 
 **E2E/smoke**
 
@@ -619,6 +814,8 @@ cannot contain an invalid hysteresis configuration.
 - Add point snapshot/change APIs; use polling first if subscriptions are not yet
   available, while preserving sequence semantics for a future stream.
 - Mark bound points `bad/binding_not_configured` until a driver owns them.
+- Refuse runtime construction when the deployed snapshot requests a capability
+  outside its captured target contract.
 
 **Unit/integration tests**
 
@@ -740,6 +937,10 @@ combined `state` enum.
 ## 6. Migration and compatibility strategy
 
 - Absence of `data/points.json` means an empty version-1 catalogue.
+- Absence of `controllerTemplateId` means the embedded `default`; absence of a
+  custom template directory means only the default is available.
+- Never persist or overwrite the embedded default. Template schema changes
+  require fixture-tested migrations for custom YAML.
 - Never rewrite `flows.json` merely because the server starts.
 - Old flow node kinds and connector contracts remain accepted.
 - New fields added to point documents require a schema-version migration with
@@ -766,16 +967,23 @@ backend/internal/points/http_test.go
 backend/internal/points/service_test.go
 backend/internal/flows/point_validation_test.go
 backend/internal/flows/level_shifter_test.go
+backend/internal/controllers/model_test.go
+backend/internal/controllers/store_test.go
+backend/internal/controllers/http_test.go
+backend/internal/flows/controller_validation_test.go
 
 frontend/flow-control-ui/src/features/points/**/__tests__/*.spec.ts
 frontend/flow-control-ui/src/features/flows/**/__tests__/*point*.spec.ts
 frontend/flow-control-ui/src/features/flows/**/__tests__/*levelShifter*.spec.ts
+frontend/flow-control-ui/src/features/controllers/**/__tests__/*.spec.ts
 
 frontend/flow-control-ui/e2e/pointsApi.spec.ts
 frontend/flow-control-ui/e2e/pointsCatalogue.spec.ts
 frontend/flow-control-ui/e2e/pointsCrud.spec.ts
 frontend/flow-control-ui/e2e/designerPoints.spec.ts
 frontend/flow-control-ui/e2e/designerLevelShifter.spec.ts
+frontend/flow-control-ui/e2e/controllerTemplates.spec.ts
+frontend/flow-control-ui/e2e/designerControllerTargets.spec.ts
 ```
 
 Prefer behavior-based test names and public boundaries. Unit tests should own
@@ -789,6 +997,8 @@ Before merging each phase, review:
 - **Persistence:** Is the write atomic, versioned, deterministic, and recoverable?
 - **Compatibility:** Can the previous release's files and flows still load?
 - **Integrity:** Can a point be orphaned, multiply grouped, or silently cascaded?
+- **Targeting:** Is the default exhaustive/read-only, is custom YAML validated,
+  and does deployment use one immutable capability snapshot?
 - **Typing:** Are value type, units, direction, and capabilities checked at
   browser, API, deployment, and runtime boundaries as applicable?
 - **Safety:** Can missing/bad data operate an output or become a default value?

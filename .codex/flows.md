@@ -1,20 +1,317 @@
-Flows can run in the controller in this project, or they can be deployed to a physical controller
+# Flows and controller targets
 
-When flows are deployed to a physical controller they may have limited point types and point capabilities.
+## Purpose
 
-For example, a very basic controller may not have override features, not might it have every point type of flow function type.
+A flow is a persisted, directed graph of automation functions. Users create and
+connect nodes in the Vue designer, save a draft through the Go API, and deploy a
+validated snapshot to the runtime. Flows may run in this application or target
+a physical controller with a smaller feature set.
 
-In these cases a controller template is used to define the apabilities of the controller the flow is being deployed to. The template guides what points, point features, functions etc a flow can have when a particular controller is being targetted.
+This document is the technical reference for future implementation work. The
+combined delivery sequence is in `.codex/implementation-plan.md`; point
+semantics are in `.codex/point-types.md`; the current browser wire contract is
+in `.codex/ui-flow-schema.md`.
 
-The default target is this flow control system, meaning all features can be used.
+## Current and intended lifecycle
 
-When expaling this desription, create flow-implementation-plan.md. Look at sibling point-implmentation-plan.md. This plan should have all requirements for sematic html, comments, wcag compliance, e2e and unit testing and so forth.
+1. The user creates a draft flow with a stable ID and display metadata.
+2. The user chooses a controller template. Legacy flows and new flows default
+   to the built-in `default` target.
+3. The designer offers functions, connectors, and points supported by that
+   target. Unsupported saved content remains visible with diagnostics so it can
+   be repaired; it is never silently deleted.
+4. Saving validates the persisted graph and records only durable authoring
+   state. Selection, viewport, pointer state, validation presentation, and live
+   runtime telemetry are not persisted in the graph.
+5. Deploying resolves the flow, referenced points, selected template, and other
+   dependencies as one consistent snapshot. Deployment fails with structured
+   diagnostics if anything is missing, incompatible, disabled, or unsupported.
+6. A successful deployment captures the validated flow plus point and template
+   revisions. Later edits do not mutate a running deployment; redeployment is
+   explicit.
+7. The backend runs each deployed flow independently. A flow may be triggered
+   by events or by a configured interval, subject to its target capabilities.
+8. Disabling, stopping, undeploying, or deleting a flow shuts down only that
+   flow and releases non-retained point commands belonging to its stable source
+   ID.
 
-The front and backend will need a way of defining controller templates. Initially this should just be as a yaml file and the user can edit taml rather than a graphical UI form field type approach. the yaml should be validated.
+The current backend persists flow definitions and exposes deployment/runtime
+snapshots, but its runtime is still a lifecycle/status implementation rather
+than the complete graph evaluator described here.
 
-Start with the default yaml for running in this project app which the user can view as an example, however the default should be readonly and include all features and functions.
+## Persisted graph
 
-Also if flow-implementation-plan.md and point-implmentation-plan.md make sens as one implmentation then update point-implmentation-plan.md and rename to implmentation-plan.md covering all implmentation phases. This may be needed if points and flow implementation need to be implmentated concurrently at each step to allow some dependant features between the two.
+A flow contains:
 
-Then once the plan is written update this document to fully describe how flows work so that an AI agent can refer to it in the future, later we'll generate user doecumentation from these ms files in .codex.
+```text
+id, name, description
+status                    draft | deployed
+disabled
+updatedAt
+controllerTemplateId      defaults to "default" when absent
+nodes[]
+connections[]
+```
 
+Each node has a stable ID, canonical kind, label, finite canvas coordinates and
+z-order, connectors, and scalar configuration. Each connector has a stable ID,
+label, direction (`input` or `output`), data type, and side. Each connection
+references an existing output connector and existing input connector.
+
+Current primitive connector data types are `any`, `boolean`, `event`, `number`,
+and `string`. Except for the explicit legacy `any` wildcard, endpoint primitive
+types must match. Domain rules can be stricter: analog and integer both use
+`number`, for example, but point contracts must still prevent accidental
+analog/integer or engineering-unit mismatches.
+
+Node configuration is intentionally restricted to JSON scalar values. New
+structured requirements should receive an explicit versioned contract rather
+than placing arbitrary browser objects in persisted state. Node kinds are wire
+values and the Go validator, TypeScript enum, node registry, icons, fixtures,
+and controller-template function vocabulary must remain aligned.
+
+Unknown or invalid graph content must fail at API boundaries with a useful data
+path. Previously released kinds remain loadable. Migrations are explicit and
+fixture-tested; server startup must not rewrite saved flows.
+
+## Point nodes
+
+Points are the boundary between flow logic and virtual values, hardware, or
+external systems. The planned point-related functions are:
+
+- `read-point`: emits the value of a readable point;
+- `write-point`: submits a command to a commandable point;
+- `point-changed`: triggers from a value/quality change once event runtime
+  support exists;
+- `release-point-command`: relinquishes this flow's command; and
+- `level-shifter`: explicitly maps digital to analog or analog to digital with
+  mandatory hysteresis in the latter direction.
+
+Point nodes persist `pointId`, `expectedValueType`, and optional
+`expectedUnits`, not copied names or live values. A missing or changed point
+therefore remains identifiable as an invalid draft node. It cannot deploy until
+repaired. Live values, quality, commands, and history belong to their runtime
+services and never to the flow JSON.
+
+Bad or missing input never silently becomes zero, false, or empty text. Quality,
+fallback, and inhibition are explicit runtime behaviour. Multiple writers use
+command arbitration rather than last-write-wins.
+
+## Controller templates
+
+A controller template declares what a target can represent and execute. It is a
+capability contract, not a controller instance, connection credential, driver,
+or deployed-flow snapshot. Templates allow a simple physical controller to
+exclude features such as overrides, certain point types, flow functions, event
+execution, or quality propagation.
+
+The built-in `default` template targets this application. It is embedded,
+read-only, always available, and exhaustive for the features implemented by the
+current release. Users can view its YAML as a canonical example but cannot edit,
+replace, or delete it.
+
+Custom templates are initially authored as YAML rather than through a graphical
+form. The backend is authoritative: it parses YAML into a typed, versioned
+model, validates syntax and semantics, and stores valid files atomically. The
+frontend may parse enough to improve editing feedback but cannot be the only
+validation layer.
+
+Version 1 declares:
+
+- identity, description, schema version, and revision;
+- supported point value types and directions;
+- point features such as read, command, retention, override, relinquish,
+  quality, alarms, and trends;
+- connector data types and canonical flow-function kinds;
+- event and interval execution modes;
+- runtime features such as virtual/bound points, command arbitration, and
+  quality propagation; and
+- optional limits for flow, node, connection, and minimum interval capacity.
+
+The initial built-in template is conceptually the following YAML. Its function
+list covers the current catalogue and the point/runtime functions introduced by
+the combined implementation plan; code must update this list and its parity
+test whenever another function becomes supported.
+
+```yaml
+schemaVersion: 1
+id: default
+name: Flow Control Automation
+description: Built-in unrestricted application target
+readOnly: true
+capabilities:
+  pointTypes: [analog, digital, multi_state, integer, text]
+  pointDirections: [input, output, input_output, value]
+  pointFeatures:
+    [read, command, retain, override, relinquish, quality, alarms, trends]
+  connectorDataTypes: [any, boolean, event, number, string]
+  flowFunctions:
+    - and
+    - average
+    - calculator
+    - calendar
+    - clamp
+    - comparator
+    - delay
+    - if
+    - invert
+    - level-shifter
+    - line
+    - max
+    - min
+    - nand
+    - nor
+    - not
+    - or
+    - override
+    - point-changed
+    - pulse
+    - read-point
+    - release-point-command
+    - schedule
+    - selector
+    - sequence
+    - split
+    - timer
+    - write-point
+    - xnor
+    - xor
+  executionModes: [event, interval]
+  runtimeFeatures:
+    [virtual_points, bound_points, command_arbitration, quality_propagation]
+limits:
+  maxFlows: null
+  maxNodesPerFlow: null
+  maxConnectionsPerFlow: null
+  minimumIntervalMilliseconds: null
+```
+
+`invert` is retained only as a legacy persisted alias for `not`; new authoring
+uses `not`. A production default should be generated or checked against the
+canonical registries so documentation cannot make an unsupported function
+deployable.
+
+Capabilities are allowlists: absence means unsupported. Names are canonical
+case-sensitive wire values. Unknown names and duplicate entries are errors,
+because accepting them would make a misspelling look like a supported feature.
+Limits are either explicit valid values or unlimited; zero and null must not
+acquire ambiguous meanings.
+
+YAML handling must be bounded and deterministic. Reject unsupported schema
+versions, duplicate mapping keys, custom tags, unsafe aliases, excessive size
+or nesting, mismatched file/declared IDs, reserved `default` identity, path
+traversal, and non-finite numeric values. Syntax errors include line and column;
+semantic errors include stable field paths. API errors do not reveal host paths
+or secrets.
+
+Custom-template updates use optimistic revisions and atomic replacement.
+Deleting a referenced template is blocked and reports affected flow IDs. A
+capability-reducing edit reports affected flows and requires an explicit
+conflict-resolution path. No edit changes an already-running deployment.
+
+## Authoring behaviour
+
+The target selector is part of flow settings and is fully keyboard accessible.
+Changing it recomputes diagnostics. The palette and point selectors may filter
+unsupported choices to reduce mistakes, but the UI must also explain why an
+item is unavailable. Colour is never the only indicator.
+
+Draft editing remains lossless:
+
+- switching targets does not delete nodes or connections;
+- opening a flow whose template is missing preserves its configured ID;
+- opening a graph with a now-unsupported function renders the function and an
+  actionable diagnostic;
+- point definition drift is shown at the affected node; and
+- unsupported graphs may be saved as drafts when structurally valid, but
+  cannot be deployed.
+
+All designer controls use semantic HTML where HTML is appropriate. The SVG
+canvas exposes accessible names and keyboard equivalents for pointer actions.
+Forms use labels, fieldsets/legends, associated error text, status announcements,
+visible focus, focus trapping/restoration for dialogs, and WCAG 2.2 AA contrast
+in every theme and viewport. The YAML editor is a labelled native text area
+with a validation summary and navigable line/field diagnostics.
+
+## Validation boundaries
+
+Validation is deliberately repeated at trust boundaries while sharing one
+canonical rule vocabulary:
+
+- YAML load/write validates template syntax, schema, semantics, and identity.
+- Flow DTO parsing validates shape, enums, finite values, unique IDs, endpoint
+  existence, direction, and primitive connector compatibility.
+- Draft save validates graph integrity and reports target/point incompatibility
+  without destroying repairable content.
+- Deployment resolves one consistent template and point snapshot, then validates
+  all function kinds, connectors, point contracts, execution mode, runtime
+  features, and target limits.
+- Runtime construction checks the captured deployment contract defensively and
+  refuses unsupported work.
+
+Diagnostics have stable codes, human messages, severity, and locations such as
+node ID, connector ID, point ID, or template field path. The frontend links a
+diagnostic to the relevant editor control or canvas element.
+
+The application must never infer that a physical target supports a feature
+merely because the default target does. It must never silently coerce a graph,
+drop a node, substitute a point, lower an interval, or ignore an unsupported
+feature to make deployment succeed.
+
+## Execution model
+
+Each deployed flow has an isolated lifecycle and cancellation context. Event
+flows wait for subscribed events; interval flows use a validated ticker and do
+not overlap executions unless the function contract explicitly supports it.
+Stopping is graceful, bounded, and independent of other flows.
+
+Graph execution uses validated topology and typed value/quality envelopes.
+Cycles require an explicitly supported stateful/delay construct; accidental
+combinational cycles are deployment errors. Evaluators should be pure where
+possible. Stateful nodes define initialization, update, persistence, and
+shutdown behaviour. Output commands carry flow source and correlation IDs for
+arbitration and audit.
+
+Errors are contained to the affected flow and exposed as runtime diagnostics.
+Panics are recovered at the flow boundary, recorded without sensitive data, and
+must not terminate unrelated runtimes. Updates build and validate a replacement
+before swapping it into service so a failed redeployment leaves the prior
+deployment intact.
+
+## API and persistence
+
+Existing flow CRUD and runtime endpoints remain the public boundary described
+in `.codex/ui-flow-schema.md` and `.codex/ui-runtime-api.md`. Flow persistence
+continues to use `FLOW_DATA_FILE`. Point definitions, live point state,
+controller templates, deployed snapshots, commands, and audit/history have
+separate stores because they have different consistency and safety needs.
+
+User controller templates live under `CONTROLLER_TEMPLATE_DIR`. The embedded
+default is not copied into that directory and custom files cannot shadow it.
+Template APIs list/retrieve metadata, retrieve YAML, validate without saving,
+create, update, and delete. Mutations return revision conflicts rather than
+silently overwriting another editor.
+
+Cross-resource mutations and deployments go through a service layer capable of
+holding consistent snapshots across the flow, point, and template stores. A
+future database may replace file stores without changing the HTTP contracts.
+
+## Testing and completion standard
+
+Every implementation phase in `.codex/implementation-plan.md` includes
+production code, unit/integration tests, focused Playwright coverage, and a
+manual smoke test. Tests cover positive and negative cases, legacy data,
+malformed input, target mismatch, concurrency, atomic-write failure, and
+recovery.
+
+Frontend work must pass formatting, linting, unit tests, production build, and
+focused plus full E2E suites. User-visible flows are tested with keyboard-only
+operation and automated accessibility scans at desktop/mobile sizes and
+light/dark themes. E2E specs are separated by user-facing responsibility and
+use role/label locators except where SVG graph geometry requires a direct
+selector.
+
+Backend work uses table tests for capability matrices, fixture parity, fuzzing
+for parsers/validators, race tests for stores and deployment snapshots, and
+fault injection for atomic persistence. Comments explain non-obvious safety,
+compatibility, concurrency, or parsing intent; they do not narrate syntax.
