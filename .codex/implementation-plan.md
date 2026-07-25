@@ -11,7 +11,8 @@ Last updated: 25 July 2026.
 | --- | --- | --- |
 | 0 - Contract fixtures and compatibility baseline | Complete | Shared YAML/JSON fixtures, strict Go/TypeScript parity tests, invalid-input coverage, legacy-flow regression coverage, test helpers, and baseline results are in place. |
 | 1 - Point-source foundation and live connectivity testing | Complete | Typed source contracts, strict YAML/JSON storage, safe staged connectivity testing, CRUD API, accessible catalogue/editor UI, and automated coverage are in place. |
-| 2 onward | Not started | Phase 2 is next; follow the sequence below, including the controller-template sub-phases. |
+| 2 - Backend point and group domain model | Complete | Typed .NET domain vocabulary, centralized validation/compatibility predicates, source-specific mappings, and automated coverage are in place. |
+| 2A onward | Not started | Phase 2A is next; follow the sequence below, including the remaining controller-template sub-phases. |
 
 Detailed Phase 0 verification results are recorded in
 `.codex/phase-0-baseline.md`.
@@ -588,6 +589,8 @@ persists credentials/test results.
 **Suggested commit:** `feat(points): add reusable point sources and connectivity tests`
 
 ### Phase 2 - Backend point and group domain model
+
+**Completed:** 25 July 2026.
 
 **Purpose:** Introduce validated domain types without HTTP or UI changes.
 

@@ -42,6 +42,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IFlowStore>(
             static provider => provider.GetRequiredService<FlowDatabaseService>());
         services.AddSingleton<IPointSourceValidator, PointSourceValidator>();
+        services.AddSingleton<IPointDefinitionValidator, PointDefinitionValidator>();
         services.AddScoped<IPointSourceService, PointSourceDatabaseService>();
         services.AddScoped<CredentialDatabaseService>();
         services.AddScoped<ICredentialStore>(
