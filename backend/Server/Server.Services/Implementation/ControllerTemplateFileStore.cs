@@ -5,23 +5,16 @@ using System.Text.Json;
 
 namespace Server.Services.Implementation;
 
-internal sealed class ControllerTemplateFileStore : IControllerTemplateStore
+internal sealed class ControllerTemplateFileStore(
+    IOptions<ServerOptions> options,
+    IControllerTemplateValidator validator,
+    TimeProvider timeProvider) : IControllerTemplateStore
 {
-    private readonly string _path;
-    private readonly IControllerTemplateValidator _validator;
-    private readonly TimeProvider _timeProvider;
+    private readonly string _path = Path.GetFullPath(options.Value.ControllerDataFile);
+    private readonly IControllerTemplateValidator _validator = validator;
+    private readonly TimeProvider _timeProvider = timeProvider;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private ControllerTemplateDocument? _document;
-
-    public ControllerTemplateFileStore(
-        IOptions<ServerOptions> options,
-        IControllerTemplateValidator validator,
-        TimeProvider timeProvider)
-    {
-        _path = Path.GetFullPath(options.Value.ControllerDataFile);
-        _validator = validator;
-        _timeProvider = timeProvider;
-    }
 
     public async Task<IReadOnlyList<ControllerTemplate>> ListAsync(
         CancellationToken cancellationToken)

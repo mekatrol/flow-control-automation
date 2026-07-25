@@ -339,6 +339,9 @@ dotnet_diagnostic.IDE0017.severity = error
 # IDE0130: Namespace does not match folder structure
 dotnet_diagnostic.IDE0130.severity = error
 
+# IDE0290: Use primary constructor
+dotnet_diagnostic.IDE0290.severity = error
+
 # Naming violation rule
 dotnet_diagnostic.IDE1006.severity = error
 

@@ -15,9 +15,13 @@ internal sealed class FlowEndpointTests
         using var factory = new FlowControlApplicationFactory();
         using var client = factory.CreateClient();
         var created = await CreateFlow(client, "Climate Control");
-        Assert.That(created.Id, Is.EqualTo("climate-control"));
-        Assert.That(created.Status, Is.EqualTo("draft"));
-        Assert.That(created.Nodes, Is.Empty);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(created.Id, Is.EqualTo("climate-control"));
+            Assert.That(created.Status, Is.EqualTo("draft"));
+            Assert.That(created.Nodes, Is.Empty);
+        }
 
         var changed = created with
         {

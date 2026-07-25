@@ -7,7 +7,8 @@ using Server.Data.Extensions;
 
 namespace Tests.Unit.Api;
 
-internal sealed class FlowControlApplicationFactory : WebApplicationFactory<Server.Api.Program>
+internal sealed class FlowControlApplicationFactory(
+    Action<IServiceCollection>? configureServices = null) : WebApplicationFactory<Server.Api.Program>
 {
     private const string TestCredentialEncryptionKey =
         "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=";
@@ -15,13 +16,8 @@ internal sealed class FlowControlApplicationFactory : WebApplicationFactory<Serv
     private readonly string _temporaryDirectory = Path.Combine(
         Path.GetTempPath(),
         $"flow-control-tests-{Guid.NewGuid():N}");
-    private readonly Action<IServiceCollection>? _configureServices;
 
-    public FlowControlApplicationFactory(
-        Action<IServiceCollection>? configureServices = null)
-    {
-        _configureServices = configureServices;
-    }
+    private readonly Action<IServiceCollection>? _configureServices = configureServices;
 
     public string DatabasePath => Path.Combine(_temporaryDirectory, "flow-control.db");
     public string ControllerDataPath => Path.Combine(_temporaryDirectory, "controllers.json");

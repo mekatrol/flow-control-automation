@@ -10,26 +10,19 @@ using System.Text.RegularExpressions;
 
 namespace Server.Services.Implementation;
 
-internal sealed partial class CredentialDatabaseService :
+internal sealed partial class CredentialDatabaseService(
+    IFlowControlDbContext context,
+    TimeProvider timeProvider,
+    IOptions<ServerOptions> options) :
     ICredentialStore,
     ICredentialResolver
 {
     private const int NonceSize = 12;
     private const int TagSize = 16;
 
-    private readonly IFlowControlDbContext _context;
-    private readonly TimeProvider _timeProvider;
-    private readonly byte[] _key;
-
-    public CredentialDatabaseService(
-        IFlowControlDbContext context,
-        TimeProvider timeProvider,
-        IOptions<ServerOptions> options)
-    {
-        _context = context;
-        _timeProvider = timeProvider;
-        _key = Convert.FromBase64String(options.Value.CredentialEncryptionKey!);
-    }
+    private readonly IFlowControlDbContext _context = context;
+    private readonly TimeProvider _timeProvider = timeProvider;
+    private readonly byte[] _key = Convert.FromBase64String(options.Value.CredentialEncryptionKey!);
 
     public async Task<IReadOnlyList<CredentialMetadata>> ListAsync(
         CancellationToken cancellationToken) =>
