@@ -12,6 +12,12 @@ namespace Tests.Unit.Api;
 
 public sealed class RegistrationTests
 {
+
+    /// <summary>
+    /// Purpose: Protects the behavioral contract that public registration can be overridden through its interface.
+    /// Description: Arranges the inputs for public registration can be overridden through its interface, exercises the relevant operation,
+    /// and verifies the observable results required by that scenario.
+    /// </summary>
     [Test]
     public void PublicRegistrationCanBeOverriddenThroughItsInterface()
     {
@@ -30,9 +36,17 @@ public sealed class RegistrationTests
 
         var context = scope.ServiceProvider.GetRequiredService<IFlowControlDbContext>();
 
+        // Expected outcome: `context` has the required runtime type.
+        // Acceptance criteria: `context` must be a FakeContext, because this condition proves that
+        // public registration can be overridden through its interface.
         Assert.That(context, Is.TypeOf<FakeContext>());
     }
 
+    /// <summary>
+    /// Purpose: Protects the behavioral contract that registration binds configuration models.
+    /// Description: Arranges the inputs for registration binds configuration models, exercises the relevant operation,
+    /// and verifies the observable results required by that scenario.
+    /// </summary>
     [Test]
     public void RegistrationBindsConfigurationModels()
     {
@@ -56,10 +70,25 @@ public sealed class RegistrationTests
         var server = provider.GetRequiredService<IOptions<ServerOptions>>().Value;
         var database = provider.GetRequiredService<IOptions<DatabaseOptions>>().Value;
 
+        // Expected outcome: All related outcomes satisfy their contracts.
+        // Acceptance criteria: every assertion in the group must pass, because this condition proves that
+        // registration binds configuration models.
         Assert.Multiple(() =>
         {
+
+            // Expected outcome: `server.ServerAddress` has the required value.
+            // Acceptance criteria: `server.ServerAddress` must equal `address`, because this condition proves that
+            // registration binds configuration models.
             Assert.That(server.ServerAddress, Is.EqualTo(address));
+
+            // Expected outcome: `server.CredentialEncryptionKey` has the required value.
+            // Acceptance criteria: `server.CredentialEncryptionKey` must equal `encryptionKey`, because this condition proves that
+            // registration binds configuration models.
             Assert.That(server.CredentialEncryptionKey, Is.EqualTo(encryptionKey));
+
+            // Expected outcome: `database.ConnectionString` has the required value.
+            // Acceptance criteria: `database.ConnectionString` must equal `connectionString`, because this condition proves that
+            // registration binds configuration models.
             Assert.That(database.ConnectionString, Is.EqualTo(connectionString));
         });
     }

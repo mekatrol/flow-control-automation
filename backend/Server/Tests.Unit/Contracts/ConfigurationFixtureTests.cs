@@ -88,6 +88,9 @@ public sealed class ConfigurationFixtureTests
             ?? throw new InvalidOperationException("JSON fixture is empty.");
         StripBackendMetadata(expected);
 
+        // Expected outcome: `JsonNode.DeepEquals(actual` confirms the required condition.
+        // Acceptance criteria: `JsonNode.DeepEquals(actual` must be true, because this condition proves that
+        // parse matches normalized json after metadata removal.
         Assert.That(
             JsonNode.DeepEquals(actual, expected),
             Is.True,
@@ -102,12 +105,23 @@ public sealed class ConfigurationFixtureTests
     {
         var yaml = File.ReadAllBytes(Path.Combine(FixtureRoot, yamlFile));
 
+        // Expected outcome: The invalid operation is rejected with the required error.
+        // Acceptance criteria: the operation must throw ConfigurationYamlException, because this condition proves that
+        // parse rejects invalid fixtures for expected reason.
         var exception = Assert.Throws<ConfigurationYamlException>(
             () => ConfigurationYaml.Parse(yaml, kind));
 
+        // Expected outcome: `exception!.Category` has the required value.
+        // Acceptance criteria: `exception!.Category` must equal `expectedError`, because this condition proves that
+        // parse rejects invalid fixtures for expected reason.
         Assert.That(exception!.Category, Is.EqualTo(expectedError));
     }
 
+    /// <summary>
+    /// Purpose: Protects the behavioral contract that parse rejects duplicate keys custom tags multiple documents and excessive depth.
+    /// Description: Arranges the inputs for parse rejects duplicate keys custom tags multiple documents and excessive depth, exercises the relevant operation,
+    /// and verifies the observable results required by that scenario.
+    /// </summary>
     [Test]
     public void Parse_RejectsDuplicateKeysCustomTagsMultipleDocumentsAndExcessiveDepth()
     {
@@ -121,30 +135,57 @@ public sealed class ConfigurationFixtureTests
                 ConfigurationYamlError.ExcessiveNesting)
         };
 
+        // Expected outcome: All related outcomes satisfy their contracts.
+        // Acceptance criteria: every assertion in the group must pass, because this condition proves that
+        // parse rejects duplicate keys custom tags multiple documents and excessive depth.
         Assert.Multiple(() =>
         {
             foreach (var (yaml, expected) in cases)
             {
+
+                // Expected outcome: The invalid operation is rejected with the required error.
+                // Acceptance criteria: the operation must throw ConfigurationYamlException, because this condition proves that
+                // parse rejects duplicate keys custom tags multiple documents and excessive depth.
                 var exception = Assert.Throws<ConfigurationYamlException>(
                     () => ConfigurationYaml.Parse(
                         Encoding.UTF8.GetBytes(yaml),
                         ConfigurationKind.PointSources));
+
+                // Expected outcome: `exception!.Category` has the required value.
+                // Acceptance criteria: `exception!.Category` must equal `expected`, because this condition proves that
+                // parse rejects duplicate keys custom tags multiple documents and excessive depth.
                 Assert.That(exception!.Category, Is.EqualTo(expected));
             }
         });
     }
 
+    /// <summary>
+    /// Purpose: Protects the behavioral contract that parse rejects oversized input before parsing.
+    /// Description: Arranges the inputs for parse rejects oversized input before parsing, exercises the relevant operation,
+    /// and verifies the observable results required by that scenario.
+    /// </summary>
     [Test]
     public void Parse_RejectsOversizedInputBeforeParsing()
     {
         var yaml = new byte[ConfigurationYaml.MaximumBytes + 1];
 
+        // Expected outcome: The invalid operation is rejected with the required error.
+        // Acceptance criteria: the operation must throw ConfigurationYamlException, because this condition proves that
+        // parse rejects oversized input before parsing.
         var exception = Assert.Throws<ConfigurationYamlException>(
             () => ConfigurationYaml.Parse(yaml, ConfigurationKind.Points));
 
+        // Expected outcome: `exception!.Category` has the required value.
+        // Acceptance criteria: `exception!.Category` must equal `ConfigurationYamlError.TooLarge`, because this condition proves that
+        // parse rejects oversized input before parsing.
         Assert.That(exception!.Category, Is.EqualTo(ConfigurationYamlError.TooLarge));
     }
 
+    /// <summary>
+    /// Purpose: Protects the behavioral contract that typed parse and render preserve point source contract.
+    /// Description: Arranges the inputs for typed parse and render preserve point source contract, exercises the relevant operation,
+    /// and verifies the observable results required by that scenario.
+    /// </summary>
     [Test]
     public void TypedParseAndRender_PreservePointSourceContract()
     {
@@ -154,8 +195,20 @@ public sealed class ConfigurationFixtureTests
             ConfigurationKind.PointSources);
 
         var renderedText = ConfigurationYaml.Render(document);
+
+        // Expected outcome: `renderedText` uses the required serialized structure.
+        // Acceptance criteria: `renderedText` must match the required boundary text `$"schemaVersion: 1{Environment.NewLine}sources:{Environment.NewLine}"`, because this condition proves that
+        // typed parse and render preserve point source contract.
         Assert.That(renderedText, Does.StartWith($"schemaVersion: 1{Environment.NewLine}sources:{Environment.NewLine}"));
+
+        // Expected outcome: `renderedText` includes the required content.
+        // Acceptance criteria: `renderedText` must contain `$"{Environment.NewLine}- id:"`, because this condition proves that
+        // typed parse and render preserve point source contract.
         Assert.That(renderedText, Does.Contain($"{Environment.NewLine}- id:"));
+
+        // Expected outcome: The observed result satisfies the required contract.
+        // Acceptance criteria: the asserted condition must hold, because this condition proves that
+        // typed parse and render preserve point source contract.
         Assert.That(renderedText.TrimStart(), Does.Not.StartWith("{"));
 
         var rendered = Encoding.UTF8.GetBytes(renderedText);
@@ -165,6 +218,10 @@ public sealed class ConfigurationFixtureTests
 
         var originalJson = JsonSerializer.SerializeToNode(document, FlowControlJson.Options);
         var reparsedJson = JsonSerializer.SerializeToNode(reparsed, FlowControlJson.Options);
+
+        // Expected outcome: `JsonNode.DeepEquals(reparsedJson` confirms the required condition.
+        // Acceptance criteria: `JsonNode.DeepEquals(reparsedJson` must be true, because this condition proves that
+        // typed parse and render preserve point source contract.
         Assert.That(JsonNode.DeepEquals(reparsedJson, originalJson), Is.True);
     }
 

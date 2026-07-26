@@ -9,6 +9,12 @@ namespace Tests.Unit.Api;
 [TestFixture]
 internal sealed class FlowEndpointTests
 {
+
+    /// <summary>
+    /// Purpose: Protects the behavioral contract that crud persists across application restart.
+    /// Description: Arranges the inputs for crud persists across application restart, exercises the relevant operation,
+    /// and verifies the observable results required by that scenario.
+    /// </summary>
     [Test]
     public async Task CrudPersistsAcrossApplicationRestart()
     {
@@ -16,10 +22,25 @@ internal sealed class FlowEndpointTests
         using var client = factory.CreateClient();
         var created = await CreateFlow(client, "Climate Control");
 
+        // Expected outcome: All outcomes in the grouped assertion scope satisfy their contracts.
+        // Acceptance criteria: every assertion in the scope must pass, because this condition proves that
+        // crud persists across application restart.
         using (Assert.EnterMultipleScope())
         {
+
+            // Expected outcome: `created.Id` has the required value.
+            // Acceptance criteria: `created.Id` must equal `"climate-control"`, because this condition proves that
+            // crud persists across application restart.
             Assert.That(created.Id, Is.EqualTo("climate-control"));
+
+            // Expected outcome: `created.Status` has the required value.
+            // Acceptance criteria: `created.Status` must equal `"draft"`, because this condition proves that
+            // crud persists across application restart.
             Assert.That(created.Status, Is.EqualTo("draft"));
+
+            // Expected outcome: `created.Nodes` contains no entries.
+            // Acceptance criteria: `created.Nodes` must be empty, because this condition proves that
+            // crud persists across application restart.
             Assert.That(created.Nodes, Is.Empty);
         }
 
@@ -48,29 +69,70 @@ internal sealed class FlowEndpointTests
             $"/api/flows/{created.Id}",
             changed,
             FlowControlJson.Options);
+
+        // Expected outcome: `saveResponse.StatusCode` has the required value.
+        // Acceptance criteria: `saveResponse.StatusCode` must equal `HttpStatusCode.OK`, because this condition proves that
+        // crud persists across application restart.
         Assert.That(saveResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));
 
         using var secondClient = factory.CreateClient();
         var loaded = await secondClient.GetFromJsonAsync<Flow>(
             $"/api/flows/{created.Id}",
             FlowControlJson.Options);
+
+        // Expected outcome: All related outcomes satisfy their contracts.
+        // Acceptance criteria: every assertion in the group must pass, because this condition proves that
+        // crud persists across application restart.
         Assert.Multiple(() =>
         {
+
+            // Expected outcome: `loaded` is available.
+            // Acceptance criteria: `loaded` must not be null, because this condition proves that
+            // crud persists across application restart.
             Assert.That(loaded, Is.Not.Null);
+
+            // Expected outcome: `loaded!.Description` has the required value.
+            // Acceptance criteria: `loaded!.Description` must equal `"Persisted graph"`, because this condition proves that
+            // crud persists across application restart.
             Assert.That(loaded!.Description, Is.EqualTo("Persisted graph"));
+
+            // Expected outcome: `loaded.Nodes` contains the required number of entries.
+            // Acceptance criteria: `loaded.Nodes` must contain exactly 1 entries, because this condition proves that
+            // crud persists across application restart.
             Assert.That(loaded.Nodes, Has.Count.EqualTo(1));
         });
 
         using var deleteResponse = await secondClient.DeleteAsync($"/api/flows/{created.Id}");
+
+        // Expected outcome: All related outcomes satisfy their contracts.
+        // Acceptance criteria: every assertion in the group must pass, because this condition proves that
+        // crud persists across application restart.
         Assert.Multiple(() =>
         {
+
+            // Expected outcome: `deleteResponse.StatusCode` has the required value.
+            // Acceptance criteria: `deleteResponse.StatusCode` must equal `HttpStatusCode.NoContent`, because this condition proves that
+            // crud persists across application restart.
             Assert.That(deleteResponse.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+
+            // Expected outcome: `deleteResponse.Content.Headers.ContentLength` has the required value.
+            // Acceptance criteria: `deleteResponse.Content.Headers.ContentLength` must equal `0`, because this condition proves that
+            // crud persists across application restart.
             Assert.That(deleteResponse.Content.Headers.ContentLength, Is.EqualTo(0));
         });
         using var missing = await secondClient.GetAsync($"/api/flows/{created.Id}");
+
+        // Expected outcome: `missing.StatusCode` has the required value.
+        // Acceptance criteria: `missing.StatusCode` must equal `HttpStatusCode.NotFound`, because this condition proves that
+        // crud persists across application restart.
         Assert.That(missing.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
     }
 
+    /// <summary>
+    /// Purpose: Protects the behavioral contract that create makes unique readable ids.
+    /// Description: Arranges the inputs for create makes unique readable ids, exercises the relevant operation,
+    /// and verifies the observable results required by that scenario.
+    /// </summary>
     [Test]
     public async Task CreateMakesUniqueReadableIds()
     {
@@ -78,13 +140,30 @@ internal sealed class FlowEndpointTests
         using var client = factory.CreateClient();
         var first = await CreateFlow(client, "Heating & Cooling");
         var second = await CreateFlow(client, "Heating & Cooling");
+
+        // Expected outcome: All related outcomes satisfy their contracts.
+        // Acceptance criteria: every assertion in the group must pass, because this condition proves that
+        // create makes unique readable ids.
         Assert.Multiple(() =>
         {
+
+            // Expected outcome: `first.Id` has the required value.
+            // Acceptance criteria: `first.Id` must equal `"heating-cooling"`, because this condition proves that
+            // create makes unique readable ids.
             Assert.That(first.Id, Is.EqualTo("heating-cooling"));
+
+            // Expected outcome: `second.Id` has the required value.
+            // Acceptance criteria: `second.Id` must equal `"heating-cooling-2"`, because this condition proves that
+            // create makes unique readable ids.
             Assert.That(second.Id, Is.EqualTo("heating-cooling-2"));
         });
     }
 
+    /// <summary>
+    /// Purpose: Protects the behavioral contract that list filters sorts paginates and clamps page.
+    /// Description: Arranges the inputs for list filters sorts paginates and clamps page, exercises the relevant operation,
+    /// and verifies the observable results required by that scenario.
+    /// </summary>
     [Test]
     public async Task ListFiltersSortsPaginatesAndClampsPage()
     {
@@ -98,23 +177,64 @@ internal sealed class FlowEndpointTests
         var page = await client.GetFromJsonAsync<PaginatedResult<Flow>>(
             "/api/flows?page=2&pageSize=10&filter=flow&sort=descending",
             FlowControlJson.Options);
+
+        // Expected outcome: All related outcomes satisfy their contracts.
+        // Acceptance criteria: every assertion in the group must pass, because this condition proves that
+        // list filters sorts paginates and clamps page.
         Assert.Multiple(() =>
         {
+
+            // Expected outcome: `page` is available.
+            // Acceptance criteria: `page` must not be null, because this condition proves that
+            // list filters sorts paginates and clamps page.
             Assert.That(page, Is.Not.Null);
+
+            // Expected outcome: `page!.TotalItems` has the required value.
+            // Acceptance criteria: `page!.TotalItems` must equal `25`, because this condition proves that
+            // list filters sorts paginates and clamps page.
             Assert.That(page!.TotalItems, Is.EqualTo(25));
+
+            // Expected outcome: `page.PageCount` has the required value.
+            // Acceptance criteria: `page.PageCount` must equal `3`, because this condition proves that
+            // list filters sorts paginates and clamps page.
             Assert.That(page.PageCount, Is.EqualTo(3));
+
+            // Expected outcome: `page.Page` has the required value.
+            // Acceptance criteria: `page.Page` must equal `2`, because this condition proves that
+            // list filters sorts paginates and clamps page.
             Assert.That(page.Page, Is.EqualTo(2));
+
+            // Expected outcome: `page.Items` contains the required number of entries.
+            // Acceptance criteria: `page.Items` must contain exactly 10 entries, because this condition proves that
+            // list filters sorts paginates and clamps page.
             Assert.That(page.Items, Has.Count.EqualTo(10));
+
+            // Expected outcome: `page.Items[0].Name` has the required value.
+            // Acceptance criteria: `page.Items[0].Name` must equal `"Flow 15"`, because this condition proves that
+            // list filters sorts paginates and clamps page.
             Assert.That(page.Items[0].Name, Is.EqualTo("Flow 15"));
+
+            // Expected outcome: `page.Items[9].Name` has the required value.
+            // Acceptance criteria: `page.Items[9].Name` must equal `"Flow 06"`, because this condition proves that
+            // list filters sorts paginates and clamps page.
             Assert.That(page.Items[9].Name, Is.EqualTo("Flow 06"));
         });
 
         var clamped = await client.GetFromJsonAsync<PaginatedResult<Flow>>(
             "/api/flows?page=99&pageSize=10",
             FlowControlJson.Options);
+
+        // Expected outcome: `clamped!.Page` has the required value.
+        // Acceptance criteria: `clamped!.Page` must equal `3`, because this condition proves that
+        // list filters sorts paginates and clamps page.
         Assert.That(clamped!.Page, Is.EqualTo(3));
     }
 
+    /// <summary>
+    /// Purpose: Protects the behavioral contract that list rejects invalid queries.
+    /// Description: Arranges the inputs for list rejects invalid queries, exercises the relevant operation,
+    /// and verifies the observable results required by that scenario.
+    /// </summary>
     [TestCase("/api/flows?page=0", "page must be a positive integer")]
     [TestCase("/api/flows?page=nope", "page must be a positive integer")]
     [TestCase("/api/flows?pageSize=100", "pageSize must be 10, 20, or 50")]
@@ -126,14 +246,35 @@ internal sealed class FlowEndpointTests
         using var client = factory.CreateClient();
         using var response = await client.GetAsync(path);
         var error = await response.Content.ReadFromJsonAsync<Dictionary<string, string>>();
+
+        // Expected outcome: All related outcomes satisfy their contracts.
+        // Acceptance criteria: every assertion in the group must pass, because this condition proves that
+        // list rejects invalid queries.
         Assert.Multiple(() =>
         {
+
+            // Expected outcome: `response.StatusCode` has the required value.
+            // Acceptance criteria: `response.StatusCode` must equal `HttpStatusCode.BadRequest`, because this condition proves that
+            // list rejects invalid queries.
             Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+
+            // Expected outcome: `response.Content.Headers.ContentType?.MediaType` has the required value.
+            // Acceptance criteria: `response.Content.Headers.ContentType?.MediaType` must equal `"application/json"`, because this condition proves that
+            // list rejects invalid queries.
             Assert.That(response.Content.Headers.ContentType?.MediaType, Is.EqualTo("application/json"));
+
+            // Expected outcome: `error!["message"]` has the required value.
+            // Acceptance criteria: `error!["message"]` must equal `message`, because this condition proves that
+            // list rejects invalid queries.
             Assert.That(error!["message"], Is.EqualTo(message));
         });
     }
 
+    /// <summary>
+    /// Purpose: Protects the behavioral contract that save rejects unknown fields trailing values and mismatched id.
+    /// Description: Arranges the inputs for save rejects unknown fields trailing values and mismatched id, exercises the relevant operation,
+    /// and verifies the observable results required by that scenario.
+    /// </summary>
     [Test]
     public async Task SaveRejectsUnknownFieldsTrailingValuesAndMismatchedId()
     {
@@ -153,14 +294,35 @@ internal sealed class FlowEndpointTests
             "/api/flows/safe-flow",
             created with { Id = "different" },
             FlowControlJson.Options);
+
+        // Expected outcome: All related outcomes satisfy their contracts.
+        // Acceptance criteria: every assertion in the group must pass, because this condition proves that
+        // save rejects unknown fields trailing values and mismatched id.
         Assert.Multiple(() =>
         {
+
+            // Expected outcome: `unknown.StatusCode` has the required value.
+            // Acceptance criteria: `unknown.StatusCode` must equal `HttpStatusCode.BadRequest`, because this condition proves that
+            // save rejects unknown fields trailing values and mismatched id.
             Assert.That(unknown.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+
+            // Expected outcome: `trailing.StatusCode` has the required value.
+            // Acceptance criteria: `trailing.StatusCode` must equal `HttpStatusCode.BadRequest`, because this condition proves that
+            // save rejects unknown fields trailing values and mismatched id.
             Assert.That(trailing.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+
+            // Expected outcome: `mismatch.StatusCode` has the required value.
+            // Acceptance criteria: `mismatch.StatusCode` must equal `HttpStatusCode.BadRequest`, because this condition proves that
+            // save rejects unknown fields trailing values and mismatched id.
             Assert.That(mismatch.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
         });
     }
 
+    /// <summary>
+    /// Purpose: Protects the behavioral contract that runtime starts stopped deploys and honors disable enable.
+    /// Description: Arranges the inputs for runtime starts stopped deploys and honors disable enable, exercises the relevant operation,
+    /// and verifies the observable results required by that scenario.
+    /// </summary>
     [Test]
     public async Task RuntimeStartsStoppedDeploysAndHonorsDisableEnable()
     {
@@ -193,17 +355,49 @@ internal sealed class FlowEndpointTests
         var enabled = await enableResponse.Content.ReadFromJsonAsync<Flow>(
             FlowControlJson.Options);
 
+        // Expected outcome: All related outcomes satisfy their contracts.
+        // Acceptance criteria: every assertion in the group must pass, because this condition proves that
+        // runtime starts stopped deploys and honors disable enable.
         Assert.Multiple(() =>
         {
+
+            // Expected outcome: `stopped!.State` has the required value.
+            // Acceptance criteria: `stopped!.State` must equal `"stopped"`, because this condition proves that
+            // runtime starts stopped deploys and honors disable enable.
             Assert.That(stopped!.State, Is.EqualTo("stopped"));
+
+            // Expected outcome: `stopped.Nodes` is available.
+            // Acceptance criteria: `stopped.Nodes` must not be null, because this condition proves that
+            // runtime starts stopped deploys and honors disable enable.
             Assert.That(stopped.Nodes, Is.Not.Null);
+
+            // Expected outcome: `running!.State` has the required value.
+            // Acceptance criteria: `running!.State` must equal `"running"`, because this condition proves that
+            // runtime starts stopped deploys and honors disable enable.
             Assert.That(running!.State, Is.EqualTo("running"));
+
+            // Expected outcome: `disabled!.Disabled` confirms the required condition.
+            // Acceptance criteria: `disabled!.Disabled` must be true, because this condition proves that
+            // runtime starts stopped deploys and honors disable enable.
             Assert.That(disabled!.Disabled, Is.True);
+
+            // Expected outcome: `disabledRuntime!.State` has the required value.
+            // Acceptance criteria: `disabledRuntime!.State` must equal `"stopped"`, because this condition proves that
+            // runtime starts stopped deploys and honors disable enable.
             Assert.That(disabledRuntime!.State, Is.EqualTo("stopped"));
+
+            // Expected outcome: `enabled!.Disabled` rejects the prohibited condition.
+            // Acceptance criteria: `enabled!.Disabled` must be false, because this condition proves that
+            // runtime starts stopped deploys and honors disable enable.
             Assert.That(enabled!.Disabled, Is.False);
         });
     }
 
+    /// <summary>
+    /// Purpose: Protects the behavioral contract that runtime routes return not found for missing flow.
+    /// Description: Arranges the inputs for runtime routes return not found for missing flow, exercises the relevant operation,
+    /// and verifies the observable results required by that scenario.
+    /// </summary>
     [Test]
     public async Task RuntimeRoutesReturnNotFoundForMissingFlow()
     {
@@ -211,9 +405,21 @@ internal sealed class FlowEndpointTests
         using var client = factory.CreateClient();
         using var get = await client.GetAsync("/api/flows/missing/runtime");
         using var deploy = await client.PostAsync("/api/flows/missing/deploy", content: null);
+
+        // Expected outcome: All related outcomes satisfy their contracts.
+        // Acceptance criteria: every assertion in the group must pass, because this condition proves that
+        // runtime routes return not found for missing flow.
         Assert.Multiple(() =>
         {
+
+            // Expected outcome: `get.StatusCode` has the required value.
+            // Acceptance criteria: `get.StatusCode` must equal `HttpStatusCode.NotFound`, because this condition proves that
+            // runtime routes return not found for missing flow.
             Assert.That(get.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+
+            // Expected outcome: `deploy.StatusCode` has the required value.
+            // Acceptance criteria: `deploy.StatusCode` must equal `HttpStatusCode.NotFound`, because this condition proves that
+            // runtime routes return not found for missing flow.
             Assert.That(deploy.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
         });
     }
@@ -224,7 +430,15 @@ internal sealed class FlowEndpointTests
             "/api/flows",
             new { name },
             FlowControlJson.Options);
+
+        // Expected outcome: `response.StatusCode` has the required value.
+        // Acceptance criteria: `response.StatusCode` must equal `HttpStatusCode.Created`, because this condition proves that
+        // runtime routes return not found for missing flow.
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+
+        // Expected outcome: `response.Content.Headers.ContentType?.MediaType` has the required value.
+        // Acceptance criteria: `response.Content.Headers.ContentType?.MediaType` must equal `"application/json"`, because this condition proves that
+        // runtime routes return not found for missing flow.
         Assert.That(response.Content.Headers.ContentType?.MediaType, Is.EqualTo("application/json"));
         return (await response.Content.ReadFromJsonAsync<Flow>(FlowControlJson.Options))!;
     }

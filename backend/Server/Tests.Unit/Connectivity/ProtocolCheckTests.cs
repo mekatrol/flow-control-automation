@@ -11,6 +11,12 @@ namespace Tests.Unit.Connectivity;
 [TestFixture]
 internal sealed class ProtocolCheckTests
 {
+
+    /// <summary>
+    /// Purpose: Protects the behavioral contract that http check pins address sends bearer and enforces response limit.
+    /// Description: Arranges the inputs for http check pins address sends bearer and enforces response limit, exercises the relevant operation,
+    /// and verifies the observable results required by that scenario.
+    /// </summary>
     [Test]
     public async Task HttpCheckPinsAddressSendsBearerAndEnforcesResponseLimit()
     {
@@ -34,15 +40,32 @@ internal sealed class ProtocolCheckTests
             [IPAddress.Loopback],
             CancellationToken.None);
         var request = await server.Request;
+
+        // Expected outcome: All related outcomes satisfy their contracts.
+        // Acceptance criteria: every assertion in the group must pass, because this condition proves that
+        // http check pins address sends bearer and enforces response limit.
         Assert.Multiple(() =>
         {
+
+            // Expected outcome: `diagnostic` has the required value.
+            // Acceptance criteria: `diagnostic` must equal `"HTTP response exceeded the configured size limit"`, because this condition proves that
+            // http check pins address sends bearer and enforces response limit.
             Assert.That(
                 diagnostic,
                 Is.EqualTo("HTTP response exceeded the configured size limit"));
+
+            // Expected outcome: `request` includes the required content.
+            // Acceptance criteria: `request` must contain `"Authorization: Bearer bearer-value"`, because this condition proves that
+            // http check pins address sends bearer and enforces response limit.
             Assert.That(request, Does.Contain("Authorization: Bearer bearer-value"));
         });
     }
 
+    /// <summary>
+    /// Purpose: Protects the behavioral contract that redirect destination is revalidated before connection.
+    /// Description: Arranges the inputs for redirect destination is revalidated before connection, exercises the relevant operation,
+    /// and verifies the observable results required by that scenario.
+    /// </summary>
     [Test]
     public async Task RedirectDestinationIsRevalidatedBeforeConnection()
     {
@@ -66,9 +89,18 @@ internal sealed class ProtocolCheckTests
             string.Empty,
             [IPAddress.Loopback],
             CancellationToken.None);
+
+        // Expected outcome: `diagnostic` has the required value.
+        // Acceptance criteria: `diagnostic` must equal `"redirect destination is forbidden"`, because this condition proves that
+        // redirect destination is revalidated before connection.
         Assert.That(diagnostic, Is.EqualTo("redirect destination is forbidden"));
     }
 
+    /// <summary>
+    /// Purpose: Protects the behavioral contract that mqtt check authenticates subscribes and disconnects.
+    /// Description: Arranges the inputs for mqtt check authenticates subscribes and disconnects, exercises the relevant operation,
+    /// and verifies the observable results required by that scenario.
+    /// </summary>
     [Test]
     public async Task MqttCheckAuthenticatesSubscribesAndDisconnects()
     {
@@ -89,18 +121,39 @@ internal sealed class ProtocolCheckTests
             """{"username":"reader","password":"mqtt-secret"}""",
             CancellationToken.None);
         var written = stream.Written.ToArray();
+
+        // Expected outcome: All related outcomes satisfy their contracts.
+        // Acceptance criteria: every assertion in the group must pass, because this condition proves that
+        // mqtt check authenticates subscribes and disconnects.
         Assert.Multiple(() =>
         {
+
+            // Expected outcome: `diagnostic` is absent.
+            // Acceptance criteria: `diagnostic` must be null, because this condition proves that
+            // mqtt check authenticates subscribes and disconnects.
             Assert.That(diagnostic, Is.Null);
+
+            // Expected outcome: `Encoding.UTF8.GetString(written` confirms the required condition.
+            // Acceptance criteria: `Encoding.UTF8.GetString(written` must be true, because this condition proves that
+            // mqtt check authenticates subscribes and disconnects.
             Assert.That(
                 Encoding.UTF8.GetString(written).Contains(
                     "plant/temperature",
                     StringComparison.Ordinal),
                 Is.True);
+
+            // Expected outcome: `written[^2..]` has the required value.
+            // Acceptance criteria: `written[^2..]` must equal `new byte[] { 0xe0, 0x00 }`, because this condition proves that
+            // mqtt check authenticates subscribes and disconnects.
             Assert.That(written[^2..], Is.EqualTo(new byte[] { 0xe0, 0x00 }));
         });
     }
 
+    /// <summary>
+    /// Purpose: Protects the behavioral contract that mqtt check rejects unstructured credential.
+    /// Description: Arranges the inputs for mqtt check rejects unstructured credential, exercises the relevant operation,
+    /// and verifies the observable results required by that scenario.
+    /// </summary>
     [Test]
     public async Task MqttCheckRejectsUnstructuredCredential()
     {
@@ -113,11 +166,20 @@ internal sealed class ProtocolCheckTests
             MqttSource(),
             "reader:secret",
             CancellationToken.None);
+
+        // Expected outcome: `diagnostic` has the required value.
+        // Acceptance criteria: `diagnostic` must equal `"MQTT credential must be JSON with username and password"`, because this condition proves that
+        // mqtt check rejects unstructured credential.
         Assert.That(
             diagnostic,
             Is.EqualTo("MQTT credential must be JSON with username and password"));
     }
 
+    /// <summary>
+    /// Purpose: Protects the behavioral contract that mqtt check reports connack rejection reason.
+    /// Description: Arranges the inputs for mqtt check reports connack rejection reason, exercises the relevant operation,
+    /// and verifies the observable results required by that scenario.
+    /// </summary>
     [TestCase(0x01, "MQTT connection rejected: unacceptable protocol version")]
     [TestCase(0x02, "MQTT connection rejected: client identifier rejected")]
     [TestCase(0x03, "MQTT connection rejected: broker unavailable")]
@@ -139,6 +201,9 @@ internal sealed class ProtocolCheckTests
             """{"username":"reader","password":"mqtt-secret"}""",
             CancellationToken.None);
 
+        // Expected outcome: `diagnostic` has the required value.
+        // Acceptance criteria: `diagnostic` must equal `expectedDiagnostic`, because this condition proves that
+        // mqtt check reports connack rejection reason.
         Assert.That(diagnostic, Is.EqualTo(expectedDiagnostic));
     }
 

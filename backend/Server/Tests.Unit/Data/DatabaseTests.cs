@@ -33,6 +33,11 @@ public sealed class DatabaseTests
         }
     }
 
+    /// <summary>
+    /// Purpose: Protects the behavioral contract that initialization is idempotent and creates schema and triggers.
+    /// Description: Arranges the inputs for initialization is idempotent and creates schema and triggers, exercises the relevant operation,
+    /// and verifies the observable results required by that scenario.
+    /// </summary>
     [Test]
     public async Task InitializationIsIdempotentAndCreatesSchemaAndTriggers()
     {
@@ -50,9 +55,18 @@ public sealed class DatabaseTests
         command.CommandText =
             "SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'UpdateRowVersion%'";
         var triggerCount = Convert.ToInt32(await command.ExecuteScalarAsync());
+
+        // Expected outcome: `triggerCount` has the required value.
+        // Acceptance criteria: `triggerCount` must equal `5`, because this condition proves that
+        // initialization is idempotent and creates schema and triggers.
         Assert.That(triggerCount, Is.EqualTo(5));
     }
 
+    /// <summary>
+    /// Purpose: Protects the behavioral contract that unique keys are enforced.
+    /// Description: Arranges the inputs for unique keys are enforced, exercises the relevant operation,
+    /// and verifies the observable results required by that scenario.
+    /// </summary>
     [Test]
     public async Task UniqueKeysAreEnforced()
     {
@@ -63,11 +77,19 @@ public sealed class DatabaseTests
         context.Flows.Add(CreateFlow("one", "same"));
         context.Flows.Add(CreateFlow("two", "same"));
 
+        // Expected outcome: The invalid operation is rejected.
+        // Acceptance criteria: the operation must throw DbUpdateException, because this condition proves that
+        // unique keys are enforced.
         Assert.That(
             async () => await context.SaveChangesAsync(CancellationToken.None),
             Throws.TypeOf<DbUpdateException>());
     }
 
+    /// <summary>
+    /// Purpose: Protects the behavioral contract that trigger increments version and rejects stale updates.
+    /// Description: Arranges the inputs for trigger increments version and rejects stale updates, exercises the relevant operation,
+    /// and verifies the observable results required by that scenario.
+    /// </summary>
     [Test]
     public async Task TriggerIncrementsVersionAndRejectsStaleUpdates()
     {
@@ -90,6 +112,9 @@ public sealed class DatabaseTests
         await second.SaveChangesAsync(CancellationToken.None);
         staleEntity.Json = """{"name":"stale"}""";
 
+        // Expected outcome: The invalid operation is rejected.
+        // Acceptance criteria: the operation must throw DbUpdateConcurrencyException, because this condition proves that
+        // trigger increments version and rejects stale updates.
         Assert.That(
             async () => await first.SaveChangesAsync(CancellationToken.None),
             Throws.TypeOf<DbUpdateConcurrencyException>());
@@ -97,9 +122,21 @@ public sealed class DatabaseTests
         await using var verifyScope = provider.CreateAsyncScope();
         var verify = verifyScope.ServiceProvider.GetRequiredService<IFlowControlDbContext>();
         var saved = await verify.Flows.SingleAsync();
+
+        // Expected outcome: All related outcomes satisfy their contracts.
+        // Acceptance criteria: every assertion in the group must pass, because this condition proves that
+        // trigger increments version and rejects stale updates.
         Assert.Multiple(() =>
         {
+
+            // Expected outcome: `saved.RowVersion` has the required value.
+            // Acceptance criteria: `saved.RowVersion` must equal `2`, because this condition proves that
+            // trigger increments version and rejects stale updates.
             Assert.That(saved.RowVersion, Is.EqualTo(2));
+
+            // Expected outcome: `saved.Json` has the required value.
+            // Acceptance criteria: `saved.Json` must equal `"""{"name":"current"}"""`, because this condition proves that
+            // trigger increments version and rejects stale updates.
             Assert.That(saved.Json, Is.EqualTo("""{"name":"current"}"""));
         });
     }

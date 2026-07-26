@@ -28,6 +28,11 @@ internal sealed class PointDefinitionValidatorTests
         };
     }
 
+    /// <summary>
+    /// Purpose: Protects the behavioral contract that contract fixture validates and produces typed mappings.
+    /// Description: Arranges the inputs for contract fixture validates and produces typed mappings, exercises the relevant operation,
+    /// and verifies the observable results required by that scenario.
+    /// </summary>
     [Test]
     public void ContractFixture_ValidatesAndProducesTypedMappings()
     {
@@ -40,6 +45,9 @@ internal sealed class PointDefinitionValidatorTests
                 ConfigurationKind.PointSources)
             .Sources.ToDictionary(source => source.Id, StringComparer.Ordinal);
 
+        // Expected outcome: The supported operation is accepted.
+        // Acceptance criteria: the operation must complete without throwing an exception, because this condition proves that
+        // contract fixture validates and produces typed mappings.
         Assert.That(
             () => _validator.ValidateDocument(document, sources),
             Throws.Nothing);
@@ -48,16 +56,44 @@ internal sealed class PointDefinitionValidatorTests
         var validated = document.Points.Select(point =>
             _validator.Validate(point, new PointValidationContext(groups, sources))).ToArray();
 
+        // Expected outcome: All related outcomes satisfy their contracts.
+        // Acceptance criteria: every assertion in the group must pass, because this condition proves that
+        // contract fixture validates and produces typed mappings.
         Assert.Multiple(() =>
         {
+
+            // Expected outcome: `validated[0].Mapping` has the required runtime type.
+            // Acceptance criteria: `validated[0].Mapping` must be a HttpJsonPointMapping, because this condition proves that
+            // contract fixture validates and produces typed mappings.
             Assert.That(validated[0].Mapping, Is.TypeOf<HttpJsonPointMapping>());
+
+            // Expected outcome: `validated[1].Mapping` has the required runtime type.
+            // Acceptance criteria: `validated[1].Mapping` must be a HomeAssistantPointMapping, because this condition proves that
+            // contract fixture validates and produces typed mappings.
             Assert.That(validated[1].Mapping, Is.TypeOf<HomeAssistantPointMapping>());
+
+            // Expected outcome: `validated[2].MultiStateLabels` contains the required number of entries.
+            // Acceptance criteria: `validated[2].MultiStateLabels` must contain exactly 3 entries, because this condition proves that
+            // contract fixture validates and produces typed mappings.
             Assert.That(validated[2].MultiStateLabels, Has.Count.EqualTo(3));
+
+            // Expected outcome: `validated[3].Limits?.Maximum` has the required value.
+            // Acceptance criteria: `validated[3].Limits?.Maximum` must equal `9_007_199_254_740_991`, because this condition proves that
+            // contract fixture validates and produces typed mappings.
             Assert.That(validated[3].Limits?.Maximum, Is.EqualTo(9_007_199_254_740_991));
+
+            // Expected outcome: `validated[4].Mapping` has the required runtime type.
+            // Acceptance criteria: `validated[4].Mapping` must be a MqttPointMapping, because this condition proves that
+            // contract fixture validates and produces typed mappings.
             Assert.That(validated[4].Mapping, Is.TypeOf<MqttPointMapping>());
         });
     }
 
+    /// <summary>
+    /// Purpose: Protects the behavioral contract that bound direction capability combinations are accepted.
+    /// Description: Arranges the inputs for bound direction capability combinations are accepted, exercises the relevant operation,
+    /// and verifies the observable results required by that scenario.
+    /// </summary>
     [TestCase("input", true, false)]
     [TestCase("output", false, true)]
     [TestCase("output", true, true)]
@@ -72,11 +108,19 @@ internal sealed class PointDefinitionValidatorTests
             SafeDisablePolicy = commandable ? Safety() : null,
         };
 
+        // Expected outcome: The supported operation is accepted.
+        // Acceptance criteria: the operation must complete without throwing an exception, because this condition proves that
+        // bound direction capability combinations are accepted.
         Assert.That(
             () => _validator.Validate(point, Context()),
             Throws.Nothing);
     }
 
+    /// <summary>
+    /// Purpose: Protects the behavioral contract that invalid bound direction capability combinations are rejected.
+    /// Description: Arranges the inputs for invalid bound direction capability combinations are rejected, exercises the relevant operation,
+    /// and verifies the observable results required by that scenario.
+    /// </summary>
     [TestCase("input", false, false)]
     [TestCase("input", true, true)]
     [TestCase("output", true, false)]
@@ -92,11 +136,19 @@ internal sealed class PointDefinitionValidatorTests
             SafeDisablePolicy = commandable ? Safety() : null,
         };
 
+        // Expected outcome: The invalid operation is rejected.
+        // Acceptance criteria: the operation must throw PointDefinitionValidationException, because this condition proves that
+        // invalid bound direction capability combinations are rejected.
         Assert.That(
             () => _validator.Validate(point, Context()),
             Throws.TypeOf<PointDefinitionValidationException>());
     }
 
+    /// <summary>
+    /// Purpose: Protects the behavioral contract that virtual retained values are type and range checked.
+    /// Description: Arranges the inputs for virtual retained values are type and range checked, exercises the relevant operation,
+    /// and verifies the observable results required by that scenario.
+    /// </summary>
     [Test]
     public void VirtualRetainedValues_AreTypeAndRangeChecked()
     {
@@ -108,15 +160,31 @@ internal sealed class PointDefinitionValidatorTests
         };
         var invalid = valid with { RelinquishDefault = JsonValue.Create(10.5) };
 
+        // Expected outcome: All related outcomes satisfy their contracts.
+        // Acceptance criteria: every assertion in the group must pass, because this condition proves that
+        // virtual retained values are type and range checked.
         Assert.Multiple(() =>
         {
+
+            // Expected outcome: The supported operation is accepted.
+            // Acceptance criteria: the operation must complete without throwing an exception, because this condition proves that
+            // virtual retained values are type and range checked.
             Assert.That(() => _validator.Validate(valid, Context()), Throws.Nothing);
+
+            // Expected outcome: The invalid operation is rejected.
+            // Acceptance criteria: the operation must throw PointDefinitionValidationException, because this condition proves that
+            // virtual retained values are type and range checked.
             Assert.That(
                 () => _validator.Validate(invalid, Context()),
                 Throws.TypeOf<PointDefinitionValidationException>());
         });
     }
 
+    /// <summary>
+    /// Purpose: Protects the behavioral contract that analog non finite values are rejected.
+    /// Description: Arranges the inputs for analog non finite values are rejected, exercises the relevant operation,
+    /// and verifies the observable results required by that scenario.
+    /// </summary>
     [TestCase(double.NaN)]
     [TestCase(double.PositiveInfinity)]
     [TestCase(double.NegativeInfinity)]
@@ -128,11 +196,19 @@ internal sealed class PointDefinitionValidatorTests
             RelinquishDefault = JsonValue.Create(value),
         };
 
+        // Expected outcome: The invalid operation is rejected.
+        // Acceptance criteria: the operation must throw PointDefinitionValidationException, because this condition proves that
+        // analog non finite values are rejected.
         Assert.That(
             () => _validator.Validate(point, Context()),
             Throws.TypeOf<PointDefinitionValidationException>());
     }
 
+    /// <summary>
+    /// Purpose: Protects the behavioral contract that digital and multi state labels are strict.
+    /// Description: Arranges the inputs for digital and multi state labels are strict, exercises the relevant operation,
+    /// and verifies the observable results required by that scenario.
+    /// </summary>
     [Test]
     public void DigitalAndMultiStateLabels_AreStrict()
     {
@@ -149,25 +225,50 @@ internal sealed class PointDefinitionValidatorTests
             },
         };
 
+        // Expected outcome: All related outcomes satisfy their contracts.
+        // Acceptance criteria: every assertion in the group must pass, because this condition proves that
+        // digital and multi state labels are strict.
         Assert.Multiple(() =>
         {
+
+            // Expected outcome: The invalid operation is rejected.
+            // Acceptance criteria: the operation must throw PointDefinitionValidationException, because this condition proves that
+            // digital and multi state labels are strict.
             Assert.That(
                 () => _validator.Validate(duplicateDigital, Context()),
                 Throws.TypeOf<PointDefinitionValidationException>());
+
+            // Expected outcome: The invalid operation is rejected.
+            // Acceptance criteria: the operation must throw PointDefinitionValidationException, because this condition proves that
+            // digital and multi state labels are strict.
             Assert.That(
                 () => _validator.Validate(duplicateState, Context()),
                 Throws.TypeOf<PointDefinitionValidationException>());
         });
     }
 
+    /// <summary>
+    /// Purpose: Protects the behavioral contract that text requires positive maximum length.
+    /// Description: Arranges the inputs for text requires positive maximum length, exercises the relevant operation,
+    /// and verifies the observable results required by that scenario.
+    /// </summary>
     [Test]
     public void TextRequiresPositiveMaximumLength()
     {
+
+        // Expected outcome: The invalid operation is rejected.
+        // Acceptance criteria: the operation must throw PointDefinitionValidationException, because this condition proves that
+        // text requires positive maximum length.
         Assert.That(
             () => _validator.Validate(VirtualPoint("text"), Context()),
             Throws.TypeOf<PointDefinitionValidationException>());
     }
 
+    /// <summary>
+    /// Purpose: Protects the behavioral contract that bound point resolves inherited source and rejects conflicts.
+    /// Description: Arranges the inputs for bound point resolves inherited source and rejects conflicts, exercises the relevant operation,
+    /// and verifies the observable results required by that scenario.
+    /// </summary>
     [Test]
     public void BoundPoint_ResolvesInheritedSourceAndRejectsConflicts()
     {
@@ -183,13 +284,24 @@ internal sealed class PointDefinitionValidatorTests
         };
         var conflicting = inherited with { SourceId = "mqtt" };
 
+        // Expected outcome: All related outcomes satisfy their contracts.
+        // Acceptance criteria: every assertion in the group must pass, because this condition proves that
+        // bound point resolves inherited source and rejects conflicts.
         Assert.Multiple(() =>
         {
+
+            // Expected outcome: the asserted result has the required value.
+            // Acceptance criteria: the asserted result must equal `PointSourceKind.HomeAssistant`, because this condition proves that
+            // bound point resolves inherited source and rejects conflicts.
             Assert.That(
                 _validator.Validate(
                     inherited,
                     new PointValidationContext(groups, _sources)).SourceKind,
                 Is.EqualTo(PointSourceKind.HomeAssistant));
+
+            // Expected outcome: The invalid operation is rejected.
+            // Acceptance criteria: the operation must throw PointDefinitionValidationException, because this condition proves that
+            // bound point resolves inherited source and rejects conflicts.
             Assert.That(
                 () => _validator.Validate(
                     conflicting,
@@ -198,6 +310,11 @@ internal sealed class PointDefinitionValidatorTests
         });
     }
 
+    /// <summary>
+    /// Purpose: Protects the behavioral contract that source mappings require capabilities and reject credential literals.
+    /// Description: Arranges the inputs for source mappings require capabilities and reject credential literals, exercises the relevant operation,
+    /// and verifies the observable results required by that scenario.
+    /// </summary>
     [Test]
     public void SourceMappings_RequireCapabilitiesAndRejectCredentialLiterals()
     {
@@ -217,17 +334,33 @@ internal sealed class PointDefinitionValidatorTests
             },
         };
 
+        // Expected outcome: All related outcomes satisfy their contracts.
+        // Acceptance criteria: every assertion in the group must pass, because this condition proves that
+        // source mappings require capabilities and reject credential literals.
         Assert.Multiple(() =>
         {
+
+            // Expected outcome: The invalid operation is rejected.
+            // Acceptance criteria: the operation must throw PointDefinitionValidationException, because this condition proves that
+            // source mappings require capabilities and reject credential literals.
             Assert.That(
                 () => _validator.Validate(missingCommandTopic, Context()),
                 Throws.TypeOf<PointDefinitionValidationException>());
+
+            // Expected outcome: The invalid operation is rejected.
+            // Acceptance criteria: the operation must throw PointDefinitionValidationException, because this condition proves that
+            // source mappings require capabilities and reject credential literals.
             Assert.That(
                 () => _validator.Validate(credential, Context()),
                 Throws.TypeOf<PointDefinitionValidationException>());
         });
     }
 
+    /// <summary>
+    /// Purpose: Protects the behavioral contract that document rejects duplicate names and reserved group name.
+    /// Description: Arranges the inputs for document rejects duplicate names and reserved group name, exercises the relevant operation,
+    /// and verifies the observable results required by that scenario.
+    /// </summary>
     [Test]
     public void DocumentRejectsDuplicateNamesAndReservedGroupName()
     {
@@ -243,32 +376,72 @@ internal sealed class PointDefinitionValidatorTests
             Name = "__standalonepointgroup__"
         };
 
+        // Expected outcome: All related outcomes satisfy their contracts.
+        // Acceptance criteria: every assertion in the group must pass, because this condition proves that
+        // document rejects duplicate names and reserved group name.
         Assert.Multiple(() =>
         {
+
+            // Expected outcome: The invalid operation is rejected.
+            // Acceptance criteria: the operation must throw PointDefinitionValidationException, because this condition proves that
+            // document rejects duplicate names and reserved group name.
             Assert.That(
                 () => _validator.ValidateDocument(duplicate, _sources),
                 Throws.TypeOf<PointDefinitionValidationException>());
+
+            // Expected outcome: The invalid operation is rejected.
+            // Acceptance criteria: the operation must throw PointDefinitionValidationException, because this condition proves that
+            // document rejects duplicate names and reserved group name.
             Assert.That(
                 () => _validator.ValidateGroup(reserved, _sources),
                 Throws.TypeOf<PointDefinitionValidationException>());
         });
     }
 
+    /// <summary>
+    /// Purpose: Protects the behavioral contract that compatibility predicates require exact type and numeric units.
+    /// Description: Arranges the inputs for compatibility predicates require exact type and numeric units, exercises the relevant operation,
+    /// and verifies the observable results required by that scenario.
+    /// </summary>
     [Test]
     public void CompatibilityPredicates_RequireExactTypeAndNumericUnits()
     {
+
+        // Expected outcome: All related outcomes satisfy their contracts.
+        // Acceptance criteria: every assertion in the group must pass, because this condition proves that
+        // compatibility predicates require exact type and numeric units.
         Assert.Multiple(() =>
         {
+
+            // Expected outcome: `PointCompatibility.CanRead(PointDirection.Input` confirms the required condition.
+            // Acceptance criteria: `PointCompatibility.CanRead(PointDirection.Input` must be true, because this condition proves that
+            // compatibility predicates require exact type and numeric units.
             Assert.That(PointCompatibility.CanRead(PointDirection.Input), Is.True);
+
+            // Expected outcome: `PointCompatibility.CanCommand(PointDirection.Input` rejects the prohibited condition.
+            // Acceptance criteria: `PointCompatibility.CanCommand(PointDirection.Input` must be false, because this condition proves that
+            // compatibility predicates require exact type and numeric units.
             Assert.That(PointCompatibility.CanCommand(PointDirection.Input), Is.False);
+
+            // Expected outcome: the asserted result confirms the required condition.
+            // Acceptance criteria: the asserted result must be true, because this condition proves that
+            // compatibility predicates require exact type and numeric units.
             Assert.That(
                 PointCompatibility.ValuesAreCompatible(
                     PointValueType.Analog, "degC", PointValueType.Analog, "degC"),
                 Is.True);
+
+            // Expected outcome: the asserted result rejects the prohibited condition.
+            // Acceptance criteria: the asserted result must be false, because this condition proves that
+            // compatibility predicates require exact type and numeric units.
             Assert.That(
                 PointCompatibility.ValuesAreCompatible(
                     PointValueType.Analog, "degC", PointValueType.Analog, "degF"),
                 Is.False);
+
+            // Expected outcome: the asserted result rejects the prohibited condition.
+            // Acceptance criteria: the asserted result must be false, because this condition proves that
+            // compatibility predicates require exact type and numeric units.
             Assert.That(
                 PointCompatibility.ValuesAreCompatible(
                     PointValueType.Digital, null, PointValueType.Analog, null),
@@ -276,6 +449,11 @@ internal sealed class PointDefinitionValidatorTests
         });
     }
 
+    /// <summary>
+    /// Purpose: Protects the behavioral contract that arbitrary yaml and json validation never leaks unexpected exceptions.
+    /// Description: Arranges the inputs for arbitrary yaml and json validation never leaks unexpected exceptions, exercises the relevant operation,
+    /// and verifies the observable results required by that scenario.
+    /// </summary>
     [Test]
     public void ArbitraryYamlAndJsonValidation_NeverLeaksUnexpectedExceptions()
     {

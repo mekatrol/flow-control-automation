@@ -11,6 +11,12 @@ namespace Tests.Unit.Connectivity;
 [TestFixture]
 internal sealed class ConnectivityEndpointTests
 {
+
+    /// <summary>
+    /// Purpose: Protects the behavioral contract that unsaved test rejects private and loopback destinations.
+    /// Description: Arranges the inputs for unsaved test rejects private and loopback destinations, exercises the relevant operation,
+    /// and verifies the observable results required by that scenario.
+    /// </summary>
     [Test]
     public async Task UnsavedTestRejectsPrivateAndLoopbackDestinations()
     {
@@ -35,16 +41,44 @@ internal sealed class ConnectivityEndpointTests
             await loopbackResponse.Content.ReadFromJsonAsync<ConnectivityResult>(
                 FlowControlJson.Options);
 
+        // Expected outcome: All related outcomes satisfy their contracts.
+        // Acceptance criteria: every assertion in the group must pass, because this condition proves that
+        // unsaved test rejects private and loopback destinations.
         Assert.Multiple(() =>
         {
+
+            // Expected outcome: `privateResponse.StatusCode` has the required value.
+            // Acceptance criteria: `privateResponse.StatusCode` must equal `HttpStatusCode.OK`, because this condition proves that
+            // unsaved test rejects private and loopback destinations.
             Assert.That(privateResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+            // Expected outcome: `privateResult!.Status` has the required value.
+            // Acceptance criteria: `privateResult!.Status` must equal `"failed"`, because this condition proves that
+            // unsaved test rejects private and loopback destinations.
             Assert.That(privateResult!.Status, Is.EqualTo("failed"));
+
+            // Expected outcome: `privateResult.Stages[^1].Name` has the required value.
+            // Acceptance criteria: `privateResult.Stages[^1].Name` must equal `"dns"`, because this condition proves that
+            // unsaved test rejects private and loopback destinations.
             Assert.That(privateResult.Stages[^1].Name, Is.EqualTo("dns"));
+
+            // Expected outcome: `privateResult.Stages[^1].Diagnostic` includes the required content.
+            // Acceptance criteria: `privateResult.Stages[^1].Diagnostic` must contain `"forbidden"`, because this condition proves that
+            // unsaved test rejects private and loopback destinations.
             Assert.That(privateResult.Stages[^1].Diagnostic, Does.Contain("forbidden"));
+
+            // Expected outcome: `loopbackResult!.Stages[^1].Diagnostic` includes the required content.
+            // Acceptance criteria: `loopbackResult!.Stages[^1].Diagnostic` must contain `"forbidden"`, because this condition proves that
+            // unsaved test rejects private and loopback destinations.
             Assert.That(loopbackResult!.Stages[^1].Diagnostic, Does.Contain("forbidden"));
         });
     }
 
+    /// <summary>
+    /// Purpose: Protects the behavioral contract that private network opt in passes with injected protocol checks.
+    /// Description: Arranges the inputs for private network opt in passes with injected protocol checks, exercises the relevant operation,
+    /// and verifies the observable results required by that scenario.
+    /// </summary>
     [Test]
     public async Task PrivateNetworkOptInPassesWithInjectedProtocolChecks()
     {
@@ -62,16 +96,37 @@ internal sealed class ConnectivityEndpointTests
         using var response = await TestUnsaved(client, source);
         var result = await response.Content.ReadFromJsonAsync<ConnectivityResult>(
             FlowControlJson.Options);
+
+        // Expected outcome: All related outcomes satisfy their contracts.
+        // Acceptance criteria: every assertion in the group must pass, because this condition proves that
+        // private network opt in passes with injected protocol checks.
         Assert.Multiple(() =>
         {
+
+            // Expected outcome: `result!.Status` has the required value.
+            // Acceptance criteria: `result!.Status` must equal `"passed"`, because this condition proves that
+            // private network opt in passes with injected protocol checks.
             Assert.That(result!.Status, Is.EqualTo("passed"));
+
+            // Expected outcome: `result.Stages.Select(stage => stage.Name` has the required value.
+            // Acceptance criteria: `result.Stages.Select(stage => stage.Name` must equal `new[] { "dns", "tcp", "tls", "authentication", "protocol" }`, because this condition proves that
+            // private network opt in passes with injected protocol checks.
             Assert.That(
                 result.Stages.Select(stage => stage.Name),
                 Is.EqualTo(new[] { "dns", "tcp", "tls", "authentication", "protocol" }));
+
+            // Expected outcome: `http.Calls` has the required value.
+            // Acceptance criteria: `http.Calls` must equal `1`, because this condition proves that
+            // private network opt in passes with injected protocol checks.
             Assert.That(http.Calls, Is.EqualTo(1));
         });
     }
 
+    /// <summary>
+    /// Purpose: Protects the behavioral contract that saved route uses resolved credential without returning it.
+    /// Description: Arranges the inputs for saved route uses resolved credential without returning it, exercises the relevant operation,
+    /// and verifies the observable results required by that scenario.
+    /// </summary>
     [Test]
     public async Task SavedRouteUsesResolvedCredentialWithoutReturningIt()
     {
@@ -86,16 +141,36 @@ internal sealed class ConnectivityEndpointTests
         using var create = await client.PostAsync(
             "/api/point-sources",
             Yaml(source));
+
+        // Expected outcome: `create.StatusCode` has the required value.
+        // Acceptance criteria: `create.StatusCode` must equal `HttpStatusCode.Created`, because this condition proves that
+        // saved route uses resolved credential without returning it.
         Assert.That(create.StatusCode, Is.EqualTo(HttpStatusCode.Created));
 
         using var response = await client.PostAsync(
             "/api/point-sources/weather/test",
             content: null);
         var body = await response.Content.ReadAsStringAsync();
+
+        // Expected outcome: All related outcomes satisfy their contracts.
+        // Acceptance criteria: every assertion in the group must pass, because this condition proves that
+        // saved route uses resolved credential without returning it.
         Assert.Multiple(() =>
         {
+
+            // Expected outcome: `response.StatusCode` has the required value.
+            // Acceptance criteria: `response.StatusCode` must equal `HttpStatusCode.OK`, because this condition proves that
+            // saved route uses resolved credential without returning it.
             Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+            // Expected outcome: `http.CredentialReceived == credential` confirms the required condition.
+            // Acceptance criteria: `http.CredentialReceived == credential` must be true, because this condition proves that
+            // saved route uses resolved credential without returning it.
             Assert.That(http.CredentialReceived == credential, Is.True);
+
+            // Expected outcome: `body.Contains(credential` rejects the prohibited condition.
+            // Acceptance criteria: `body.Contains(credential` must be false, because this condition proves that
+            // saved route uses resolved credential without returning it.
             Assert.That(
                 body.Contains(credential, StringComparison.Ordinal),
                 Is.False,
@@ -103,6 +178,11 @@ internal sealed class ConnectivityEndpointTests
         });
     }
 
+    /// <summary>
+    /// Purpose: Protects the behavioral contract that eleventh test for client is rate limited.
+    /// Description: Arranges the inputs for eleventh test for client is rate limited, exercises the relevant operation,
+    /// and verifies the observable results required by that scenario.
+    /// </summary>
     [Test]
     public async Task EleventhTestForClientIsRateLimited()
     {
@@ -117,14 +197,34 @@ internal sealed class ConnectivityEndpointTests
                 FlowControlJson.Options);
         }
 
+        // Expected outcome: All related outcomes satisfy their contracts.
+        // Acceptance criteria: every assertion in the group must pass, because this condition proves that
+        // eleventh test for client is rate limited.
         Assert.Multiple(() =>
         {
+
+            // Expected outcome: `result!.Status` has the required value.
+            // Acceptance criteria: `result!.Status` must equal `"failed"`, because this condition proves that
+            // eleventh test for client is rate limited.
             Assert.That(result!.Status, Is.EqualTo("failed"));
+
+            // Expected outcome: `result.Stages[0].Name` has the required value.
+            // Acceptance criteria: `result.Stages[0].Name` must equal `"policy"`, because this condition proves that
+            // eleventh test for client is rate limited.
             Assert.That(result.Stages[0].Name, Is.EqualTo("policy"));
+
+            // Expected outcome: `result.Stages[0].Diagnostic` includes the required content.
+            // Acceptance criteria: `result.Stages[0].Diagnostic` must contain `"rate limit"`, because this condition proves that
+            // eleventh test for client is rate limited.
             Assert.That(result.Stages[0].Diagnostic, Does.Contain("rate limit"));
         });
     }
 
+    /// <summary>
+    /// Purpose: Protects the behavioral contract that cancellation produces redacted diagnostic.
+    /// Description: Arranges the inputs for cancellation produces redacted diagnostic, exercises the relevant operation,
+    /// and verifies the observable results required by that scenario.
+    /// </summary>
     [Test]
     public async Task CancellationProducesRedactedDiagnostic()
     {
@@ -133,16 +233,37 @@ internal sealed class ConnectivityEndpointTests
         using var response = await TestUnsaved(client, ValidHttpSource());
         var result = await response.Content.ReadFromJsonAsync<ConnectivityResult>(
             FlowControlJson.Options);
+
+        // Expected outcome: All related outcomes satisfy their contracts.
+        // Acceptance criteria: every assertion in the group must pass, because this condition proves that
+        // cancellation produces redacted diagnostic.
         Assert.Multiple(() =>
         {
+
+            // Expected outcome: `result!.Status` has the required value.
+            // Acceptance criteria: `result!.Status` must equal `"failed"`, because this condition proves that
+            // cancellation produces redacted diagnostic.
             Assert.That(result!.Status, Is.EqualTo("failed"));
+
+            // Expected outcome: `result.Stages[^1].Name` has the required value.
+            // Acceptance criteria: `result.Stages[^1].Name` must equal `"dns"`, because this condition proves that
+            // cancellation produces redacted diagnostic.
             Assert.That(result.Stages[^1].Name, Is.EqualTo("dns"));
+
+            // Expected outcome: `result.Stages[^1].Diagnostic` has the required value.
+            // Acceptance criteria: `result.Stages[^1].Diagnostic` must equal `"connection test cancelled"`, because this condition proves that
+            // cancellation produces redacted diagnostic.
             Assert.That(
                 result.Stages[^1].Diagnostic,
                 Is.EqualTo("connection test cancelled"));
         });
     }
 
+    /// <summary>
+    /// Purpose: Protects the behavioral contract that invalid unsaved source returns validation stage.
+    /// Description: Arranges the inputs for invalid unsaved source returns validation stage, exercises the relevant operation,
+    /// and verifies the observable results required by that scenario.
+    /// </summary>
     [Test]
     public async Task InvalidUnsavedSourceReturnsValidationStage()
     {
@@ -158,14 +279,35 @@ internal sealed class ConnectivityEndpointTests
         using var response = await TestUnsaved(client, source);
         var result = await response.Content.ReadFromJsonAsync<ConnectivityResult>(
             FlowControlJson.Options);
+
+        // Expected outcome: All related outcomes satisfy their contracts.
+        // Acceptance criteria: every assertion in the group must pass, because this condition proves that
+        // invalid unsaved source returns validation stage.
         Assert.Multiple(() =>
         {
+
+            // Expected outcome: `result!.Status` has the required value.
+            // Acceptance criteria: `result!.Status` must equal `"failed"`, because this condition proves that
+            // invalid unsaved source returns validation stage.
             Assert.That(result!.Status, Is.EqualTo("failed"));
+
+            // Expected outcome: `result.Stages[0].Name` has the required value.
+            // Acceptance criteria: `result.Stages[0].Name` must equal `"validation"`, because this condition proves that
+            // invalid unsaved source returns validation stage.
             Assert.That(result.Stages[0].Name, Is.EqualTo("validation"));
+
+            // Expected outcome: `result.Stages[0].Diagnostic` includes the required content.
+            // Acceptance criteria: `result.Stages[0].Diagnostic` must contain `"GET and HEAD"`, because this condition proves that
+            // invalid unsaved source returns validation stage.
             Assert.That(result.Stages[0].Diagnostic, Does.Contain("GET and HEAD"));
         });
     }
 
+    /// <summary>
+    /// Purpose: Protects the behavioral contract that missing saved source returns not found.
+    /// Description: Arranges the inputs for missing saved source returns not found, exercises the relevant operation,
+    /// and verifies the observable results required by that scenario.
+    /// </summary>
     [Test]
     public async Task MissingSavedSourceReturnsNotFound()
     {
@@ -174,6 +316,10 @@ internal sealed class ConnectivityEndpointTests
         using var response = await client.PostAsync(
             "/api/point-sources/missing/test",
             content: null);
+
+        // Expected outcome: `response.StatusCode` has the required value.
+        // Acceptance criteria: `response.StatusCode` must equal `HttpStatusCode.NotFound`, because this condition proves that
+        // missing saved source returns not found.
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
     }
 

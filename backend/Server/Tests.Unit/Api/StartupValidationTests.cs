@@ -11,6 +11,12 @@ namespace Tests.Unit.Api;
 [TestFixture]
 internal sealed class StartupValidationTests
 {
+
+    /// <summary>
+    /// Purpose: Protects the behavioral contract that validator rejects malformed stored flow.
+    /// Description: Arranges the inputs for validator rejects malformed stored flow, exercises the relevant operation,
+    /// and verifies the observable results required by that scenario.
+    /// </summary>
     [Test]
     public async Task ValidatorRejectsMalformedStoredFlow()
     {
@@ -33,10 +39,19 @@ internal sealed class StartupValidationTests
         await using var validationScope = factory.Services.CreateAsyncScope();
         var validator =
             validationScope.ServiceProvider.GetRequiredService<IStartupDataValidator>();
+
+        // Expected outcome: The invalid operation is rejected with the required error.
+        // Acceptance criteria: the operation must throw JsonException, because this condition proves that
+        // validator rejects malformed stored flow.
         Assert.ThrowsAsync<JsonException>(
             async () => await validator.ValidateAsync(CancellationToken.None));
     }
 
+    /// <summary>
+    /// Purpose: Protects the behavioral contract that validator rejects undecryptable stored credential.
+    /// Description: Arranges the inputs for validator rejects undecryptable stored credential, exercises the relevant operation,
+    /// and verifies the observable results required by that scenario.
+    /// </summary>
     [Test]
     public async Task ValidatorRejectsUndecryptableStoredCredential()
     {
@@ -69,6 +84,10 @@ internal sealed class StartupValidationTests
         await using var validationScope = factory.Services.CreateAsyncScope();
         var validator =
             validationScope.ServiceProvider.GetRequiredService<IStartupDataValidator>();
+
+        // Expected outcome: The invalid operation is rejected with the required error.
+        // Acceptance criteria: the operation must throw CredentialResolutionException, because this condition proves that
+        // validator rejects undecryptable stored credential.
         Assert.ThrowsAsync<CredentialResolutionException>(
             async () => await validator.ValidateAsync(CancellationToken.None));
     }

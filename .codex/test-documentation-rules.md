@@ -13,6 +13,10 @@ Existing tests should be brought into compliance whenever they are modified. A t
 
 Every individual test must have its own documentation immediately above the test declaration. A file-level or test-suite-level comment does not replace per-test documentation.
 
+Each test-level documentation block must have exactly one blank line before its
+opening comment. The documentation lines within the block remain contiguous, and
+the test attribute must immediately follow the closing comment without a blank line.
+
 Use this exact structure:
 
 ```text
@@ -72,6 +76,11 @@ Expected outcome: <The observable result that must occur.>
 Acceptance criteria: <The precise pass condition and why that condition proves the
 expected behavior for this test scenario.>
 ```
+
+Each assertion-level documentation block must have exactly one blank line before
+its `Expected outcome` comment. The `Expected outcome` and `Acceptance criteria`
+comment lines remain contiguous, and the assertion must immediately follow the
+documentation block without a blank line.
 
 The assertion comment must:
 
