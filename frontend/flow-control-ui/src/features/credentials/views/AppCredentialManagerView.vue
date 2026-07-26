@@ -33,7 +33,7 @@
             automation="credential-new"
             text="New credential"
             :icon="createIcon"
-            popovertarget="new-credential-form-popover"
+            popovertarget="credential-form-popover"
             @click="beginCreate"
           />
         </div>
@@ -68,7 +68,7 @@
                   :automation="`credential-edit-${credential.id}`"
                   text="Edit"
                   :icon="editIcon"
-                  popovertarget="new-credential-form-popover"
+                  popovertarget="credential-form-popover"
                   @click="beginEdit(credential)"
                 />
               </td>
@@ -80,12 +80,12 @@
   </section>
 
   <AppPopover
-    id="new-credential-form-popover"
+    id="credential-form-popover"
     ref="credentialPopover"
     content-label="Create new credential"
-    automation="new-credential-popover"
+    automation="credential-popover"
   >
-    <form class="credential-form" @submit.prevent="save">
+    <AppForm class="credential-form" automation="credential-form" @submit.prevent="save">
       <p class="eyebrow">{{ editing ? 'Update credential' : 'New credential' }}</p>
       <h2>{{ editing ? `Edit ${form.name}` : 'Credential details' }}</h2>
       <label for="credential-name">Display name</label>
@@ -171,7 +171,7 @@
           automation="credential-cancel"
           text="Cancel"
           :icon="cancelIcon"
-          popovertarget="new-credential-form-popover"
+          popovertarget="credential-form-popover"
           popovertargetaction="hide"
           @click="beginCreate"
         />
@@ -183,7 +183,7 @@
           @click="remove"
         />
       </div>
-    </form>
+    </AppForm>
   </AppPopover>
 </template>
 
@@ -203,6 +203,7 @@ import saveIcon from '@/assets/icons/save-icon.svg';
 import visibilityIcon from '@/assets/icons/visibility-icon.svg';
 import AppButton from '@/components/AppButton.vue';
 import AppPopover from '@/components/AppPopover.vue';
+import AppForm from '@/components/AppForm.vue';
 
 const credentials = ref<CredentialMetadata[]>([]);
 const loading = ref(false);
@@ -333,3 +334,32 @@ const remove = async (): Promise<void> => {
 onMounted(() => void load());
 onBeforeUnmount(() => controller?.abort());
 </script>
+
+<style lang="css" scoped>
+.credential-form :deep(> form) {
+  display: grid;
+  padding: 22px;
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border-default);
+  border-radius: 12px;
+}
+
+.credential-form :deep(h2) {
+  margin: 5px 0 20px;
+}
+
+.credential-form :deep(form label) {
+  margin: 13px 0 6px;
+  font-weight: 700;
+}
+
+.credential-form :deep(input),
+.credential-form :deep(select) {
+  min-width: 0;
+  padding: 10px 11px;
+  color: var(--color-text-primary);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-default);
+  border-radius: 7px;
+}
+</style>
