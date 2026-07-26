@@ -3,13 +3,13 @@
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 
-import FlowNode from '@/features/flows/components/FlowNode.vue';
+import AppFlowNode from '@/features/flows/components/AppFlowNode.vue';
 import { sampleFlows } from '@/features/flows/__tests__/fixtures/sampleFlows';
 
 describe('FlowNode', () => {
   it('uses registry metadata and exposes an accessible node name and status', () => {
     const node = sampleFlows[0]!.nodes[0]!;
-    const wrapper = mount(FlowNode, {
+    const wrapper = mount(AppFlowNode, {
       props: { node, selected: false, status: 'running', statusValue: '21.5 °C' }
     });
 
@@ -39,7 +39,7 @@ describe('FlowNode', () => {
   });
 
   it('emits selection from keyboard activation', async () => {
-    const wrapper = mount(FlowNode, {
+    const wrapper = mount(AppFlowNode, {
       props: { node: sampleFlows[0]!.nodes[0]!, selected: false }
     });
 

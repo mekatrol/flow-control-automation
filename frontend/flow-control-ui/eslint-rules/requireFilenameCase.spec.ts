@@ -15,7 +15,7 @@ const lintFilename = (filename: string): Linter.LintMessage[] => {
   return linter.verify(
     'const example = true;',
     {
-      files: ['**/*.ts'],
+      files: ['**/*.ts', '**/*.vue'],
       plugins: {
         local: localPlugin
       },
@@ -29,12 +29,21 @@ const lintFilename = (filename: string): Linter.LintMessage[] => {
 
 describe('requireFilenameCase', () => {
   it('requires component implementation files to use PascalCase', () => {
-    expect(lintFilename('src/components/themeSelector.ts')).toEqual([
+    expect(lintFilename('src/components/appThemeSelector.ts')).toEqual([
       expect.objectContaining({
         messageId: 'expectedPascalCase'
       })
     ]);
-    expect(lintFilename('src/components/ThemeSelector.ts')).toEqual([]);
+    expect(lintFilename('src/components/AppThemeSelector.ts')).toEqual([]);
+  });
+
+  it('requires Vue component filenames to start with App', () => {
+    expect(lintFilename('src/components/ThemeSelector.vue')).toEqual([
+      expect.objectContaining({
+        messageId: 'appPrefixRequired'
+      })
+    ]);
+    expect(lintFilename('src/components/AppThemeSelector.vue')).toEqual([]);
   });
 
   it('requires component test files to use camelCase', () => {

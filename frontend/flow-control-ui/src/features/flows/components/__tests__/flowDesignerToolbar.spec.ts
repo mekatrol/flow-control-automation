@@ -3,11 +3,11 @@
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 
-import FlowDesignerToolbar from '@/features/flows/components/FlowDesignerToolbar.vue';
+import AppFlowDesignerToolbar from '@/features/flows/components/AppFlowDesignerToolbar.vue';
 
 describe('FlowDesignerToolbar', () => {
   it('uses distinct directional and terminal icons for all stacking operations', async () => {
-    const wrapper = mount(FlowDesignerToolbar, {
+    const wrapper = mount(AppFlowDesignerToolbar, {
       props: { selectedNodeId: 'node-1', canMoveFront: true, canMoveBack: true }
     });
 

@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import {
   editorValueFromInput,
   validateNodeLabel
-} from '@/features/flows/components/FlowNodeConfigurationPanel.vue';
+} from '@/features/flows/components/AppFlowNodeConfigurationPanel.vue';
 
 describe('node configuration validation', () => {
   it('requires a non-empty label', () => {

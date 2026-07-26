@@ -42,7 +42,11 @@ type Options = [
   }?
 ];
 
-type MessageIds = 'expectedPascalCase' | 'expectedCamelCase' | 'kebabCaseForbidden';
+type MessageIds =
+  | 'expectedPascalCase'
+  | 'expectedCamelCase'
+  | 'kebabCaseForbidden'
+  | 'appPrefixRequired';
 
 type RuntimeExport = {
   type: 'class' | 'value';
@@ -350,7 +354,10 @@ const requireFilenameCase = createRule<Options, MessageIds>({
         'Filename "{{filename}}" must use camelCase. Expected a name such as "{{example}}".',
 
       kebabCaseForbidden:
-        'Filename "{{filename}}" uses kebab-case. Kebab-case filenames are not allowed.'
+        'Filename "{{filename}}" uses kebab-case. Kebab-case filenames are not allowed.',
+
+      appPrefixRequired:
+        'Vue component filename "{{filename}}" must start with "App". Expected a name such as "{{example}}".'
     }
   },
 
@@ -383,6 +390,19 @@ const requireFilenameCase = createRule<Options, MessageIds>({
           ignoredFilenames.has(filenameWithoutExtension) ||
           ignoredFilenames.has(normalizedFilename)
         ) {
+          return;
+        }
+
+        if (extension === '.vue' && !normalizedFilename.startsWith('App')) {
+          context.report({
+            node,
+            messageId: 'appPrefixRequired',
+            data: {
+              filename: filenameWithExtension,
+              example: `App${normalizedFilename}`
+            }
+          });
+
           return;
         }
 

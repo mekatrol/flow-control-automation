@@ -3,7 +3,7 @@
 import { mount } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import ThemeSelector from '@/components/ThemeSelector.vue';
+import AppThemeSelector from '@/components/AppThemeSelector.vue';
 
 describe('ThemeSelector', () => {
   beforeEach(() => {
@@ -24,7 +24,7 @@ describe('ThemeSelector', () => {
   });
 
   it('cycles through system, dark, and light with accessible state descriptions', async () => {
-    const wrapper = mount(ThemeSelector);
+    const wrapper = mount(AppThemeSelector);
     const selector = wrapper.get<HTMLButtonElement>('.theme-selector');
     const status = wrapper.get('[role="status"]');
 

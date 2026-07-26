@@ -3,7 +3,7 @@
     <template #head>
       <tr>
         <th scope="col" :aria-sort="sortDirection">
-          <TableSortButton
+          <AppTableSortButton
             automation="flows-name-sort"
             label="Name"
             :direction="sortDirection"
@@ -17,9 +17,10 @@
       </tr>
     </template>
     <template #body>
-      <FlowTableRow
+      <AppFlowTableRow
         v-for="flow in flows"
         :key="flow.id"
+        v-bind="automation(`row-${flow.id}`)"
         :flow="flow"
         :editing="editingFlowId === flow.id"
         :rename-value="renameValue"
@@ -42,9 +43,10 @@
 
 <script setup lang="ts">
 import AppTable from '@/components/AppTable.vue';
-import TableSortButton from '@/components/TableSortButton.vue';
+import AppTableSortButton from '@/components/AppTableSortButton.vue';
+import { useAutomation } from '@/composables/useAutomation';
 import type { SortDirection } from '@/composables/usePaginatedCollection';
-import FlowTableRow from '@/features/flows/components/FlowTableRow.vue';
+import AppFlowTableRow from '@/features/flows/components/AppFlowTableRow.vue';
 import type { FlowDefinition } from '@/features/flows/types';
 
 defineProps<{
@@ -58,6 +60,7 @@ defineProps<{
   togglingDisabledId?: string;
 }>();
 
+const automation = useAutomation('flows-table');
 defineEmits<{
   toggleSort: [];
   beginRename: [flowId: string, name: string];

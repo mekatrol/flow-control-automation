@@ -70,7 +70,7 @@
           </tr>
         </template>
       </AppTable>
-      <TablePagination
+      <AppTablePagination
         automation="controller-templates-pagination"
         :page="store.result.page"
         :page-count="store.result.pageCount"
@@ -88,7 +88,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted } from 'vue';
 import AppTable from '@/components/AppTable.vue';
-import TablePagination from '@/components/TablePagination.vue';
+import AppTablePagination from '@/components/AppTablePagination.vue';
 import type { ControllerTemplateSummary } from '@/features/catalogues/api/catalogueDto';
 import { useControllerTemplatesCatalogueStore } from '@/features/catalogues/stores/catalogues';
 

@@ -1,5 +1,5 @@
 <template>
-  <div class="yaml-editor">
+  <div class="yaml-editor" v-bind="automation()">
     <label :id="labelId">{{ label }}</label>
     <div
       ref="container"
@@ -32,6 +32,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
+import { useAutomation } from '@/composables/useAutomation';
 import {
   configureYamlSchema,
   type JSONSchema,
@@ -50,6 +51,7 @@ export interface YamlDiagnostic {
 const props = withDefaults(
   defineProps<{
     modelValue: string;
+    automation: string;
     label: string;
     help?: string;
     schema: JSONSchema;
@@ -63,6 +65,7 @@ const props = withDefaults(
     readOnly: false
   }
 );
+const automation = useAutomation(props.automation);
 const emit = defineEmits<{
   'update:modelValue': [value: string];
   diagnostics: [diagnostics: YamlDiagnostic[]];

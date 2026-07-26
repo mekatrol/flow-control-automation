@@ -17,7 +17,7 @@
         <RouterLink to="/point-sources">Point sources</RouterLink>
         <RouterLink to="/controller-templates">Controllers</RouterLink>
         <RouterLink to="/credentials">Credentials</RouterLink>
-        <ThemeSelector />
+        <AppThemeSelector automation="theme-selector" />
       </nav>
     </header>
 
@@ -28,7 +28,7 @@
 </template>
 
 <script setup lang="ts">
-import ThemeSelector from '@/components/ThemeSelector.vue';
+import AppThemeSelector from '@/components/AppThemeSelector.vue';
 </script>
 
 <style scoped>

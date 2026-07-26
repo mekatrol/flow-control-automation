@@ -26,8 +26,9 @@
     <p v-if="loading" role="status">Loading source…</p>
     <div v-else class="source-editor-layout" :class="{ 'has-guidance': isNew }">
       <form @submit.prevent="save">
-        <YamlEditor
+        <AppYamlEditor
           v-model="yaml"
+          automation="point-source-yaml-editor"
           label="Point source YAML"
           help="Errors and suggestions use the point-source schema. The server validates again when you test or save."
           :schema="pointSourceSchema"
@@ -122,7 +123,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
-import YamlEditor, { type YamlDiagnostic } from '@/components/YamlEditor.vue';
+import AppYamlEditor, { type YamlDiagnostic } from '@/components/AppYamlEditor.vue';
 import {
   pointSourceApi,
   type ConnectionTestResult,

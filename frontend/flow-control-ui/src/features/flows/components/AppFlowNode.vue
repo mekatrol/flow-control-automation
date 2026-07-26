@@ -20,10 +20,15 @@
       :height="definition.defaultSize.height"
       rx="2"
     />
-    <FlowNodeIcon :icon="definition.icon" />
-    <FlowNodeLabel :label="node.label" :kind-label="definition.label" />
-    <FlowNodeStatus
+    <AppFlowNodeIcon v-bind="automation('icon')" :icon="definition.icon" />
+    <AppFlowNodeLabel
+      v-bind="automation('label')"
+      :label="node.label"
+      :kind-label="definition.label"
+    />
+    <AppFlowNodeStatus
       v-if="status"
+      v-bind="automation('status')"
       :status="status"
       :value="statusValue"
       :width="definition.defaultSize.width"
@@ -31,12 +36,28 @@
     <!-- These legacy function indicators intentionally overlap the top edge.
     Their shape as well as colour communicates state, so they remain distinct
     for people who cannot distinguish the colours. -->
-    <FlowNodeMarker shape="square" color="orange" :x="definition.defaultSize.width - 60" />
-    <FlowNodeMarker shape="triangle" color="green" :x="definition.defaultSize.width - 40" />
-    <FlowNodeMarker shape="circle" color="blue" :x="definition.defaultSize.width - 20" />
-    <FlowConnector
+    <AppFlowNodeMarker
+      v-bind="automation('marker-square')"
+      shape="square"
+      color="orange"
+      :x="definition.defaultSize.width - 60"
+    />
+    <AppFlowNodeMarker
+      v-bind="automation('marker-triangle')"
+      shape="triangle"
+      color="green"
+      :x="definition.defaultSize.width - 40"
+    />
+    <AppFlowNodeMarker
+      v-bind="automation('marker-circle')"
+      shape="circle"
+      color="blue"
+      :x="definition.defaultSize.width - 20"
+    />
+    <AppFlowConnector
       v-for="layout in connectorLayouts"
       :key="layout.connector.id"
+      v-bind="automation(`connector-${layout.connector.id}`)"
       :layout="layout"
       :compatible="compatibleConnectorKeys?.includes(connectorKey(layout.connector.id))"
       :active="
@@ -53,12 +74,13 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
-import FlowNodeIcon from './FlowNodeIcon.vue';
-import FlowNodeLabel from './FlowNodeLabel.vue';
-import FlowNodeMarker from './FlowNodeMarker.vue';
-import FlowNodeStatus from './FlowNodeStatus.vue';
-import FlowConnector from './FlowConnector.vue';
+import AppFlowNodeIcon from './AppFlowNodeIcon.vue';
+import AppFlowNodeLabel from './AppFlowNodeLabel.vue';
+import AppFlowNodeMarker from './AppFlowNodeMarker.vue';
+import AppFlowNodeStatus from './AppFlowNodeStatus.vue';
+import AppFlowConnector from './AppFlowConnector.vue';
 import { layoutConnectors } from '@/features/flows/geometry/connectorLayout';
+import { useAutomation } from '@/composables/useAutomation';
 import { getNodeKind } from '@/features/flows/nodeKinds';
 import type { FlowConnectionEndpoint, FlowNode } from '@/features/flows/types';
 
@@ -71,6 +93,7 @@ const props = defineProps<{
   compatibleConnectorKeys?: string[];
 }>();
 
+const automation = useAutomation(`flow-node-${props.node.id}`);
 const emit = defineEmits<{
   select: [nodeId: string];
   dragstart: [nodeId: string, event: PointerEvent];

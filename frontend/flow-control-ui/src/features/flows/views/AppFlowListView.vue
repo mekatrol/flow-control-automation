@@ -44,7 +44,7 @@
             placeholder="Search flow names"
           />
         </div>
-        <MultiSelectDropdown
+        <AppMultiSelectDropdown
           v-model="statusFilters"
           automation="flows-status-filter"
           label="Deployment status"
@@ -57,7 +57,8 @@
         No flows match the selected filters.
       </p>
 
-      <FlowTable
+      <AppFlowTable
+        v-bind="automation('table')"
         :flows="items"
         :sort-direction="sortDirection"
         :editing-flow-id="editingFlowId"
@@ -76,7 +77,7 @@
         @cancel-delete="closeDeleteConfirmation"
         @toggle-disabled="setFlowDisabled"
       />
-      <TablePagination
+      <AppTablePagination
         v-if="totalItems > 0"
         automation="flows-pagination"
         :page="page"
@@ -100,14 +101,16 @@ import { useRoute, useRouter } from 'vue-router';
 import newFlowIcon from '@/assets/icons/new-flow-icon.svg';
 import retryIcon from '@/assets/icons/retry-icon.svg';
 import AppButton from '@/components/AppButton.vue';
-import MultiSelectDropdown, { type MultiSelectOption } from '@/components/MultiSelectDropdown.vue';
-import TablePagination from '@/components/TablePagination.vue';
+import AppMultiSelectDropdown, { type MultiSelectOption } from '@/components/AppMultiSelectDropdown.vue';
+import AppTablePagination from '@/components/AppTablePagination.vue';
 import { useServerPagination } from '@/composables/useServerPagination';
+import { useAutomation } from '@/composables/useAutomation';
 import { flowApi, type FlowListParameters } from '@/features/flows/api/flowApi';
-import FlowTable from '@/features/flows/components/FlowTable.vue';
+import AppFlowTable from '@/features/flows/components/AppFlowTable.vue';
 import { useFlowsStore } from '@/features/flows/stores/flows';
 
 const route = useRoute();
+const automation = useAutomation('flows');
 const router = useRouter();
 const flowStore = useFlowsStore();
 const { flows } = storeToRefs(flowStore);

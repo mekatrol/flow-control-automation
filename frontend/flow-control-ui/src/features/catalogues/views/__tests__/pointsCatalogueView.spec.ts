@@ -3,7 +3,7 @@
 import { createPinia } from 'pinia';
 import { flushPromises, mount } from '@vue/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import PointsCatalogueView from '@/features/catalogues/views/PointsCatalogueView.vue';
+import AppPointsCatalogueView from '@/features/catalogues/views/AppPointsCatalogueView.vue';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -40,7 +40,7 @@ describe('PointsCatalogueView', () => {
         )
       )
     );
-    const wrapper = mount(PointsCatalogueView, {
+    const wrapper = mount(AppPointsCatalogueView, {
       global: { plugins: [createPinia()] }
     });
     await flushPromises();
@@ -61,7 +61,7 @@ describe('PointsCatalogueView', () => {
         .fn()
         .mockResolvedValue(new Response(JSON.stringify({ message: 'missing' }), { status: 404 }))
     );
-    const wrapper = mount(PointsCatalogueView, {
+    const wrapper = mount(AppPointsCatalogueView, {
       global: { plugins: [createPinia()] }
     });
     await flushPromises();

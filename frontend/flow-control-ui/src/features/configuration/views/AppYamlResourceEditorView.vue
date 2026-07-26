@@ -39,8 +39,9 @@
           </option>
         </select>
       </div>
-      <YamlEditor
+      <AppYamlEditor
         v-model="yaml"
+        automation="yaml-resource-editor"
         :label="`${singularLabel} YAML`"
         :help="editorHelp"
         :schema="schema"
@@ -139,7 +140,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
-import YamlEditor, { type YamlDiagnostic } from '@/components/YamlEditor.vue';
+import AppYamlEditor, { type YamlDiagnostic } from '@/components/AppYamlEditor.vue';
 import {
   controllerTemplateConfigurationApi,
   pointConfigurationApi,

@@ -41,7 +41,9 @@ const requireAutomationProp: Rule.RuleModule = {
   create(context): Rule.RuleListener {
     const typedContext = context as RuleContext;
     const parserServices = typedContext.sourceCode.parserServices;
-    const componentFileMatch = context.filename.match(/[/\\]((?:App|Base)[^/\\]+)\.vue$/);
+    const componentFileMatch = context.filename.match(
+      /[/\\]src[/\\]components[/\\]((?:App|Base)[^/\\]+)\.vue$/
+    );
     const componentName = componentFileMatch?.[1];
 
     if (!parserServices?.defineTemplateBodyVisitor) {
@@ -54,7 +56,9 @@ const requireAutomationProp: Rule.RuleModule = {
         const isAppComponentRoot =
           componentName !== undefined &&
           node.parent.type === 'VElement' &&
-          node.parent.rawName === 'template';
+          node.parent.rawName === 'template' &&
+          node.parent.parent.type === 'VDocumentFragment' &&
+          node.parent.children.find((child) => child.type === 'VElement') === node;
 
         if (EXCLUDED_COMPONENTS.has(name)) {
           return;

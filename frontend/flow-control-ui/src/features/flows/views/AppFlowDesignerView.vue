@@ -125,7 +125,8 @@
         </div>
       </div>
 
-      <FlowDesignerCanvas
+      <AppFlowDesignerCanvas
+        v-bind="automation('canvas')"
         :flow="flow"
         :runtime="runtime"
         @move-node="moveNode"
@@ -151,6 +152,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
 
+import { useAutomation } from '@/composables/useAutomation';
 import cancelIcon from '@/assets/icons/cancel-icon.svg';
 import deployIcon from '@/assets/icons/deploy-icon.svg';
 import discardIcon from '@/assets/icons/discard-icon.svg';
@@ -158,7 +160,7 @@ import refreshIcon from '@/assets/icons/refresh-icon.svg';
 import renameFlowIcon from '@/assets/icons/rename-flow-icon.svg';
 import saveIcon from '@/assets/icons/save-icon.svg';
 import AppButton from '@/components/AppButton.vue';
-import FlowDesignerCanvas from '@/features/flows/components/FlowDesignerCanvas.vue';
+import AppFlowDesignerCanvas from '@/features/flows/components/AppFlowDesignerCanvas.vue';
 import { useFlowsStore } from '@/features/flows/stores/flows';
 import type { ZOrderCommand } from '@/features/flows/graph/zOrder';
 import { FlowApiError, flowApi } from '@/features/flows/api/flowApi';
@@ -175,6 +177,7 @@ import type {
 const props = defineProps<{
   flowId: string;
 }>();
+const automation = useAutomation('flow-designer');
 
 const flowStore = useFlowsStore();
 const runtimeStore = useFlowRuntimeStore();

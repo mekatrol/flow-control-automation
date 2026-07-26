@@ -62,7 +62,7 @@
           </tr>
         </template>
       </AppTable>
-      <TablePagination
+      <AppTablePagination
         automation="points-pagination"
         :page="store.result.page"
         :page-count="store.result.pageCount"
@@ -80,7 +80,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import AppTable from '@/components/AppTable.vue';
-import TablePagination from '@/components/TablePagination.vue';
+import AppTablePagination from '@/components/AppTablePagination.vue';
 import { usePointsCatalogueStore } from '@/features/catalogues/stores/catalogues';
 
 const store = usePointsCatalogueStore();

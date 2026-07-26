@@ -39,7 +39,8 @@
         <input v-model="snapToGrid" type="checkbox" />
         Snap to grid
       </label>
-      <FlowDesignerToolbar
+      <AppFlowDesignerToolbar
+        v-bind="automation('toolbar')"
         :selected-node-id="selectedNodeId"
         :can-move-front="canMoveFront"
         :can-move-back="canMoveBack"
@@ -48,7 +49,7 @@
     </div>
 
     <div class="designer-workspace">
-      <FlowNodePalette @add="handleAddNode" />
+      <AppFlowNodePalette v-bind="automation('node-palette')" @add="handleAddNode" />
       <div class="canvas-column">
         <p v-if="connectionError" class="connection-error" role="alert">{{ connectionError }}</p>
 
@@ -93,10 +94,11 @@
             />
 
             <g class="connections">
-              <FlowConnection
+              <AppFlowConnection
                 v-for="rendered in renderedConnections"
                 :id="rendered.connection.id"
                 :key="rendered.connection.id"
+                v-bind="automation(`connection-${rendered.connection.id}`)"
                 :start="rendered.start"
                 :end="rendered.end"
                 :start-side="rendered.startSide"
@@ -105,8 +107,9 @@
                 :label="`Connection from ${rendered.connection.start.nodeId} to ${rendered.connection.end.nodeId}`"
                 @select="handleConnectionSelection"
               />
-              <FlowConnection
+              <AppFlowConnection
                 v-if="previewStart && previewEnd"
+                v-bind="automation('connection-preview')"
                 id="connection-preview"
                 :start="previewStart"
                 :end="previewEnd"
@@ -115,9 +118,10 @@
               />
             </g>
 
-            <FlowNode
+            <AppFlowNode
               v-for="node in orderedNodes"
               :key="node.id"
+              v-bind="automation(`node-${node.id}`)"
               :node="node"
               :selected="node.id === selectedNodeId"
               :status="runtime?.nodes[node.id]?.state ?? flow.status"
@@ -143,8 +147,9 @@
           </svg>
         </div>
       </div>
-      <FlowNodeConfigurationPanel
+      <AppFlowNodeConfigurationPanel
         v-if="selectedNode"
+        v-bind="automation('node-configuration')"
         :node="selectedNode"
         @update-label="emit('updateNodeLabel', selectedNode.id, $event)"
         @update-configuration="
@@ -159,11 +164,12 @@
 import { computed, nextTick, ref } from 'vue';
 
 import AppButton from '@/components/AppButton.vue';
-import FlowConnection from './FlowConnection.vue';
-import FlowDesignerToolbar from './FlowDesignerToolbar.vue';
-import FlowNode from './FlowNode.vue';
-import FlowNodePalette from './FlowNodePalette.vue';
-import FlowNodeConfigurationPanel from './FlowNodeConfigurationPanel.vue';
+import { useAutomation } from '@/composables/useAutomation';
+import AppFlowConnection from './AppFlowConnection.vue';
+import AppFlowDesignerToolbar from './AppFlowDesignerToolbar.vue';
+import AppFlowNode from './AppFlowNode.vue';
+import AppFlowNodePalette from './AppFlowNodePalette.vue';
+import AppFlowNodeConfigurationPanel from './AppFlowNodeConfigurationPanel.vue';
 import {
   clientToSvgPoint,
   useDesignerViewport
@@ -197,6 +203,7 @@ const props = defineProps<{
   runtime?: FlowRuntimeSnapshot;
 }>();
 
+const automation = useAutomation('flow-designer-canvas');
 const emit = defineEmits<{
   moveNode: [nodeId: string, x: number, y: number];
   reorderNode: [nodeId: string, command: ZOrderCommand];
