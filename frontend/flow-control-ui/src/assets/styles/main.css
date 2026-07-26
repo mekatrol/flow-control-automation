@@ -70,17 +70,10 @@ a {
   text-decoration: none;
 }
 
-.brand-mark {
-  display: grid;
-  width: 38px;
+.brand-logo {
+  display: block;
+  width: auto;
   height: 38px;
-  place-items: center;
-  color: var(--color-text-primary);
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  background: var(--color-brand-accent);
-  border-radius: 11px;
 }
 
 .brand strong,

@@ -4,7 +4,12 @@
     <header class="app-header header">
       <slot name="header">
         <RouterLink class="brand" :to="{ name: 'flows' }">
-          <span class="brand-mark" aria-hidden="true">FC</span>
+          <img
+            class="brand-logo"
+            src="@/assets/icons/mekatrol-logo.svg"
+            alt=""
+            aria-hidden="true"
+          />
           <span>
             <strong>Flow Control</strong>
             <small>Automation designer</small>
