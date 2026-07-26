@@ -68,6 +68,12 @@ test('creates a write-only credential and never displays its secret again', asyn
   await page.getByRole('button', { name: 'Create credential' }).click();
 
   const savedCredentials = page.getByLabel('Saved credentials');
+  const credentialPopover = page.getByRole('dialog', { name: 'Create new credential' });
+
+  // Expected outcome: the credential form closes after the save succeeds.
+  // Acceptance criteria: the popover must not be visible, because a completed create no longer
+  // requires input while a failed create must remain available for correction.
+  await expect(credentialPopover).not.toBeVisible();
 
   // Expected outcome: the saved credential reference is visible in the credential list.
   // Acceptance criteria: the saved credential list must contain `secret://plant-mqtt`, because this condition proves that

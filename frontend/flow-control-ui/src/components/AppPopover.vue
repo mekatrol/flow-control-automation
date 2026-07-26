@@ -2,6 +2,7 @@
   <div
     v-bind="automation()"
     :id="id"
+    ref="panel"
     class="popover-panel"
     :data-placement="placement"
     :aria-label="contentLabel"
@@ -13,6 +14,7 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue';
 import { useAutomation } from '@/composables/useAutomation';
 
 type PopoverMode = 'auto' | 'manual';
@@ -45,5 +47,10 @@ const props = withDefaults(
   }
 );
 
+const panel = ref<HTMLElement>();
 const automation = useAutomation(props.automation);
+
+defineExpose({
+  hide: (): void => panel.value?.hidePopover()
+});
 </script>

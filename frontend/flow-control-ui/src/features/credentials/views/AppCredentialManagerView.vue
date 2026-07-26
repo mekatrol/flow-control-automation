@@ -68,6 +68,7 @@
                   :automation="`credential-edit-${credential.id}`"
                   text="Edit"
                   :icon="editIcon"
+                  popovertarget="new-credential-form-popover"
                   @click="beginEdit(credential)"
                 />
               </td>
@@ -80,6 +81,7 @@
 
   <AppPopover
     id="new-credential-form-popover"
+    ref="credentialPopover"
     content-label="Create new credential"
     automation="new-credential-popover"
   >
@@ -211,6 +213,7 @@ const status = ref('');
 const passwordVisible = ref(false);
 const tokenVisible = ref(false);
 const errorSummary = ref<HTMLElement>();
+const credentialPopover = ref<InstanceType<typeof AppPopover>>();
 let controller: AbortController | undefined;
 const form = reactive<CredentialInput>({
   id: '',
@@ -247,6 +250,10 @@ const resetSecrets = (): void => {
   form.token = '';
   passwordVisible.value = false;
   tokenVisible.value = false;
+};
+
+const closeCredentialPopover = (): void => {
+  credentialPopover.value?.hide();
 };
 
 const beginCreate = (): void => {
@@ -301,6 +308,7 @@ const save = async (): Promise<void> => {
       : 'Credential created. Sensitive values are now hidden.';
     await load();
     beginEdit(saved);
+    closeCredentialPopover();
   } catch (reason) {
     error.value = reason instanceof Error ? reason.message : 'Unable to save credential';
   } finally {
@@ -316,6 +324,7 @@ const remove = async (): Promise<void> => {
     status.value = 'Credential deleted.';
     beginCreate();
     await load();
+    closeCredentialPopover();
   } catch (reason) {
     error.value = reason instanceof Error ? reason.message : 'Unable to delete credential';
   }
