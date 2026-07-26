@@ -33,8 +33,7 @@
             automation="credential-new"
             text="New credential"
             :icon="createIcon"
-            popovertarget="credential-form-popover"
-            @click="beginCreate"
+            @click="openCreateDialog"
           />
         </div>
         <p v-if="loading" role="status">Loading credentials…</p>
@@ -68,8 +67,7 @@
                   :automation="`credential-edit-${credential.id}`"
                   text="Edit"
                   :icon="editIcon"
-                  popovertarget="credential-form-popover"
-                  @click="beginEdit(credential)"
+                  @click="openEditDialog(credential)"
                 />
               </td>
             </tr>
@@ -79,11 +77,13 @@
     </div>
   </section>
 
-  <AppPopover
-    id="credential-form-popover"
-    ref="credentialPopover"
-    content-label="Create new credential"
-    automation="credential-popover"
+  <AppDialog
+    id="credential-form-dialog"
+    ref="credentialDialog"
+    :content-label="editing ? `Edit ${form.name}` : 'Create new credential'"
+    automation="credential-dialog"
+    :dismissible="false"
+    @cancel="handleCredentialDialogCancel"
   >
     <AppForm class="credential-form" automation="credential-form" @submit.prevent="save">
       <p class="eyebrow">{{ editing ? 'Update credential' : 'New credential' }}</p>
@@ -171,9 +171,8 @@
           automation="credential-cancel"
           text="Cancel"
           :icon="cancelIcon"
-          popovertarget="credential-form-popover"
-          popovertargetaction="hide"
-          @click="beginCreate"
+          :disabled="saving"
+          @click="cancelCredentialDialog"
         />
         <AppButton
           v-if="editing"
@@ -184,11 +183,38 @@
         />
       </div>
     </AppForm>
-  </AppPopover>
+  </AppDialog>
+
+  <AppDialog
+    id="credential-discard-dialog"
+    ref="credentialDiscardDialog"
+    content-label="Discard unsaved credential changes"
+    automation="credential-discard-dialog"
+    :dismissible="false"
+  >
+    <section class="discard-confirmation">
+      <h2>Discard unsaved changes?</h2>
+      <p>Your credential changes have not been saved and will be lost.</p>
+      <div class="editor-actions">
+        <AppButton
+          automation="credential-keep-editing"
+          text="Keep editing"
+          :icon="cancelIcon"
+          @click="keepEditing"
+        />
+        <AppButton
+          automation="credential-discard-changes"
+          text="Discard changes"
+          :icon="deleteIcon"
+          @click="discardCredentialChanges"
+        />
+      </div>
+    </section>
+  </AppDialog>
 </template>
 
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import {
   credentialApi,
   type CredentialInput,
@@ -202,7 +228,7 @@ import editIcon from '@/assets/icons/rename-flow-icon.svg';
 import saveIcon from '@/assets/icons/save-icon.svg';
 import visibilityIcon from '@/assets/icons/visibility-icon.svg';
 import AppButton from '@/components/AppButton.vue';
-import AppPopover from '@/components/AppPopover.vue';
+import AppDialog from '@/components/AppDialog.vue';
 import AppForm from '@/components/AppForm.vue';
 
 const credentials = ref<CredentialMetadata[]>([]);
@@ -214,7 +240,8 @@ const status = ref('');
 const passwordVisible = ref(false);
 const tokenVisible = ref(false);
 const errorSummary = ref<HTMLElement>();
-const credentialPopover = ref<InstanceType<typeof AppPopover>>();
+const credentialDialog = ref<InstanceType<typeof AppDialog>>();
+const credentialDiscardDialog = ref<InstanceType<typeof AppDialog>>();
 let controller: AbortController | undefined;
 const form = reactive<CredentialInput>({
   id: '',
@@ -224,6 +251,10 @@ const form = reactive<CredentialInput>({
   password: '',
   token: ''
 });
+const formBaseline = ref('');
+const formSnapshot = (): string => JSON.stringify(form);
+const formDirty = computed(() => formSnapshot() !== formBaseline.value);
+const discardConfirmationOpen = ref(false);
 
 watch(error, async (value) => {
   if (value) {
@@ -253,8 +284,8 @@ const resetSecrets = (): void => {
   tokenVisible.value = false;
 };
 
-const closeCredentialPopover = (): void => {
-  credentialPopover.value?.hide();
+const closeCredentialDialog = (): void => {
+  credentialDialog.value?.close();
 };
 
 const beginCreate = (): void => {
@@ -268,6 +299,7 @@ const beginCreate = (): void => {
   });
   resetSecrets();
   error.value = '';
+  formBaseline.value = formSnapshot();
 };
 
 const beginEdit = (credential: CredentialMetadata): void => {
@@ -281,6 +313,47 @@ const beginEdit = (credential: CredentialMetadata): void => {
   });
   resetSecrets();
   error.value = '';
+  formBaseline.value = formSnapshot();
+};
+
+const openCreateDialog = async (): Promise<void> => {
+  beginCreate();
+  await nextTick();
+  credentialDialog.value?.showModal();
+};
+
+const openEditDialog = async (credential: CredentialMetadata): Promise<void> => {
+  beginEdit(credential);
+  await nextTick();
+  credentialDialog.value?.showModal();
+};
+
+const cancelCredentialDialog = (): void => {
+  if (formDirty.value) {
+    if (discardConfirmationOpen.value) return;
+    discardConfirmationOpen.value = true;
+    credentialDiscardDialog.value?.showModal();
+    return;
+  }
+
+  closeCredentialDialog();
+  beginCreate();
+};
+
+const handleCredentialDialogCancel = (): void => {
+  cancelCredentialDialog();
+};
+
+const keepEditing = (): void => {
+  credentialDiscardDialog.value?.close();
+  discardConfirmationOpen.value = false;
+};
+
+const discardCredentialChanges = (): void => {
+  credentialDiscardDialog.value?.close();
+  discardConfirmationOpen.value = false;
+  closeCredentialDialog();
+  beginCreate();
 };
 
 const load = async (): Promise<void> => {
@@ -309,7 +382,7 @@ const save = async (): Promise<void> => {
       : 'Credential created. Sensitive values are now hidden.';
     await load();
     beginEdit(saved);
-    closeCredentialPopover();
+    closeCredentialDialog();
   } catch (reason) {
     error.value = reason instanceof Error ? reason.message : 'Unable to save credential';
   } finally {
@@ -325,7 +398,7 @@ const remove = async (): Promise<void> => {
     status.value = 'Credential deleted.';
     beginCreate();
     await load();
-    closeCredentialPopover();
+    closeCredentialDialog();
   } catch (reason) {
     error.value = reason instanceof Error ? reason.message : 'Unable to delete credential';
   }

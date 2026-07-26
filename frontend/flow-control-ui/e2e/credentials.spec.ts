@@ -32,6 +32,7 @@ test('creates a write-only credential and never displays its secret again', asyn
   });
 
   await page.goto('/credentials');
+  await page.getByRole('button', { name: 'New credential' }).click();
   await page.getByLabel('Display name').fill('Plant MQTT');
   await page.getByLabel('Reference ID').fill('plant-mqtt');
   await page.getByLabel('Username').fill('flow-reader');
@@ -68,12 +69,12 @@ test('creates a write-only credential and never displays its secret again', asyn
   await page.getByRole('button', { name: 'Create credential' }).click();
 
   const savedCredentials = page.getByLabel('Saved credentials');
-  const credentialPopover = page.getByRole('dialog', { name: 'Create new credential' });
+  const credentialDialog = page.getByRole('dialog', { name: 'Create new credential' });
 
   // Expected outcome: the credential form closes after the save succeeds.
-  // Acceptance criteria: the popover must not be visible, because a completed create no longer
+  // Acceptance criteria: the dialog must not be visible, because a completed create no longer
   // requires input while a failed create must remain available for correction.
-  await expect(credentialPopover).not.toBeVisible();
+  await expect(credentialDialog).not.toBeVisible();
 
   // Expected outcome: the saved credential reference is visible in the credential list.
   // Acceptance criteria: the saved credential list must contain `secret://plant-mqtt`, because this condition proves that
@@ -99,4 +100,45 @@ test('creates a write-only credential and never displays its secret again', asyn
   // Acceptance criteria: `page.getByText(/Sensitive values are now hidden/)` must be attached to the document, because this condition proves that
   // creates a write-only credential and never displays its secret again.
   await expect(page.getByText(/Sensitive values are now hidden/)).toBeAttached();
+});
+
+/**
+ * Purpose: Protects credential data from accidental dismissal.
+ * Description: Exercises backdrop, Escape, and Cancel interactions and verifies changed data requires discard confirmation.
+ */
+test('requires an explicit action to close the credential dialog', async ({ page }) => {
+  await page.route('/api/credentials', (route) => route.fulfill({ json: { items: [] } }));
+  await page.goto('/credentials');
+
+  const dialog = page.getByRole('dialog', { name: 'Create new credential' });
+  await page.getByRole('button', { name: 'New credential' }).click();
+  await expect(dialog).toBeVisible();
+
+  await page.getByLabel('Display name').fill('Unsaved credential');
+  await page.mouse.click(5, 5);
+  await expect(dialog).toBeVisible();
+  await expect(page.getByLabel('Display name')).toHaveValue('Unsaved credential');
+
+  const discardDialog = page.getByRole('dialog', {
+    name: 'Discard unsaved credential changes'
+  });
+
+  await page.keyboard.press('Escape');
+  await expect(discardDialog).toBeVisible();
+  await page.getByRole('button', { name: 'Keep editing' }).click();
+  await expect(discardDialog).not.toBeVisible();
+  await expect(dialog).toBeVisible();
+  await expect(page.getByLabel('Display name')).toHaveValue('Unsaved credential');
+
+  await page.keyboard.press('Escape');
+  await expect(discardDialog).toBeVisible();
+  await page.getByRole('button', { name: 'Keep editing' }).click();
+  await expect(discardDialog).not.toBeVisible();
+  await expect(dialog).toBeVisible();
+  await expect(page.getByLabel('Display name')).toHaveValue('Unsaved credential');
+
+  await page.keyboard.press('Escape');
+  await expect(discardDialog).toBeVisible();
+  await page.getByRole('button', { name: 'Discard changes' }).click();
+  await expect(dialog).not.toBeVisible();
 });

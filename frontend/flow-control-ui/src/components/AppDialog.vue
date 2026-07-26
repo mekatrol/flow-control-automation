@@ -5,7 +5,7 @@
     ref="panel"
     class="dialog-panel"
     :aria-label="contentLabel"
-    @cancel="emit('cancel', $event)"
+    @cancel="handleCancel"
     @close="emit('close', $event)"
   >
     <slot />
@@ -21,9 +21,11 @@ const props = withDefaults(
     id: string;
     contentLabel: string;
     automation?: string;
+    dismissible?: boolean;
   }>(),
   {
-    automation: ''
+    automation: '',
+    dismissible: true
   }
 );
 
@@ -34,6 +36,11 @@ const emit = defineEmits<{
 
 const panel = ref<HTMLDialogElement>();
 const automation = useAutomation(props.automation);
+
+const handleCancel = (event: Event): void => {
+  if (!props.dismissible) event.preventDefault();
+  emit('cancel', event);
+};
 
 defineExpose({
   showModal: (): void => panel.value?.showModal(),
@@ -57,6 +64,6 @@ defineExpose({
 }
 
 .dialog-panel::backdrop {
-  background: color-mix(in srgb, var(--color-shadow-dialog) 65%, transparent);
+  background: color-mix(in srgb, var(--color-shadow-dialog) 100%, transparent);
 }
 </style>

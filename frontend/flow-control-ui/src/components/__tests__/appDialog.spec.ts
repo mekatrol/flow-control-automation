@@ -60,7 +60,7 @@ describe('AppDialog', () => {
    * Purpose: Protects the dismissal hooks needed for dirty-state confirmation and close handling.
    * Description: Exercises native cancel and close events and verifies callers receive the original events.
    */
-  it('emits native cancel and close events', async () => {
+  it('emits native cancel and close events', () => {
     const wrapper = mount(AppDialog, {
       props: {
         contentLabel: 'Credential details',
@@ -76,5 +76,25 @@ describe('AppDialog', () => {
 
     expect(wrapper.emitted('cancel')).toEqual([[cancelEvent]]);
     expect(wrapper.emitted('close')).toEqual([[closeEvent]]);
+  });
+
+  /**
+   * Purpose: Protects dialogs whose workflows require an explicit action before closing.
+   * Description: Exercises a non-dismissible dialog and verifies its native cancel event is prevented.
+   */
+  it('prevents native cancellation when dismissal is disabled', () => {
+    const wrapper = mount(AppDialog, {
+      props: {
+        contentLabel: 'Credential details',
+        dismissible: false,
+        id: 'credential-dialog'
+      }
+    });
+    const cancelEvent = new Event('cancel', { cancelable: true });
+
+    wrapper.get('dialog').element.dispatchEvent(cancelEvent);
+
+    expect(cancelEvent.defaultPrevented).toBe(true);
+    expect(wrapper.emitted('cancel')).toEqual([[cancelEvent]]);
   });
 });
