@@ -41,6 +41,8 @@ const requireAutomationProp: Rule.RuleModule = {
   create(context): Rule.RuleListener {
     const typedContext = context as RuleContext;
     const parserServices = typedContext.sourceCode.parserServices;
+    const componentFileMatch = context.filename.match(/[/\\]((?:App|Base)[^/\\]+)\.vue$/);
+    const componentName = componentFileMatch?.[1];
 
     if (!parserServices?.defineTemplateBodyVisitor) {
       return {};
@@ -49,6 +51,10 @@ const requireAutomationProp: Rule.RuleModule = {
     return parserServices.defineTemplateBodyVisitor({
       VElement(node: VueAST.VElement) {
         const name = node.rawName;
+        const isAppComponentRoot =
+          componentName !== undefined &&
+          node.parent.type === 'VElement' &&
+          node.parent.rawName === 'template';
 
         if (EXCLUDED_COMPONENTS.has(name)) {
           return;
@@ -77,13 +83,14 @@ const requireAutomationProp: Rule.RuleModule = {
         });
 
         if (!automationAttr) {
-          const requiresAutomation = name.startsWith('App') || name.startsWith('Base');
+          const requiresAutomation =
+            name.startsWith('App') || name.startsWith('Base') || isAppComponentRoot;
 
           if (requiresAutomation) {
             typedContext.report({
               node: node.startTag,
               messageId: 'missingAutomation',
-              data: { name }
+              data: { name: isAppComponentRoot ? componentName : name }
             });
           }
 

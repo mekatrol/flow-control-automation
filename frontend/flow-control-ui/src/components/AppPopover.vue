@@ -1,5 +1,6 @@
 <template>
   <div
+    v-bind="automation()"
     :id="id"
     class="popover-panel"
     :data-placement="placement"
@@ -12,6 +13,8 @@
 </template>
 
 <script setup lang="ts">
+import { useAutomation } from '@/composables/useAutomation';
+
 type PopoverMode = 'auto' | 'manual';
 type PopoverPlacement = 'bottom-start' | 'bottom-end' | 'top-start' | 'top-end';
 
@@ -27,16 +30,20 @@ type PopoverPlacement = 'bottom-start' | 'bottom-end' | 'top-start' | 'top-end';
 // Keeping the component this small lets the browser own toggling, top-layer
 // behavior, light-dismiss, Escape handling, CSS anchor positioning, and the
 // popover transition lifecycle.
-withDefaults(
+const props = withDefaults(
   defineProps<{
     id: string;
     contentLabel: string;
+    automation?: string;
     popoverMode?: PopoverMode;
     placement?: PopoverPlacement;
   }>(),
   {
+    automation: '',
     placement: 'bottom-start',
     popoverMode: 'auto'
   }
 );
+
+const automation = useAutomation(props.automation);
 </script>
