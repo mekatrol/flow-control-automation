@@ -59,6 +59,9 @@ const mountDialog = async (page: Page, preventCancel = false): Promise<void> => 
     { preventCancel }
   );
 
+  // Expected outcome: The production dialog fixture finishes mounting before interaction.
+  // Acceptance criteria: `data-ready` is `true` because the trigger and exposed dialog API
+  // are usable only after Vue has mounted the fixture component tree.
   await expect(page.locator('#dialog-e2e-fixture')).toHaveAttribute('data-ready', 'true');
 };
 
@@ -70,21 +73,51 @@ test('opens AppDialog modally and dismisses it with Escape', async ({ page }) =>
   await mountDialog(page);
 
   const dialog = page.locator('#credential-dialog');
+
+  // Expected outcome: A mounted dialog remains closed until its workflow opens it.
+  // Acceptance criteria: The credential dialog is not visible because mounting a reusable
+  // modal must not interrupt the user without an explicit open action.
   await expect(dialog).not.toBeVisible();
+
+  // Expected outcome: The browser exposes the dialog's caller-provided accessible name.
+  // Acceptance criteria: `aria-label` is "Credential details" because assistive technology
+  // must identify this otherwise heading-free modal when it opens.
   await expect(dialog).toHaveAttribute('aria-label', 'Credential details');
+
+  // Expected outcome: The browser preserves the supplied automation identity.
+  // Acceptance criteria: `data-automation` is `credential-dialog` because end-to-end
+  // consumers need the same stable identity configured by the caller.
   await expect(dialog).toHaveAttribute('data-automation', 'credential-dialog');
 
   await page.getByRole('button', { name: 'Open credential dialog' }).click();
 
+  // Expected outcome: The explicit trigger presents the dialog to the user.
+  // Acceptance criteria: The credential dialog is visible because one call to the exposed
+  // `showModal` API must enter the native modal state.
   await expect(dialog).toBeVisible();
+
+  // Expected outcome: The opened dialog displays its caller-provided slot content.
+  // Acceptance criteria: The dialog text is "Dialog content" because AppDialog must render
+  // workflow content inside the native modal rather than replacing it.
   await expect(dialog).toHaveText('Dialog content');
+
+  // Expected outcome: The visible dialog is a native open modal, not merely styled as visible.
+  // Acceptance criteria: The native `open` property is true because correct focus trapping
+  // and Escape behavior depend on the platform dialog lifecycle.
   await expect
     .poll(() => dialog.evaluate((element) => (element as HTMLDialogElement).open))
     .toBe(true);
 
   await page.keyboard.press('Escape');
 
+  // Expected outcome: Escape dismisses a normally dismissible dialog.
+  // Acceptance criteria: The dialog is no longer visible because no caller prevented the
+  // native cancel event in this standard dismissal scenario.
   await expect(dialog).not.toBeVisible();
+
+  // Expected outcome: Escape ends the native open state.
+  // Acceptance criteria: The native `open` property is false because dismissal must close
+  // the platform dialog rather than only hide its rendered content.
   await expect
     .poll(() => dialog.evaluate((element) => (element as HTMLDialogElement).open))
     .toBe(false);
@@ -99,11 +132,22 @@ test('keeps AppDialog open when its cancel event is prevented', async ({ page })
 
   const dialog = page.locator('#credential-dialog');
   await page.getByRole('button', { name: 'Open credential dialog' }).click();
+
+  // Expected outcome: The guarded dialog is open before cancellation is attempted.
+  // Acceptance criteria: The dialog is visible because the test must exercise prevention
+  // against an active native modal rather than an already closed element.
   await expect(dialog).toBeVisible();
 
   await page.keyboard.press('Escape');
 
+  // Expected outcome: Preventing the cancel event keeps guarded content visible.
+  // Acceptance criteria: The dialog remains visible because unsaved work must not disappear
+  // when the caller rejects the Escape dismissal request.
   await expect(dialog).toBeVisible();
+
+  // Expected outcome: Prevented cancellation preserves the native modal state.
+  // Acceptance criteria: The native `open` property remains true because the caller's
+  // prevention must stop the platform close operation itself.
   await expect
     .poll(() => dialog.evaluate((element) => (element as HTMLDialogElement).open))
     .toBe(true);
