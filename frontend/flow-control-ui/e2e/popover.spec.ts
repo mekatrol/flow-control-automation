@@ -55,11 +55,21 @@ const mountPopover = async (
       `;
     body.append(script);
   }, options);
+
+  // Expected outcome: `page.locator('#popover-e2e-fixture')` exposes the required attribute.
+  // Acceptance criteria: `page.locator('#popover-e2e-fixture')` must have attribute arguments `'data-ready', 'true'`, because this condition proves that
+  // the arranged test scenario.
   await expect(page.locator('#popover-e2e-fixture')).toHaveAttribute('data-ready', 'true');
 };
 
 // Positive test: a correctly connected native trigger should open the real
 // AppPopover, expose its content, and allow Escape to restore the closed state.
+
+/**
+ * Purpose: Protects the behavioral contract that opens and dismisses an AppPopover connected to a valid trigger.
+ * Description: Exercises opens and dismisses an AppPopover connected to a valid trigger from its arranged starting state and
+ * verifies the observable results required by the scenario.
+ */
 test('opens and dismisses an AppPopover connected to a valid trigger', async ({ page }) => {
   const popover = page.locator('#app-options-popover');
   const trigger = page.getByRole('button', { name: 'Open app options' });
@@ -71,8 +81,20 @@ test('opens and dismisses an AppPopover connected to a valid trigger', async ({ 
     });
 
     // Expected result: native popovers start closed and are not visible.
+
+    // Expected outcome: `popover` is visible to the user.
+    // Acceptance criteria: `popover` must be visible, because this condition proves that
+    // opens and dismisses an AppPopover connected to a valid trigger.
     await expect(popover).not.toBeVisible();
+
+    // Expected outcome: `popover` exposes the required attribute.
+    // Acceptance criteria: `popover` must have attribute arguments `'role', 'dialog'`, because this condition proves that
+    // opens and dismisses an AppPopover connected to a valid trigger.
     await expect(popover).toHaveAttribute('role', 'dialog');
+
+    // Expected outcome: `popover` exposes the required attribute.
+    // Acceptance criteria: `popover` must have attribute arguments `'aria-label', 'App options'`, because this condition proves that
+    // opens and dismisses an AppPopover connected to a valid trigger.
     await expect(popover).toHaveAttribute('aria-label', 'App options');
   });
 
@@ -80,8 +102,20 @@ test('opens and dismisses an AppPopover connected to a valid trigger', async ({ 
     await trigger.click();
 
     // Expected result: the browser opens the popover and reveals its slotted content.
+
+    // Expected outcome: `popover` is visible to the user.
+    // Acceptance criteria: `popover` must be visible, because this condition proves that
+    // opens and dismisses an AppPopover connected to a valid trigger.
     await expect(popover).toBeVisible();
+
+    // Expected outcome: `popover` displays the required text.
+    // Acceptance criteria: `popover` must display `'Popover content'`, because this condition proves that
+    // opens and dismisses an AppPopover connected to a valid trigger.
     await expect(popover).toHaveText('Popover content');
+
+    // Expected outcome: `popover` uses the required rendered style.
+    // Acceptance criteria: `popover` must have CSS arguments `'opacity', '1'`, because this condition proves that
+    // opens and dismisses an AppPopover connected to a valid trigger.
     await expect(popover).toHaveCSS('opacity', '1');
   });
 
@@ -89,12 +123,22 @@ test('opens and dismisses an AppPopover connected to a valid trigger', async ({ 
     await page.keyboard.press('Escape');
 
     // Expected result: native Escape handling closes the popover without application JavaScript.
+
+    // Expected outcome: `popover` is visible to the user.
+    // Acceptance criteria: `popover` must be visible, because this condition proves that
+    // opens and dismisses an AppPopover connected to a valid trigger.
     await expect(popover).not.toBeVisible();
   });
 });
 
 // Negative test: a trigger with an incorrect target must not accidentally open
 // another popover or reveal content intended to remain hidden.
+
+/**
+ * Purpose: Protects the behavioral contract that does not open AppPopover when the trigger target does not match.
+ * Description: Exercises does not open AppPopover when the trigger target does not match from its arranged starting state and
+ * verifies the observable results required by the scenario.
+ */
 test('does not open AppPopover when the trigger target does not match', async ({ page }) => {
   const popover = page.locator('#app-options-popover');
 
@@ -105,6 +149,10 @@ test('does not open AppPopover when the trigger target does not match', async ({
     });
 
     // Expected result: the valid popover remains closed before any interaction.
+
+    // Expected outcome: `popover` is visible to the user.
+    // Acceptance criteria: `popover` must be visible, because this condition proves that
+    // does not open AppPopover when the trigger target does not match.
     await expect(popover).not.toBeVisible();
   });
 
@@ -112,6 +160,10 @@ test('does not open AppPopover when the trigger target does not match', async ({
     await page.getByRole('button', { name: 'Open app options' }).click();
 
     // Expected result: an invalid target cannot reveal the AppPopover.
+
+    // Expected outcome: `popover` is visible to the user.
+    // Acceptance criteria: `popover` must be visible, because this condition proves that
+    // does not open AppPopover when the trigger target does not match.
     await expect(popover).not.toBeVisible();
     await expect
       .poll(() => popover.evaluate((element) => element.matches(':popover-open')))

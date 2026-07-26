@@ -55,23 +55,65 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
+/**
+ * Purpose: Protects the behavioral contract that creates, reloads and honestly presents an unavailable point value.
+ * Description: Exercises creates, reloads and honestly presents an unavailable point value from its arranged starting state and
+ * verifies the observable results required by the scenario.
+ */
 test('creates, reloads and honestly presents an unavailable point value', async ({ page }) => {
   await page.goto('/points/new');
+
+  // Expected outcome: `page.locator('.monaco-editor')` is visible to the user.
+  // Acceptance criteria: `page.locator('.monaco-editor')` must be visible, because this condition proves that
+  // creates, reloads and honestly presents an unavailable point value.
   await expect(page.locator('.monaco-editor')).toBeVisible({ timeout: 60_000 });
   await page.getByLabel('Start with a point example').selectOption('Digital retained');
   await page.getByRole('button', { name: 'Save' }).press('Enter');
+
+  // Expected outcome: Navigation reaches the required route.
+  // Acceptance criteria: the page URL must match `'/points/room-value'`, because this condition proves that
+  // creates, reloads and honestly presents an unavailable point value.
   await expect(page).toHaveURL('/points/room-value');
+
+  // Expected outcome: `page.getByRole('heading', { name: 'Live point value' })` is visible to the user.
+  // Acceptance criteria: `page.getByRole('heading', { name: 'Live point value' })` must be visible, because this condition proves that
+  // creates, reloads and honestly presents an unavailable point value.
   await expect(page.getByRole('heading', { name: 'Live point value' })).toBeVisible();
+
+  // Expected outcome: `page.getByText('Virtual point has no commissioned runtime value.')` is visible to the user.
+  // Acceptance criteria: `page.getByText('Virtual point has no commissioned runtime value.')` must be visible, because this condition proves that
+  // creates, reloads and honestly presents an unavailable point value.
   await expect(page.getByText('Virtual point has no commissioned runtime value.')).toBeVisible();
+
+  // Expected outcome: `page.getByText('Unavailable', { exact: true })` is visible to the user.
+  // Acceptance criteria: `page.getByText('Unavailable', { exact: true })` must be visible, because this condition proves that
+  // creates, reloads and honestly presents an unavailable point value.
   await expect(page.getByText('Unavailable', { exact: true })).toBeVisible();
+
+  // Expected outcome: `(await new AxeBuilder({ page }` matches the required structure.
+  // Acceptance criteria: `(await new AxeBuilder({ page }` must equal `[]`, because this condition proves that
+  // creates, reloads and honestly presents an unavailable point value.
   expect((await new AxeBuilder({ page }).include('main').analyze()).violations).toEqual([]);
 
   await page.reload();
+
+  // Expected outcome: `page.getByText('not_initialized')` is visible to the user.
+  // Acceptance criteria: `page.getByText('not_initialized')` must be visible, because this condition proves that
+  // creates, reloads and honestly presents an unavailable point value.
   await expect(page.getByText('not_initialized')).toBeVisible();
   await page.getByRole('button', { name: 'Pause updates' }).press('Enter');
+
+  // Expected outcome: `page.getByRole('button', { name: 'Resume updates' })` is visible to the user.
+  // Acceptance criteria: `page.getByRole('button', { name: 'Resume updates' })` must be visible, because this condition proves that
+  // creates, reloads and honestly presents an unavailable point value.
   await expect(page.getByRole('button', { name: 'Resume updates' })).toBeVisible();
 });
 
+/**
+ * Purpose: Protects the behavioral contract that offers explicit conflict recovery for occupied groups.
+ * Description: Exercises offers explicit conflict recovery for occupied groups from its arranged starting state and
+ * verifies the observable results required by the scenario.
+ */
 test('offers explicit conflict recovery for occupied groups', async ({ page }) => {
   const groupYaml = `schemaVersion: 1
 groups:
@@ -92,10 +134,22 @@ points: []
     });
   });
   await page.goto('/point-groups/room');
+
+  // Expected outcome: `page.locator('.monaco-editor')` is visible to the user.
+  // Acceptance criteria: `page.locator('.monaco-editor')` must be visible, because this condition proves that
+  // offers explicit conflict recovery for occupied groups.
   await expect(page.locator('.monaco-editor')).toBeVisible({ timeout: 60_000 });
   page.once('dialog', (dialog) => void dialog.accept());
   await page.getByRole('button', { name: 'Delete' }).click();
+
+  // Expected outcome: `page.locator('.error-summary')` displays the required content.
+  // Acceptance criteria: `page.locator('.error-summary')` must contain the text `'group contains points'`, because this condition proves that
+  // offers explicit conflict recovery for occupied groups.
   await expect(page.locator('.error-summary')).toContainText('group contains points');
   await page.getByRole('button', { name: 'Make member points standalone' }).click();
+
+  // Expected outcome: `page.getByText('Member points are now standalone.')` is present in the rendered document.
+  // Acceptance criteria: `page.getByText('Member points are now standalone.')` must be attached to the document, because this condition proves that
+  // offers explicit conflict recovery for occupied groups.
   await expect(page.getByText('Member points are now standalone.')).toBeAttached();
 });

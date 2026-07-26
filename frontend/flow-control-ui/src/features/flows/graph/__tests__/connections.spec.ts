@@ -20,27 +20,62 @@ const connector = (
 });
 
 describe('connection graph operations', () => {
+
+  /**
+   * Purpose: Protects the behavioral contract that implements the direction and data-type compatibility matrix.
+   * Description: Exercises implements the direction and data-type compatibility matrix from its arranged starting state and
+   * verifies the observable results required by the scenario.
+   */
   it('implements the direction and data-type compatibility matrix', () => {
+
+    // Expected outcome: `connectorsAreCompatible(connector('output', 'number'), connector('input', 'number'))` has the required value.
+    // Acceptance criteria: `connectorsAreCompatible(connector('output', 'number'), connector('input', 'number'))` must be `true`, because this condition proves that
+    // implements the direction and data-type compatibility matrix.
     expect(
       connectorsAreCompatible(connector('output', 'number'), connector('input', 'number'))
     ).toBe(true);
+
+    // Expected outcome: `connectorsAreCompatible(connector('output', 'any'), connector('input', 'string'))` has the required value.
+    // Acceptance criteria: `connectorsAreCompatible(connector('output', 'any'), connector('input', 'string'))` must be `true`, because this condition proves that
+    // implements the direction and data-type compatibility matrix.
     expect(connectorsAreCompatible(connector('output', 'any'), connector('input', 'string'))).toBe(
       true
     );
+
+    // Expected outcome: `connectorsAreCompatible(connector('output', 'string'), connector('input', 'any'))` has the required value.
+    // Acceptance criteria: `connectorsAreCompatible(connector('output', 'string'), connector('input', 'any'))` must be `true`, because this condition proves that
+    // implements the direction and data-type compatibility matrix.
     expect(connectorsAreCompatible(connector('output', 'string'), connector('input', 'any'))).toBe(
       true
     );
+
+    // Expected outcome: `connectorsAreCompatible(connector('input', 'number'), connector('input', 'number'))` has the required value.
+    // Acceptance criteria: `connectorsAreCompatible(connector('input', 'number'), connector('input', 'number'))` must be `false`, because this condition proves that
+    // implements the direction and data-type compatibility matrix.
     expect(
       connectorsAreCompatible(connector('input', 'number'), connector('input', 'number'))
     ).toBe(false);
+
+    // Expected outcome: `connectorsAreCompatible(connector('output', 'number'), connector('output', 'number'))` has the required value.
+    // Acceptance criteria: `connectorsAreCompatible(connector('output', 'number'), connector('output', 'number'))` must be `false`, because this condition proves that
+    // implements the direction and data-type compatibility matrix.
     expect(
       connectorsAreCompatible(connector('output', 'number'), connector('output', 'number'))
     ).toBe(false);
+
+    // Expected outcome: `connectorsAreCompatible(connector('output', 'number'), connector('input', 'string'))` has the required value.
+    // Acceptance criteria: `connectorsAreCompatible(connector('output', 'number'), connector('input', 'string'))` must be `false`, because this condition proves that
+    // implements the direction and data-type compatibility matrix.
     expect(
       connectorsAreCompatible(connector('output', 'number'), connector('input', 'string'))
     ).toBe(false);
   });
 
+  /**
+   * Purpose: Protects the behavioral contract that accepts a valid connection and creates plain endpoint data.
+   * Description: Exercises accepts a valid connection and creates plain endpoint data from its arranged starting state and
+   * verifies the observable results required by the scenario.
+   */
   it('accepts a valid connection and creates plain endpoint data', () => {
     const flow = structuredClone(sampleFlows[0]!);
     const result = addConnection(
@@ -50,6 +85,9 @@ describe('connection graph operations', () => {
       'new-connection'
     );
 
+    // Expected outcome: `result` matches the required structure.
+    // Acceptance criteria: `result` must equal `{ connection: { id: 'new-connection', start: { nodeId: 'temperature-average', connectorId: 'output' }, end: { nodeId: 'm`, because this condition proves that
+    // accepts a valid connection and creates plain endpoint data.
     expect(result).toEqual({
       connection: {
         id: 'new-connection',
@@ -59,8 +97,17 @@ describe('connection graph operations', () => {
     });
   });
 
+  /**
+   * Purpose: Protects the behavioral contract that rejects duplicate, self, missing, wrong-direction, and incompatible links.
+   * Description: Exercises rejects duplicate, self, missing, wrong-direction, and incompatible links from its arranged starting state and
+   * verifies the observable results required by the scenario.
+   */
   it('rejects duplicate, self, missing, wrong-direction, and incompatible links', () => {
     const flow = structuredClone(sampleFlows[0]!);
+
+    // Expected outcome: `validateConnection( flow, { nodeId: 'temperature-average', connectorId: 'output' }, { nodeId: 'comfo` follows the required pattern.
+    // Acceptance criteria: `validateConnection( flow, { nodeId: 'temperature-average', connectorId: 'output' }, { nodeId: 'comfo` must match `/already exists/`, because this condition proves that
+    // rejects duplicate, self, missing, wrong-direction, and incompatible links.
     expect(
       validateConnection(
         flow,
@@ -68,6 +115,10 @@ describe('connection graph operations', () => {
         { nodeId: 'comfort-pulse', connectorId: 'input' }
       ).message
     ).toMatch(/already exists/);
+
+    // Expected outcome: `validateConnection( flow, { nodeId: 'temperature-average', connectorId: 'output' }, { nodeId: 'tempe` follows the required pattern.
+    // Acceptance criteria: `validateConnection( flow, { nodeId: 'temperature-average', connectorId: 'output' }, { nodeId: 'tempe` must match `/itself/`, because this condition proves that
+    // rejects duplicate, self, missing, wrong-direction, and incompatible links.
     expect(
       validateConnection(
         flow,
@@ -75,6 +126,10 @@ describe('connection graph operations', () => {
         { nodeId: 'temperature-average', connectorId: 'input' }
       ).message
     ).toMatch(/itself/);
+
+    // Expected outcome: `validateConnection( flow, { nodeId: 'missing', connectorId: 'output' }, { nodeId: 'comfort-pulse', c` follows the required pattern.
+    // Acceptance criteria: `validateConnection( flow, { nodeId: 'missing', connectorId: 'output' }, { nodeId: 'comfort-pulse', c` must match `/no longer exists/`, because this condition proves that
+    // rejects duplicate, self, missing, wrong-direction, and incompatible links.
     expect(
       validateConnection(
         flow,
@@ -82,6 +137,10 @@ describe('connection graph operations', () => {
         { nodeId: 'comfort-pulse', connectorId: 'input' }
       ).message
     ).toMatch(/no longer exists/);
+
+    // Expected outcome: `validateConnection( flow, { nodeId: 'temperature-average', connectorId: 'input' }, { nodeId: 'comfor` follows the required pattern.
+    // Acceptance criteria: `validateConnection( flow, { nodeId: 'temperature-average', connectorId: 'input' }, { nodeId: 'comfor` must match `/compatible input/`, because this condition proves that
+    // rejects duplicate, self, missing, wrong-direction, and incompatible links.
     expect(
       validateConnection(
         flow,
@@ -91,6 +150,10 @@ describe('connection graph operations', () => {
     ).toMatch(/compatible input/);
 
     flow.nodes[1]!.connectors[0]!.dataType = 'string';
+
+    // Expected outcome: `validateConnection( flow, { nodeId: 'temperature-average', connectorId: 'output' }, { nodeId: 'comfo` follows the required pattern.
+    // Acceptance criteria: `validateConnection( flow, { nodeId: 'temperature-average', connectorId: 'output' }, { nodeId: 'comfo` must match `/compatible input/`, because this condition proves that
+    // rejects duplicate, self, missing, wrong-direction, and incompatible links.
     expect(
       validateConnection(
         flow,

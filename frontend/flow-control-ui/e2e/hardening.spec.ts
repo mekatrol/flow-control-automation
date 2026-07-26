@@ -15,6 +15,11 @@ const emptyFlow = (): FlowDefinition => ({
   connections: []
 });
 
+/**
+ * Purpose: Protects the behavioral contract that creates, edits, saves, deploys, and reloads a flow as one critical journey.
+ * Description: Exercises creates, edits, saves, deploys, and reloads a flow as one critical journey from its arranged starting state and
+ * verifies the observable results required by the scenario.
+ */
 test('creates, edits, saves, deploys, and reloads a flow as one critical journey', async ({
   page
 }) => {
@@ -59,23 +64,48 @@ test('creates, edits, saves, deploys, and reloads a flow as one critical journey
   await page.goto('/flows');
   await page.getByRole('textbox', { name: 'New flow name' }).fill('Critical journey');
   await page.getByRole('button', { name: 'New flow' }).click();
+
+  // Expected outcome: `page.getByRole('heading', { name: 'Critical journey' })` is visible to the user.
+  // Acceptance criteria: `page.getByRole('heading', { name: 'Critical journey' })` must be visible, because this condition proves that
+  // creates, edits, saves, deploys, and reloads a flow as one critical journey.
   await expect(page.getByRole('heading', { name: 'Critical journey' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Add Calculator node' }).click();
   await page.getByRole('textbox', { name: 'Node label' }).fill('Verified calculation');
   await page.getByRole('combobox', { name: 'Operation' }).selectOption('sum');
   await page.getByRole('button', { name: 'Save flow' }).click();
+
+  // Expected outcome: `page.getByText('Unsaved changes')` is not exposed to the user.
+  // Acceptance criteria: `page.getByText('Unsaved changes')` must be hidden, because this condition proves that
+  // creates, edits, saves, deploys, and reloads a flow as one critical journey.
   await expect(page.getByText('Unsaved changes')).toBeHidden();
 
   await page.getByRole('button', { name: 'Deploy flow' }).click();
   await page.getByRole('button', { name: 'Deploy now' }).click();
+
+  // Expected outcome: `page.getByRole('status', { name: 'Runtime state: running' })` is visible to the user.
+  // Acceptance criteria: `page.getByRole('status', { name: 'Runtime state: running' })` must be visible, because this condition proves that
+  // creates, edits, saves, deploys, and reloads a flow as one critical journey.
   await expect(page.getByRole('status', { name: 'Runtime state: running' })).toBeVisible();
 
   await page.reload();
+
+  // Expected outcome: `page.getByRole('button', { name: /Verified calculation, Calculator node/ })` is visible to the user.
+  // Acceptance criteria: `page.getByRole('button', { name: /Verified calculation, Calculator node/ })` must be visible, because this condition proves that
+  // creates, edits, saves, deploys, and reloads a flow as one critical journey.
   await expect(page.getByRole('button', { name: /Verified calculation, Calculator node/ })).toBeVisible();
+
+  // Expected outcome: `savedFlow?.nodes[0]?.configuration.operation` has the required value.
+  // Acceptance criteria: `savedFlow?.nodes[0]?.configuration.operation` must be `'sum'`, because this condition proves that
+  // creates, edits, saves, deploys, and reloads a flow as one critical journey.
   expect(savedFlow?.nodes[0]?.configuration.operation).toBe('sum');
 });
 
+/**
+ * Purpose: Protects the behavioral contract that renders a large validated graph without dropping nodes or connections.
+ * Description: Exercises renders a large validated graph without dropping nodes or connections from its arranged starting state and
+ * verifies the observable results required by the scenario.
+ */
 test('renders a large validated graph without dropping nodes or connections', async ({ page }) => {
   const nodes: FlowNode[] = Array.from({ length: 120 }, (_, index) => ({
     id: `node-${index}`,
@@ -115,6 +145,14 @@ test('renders a large validated graph without dropping nodes or connections', as
   });
 
   await page.goto('/flows/large-graph');
+
+  // Expected outcome: `page.locator('[data-node-id]')` resolves to the required number of elements.
+  // Acceptance criteria: `page.locator('[data-node-id]')` must resolve to exactly 120 elements, because this condition proves that
+  // renders a large validated graph without dropping nodes or connections.
   await expect(page.locator('[data-node-id]')).toHaveCount(120);
+
+  // Expected outcome: `page.locator('[data-connection-id]')` resolves to the required number of elements.
+  // Acceptance criteria: `page.locator('[data-connection-id]')` must resolve to exactly 119 elements, because this condition proves that
+  // renders a large validated graph without dropping nodes or connections.
   await expect(page.locator('[data-connection-id]')).toHaveCount(119);
 });
