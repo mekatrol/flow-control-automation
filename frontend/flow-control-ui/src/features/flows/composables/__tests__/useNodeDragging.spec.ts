@@ -17,14 +17,12 @@ const state: NodeDragState = {
 const bounds = { width: 500, height: 300, nodeWidth: 200, nodeHeight: 60 };
 
 describe('node dragging', () => {
-
   /**
    * Purpose: Protects the behavioral contract that calculates a snapped drag delta.
    * Description: Exercises calculates a snapped drag delta from its arranged starting state and
    * verifies the observable results required by the scenario.
    */
   it('calculates a snapped drag delta', () => {
-
     // Expected outcome: `calculateDraggedPosition(state, { x: 131, y: 143 }, bounds, 24, true)` matches the required structure.
     // Acceptance criteria: `calculateDraggedPosition(state, { x: 131, y: 143 }, bounds, 24, true)` must equal `{ x: 72, y: 120 }`, because this condition proves that
     // calculates a snapped drag delta.
@@ -40,7 +38,6 @@ describe('node dragging', () => {
    * verifies the observable results required by the scenario.
    */
   it('supports disabled snapping and positive and negative grid values', () => {
-
     // Expected outcome: `snapCoordinate(35, 24, true)` has the required value.
     // Acceptance criteria: `snapCoordinate(35, 24, true)` must be `24`, because this condition proves that
     // supports disabled snapping and positive and negative grid values.
@@ -63,7 +60,6 @@ describe('node dragging', () => {
    * verifies the observable results required by the scenario.
    */
   it('clamps nodes at every canvas boundary after snapping', () => {
-
     // Expected outcome: `constrainNodePosition({ x: -24, y: -48 }, bounds)` matches the required structure.
     // Acceptance criteria: `constrainNodePosition({ x: -24, y: -48 }, bounds)` must equal `{ x: 0, y: 0 }`, because this condition proves that
     // clamps nodes at every canvas boundary after snapping.

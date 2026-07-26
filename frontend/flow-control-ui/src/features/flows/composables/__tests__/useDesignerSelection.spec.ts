@@ -3,7 +3,6 @@ import { describe, expect, it, vi } from 'vitest';
 import { useDesignerSelection } from '@/features/flows/composables/useDesignerSelection';
 
 describe('designer selection', () => {
-
   /**
    * Purpose: Protects the behavioral contract that moves selection between nodes and connections.
    * Description: Exercises moves selection between nodes and connections from its arranged starting state and

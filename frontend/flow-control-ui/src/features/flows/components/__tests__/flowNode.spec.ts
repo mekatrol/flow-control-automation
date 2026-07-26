@@ -7,7 +7,6 @@ import AppFlowNode from '@/features/flows/components/AppFlowNode.vue';
 import { sampleFlows } from '@/features/flows/__tests__/fixtures/sampleFlows';
 
 describe('FlowNode', () => {
-
   /**
    * Purpose: Protects the behavioral contract that uses registry metadata and exposes an accessible node name and status.
    * Description: Exercises uses registry metadata and exposes an accessible node name and status from its arranged starting state and

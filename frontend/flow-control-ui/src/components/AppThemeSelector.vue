@@ -1,6 +1,6 @@
 <template>
   <AppButton
-    automation="theme-selector"
+    :automation="automation"
     class="theme-selector"
     :text="themeButtonLabel"
     hide-text
@@ -28,6 +28,15 @@ import darkThemeIcon from '@/assets/icons/dark-mode-toggle-icon.svg';
 import lightThemeIcon from '@/assets/icons/light-mode-toggle-icon.svg';
 import systemThemeIcon from '@/assets/icons/system-mode-toggle-icon.svg';
 import AppButton from '@/components/AppButton.vue';
+
+withDefaults(
+  defineProps<{
+    automation?: string;
+  }>(),
+  {
+    automation: 'theme-selector'
+  }
+);
 
 type ThemePreference = 'light' | 'system' | 'dark';
 

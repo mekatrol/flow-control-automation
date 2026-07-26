@@ -3,14 +3,12 @@ import { describe, expect, it } from 'vitest';
 import { flowNodeKinds, nodeKindRegistry } from '@/features/flows/nodeKinds';
 
 describe('node-kind registry', () => {
-
   /**
    * Purpose: Protects the behavioral contract that contains complete rendering, connector, and editor metadata for every supported kind.
    * Description: Exercises contains complete rendering, connector, and editor metadata for every supported kind from its arranged starting state and
    * verifies the observable results required by the scenario.
    */
   it('contains complete rendering, connector, and editor metadata for every supported kind', () => {
-
     // Expected outcome: `flowNodeKinds` contains the required number of entries.
     // Acceptance criteria: `flowNodeKinds` must contain exactly 24 entries, because this condition proves that
     // contains complete rendering, connector, and editor metadata for every supported kind.
@@ -84,7 +82,6 @@ describe('node-kind registry', () => {
    * verifies the observable results required by the scenario.
    */
   it('preserves the legacy multi-port calculator and split blocks', () => {
-
     // Expected outcome: `nodeKindRegistry.calculator.connectors` contains the required number of entries.
     // Acceptance criteria: `nodeKindRegistry.calculator.connectors` must contain exactly 4 entries, because this condition proves that
     // preserves the legacy multi-port calculator and split blocks.
@@ -168,7 +165,6 @@ describe('node-kind registry', () => {
    * verifies the observable results required by the scenario.
    */
   it('keeps Override in its own function group', () => {
-
     // Expected outcome: `nodeKindRegistry.override` contains the required object fields.
     // Acceptance criteria: `nodeKindRegistry.override` must match the object `{ category: 'override' }`, because this condition proves that
     // keeps Override in its own function group.

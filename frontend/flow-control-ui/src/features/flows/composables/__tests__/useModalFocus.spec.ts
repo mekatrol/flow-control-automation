@@ -6,7 +6,6 @@ import { describe, expect, it } from 'vitest';
 import { useModalFocus } from '@/features/flows/composables/useModalFocus';
 
 describe('useModalFocus', () => {
-
   /**
    * Purpose: Protects the behavioral contract that moves focus into a modal, traps Tab, closes with Escape, and restores focus.
    * Description: Exercises moves focus into a modal, traps Tab, closes with Escape, and restores focus from its arranged starting state and

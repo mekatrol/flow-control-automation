@@ -48,14 +48,12 @@ const template = {
 };
 
 describe('catalogue DTO parsing', () => {
-
   /**
    * Purpose: Protects the behavioral contract that maps point, group, template and page contracts.
    * Description: Exercises maps point, group, template and page contracts from its arranged starting state and
    * verifies the observable results required by the scenario.
    */
   it('maps point, group, template and page contracts', () => {
-
     // Expected outcome: `parsePoint(point)` contains the required object fields.
     // Acceptance criteria: `parsePoint(point)` must match the object `{ id: 'room-temperature', groupId: 'room', valueType: 'analog' }`, because this condition proves that
     // maps point, group, template and page contracts.

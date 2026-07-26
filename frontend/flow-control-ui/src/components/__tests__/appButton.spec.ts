@@ -6,7 +6,6 @@ import { describe, expect, it } from 'vitest';
 import AppButton from '@/components/AppButton.vue';
 
 describe('AppButton', () => {
-
   /**
    * Purpose: Protects the behavioral contract that shows its text by default.
    * Description: Exercises shows its text by default from its arranged starting state and

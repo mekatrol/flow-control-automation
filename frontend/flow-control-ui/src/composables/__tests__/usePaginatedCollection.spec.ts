@@ -13,7 +13,6 @@ const makeItems = (count: number): Item[] =>
   }));
 
 describe('usePaginatedCollection', () => {
-
   /**
    * Purpose: Protects the behavioral contract that filters and paginates within the filtered result set.
    * Description: Exercises filters and paginates within the filtered result set from its arranged starting state and

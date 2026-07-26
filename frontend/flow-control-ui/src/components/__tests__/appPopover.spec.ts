@@ -6,7 +6,6 @@ import { describe, expect, it } from 'vitest';
 import AppPopover from '@/components/AppPopover.vue';
 
 describe('AppPopover', () => {
-
   /**
    * Purpose: Protects the behavioral contract that renders a native popover surface without owning the trigger element.
    * Description: Exercises renders a native popover surface without owning the trigger element from its arranged starting state and

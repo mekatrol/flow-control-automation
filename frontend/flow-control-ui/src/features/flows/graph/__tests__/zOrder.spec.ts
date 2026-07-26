@@ -7,14 +7,12 @@ const ids = (command: ZOrderCommand): string[] =>
   reorderNode(sampleFlows[0]!.nodes, 'comfort-pulse', command).map((node) => node.id);
 
 describe('z-order operations', () => {
-
   /**
    * Purpose: Protects the behavioral contract that moves a node to the front, forward, backward, and back.
    * Description: Exercises moves a node to the front, forward, backward, and back from its arranged starting state and
    * verifies the observable results required by the scenario.
    */
   it('moves a node to the front, forward, backward, and back', () => {
-
     // Expected outcome: `ids('front')` matches the required structure.
     // Acceptance criteria: `ids('front')` must equal `[ 'temperature-average', 'manual-override', 'zone-split', 'comfort-pulse' ]`, because this condition proves that
     // moves a node to the front, forward, backward, and back.

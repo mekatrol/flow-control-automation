@@ -8,14 +8,12 @@ import {
 } from '@/features/flows/components/AppFlowNodeConfigurationPanel.vue';
 
 describe('node configuration validation', () => {
-
   /**
    * Purpose: Protects the behavioral contract that requires a non-empty label.
    * Description: Exercises requires a non-empty label from its arranged starting state and
    * verifies the observable results required by the scenario.
    */
   it('requires a non-empty label', () => {
-
     // Expected outcome: `validateNodeLabel(' ')` has the required value.
     // Acceptance criteria: `validateNodeLabel(' ')` must be `'Node label is required.'`, because this condition proves that
     // requires a non-empty label.

@@ -62,7 +62,6 @@ describe('flow runtime API', () => {
    * verifies the observable results required by the scenario.
    */
   it('rejects malformed flow, node, and value state', () => {
-
     // Expected outcome: The invalid operation is rejected.
     // Acceptance criteria: the operation must throw the asserted error, because this condition proves that
     // rejects malformed flow, node, and value state.

@@ -5,14 +5,12 @@ import { describe, expect, it } from 'vitest';
 import { interpretDesignerKey } from '@/features/flows/graph/keyboardCommands';
 
 describe('designer keyboard commands', () => {
-
   /**
    * Purpose: Protects the behavioral contract that maps arrow, Delete, and Backspace keys.
    * Description: Exercises maps arrow, Delete, and Backspace keys from its arranged starting state and
    * verifies the observable results required by the scenario.
    */
   it('maps arrow, Delete, and Backspace keys', () => {
-
     // Expected outcome: `interpretDesignerKey({ key: 'ArrowLeft', target: document.body })` matches the required structure.
     // Acceptance criteria: `interpretDesignerKey({ key: 'ArrowLeft', target: document.body })` must equal `{ type: 'move', deltaX: -24, deltaY: 0 }`, because this condition proves that
     // maps arrow, Delete, and Backspace keys.
@@ -52,7 +50,6 @@ describe('designer keyboard commands', () => {
    * verifies the observable results required by the scenario.
    */
   it('ignores unrelated keys', () => {
-
     // Expected outcome: `interpretDesignerKey({ key: 'Enter', target: document.body })` is not supplied.
     // Acceptance criteria: `interpretDesignerKey({ key: 'Enter', target: document.body })` must be undefined, because this condition proves that
     // ignores unrelated keys.
@@ -66,7 +63,6 @@ describe('designer keyboard commands', () => {
    */
   it('does not interpret commands from editable controls', () => {
     for (const tagName of ['input', 'textarea', 'select']) {
-
       // Expected outcome: `interpretDesignerKey({ key: 'Delete', target: document.createElement(tagName) })` is not supplied.
       // Acceptance criteria: `interpretDesignerKey({ key: 'Delete', target: document.createElement(tagName) })` must be undefined, because this condition proves that
       // does not interpret commands from editable controls.

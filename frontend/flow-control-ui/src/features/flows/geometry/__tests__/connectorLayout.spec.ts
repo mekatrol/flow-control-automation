@@ -12,7 +12,6 @@ const connector = (id: string, side: FlowNodeConnector['side']): FlowNodeConnect
 });
 
 describe('connector layout', () => {
-
   /**
    * Purpose: Protects the behavioral contract that places connectors on every supported side.
    * Description: Exercises places connectors on every supported side from its arranged starting state and

@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import { createDefaultNode } from '@/features/flows/graph/createNode';
 
 describe('default node creation', () => {
-
   /**
    * Purpose: Protects the behavioral contract that creates a serialisable node from registry defaults and a supplied ID.
    * Description: Exercises creates a serialisable node from registry defaults and a supplied ID from its arranged starting state and

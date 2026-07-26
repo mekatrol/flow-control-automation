@@ -6,11 +6,11 @@ import { createMemoryHistory, createRouter } from 'vue-router';
 import { describe, expect, it } from 'vitest';
 
 import App from '@/App.vue';
+import AppLayout from '@/layouts/AppLayout.vue';
 
 const FlowListStub = { template: '<h1>Flows</h1>' };
 
 describe('App', () => {
-
   /**
    * Purpose: Protects the behavioral contract that renders the current route inside the application shell.
    * Description: Exercises renders the current route inside the application shell from its arranged starting state and
@@ -19,7 +19,13 @@ describe('App', () => {
   it('renders the current route inside the application shell', async () => {
     const router = createRouter({
       history: createMemoryHistory(),
-      routes: [{ path: '/flows', name: 'flows', component: FlowListStub }]
+      routes: [
+        {
+          path: '/',
+          component: AppLayout,
+          children: [{ path: 'flows', name: 'flows', component: FlowListStub }]
+        }
+      ]
     });
 
     await router.push('/flows');

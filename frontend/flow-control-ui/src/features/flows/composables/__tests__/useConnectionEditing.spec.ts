@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import { useConnectionEditing } from '@/features/flows/composables/useConnectionEditing';
 
 describe('connection editing state', () => {
-
   /**
    * Purpose: Protects the behavioral contract that starts, previews, reports an error, and cancels without persisted view state.
    * Description: Exercises starts, previews, reports an error, and cancels without persisted view state from its arranged starting state and

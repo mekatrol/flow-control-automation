@@ -20,14 +20,12 @@ const connector = (
 });
 
 describe('connection graph operations', () => {
-
   /**
    * Purpose: Protects the behavioral contract that implements the direction and data-type compatibility matrix.
    * Description: Exercises implements the direction and data-type compatibility matrix from its arranged starting state and
    * verifies the observable results required by the scenario.
    */
   it('implements the direction and data-type compatibility matrix', () => {
-
     // Expected outcome: `connectorsAreCompatible(connector('output', 'number'), connector('input', 'number'))` has the required value.
     // Acceptance criteria: `connectorsAreCompatible(connector('output', 'number'), connector('input', 'number'))` must be `true`, because this condition proves that
     // implements the direction and data-type compatibility matrix.

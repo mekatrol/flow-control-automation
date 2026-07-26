@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import { createLatestRequestGuard } from '@/features/flows/api/latestRequest';
 
 describe('latest request guard', () => {
-
   /**
    * Purpose: Protects the behavioral contract that rejects stale route responses and invalidates work on unmount.
    * Description: Exercises rejects stale route responses and invalidates work on unmount from its arranged starting state and

@@ -4,7 +4,6 @@ import { catalogueApi, CatalogueApiError } from '@/features/catalogues/api/catal
 afterEach(() => vi.unstubAllGlobals());
 
 describe('catalogue API', () => {
-
   /**
    * Purpose: Protects the behavioral contract that encodes pagination, sorting and filters.
    * Description: Exercises encodes pagination, sorting and filters from its arranged starting state and

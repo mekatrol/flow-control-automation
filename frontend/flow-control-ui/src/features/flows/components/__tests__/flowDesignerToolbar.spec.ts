@@ -6,7 +6,6 @@ import { describe, expect, it } from 'vitest';
 import AppFlowDesignerToolbar from '@/features/flows/components/AppFlowDesignerToolbar.vue';
 
 describe('FlowDesignerToolbar', () => {
-
   /**
    * Purpose: Protects the behavioral contract that uses distinct directional and terminal icons for all stacking operations.
    * Description: Exercises uses distinct directional and terminal icons for all stacking operations from its arranged starting state and

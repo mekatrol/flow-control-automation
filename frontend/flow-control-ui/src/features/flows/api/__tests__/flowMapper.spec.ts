@@ -5,7 +5,6 @@ import { parseFlowDto } from '@/features/flows/api/flowDto';
 import { flowDomainToDto, flowDtoToDomain } from '@/features/flows/api/flowMapper';
 
 describe('flow DTO mapping', () => {
-
   /**
    * Purpose: Protects the behavioral contract that maps a validated DTO to editable domain data.
    * Description: Exercises maps a validated DTO to editable domain data from its arranged starting state and

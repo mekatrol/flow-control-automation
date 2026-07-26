@@ -1,0 +1,28 @@
+.page-layout-content {
+  display: flex;
+  flex: 1;
+  align-items: stretch;
+  min-height: 0;
+}
+
+.page-layout-main {
+  flex: 1;
+  min-width: 0;
+  background-color: var(--color-bg);
+}
+
+@media (max-width: 64rem) {
+  :root {
+    --app-sidebar-width: 11rem;
+  }
+
+}
+
+@media (max-width: 48rem) {
+  .page-layout-content {
+    flex-direction: column;
+  }
+  .page-layout-main {
+    order: 2;
+  }
+}

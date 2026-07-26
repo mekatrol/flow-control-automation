@@ -8,7 +8,6 @@ import AppPointsCatalogueView from '@/features/catalogues/views/AppPointsCatalog
 afterEach(() => vi.unstubAllGlobals());
 
 describe('PointsCatalogueView', () => {
-
   /**
    * Purpose: Protects the behavioral contract that renders a semantic, keyboard-reachable table with point relationships.
    * Description: Exercises renders a semantic, keyboard-reachable table with point relationships from its arranged starting state and

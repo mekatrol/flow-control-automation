@@ -6,14 +6,12 @@ import {
 } from '@/features/flows/components/AppFlowNodePalette.vue';
 
 describe('node palette filtering and grouping', () => {
-
   /**
    * Purpose: Protects the behavioral contract that filters by label and category without case sensitivity.
    * Description: Exercises filters by label and category without case sensitivity from its arranged starting state and
    * verifies the observable results required by the scenario.
    */
   it('filters by label and category without case sensitivity', () => {
-
     // Expected outcome: `filterNodeKinds('PULSE'` matches the required structure.
     // Acceptance criteria: `filterNodeKinds('PULSE'` must equal `['pulse']`, because this condition proves that
     // filters by label and category without case sensitivity.

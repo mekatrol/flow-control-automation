@@ -11,7 +11,6 @@ import {
 const validFlow = (): unknown => structuredClone(sampleFlows[0]);
 
 describe('flow DTO validation', () => {
-
   /**
    * Purpose: Protects the behavioral contract that loads legacy contract fixtures without changing their graph semantics.
    * Description: Exercises loads legacy contract fixtures without changing their graph semantics from its arranged starting state and
@@ -32,7 +31,6 @@ describe('flow DTO validation', () => {
    * verifies the observable results required by the scenario.
    */
   it('accepts a valid graph payload', () => {
-
     // Expected outcome: `parseFlowDto(validFlow())` matches the required structure.
     // Acceptance criteria: `parseFlowDto(validFlow())` must equal `sampleFlows[0]`, because this condition proves that
     // accepts a valid graph payload.
@@ -129,7 +127,6 @@ describe('flow DTO validation', () => {
    * verifies the observable results required by the scenario.
    */
   it('safely rejects malformed JSON', () => {
-
     // Expected outcome: The invalid operation is rejected.
     // Acceptance criteria: the operation must throw the asserted error, because this condition proves that
     // safely rejects malformed JSON.

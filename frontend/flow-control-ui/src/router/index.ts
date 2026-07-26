@@ -1,100 +1,134 @@
 import { createRouter, createWebHistory } from 'vue-router';
+import type { RouteRecordRaw } from 'vue-router';
+
+import AppLayout from '@/layouts/AppLayout.vue';
+
+export const ROUTE_NAMES = {
+  home: 'home',
+  flows: 'flows',
+  flowDesigner: 'flow-designer',
+  points: 'points',
+  pointNew: 'point-new',
+  pointDetail: 'point-detail',
+  pointGroups: 'point-groups',
+  pointGroupNew: 'point-group-new',
+  pointGroupDetail: 'point-group-detail',
+  controllerTemplates: 'controller-templates',
+  controllerTemplateNew: 'controller-template-new',
+  controllerTemplateDetail: 'controller-template-detail',
+  pointSources: 'point-sources',
+  pointSourceNew: 'point-source-new',
+  pointSourceDetail: 'point-source-detail',
+  credentials: 'credentials'
+};
+
+export type RouteName = (typeof ROUTE_NAMES)[keyof typeof ROUTE_NAMES];
+
+export const routes: RouteRecordRaw[] = [
+  {
+    path: '/',
+    component: AppLayout,
+    children: [
+      {
+        path: '',
+        name: ROUTE_NAMES.home,
+        redirect: { name: ROUTE_NAMES.flows }
+      },
+      {
+        path: 'flows',
+        name: ROUTE_NAMES.flows,
+        // Lazy view imports keep designer-only code out of the initial flow-list
+        // download and let the browser fetch it when the route is first visited.
+        component: () => import('@/features/flows/views/AppFlowListView.vue')
+      },
+      {
+        path: 'flows/:flowId',
+        name: ROUTE_NAMES.flowDesigner,
+        component: () => import('@/features/flows/views/AppFlowDesignerView.vue'),
+        // Convert the route parameter at the boundary so the view receives a plain
+        // string prop and does not need to understand router parameter shapes.
+        props: (route) => ({ flowId: String(route.params.flowId) })
+      },
+      {
+        path: 'points',
+        name: ROUTE_NAMES.points,
+        component: () => import('@/features/catalogues/views/AppPointsCatalogueView.vue')
+      },
+      {
+        path: 'points/new',
+        name: ROUTE_NAMES.pointNew,
+        component: () => import('@/features/configuration/views/AppYamlResourceEditorView.vue'),
+        props: { kind: 'point' }
+      },
+      {
+        path: 'points/:resourceId',
+        name: ROUTE_NAMES.pointDetail,
+        component: () => import('@/features/configuration/views/AppYamlResourceEditorView.vue'),
+        props: (route) => ({ kind: 'point', resourceId: String(route.params.resourceId) })
+      },
+      {
+        path: 'point-groups',
+        name: ROUTE_NAMES.pointGroups,
+        component: () => import('@/features/catalogues/views/AppPointGroupsCatalogueView.vue')
+      },
+      {
+        path: 'point-groups/new',
+        name: ROUTE_NAMES.pointGroupNew,
+        component: () => import('@/features/configuration/views/AppYamlResourceEditorView.vue'),
+        props: { kind: 'group' }
+      },
+      {
+        path: 'point-groups/:resourceId',
+        name: ROUTE_NAMES.pointGroupDetail,
+        component: () => import('@/features/configuration/views/AppYamlResourceEditorView.vue'),
+        props: (route) => ({ kind: 'group', resourceId: String(route.params.resourceId) })
+      },
+      {
+        path: 'controller-templates',
+        name: ROUTE_NAMES.controllerTemplates,
+        component: () =>
+          import('@/features/catalogues/views/AppControllerTemplatesCatalogueView.vue')
+      },
+      {
+        path: 'controller-templates/new',
+        name: ROUTE_NAMES.controllerTemplateNew,
+        component: () => import('@/features/configuration/views/AppYamlResourceEditorView.vue'),
+        props: { kind: 'controller' }
+      },
+      {
+        path: 'controller-templates/:resourceId',
+        name: ROUTE_NAMES.controllerTemplateDetail,
+        component: () => import('@/features/configuration/views/AppYamlResourceEditorView.vue'),
+        props: (route) => ({ kind: 'controller', resourceId: String(route.params.resourceId) })
+      },
+      {
+        path: 'point-sources',
+        name: ROUTE_NAMES.pointSources,
+        component: () => import('@/features/pointSources/views/AppPointSourceListView.vue')
+      },
+      {
+        path: 'point-sources/new',
+        name: ROUTE_NAMES.pointSourceNew,
+        component: () => import('@/features/pointSources/views/AppPointSourceEditorView.vue')
+      },
+      {
+        path: 'point-sources/:sourceId',
+        name: ROUTE_NAMES.pointSourceDetail,
+        component: () => import('@/features/pointSources/views/AppPointSourceEditorView.vue'),
+        props: (route) => ({ sourceId: String(route.params.sourceId) })
+      },
+      {
+        path: 'credentials',
+        name: ROUTE_NAMES.credentials,
+        component: () => import('@/features/credentials/views/AppCredentialManagerView.vue')
+      }
+    ]
+  }
+];
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-  routes: [
-    {
-      path: '/',
-      redirect: { name: 'flows' }
-    },
-    {
-      path: '/flows',
-      name: 'flows',
-      // Lazy view imports keep designer-only code out of the initial flow-list
-      // download and let the browser fetch it when the route is first visited.
-      component: () => import('@/features/flows/views/AppFlowListView.vue')
-    },
-    {
-      path: '/flows/:flowId',
-      name: 'flow-designer',
-      component: () => import('@/features/flows/views/AppFlowDesignerView.vue'),
-      // Convert the route parameter at the boundary so the view receives a plain
-      // string prop and does not need to understand router parameter shapes.
-      props: (route) => ({ flowId: String(route.params.flowId) })
-    },
-    {
-      path: '/points',
-      name: 'points',
-      component: () => import('@/features/catalogues/views/AppPointsCatalogueView.vue')
-    },
-    {
-      path: '/points/new',
-      name: 'point-new',
-      component: () => import('@/features/configuration/views/AppYamlResourceEditorView.vue'),
-      props: { kind: 'point' }
-    },
-    {
-      path: '/points/:resourceId',
-      name: 'point-detail',
-      component: () => import('@/features/configuration/views/AppYamlResourceEditorView.vue'),
-      props: (route) => ({ kind: 'point', resourceId: String(route.params.resourceId) })
-    },
-    {
-      path: '/point-groups',
-      name: 'point-groups',
-      component: () => import('@/features/catalogues/views/AppPointGroupsCatalogueView.vue')
-    },
-    {
-      path: '/point-groups/new',
-      name: 'point-group-new',
-      component: () => import('@/features/configuration/views/AppYamlResourceEditorView.vue'),
-      props: { kind: 'group' }
-    },
-    {
-      path: '/point-groups/:resourceId',
-      name: 'point-group-detail',
-      component: () => import('@/features/configuration/views/AppYamlResourceEditorView.vue'),
-      props: (route) => ({ kind: 'group', resourceId: String(route.params.resourceId) })
-    },
-    {
-      path: '/controller-templates',
-      name: 'controller-templates',
-      component: () => import('@/features/catalogues/views/AppControllerTemplatesCatalogueView.vue')
-    },
-    {
-      path: '/controller-templates/new',
-      name: 'controller-template-new',
-      component: () => import('@/features/configuration/views/AppYamlResourceEditorView.vue'),
-      props: { kind: 'controller' }
-    },
-    {
-      path: '/controller-templates/:resourceId',
-      name: 'controller-template-detail',
-      component: () => import('@/features/configuration/views/AppYamlResourceEditorView.vue'),
-      props: (route) => ({ kind: 'controller', resourceId: String(route.params.resourceId) })
-    },
-    {
-      path: '/point-sources',
-      name: 'point-sources',
-      component: () => import('@/features/pointSources/views/AppPointSourceListView.vue')
-    },
-    {
-      path: '/point-sources/new',
-      name: 'point-source-new',
-      component: () => import('@/features/pointSources/views/AppPointSourceEditorView.vue')
-    },
-    {
-      path: '/point-sources/:sourceId',
-      name: 'point-source-detail',
-      component: () => import('@/features/pointSources/views/AppPointSourceEditorView.vue'),
-      props: (route) => ({ sourceId: String(route.params.sourceId) })
-    },
-    {
-      path: '/credentials',
-      name: 'credentials',
-      component: () => import('@/features/credentials/views/AppCredentialManagerView.vue')
-    }
-  ]
+  routes: routes
 });
 
 export default router;

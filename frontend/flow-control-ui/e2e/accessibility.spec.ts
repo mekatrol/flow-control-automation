@@ -15,8 +15,9 @@ import { expect, test } from './fixtures/flowTest';
 test('supports bypass navigation and modal use with only the keyboard', async ({ page }) => {
   await page.goto('/flows');
 
-  await page.keyboard.press('Tab');
   const skipLink = page.getByRole('link', { name: 'Skip to main content' });
+  await expect(skipLink).toBeVisible();
+  await page.keyboard.press('Tab');
 
   // Expected outcome: `skipLink` owns keyboard focus.
   // Acceptance criteria: `skipLink` must be focused, because this condition proves that

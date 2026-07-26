@@ -9,14 +9,12 @@ import {
 } from '@/features/flows/composables/useDesignerViewport';
 
 describe('designer viewport calculations', () => {
-
   /**
    * Purpose: Protects the behavioral contract that clamps zoom to usable boundaries.
    * Description: Exercises clamps zoom to usable boundaries from its arranged starting state and
    * verifies the observable results required by the scenario.
    */
   it('clamps zoom to usable boundaries', () => {
-
     // Expected outcome: `clampZoom(0.1)` has the required value.
     // Acceptance criteria: `clampZoom(0.1)` must be `0.5`, because this condition proves that
     // clamps zoom to usable boundaries.
@@ -39,7 +37,6 @@ describe('designer viewport calculations', () => {
    * verifies the observable results required by the scenario.
    */
   it('fits the canvas to the available viewport width', () => {
-
     // Expected outcome: `calculateCanvasSize(880, 1)` matches the required structure.
     // Acceptance criteria: `calculateCanvasSize(880, 1)` must equal `{ width: 880, height: 448 }`, because this condition proves that
     // fits the canvas to the available viewport width.
@@ -55,7 +52,6 @@ describe('designer viewport calculations', () => {
    * verifies the observable results required by the scenario.
    */
   it('fills a wide viewport without enlarging the graph', () => {
-
     // Expected outcome: `calculateCanvasSize(1400, 1)` matches the required structure.
     // Acceptance criteria: `calculateCanvasSize(1400, 1)` must equal `{ width: 1400, height: 560 }`, because this condition proves that
     // fills a wide viewport without enlarging the graph.
@@ -76,7 +72,6 @@ describe('designer viewport calculations', () => {
    * verifies the observable results required by the scenario.
    */
   it('keeps the full logical graph width on a narrow viewport', () => {
-
     // Expected outcome: `calculateViewBoxWidth(880)` has the required value.
     // Acceptance criteria: `calculateViewBoxWidth(880)` must be `1100`, because this condition proves that
     // keeps the full logical graph width on a narrow viewport.
@@ -89,7 +84,6 @@ describe('designer viewport calculations', () => {
    * verifies the observable results required by the scenario.
    */
   it('fills a tall viewport without enlarging the graph', () => {
-
     // Expected outcome: `calculateCanvasSize(1400, 1, 760)` matches the required structure.
     // Acceptance criteria: `calculateCanvasSize(1400, 1, 760)` must equal `{ width: 1400, height: 760 }`, because this condition proves that
     // fills a tall viewport without enlarging the graph.
@@ -110,7 +104,6 @@ describe('designer viewport calculations', () => {
    * verifies the observable results required by the scenario.
    */
   it('keeps vertical scaling proportional on a narrow viewport', () => {
-
     // Expected outcome: `calculateCanvasSize(880, 1, 600)` matches the required structure.
     // Acceptance criteria: `calculateCanvasSize(880, 1, 600)` must equal `{ width: 880, height: 600 }`, because this condition proves that
     // keeps vertical scaling proportional on a narrow viewport.
@@ -131,7 +124,6 @@ describe('designer viewport calculations', () => {
    * verifies the observable results required by the scenario.
    */
   it('applies zoom to the responsive canvas size', () => {
-
     // Expected outcome: `calculateCanvasSize(880, 1.5)` matches the required structure.
     // Acceptance criteria: `calculateCanvasSize(880, 1.5)` must equal `{ width: 1320, height: 672 }`, because this condition proves that
     // applies zoom to the responsive canvas size.
@@ -147,7 +139,6 @@ describe('designer viewport calculations', () => {
    * verifies the observable results required by the scenario.
    */
   it('uses the designer dimensions until the viewport has been measured', () => {
-
     // Expected outcome: `calculateCanvasSize(0, 1)` matches the required structure.
     // Acceptance criteria: `calculateCanvasSize(0, 1)` must equal `{ width: 1100, height: 560 }`, because this condition proves that
     // uses the designer dimensions until the viewport has been measured.
@@ -163,7 +154,6 @@ describe('designer viewport calculations', () => {
    * verifies the observable results required by the scenario.
    */
   it('converts client coordinates into SVG coordinates', () => {
-
     // Expected outcome: `clientToSvgPoint({ x: 310, y: 170 }, { left: 10, top: 20, width: 600, height: 300 })` matches the required structure.
     // Acceptance criteria: `clientToSvgPoint({ x: 310, y: 170 }, { left: 10, top: 20, width: 600, height: 300 })` must equal `{ x: 550, y: 280 }`, because this condition proves that
     // converts client coordinates into SVG coordinates.
@@ -181,7 +171,6 @@ describe('designer viewport calculations', () => {
    * verifies the observable results required by the scenario.
    */
   it('supports a translated view box', () => {
-
     // Expected outcome: `clientToSvgPoint( { x: 60, y: 45 }, { left: 10, top: 20, width: 100, height: 50 }, { x: 100, y: 200,` matches the required structure.
     // Acceptance criteria: `clientToSvgPoint( { x: 60, y: 45 }, { left: 10, top: 20, width: 100, height: 50 }, { x: 100, y: 200,` must equal `{ x: 300, y: 300 }`, because this condition proves that
     // supports a translated view box.

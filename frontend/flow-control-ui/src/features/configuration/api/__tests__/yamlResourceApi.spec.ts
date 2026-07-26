@@ -9,7 +9,6 @@ import {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('YAML resource APIs', () => {
-
   /**
    * Purpose: Protects the behavioral contract that sends revision-safe YAML writes and maps returned revisions.
    * Description: Exercises sends revision-safe YAML writes and maps returned revisions from its arranged starting state and

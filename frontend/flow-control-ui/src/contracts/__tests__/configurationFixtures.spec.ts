@@ -102,7 +102,6 @@ const asStoredTemplate = (configuration: Configuration): Configuration => {
 };
 
 describe('version 1 configuration fixtures', () => {
-
   /**
    * Purpose: Protects the behavioral contract that %s controller YAML agrees with typed normalized capabilities.
    * Description: Exercises %s controller YAML agrees with typed normalized capabilities from its arranged starting state and
@@ -112,7 +111,6 @@ describe('version 1 configuration fixtures', () => {
     ['points', pointsYaml, pointsJson, 'points'],
     ['point sources', sourcesYaml, sourcesJson, 'sources']
   ] as const)('%s YAML agrees with normalized JSON', (_name, yaml, json, kind) => {
-
     // Expected outcome: `parseStrictFixture(yaml, kind)` matches the required structure.
     // Acceptance criteria: `parseStrictFixture(yaml, kind)` must equal `withoutBackendMetadata(json`, because this condition proves that
     // the arranged test scenario.
@@ -128,7 +126,6 @@ describe('version 1 configuration fixtures', () => {
     ['default', defaultYaml, defaultJson],
     ['constrained', constrainedYaml, constrainedJson]
   ])('%s controller YAML agrees with typed normalized capabilities', (_name, yaml, json) => {
-
     // Expected outcome: `asStoredTemplate(parseStrictFixture(yaml, 'controller'))` matches the required structure.
     // Acceptance criteria: `asStoredTemplate(parseStrictFixture(yaml, 'controller'))` must equal `withoutBackendMetadata(json`, because this condition proves that
     // the arranged test scenario.
@@ -150,7 +147,6 @@ describe('version 1 configuration fixtures', () => {
     ['YAML alias', aliasYaml, 'controller', /[Aa]lias/],
     ['invalid YAML syntax', syntaxYaml, 'controller', /[Ff]low sequence|[Ff]low collection/]
   ] as const)('rejects %s', (_name, yaml, kind, diagnostic) => {
-
     // Expected outcome: The invalid operation is rejected.
     // Acceptance criteria: the operation must throw the asserted error, because this condition proves that
     // the arranged test scenario.
