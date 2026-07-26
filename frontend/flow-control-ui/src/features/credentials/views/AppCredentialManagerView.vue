@@ -185,32 +185,15 @@
     </AppForm>
   </AppDialog>
 
-  <AppDialog
+  <AppPromptDialog
     id="credential-discard-dialog"
     ref="credentialDiscardDialog"
     content-label="Discard unsaved credential changes"
     automation="credential-discard-dialog"
-    :dismissible="false"
-  >
-    <section class="discard-confirmation">
-      <h2>Discard unsaved changes?</h2>
-      <p>Your credential changes have not been saved and will be lost.</p>
-      <div class="editor-actions">
-        <AppButton
-          automation="credential-keep-editing"
-          text="Keep editing"
-          :icon="cancelIcon"
-          @click="keepEditing"
-        />
-        <AppButton
-          automation="credential-discard-changes"
-          text="Discard changes"
-          :icon="deleteIcon"
-          @click="discardCredentialChanges"
-        />
-      </div>
-    </section>
-  </AppDialog>
+    message="Your credential changes have not been saved and will be lost."
+    @cancel="keepEditing"
+    @confirm="discardCredentialChanges"
+  />
 </template>
 
 <script setup lang="ts">
@@ -230,6 +213,7 @@ import visibilityIcon from '@/assets/icons/visibility-icon.svg';
 import AppButton from '@/components/AppButton.vue';
 import AppDialog from '@/components/AppDialog.vue';
 import AppForm from '@/components/AppForm.vue';
+import AppPromptDialog from '@/components/AppPromptDialog.vue';
 
 const credentials = ref<CredentialMetadata[]>([]);
 const loading = ref(false);
@@ -241,7 +225,7 @@ const passwordVisible = ref(false);
 const tokenVisible = ref(false);
 const errorSummary = ref<HTMLElement>();
 const credentialDialog = ref<InstanceType<typeof AppDialog>>();
-const credentialDiscardDialog = ref<InstanceType<typeof AppDialog>>();
+const credentialDiscardDialog = ref<InstanceType<typeof AppPromptDialog>>();
 let controller: AbortController | undefined;
 const form = reactive<CredentialInput>({
   id: '',
@@ -345,12 +329,10 @@ const handleCredentialDialogCancel = (): void => {
 };
 
 const keepEditing = (): void => {
-  credentialDiscardDialog.value?.close();
   discardConfirmationOpen.value = false;
 };
 
 const discardCredentialChanges = (): void => {
-  credentialDiscardDialog.value?.close();
   discardConfirmationOpen.value = false;
   closeCredentialDialog();
   beginCreate();
