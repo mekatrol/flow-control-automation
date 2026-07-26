@@ -101,7 +101,9 @@ import { useRoute, useRouter } from 'vue-router';
 import newFlowIcon from '@/assets/icons/new-flow-icon.svg';
 import retryIcon from '@/assets/icons/retry-icon.svg';
 import AppButton from '@/components/AppButton.vue';
-import AppMultiSelectDropdown, { type MultiSelectOption } from '@/components/AppMultiSelectDropdown.vue';
+import AppMultiSelectDropdown, {
+  type MultiSelectOption
+} from '@/components/AppMultiSelectDropdown.vue';
 import AppTablePagination from '@/components/AppTablePagination.vue';
 import { useServerPagination } from '@/composables/useServerPagination';
 import { useAutomation } from '@/composables/useAutomation';

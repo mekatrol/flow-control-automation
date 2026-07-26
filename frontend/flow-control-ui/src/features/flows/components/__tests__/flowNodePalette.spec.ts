@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { filterNodeKinds, groupNodeKinds } from '@/features/flows/components/AppFlowNodePalette.vue';
+import {
+  filterNodeKinds,
+  groupNodeKinds
+} from '@/features/flows/components/AppFlowNodePalette.vue';
 
 describe('node palette filtering and grouping', () => {
   it('filters by label and category without case sensitivity', () => {
