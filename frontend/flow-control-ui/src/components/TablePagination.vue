@@ -33,8 +33,8 @@
 </template>
 
 <script setup lang="ts">
-import chevronLeftIcon from '@/assets/chevron-left-icon.svg';
-import chevronRightIcon from '@/assets/chevron-right-icon.svg';
+import chevronLeftIcon from '@/assets/icons/chevron-left-icon.svg';
+import chevronRightIcon from '@/assets/icons/chevron-right-icon.svg';
 import AppButton from '@/components/AppButton.vue';
 
 withDefaults(

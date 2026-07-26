@@ -32,7 +32,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
-import chevronDownIcon from '@/assets/chevron-down-icon.svg';
+import chevronDownIcon from '@/assets/icons/chevron-down-icon.svg';
 import AppButton from '@/components/AppButton.vue';
 
 export interface MultiSelectOption {

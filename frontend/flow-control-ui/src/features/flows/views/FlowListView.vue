@@ -94,8 +94,8 @@ import { storeToRefs } from 'pinia';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-import newFlowIcon from '@/assets/new-flow-icon.svg';
-import retryIcon from '@/assets/retry-icon.svg';
+import newFlowIcon from '@/assets/icons/new-flow-icon.svg';
+import retryIcon from '@/assets/icons/retry-icon.svg';
 import AppButton from '@/components/AppButton.vue';
 import MultiSelectDropdown, { type MultiSelectOption } from '@/components/MultiSelectDropdown.vue';
 import TablePagination from '@/components/TablePagination.vue';

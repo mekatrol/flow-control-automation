@@ -11,8 +11,8 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
-import sortAscendingIcon from '@/assets/sort-ascending-icon.svg';
-import sortDescendingIcon from '@/assets/sort-descending-icon.svg';
+import sortAscendingIcon from '@/assets/icons/sort-ascending-icon.svg';
+import sortDescendingIcon from '@/assets/icons/sort-descending-icon.svg';
 import AppButton from '@/components/AppButton.vue';
 import type { SortDirection } from '@/composables/usePaginatedCollection';
 

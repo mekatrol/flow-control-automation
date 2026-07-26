@@ -135,12 +135,12 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
 
-import cancelIcon from '@/assets/cancel-icon.svg';
-import deployIcon from '@/assets/deploy-icon.svg';
-import discardIcon from '@/assets/discard-icon.svg';
-import refreshIcon from '@/assets/refresh-icon.svg';
-import renameFlowIcon from '@/assets/rename-flow-icon.svg';
-import saveIcon from '@/assets/save-icon.svg';
+import cancelIcon from '@/assets/icons/cancel-icon.svg';
+import deployIcon from '@/assets/icons/deploy-icon.svg';
+import discardIcon from '@/assets/icons/discard-icon.svg';
+import refreshIcon from '@/assets/icons/refresh-icon.svg';
+import renameFlowIcon from '@/assets/icons/rename-flow-icon.svg';
+import saveIcon from '@/assets/icons/save-icon.svg';
 import AppButton from '@/components/AppButton.vue';
 import FlowDesignerCanvas from '@/features/flows/components/FlowDesignerCanvas.vue';
 import { useFlowsStore } from '@/features/flows/stores/flows';

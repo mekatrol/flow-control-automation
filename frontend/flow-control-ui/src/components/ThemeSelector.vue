@@ -23,9 +23,9 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 
-import darkThemeIcon from '@/assets/dark-mode-toggle-icon.svg';
-import lightThemeIcon from '@/assets/light-mode-toggle-icon.svg';
-import systemThemeIcon from '@/assets/system-mode-toggle-icon.svg';
+import darkThemeIcon from '@/assets/icons/dark-mode-toggle-icon.svg';
+import lightThemeIcon from '@/assets/icons/light-mode-toggle-icon.svg';
+import systemThemeIcon from '@/assets/icons/system-mode-toggle-icon.svg';
 import AppButton from '@/components/AppButton.vue';
 
 type ThemePreference = 'light' | 'system' | 'dark';

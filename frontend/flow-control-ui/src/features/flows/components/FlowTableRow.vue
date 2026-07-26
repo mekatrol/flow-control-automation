@@ -82,12 +82,12 @@
 import { computed, ref, type ComponentPublicInstance } from 'vue';
 import { useRouter } from 'vue-router';
 
-import cancelIcon from '@/assets/cancel-icon.svg';
-import deleteFlowIcon from '@/assets/delete-flow-icon.svg';
-import disableFlowIcon from '@/assets/disable-flow-icon.svg';
-import enableFlowIcon from '@/assets/enable-flow-icon.svg';
-import renameFlowIcon from '@/assets/rename-flow-icon.svg';
-import saveIcon from '@/assets/save-icon.svg';
+import cancelIcon from '@/assets/icons/cancel-icon.svg';
+import deleteFlowIcon from '@/assets/icons/delete-flow-icon.svg';
+import disableFlowIcon from '@/assets/icons/disable-flow-icon.svg';
+import enableFlowIcon from '@/assets/icons/enable-flow-icon.svg';
+import renameFlowIcon from '@/assets/icons/rename-flow-icon.svg';
+import saveIcon from '@/assets/icons/save-icon.svg';
 import AppButton from '@/components/AppButton.vue';
 import { useModalFocus } from '@/features/flows/composables/useModalFocus';
 import type { FlowDefinition } from '@/features/flows/types';
