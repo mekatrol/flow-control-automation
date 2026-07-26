@@ -32,7 +32,7 @@ const requireAutomationProp: Rule.RuleModule = {
     },
     schema: [],
     messages: {
-      missingAutomation: '{{name}} requires an automation prop, e.g. automation="customer-name"',
+      missingAutomation: '{{name}} requires an automation prop, e.g. automation="search-input"',
       invalidAutomation:
         'automation value "{{value}}" must be lowercase kebab-case, start with a letter, and contain only letters, numbers, and hyphens'
     }
@@ -54,23 +54,32 @@ const requireAutomationProp: Rule.RuleModule = {
           return;
         }
 
-        const isAppComponent = name.startsWith('App') || name.startsWith('Base');
+        const automationAttr = node.startTag.attributes.find((attr): attr is VueAST.VAttribute => {
+          if (attr.type !== 'VAttribute') {
+            return false;
+          }
 
-        if (!isAppComponent) {
-          return;
-        }
+          if (!attr.directive) {
+            return attr.key.name === 'automation';
+          }
 
-        const automationAttr = node.startTag.attributes.find(
-          (attr): attr is VueAST.VAttribute =>
-            attr.type === 'VAttribute' && attr.key.name === 'automation'
-        );
+          return (
+            attr.key.name.name === 'bind' &&
+            attr.key.argument?.type === 'VIdentifier' &&
+            attr.key.argument.name === 'automation'
+          );
+        });
 
         if (!automationAttr) {
-          typedContext.report({
-            node: node.startTag,
-            messageId: 'missingAutomation',
-            data: { name }
-          });
+          const requiresAutomation = name.startsWith('App') || name.startsWith('Base');
+
+          if (requiresAutomation) {
+            typedContext.report({
+              node: node.startTag,
+              messageId: 'missingAutomation',
+              data: { name }
+            });
+          }
 
           return;
         }

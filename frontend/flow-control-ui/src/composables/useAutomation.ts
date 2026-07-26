@@ -1,43 +1,23 @@
 /**
-
  * Creates standard automation attributes for UI components.
-
  *
-
  * This composable allows components to expose stable automation identifiers
-
  * without consumers needing to know the underlying DOM structure.
-
  *
-
  * The returned function generates an object that can be passed directly to
-
  * Vue's `v-bind` directive.
-
  *
-
  * Example:
-
  *
-
  * const automation = useAutomation('user-card');
-
  *
-
  * <button v-bind="automation()">
-
  * <button v-bind="automation('delete')">
-
  *
-
  * Produces:
-
  *
-
  * <button data-automation="user-card">
-
  * <button data-automation="user-card.delete">
-
  */
 
 type AutomationAttributes = Record<string, string>;

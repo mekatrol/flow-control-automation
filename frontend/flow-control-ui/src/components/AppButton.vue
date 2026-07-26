@@ -1,5 +1,10 @@
 <template>
-  <button data-app-button :type="type" :aria-label="hideText ? text : ariaLabel">
+  <button
+    v-bind="automation()"
+    data-app-button
+    :type="type"
+    :aria-label="hideText ? text : ariaLabel"
+  >
     <slot name="icon">
       <span
         v-if="icon"
@@ -13,21 +18,27 @@
 </template>
 
 <script setup lang="ts">
-withDefaults(
+import { useAutomation } from '@/composables/useAutomation';
+
+const props = withDefaults(
   defineProps<{
     text: string;
+    automation?: string;
     icon?: string;
     ariaLabel?: string;
     hideText?: boolean;
     type?: 'button' | 'submit' | 'reset';
   }>(),
   {
+    automation: '',
     icon: undefined,
     ariaLabel: undefined,
     hideText: false,
     type: 'button'
   }
 );
+
+const automation = useAutomation(props.automation);
 </script>
 
 <style scoped>

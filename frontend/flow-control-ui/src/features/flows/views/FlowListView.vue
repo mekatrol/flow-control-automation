@@ -76,6 +76,7 @@
       />
       <TablePagination
         v-if="totalItems > 0"
+        automation="flows-pagination"
         :page="page"
         :page-count="pageCount"
         :page-size="pageSize"

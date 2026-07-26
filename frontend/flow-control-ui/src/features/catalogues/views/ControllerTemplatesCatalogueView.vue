@@ -71,6 +71,7 @@
         </template>
       </AppTable>
       <TablePagination
+        automation="controller-templates-pagination"
         :page="store.result.page"
         :page-count="store.result.pageCount"
         :page-size="store.result.pageSize"

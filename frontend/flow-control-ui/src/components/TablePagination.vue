@@ -1,5 +1,5 @@
 <template>
-  <div class="pagination">
+  <div class="pagination" v-bind="automation()">
     <label>
       Items per page
       <select :value="pageSize" @change="changePageSize">
@@ -19,6 +19,7 @@
         text="Previous page"
         :icon="chevronLeftIcon"
         :disabled="page <= 1"
+        :automation="`${props.automation}.prev`"
         @click="$emit('update:page', page - 1)"
       />
       <span aria-current="page">Page {{ page }} of {{ pageCount }}</span>
@@ -26,6 +27,7 @@
         text="Next page"
         :icon="chevronRightIcon"
         :disabled="page >= pageCount"
+        :automation="`${props.automation}.next`"
         @click="$emit('update:page', page + 1)"
       />
     </nav>
@@ -33,11 +35,12 @@
 </template>
 
 <script setup lang="ts">
+import { useAutomation } from '@/composables/useAutomation';
 import chevronLeftIcon from '@/assets/icons/chevron-left-icon.svg';
 import chevronRightIcon from '@/assets/icons/chevron-right-icon.svg';
 import AppButton from '@/components/AppButton.vue';
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     page: number;
     pageCount: number;
@@ -45,6 +48,7 @@ withDefaults(
     rangeStart: number;
     rangeEnd: number;
     totalItems: number;
+    automation: string;
     pageSizeOptions?: readonly number[];
   }>(),
   {
@@ -60,6 +64,8 @@ const emit = defineEmits<{
 const changePageSize = (event: Event): void => {
   emit('update:pageSize', Number((event.target as HTMLSelectElement).value));
 };
+
+const automation = useAutomation(props.automation);
 </script>
 
 <style scoped>
