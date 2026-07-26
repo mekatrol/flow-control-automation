@@ -16,18 +16,18 @@
 
     <nav aria-label="Table pagination">
       <AppButton
+        v-bind="automation('prev')"
         text="Previous page"
         :icon="chevronLeftIcon"
         :disabled="page <= 1"
-        :automation="`${props.automation}.prev`"
         @click="$emit('update:page', page - 1)"
       />
       <span aria-current="page">Page {{ page }} of {{ pageCount }}</span>
       <AppButton
+        v-bind="automation('next')"
         text="Next page"
         :icon="chevronRightIcon"
         :disabled="page >= pageCount"
-        :automation="`${props.automation}.next`"
         @click="$emit('update:page', page + 1)"
       />
     </nav>

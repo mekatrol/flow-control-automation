@@ -21,12 +21,14 @@
         </p>
         <div>
           <AppButton
+            automation="flow-deploy-cancel"
             text="Cancel"
             :icon="cancelIcon"
             data-dialog-initial-focus
             @click="closeDeployConfirmation"
           />
           <AppButton
+            automation="flow-deploy-confirm"
             class="deploy-confirm"
             text="Deploy now"
             :icon="deployIcon"
@@ -50,12 +52,18 @@
         <p id="discard-description">This flow has changes that have not been saved.</p>
         <div>
           <AppButton
+            automation="flow-discard-keep-editing"
             text="Keep editing"
             :icon="renameFlowIcon"
             data-dialog-initial-focus
             @click="keepEditing"
           />
-          <AppButton text="Discard changes" :icon="discardIcon" @click="discardChanges" />
+          <AppButton
+            automation="flow-discard-confirm"
+            text="Discard changes"
+            :icon="discardIcon"
+            @click="discardChanges"
+          />
         </div>
       </section>
     </div>
@@ -80,12 +88,14 @@
         </div>
         <div class="heading-actions">
           <AppButton
+            automation="flow-save"
             :text="saving ? 'Saving…' : 'Save flow'"
             :icon="saveIcon"
             :disabled="saving"
             @click="saveFlow"
           />
           <AppButton
+            automation="flow-deploy"
             :text="deploying ? 'Deploying…' : 'Deploy flow'"
             :icon="deployIcon"
             :disabled="dirty || deploying"
@@ -93,6 +103,7 @@
           />
           <AppButton
             v-if="flow.status === 'deployed'"
+            automation="flow-toggle-disabled"
             :text="
               togglingDisabled
                 ? flow.disabled
@@ -105,7 +116,12 @@
             :disabled="togglingDisabled"
             @click="setFlowDisabled(!flow.disabled)"
           />
-          <AppButton text="Refresh runtime" :icon="refreshIcon" @click="refreshRuntime()" />
+          <AppButton
+            automation="flow-refresh-runtime"
+            text="Refresh runtime"
+            :icon="refreshIcon"
+            @click="refreshRuntime()"
+          />
         </div>
       </div>
 

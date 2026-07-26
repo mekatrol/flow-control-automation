@@ -63,10 +63,16 @@ const requireAutomationProp: Rule.RuleModule = {
             return attr.key.name === 'automation';
           }
 
+          const expression = attr.value?.expression;
+
           return (
             attr.key.name.name === 'bind' &&
-            attr.key.argument?.type === 'VIdentifier' &&
-            attr.key.argument.name === 'automation'
+            ((attr.key.argument?.type === 'VIdentifier' &&
+              attr.key.argument.name === 'automation') ||
+              (attr.key.argument === null &&
+                expression?.type === 'CallExpression' &&
+                expression.callee.type === 'Identifier' &&
+                expression.callee.name === 'automation'))
           );
         });
 

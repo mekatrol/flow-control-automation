@@ -33,7 +33,7 @@
       No controller templates found.
     </p>
     <template v-else>
-      <AppTable caption="Controller templates">
+      <AppTable automation="controller-templates-table" caption="Controller templates">
         <template #head>
           <tr>
             <th scope="col">Name</th>

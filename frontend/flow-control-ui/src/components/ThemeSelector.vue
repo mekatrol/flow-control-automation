@@ -1,5 +1,6 @@
 <template>
   <AppButton
+    automation="theme-selector"
     class="theme-selector"
     :text="themeButtonLabel"
     hide-text

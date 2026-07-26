@@ -7,7 +7,13 @@
         Selected connection: {{ selectedConnectionId }}
       </span>
       <div class="zoom-controls" aria-label="Canvas zoom controls">
-        <AppButton text="Zoom out" hide-text :disabled="zoom <= 0.5" @click="setZoom(zoom - 0.25)">
+        <AppButton
+          automation="flow-designer-zoom-out"
+          text="Zoom out"
+          hide-text
+          :disabled="zoom <= 0.5"
+          @click="setZoom(zoom - 0.25)"
+        >
           <template #icon>
             <svg aria-hidden="true" viewBox="0 0 24 24">
               <path d="M5 12h14" />
@@ -15,7 +21,13 @@
           </template>
         </AppButton>
         <output aria-live="polite">{{ Math.round(zoom * 100) }}%</output>
-        <AppButton text="Zoom in" hide-text :disabled="zoom >= 2" @click="setZoom(zoom + 0.25)">
+        <AppButton
+          automation="flow-designer-zoom-in"
+          text="Zoom in"
+          hide-text
+          :disabled="zoom >= 2"
+          @click="setZoom(zoom + 0.25)"
+        >
           <template #icon>
             <svg aria-hidden="true" viewBox="0 0 24 24">
               <path d="M5 12h14M12 5v14" />

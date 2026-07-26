@@ -1,6 +1,7 @@
 <template>
   <div class="z-order-controls" role="toolbar" aria-label="Node stacking order">
     <AppButton
+      automation="flow-designer-bring-to-front"
       text="Bring to front"
       hide-text
       title="Bring to front"
@@ -17,6 +18,7 @@
       </template>
     </AppButton>
     <AppButton
+      automation="flow-designer-bring-forward"
       text="Bring forward"
       hide-text
       title="Bring forward"
@@ -32,6 +34,7 @@
       </template>
     </AppButton>
     <AppButton
+      automation="flow-designer-send-backward"
       text="Send backward"
       hide-text
       title="Send backward"
@@ -47,6 +50,7 @@
       </template>
     </AppButton>
     <AppButton
+      automation="flow-designer-send-to-back"
       text="Send to back"
       hide-text
       title="Send to back"

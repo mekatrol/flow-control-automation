@@ -1,7 +1,8 @@
 <template>
-  <div ref="root" class="multi-select">
+  <div ref="root" class="multi-select" v-bind="automation()">
     <span class="multi-select-label">{{ label }}</span>
     <AppButton
+      v-bind="automation('toggle')"
       :text="summary"
       :icon="chevronDownIcon"
       aria-haspopup="true"
@@ -34,6 +35,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
 import chevronDownIcon from '@/assets/icons/chevron-down-icon.svg';
 import AppButton from '@/components/AppButton.vue';
+import { useAutomation } from '@/composables/useAutomation';
 
 export interface MultiSelectOption {
   label: string;
@@ -43,6 +45,7 @@ export interface MultiSelectOption {
 const props = withDefaults(
   defineProps<{
     label: string;
+    automation: string;
     allLabel?: string;
     modelValue: string[];
     options: MultiSelectOption[];
@@ -56,6 +59,7 @@ const emit = defineEmits<{
   'update:modelValue': [values: string[]];
 }>();
 
+const automation = useAutomation(props.automation);
 const root = ref<HTMLElement>();
 const open = ref(false);
 const allSelected = computed(

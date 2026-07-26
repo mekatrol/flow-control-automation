@@ -17,6 +17,7 @@
           placeholder="Enter new flow name"
         />
         <AppButton
+          automation="flow-create"
           type="submit"
           :disabled="creating || !newFlowName.trim()"
           :text="creating ? 'Creating…' : 'New flow'"
@@ -28,7 +29,7 @@
     <p v-if="loading" class="request-status" role="status">Loading flows…</p>
     <div v-if="error" class="request-error" role="alert">
       <span>{{ error }}</span>
-      <AppButton text="Retry" :icon="retryIcon" @click="loadFlows" />
+      <AppButton automation="flows-retry" text="Retry" :icon="retryIcon" @click="loadFlows" />
     </div>
 
     <div v-if="!error" class="flow-results">
@@ -45,6 +46,7 @@
         </div>
         <MultiSelectDropdown
           v-model="statusFilters"
+          automation="flows-status-filter"
           label="Deployment status"
           all-label="All"
           :options="statusOptions"

@@ -28,7 +28,7 @@
       No point groups found.
     </p>
     <template v-else>
-      <AppTable caption="Configured point groups">
+      <AppTable automation="point-groups-table" caption="Configured point groups">
         <template #head>
           <tr>
             <th scope="col">Name</th>

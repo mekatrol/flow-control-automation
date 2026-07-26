@@ -23,6 +23,7 @@
 type AutomationAttributes = Record<string, string>;
 
 const AUTOMATION_ATTRIBUTE = 'data-automation';
+const AUTOMATION_NAME_PATTERN = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 
 export const useAutomation = (base: string): ((suffix?: string) => AutomationAttributes) => {
   /*
@@ -46,6 +47,14 @@ export const useAutomation = (base: string): ((suffix?: string) => AutomationAtt
   return (suffix?: string): AutomationAttributes => {
     if (!base) {
       return {};
+    }
+
+    if (!AUTOMATION_NAME_PATTERN.test(base)) {
+      throw new TypeError(`Automation name "${base}" must be lowercase kebab-case.`);
+    }
+
+    if (suffix !== undefined && !AUTOMATION_NAME_PATTERN.test(suffix)) {
+      throw new TypeError(`Automation child name "${suffix}" must be lowercase kebab-case.`);
     }
 
     return {

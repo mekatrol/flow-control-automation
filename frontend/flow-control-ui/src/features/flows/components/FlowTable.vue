@@ -1,9 +1,14 @@
 <template>
-  <AppTable caption="Flows">
+  <AppTable automation="flows-table" caption="Flows">
     <template #head>
       <tr>
         <th scope="col" :aria-sort="sortDirection">
-          <TableSortButton label="Name" :direction="sortDirection" @toggle="$emit('toggleSort')" />
+          <TableSortButton
+            automation="flows-name-sort"
+            label="Name"
+            :direction="sortDirection"
+            @toggle="$emit('toggleSort')"
+          />
         </th>
         <th scope="col">Status</th>
         <th scope="col">Nodes</th>

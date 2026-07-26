@@ -28,7 +28,7 @@
       No points found.
     </p>
     <template v-else>
-      <AppTable caption="Configured points">
+      <AppTable automation="points-table" caption="Configured points">
         <template #head>
           <tr>
             <th scope="col">Name</th>

@@ -14,8 +14,21 @@
           type="text"
           @input="$emit('update:renameValue', ($event.target as HTMLInputElement).value)"
         />
-        <AppButton type="submit" text="Save name" :icon="saveIcon" hide-text :disabled="renaming" />
-        <AppButton text="Cancel" :icon="cancelIcon" hide-text @click="$emit('cancelRename')" />
+        <AppButton
+          v-bind="automation('save-name')"
+          type="submit"
+          text="Save name"
+          :icon="saveIcon"
+          hide-text
+          :disabled="renaming"
+        />
+        <AppButton
+          v-bind="automation('cancel-rename')"
+          text="Cancel"
+          :icon="cancelIcon"
+          hide-text
+          @click="$emit('cancelRename')"
+        />
       </form>
       <RouterLink
         v-else
@@ -38,17 +51,24 @@
     </td>
     <td class="actions" @click.stop>
       <AppButton
+        v-bind="automation('toggle-disabled')"
         :text="flow.disabled ? 'Enable' : 'Disable'"
         :icon="flow.disabled ? enableFlowIcon : disableFlowIcon"
         :disabled="togglingDisabled"
         @click="$emit('toggleDisabled', flow.id, !flow.disabled)"
       />
       <AppButton
+        v-bind="automation('rename')"
         text="Rename"
         :icon="renameFlowIcon"
         @click="$emit('beginRename', flow.id, flow.name)"
       />
-      <AppButton text="Delete" :icon="deleteFlowIcon" @click="$emit('beginDelete', flow.id)" />
+      <AppButton
+        v-bind="automation('delete')"
+        text="Delete"
+        :icon="deleteFlowIcon"
+        @click="$emit('beginDelete', flow.id)"
+      />
       <div
         v-if="confirmingDelete"
         :ref="setDeleteDialog"
@@ -62,12 +82,14 @@
       >
         <span :id="`delete-description-${flow.id}`">Delete this flow?</span>
         <AppButton
+          v-bind="automation('confirm-delete')"
           text="Confirm delete"
           :icon="deleteFlowIcon"
           :disabled="deleting"
           @click="$emit('confirmDelete', flow.id)"
         />
         <AppButton
+          v-bind="automation('cancel-delete')"
           text="Cancel"
           :icon="cancelIcon"
           data-dialog-initial-focus
@@ -89,6 +111,7 @@ import enableFlowIcon from '@/assets/icons/enable-flow-icon.svg';
 import renameFlowIcon from '@/assets/icons/rename-flow-icon.svg';
 import saveIcon from '@/assets/icons/save-icon.svg';
 import AppButton from '@/components/AppButton.vue';
+import { useAutomation } from '@/composables/useAutomation';
 import { useModalFocus } from '@/features/flows/composables/useModalFocus';
 import type { FlowDefinition } from '@/features/flows/types';
 
@@ -114,6 +137,7 @@ const emit = defineEmits<{
 }>();
 
 const router = useRouter();
+const automation = useAutomation(`flow-row-${props.flow.id}`);
 const deleteDialog = ref<HTMLElement>();
 const deleteDialogOpen = computed(() => props.confirmingDelete);
 const setDeleteDialog = (element: Element | ComponentPublicInstance | null): void => {

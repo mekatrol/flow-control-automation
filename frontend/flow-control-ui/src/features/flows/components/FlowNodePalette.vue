@@ -11,6 +11,7 @@
         <AppButton
           v-for="definition in definitions"
           :key="definition.kind"
+          v-bind="automation(`add-${definition.kind}`)"
           :text="definition.label"
           draggable="true"
           :aria-label="`Add ${definition.label} node`"
@@ -66,9 +67,11 @@ export const groupNodeKinds = (
 import { computed, ref } from 'vue';
 
 import AppButton from '@/components/AppButton.vue';
+import { useAutomation } from '@/composables/useAutomation';
 import type { FlowNodeKind } from '@/features/flows/types';
 
 const emit = defineEmits<{ add: [kind: FlowNodeKind] }>();
+const automation = useAutomation('flow-node-palette');
 const query = ref('');
 const groups = computed(() => groupNodeKinds(filterNodeKinds(query.value)));
 
