@@ -253,7 +253,7 @@ public static class ConfigurationYaml
         return result;
     }
 
-    private static JsonNode? ConvertScalar(YamlScalarNode scalar)
+    private static JsonValue? ConvertScalar(YamlScalarNode scalar)
     {
         var value = scalar.Value ?? string.Empty;
         var tag = scalar.Tag.ToString();

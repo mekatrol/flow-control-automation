@@ -164,8 +164,19 @@ test('recovers from a failed save without losing edits', async ({ page }) => {
     await route.fulfill({ json: persistedPayload });
   });
 
+  const initialFlowResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'GET' &&
+      new URL(response.url()).pathname === '/api/flows/climate-control'
+  );
   await page.goto('/flows/climate-control');
-  await page.getByRole('button', { name: /Average temperature, Calculator node/ }).click();
+  expect((await initialFlowResponse).ok()).toBe(true);
+
+  const averageNode = page.getByRole('button', {
+    name: /Average temperature, Calculator node/
+  });
+  await expect(averageNode).toBeVisible();
+  await averageNode.click();
   await page.getByRole('textbox', { name: 'Node label' }).fill('Retry-safe average');
   await page.getByRole('button', { name: 'Save flow' }).click();
 
@@ -187,10 +198,16 @@ test('recovers from a failed save without losing edits', async ({ page }) => {
 });
 
 test('protects dirty navigation and supports explicit discard', async ({ page }) => {
+  const initialFlowResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'GET' &&
+      new URL(response.url()).pathname === '/api/flows/climate-control'
+  );
   await page.goto('/flows/climate-control');
-  await expect(page.getByText('Loading latest flow…')).toBeHidden();
+  expect((await initialFlowResponse).ok()).toBe(true);
 
   const node = page.getByRole('button', { name: /Average temperature, Calculator node/ });
+  await expect(node).toBeVisible();
   await node.focus();
   await page.keyboard.press('Enter');
   await page.keyboard.press('ArrowRight');

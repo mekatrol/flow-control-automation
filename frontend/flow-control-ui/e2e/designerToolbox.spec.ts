@@ -8,9 +8,16 @@ import { expect, test } from './fixtures/flowTest';
  */
 
 test('searches the node palette and adds registry-backed nodes', async ({ page }) => {
+  const initialFlowResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'GET' &&
+      new URL(response.url()).pathname === '/api/flows/climate-control'
+  );
   await page.goto('/flows/climate-control');
+  expect((await initialFlowResponse).ok()).toBe(true);
 
   const search = page.getByRole('searchbox', { name: 'Find a node' });
+  await expect(search).toBeVisible();
   await search.fill('timing');
   await expect(page.getByRole('button', { name: 'Add Pulse node' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Add Calculator node' })).toHaveCount(0);
