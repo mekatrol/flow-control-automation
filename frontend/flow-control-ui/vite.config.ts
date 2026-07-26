@@ -48,6 +48,28 @@ export default defineConfig({
     }
   },
   plugins: [vue(), ...(process.env.FLOW_UI_E2E ? [] : [vueDevTools()]), chunkSizeBudgetPlugin()],
+  optimizeDeps: {
+    // The E2E suite opens several lazy routes in parallel. If Vite discovers a
+    // new dependency after a test has started interacting with a page, its
+    // optimizer forces a full-page reload and destroys transient UI state such
+    // as the selected designer node. Serve undiscovered dependencies directly
+    // during E2E runs so browser interactions are never interrupted by a
+    // development-only optimizer reload.
+    noDiscovery: Boolean(process.env.FLOW_UI_E2E),
+    include: process.env.FLOW_UI_E2E
+      ? [
+          'vue',
+          'pinia',
+          'vue-router',
+          'yaml',
+          'monaco-yaml',
+          'monaco-yaml/yaml.worker.js',
+          'monaco-editor/esm/vs/editor/editor.worker',
+          'monaco-editor/esm/vs/editor/editor.main',
+          'monaco-editor/esm/vs/basic-languages/yaml/yaml.contribution'
+        ]
+      : undefined
+  },
   build: {
     // Per-chunk budgets are enforced by chunkSizeBudgetPlugin. Keep Vite's
     // aggregate limit out of the way because it cannot exempt known large chunks.

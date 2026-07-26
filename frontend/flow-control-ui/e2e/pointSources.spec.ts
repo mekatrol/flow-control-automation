@@ -114,9 +114,10 @@ test('catalogue and YAML editor support create, test, retry, and keyboard use', 
   await expect(page.getByLabel('HTTP / JSON example YAML')).toContainText(
     'allowedReadMethods: [GET]'
   );
-  await page.locator('.monaco-editor .view-lines').click();
-  await page.keyboard.press('ControlOrMeta+A');
-  await page.keyboard.insertText(sourceYAML);
+  await page.getByRole('button', { name: 'Use this example' }).click();
+  await expect(page.locator('.monaco-editor .view-lines')).toContainText('kind: http_json');
+  await expect(page.getByRole('button', { name: 'Save' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Test connection' })).toBeEnabled();
   await page.getByRole('button', { name: 'Test connection' }).press('Enter');
 
   // Expected outcome: `page.getByRole('heading', { name: 'Connection test: failed' })` is visible to the user.
