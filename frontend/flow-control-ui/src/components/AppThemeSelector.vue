@@ -113,7 +113,33 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.theme-selector {
+  display: inline-grid;
+  width: 72px;
+  height: 40px;
+  min-height: 40px;
+  padding: 4px;
+  place-items: center;
+  color: var(--color-header-nav-text);
+  background: var(--color-transparent);
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.theme-selector:hover {
+  color: var(--color-text-on-strong);
+  background: var(--color-header-nav-background-active);
+}
+
+.theme-selector :deep(.button-icon-slot) {
+  width: 64px;
+  height: 32px;
+}
+
 .theme-selector-icon {
+  width: 64px;
+  height: 32px;
   background-color: var(--color-current);
   mask: var(--theme-icon) center / contain no-repeat;
 }

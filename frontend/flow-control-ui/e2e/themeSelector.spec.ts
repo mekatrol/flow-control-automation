@@ -40,6 +40,11 @@ test('cycles through every theme and exposes the correct accessible state', asyn
   const help = page.locator('#theme-selector-help');
   const status = page.locator('.visually-hidden[role="status"]');
 
+  await expect(selector).toHaveCSS('width', '72px');
+  await expect(selector).toHaveCSS('height', '40px');
+  await expect(selector.locator('.button-icon-slot')).toHaveCSS('width', '64px');
+  await expect(selector.locator('.button-icon-slot')).toHaveCSS('height', '32px');
+
   // Expected outcome: `selector` exposes the required attribute.
   // Acceptance criteria: `selector` must have attribute arguments `'aria-describedby', 'theme-selector-help'`, because this condition proves that
   // cycles through every theme and exposes the correct accessible state.
