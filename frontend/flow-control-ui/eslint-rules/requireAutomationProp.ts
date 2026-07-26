@@ -14,12 +14,8 @@ type RuleContext = Rule.RuleContext & {
   };
 };
 
-// The core component types we do not want automation tags enforced when linting
-const EXCLUDED_COMPONENTS = new Set([
-  'CoreRequiredField',
-  'CoreContentBlock',
-  'CorePageLayout',
-  'CoreFormPageLayout'
+// The app component types we do not want automation tags enforced when linting
+const EXCLUDED_COMPONENTS = new Set<string>([
 ]);
 
 // Must:
@@ -32,7 +28,7 @@ const requireAutomationProp: Rule.RuleModule = {
   meta: {
     type: 'problem',
     docs: {
-      description: 'Require valid automation prop on UI core components'
+      description: 'Require valid automation prop on UI app components'
     },
     schema: [],
     messages: {
@@ -58,9 +54,9 @@ const requireAutomationProp: Rule.RuleModule = {
           return;
         }
 
-        const isCoreComponent = name.startsWith('Core') || name.startsWith('Base');
+        const isAppComponent = name.startsWith('App') || name.startsWith('Base');
 
-        if (!isCoreComponent) {
+        if (!isAppComponent) {
           return;
         }
 

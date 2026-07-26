@@ -55,11 +55,14 @@ export default defineConfig({
         ]
       : []),
     {
-      command: `npm run dev:debug -- --host 127.0.0.1 --port ${port} --strictPort`,
+      command: `node ./node_modules/vite/bin/vite.js --host 127.0.0.1 --port ${port} --strictPort`,
       url: baseURL,
       reuseExistingServer: !process.env.CI,
       timeout: 30_000,
-      env: useDotnetBackend ? { VITE_API_PROXY: backendURL } : {}
+      env: {
+        FLOW_UI_E2E: '1',
+        ...(useDotnetBackend ? { VITE_API_PROXY: backendURL } : {})
+      }
     }
   ]
 });

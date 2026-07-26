@@ -97,24 +97,54 @@
           <label for="credential-password">{{
             editing ? 'Replacement password' : 'Password'
           }}</label>
-          <input
-            id="credential-password"
-            v-model="form.password"
-            type="password"
-            :required="!editing"
-            autocomplete="new-password"
-          />
+          <div class="secret-input">
+            <input
+              id="credential-password"
+              v-model="form.password"
+              :type="passwordVisible ? 'text' : 'password'"
+              :required="!editing"
+              autocomplete="new-password"
+            />
+            <button
+              v-if="form.password"
+              type="button"
+              class="secret-visibility-button"
+              :aria-label="passwordVisible ? 'Hide password' : 'Show password'"
+              :aria-pressed="passwordVisible"
+              @click="passwordVisible = !passwordVisible"
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+                <circle cx="12" cy="12" r="2.75" />
+              </svg>
+            </button>
+          </div>
           <p v-if="editing" class="field-help">Leave blank to keep the existing password.</p>
         </template>
         <template v-else>
           <label for="credential-token">{{ editing ? 'Replacement token' : 'Token' }}</label>
-          <input
-            id="credential-token"
-            v-model="form.token"
-            type="password"
-            :required="!editing"
-            autocomplete="new-password"
-          />
+          <div class="secret-input">
+            <input
+              id="credential-token"
+              v-model="form.token"
+              :type="tokenVisible ? 'text' : 'password'"
+              :required="!editing"
+              autocomplete="new-password"
+            />
+            <button
+              v-if="form.token"
+              type="button"
+              class="secret-visibility-button"
+              :aria-label="tokenVisible ? 'Hide token' : 'Show token'"
+              :aria-pressed="tokenVisible"
+              @click="tokenVisible = !tokenVisible"
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+                <circle cx="12" cy="12" r="2.75" />
+              </svg>
+            </button>
+          </div>
           <p v-if="editing" class="field-help">Leave blank to keep the existing token.</p>
         </template>
         <p class="secret-notice">
@@ -147,6 +177,8 @@ const saving = ref(false);
 const editing = ref(false);
 const error = ref('');
 const status = ref('');
+const passwordVisible = ref(false);
+const tokenVisible = ref(false);
 const errorSummary = ref<HTMLElement>();
 let controller: AbortController | undefined;
 const form = reactive<CredentialInput>({
@@ -163,9 +195,23 @@ watch(error, async (value) => {
     errorSummary.value?.focus();
   }
 });
+watch(
+  () => form.password,
+  (value) => {
+    if (!value) passwordVisible.value = false;
+  }
+);
+watch(
+  () => form.token,
+  (value) => {
+    if (!value) tokenVisible.value = false;
+  }
+);
 const resetSecrets = (): void => {
   form.password = '';
   form.token = '';
+  passwordVisible.value = false;
+  tokenVisible.value = false;
 };
 const beginCreate = (): void => {
   editing.value = false;

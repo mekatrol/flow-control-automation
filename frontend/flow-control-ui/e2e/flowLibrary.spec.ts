@@ -166,7 +166,7 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
     ...structuredClone(sampleFlows[0]!),
     id: `flow-${index + 1}`,
     name: `Flow ${String(index + 1).padStart(2, '0')}`,
-    status: index % 2 === 0 ? 'deployed' as const : 'draft' as const
+    status: index % 2 === 0 ? ('deployed' as const) : ('draft' as const)
   }));
   await page.route(flowsCollectionPattern, async (route) => {
     await route.fulfill({ json: pagedFlows(manyFlows, route.request().url()) });
@@ -186,14 +186,18 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
   await expect(page.getByText('No flows match the selected filters.')).toBeVisible();
   await expect(table).toBeVisible();
   await expect(table.getByRole('row')).toHaveCount(1);
-  await expect(
-    page.getByRole('button', { name: 'Deployment status: All' })
-  ).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Deployment status: All' })).toBeVisible();
   await nameFilter.fill('');
+  // Wait for the debounced clear-filter request to finish before changing the
+  // sort. Without this user-visible checkpoint, Firefox can click while the
+  // previous list refresh is still settling and the response wait becomes racy.
+  await expect(table.getByRole('row')).toHaveCount(11);
 
   const sortButton = page.getByRole('button', { name: /Name, sorted ascending/ });
   await expect(sortButton.locator('.button-icon')).toHaveCount(1);
-  expect(await sortButton.locator('.button-icon').evaluate((icon) => icon.getBoundingClientRect().width)).toBe(18);
+  expect(
+    await sortButton.locator('.button-icon').evaluate((icon) => icon.getBoundingClientRect().width)
+  ).toBe(18);
   const descendingResponse = page.waitForResponse((response) => {
     const url = new URL(response.url());
     return url.pathname === '/api/flows' && url.searchParams.get('sort') === 'descending';
@@ -211,7 +215,11 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
   await page.getByLabel('Items per page').selectOption('20');
   const nextPageButton = page.getByRole('button', { name: 'Next page' });
   await expect(nextPageButton.locator('.button-icon')).toHaveCount(1);
-  expect(await nextPageButton.locator('.button-icon').evaluate((icon) => icon.getBoundingClientRect().width)).toBe(18);
+  expect(
+    await nextPageButton
+      .locator('.button-icon')
+      .evaluate((icon) => icon.getBoundingClientRect().width)
+  ).toBe(18);
   await nextPageButton.click();
   await expect(page).toHaveURL(/page=2/);
   await expect(page).toHaveURL(/pageSize=20/);
@@ -224,7 +232,8 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
   await statusDropdown.click();
   // Keep the filter controls interactive while the previous debounced list
   // request settles. FlowListView deliberately retains this DOM during refresh.
-  await page.getByRole('checkbox', { name: 'Draft' }).click();
+  const draftStatus = page.getByRole('checkbox', { name: 'Draft' });
+  await draftStatus.uncheck();
   const deployedStatusDropdown = page.getByRole('button', {
     name: 'Deployment status: Deployed'
   });
@@ -241,7 +250,7 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
   await expect(page.getByText('11–13 of 13')).toBeVisible();
 
   await deployedStatusDropdown.click();
-  await page.getByRole('checkbox', { name: 'All' }).click();
+  await page.getByRole('checkbox', { name: 'All' }).check();
   await expect(page).toHaveURL(/status=deployed/);
   await expect(page).toHaveURL(/status=draft/);
   await expect(page.getByText('1–10 of 25')).toBeVisible();

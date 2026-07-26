@@ -18,7 +18,7 @@ export default defineConfig({
       '/api': process.env.VITE_API_PROXY || 'http://localhost:8080'
     }
   },
-  plugins: [vue(), vueDevTools()],
+  plugins: [vue(), ...(process.env.FLOW_UI_E2E ? [] : [vueDevTools()])],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),

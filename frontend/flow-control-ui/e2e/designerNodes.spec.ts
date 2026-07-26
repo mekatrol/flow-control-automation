@@ -163,12 +163,22 @@ test('validates, saves, and reloads typed node configuration', async ({ page }) 
   await page.getByRole('combobox', { name: 'Operation' }).selectOption('sum');
   await expect(page.getByText('Unsaved changes', { exact: true })).toBeVisible();
 
+  const saveResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'PUT' &&
+      new URL(response.url()).pathname === '/api/flows/climate-control' &&
+      response.ok()
+  );
   await page.getByRole('button', { name: 'Save flow' }).click();
+  await saveResponse;
   await expect.poll(() => persistedPayload.nodes[0]?.label).toBe('Whole house average');
   expect(persistedPayload.nodes[0]?.configuration.operation).toBe('sum');
   await expect(page.getByText('Unsaved changes', { exact: true })).toBeHidden();
 
-  await page.reload();
+  // The saved-node assertion below is the meaningful readiness signal. Waiting
+  // only for DOM content avoids treating an unrelated late resource as a failed
+  // reload after the persisted PUT has already completed.
+  await page.reload({ waitUntil: 'domcontentloaded' });
   const savedNode = page.getByRole('button', { name: /Whole house average, Calculator node/ });
   await expect(savedNode).toBeVisible();
   await savedNode.click();

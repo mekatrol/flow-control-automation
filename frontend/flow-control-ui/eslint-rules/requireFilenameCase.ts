@@ -299,7 +299,7 @@ const hasPrimaryClassExport = (program: TSESTree.Program): boolean => {
 const isInsideDirectory = (filename: string, directoryNames: readonly string[]): boolean => {
   const directoryParts = path
     .dirname(filename)
-    .split(path.sep)
+    .split(/[\\/]/)
     .map((part: string): string => part.toLowerCase());
 
   return directoryNames.some((directoryName: string): boolean =>

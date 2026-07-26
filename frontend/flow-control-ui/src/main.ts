@@ -6,6 +6,7 @@ import router from './router';
 
 import './assets/reset.css';
 import './assets/theme.css';
+import './assets/popover.css';
 import './assets/main.css';
 
 const app = createApp(App);

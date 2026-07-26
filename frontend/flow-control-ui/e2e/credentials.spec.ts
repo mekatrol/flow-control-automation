@@ -28,11 +28,19 @@ test('creates a write-only credential and never displays its secret again', asyn
   await page.getByLabel('Username').fill('flow-reader');
   const password = page.getByLabel('Password', { exact: true });
   await expect(password).toHaveAttribute('type', 'password');
+  await expect(page.getByRole('button', { name: 'Show password' })).toHaveCount(0);
   await password.fill('broker-secret');
+  const showPassword = page.getByRole('button', { name: 'Show password' });
+  await expect(showPassword).toBeVisible();
+  await showPassword.click();
+  await expect(password).toHaveAttribute('type', 'text');
+  await page.getByRole('button', { name: 'Hide password' }).click();
+  await expect(password).toHaveAttribute('type', 'password');
   await page.getByRole('button', { name: 'Create credential' }).click();
 
   await expect(page.getByText('secret://plant-mqtt')).toBeVisible();
   await expect(page.getByLabel('Replacement password')).toHaveValue('');
+  await expect(page.getByRole('button', { name: 'Show password' })).toHaveCount(0);
   await expect(page.getByText('broker-secret')).toHaveCount(0);
   await expect(page.getByText(/Sensitive values are now hidden/)).toBeAttached();
 });

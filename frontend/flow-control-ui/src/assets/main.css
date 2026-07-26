@@ -279,6 +279,43 @@ a {
   border-radius: 7px;
 }
 
+.secret-input {
+  position: relative;
+  display: flex;
+}
+
+.secret-input input {
+  width: 100%;
+  padding-right: 44px;
+}
+
+.credential-form .secret-visibility-button {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  display: grid;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  place-items: center;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: 0;
+  transform: translateY(-50%);
+}
+
+.secret-visibility-button:hover {
+  color: var(--color-text-primary);
+}
+
+.secret-visibility-button svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 1.8;
+}
+
 .field-help,
 .secret-notice {
   margin: 6px 0 0;
