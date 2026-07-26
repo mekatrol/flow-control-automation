@@ -69,7 +69,9 @@ test('keeps the default selectable but immutable', async ({ page }) => {
   // Expected outcome: `(await new AxeBuilder({ page }` matches the required structure.
   // Acceptance criteria: `(await new AxeBuilder({ page }` must equal `[]`, because this condition proves that
   // keeps the default selectable but immutable.
-  expect((await new AxeBuilder({ page }).include('main').analyze()).violations).toEqual([]);
+  await expect(async () => {
+    expect((await new AxeBuilder({ page }).include('main').analyze()).violations).toEqual([]);
+  }).toPass({ timeout: 10_000 });
 });
 
 /**

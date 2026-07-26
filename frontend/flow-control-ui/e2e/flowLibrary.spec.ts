@@ -413,6 +413,8 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
 
   await nameFilter.fill('Flow');
   await page.getByLabel('Items per page').selectOption('20');
+  await expect(page).toHaveURL(/pageSize=20/);
+  await expect(page.getByText('1–20 of 25')).toBeVisible();
   const nextPageButton = page.getByRole('button', { name: 'Next page' });
 
   // Expected outcome: `nextPageButton.locator('.button-icon')` resolves to the required number of elements.
@@ -489,6 +491,7 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
   await expect(table.getByRole('row')).toHaveCount(14);
 
   await page.getByLabel('Items per page').selectOption('10');
+  await expect(page.getByText('1–10 of 13')).toBeVisible();
   await page.getByRole('button', { name: 'Next page' }).click();
 
   // Expected outcome: Navigation reaches the required route.

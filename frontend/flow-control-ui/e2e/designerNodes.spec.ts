@@ -153,12 +153,9 @@ test('enables z-order commands at valid boundaries and changes render order', as
   // Expected outcome: `await order()` matches the required structure.
   // Acceptance criteria: `await order()` must equal `[ 'comfort-pulse', 'manual-override', 'zone-split', 'temperature-average' ]`, because this condition proves that
   // enables z-order commands at valid boundaries and changes render order.
-  expect(await order()).toEqual([
-    'comfort-pulse',
-    'manual-override',
-    'zone-split',
-    'temperature-average'
-  ]);
+  await expect
+    .poll(order)
+    .toEqual(['comfort-pulse', 'manual-override', 'zone-split', 'temperature-average']);
 
   // Expected outcome: `page.getByRole('button', { name: 'Bring to front' })` prevents interaction.
   // Acceptance criteria: `page.getByRole('button', { name: 'Bring to front' })` must be disabled, because this condition proves that
@@ -170,36 +167,27 @@ test('enables z-order commands at valid boundaries and changes render order', as
   // Expected outcome: `await order()` matches the required structure.
   // Acceptance criteria: `await order()` must equal `[ 'comfort-pulse', 'manual-override', 'temperature-average', 'zone-split' ]`, because this condition proves that
   // enables z-order commands at valid boundaries and changes render order.
-  expect(await order()).toEqual([
-    'comfort-pulse',
-    'manual-override',
-    'temperature-average',
-    'zone-split'
-  ]);
+  await expect
+    .poll(order)
+    .toEqual(['comfort-pulse', 'manual-override', 'temperature-average', 'zone-split']);
 
   await page.getByRole('button', { name: 'Send to back' }).click();
 
   // Expected outcome: `await order()` matches the required structure.
   // Acceptance criteria: `await order()` must equal `[ 'temperature-average', 'comfort-pulse', 'manual-override', 'zone-split' ]`, because this condition proves that
   // enables z-order commands at valid boundaries and changes render order.
-  expect(await order()).toEqual([
-    'temperature-average',
-    'comfort-pulse',
-    'manual-override',
-    'zone-split'
-  ]);
+  await expect
+    .poll(order)
+    .toEqual(['temperature-average', 'comfort-pulse', 'manual-override', 'zone-split']);
 
   await page.getByRole('button', { name: 'Bring forward' }).click();
 
   // Expected outcome: `await order()` matches the required structure.
   // Acceptance criteria: `await order()` must equal `[ 'comfort-pulse', 'temperature-average', 'manual-override', 'zone-split' ]`, because this condition proves that
   // enables z-order commands at valid boundaries and changes render order.
-  expect(await order()).toEqual([
-    'comfort-pulse',
-    'temperature-average',
-    'manual-override',
-    'zone-split'
-  ]);
+  await expect
+    .poll(order)
+    .toEqual(['comfort-pulse', 'temperature-average', 'manual-override', 'zone-split']);
 });
 
 /**
@@ -279,12 +267,17 @@ test('validates, saves, and reloads typed node configuration', async ({ page }) 
   // validates, saves, and reloads typed node configuration.
   await expect(page.getByRole('alert')).toHaveText('Node label is required.');
   await label.fill('Whole house average');
-  await page.getByRole('combobox', { name: 'Operation' }).selectOption('sum');
+  const operation = page.getByRole('combobox', { name: 'Operation' });
+  await operation.selectOption('sum');
 
   // Expected outcome: `page.getByText('Unsaved changes', { exact: true })` is visible to the user.
   // Acceptance criteria: `page.getByText('Unsaved changes', { exact: true })` must be visible, because this condition proves that
   // validates, saves, and reloads typed node configuration.
   await expect(page.getByText('Unsaved changes', { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: /Whole house average, Calculator node/ })
+  ).toBeVisible();
+  await expect(operation).toHaveValue('sum');
 
   const saveResponse = page.waitForResponse(
     (response) =>

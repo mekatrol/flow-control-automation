@@ -177,7 +177,13 @@ test('renders a validated mocked API payload and rejects an invalid one visibly'
   await page.route('**/api/flows/climate-control', (route) =>
     route.fulfill({ json: invalidPayload })
   );
-  await page.reload();
+  const invalidFlowResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'GET' &&
+      new URL(response.url()).pathname === '/api/flows/climate-control'
+  );
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await invalidFlowResponse;
 
   // Expected outcome: `page.getByRole('alert')` displays the required content.
   // Acceptance criteria: `page.getByRole('alert')` must contain the text `'invalid flow'`, because this condition proves that

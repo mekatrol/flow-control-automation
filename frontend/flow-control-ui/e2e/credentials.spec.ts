@@ -67,10 +67,12 @@ test('creates a write-only credential and never displays its secret again', asyn
   await expect(password).toHaveAttribute('type', 'password');
   await page.getByRole('button', { name: 'Create credential' }).click();
 
-  // Expected outcome: `page.getByText('secret://plant-mqtt')` is visible to the user.
-  // Acceptance criteria: `page.getByText('secret://plant-mqtt')` must be visible, because this condition proves that
+  const savedCredentials = page.getByLabel('Saved credentials');
+
+  // Expected outcome: the saved credential reference is visible in the credential list.
+  // Acceptance criteria: the saved credential list must contain `secret://plant-mqtt`, because this condition proves that
   // creates a write-only credential and never displays its secret again.
-  await expect(page.getByText('secret://plant-mqtt')).toBeVisible();
+  await expect(savedCredentials.getByText('secret://plant-mqtt', { exact: true })).toBeVisible();
 
   // Expected outcome: `page.getByLabel('Replacement password')` contains the required input value.
   // Acceptance criteria: `page.getByLabel('Replacement password')` must have value `''`, because this condition proves that
