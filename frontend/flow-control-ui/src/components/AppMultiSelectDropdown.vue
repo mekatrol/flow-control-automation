@@ -119,24 +119,6 @@ onBeforeUnmount(() => {
   font-weight: 700;
 }
 
-.multi-select :deep(button) {
-  min-width: 170px;
-  min-height: 44px;
-  justify-content: space-between;
-  flex-direction: row-reverse;
-  padding: 9px 10px;
-  color: var(--color-text-primary);
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-default);
-  border-radius: 7px;
-  cursor: pointer;
-}
-
-.multi-select :deep(.button-text) {
-  flex: 1;
-  text-align: left;
-}
-
 .multi-select-menu {
   position: absolute;
   z-index: 4;

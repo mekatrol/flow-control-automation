@@ -103,6 +103,8 @@
   --color-warning-surface: #fff0d8;
   /* Global keyboard-focus ring. */
   --color-focus-ring: #e07718;
+  /* Popover emphasis outline. */
+  --color-popover-outline: #4d7c0f;
 
   /* Destructive and validation message text. */
   --color-danger-text: #8e3021;
@@ -226,6 +228,7 @@
     --color-warning-text: #ffd08a;
     --color-warning-surface: #49351c;
     --color-focus-ring: #ffad5c;
+    --color-popover-outline: #adff2f;
     --color-danger-text: #ffb4a8;
     --color-danger-strong: #b84c3a;
     --color-danger-border: #df7664;
@@ -310,6 +313,7 @@
   --color-warning-text: #ffd08a;
   --color-warning-surface: #49351c;
   --color-focus-ring: #ffad5c;
+  --color-popover-outline: #adff2f;
   --color-danger-text: #ffb4a8;
   --color-danger-strong: #b84c3a;
   --color-danger-border: #df7664;

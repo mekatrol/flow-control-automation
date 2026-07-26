@@ -12,7 +12,7 @@
     <p v-if="loading" role="status">Loading point sources…</p>
     <div v-if="error" class="request-error" role="alert">
       <span>{{ error }}</span>
-      <button type="button" @click="load">Retry</button>
+      <AppButton automation="point-sources-retry" text="Retry" :icon="retryIcon" @click="load" />
     </div>
     <div v-else class="source-list">
       <label for="source-filter">Filter by name</label>
@@ -52,6 +52,8 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import retryIcon from '@/assets/icons/retry-icon.svg';
+import AppButton from '@/components/AppButton.vue';
 import {
   pointSourceApi,
   type PointSourceKind,

@@ -37,14 +37,34 @@
           @diagnostics="editorDiagnostics = $event"
         />
         <div class="editor-actions">
-          <button type="submit" :disabled="saving || hasEditorErrors">
-            {{ saving ? 'Saving…' : 'Save' }}
-          </button>
-          <button type="button" :disabled="testing || hasEditorErrors" @click="testConnection">
-            {{ testing ? 'Testing…' : 'Test connection' }}
-          </button>
-          <button v-if="testing" type="button" @click="cancelTest">Cancel test</button>
-          <button v-if="!isNew" type="button" class="danger-button" @click="remove">Delete</button>
+          <AppButton
+            automation="point-source-save"
+            type="submit"
+            :text="saving ? 'Saving…' : 'Save'"
+            :icon="saveIcon"
+            :disabled="saving || hasEditorErrors"
+          />
+          <AppButton
+            automation="point-source-test-connection"
+            :text="testing ? 'Testing…' : 'Test connection'"
+            :icon="testConnectionIcon"
+            :disabled="testing || hasEditorErrors"
+            @click="testConnection"
+          />
+          <AppButton
+            v-if="testing"
+            automation="point-source-cancel-test"
+            text="Cancel test"
+            :icon="cancelIcon"
+            @click="cancelTest"
+          />
+          <AppButton
+            v-if="!isNew"
+            automation="point-source-delete"
+            text="Delete"
+            :icon="deleteIcon"
+            @click="remove"
+          />
         </div>
       </form>
 
@@ -75,7 +95,12 @@
           tabindex="0"
           :aria-label="`${selectedExample.name} example YAML`"
         ><code>{{ selectedExample.yaml }}</code></pre>
-        <button type="button" @click="useSelectedExample">Use this example</button>
+        <AppButton
+          automation="point-source-use-example"
+          text="Use this example"
+          :icon="checkIcon"
+          @click="useSelectedExample"
+        />
         <div v-if="selectedExample.kind === 'mqtt'" class="mqtt-credential-help">
           <h3>MQTT credentials</h3>
           <p>
@@ -112,9 +137,13 @@
           >: {{ stage.status }}<span v-if="stage.diagnostic"> — {{ stage.diagnostic }}</span>
         </li>
       </ol>
-      <button v-if="testResult.status === 'failed'" type="button" @click="testConnection">
-        Retry test
-      </button>
+      <AppButton
+        v-if="testResult.status === 'failed'"
+        automation="point-source-retry-test"
+        text="Retry test"
+        :icon="retryIcon"
+        @click="testConnection"
+      />
     </section>
     <p class="visually-hidden" role="status" aria-live="polite">{{ status }}</p>
   </section>
@@ -123,6 +152,13 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
+import cancelIcon from '@/assets/icons/cancel-icon.svg';
+import checkIcon from '@/assets/icons/check-icon.svg';
+import deleteIcon from '@/assets/icons/delete-flow-icon.svg';
+import retryIcon from '@/assets/icons/retry-icon.svg';
+import saveIcon from '@/assets/icons/save-icon.svg';
+import testConnectionIcon from '@/assets/icons/test-connection-icon.svg';
+import AppButton from '@/components/AppButton.vue';
 import AppYamlEditor, { type YamlDiagnostic } from '@/components/AppYamlEditor.vue';
 import {
   pointSourceApi,

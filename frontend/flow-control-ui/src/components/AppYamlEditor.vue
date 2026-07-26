@@ -19,10 +19,12 @@
       </h3>
       <ol>
         <li v-for="diagnostic in diagnostics" :key="diagnostic.key">
-          <button type="button" @click="revealDiagnostic(diagnostic)">
-            Line {{ diagnostic.line }}, column {{ diagnostic.column }}:
-            {{ diagnostic.message }}
-          </button>
+          <AppButton
+            :automation="`yaml-diagnostic-${diagnostic.line}-${diagnostic.column}`"
+            :text="`Line ${diagnostic.line}, column ${diagnostic.column}: ${diagnostic.message}`"
+            :icon="diagnosticIcon"
+            @click="revealDiagnostic(diagnostic)"
+          />
         </li>
       </ol>
     </section>
@@ -32,6 +34,8 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
+import diagnosticIcon from '@/assets/icons/diagnostic-icon.svg';
+import AppButton from '@/components/AppButton.vue';
 import { useAutomation } from '@/composables/useAutomation';
 import {
   configureYamlSchema,
@@ -209,12 +213,5 @@ onBeforeUnmount(() => {
   gap: 5px;
   margin: 0;
   padding-left: 22px;
-}
-
-.yaml-diagnostics button {
-  padding: 2px;
-  text-align: left;
-  background: transparent;
-  border: 0;
 }
 </style>

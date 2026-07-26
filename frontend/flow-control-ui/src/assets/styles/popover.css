@@ -2,9 +2,11 @@
   --popover-y-offset: -0.35rem;
   --popover-transform-origin: top;
 
+  outline: 2px solid var(--color-popover-outline);
+
   width: max-content;
-  max-width: min(20rem, calc(100vw - 2rem));
-  margin: 0.5rem 0;
+  max-width: calc(100vw - 2rem);
+  margin: auto;
   padding: 1rem;
   border: 1px solid var(--color-border-default);
   border-radius: 6px;
@@ -13,10 +15,7 @@
   box-shadow: 0 1rem 2.5rem var(--color-shadow-dialog);
   line-height: 1.5;
   position: fixed;
-  inset: auto;
-  position-anchor: auto;
-  position-area: bottom span-right;
-  position-try-fallbacks: flip-block, flip-inline;
+  inset: 0;
   opacity: 0;
   transform: translateY(var(--popover-y-offset)) scale(0.96);
   transform-origin: center var(--popover-transform-origin);
@@ -26,6 +25,20 @@
     display 180ms allow-discrete,
     overlay 180ms allow-discrete;
   transition-behavior: allow-discrete;
+}
+
+.popover-panel[data-placement='bottom-start'],
+.popover-panel[data-placement='bottom-end'],
+.popover-panel[data-placement='top-start'],
+.popover-panel[data-placement='top-end'] {
+  inset: auto;
+  margin: 0.5rem 0;
+  position-anchor: auto;
+  position-try-fallbacks: flip-block, flip-inline;
+}
+
+.popover-panel[data-placement='bottom-start'] {
+  position-area: bottom span-right;
 }
 
 .popover-panel[data-placement='bottom-end'] {

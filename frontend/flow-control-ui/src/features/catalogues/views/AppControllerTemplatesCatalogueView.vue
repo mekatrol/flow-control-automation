@@ -25,9 +25,12 @@
     <p v-if="store.loading" role="status">Loading controller templates…</p>
     <div v-else-if="store.error" class="request-error" role="alert">
       <p>{{ store.error }}</p>
-      <button type="button" @click="store.load">
-        {{ store.unavailable ? 'Check again' : 'Retry' }}
-      </button>
+      <AppButton
+        automation="controller-templates-retry"
+        :text="store.unavailable ? 'Check again' : 'Retry'"
+        :icon="retryIcon"
+        @click="store.load"
+      />
     </div>
     <p v-else-if="store.result.items.length === 0" class="empty-state" role="status">
       No controller templates found.
@@ -87,6 +90,8 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted } from 'vue';
+import retryIcon from '@/assets/icons/retry-icon.svg';
+import AppButton from '@/components/AppButton.vue';
 import AppTable from '@/components/AppTable.vue';
 import AppTablePagination from '@/components/AppTablePagination.vue';
 import type { ControllerTemplateSummary } from '@/features/catalogues/api/catalogueDto';

@@ -135,34 +135,6 @@ h3 {
   text-transform: uppercase;
 }
 
-button {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  width: 100%;
-  padding: 8px 10px;
-  color: var(--color-palette-heading);
-  font-size: 13px;
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-default);
-  border-radius: 6px;
-  cursor: pointer;
-  white-space: nowrap;
-  text-align: left;
-  touch-action: none;
-}
-
-button img {
-  flex: 0 0 26px;
-  width: 26px;
-  height: 26px;
-  /*
-   * External SVG assets cannot inherit the button's currentColor. Apply the
-   * shared theme filter so palette avatars remain visible on either surface.
-   */
-  filter: var(--filter-node-icon-foreground);
-}
-
 p {
   margin: 10px 0 0;
   color: var(--color-text-subtle);

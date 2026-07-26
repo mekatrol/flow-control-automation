@@ -5,14 +5,15 @@
     :type="type"
     :aria-label="hideText ? text : ariaLabel"
   >
-    <slot name="icon">
-      <span
-        v-if="icon"
-        class="button-icon"
-        :style="{ maskImage: `url(&quot;${icon}&quot;)` }"
-        aria-hidden="true"
-      />
-    </slot>
+    <span v-if="$slots.icon" class="button-icon-slot">
+      <slot name="icon" />
+    </span>
+    <span
+      v-else-if="icon"
+      class="button-icon"
+      :style="{ maskImage: `url(&quot;${icon}&quot;)` }"
+      aria-hidden="true"
+    />
     <span v-if="!hideText" class="button-text">{{ text }}</span>
   </button>
 </template>
@@ -47,16 +48,65 @@ button {
   gap: 7px;
   align-items: center;
   justify-content: center;
+  min-height: 44px;
+  padding: 9px 14px;
+  color: var(--color-text-primary);
+  font-weight: 650;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-default);
+  border-radius: 8px;
+  cursor: pointer;
 }
 
-.button-icon {
+button:hover:not(:disabled) {
+  color: var(--color-action-primary-strong);
+  background: var(--color-action-primary-surface);
+  border-color: var(--color-action-primary);
+}
+
+button:disabled {
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+  background: var(--color-surface-disabled);
+  border-style: dashed;
+}
+
+.button-icon,
+.button-icon-slot {
   display: inline-block;
   width: 18px;
   height: 18px;
   flex: 0 0 auto;
+}
+
+.button-icon {
   background-color: currentcolor;
   mask-position: center;
   mask-repeat: no-repeat;
   mask-size: contain;
+}
+
+.button-icon-slot {
+  display: inline-grid;
+  place-items: center;
+}
+
+.button-icon-slot :deep(svg),
+.button-icon-slot :deep(img),
+.button-icon-slot :deep(span) {
+  width: 100%;
+  height: 100%;
+}
+
+.button-icon-slot :deep(svg) {
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.button-icon-slot :deep(img) {
+  filter: var(--filter-node-icon-foreground);
 }
 </style>

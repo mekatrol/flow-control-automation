@@ -220,26 +220,6 @@ const openFlow = (): void => {
   white-space: nowrap;
 }
 
-.actions :deep(button),
-.rename-flow :deep(button) {
-  min-width: 44px;
-  min-height: 44px;
-  padding: 8px 10px;
-  color: var(--color-text-secondary);
-  font-weight: 700;
-  background: var(--color-surface-neutral);
-  border: 1px solid var(--color-border-default);
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.actions :deep(button:hover),
-.rename-flow :deep(button:hover) {
-  color: var(--color-action-primary-strong);
-  background: var(--color-action-primary-surface);
-  border-color: var(--color-action-primary);
-}
-
 .rename-flow {
   flex-wrap: wrap;
 }
@@ -271,11 +251,5 @@ const openFlow = (): void => {
   border: 1px solid var(--color-danger-border-subtle);
   border-radius: 8px;
   box-shadow: 0 10px 30px var(--color-shadow-dialog);
-}
-
-.delete-confirmation :deep(button:first-of-type:not(:disabled)) {
-  color: var(--color-text-on-strong);
-  background: var(--color-danger-strong);
-  border-color: var(--color-danger-strong);
 }
 </style>

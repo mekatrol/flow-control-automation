@@ -13,16 +13,24 @@
       <label for="groups-filter">Filter point groups</label>
       <div>
         <input id="groups-filter" v-model="filter" type="search" autocomplete="off" />
-        <button type="submit">Apply filter</button>
+        <AppButton
+          automation="point-groups-apply-filter"
+          type="submit"
+          text="Apply filter"
+          :icon="filterIcon"
+        />
       </div>
     </form>
 
     <p v-if="store.loading" role="status">Loading point groups…</p>
     <div v-else-if="store.error" class="request-error" role="alert">
       <p>{{ store.error }}</p>
-      <button type="button" @click="refresh">
-        {{ store.unavailable ? 'Check again' : 'Retry' }}
-      </button>
+      <AppButton
+        automation="point-groups-retry"
+        :text="store.unavailable ? 'Check again' : 'Retry'"
+        :icon="retryIcon"
+        @click="refresh"
+      />
     </div>
     <p v-else-if="store.result.items.length === 0" class="empty-state" role="status">
       No point groups found.
@@ -68,6 +76,9 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import filterIcon from '@/assets/icons/filter-icon.svg';
+import retryIcon from '@/assets/icons/retry-icon.svg';
+import AppButton from '@/components/AppButton.vue';
 import AppTable from '@/components/AppTable.vue';
 import AppTablePagination from '@/components/AppTablePagination.vue';
 import { usePointGroupsCatalogueStore } from '@/features/catalogues/stores/catalogues';

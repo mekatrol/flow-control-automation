@@ -1,7 +1,6 @@
 <template>
   <AppButton
     v-bind="automation('toggle')"
-    class="sort-button"
     :text="label"
     :aria-label="accessibleLabel"
     :icon="direction === 'ascending' ? sortAscendingIcon : sortDescendingIcon"
@@ -36,26 +35,3 @@ const accessibleLabel = computed(
     }.`
 );
 </script>
-
-<style scoped>
-.sort-button {
-  display: inline-flex;
-  gap: 7px;
-  align-items: center;
-  min-width: 44px;
-  min-height: 44px;
-  padding: 6px 8px;
-  color: inherit;
-  font: inherit;
-  font-weight: 750;
-  background: transparent;
-  border: 0;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.sort-button:hover {
-  color: var(--color-action-primary-strong);
-  background: var(--color-action-primary-surface);
-}
-</style>

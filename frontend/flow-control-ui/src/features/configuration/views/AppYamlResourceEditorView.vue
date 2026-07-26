@@ -51,33 +51,37 @@
         @diagnostics="editorDiagnostics = $event"
       />
       <div class="editor-actions">
-        <button v-if="!readOnly" type="submit" :disabled="busy || hasEditorErrors">
-          {{ saving ? 'Saving…' : 'Save' }}
-        </button>
-        <button
+        <AppButton
+          v-if="!readOnly"
+          automation="yaml-resource-save"
+          type="submit"
+          :text="saving ? 'Saving…' : 'Save'"
+          :icon="saveIcon"
+          :disabled="busy || hasEditorErrors"
+        />
+        <AppButton
           v-if="kind === 'controller' && !readOnly"
-          type="button"
+          automation="yaml-resource-validate"
+          text="Validate"
+          :icon="checkIcon"
           :disabled="busy || hasEditorErrors"
           @click="validateTemplate"
-        >
-          Validate
-        </button>
-        <button
+        />
+        <AppButton
           v-if="!isNew && !readOnly"
-          type="button"
-          class="danger-button"
+          automation="yaml-resource-delete"
+          text="Delete"
+          :icon="deleteIcon"
           :disabled="busy"
           @click="remove"
-        >
-          Delete
-        </button>
-        <button
+        />
+        <AppButton
           v-if="kind === 'group' && !isNew && deleteConflict"
-          type="button"
+          automation="point-group-make-standalone"
+          text="Make member points standalone"
+          :icon="checkIcon"
           @click="makeStandalone"
-        >
-          Make member points standalone
-        </button>
+        />
         <RouterLink
           v-if="kind === 'controller' && readOnly"
           class="primary-link"
@@ -95,10 +99,18 @@
     >
       <div>
         <h2 id="runtime-heading">Live point value</h2>
-        <button type="button" @click="runtimePaused = !runtimePaused">
-          {{ runtimePaused ? 'Resume updates' : 'Pause updates' }}
-        </button>
-        <button type="button" @click="loadRuntime">Retry now</button>
+        <AppButton
+          automation="point-runtime-toggle-updates"
+          :text="runtimePaused ? 'Resume updates' : 'Pause updates'"
+          :icon="runtimePaused ? playIcon : pauseIcon"
+          @click="runtimePaused = !runtimePaused"
+        />
+        <AppButton
+          automation="point-runtime-retry"
+          text="Retry now"
+          :icon="retryIcon"
+          @click="loadRuntime"
+        />
       </div>
       <p v-if="runtimeLoading" role="status">Reading point value…</p>
       <dl v-if="runtime">
@@ -140,6 +152,13 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
+import checkIcon from '@/assets/icons/check-icon.svg';
+import deleteIcon from '@/assets/icons/delete-flow-icon.svg';
+import pauseIcon from '@/assets/icons/pause-icon.svg';
+import playIcon from '@/assets/icons/play-icon.svg';
+import retryIcon from '@/assets/icons/retry-icon.svg';
+import saveIcon from '@/assets/icons/save-icon.svg';
+import AppButton from '@/components/AppButton.vue';
 import AppYamlEditor, { type YamlDiagnostic } from '@/components/AppYamlEditor.vue';
 import {
   controllerTemplateConfigurationApi,

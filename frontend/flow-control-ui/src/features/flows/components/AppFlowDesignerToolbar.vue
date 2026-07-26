@@ -88,38 +88,6 @@ const emit = defineEmits<{ reorder: [command: ZOrderCommand] }>();
   gap: 4px;
 }
 
-button {
-  display: grid;
-  width: 40px;
-  height: 40px;
-  padding: 6px;
-  color: var(--color-text-on-strong);
-  background: var(--color-button-primary);
-  border: 0;
-  cursor: pointer;
-}
-
-button:hover:not(:disabled),
-button:focus-visible {
-  background: var(--color-control-contrast);
-}
-
-button:disabled {
-  color: var(--color-control-neutral-text);
-  background: var(--color-control-neutral);
-  cursor: default;
-}
-
-svg {
-  width: 28px;
-  height: 28px;
-  fill: none;
-  stroke: var(--color-current);
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
 .layer-front {
   fill: var(--color-current);
   fill-opacity: 0.28;

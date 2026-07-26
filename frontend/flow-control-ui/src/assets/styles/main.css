@@ -117,10 +117,6 @@ a {
   border-radius: 8px;
 }
 
-.app-header nav button {
-  flex: none;
-}
-
 .app-header nav a:hover,
 .app-header nav a.router-link-active {
   color: var(--color-text-on-strong);
@@ -174,8 +170,7 @@ a {
   text-transform: uppercase;
 }
 
-.primary-link,
-.configuration-page button {
+.primary-link {
   display: inline-flex;
   padding: 9px 14px;
   color: var(--color-text-primary);
@@ -259,8 +254,6 @@ a {
 }
 
 .credential-form {
-  position: sticky;
-  top: 24px;
   display: grid;
   padding: 22px;
   background: var(--color-surface-subtle);
@@ -294,34 +287,14 @@ a {
 
 .secret-input input {
   width: 100%;
-  padding-right: 44px;
+  padding-right: 60px;
 }
 
 .credential-form .secret-visibility-button {
   position: absolute;
   top: 50%;
   right: 4px;
-  display: grid;
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  place-items: center;
-  color: var(--color-text-secondary);
-  background: transparent;
-  border: 0;
   transform: translateY(-50%);
-}
-
-.secret-visibility-button:hover {
-  color: var(--color-text-primary);
-}
-
-.secret-visibility-button svg {
-  width: 20px;
-  height: 20px;
-  fill: none;
-  stroke: currentcolor;
-  stroke-width: 1.8;
 }
 
 .field-help,
@@ -558,19 +531,6 @@ a {
   color: var(--color-text-primary);
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-default);
-  border-radius: 8px;
-}
-
-.catalogue-filter button,
-.catalogue-page .request-error button {
-  min-height: 44px;
-  padding: 9px 15px;
-  color: var(--color-text-on-strong);
-  font-weight: 700;
-  white-space: nowrap;
-  cursor: pointer;
-  background: var(--color-action-primary);
-  border: 0;
   border-radius: 8px;
 }
 

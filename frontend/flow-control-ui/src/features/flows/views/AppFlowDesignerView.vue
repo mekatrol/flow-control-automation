@@ -29,7 +29,6 @@
           />
           <AppButton
             automation="flow-deploy-confirm"
-            class="deploy-confirm"
             text="Deploy now"
             :icon="deployIcon"
             @click="deployFlow"
@@ -113,6 +112,7 @@
                   ? 'Enable'
                   : 'Disable'
             "
+            :icon="flow.disabled ? enableFlowIcon : disableFlowIcon"
             :disabled="togglingDisabled"
             @click="setFlowDisabled(!flow.disabled)"
           />
@@ -155,7 +155,9 @@ import { onBeforeRouteLeave, useRouter } from 'vue-router';
 import { useAutomation } from '@/composables/useAutomation';
 import cancelIcon from '@/assets/icons/cancel-icon.svg';
 import deployIcon from '@/assets/icons/deploy-icon.svg';
+import disableFlowIcon from '@/assets/icons/disable-flow-icon.svg';
 import discardIcon from '@/assets/icons/discard-icon.svg';
+import enableFlowIcon from '@/assets/icons/enable-flow-icon.svg';
 import refreshIcon from '@/assets/icons/refresh-icon.svg';
 import renameFlowIcon from '@/assets/icons/rename-flow-icon.svg';
 import saveIcon from '@/assets/icons/save-icon.svg';
@@ -468,38 +470,9 @@ h1 {
   font-size: 14px;
 }
 
-button {
-  display: inline-flex;
-  gap: 7px;
-  align-items: center;
-  justify-content: center;
-  padding: 11px 16px;
-  color: var(--color-text-disabled);
-  font-weight: 700;
-  background: var(--color-badge-neutral-surface);
-  border: 0;
-  border-radius: 9px;
-}
-
 .heading-actions {
   display: flex;
   gap: 8px;
-}
-
-.heading-actions button:first-child:not(:disabled) {
-  color: var(--color-text-on-strong);
-  background: var(--color-action-primary);
-  cursor: pointer;
-}
-
-.heading-actions button:not(:disabled) {
-  cursor: pointer;
-}
-
-.heading-actions button:nth-child(2):not(:disabled),
-.deploy-confirm {
-  color: var(--color-text-on-strong);
-  background: var(--color-action-primary);
 }
 
 .request-status,
@@ -540,11 +513,6 @@ button {
   display: flex;
   gap: 8px;
   justify-content: end;
-}
-
-.discard-dialog button:last-child {
-  color: var(--color-text-on-strong);
-  background: var(--color-danger-strong);
 }
 
 .request-status {

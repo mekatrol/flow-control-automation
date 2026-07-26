@@ -16,7 +16,7 @@
 import { useAutomation } from '@/composables/useAutomation';
 
 type PopoverMode = 'auto' | 'manual';
-type PopoverPlacement = 'bottom-start' | 'bottom-end' | 'top-start' | 'top-end';
+type PopoverPlacement = 'center' | 'bottom-start' | 'bottom-end' | 'top-start' | 'top-end';
 
 // This component follows the no-JavaScript native Popover API pattern
 // demonstrated in Kevin Powell's video:
@@ -40,7 +40,7 @@ const props = withDefaults(
   }>(),
   {
     automation: '',
-    placement: 'bottom-start',
+    placement: 'center',
     popoverMode: 'auto'
   }
 );

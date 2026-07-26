@@ -391,31 +391,6 @@ h1 {
   min-width: 180px;
 }
 
-.create-flow :deep(button),
-.request-error :deep(button) {
-  min-height: 44px;
-  padding: 10px 14px;
-  color: var(--color-text-secondary);
-  font-weight: 700;
-  background: var(--color-surface-neutral);
-  border: 1px solid var(--color-border-default);
-  border-radius: 9px;
-}
-
-.create-flow :deep(button:not(:disabled)) {
-  color: var(--color-text-on-primary);
-  cursor: pointer;
-  background: var(--color-action-primary);
-  border-color: var(--color-action-primary);
-}
-
-.create-flow :deep(button:disabled) {
-  color: var(--color-text-muted);
-  cursor: not-allowed;
-  background: var(--color-surface-disabled);
-  border-style: dashed;
-}
-
 .request-status,
 .request-error,
 .empty-state {

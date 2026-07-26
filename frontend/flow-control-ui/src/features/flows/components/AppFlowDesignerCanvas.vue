@@ -645,33 +645,6 @@ const handleDragCancel = (event: PointerEvent): void => {
   margin-left: 0;
 }
 
-.zoom-controls button {
-  display: grid;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  place-items: center;
-  color: var(--color-text-primary);
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-default);
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.zoom-controls button:disabled {
-  color: var(--color-text-placeholder);
-  cursor: default;
-}
-
-.zoom-controls button svg {
-  width: 18px;
-  height: 18px;
-  fill: none;
-  stroke: currentcolor;
-  stroke-width: 2;
-  stroke-linecap: round;
-}
-
 .zoom-controls output {
   width: 38px;
   color: var(--color-text-secondary);
