@@ -48,7 +48,7 @@ describe('AppNotice', () => {
     // Expected outcome: Each severity supplies a decorative SVG visual indicator.
     // Acceptance criteria: The icon source is an encoded SVG because each selected variant
     // must have a scalable visual cue while its meaning remains available in visible text.
-    expect(wrapper.get('img').attributes('src')).toContain('image/svg+xml');
+    expect(wrapper.get('.notice-icon').attributes('style')).toContain('image/svg+xml');
   });
 
   /**

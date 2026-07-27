@@ -15,7 +15,11 @@
     >
       <header class="notice-header">
         <slot name="header" :title="title" :variant="variant" :icon="variantIcon">
-          <img class="notice-icon" :src="variantIcon" alt="" aria-hidden="true" />
+          <span
+            class="notice-icon"
+            :style="{ maskImage: `url(&quot;${variantIcon}&quot;)` }"
+            aria-hidden="true"
+          />
           <h2 :id="titleId">{{ title }}</h2>
         </slot>
       </header>
@@ -171,9 +175,14 @@ defineExpose({
 }
 
 .notice-icon {
+  display: inline-block;
   width: 28px;
   height: 28px;
   flex: 0 0 auto;
+  background-color: currentcolor;
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
 }
 
 .notice-content {
