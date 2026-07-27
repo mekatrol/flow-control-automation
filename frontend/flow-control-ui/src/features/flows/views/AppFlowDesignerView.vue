@@ -141,7 +141,7 @@
     </template>
 
     <div v-else-if="!loading" class="not-found">
-      <p class="eyebrow">Flow not found</p>
+      <p>Flow not found</p>
       <h1>There is no flow named “{{ flowId }}”.</h1>
       <RouterLink :to="{ name: 'flows' }">Return to flows</RouterLink>
     </div>

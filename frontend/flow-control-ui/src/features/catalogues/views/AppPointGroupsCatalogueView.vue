@@ -2,7 +2,7 @@
   <section class="catalogue-page" aria-labelledby="groups-heading">
     <div class="page-heading">
       <div>
-        <p class="eyebrow">Point definitions</p>
+        <p>Point definitions</p>
         <h1 id="groups-heading">Point groups</h1>
         <p>Review reusable membership and shared source relationships.</p>
       </div>

@@ -154,15 +154,6 @@ a {
   margin: 4px 0 8px;
 }
 
-.configuration-page .eyebrow {
-  margin: 0;
-  color: var(--color-text-secondary);
-  font-size: 12px;
-  font-weight: 750;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
 .primary-link {
   display: inline-flex;
   padding: 9px 14px;
@@ -467,14 +458,6 @@ a {
 
 .catalogue-page h1 {
   margin: 2px 0 8px;
-}
-
-.catalogue-page .eyebrow {
-  margin: 0;
-  color: var(--color-action-primary-strong);
-  font-weight: 750;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 .catalogue-filter {

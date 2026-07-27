@@ -2,7 +2,7 @@
   <section class="flow-library">
     <div class="page-heading">
       <div>
-        <p class="eyebrow">Automation workspace</p>
+        <p>Automation workspace</p>
         <h1>Flows</h1>
         <p>Design, inspect, and deploy independent automation flows.</p>
       </div>

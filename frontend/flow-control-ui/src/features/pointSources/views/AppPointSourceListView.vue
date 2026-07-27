@@ -2,7 +2,7 @@
   <section class="configuration-page">
     <div class="page-heading">
       <div>
-        <p class="eyebrow">External systems</p>
+        <p>External systems</p>
         <h1>Point sources</h1>
         <p>Define reusable, read-only connections before mapping points.</p>
       </div>

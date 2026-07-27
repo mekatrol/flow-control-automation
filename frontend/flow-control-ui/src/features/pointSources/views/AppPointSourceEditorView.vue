@@ -6,7 +6,7 @@
     </nav>
     <div class="page-heading">
       <div>
-        <p class="eyebrow">YAML configuration</p>
+        <p>YAML configuration</p>
         <h1>{{ isNew ? 'New point source' : 'Point source' }}</h1>
         <p>
           Credentials are managed separately and referenced as <code>secret://credential-id</code>.
@@ -69,7 +69,7 @@
       </form>
 
       <aside v-if="isNew" class="source-guidance" aria-labelledby="source-guidance-heading">
-        <p class="eyebrow">Configuration guide</p>
+        <p>Configuration guide</p>
         <h2 id="source-guidance-heading">Start with an example</h2>
         <p>
           Select the system you want to read data from. Replace the example addresses and credential

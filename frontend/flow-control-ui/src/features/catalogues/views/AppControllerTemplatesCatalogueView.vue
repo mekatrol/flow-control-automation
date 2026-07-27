@@ -2,7 +2,7 @@
   <section class="catalogue-page" aria-labelledby="templates-heading">
     <div class="page-heading">
       <div>
-        <p class="eyebrow">Deployment targets</p>
+        <p>Deployment targets</p>
         <h1 id="templates-heading">Controller templates</h1>
         <p>Review the capabilities and limits available to flow targets.</p>
       </div>

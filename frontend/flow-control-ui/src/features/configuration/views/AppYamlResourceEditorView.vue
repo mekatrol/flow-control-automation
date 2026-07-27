@@ -6,7 +6,7 @@
     </nav>
     <div class="page-heading">
       <div>
-        <p class="eyebrow">YAML configuration</p>
+        <p>YAML configuration</p>
         <h1>{{ heading }}</h1>
         <p>{{ helpText }}</p>
       </div>

@@ -2,7 +2,7 @@
   <section class="catalogue-page" aria-labelledby="points-heading">
     <div class="page-heading">
       <div>
-        <p class="eyebrow">Point definitions</p>
+        <p>Point definitions</p>
         <h1 id="points-heading">Points</h1>
         <p>Review standalone and grouped automation points and their capabilities.</p>
       </div>

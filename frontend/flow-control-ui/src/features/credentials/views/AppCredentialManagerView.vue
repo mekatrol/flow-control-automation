@@ -2,7 +2,7 @@
   <section class="configuration-page credential-page">
     <div class="page-heading">
       <div>
-        <p class="eyebrow">Secure configuration</p>
+        <p>Secure configuration</p>
         <h1>Credentials</h1>
         <p>
           Create write-only credentials for point sources. Saved passwords and tokens cannot be
@@ -86,7 +86,7 @@
     @cancel="handleCredentialDialogCancel"
   >
     <AppForm class="credential-form" automation="credential-form" @submit.prevent="save">
-      <p class="eyebrow">{{ editing ? 'Update credential' : 'New credential' }}</p>
+      <p>{{ editing ? 'Update credential' : 'New credential' }}</p>
       <h2>{{ editing ? `Edit ${form.name}` : 'Credential details' }}</h2>
       <label for="credential-name">Display name</label>
       <input id="credential-name" v-model="form.name" required autocomplete="off" />
