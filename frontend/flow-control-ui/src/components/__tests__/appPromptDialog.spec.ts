@@ -64,6 +64,7 @@ describe('AppPromptDialog', () => {
   it('closes and emits generic prompt actions', async () => {
     const wrapper = mount(AppPromptDialog, {
       props: {
+        automation: 'discard-prompt',
         contentLabel: 'Discard changes',
         id: 'discard-prompt'
       }
@@ -103,6 +104,7 @@ describe('AppPromptDialog', () => {
   it('provides cancel and confirm callbacks to the prompt slot', async () => {
     const wrapper = mount(AppPromptDialog, {
       props: {
+        automation: 'custom-prompt',
         contentLabel: 'Custom decision',
         id: 'custom-prompt'
       },
@@ -145,6 +147,7 @@ describe('AppPromptDialog', () => {
   it('supports custom wording and exposes the native modal controls', () => {
     const wrapper = mount(AppPromptDialog, {
       props: {
+        automation: 'replace-prompt',
         cancelText: 'Retain value',
         confirmText: 'Replace value',
         contentLabel: 'Replace existing value',

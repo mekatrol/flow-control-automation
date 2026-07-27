@@ -3,7 +3,7 @@
     :id="id"
     ref="dialog"
     :content-label="contentLabel"
-    :automation="props.automation"
+    v-bind="automation()"
     :dismissible="false"
   >
     <slot name="prompt" :cancel="cancel" :confirm="confirm">
@@ -41,19 +41,19 @@ import deleteIcon from '@/assets/icons/delete-flow-icon.svg';
 import AppButton from '@/components/AppButton.vue';
 import AppDialog from '@/components/AppDialog.vue';
 import { useAutomation } from '@/composables/useAutomation';
+import { EVENTS } from '@/constants/events';
 
 const props = withDefaults(
   defineProps<{
     id: string;
     contentLabel: string;
-    automation?: string;
+    automation: string;
     title?: string;
     message?: string;
     cancelText?: string;
     confirmText?: string;
   }>(),
   {
-    automation: '',
     title: 'Discard unsaved changes?',
     message: 'Your changes have not been saved and will be lost.',
     cancelText: 'Keep editing',
@@ -62,8 +62,8 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-  cancel: [];
-  confirm: [];
+  (event: typeof EVENTS.CANCEL): void;
+  (event: typeof EVENTS.CONFIRM): void;
 }>();
 
 const dialog = ref<InstanceType<typeof AppDialog>>();
@@ -75,12 +75,12 @@ const close = (): void => {
 
 const cancel = (): void => {
   close();
-  emit('cancel');
+  emit(EVENTS.CANCEL);
 };
 
 const confirm = (): void => {
   close();
-  emit('confirm');
+  emit(EVENTS.CONFIRM);
 };
 
 defineExpose({

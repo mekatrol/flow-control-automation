@@ -1,5 +1,5 @@
 <template>
-  <section class="configuration-page editor-page">
+  <section v-bind="automation()" class="configuration-page editor-page">
     <AppErrorNotice
       id="yaml-resource-error-notice"
       automation="yaml-resource-error"
@@ -54,7 +54,7 @@
         :schema-uri="schemaUri"
         min-height="620px"
         :read-only="readOnly"
-        @diagnostics="editorDiagnostics = $event"
+        @[EVENTS.DIAGNOSTICS]="setEditorDiagnostics"
       />
       <div class="editor-actions">
         <AppButton
@@ -170,6 +170,8 @@ import AppButton from '@/components/AppButton.vue';
 import AppErrorNotice from '@/components/AppErrorNotice.vue';
 import AppSvg from '@/components/AppSvg.vue';
 import AppYamlEditor, { type YamlDiagnostic } from '@/components/AppYamlEditor.vue';
+import { EVENTS } from '@/constants/events';
+import { useAutomation } from '@/composables/useAutomation';
 import {
   controllerTemplateConfigurationApi,
   pointConfigurationApi,
@@ -354,6 +356,10 @@ const status = ref('');
 const deleteConflict = ref(false);
 const serverDiagnostics = ref<ValidationDiagnostic[]>([]);
 const editorDiagnostics = ref<YamlDiagnostic[]>([]);
+const automation = useAutomation('yaml-resource-editor');
+const setEditorDiagnostics = (diagnostics: YamlDiagnostic[]): void => {
+  editorDiagnostics.value = diagnostics;
+};
 const errorSummary = ref<HTMLElement>();
 const runtime = ref<RuntimeEnvelope>();
 const runtimeLoading = ref(false);

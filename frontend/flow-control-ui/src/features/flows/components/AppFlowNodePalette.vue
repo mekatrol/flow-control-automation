@@ -1,5 +1,5 @@
 <template>
-  <aside class="node-palette" aria-label="Function block toolbox">
+  <aside v-bind="automation()" class="node-palette" aria-label="Function block toolbox">
     <h2>Function blocks</h2>
     <AppFilter
       automation="flow-node-palette-filter"
@@ -21,13 +21,13 @@
           :text="definition.label"
           draggable="true"
           :aria-label="`Add ${definition.label} node`"
-          @click="emit('add', definition.kind)"
+          @click="emit(EVENTS.ADD, definition.kind)"
           @dragstart="startPaletteDrag(definition.kind, $event)"
         >
           <template #icon>
             <AppSvg
               :src="getNodeIconUrl(definition.icon)"
-              :automation="`flow-node-palette-${definition.kind}-icon`"
+              v-bind="automation(`add-${definition.kind}-icon`)"
               size="100%"
             />
           </template>
@@ -83,8 +83,13 @@ import { useAutomation } from '@/composables/useAutomation';
 import { EVENTS } from '@/constants/events';
 import type { FlowNodeKind } from '@/features/flows/types';
 
-const emit = defineEmits<{ add: [kind: FlowNodeKind] }>();
-const automation = useAutomation('flow-node-palette');
+const props = defineProps<{
+  automation: string;
+}>();
+const emit = defineEmits<{
+  (event: typeof EVENTS.ADD, kind: FlowNodeKind): void;
+}>();
+const automation = useAutomation(props.automation);
 const filter = ref('');
 const query = ref('');
 const groups = computed(() => groupNodeKinds(filterNodeKinds(query.value)));

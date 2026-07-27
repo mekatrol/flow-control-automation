@@ -57,6 +57,7 @@ describe('AppDialog', () => {
   it('exposes methods that open and close the native dialog', () => {
     const wrapper = mount(AppDialog, {
       props: {
+        automation: 'credential-dialog',
         contentLabel: 'Credential details',
         id: 'credential-dialog'
       }
@@ -93,6 +94,7 @@ describe('AppDialog', () => {
   it('emits native cancel and close events', () => {
     const wrapper = mount(AppDialog, {
       props: {
+        automation: 'credential-dialog',
         contentLabel: 'Credential details',
         id: 'credential-dialog'
       }
@@ -122,6 +124,7 @@ describe('AppDialog', () => {
   it('prevents native cancellation when dismissal is disabled', () => {
     const wrapper = mount(AppDialog, {
       props: {
+        automation: 'credential-dialog',
         contentLabel: 'Credential details',
         dismissible: false,
         id: 'credential-dialog'

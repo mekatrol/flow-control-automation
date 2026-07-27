@@ -1,5 +1,5 @@
 <template>
-  <section class="configuration-page editor-page">
+  <section v-bind="automation()" class="configuration-page editor-page">
     <AppErrorNotice
       id="point-source-error-notice"
       automation="point-source-error"
@@ -30,7 +30,7 @@
           :schema="pointSourceSchema"
           schema-uri="app://schemas/point-source-v1.json"
           min-height="650px"
-          @diagnostics="editorDiagnostics = $event"
+          @[EVENTS.DIAGNOSTICS]="setEditorDiagnostics"
         />
         <div class="editor-actions">
           <AppButton
@@ -157,6 +157,8 @@ import testConnectionIcon from '@/assets/icons/test-connection-icon.svg';
 import AppButton from '@/components/AppButton.vue';
 import AppErrorNotice from '@/components/AppErrorNotice.vue';
 import AppYamlEditor, { type YamlDiagnostic } from '@/components/AppYamlEditor.vue';
+import { EVENTS } from '@/constants/events';
+import { useAutomation } from '@/composables/useAutomation';
 import {
   pointSourceApi,
   type ConnectionTestResult,
@@ -262,6 +264,10 @@ const error = ref('');
 const status = ref('');
 const testResult = ref<ConnectionTestResult>();
 const editorDiagnostics = ref<YamlDiagnostic[]>([]);
+const automation = useAutomation('point-source-editor');
+const setEditorDiagnostics = (diagnostics: YamlDiagnostic[]): void => {
+  editorDiagnostics.value = diagnostics;
+};
 const hasEditorErrors = computed(() =>
   editorDiagnostics.value.some(({ severity }) => severity === 'error')
 );

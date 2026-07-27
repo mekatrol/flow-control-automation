@@ -1,12 +1,17 @@
 <template>
-  <div class="z-order-controls" role="toolbar" aria-label="Node stacking order">
+  <div
+    v-bind="automation()"
+    class="z-order-controls"
+    role="toolbar"
+    aria-label="Node stacking order"
+  >
     <AppButton
-      automation="flow-designer-bring-to-front"
+      v-bind="automation('bring-to-front')"
       text="Bring to front"
       hide-text
       title="Bring to front"
       :disabled="!selectedNodeId || !canMoveFront"
-      @click="emit('reorder', 'front')"
+      @click="emit(EVENTS.REORDER, 'front')"
     >
       <template #icon>
         <svg data-icon="front" aria-hidden="true" viewBox="0 0 28 28">
@@ -18,12 +23,12 @@
       </template>
     </AppButton>
     <AppButton
-      automation="flow-designer-bring-forward"
+      v-bind="automation('bring-forward')"
       text="Bring forward"
       hide-text
       title="Bring forward"
       :disabled="!selectedNodeId || !canMoveFront"
-      @click="emit('reorder', 'forward')"
+      @click="emit(EVENTS.REORDER, 'forward')"
     >
       <template #icon>
         <svg data-icon="forward" aria-hidden="true" viewBox="0 0 28 28">
@@ -34,12 +39,12 @@
       </template>
     </AppButton>
     <AppButton
-      automation="flow-designer-send-backward"
+      v-bind="automation('send-backward')"
       text="Send backward"
       hide-text
       title="Send backward"
       :disabled="!selectedNodeId || !canMoveBack"
-      @click="emit('reorder', 'backward')"
+      @click="emit(EVENTS.REORDER, 'backward')"
     >
       <template #icon>
         <svg data-icon="backward" aria-hidden="true" viewBox="0 0 28 28">
@@ -50,12 +55,12 @@
       </template>
     </AppButton>
     <AppButton
-      automation="flow-designer-send-to-back"
+      v-bind="automation('send-to-back')"
       text="Send to back"
       hide-text
       title="Send to back"
       :disabled="!selectedNodeId || !canMoveBack"
-      @click="emit('reorder', 'back')"
+      @click="emit(EVENTS.REORDER, 'back')"
     >
       <template #icon>
         <svg data-icon="back" aria-hidden="true" viewBox="0 0 28 28">
@@ -71,15 +76,21 @@
 
 <script setup lang="ts">
 import AppButton from '@/components/AppButton.vue';
+import { useAutomation } from '@/composables/useAutomation';
+import { EVENTS } from '@/constants/events';
 import type { ZOrderCommand } from '@/features/flows/graph/zOrder';
 
-defineProps<{
+const props = defineProps<{
+  automation: string;
   selectedNodeId?: string;
   canMoveFront: boolean;
   canMoveBack: boolean;
 }>();
 
-const emit = defineEmits<{ reorder: [command: ZOrderCommand] }>();
+const emit = defineEmits<{
+  (event: typeof EVENTS.REORDER, command: ZOrderCommand): void;
+}>();
+const automation = useAutomation(props.automation);
 </script>
 
 <style scoped>

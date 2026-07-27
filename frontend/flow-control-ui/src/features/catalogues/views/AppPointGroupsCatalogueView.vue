@@ -1,11 +1,11 @@
 <template>
-  <section class="catalogue-page" aria-labelledby="groups-heading">
+  <section v-bind="automation()" class="catalogue-page" aria-labelledby="groups-heading">
     <AppErrorNotice
       id="point-groups-error-notice"
       automation="point-groups-error"
       :message="store.error"
       retryable
-      @retry="refresh"
+      @[EVENTS.RETRY]="refresh"
     />
     <div class="page-heading">
       <div>
@@ -66,8 +66,8 @@
         :range-start="rangeStart"
         :range-end="rangeEnd"
         :total-items="store.result.totalItems"
-        @update:page="setPage"
-        @update:page-size="setPageSize"
+        @[EVENTS.UPDATE_PAGE]="setPage"
+        @[EVENTS.UPDATE_PAGE_SIZE]="setPageSize"
       />
     </template>
   </section>
@@ -77,6 +77,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import newIcon from '@/assets/icons/new-flow-icon.svg';
 import AppErrorNotice from '@/components/AppErrorNotice.vue';
+import { useAutomation } from '@/composables/useAutomation';
 import AppFilter from '@/components/AppFilter.vue';
 import AppSvg from '@/components/AppSvg.vue';
 import AppTable from '@/components/AppTable.vue';
@@ -84,6 +85,7 @@ import AppTablePagination from '@/components/AppTablePagination.vue';
 import { EVENTS } from '@/constants/events';
 import { usePointGroupsCatalogueStore } from '@/features/catalogues/stores/catalogues';
 
+const automation = useAutomation('point-groups-catalogue');
 const store = usePointGroupsCatalogueStore();
 const filter = ref('');
 const page = ref(1);

@@ -25,15 +25,10 @@
 <script setup lang="ts">
 import { useAutomation } from '@/composables/useAutomation';
 
-const props = withDefaults(
-  defineProps<{
-    caption: string;
-    automation?: string;
-  }>(),
-  {
-    automation: ''
-  }
-);
+const props = defineProps<{
+  caption: string;
+  automation: string;
+}>();
 
 const automation = useAutomation(props.automation);
 </script>

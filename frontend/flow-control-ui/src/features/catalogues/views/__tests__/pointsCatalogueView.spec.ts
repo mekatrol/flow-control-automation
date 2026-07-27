@@ -6,8 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import AppPointsCatalogueView from '@/features/catalogues/views/AppPointsCatalogueView.vue';
 
 beforeEach(() => {
-  HTMLDialogElement.prototype.showModal = vi.fn();
-  HTMLDialogElement.prototype.close = vi.fn();
+  HTMLDialogElement.prototype.showModal = vi.fn<() => void>();
+  HTMLDialogElement.prototype.close = vi.fn<() => void>();
 });
 
 afterEach(() => vi.unstubAllGlobals());
@@ -21,7 +21,7 @@ describe('PointsCatalogueView', () => {
   it('renders a semantic, keyboard-reachable table with point relationships', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(
+      vi.fn<typeof fetch>().mockResolvedValue(
         new Response(
           JSON.stringify({
             items: [
@@ -100,7 +100,7 @@ describe('PointsCatalogueView', () => {
     vi.stubGlobal(
       'fetch',
       vi
-        .fn()
+        .fn<typeof fetch>()
         .mockResolvedValue(new Response(JSON.stringify({ message: 'missing' }), { status: 404 }))
     );
     const wrapper = mount(AppPointsCatalogueView, {
@@ -108,8 +108,14 @@ describe('PointsCatalogueView', () => {
     });
     await flushPromises();
 
+    // Expected outcome: A failed catalogue request displays the API error.
+    // Acceptance criteria: The alert contains "missing" because the arranged 404
+    // response supplies that diagnostic message for the user.
     expect(wrapper.get('[role="alert"]').text()).toContain('missing');
 
+    // Expected outcome: The error notice offers a recovery action.
+    // Acceptance criteria: The alert button is labelled "Retry" because a failed
+    // catalogue load must remain recoverable without reloading the application.
     expect(wrapper.get('[role="alert"] button').text()).toBe('Retry');
   });
 });

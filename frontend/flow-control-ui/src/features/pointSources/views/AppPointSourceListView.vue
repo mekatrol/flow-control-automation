@@ -1,11 +1,11 @@
 <template>
-  <section class="configuration-page">
+  <section v-bind="automation()" class="configuration-page">
     <AppErrorNotice
       id="point-sources-error-notice"
       automation="point-sources-error"
       :message="error"
       retryable
-      @retry="load"
+      @[EVENTS.RETRY]="load"
     />
     <div class="page-heading">
       <div>
@@ -64,6 +64,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import newIcon from '@/assets/icons/new-flow-icon.svg';
 import AppErrorNotice from '@/components/AppErrorNotice.vue';
+import { useAutomation } from '@/composables/useAutomation';
 import AppFilter from '@/components/AppFilter.vue';
 import AppSvg from '@/components/AppSvg.vue';
 import { EVENTS } from '@/constants/events';
@@ -73,6 +74,7 @@ import {
   type PointSourceSummary
 } from '@/features/pointSources/api/pointSourceApi';
 
+const automation = useAutomation('point-sources');
 const sources = ref<PointSourceSummary[]>([]);
 const filter = ref('');
 const appliedFilter = ref('');

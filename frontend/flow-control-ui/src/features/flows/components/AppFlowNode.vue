@@ -1,5 +1,6 @@
 <template>
   <g
+    v-bind="automation()"
     class="flow-node"
     :data-node-id="node.id"
     :data-node-category="definition.category"
@@ -9,10 +10,10 @@
     tabindex="0"
     :aria-label="`${node.label}, ${definition.label} node${status ? `, ${status}` : ''}${statusValue ? `, ${statusValue}` : ''}`"
     :aria-pressed="selected"
-    @click="emit('select', node.id)"
-    @pointerdown.stop="emit('dragstart', node.id, $event)"
-    @keydown.enter.prevent="emit('select', node.id)"
-    @keydown.space.prevent="emit('select', node.id)"
+    @click="emit(EVENTS.SELECT, node.id)"
+    @pointerdown.stop="emit(EVENTS.DRAG_START, node.id, $event)"
+    @keydown.enter.prevent="emit(EVENTS.SELECT, node.id)"
+    @keydown.space.prevent="emit(EVENTS.SELECT, node.id)"
   >
     <rect
       class="node-body"
@@ -63,10 +64,18 @@
       :active="
         connectionStart?.nodeId === node.id && connectionStart.connectorId === layout.connector.id
       "
-      @press="emit('connectorpress', { nodeId: node.id, connectorId: layout.connector.id })"
-      @activate="emit('connectoractivate', { nodeId: node.id, connectorId: layout.connector.id })"
-      @release="emit('connectorrelease', { nodeId: node.id, connectorId: layout.connector.id })"
-      @preview="emit('connectorpreview', { nodeId: node.id, connectorId: layout.connector.id })"
+      @[EVENTS.PRESS]="
+        emit(EVENTS.CONNECTOR_PRESS, { nodeId: node.id, connectorId: layout.connector.id })
+      "
+      @[EVENTS.ACTIVATE]="
+        emit(EVENTS.CONNECTOR_ACTIVATE, { nodeId: node.id, connectorId: layout.connector.id })
+      "
+      @[EVENTS.RELEASE]="
+        emit(EVENTS.CONNECTOR_RELEASE, { nodeId: node.id, connectorId: layout.connector.id })
+      "
+      @[EVENTS.PREVIEW]="
+        emit(EVENTS.CONNECTOR_PREVIEW, { nodeId: node.id, connectorId: layout.connector.id })
+      "
     />
   </g>
 </template>
@@ -81,10 +90,12 @@ import AppFlowNodeStatus from './AppFlowNodeStatus.vue';
 import AppFlowConnector from './AppFlowConnector.vue';
 import { layoutConnectors } from '@/features/flows/geometry/connectorLayout';
 import { useAutomation } from '@/composables/useAutomation';
+import { EVENTS } from '@/constants/events';
 import { getNodeKind } from '@/features/flows/nodeKinds';
 import type { FlowConnectionEndpoint, FlowNode } from '@/features/flows/types';
 
 const props = defineProps<{
+  automation: string;
   node: FlowNode;
   selected: boolean;
   status?: 'draft' | 'deployed' | 'idle' | 'running' | 'stopped' | 'error';
@@ -93,14 +104,14 @@ const props = defineProps<{
   compatibleConnectorKeys?: string[];
 }>();
 
-const automation = useAutomation(`flow-node-${props.node.id}`);
+const automation = useAutomation(props.automation);
 const emit = defineEmits<{
-  select: [nodeId: string];
-  dragstart: [nodeId: string, event: PointerEvent];
-  connectorpress: [endpoint: FlowConnectionEndpoint];
-  connectoractivate: [endpoint: FlowConnectionEndpoint];
-  connectorrelease: [endpoint: FlowConnectionEndpoint];
-  connectorpreview: [endpoint: FlowConnectionEndpoint];
+  (event: typeof EVENTS.SELECT, nodeId: string): void;
+  (event: typeof EVENTS.DRAG_START, nodeId: string, nativeEvent: PointerEvent): void;
+  (event: typeof EVENTS.CONNECTOR_PRESS, endpoint: FlowConnectionEndpoint): void;
+  (event: typeof EVENTS.CONNECTOR_ACTIVATE, endpoint: FlowConnectionEndpoint): void;
+  (event: typeof EVENTS.CONNECTOR_RELEASE, endpoint: FlowConnectionEndpoint): void;
+  (event: typeof EVENTS.CONNECTOR_PREVIEW, endpoint: FlowConnectionEndpoint): void;
 }>();
 
 // A node is positioned by translating one SVG group. Its body, label, status,

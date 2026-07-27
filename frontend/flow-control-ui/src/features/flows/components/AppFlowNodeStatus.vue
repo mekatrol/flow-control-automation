@@ -1,5 +1,6 @@
 <template>
   <g
+    v-bind="automation()"
     class="node-status"
     transform="translate(0 49)"
     :aria-label="value ? `${status}: ${value}` : status"
@@ -12,11 +13,15 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{
+import { useAutomation } from '@/composables/useAutomation';
+
+const props = defineProps<{
+  automation: string;
   status: 'draft' | 'deployed' | 'idle' | 'running' | 'stopped' | 'error';
   value?: string;
   width: number;
 }>();
+const automation = useAutomation(props.automation);
 </script>
 
 <style scoped>

@@ -26,14 +26,13 @@ import { useAutomation } from '@/composables/useAutomation';
 const props = withDefaults(
   defineProps<{
     text: string;
-    automation?: string;
+    automation: string;
     icon?: string;
     ariaLabel?: string;
     hideText?: boolean;
     type?: 'button' | 'submit' | 'reset';
   }>(),
   {
-    automation: '',
     icon: undefined,
     ariaLabel: undefined,
     hideText: false,

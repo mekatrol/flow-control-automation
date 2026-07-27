@@ -36,6 +36,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import chevronDownIcon from '@/assets/icons/chevron-down-icon.svg';
 import AppButton from '@/components/AppButton.vue';
 import { useAutomation } from '@/composables/useAutomation';
+import { EVENTS } from '@/constants/events';
 
 export interface MultiSelectOption {
   label: string;
@@ -56,7 +57,7 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-  'update:modelValue': [values: string[]];
+  (event: typeof EVENTS.UPDATE_MODEL_VALUE, values: string[]): void;
 }>();
 
 const automation = useAutomation(props.automation);
@@ -76,7 +77,7 @@ const summary = computed(() => {
 
 const selectAll = (): void => {
   emit(
-    'update:modelValue',
+    EVENTS.UPDATE_MODEL_VALUE,
     props.options.map(({ value }) => value)
   );
 };
@@ -85,7 +86,7 @@ const toggleOption = (value: string): void => {
   const selected = props.modelValue.includes(value)
     ? props.modelValue.filter((candidate) => candidate !== value)
     : [...props.modelValue, value];
-  if (selected.length > 0) emit('update:modelValue', selected);
+  if (selected.length > 0) emit(EVENTS.UPDATE_MODEL_VALUE, selected);
 };
 
 const closeFromOutside = (event: MouseEvent): void => {

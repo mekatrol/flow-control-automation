@@ -3,7 +3,7 @@
 import { createPinia } from 'pinia';
 import { mount } from '@vue/test-utils';
 import { createMemoryHistory, createRouter } from 'vue-router';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import App from '@/App.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -12,13 +12,12 @@ const FlowListStub = { template: '<h1>Flows</h1>' };
 
 describe('App', () => {
   /**
-   * Purpose: Protects the behavioral contract that renders the current route inside the application shell.
-   * Description: Exercises renders the current route inside the application shell from its arranged starting state and
-   * verifies the observable results required by the scenario.
+   * Purpose: Protects the application-shell contract that provides navigation, theme
+   * control, skip navigation, and the active route without blocking page content.
+   * Description: Mounts the flows route in the application shell and verifies its
+   * landmark structure, theme control, and routed heading.
    */
   it('renders the current route inside the application shell', async () => {
-    const showModal = vi.fn<() => void>();
-    HTMLDialogElement.prototype.showModal = showModal;
     const router = createRouter({
       history: createMemoryHistory(),
       routes: [
@@ -61,20 +60,5 @@ describe('App', () => {
     // Acceptance criteria: `wrapper.get('main h1'` must be `'Flows'`, because this condition proves that
     // renders the current route inside the application shell.
     expect(wrapper.get('main h1').text()).toBe('Flows');
-
-    // Expected outcome: Loading the application presents the informational welcome notice.
-    // Acceptance criteria: Native `showModal` is called once because the temporary demo
-    // must open one whole-view welcome dialog after the application mounts.
-    expect(showModal).toHaveBeenCalledOnce();
-
-    // Expected outcome: The welcome notice uses the requested informational presentation.
-    // Acceptance criteria: The notice has the `notice--info` class because the page-load
-    // demonstration must exercise the info variant rather than an urgent error state.
-    expect(wrapper.get('.notice').classes()).toContain('notice--info');
-
-    // Expected outcome: The welcome notice explains what the application is for.
-    // Acceptance criteria: The dialog contains "Welcome to Flow Control" because users
-    // should immediately recognize the demo as an application welcome message.
-    expect(wrapper.get('#welcome-notice').text()).toContain('Welcome to Flow Control');
   });
 });

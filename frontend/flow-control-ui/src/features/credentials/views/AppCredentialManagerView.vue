@@ -1,10 +1,6 @@
 <template>
-  <section class="configuration-page credential-page">
-    <AppErrorNotice
-      id="credentials-error-notice"
-      automation="credentials-error"
-      :message="error"
-    />
+  <section v-bind="automation()" class="configuration-page credential-page">
+    <AppErrorNotice id="credentials-error-notice" automation="credentials-error" :message="error" />
     <div class="page-heading">
       <div>
         <p>Secure configuration</p>
@@ -60,7 +56,7 @@
               </td>
               <td>
                 <AppButton
-                  :automation="`credential-edit-${credential.id}`"
+                  v-bind="automation(`edit-${credential.id}`)"
                   text="Edit"
                   :icon="editIcon"
                   @click="openEditDialog(credential)"
@@ -79,7 +75,7 @@
     :content-label="editing ? `Edit ${form.name}` : 'Create new credential'"
     automation="credential-dialog"
     :dismissible="false"
-    @cancel="handleCredentialDialogCancel"
+    @[EVENTS.CANCEL]="handleCredentialDialogCancel"
   >
     <AppForm class="credential-form" automation="credential-form" @submit.prevent="save">
       <p>{{ editing ? 'Update credential' : 'New credential' }}</p>
@@ -187,8 +183,8 @@
     content-label="Discard unsaved credential changes"
     automation="credential-discard-dialog"
     message="Your credential changes have not been saved and will be lost."
-    @cancel="keepEditing"
-    @confirm="discardCredentialChanges"
+    @[EVENTS.CANCEL]="keepEditing"
+    @[EVENTS.CONFIRM]="discardCredentialChanges"
   />
 </template>
 
@@ -211,12 +207,15 @@ import AppDialog from '@/components/AppDialog.vue';
 import AppErrorNotice from '@/components/AppErrorNotice.vue';
 import AppForm from '@/components/AppForm.vue';
 import AppPromptDialog from '@/components/AppPromptDialog.vue';
+import { EVENTS } from '@/constants/events';
+import { useAutomation } from '@/composables/useAutomation';
 
 const credentials = ref<CredentialMetadata[]>([]);
 const loading = ref(false);
 const saving = ref(false);
 const editing = ref(false);
 const error = ref('');
+const automation = useAutomation('credentials');
 const status = ref('');
 const passwordVisible = ref(false);
 const tokenVisible = ref(false);

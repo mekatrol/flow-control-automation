@@ -4,7 +4,7 @@
     ref="dialog"
     class="app-error-dialog"
     :content-label="title"
-    :automation="props.automation"
+    v-bind="automation()"
     :dismissible="dismissible"
   >
     <article

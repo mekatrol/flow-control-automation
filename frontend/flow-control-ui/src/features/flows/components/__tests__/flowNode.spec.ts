@@ -15,7 +15,13 @@ describe('FlowNode', () => {
   it('uses registry metadata and exposes an accessible node name and status', () => {
     const node = sampleFlows[0]!.nodes[0]!;
     const wrapper = mount(AppFlowNode, {
-      props: { node, selected: false, status: 'running', statusValue: '21.5 °C' }
+      props: {
+        automation: 'flow-node-source',
+        node,
+        selected: false,
+        status: 'running',
+        statusValue: '21.5 °C'
+      }
     });
 
     // Expected outcome: `wrapper.attributes('aria-label')` has the required value.
@@ -101,7 +107,11 @@ describe('FlowNode', () => {
    */
   it('emits selection from keyboard activation', async () => {
     const wrapper = mount(AppFlowNode, {
-      props: { node: sampleFlows[0]!.nodes[0]!, selected: false }
+      props: {
+        automation: 'flow-node-source',
+        node: sampleFlows[0]!.nodes[0]!,
+        selected: false
+      }
     });
 
     await wrapper.trigger('keydown', { key: 'Enter' });

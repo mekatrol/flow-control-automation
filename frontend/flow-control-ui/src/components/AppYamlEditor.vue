@@ -20,7 +20,7 @@
       <ol>
         <li v-for="diagnostic in diagnostics" :key="diagnostic.key">
           <AppButton
-            :automation="`yaml-diagnostic-${diagnostic.line}-${diagnostic.column}`"
+            v-bind="automation(`diagnostic-${diagnostic.line}-${diagnostic.column}`)"
             :text="`Line ${diagnostic.line}, column ${diagnostic.column}: ${diagnostic.message}`"
             :icon="diagnosticIcon"
             @click="revealDiagnostic(diagnostic)"
@@ -37,6 +37,7 @@ import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import diagnosticIcon from '@/assets/icons/diagnostic-icon.svg';
 import AppButton from '@/components/AppButton.vue';
 import { useAutomation } from '@/composables/useAutomation';
+import { EVENTS } from '@/constants/events';
 import {
   configureYamlSchema,
   type JSONSchema,
@@ -71,8 +72,8 @@ const props = withDefaults(
 );
 const automation = useAutomation(props.automation);
 const emit = defineEmits<{
-  'update:modelValue': [value: string];
-  diagnostics: [diagnostics: YamlDiagnostic[]];
+  (event: typeof EVENTS.UPDATE_MODEL_VALUE, value: string): void;
+  (event: typeof EVENTS.DIAGNOSTICS, diagnostics: YamlDiagnostic[]): void;
 }>();
 
 const editorId = Math.random().toString(36).slice(2);
@@ -109,7 +110,7 @@ const updateDiagnostics = (): void => {
       severity:
         marker.severity === monaco.MarkerSeverity.Error ? ('error' as const) : ('warning' as const)
     }));
-  emit('diagnostics', diagnostics.value);
+  emit(EVENTS.DIAGNOSTICS, diagnostics.value);
 };
 
 const revealDiagnostic = (diagnostic: YamlDiagnostic): void => {
@@ -152,7 +153,7 @@ onMounted(async () => {
     wordWrap: 'on'
   });
   contentSubscription = model.onDidChangeContent(() =>
-    emit('update:modelValue', model!.getValue())
+    emit(EVENTS.UPDATE_MODEL_VALUE, model!.getValue())
   );
   markerSubscription = monaco.editor.onDidChangeMarkers((resources) => {
     if (model && resources.some((resource) => resource.toString() === model!.uri.toString())) {

@@ -1,5 +1,5 @@
 <template>
-  <div class="canvas-frame">
+  <div v-bind="automation()" class="canvas-frame">
     <div class="canvas-toolbar">
       <span>{{ flow.nodes.length }} nodes</span>
       <span>{{ flow.connections.length }} connections</span>
@@ -44,12 +44,12 @@
         :selected-node-id="selectedNodeId"
         :can-move-front="canMoveFront"
         :can-move-back="canMoveBack"
-        @reorder="handleReorder"
+        @[EVENTS.REORDER]="handleReorder"
       />
     </div>
 
     <div class="designer-workspace">
-      <AppFlowNodePalette v-bind="automation('node-palette')" @add="handleAddNode" />
+      <AppFlowNodePalette v-bind="automation('node-palette')" @[EVENTS.ADD]="handleAddNode" />
       <div class="canvas-column">
         <p v-if="connectionError" class="connection-error" role="alert">{{ connectionError }}</p>
 
@@ -105,12 +105,12 @@
                 :end-side="rendered.endSide"
                 :selected="rendered.connection.id === selectedConnectionId"
                 :label="`Connection from ${rendered.connection.start.nodeId} to ${rendered.connection.end.nodeId}`"
-                @select="handleConnectionSelection"
+                @[EVENTS.SELECT]="handleConnectionSelection"
               />
               <AppFlowConnection
                 v-if="previewStart && previewEnd"
-                v-bind="automation('connection-preview')"
                 id="connection-preview"
+                v-bind="automation('connection-preview')"
                 :start="previewStart"
                 :end="previewEnd"
                 :start-side="previewStartSide"
@@ -128,12 +128,12 @@
               :status-value="runtime?.nodes[node.id]?.value"
               :connection-start="connectionStart"
               :compatible-connector-keys="compatibleConnectorKeys"
-              @select="handleNodeSelection"
-              @dragstart="handleDragStart"
-              @connectorpress="handleConnectorPress"
-              @connectoractivate="handleConnectorActivate"
-              @connectorrelease="handleConnectorRelease"
-              @connectorpreview="handleConnectorPreview"
+              @[EVENTS.SELECT]="handleNodeSelection"
+              @[EVENTS.DRAG_START]="handleDragStart"
+              @[EVENTS.CONNECTOR_PRESS]="handleConnectorPress"
+              @[EVENTS.CONNECTOR_ACTIVATE]="handleConnectorActivate"
+              @[EVENTS.CONNECTOR_RELEASE]="handleConnectorRelease"
+              @[EVENTS.CONNECTOR_PREVIEW]="handleConnectorPreview"
             />
 
             <text
@@ -151,10 +151,8 @@
         v-if="selectedNode"
         v-bind="automation('node-configuration')"
         :node="selectedNode"
-        @update-label="emit('updateNodeLabel', selectedNode.id, $event)"
-        @update-configuration="
-          (key, value) => emit('updateNodeConfiguration', selectedNode!.id, key, value)
-        "
+        @[EVENTS.UPDATE_LABEL]="handleNodeLabelUpdate"
+        @[EVENTS.UPDATE_CONFIGURATION]="handleNodeConfigurationUpdate"
       />
     </div>
   </div>
@@ -165,6 +163,7 @@ import { computed, nextTick, ref } from 'vue';
 
 import AppButton from '@/components/AppButton.vue';
 import { useAutomation } from '@/composables/useAutomation';
+import { EVENTS } from '@/constants/events';
 import AppFlowConnection from './AppFlowConnection.vue';
 import AppFlowDesignerToolbar from './AppFlowDesignerToolbar.vue';
 import AppFlowNode from './AppFlowNode.vue';
@@ -199,25 +198,44 @@ import { flowNodeKinds } from '@/features/flows/nodeKinds';
 import type { FlowRuntimeSnapshot } from '@/features/flows/api/flowRuntimeApi';
 
 const props = defineProps<{
+  automation: string;
   flow: FlowDefinition;
   runtime?: FlowRuntimeSnapshot;
 }>();
 
-const automation = useAutomation('flow-designer-canvas');
+const automation = useAutomation(props.automation);
 const emit = defineEmits<{
-  moveNode: [nodeId: string, x: number, y: number];
-  reorderNode: [nodeId: string, command: ZOrderCommand];
-  deleteNode: [nodeId: string];
-  addConnection: [start: FlowConnectionEndpoint, end: FlowConnectionEndpoint];
-  deleteConnection: [connectionId: string];
-  addNode: [node: FlowNodeModel];
-  updateNodeLabel: [nodeId: string, label: string];
-  updateNodeConfiguration: [
+  (event: typeof EVENTS.MOVE_NODE, nodeId: string, x: number, y: number): void;
+  (event: typeof EVENTS.REORDER_NODE, nodeId: string, command: ZOrderCommand): void;
+  (event: typeof EVENTS.DELETE_NODE, nodeId: string): void;
+  (
+    event: typeof EVENTS.ADD_CONNECTION,
+    start: FlowConnectionEndpoint,
+    end: FlowConnectionEndpoint
+  ): void;
+  (event: typeof EVENTS.DELETE_CONNECTION, connectionId: string): void;
+  (event: typeof EVENTS.ADD_NODE, node: FlowNodeModel): void;
+  (event: typeof EVENTS.UPDATE_NODE_LABEL, nodeId: string, label: string): void;
+  (
+    event: typeof EVENTS.UPDATE_NODE_CONFIGURATION,
     nodeId: string,
     key: string,
     value: FlowNodeModel['configuration'][string]
-  ];
+  ): void;
 }>();
+
+const handleNodeLabelUpdate = (label: string): void => {
+  if (selectedNode.value) emit(EVENTS.UPDATE_NODE_LABEL, selectedNode.value.id, label);
+};
+
+const handleNodeConfigurationUpdate = (
+  key: string,
+  value: FlowNodeModel['configuration'][string]
+): void => {
+  if (selectedNode.value) {
+    emit(EVENTS.UPDATE_NODE_CONFIGURATION, selectedNode.value.id, key, value);
+  }
+};
 
 const viewportElement = ref<HTMLElement>();
 const canvasElement = ref<SVGSVGElement>();
@@ -334,7 +352,7 @@ const handleAddNode = (kind: FlowNodeModel['kind']): void => {
   // Wrapping after eight additions keeps the starting position within the canvas.
   const offset = (props.flow.nodes.length % 8) * 24;
   const node = createDefaultNode(kind, { x: 48 + offset, y: 72 + offset }, zOrder);
-  emit('addNode', node);
+  emit(EVENTS.ADD_NODE, node);
   selectNode(node.id);
 };
 const addNodeAt = (kind: FlowNodeModel['kind'], position: Point): void => {
@@ -347,7 +365,7 @@ const addNodeAt = (kind: FlowNodeModel['kind'], position: Point): void => {
     nodeHeight: size.height
   });
   const node = createDefaultNode(kind, constrained, zOrder);
-  emit('addNode', node);
+  emit(EVENTS.ADD_NODE, node);
   selectNode(node.id);
 };
 
@@ -366,7 +384,7 @@ const handlePaletteDrop = (event: DragEvent): void => {
   });
 };
 const handleReorder = (command: ZOrderCommand): void => {
-  if (selectedNodeId.value) emit('reorderNode', selectedNodeId.value, command);
+  if (selectedNodeId.value) emit(EVENTS.REORDER_NODE, selectedNodeId.value, command);
 };
 
 const handleCanvasKeydown = (event: KeyboardEvent): void => {
@@ -384,8 +402,8 @@ const handleCanvasKeydown = (event: KeyboardEvent): void => {
   event.preventDefault();
 
   if (command.type === 'delete') {
-    if (nodeId) emit('deleteNode', nodeId);
-    if (selectedLinkId) emit('deleteConnection', selectedLinkId);
+    if (nodeId) emit(EVENTS.DELETE_NODE, nodeId);
+    if (selectedLinkId) emit(EVENTS.DELETE_CONNECTION, selectedLinkId);
     clearSelection();
     // Deletion removes the focused SVG element. Restore focus after Vue updates
     // the document so keyboard users remain inside the designer.
@@ -406,7 +424,7 @@ const handleCanvasKeydown = (event: KeyboardEvent): void => {
       nodeHeight: size.height
     }
   );
-  emit('moveNode', nodeId, position.x, position.y);
+  emit(EVENTS.MOVE_NODE, nodeId, position.x, position.y);
 };
 
 const handleConnectorActivate = (endpoint: FlowConnectionEndpoint): void => {
@@ -436,7 +454,7 @@ const handleConnectorActivate = (endpoint: FlowConnectionEndpoint): void => {
     reportConnectionError(validation.message ?? 'That connection is not valid.');
     return;
   }
-  emit('addConnection', connectionStart.value, endpoint);
+  emit(EVENTS.ADD_CONNECTION, connectionStart.value, endpoint);
   cancelConnection();
 };
 
@@ -527,7 +545,7 @@ const handlePointerMove = (event: PointerEvent): void => {
     24,
     snapToGrid.value
   );
-  emit('moveNode', state.nodeId, position.x, position.y);
+  emit(EVENTS.MOVE_NODE, state.nodeId, position.x, position.y);
 };
 
 const handleDragEnd = (event: PointerEvent): void => {
@@ -538,7 +556,7 @@ const handleDragCancel = (event: PointerEvent): void => {
   const state = dragState.value;
   const originalPosition = cancelDrag(event.pointerId);
   if (state && originalPosition) {
-    emit('moveNode', state.nodeId, originalPosition.x, originalPosition.y);
+    emit(EVENTS.MOVE_NODE, state.nodeId, originalPosition.x, originalPosition.y);
   }
 };
 </script>

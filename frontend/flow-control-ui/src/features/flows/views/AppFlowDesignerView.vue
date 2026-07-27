@@ -1,5 +1,5 @@
 <template>
-  <section class="designer-page">
+  <section v-bind="automation()" class="designer-page">
     <AppErrorNotice
       id="flow-designer-error-notice"
       automation="flow-designer-error"
@@ -131,14 +131,14 @@
         v-bind="automation('canvas')"
         :flow="flow"
         :runtime="runtime"
-        @move-node="moveNode"
-        @reorder-node="reorderNode"
-        @delete-node="deleteNode"
-        @add-connection="addConnection"
-        @delete-connection="deleteConnection"
-        @add-node="addNode"
-        @update-node-label="updateNodeLabel"
-        @update-node-configuration="updateNodeConfiguration"
+        @[EVENTS.MOVE_NODE]="moveNode"
+        @[EVENTS.REORDER_NODE]="reorderNode"
+        @[EVENTS.DELETE_NODE]="deleteNode"
+        @[EVENTS.ADD_CONNECTION]="addConnection"
+        @[EVENTS.DELETE_CONNECTION]="deleteConnection"
+        @[EVENTS.ADD_NODE]="addNode"
+        @[EVENTS.UPDATE_NODE_LABEL]="updateNodeLabel"
+        @[EVENTS.UPDATE_NODE_CONFIGURATION]="updateNodeConfiguration"
       />
     </template>
 
@@ -155,6 +155,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
 
 import { useAutomation } from '@/composables/useAutomation';
+import { EVENTS } from '@/constants/events';
 import cancelIcon from '@/assets/icons/cancel-icon.svg';
 import deployIcon from '@/assets/icons/deploy-icon.svg';
 import disableFlowIcon from '@/assets/icons/disable-flow-icon.svg';
@@ -195,9 +196,7 @@ const togglingDisabled = ref(false);
 const loadError = ref<string>();
 const saveError = ref<string>();
 const runtimeError = ref<string>();
-const noticeError = computed(
-  () => loadError.value ?? saveError.value ?? runtimeError.value ?? ''
-);
+const noticeError = computed(() => loadError.value ?? saveError.value ?? runtimeError.value ?? '');
 const showDeployConfirmation = ref(false);
 const deployDialog = ref<HTMLElement>();
 const discardDialog = ref<HTMLElement>();

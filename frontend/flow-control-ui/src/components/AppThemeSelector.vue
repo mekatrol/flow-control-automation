@@ -1,6 +1,6 @@
 <template>
   <AppButton
-    :automation="automation"
+    v-bind="automation()"
     class="theme-selector"
     :text="themeButtonLabel"
     hide-text
@@ -28,15 +28,12 @@ import darkThemeIcon from '@/assets/icons/dark-mode-toggle-icon.svg';
 import lightThemeIcon from '@/assets/icons/light-mode-toggle-icon.svg';
 import systemThemeIcon from '@/assets/icons/system-mode-toggle-icon.svg';
 import AppButton from '@/components/AppButton.vue';
+import { useAutomation } from '@/composables/useAutomation';
 
-withDefaults(
-  defineProps<{
-    automation?: string;
-  }>(),
-  {
-    automation: 'theme-selector'
-  }
-);
+const props = defineProps<{
+  automation: string;
+}>();
+const automation = useAutomation(props.automation);
 
 type ThemePreference = 'light' | 'system' | 'dark';
 

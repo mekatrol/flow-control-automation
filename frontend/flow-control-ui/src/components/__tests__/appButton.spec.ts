@@ -13,7 +13,7 @@ describe('AppButton', () => {
    */
   it('shows its text by default', () => {
     const wrapper = mount(AppButton, {
-      props: { text: 'Save flow', icon: '/save.svg' }
+      props: { automation: 'save-flow', text: 'Save flow', icon: '/save.svg' }
     });
 
     // Expected outcome: `wrapper.get('button'` has the required value.
@@ -39,7 +39,7 @@ describe('AppButton', () => {
    */
   it('uses the defined text as the accessible label when text is hidden', () => {
     const wrapper = mount(AppButton, {
-      props: { text: 'Save name', icon: '/save.svg', hideText: true }
+      props: { automation: 'save-name', text: 'Save name', icon: '/save.svg', hideText: true }
     });
 
     // Expected outcome: `wrapper.get('button'` has the required value.

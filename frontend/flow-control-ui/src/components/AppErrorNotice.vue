@@ -2,7 +2,7 @@
   <AppNotice
     :id="id"
     ref="notice"
-    :automation="automation"
+    v-bind="automation()"
     :title="title"
     :message="message"
     variant="error"
@@ -16,17 +16,12 @@
     <template #footer="{ close }">
       <AppButton
         v-if="retryable"
-        :automation="`${automation}-retry`"
+        v-bind="automation('retry')"
         text="Retry"
         :icon="retryIcon"
         @click="retry(close)"
       />
-      <AppButton
-        :automation="`${automation}-close`"
-        text="Close"
-        :icon="cancelIcon"
-        @click="close"
-      />
+      <AppButton v-bind="automation('close')" text="Close" :icon="cancelIcon" @click="close" />
     </template>
   </AppNotice>
 </template>
@@ -38,6 +33,8 @@ import cancelIcon from '@/assets/icons/cancel-icon.svg';
 import retryIcon from '@/assets/icons/retry-icon.svg';
 import AppButton from '@/components/AppButton.vue';
 import AppNotice from '@/components/AppNotice.vue';
+import { useAutomation } from '@/composables/useAutomation';
+import { EVENTS } from '@/constants/events';
 
 const props = withDefaults(
   defineProps<{
@@ -56,8 +53,11 @@ const props = withDefaults(
   }
 );
 
-const emit = defineEmits<{ retry: [] }>();
+const emit = defineEmits<{
+  (event: typeof EVENTS.RETRY): void;
+}>();
 const notice = ref<InstanceType<typeof AppNotice>>();
+const automation = useAutomation(props.automation);
 
 watch(
   () => props.message,
@@ -71,6 +71,6 @@ watch(
 
 const retry = (close: () => void): void => {
   close();
-  emit('retry');
+  emit(EVENTS.RETRY);
 };
 </script>

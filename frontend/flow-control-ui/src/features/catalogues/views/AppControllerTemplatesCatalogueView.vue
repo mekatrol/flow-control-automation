@@ -1,11 +1,11 @@
 <template>
-  <section class="catalogue-page" aria-labelledby="templates-heading">
+  <section v-bind="automation()" class="catalogue-page" aria-labelledby="templates-heading">
     <AppErrorNotice
       id="controller-templates-error-notice"
       automation="controller-templates-error"
       :message="store.error"
       retryable
-      @retry="store.load"
+      @[EVENTS.RETRY]="store.load"
     />
     <div class="page-heading">
       <div>
@@ -84,8 +84,8 @@
         :range-start="rangeStart"
         :range-end="rangeEnd"
         :total-items="store.result.totalItems"
-        @update:page="store.page = $event"
-        @update:page-size="setPageSize"
+        @[EVENTS.UPDATE_PAGE]="setPage"
+        @[EVENTS.UPDATE_PAGE_SIZE]="setPageSize"
       />
     </template>
   </section>
@@ -95,6 +95,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import newIcon from '@/assets/icons/new-flow-icon.svg';
 import AppErrorNotice from '@/components/AppErrorNotice.vue';
+import { useAutomation } from '@/composables/useAutomation';
 import AppFilter from '@/components/AppFilter.vue';
 import AppSvg from '@/components/AppSvg.vue';
 import AppTable from '@/components/AppTable.vue';
@@ -103,6 +104,7 @@ import { EVENTS } from '@/constants/events';
 import type { ControllerTemplateSummary } from '@/features/catalogues/api/catalogueDto';
 import { useControllerTemplatesCatalogueStore } from '@/features/catalogues/stores/catalogues';
 
+const automation = useAutomation('controller-templates-catalogue');
 const store = useControllerTemplatesCatalogueStore();
 const filter = ref(store.filter);
 const rangeStart = computed(() =>
@@ -129,6 +131,9 @@ const applyFilter = (): void => {
 const setPageSize = (value: number): void => {
   store.pageSize = value;
   store.page = 1;
+};
+const setPage = (value: number): void => {
+  store.page = value;
 };
 onMounted(() => void store.load());
 onBeforeUnmount(store.cancel);

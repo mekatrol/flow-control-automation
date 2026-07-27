@@ -12,14 +12,21 @@ describe('useAutomation', () => {
     const automation = useAutomation('flow-table');
 
     // Expected outcome: `automation()` matches the required structure.
-    // Acceptance criteria: `automation()` must equal `{ 'data-automation': 'flow-table' }`, because this condition proves that
+    // Acceptance criteria: `automation()` must supply both the required component prop
+    // and `data-automation` as "flow-table", because one binding must support component
+    // forwarding and native root metadata.
     // creates root and child automation attributes.
-    expect(automation()).toEqual({ 'data-automation': 'flow-table' });
+    expect(automation()).toEqual({
+      automation: 'flow-table',
+      'data-automation': 'flow-table'
+    });
 
     // Expected outcome: `automation('next-page')` matches the required structure.
-    // Acceptance criteria: `automation('next-page')` must equal `{ 'data-automation': 'flow-table.next-page' }`, because this condition proves that
-    // creates root and child automation attributes.
+    // Acceptance criteria: `automation('next-page')` must provide the kebab-case
+    // component prop "flow-table-next-page" and dotted DOM identifier
+    // "flow-table.next-page", because both contracts describe the same child.
     expect(automation('next-page')).toEqual({
+      automation: 'flow-table-next-page',
       'data-automation': 'flow-table.next-page'
     });
   });

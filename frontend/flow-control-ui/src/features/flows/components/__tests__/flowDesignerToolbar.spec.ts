@@ -13,7 +13,12 @@ describe('FlowDesignerToolbar', () => {
    */
   it('uses distinct directional and terminal icons for all stacking operations', async () => {
     const wrapper = mount(AppFlowDesignerToolbar, {
-      props: { selectedNodeId: 'node-1', canMoveFront: true, canMoveBack: true }
+      props: {
+        automation: 'flow-designer-toolbar',
+        selectedNodeId: 'node-1',
+        canMoveFront: true,
+        canMoveBack: true
+      }
     });
 
     // Expected outcome: `wrapper.findAll('svg[data-icon]')` contains the required number of entries.

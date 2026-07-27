@@ -36,12 +36,11 @@ const props = withDefaults(
   defineProps<{
     id: string;
     contentLabel: string;
-    automation?: string;
+    automation: string;
     popoverMode?: PopoverMode;
     placement?: PopoverPlacement;
   }>(),
   {
-    automation: '',
     placement: 'center',
     popoverMode: 'auto'
   }

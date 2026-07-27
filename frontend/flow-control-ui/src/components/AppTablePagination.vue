@@ -20,7 +20,7 @@
         text="Previous page"
         :icon="chevronLeftIcon"
         :disabled="page <= 1"
-        @click="$emit('update:page', page - 1)"
+        @click="$emit(EVENTS.UPDATE_PAGE, page - 1)"
       />
       <span aria-current="page">Page {{ page }} of {{ pageCount }}</span>
       <AppButton
@@ -28,7 +28,7 @@
         text="Next page"
         :icon="chevronRightIcon"
         :disabled="page >= pageCount"
-        @click="$emit('update:page', page + 1)"
+        @click="$emit(EVENTS.UPDATE_PAGE, page + 1)"
       />
     </nav>
   </div>
@@ -39,6 +39,7 @@ import { useAutomation } from '@/composables/useAutomation';
 import chevronLeftIcon from '@/assets/icons/chevron-left-icon.svg';
 import chevronRightIcon from '@/assets/icons/chevron-right-icon.svg';
 import AppButton from '@/components/AppButton.vue';
+import { EVENTS } from '@/constants/events';
 
 const props = withDefaults(
   defineProps<{
@@ -57,12 +58,12 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-  'update:page': [page: number];
-  'update:pageSize': [pageSize: number];
+  (event: typeof EVENTS.UPDATE_PAGE, page: number): void;
+  (event: typeof EVENTS.UPDATE_PAGE_SIZE, pageSize: number): void;
 }>();
 
 const changePageSize = (event: Event): void => {
-  emit('update:pageSize', Number((event.target as HTMLSelectElement).value));
+  emit(EVENTS.UPDATE_PAGE_SIZE, Number((event.target as HTMLSelectElement).value));
 };
 
 const automation = useAutomation(props.automation);

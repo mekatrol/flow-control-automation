@@ -5,14 +5,14 @@
         v-if="editing"
         class="rename-flow"
         @click.stop
-        @submit.prevent="$emit('saveRename', flow.id)"
+        @submit.prevent="$emit(EVENTS.SAVE_RENAME, flow.id)"
       >
         <label :for="`rename-${flow.id}`">Rename {{ flow.name }}</label>
         <input
           :id="`rename-${flow.id}`"
           :value="renameValue"
           type="text"
-          @input="$emit('update:renameValue', ($event.target as HTMLInputElement).value)"
+          @input="$emit(EVENTS.UPDATE_RENAME_VALUE, ($event.target as HTMLInputElement).value)"
         />
         <AppButton
           v-bind="automation('save-name')"
@@ -27,7 +27,7 @@
           text="Cancel"
           :icon="cancelIcon"
           hide-text
-          @click="$emit('cancelRename')"
+          @click="$emit(EVENTS.CANCEL_RENAME)"
         />
       </form>
       <RouterLink
@@ -55,19 +55,19 @@
         :text="flow.disabled ? 'Enable' : 'Disable'"
         :icon="flow.disabled ? enableFlowIcon : disableFlowIcon"
         :disabled="togglingDisabled"
-        @click="$emit('toggleDisabled', flow.id, !flow.disabled)"
+        @click="$emit(EVENTS.TOGGLE_DISABLED, flow.id, !flow.disabled)"
       />
       <AppButton
         v-bind="automation('rename')"
         text="Rename"
         :icon="renameFlowIcon"
-        @click="$emit('beginRename', flow.id, flow.name)"
+        @click="$emit(EVENTS.BEGIN_RENAME, flow.id, flow.name)"
       />
       <AppButton
         v-bind="automation('delete')"
         text="Delete"
         :icon="deleteFlowIcon"
-        @click="$emit('beginDelete', flow.id)"
+        @click="$emit(EVENTS.BEGIN_DELETE, flow.id)"
       />
       <div
         v-if="confirmingDelete"
@@ -86,14 +86,14 @@
           text="Confirm delete"
           :icon="deleteFlowIcon"
           :disabled="deleting"
-          @click="$emit('confirmDelete', flow.id)"
+          @click="$emit(EVENTS.CONFIRM_DELETE, flow.id)"
         />
         <AppButton
           v-bind="automation('cancel-delete')"
           text="Cancel"
           :icon="cancelIcon"
           data-dialog-initial-focus
-          @click="$emit('cancelDelete')"
+          @click="$emit(EVENTS.CANCEL_DELETE)"
         />
       </div>
     </td>
@@ -111,11 +111,13 @@ import enableFlowIcon from '@/assets/icons/enable-flow-icon.svg';
 import renameFlowIcon from '@/assets/icons/rename-flow-icon.svg';
 import saveIcon from '@/assets/icons/save-icon.svg';
 import AppButton from '@/components/AppButton.vue';
+import { EVENTS } from '@/constants/events';
 import { useAutomation } from '@/composables/useAutomation';
 import { useModalFocus } from '@/features/flows/composables/useModalFocus';
 import type { FlowDefinition } from '@/features/flows/types';
 
 const props = defineProps<{
+  automation: string;
   flow: FlowDefinition;
   editing: boolean;
   renameValue: string;
@@ -126,18 +128,18 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  beginRename: [flowId: string, name: string];
-  'update:renameValue': [value: string];
-  saveRename: [flowId: string];
-  cancelRename: [];
-  beginDelete: [flowId: string];
-  confirmDelete: [flowId: string];
-  cancelDelete: [];
-  toggleDisabled: [flowId: string, disabled: boolean];
+  (event: typeof EVENTS.BEGIN_RENAME, flowId: string, name: string): void;
+  (event: typeof EVENTS.UPDATE_RENAME_VALUE, value: string): void;
+  (event: typeof EVENTS.SAVE_RENAME, flowId: string): void;
+  (event: typeof EVENTS.CANCEL_RENAME): void;
+  (event: typeof EVENTS.BEGIN_DELETE, flowId: string): void;
+  (event: typeof EVENTS.CONFIRM_DELETE, flowId: string): void;
+  (event: typeof EVENTS.CANCEL_DELETE): void;
+  (event: typeof EVENTS.TOGGLE_DISABLED, flowId: string, disabled: boolean): void;
 }>();
 
 const router = useRouter();
-const automation = useAutomation(`flow-row-${props.flow.id}`);
+const automation = useAutomation(props.automation);
 const deleteDialog = ref<HTMLElement>();
 const deleteDialogOpen = computed(() => props.confirmingDelete);
 const setDeleteDialog = (element: Element | ComponentPublicInstance | null): void => {
@@ -146,7 +148,7 @@ const setDeleteDialog = (element: Element | ComponentPublicInstance | null): voi
 const { handleKeydown: handleDeleteDialogKeydown } = useModalFocus(
   deleteDialog,
   deleteDialogOpen,
-  () => emit('cancelDelete')
+  () => emit(EVENTS.CANCEL_DELETE)
 );
 const formattedUpdatedAt = computed(() =>
   new Intl.DateTimeFormat(undefined, {

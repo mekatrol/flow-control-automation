@@ -14,6 +14,7 @@ describe('AppPopover', () => {
   it('renders a native popover surface without owning the trigger element', () => {
     const wrapper = mount(AppPopover, {
       props: {
+        automation: 'app-popover',
         contentLabel: 'App options',
         id: 'app-popover'
       },
@@ -63,6 +64,7 @@ describe('AppPopover', () => {
   it('allows callers to choose manual popover mode and placement', () => {
     const wrapper = mount(AppPopover, {
       props: {
+        automation: 'app-popover',
         contentLabel: 'App options',
         id: 'app-popover',
         placement: 'top-end',

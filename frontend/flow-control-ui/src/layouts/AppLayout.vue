@@ -1,5 +1,5 @@
 <template>
-  <div class="app-shell">
+  <div v-bind="automation()" class="app-shell">
     <a class="skip-link" href="#main-content">Skip to main content</a>
     <header class="app-header header">
       <slot name="header">
@@ -48,6 +48,9 @@
 
 <script setup lang="ts">
 import AppThemeSelector from '@/components/AppThemeSelector.vue';
+import { useAutomation } from '@/composables/useAutomation';
+
+const automation = useAutomation('app-layout');
 </script>
 
 <style scoped lang="css">

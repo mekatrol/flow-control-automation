@@ -1,15 +1,16 @@
 <template>
   <g
     v-if="path"
+    v-bind="automation()"
     class="connection-group"
     :class="{ selected, preview }"
     :data-connection-id="id"
     :role="preview ? undefined : 'button'"
     :tabindex="preview ? undefined : 0"
     :aria-label="preview ? undefined : label || `Connection ${id}`"
-    @click.stop="!preview && emit('select', id)"
-    @keydown.enter.prevent="!preview && emit('select', id)"
-    @keydown.space.prevent="!preview && emit('select', id)"
+    @click.stop="!preview && emit(EVENTS.SELECT, id)"
+    @keydown.enter.prevent="!preview && emit(EVENTS.SELECT, id)"
+    @keydown.space.prevent="!preview && emit(EVENTS.SELECT, id)"
   >
     <path v-if="!preview" class="connection-hit-area" :d="path" />
     <path class="flow-connection" :d="path" />
@@ -20,10 +21,13 @@
 import { computed } from 'vue';
 
 import { connectionPath } from '@/features/flows/geometry/connectionPath';
+import { useAutomation } from '@/composables/useAutomation';
+import { EVENTS } from '@/constants/events';
 import type { Point } from '@/features/flows/geometry/connectorLayout';
 import type { ConnectorSide } from '@/features/flows/types';
 
 const props = defineProps<{
+  automation: string;
   id: string;
   start?: Point;
   end?: Point;
@@ -33,7 +37,10 @@ const props = defineProps<{
   preview?: boolean;
   label?: string;
 }>();
-const emit = defineEmits<{ select: [id: string] }>();
+const emit = defineEmits<{
+  (event: typeof EVENTS.SELECT, id: string): void;
+}>();
+const automation = useAutomation(props.automation);
 // The same calculated curve drives both the visible stroke and its larger hit
 // target, ensuring selection follows exactly what the user sees.
 const path = computed(() => connectionPath(props.start, props.end, props.startSide, props.endSide));

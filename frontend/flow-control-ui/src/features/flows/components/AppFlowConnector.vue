@@ -1,5 +1,6 @@
 <template>
   <g
+    v-bind="automation()"
     class="flow-connector"
     :class="{ compatible, active }"
     :transform="`translate(${layout.x} ${layout.y})`"
@@ -7,12 +8,12 @@
     tabindex="0"
     :aria-label="`${layout.connector.label}, ${layout.connector.direction}, ${layout.connector.dataType}${compatible ? ', compatible destination' : ''}`"
     :aria-pressed="active"
-    @click.stop="emit('activate')"
-    @pointerdown.left.stop="emit('press')"
-    @pointerup.left.stop="emit('release')"
-    @focus="emit('preview')"
-    @keydown.enter.prevent.stop="emit('activate')"
-    @keydown.space.prevent.stop="emit('activate')"
+    @click.stop="emit(EVENTS.ACTIVATE)"
+    @pointerdown.left.stop="emit(EVENTS.PRESS)"
+    @pointerup.left.stop="emit(EVENTS.RELEASE)"
+    @focus="emit(EVENTS.PREVIEW)"
+    @keydown.enter.prevent.stop="emit(EVENTS.ACTIVATE)"
+    @keydown.space.prevent.stop="emit(EVENTS.ACTIVATE)"
   >
     <!-- SVG only hit-tests painted geometry. This transparent circle gives the
     connector a forgiving pointer target without making the visible port huge. -->
@@ -27,12 +28,25 @@
 
 <script setup lang="ts">
 import type { ConnectorLayout } from '@/features/flows/geometry/connectorLayout';
+import { useAutomation } from '@/composables/useAutomation';
+import { EVENTS } from '@/constants/events';
 
-defineProps<{ layout: ConnectorLayout; compatible?: boolean; active?: boolean }>();
+const props = defineProps<{
+  automation: string;
+  layout: ConnectorLayout;
+  compatible?: boolean;
+  active?: boolean;
+}>();
 
 // SVG groups are not native controls. The template supplies button semantics and
 // keyboard activation, and stops pointer-down from starting the node's drag.
-const emit = defineEmits<{ press: []; activate: []; release: []; preview: [] }>();
+const emit = defineEmits<{
+  (event: typeof EVENTS.PRESS): void;
+  (event: typeof EVENTS.ACTIVATE): void;
+  (event: typeof EVENTS.RELEASE): void;
+  (event: typeof EVENTS.PREVIEW): void;
+}>();
+const automation = useAutomation(props.automation);
 </script>
 
 <style scoped>

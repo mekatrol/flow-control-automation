@@ -20,7 +20,10 @@
  * <button data-automation="user-card.delete">
  */
 
-type AutomationAttributes = Record<string, string>;
+type AutomationAttributes = {
+  automation: string;
+  'data-automation': string;
+};
 
 const AUTOMATION_ATTRIBUTE = 'data-automation';
 const AUTOMATION_NAME_PATTERN = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
@@ -45,10 +48,6 @@ export const useAutomation = (base: string): ((suffix?: string) => AutomationAtt
    */
 
   return (suffix?: string): AutomationAttributes => {
-    if (!base) {
-      return {};
-    }
-
     if (!AUTOMATION_NAME_PATTERN.test(base)) {
       throw new TypeError(`Automation name "${base}" must be lowercase kebab-case.`);
     }
@@ -58,6 +57,7 @@ export const useAutomation = (base: string): ((suffix?: string) => AutomationAtt
     }
 
     return {
+      automation: suffix === undefined ? base : `${base}-${suffix}`,
       [AUTOMATION_ATTRIBUTE]: suffix === undefined ? base : `${base}.${suffix}`
     };
   };

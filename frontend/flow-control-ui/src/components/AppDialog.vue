@@ -6,7 +6,7 @@
     class="dialog-panel"
     :aria-label="contentLabel"
     @cancel="handleCancel"
-    @close="emit('close', $event)"
+    @close="emit(EVENTS.CLOSE, $event)"
   >
     <slot />
   </dialog>
@@ -15,31 +15,31 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useAutomation } from '@/composables/useAutomation';
+import { EVENTS } from '@/constants/events';
 
 const props = withDefaults(
   defineProps<{
     id: string;
     contentLabel: string;
-    automation?: string;
+    automation: string;
     dismissible?: boolean;
   }>(),
   {
-    automation: '',
     dismissible: true
   }
 );
 
-const emit = defineEmits<{
-  cancel: [event: Event];
-  close: [event: Event];
-}>();
+const emit = defineEmits({
+  [EVENTS.CANCEL]: (nativeEvent: Event): boolean => nativeEvent instanceof Event,
+  [EVENTS.CLOSE]: (nativeEvent: Event): boolean => nativeEvent instanceof Event
+});
 
 const panel = ref<HTMLDialogElement>();
 const automation = useAutomation(props.automation);
 
 const handleCancel = (event: Event): void => {
   if (!props.dismissible) event.preventDefault();
-  emit('cancel', event);
+  emit(EVENTS.CANCEL, event);
 };
 
 defineExpose({

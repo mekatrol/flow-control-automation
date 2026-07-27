@@ -4,7 +4,7 @@
     :text="label"
     :aria-label="accessibleLabel"
     :icon="direction === 'ascending' ? sortAscendingIcon : sortDescendingIcon"
-    @click="$emit('toggle')"
+    @click="$emit(EVENTS.TOGGLE)"
   />
 </template>
 
@@ -14,8 +14,9 @@ import { computed } from 'vue';
 import sortAscendingIcon from '@/assets/icons/sort-ascending-icon.svg';
 import sortDescendingIcon from '@/assets/icons/sort-descending-icon.svg';
 import AppButton from '@/components/AppButton.vue';
-import type { SortDirection } from '@/composables/usePaginatedCollection';
 import { useAutomation } from '@/composables/useAutomation';
+import type { SortDirection } from '@/composables/usePaginatedCollection';
+import { EVENTS } from '@/constants/events';
 
 const props = defineProps<{
   automation: string;
@@ -24,7 +25,7 @@ const props = defineProps<{
 }>();
 
 defineEmits<{
-  toggle: [];
+  (event: typeof EVENTS.TOGGLE): void;
 }>();
 
 const automation = useAutomation(props.automation);

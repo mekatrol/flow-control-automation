@@ -1,11 +1,11 @@
 <template>
-  <section class="flow-library">
+  <section v-bind="automation()" class="flow-library">
     <AppErrorNotice
       id="flows-error-notice"
       automation="flows-error"
       :message="error ?? ''"
       :retryable="errorRetry"
-      @retry="loadFlows"
+      @[EVENTS.RETRY]="loadFlows"
     />
 
     <div class="page-heading">
@@ -75,15 +75,15 @@
         :confirming-delete-id="confirmingDeleteId"
         :deleting="deleting"
         :toggling-disabled-id="togglingDisabledId"
-        @toggle-sort="toggleSortDirection"
-        @begin-rename="beginRename"
-        @update:rename-value="renameValue = $event"
-        @save-rename="renameFlow"
-        @cancel-rename="editingFlowId = undefined"
-        @begin-delete="beginDelete"
-        @confirm-delete="deleteFlow"
-        @cancel-delete="closeDeleteConfirmation"
-        @toggle-disabled="setFlowDisabled"
+        @[EVENTS.TOGGLE_SORT]="toggleSortDirection"
+        @[EVENTS.BEGIN_RENAME]="beginRename"
+        @[EVENTS.UPDATE_RENAME_VALUE]="setRenameValue"
+        @[EVENTS.SAVE_RENAME]="renameFlow"
+        @[EVENTS.CANCEL_RENAME]="cancelRename"
+        @[EVENTS.BEGIN_DELETE]="beginDelete"
+        @[EVENTS.CONFIRM_DELETE]="deleteFlow"
+        @[EVENTS.CANCEL_DELETE]="closeDeleteConfirmation"
+        @[EVENTS.TOGGLE_DISABLED]="setFlowDisabled"
       />
       <AppTablePagination
         v-if="totalItems > 0"
@@ -94,8 +94,8 @@
         :range-start="rangeStart"
         :range-end="rangeEnd"
         :total-items="totalItems"
-        @update:page="setPage"
-        @update:page-size="pageSize = $event"
+        @[EVENTS.UPDATE_PAGE]="setPage"
+        @[EVENTS.UPDATE_PAGE_SIZE]="setPageSize"
       />
     </div>
   </section>
@@ -286,6 +286,15 @@ const createFlow = async (): Promise<void> => {
 const beginRename = (flowId: string, name: string): void => {
   editingFlowId.value = flowId;
   renameValue.value = name;
+};
+const setRenameValue = (value: string): void => {
+  renameValue.value = value;
+};
+const cancelRename = (): void => {
+  editingFlowId.value = undefined;
+};
+const setPageSize = (value: number): void => {
+  pageSize.value = value;
 };
 
 const beginDelete = (flowId: string): void => {

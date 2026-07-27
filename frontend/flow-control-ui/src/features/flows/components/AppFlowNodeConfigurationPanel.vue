@@ -1,11 +1,7 @@
 <template>
-  <aside class="configuration-panel" aria-label="Node configuration">
+  <aside v-bind="automation()" class="configuration-panel" aria-label="Node configuration">
     <div class="panel-heading">
-      <AppSvg
-        :src="getNodeIconUrl(definition.icon)"
-        automation="node-configuration-icon"
-        :size="22"
-      />
+      <AppSvg :src="getNodeIconUrl(definition.icon)" v-bind="automation('icon')" :size="22" />
       <div class="heading-copy">
         <strong>Configure {{ definition.label }}</strong>
         <small>{{ node.id }}</small>
@@ -87,16 +83,19 @@ export const editorValueFromInput = (
 import { computed, ref } from 'vue';
 
 import AppSvg from '@/components/AppSvg.vue';
+import { useAutomation } from '@/composables/useAutomation';
+import { EVENTS } from '@/constants/events';
 import { getNodeIconUrl, getNodeKind } from '@/features/flows/nodeKinds';
 import type { NodeEditorField } from '@/features/flows/nodeKinds';
 import type { FlowConfigurationValue, FlowNode } from '@/features/flows/types';
 
-const props = defineProps<{ node: FlowNode }>();
+const props = defineProps<{ automation: string; node: FlowNode }>();
 const emit = defineEmits<{
-  updateLabel: [label: string];
-  updateConfiguration: [key: string, value: FlowConfigurationValue];
+  (event: typeof EVENTS.UPDATE_LABEL, label: string): void;
+  (event: typeof EVENTS.UPDATE_CONFIGURATION, key: string, value: FlowConfigurationValue): void;
 }>();
 
+const automation = useAutomation(props.automation);
 const definition = computed(() => getNodeKind(props.node.kind));
 const errors = ref<Record<string, string>>({});
 
@@ -108,7 +107,7 @@ const updateLabel = (event: Event): void => {
   if (error) errors.value.label = error;
   else {
     delete errors.value.label;
-    emit('updateLabel', label.trim());
+    emit(EVENTS.UPDATE_LABEL, label.trim());
   }
 };
 
@@ -117,7 +116,7 @@ const updateField = (field: NodeEditorField, event: Event): void => {
   if (result.error) errors.value[field.key] = result.error;
   else {
     delete errors.value[field.key];
-    emit('updateConfiguration', field.key, result.value!);
+    emit(EVENTS.UPDATE_CONFIGURATION, field.key, result.value!);
   }
 };
 </script>

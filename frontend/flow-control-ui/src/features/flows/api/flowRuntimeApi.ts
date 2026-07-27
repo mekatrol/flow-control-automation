@@ -64,11 +64,7 @@ const requestRuntime = async (url: string, init: RequestInit): Promise<FlowRunti
       } catch {
         // The response status is the fallback when the error body is not JSON.
       }
-      throw new FlowApiError(
-        'http',
-        message,
-        response.status
-      );
+      throw new FlowApiError('http', message, response.status);
     }
     let payload: unknown;
     try {
