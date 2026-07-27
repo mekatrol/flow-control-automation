@@ -1,5 +1,11 @@
 <template>
   <section class="configuration-page editor-page">
+    <AppErrorNotice
+      id="yaml-resource-error-notice"
+      automation="yaml-resource-error"
+      :message="apiError"
+      :details="apiErrorDetails"
+    />
     <nav aria-label="Breadcrumb">
       <RouterLink :to="{ name: listRoute }">{{ pluralLabel }}</RouterLink> /
       {{ isNew ? `New ${singularLabel}` : readOnly ? singularLabel : `Edit ${singularLabel}` }}
@@ -161,6 +167,7 @@ import playIcon from '@/assets/icons/play-icon.svg';
 import retryIcon from '@/assets/icons/retry-icon.svg';
 import saveIcon from '@/assets/icons/save-icon.svg';
 import AppButton from '@/components/AppButton.vue';
+import AppErrorNotice from '@/components/AppErrorNotice.vue';
 import AppSvg from '@/components/AppSvg.vue';
 import AppYamlEditor, { type YamlDiagnostic } from '@/components/AppYamlEditor.vue';
 import {
@@ -341,6 +348,8 @@ const loading = ref(false);
 const saving = ref(false);
 const validating = ref(false);
 const error = ref('');
+const apiError = ref('');
+const apiErrorDetails = ref<string[]>([]);
 const status = ref('');
 const deleteConflict = ref(false);
 const serverDiagnostics = ref<ValidationDiagnostic[]>([]);
@@ -389,18 +398,21 @@ const useExample = (): void => {
     pointExamples[0]!.yaml;
 };
 const showFailure = async (reason: unknown, fallback: string): Promise<void> => {
-  error.value = reason instanceof Error ? reason.message : fallback;
+  apiError.value = reason instanceof Error ? reason.message : fallback;
+  apiErrorDetails.value = [];
   serverDiagnostics.value = [];
   if (reason instanceof YamlResourceError && reason.details) {
     const details = reason.details as { diagnostics?: ValidationDiagnostic[] };
     serverDiagnostics.value = details.diagnostics ?? [];
+    apiErrorDetails.value = serverDiagnostics.value.map(
+      ({ path, message }) => `${path || 'Request'}: ${message}`
+    );
   }
-  await nextTick();
-  errorSummary.value?.focus();
 };
 const load = async (): Promise<void> => {
   yaml.value = baseline.value = initial.value;
   if (!props.resourceId) return;
+  apiError.value = '';
   loadController = new AbortController();
   loading.value = true;
   try {
@@ -415,6 +427,7 @@ const load = async (): Promise<void> => {
   }
 };
 const save = async (): Promise<void> => {
+  apiError.value = '';
   saving.value = true;
   error.value = '';
   serverDiagnostics.value = [];
@@ -439,6 +452,7 @@ const save = async (): Promise<void> => {
   }
 };
 const validateTemplate = async (): Promise<void> => {
+  apiError.value = '';
   validating.value = true;
   error.value = '';
   try {
@@ -457,6 +471,7 @@ const validateTemplate = async (): Promise<void> => {
 };
 const remove = async (): Promise<void> => {
   if (!props.resourceId || !window.confirm(`Delete this ${singularLabel.value}?`)) return;
+  apiError.value = '';
   deleteConflict.value = false;
   try {
     await api.value.delete(props.resourceId, revision.value);
@@ -470,6 +485,7 @@ const remove = async (): Promise<void> => {
 };
 const makeStandalone = async (): Promise<void> => {
   if (!props.resourceId || props.kind !== 'group') return;
+  apiError.value = '';
   try {
     await pointGroupConfigurationApi.makeStandalone(props.resourceId, revision.value);
     deleteConflict.value = false;
@@ -480,6 +496,7 @@ const makeStandalone = async (): Promise<void> => {
 };
 const loadRuntime = async (): Promise<void> => {
   if (!props.resourceId || props.kind !== 'point' || runtimePaused.value || document.hidden) return;
+  apiError.value = '';
   runtimeController?.abort();
   runtimeController = new AbortController();
   runtimeLoading.value = true;

@@ -56,12 +56,20 @@ export const parseFlowRuntimeSnapshot = (payload: unknown): FlowRuntimeSnapshot 
 const requestRuntime = async (url: string, init: RequestInit): Promise<FlowRuntimeSnapshot> => {
   try {
     const response = await fetch(url, init);
-    if (!response.ok)
+    if (!response.ok) {
+      let message = `Runtime request failed with status ${response.status}.`;
+      try {
+        const body = (await response.json()) as { message?: unknown };
+        if (typeof body.message === 'string' && body.message.trim()) message = body.message;
+      } catch {
+        // The response status is the fallback when the error body is not JSON.
+      }
       throw new FlowApiError(
         'http',
-        `Runtime request failed with status ${response.status}.`,
+        message,
         response.status
       );
+    }
     let payload: unknown;
     try {
       payload = await response.json();

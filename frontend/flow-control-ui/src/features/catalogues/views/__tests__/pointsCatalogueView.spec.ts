@@ -2,8 +2,13 @@
 
 import { createPinia } from 'pinia';
 import { flushPromises, mount } from '@vue/test-utils';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import AppPointsCatalogueView from '@/features/catalogues/views/AppPointsCatalogueView.vue';
+
+beforeEach(() => {
+  HTMLDialogElement.prototype.showModal = vi.fn();
+  HTMLDialogElement.prototype.close = vi.fn();
+});
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -87,11 +92,11 @@ describe('PointsCatalogueView', () => {
   });
 
   /**
-   * Purpose: Protects the behavioral contract that shows empty and unavailable states.
-   * Description: Exercises shows empty and unavailable states from its arranged starting state and
+   * Purpose: Protects the behavioral contract that shows API errors.
+   * Description: Exercises API error presentation from its arranged starting state and
    * verifies the observable results required by the scenario.
    */
-  it('shows empty and unavailable states', async () => {
+  it('shows the API error and a retry action', async () => {
     vi.stubGlobal(
       'fetch',
       vi
@@ -103,14 +108,8 @@ describe('PointsCatalogueView', () => {
     });
     await flushPromises();
 
-    // Expected outcome: `wrapper.get('[role="alert"]'` includes the required value.
-    // Acceptance criteria: `wrapper.get('[role="alert"]'` must contain `'does not support'`, because this condition proves that
-    // shows empty and unavailable states.
-    expect(wrapper.get('[role="alert"]').text()).toContain('does not support');
+    expect(wrapper.get('[role="alert"]').text()).toContain('missing');
 
-    // Expected outcome: `wrapper.get('[role="alert"] button'` has the required value.
-    // Acceptance criteria: `wrapper.get('[role="alert"] button'` must be `'Check again'`, because this condition proves that
-    // shows empty and unavailable states.
-    expect(wrapper.get('[role="alert"] button').text()).toBe('Check again');
+    expect(wrapper.get('[role="alert"] button').text()).toBe('Retry');
   });
 });

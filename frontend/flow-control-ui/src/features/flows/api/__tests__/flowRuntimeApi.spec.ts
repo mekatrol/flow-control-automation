@@ -110,5 +110,20 @@ describe('flow runtime API', () => {
       kind: 'http',
       status: 503
     });
+
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(
+          new Response(JSON.stringify({ message: 'Controller is offline.' }), { status: 503 })
+        )
+    );
+
+    await expect(flowRuntimeApi.deployFlow('offline')).rejects.toMatchObject({
+      kind: 'http',
+      status: 503,
+      message: 'Controller is offline.'
+    });
   });
 });

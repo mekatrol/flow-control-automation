@@ -43,7 +43,7 @@ const getJson = async (url: string, signal?: AbortSignal): Promise<unknown> => {
       const body = (await response.json()) as { message?: unknown };
       if (typeof body.message === 'string') message = body.message;
     } catch {
-      // A status code remains actionable when an older server returns non-JSON.
+      // The response status is the fallback when the error body is not JSON.
     }
     throw new CatalogueApiError(message, response.status);
   }

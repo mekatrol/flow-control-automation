@@ -1,5 +1,10 @@
 <template>
   <section class="configuration-page editor-page">
+    <AppErrorNotice
+      id="point-source-error-notice"
+      automation="point-source-error"
+      :message="error"
+    />
     <nav aria-label="Breadcrumb">
       <RouterLink :to="{ name: 'point-sources' }">Point sources</RouterLink> /
       {{ isNew ? 'New source' : 'Edit source' }}
@@ -14,15 +19,6 @@
       </div>
     </div>
 
-    <div
-      v-if="error"
-      ref="errorSummary"
-      class="request-error error-summary"
-      role="alert"
-      tabindex="-1"
-    >
-      <strong>There is a problem</strong><span>{{ error }}</span>
-    </div>
     <p v-if="loading" role="status">Loading source…</p>
     <div v-else class="source-editor-layout" :class="{ 'has-guidance': isNew }">
       <form @submit.prevent="save">
@@ -150,7 +146,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
 import cancelIcon from '@/assets/icons/cancel-icon.svg';
 import checkIcon from '@/assets/icons/check-icon.svg';
@@ -159,6 +155,7 @@ import retryIcon from '@/assets/icons/retry-icon.svg';
 import saveIcon from '@/assets/icons/save-icon.svg';
 import testConnectionIcon from '@/assets/icons/test-connection-icon.svg';
 import AppButton from '@/components/AppButton.vue';
+import AppErrorNotice from '@/components/AppErrorNotice.vue';
 import AppYamlEditor, { type YamlDiagnostic } from '@/components/AppYamlEditor.vue';
 import {
   pointSourceApi,
@@ -268,7 +265,6 @@ const editorDiagnostics = ref<YamlDiagnostic[]>([]);
 const hasEditorErrors = computed(() =>
   editorDiagnostics.value.some(({ severity }) => severity === 'error')
 );
-const errorSummary = ref<HTMLElement>();
 let loadController: AbortController | undefined;
 let testController: AbortController | undefined;
 let allowNavigation = false;
@@ -278,12 +274,6 @@ const useSelectedExample = (): void => {
   testResult.value = undefined;
   status.value = `${selectedExample.value.name} example loaded into the editor.`;
 };
-watch(error, async (value) => {
-  if (value) {
-    await nextTick();
-    errorSummary.value?.focus();
-  }
-});
 onBeforeRouteLeave(
   () => allowNavigation || !dirty.value || window.confirm('Discard unsaved point source changes?')
 );

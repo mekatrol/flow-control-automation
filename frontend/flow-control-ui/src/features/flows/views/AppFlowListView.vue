@@ -1,5 +1,13 @@
 <template>
   <section class="flow-library">
+    <AppErrorNotice
+      id="flows-error-notice"
+      automation="flows-error"
+      :message="error ?? ''"
+      :retryable="errorRetry"
+      @retry="loadFlows"
+    />
+
     <div class="page-heading">
       <div>
         <p>Automation workspace</p>
@@ -27,11 +35,6 @@
     </div>
 
     <p v-if="loading" class="request-status" role="status">Loading flows…</p>
-    <div v-if="error" class="request-error" role="alert">
-      <span>{{ error }}</span>
-      <AppButton automation="flows-retry" text="Retry" :icon="retryIcon" @click="loadFlows" />
-    </div>
-
     <div v-if="!error" class="flow-results">
       <AppFilter
         automation="flows-filter"
@@ -104,8 +107,8 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import newFlowIcon from '@/assets/icons/new-flow-icon.svg';
-import retryIcon from '@/assets/icons/retry-icon.svg';
 import AppButton from '@/components/AppButton.vue';
+import AppErrorNotice from '@/components/AppErrorNotice.vue';
 import AppFilter from '@/components/AppFilter.vue';
 import AppMultiSelectDropdown, {
   type MultiSelectOption
@@ -125,6 +128,7 @@ const flowStore = useFlowsStore();
 const { flows } = storeToRefs(flowStore);
 const loading = ref(false);
 const error = ref<string>();
+const errorRetry = ref(false);
 const newFlowName = ref('');
 const creating = ref(false);
 const editingFlowId = ref<string>();
@@ -228,6 +232,7 @@ const loadFlows = async (): Promise<void> => {
   listController = controller;
   loading.value = true;
   error.value = undefined;
+  errorRetry.value = false;
   try {
     const result = await flowApi.listFlows(
       {
@@ -248,6 +253,7 @@ const loadFlows = async (): Promise<void> => {
   } catch (caught) {
     if (listController === controller) {
       error.value = caught instanceof Error ? caught.message : 'Unable to load flows.';
+      errorRetry.value = true;
     }
   } finally {
     if (listController === controller) loading.value = false;
@@ -256,6 +262,7 @@ const loadFlows = async (): Promise<void> => {
 
 const createFlow = async (): Promise<void> => {
   const name = newFlowName.value.trim();
+  errorRetry.value = false;
   if (!name) {
     error.value = 'Enter a name for the new flow.';
     return;
@@ -288,6 +295,7 @@ const beginDelete = (flowId: string): void => {
 const renameFlow = async (flowId: string): Promise<void> => {
   const payload = flowStore.flowPayload(flowId);
   const name = renameValue.value.trim();
+  errorRetry.value = false;
   if (!payload || !name) {
     error.value = 'Flow name is required.';
     return;
@@ -307,6 +315,7 @@ const renameFlow = async (flowId: string): Promise<void> => {
 
 const deleteFlow = async (flowId: string): Promise<void> => {
   deleting.value = true;
+  errorRetry.value = false;
   error.value = undefined;
   try {
     await flowApi.deleteFlow(flowId);
@@ -321,6 +330,7 @@ const deleteFlow = async (flowId: string): Promise<void> => {
 
 const setFlowDisabled = async (flowId: string, disabled: boolean): Promise<void> => {
   togglingDisabledId.value = flowId;
+  errorRetry.value = false;
   error.value = undefined;
   try {
     const saved = await flowApi.setFlowDisabled(flowId, disabled);
@@ -377,8 +387,7 @@ h1 {
   color: var(--color-text-secondary);
 }
 
-.create-flow,
-.request-error {
+.create-flow {
   display: flex;
   gap: var(--space-3-5);
   align-items: center;
@@ -404,7 +413,6 @@ h1 {
 }
 
 .request-status,
-.request-error,
 .empty-state {
   margin-bottom: var(--space-11);
   padding: var(--space-8);
@@ -414,12 +422,6 @@ h1 {
 .request-status {
   color: var(--color-info-text);
   background: var(--color-info-surface);
-}
-
-.request-error {
-  justify-content: space-between;
-  color: var(--color-danger-text);
-  background: var(--color-danger-surface);
 }
 
 .empty-state {

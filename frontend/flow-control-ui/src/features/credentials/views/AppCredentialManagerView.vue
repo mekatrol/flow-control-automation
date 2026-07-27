@@ -1,5 +1,10 @@
 <template>
   <section class="configuration-page credential-page">
+    <AppErrorNotice
+      id="credentials-error-notice"
+      automation="credentials-error"
+      :message="error"
+    />
     <div class="page-heading">
       <div>
         <p>Secure configuration</p>
@@ -11,15 +16,6 @@
       </div>
     </div>
 
-    <div
-      v-if="error"
-      ref="errorSummary"
-      class="request-error error-summary"
-      role="alert"
-      tabindex="-1"
-    >
-      <strong>There is a problem</strong><span>{{ error }}</span>
-    </div>
     <p class="visually-hidden" role="status" aria-live="polite">{{ status }}</p>
 
     <div class="credential-layout">
@@ -212,6 +208,7 @@ import saveIcon from '@/assets/icons/save-icon.svg';
 import visibilityIcon from '@/assets/icons/visibility-icon.svg';
 import AppButton from '@/components/AppButton.vue';
 import AppDialog from '@/components/AppDialog.vue';
+import AppErrorNotice from '@/components/AppErrorNotice.vue';
 import AppForm from '@/components/AppForm.vue';
 import AppPromptDialog from '@/components/AppPromptDialog.vue';
 
@@ -223,7 +220,6 @@ const error = ref('');
 const status = ref('');
 const passwordVisible = ref(false);
 const tokenVisible = ref(false);
-const errorSummary = ref<HTMLElement>();
 const credentialDialog = ref<InstanceType<typeof AppDialog>>();
 const credentialDiscardDialog = ref<InstanceType<typeof AppPromptDialog>>();
 let controller: AbortController | undefined;
@@ -239,13 +235,6 @@ const formBaseline = ref('');
 const formSnapshot = (): string => JSON.stringify(form);
 const formDirty = computed(() => formSnapshot() !== formBaseline.value);
 const discardConfirmationOpen = ref(false);
-
-watch(error, async (value) => {
-  if (value) {
-    await nextTick();
-    errorSummary.value?.focus();
-  }
-});
 
 watch(
   () => form.password,

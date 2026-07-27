@@ -1,10 +1,6 @@
 import { computed, ref, shallowRef, type Ref, type ShallowRef } from 'vue';
 import { defineStore } from 'pinia';
-import {
-  catalogueApi,
-  CatalogueApiError,
-  type CatalogueQuery
-} from '@/features/catalogues/api/catalogueApi';
+import { catalogueApi, type CatalogueQuery } from '@/features/catalogues/api/catalogueApi';
 import type {
   ControllerTemplateSummary,
   Page,
@@ -12,17 +8,8 @@ import type {
   PointSummary
 } from '@/features/catalogues/api/catalogueDto';
 
-const message = (reason: unknown, resource: string): { text: string; unavailable: boolean } => {
-  if (reason instanceof CatalogueApiError && reason.status === 404)
-    return {
-      text: `${resource} are unavailable because this server does not support them yet.`,
-      unavailable: true
-    };
-  return {
-    text: reason instanceof Error ? reason.message : `Unable to load ${resource.toLowerCase()}.`,
-    unavailable: false
-  };
-};
+const message = (reason: unknown, resource: string): string =>
+  reason instanceof Error ? reason.message : `Unable to load ${resource.toLowerCase()}.`;
 
 const initialPage = <T>(): Page<T> => ({
   items: [],
@@ -36,7 +23,6 @@ interface PagedStoreSetup<T> {
   result: ShallowRef<Page<T>>;
   loading: Ref<boolean>;
   error: Ref<string>;
-  unavailable: Ref<boolean>;
   load: (query: CatalogueQuery) => Promise<void>;
   cancel: () => void;
 }
@@ -52,7 +38,6 @@ const definePagedStore = <T>(
     const result = shallowRef<Page<T>>(initialPage());
     const loading = ref(false);
     const error = ref('');
-    const unavailable = ref(false);
     let generation = 0;
     let controller: AbortController | undefined;
 
@@ -62,22 +47,19 @@ const definePagedStore = <T>(
       controller = new AbortController();
       loading.value = true;
       error.value = '';
-      unavailable.value = false;
       try {
         const next = await request(query, controller.signal);
         if (current === generation) result.value = next;
       } catch (reason) {
         if (current !== generation || controller.signal.aborted) return;
-        const failure = message(reason, resource);
-        error.value = failure.text;
-        unavailable.value = failure.unavailable;
+        error.value = message(reason, resource);
       } finally {
         if (current === generation) loading.value = false;
       }
     };
 
     const cancel = (): void => controller?.abort();
-    return { result, loading, error, unavailable, load, cancel };
+    return { result, loading, error, load, cancel };
   });
 
 export const usePointsCatalogueStore = definePagedStore<PointSummary>(
@@ -98,7 +80,6 @@ export const useControllerTemplatesCatalogueStore = defineStore(
     const allItems = ref<ControllerTemplateSummary[]>([]);
     const loading = ref(false);
     const error = ref('');
-    const unavailable = ref(false);
     const filter = ref('');
     const page = ref(1);
     const pageSize = ref(10);
@@ -138,15 +119,12 @@ export const useControllerTemplatesCatalogueStore = defineStore(
       controller = new AbortController();
       loading.value = true;
       error.value = '';
-      unavailable.value = false;
       try {
         const items = await catalogueApi.controllerTemplates(controller.signal);
         if (current === generation) allItems.value = items;
       } catch (reason) {
         if (current !== generation || controller.signal.aborted) return;
-        const failure = message(reason, 'Controller templates');
-        error.value = failure.text;
-        unavailable.value = failure.unavailable;
+        error.value = message(reason, 'Controller templates');
       } finally {
         if (current === generation) loading.value = false;
       }
@@ -161,7 +139,6 @@ export const useControllerTemplatesCatalogueStore = defineStore(
       result,
       loading,
       error,
-      unavailable,
       load,
       cancel
     };

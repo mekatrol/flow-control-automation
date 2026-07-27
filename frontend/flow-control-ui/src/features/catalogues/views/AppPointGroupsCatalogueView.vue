@@ -1,5 +1,12 @@
 <template>
   <section class="catalogue-page" aria-labelledby="groups-heading">
+    <AppErrorNotice
+      id="point-groups-error-notice"
+      automation="point-groups-error"
+      :message="store.error"
+      retryable
+      @retry="refresh"
+    />
     <div class="page-heading">
       <div>
         <p>Point definitions</p>
@@ -20,19 +27,14 @@
     </AppFilter>
 
     <p v-if="store.loading" role="status">Loading point groups…</p>
-    <div v-else-if="store.error" class="request-error" role="alert">
-      <p>{{ store.error }}</p>
-      <AppButton
-        automation="point-groups-retry"
-        :text="store.unavailable ? 'Check again' : 'Retry'"
-        :icon="retryIcon"
-        @click="refresh"
-      />
-    </div>
-    <p v-else-if="store.result.items.length === 0" class="empty-state" role="status">
+    <p
+      v-else-if="!store.error && store.result.items.length === 0"
+      class="empty-state"
+      role="status"
+    >
       No point groups found.
     </p>
-    <template v-else>
+    <template v-else-if="!store.error">
       <AppTable automation="point-groups-table" caption="Configured point groups">
         <template #head>
           <tr>
@@ -74,8 +76,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import newIcon from '@/assets/icons/new-flow-icon.svg';
-import retryIcon from '@/assets/icons/retry-icon.svg';
-import AppButton from '@/components/AppButton.vue';
+import AppErrorNotice from '@/components/AppErrorNotice.vue';
 import AppFilter from '@/components/AppFilter.vue';
 import AppSvg from '@/components/AppSvg.vue';
 import AppTable from '@/components/AppTable.vue';

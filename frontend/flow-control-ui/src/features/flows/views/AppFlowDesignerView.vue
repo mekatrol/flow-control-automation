@@ -1,9 +1,11 @@
 <template>
   <section class="designer-page">
+    <AppErrorNotice
+      id="flow-designer-error-notice"
+      automation="flow-designer-error"
+      :message="noticeError"
+    />
     <p v-if="loading" class="request-status" role="status">Loading latest flow…</p>
-    <p v-if="loadError" class="request-error" role="alert">{{ loadError }}</p>
-    <p v-if="saveError" class="request-error" role="alert">{{ saveError }}</p>
-    <p v-if="runtimeError" class="request-error" role="alert">{{ runtimeError }}</p>
     <div v-if="showDeployConfirmation" class="dialog-backdrop">
       <section
         ref="deployDialog"
@@ -162,6 +164,7 @@ import refreshIcon from '@/assets/icons/refresh-icon.svg';
 import renameFlowIcon from '@/assets/icons/rename-flow-icon.svg';
 import saveIcon from '@/assets/icons/save-icon.svg';
 import AppButton from '@/components/AppButton.vue';
+import AppErrorNotice from '@/components/AppErrorNotice.vue';
 import AppFlowDesignerCanvas from '@/features/flows/components/AppFlowDesignerCanvas.vue';
 import { useFlowsStore } from '@/features/flows/stores/flows';
 import type { ZOrderCommand } from '@/features/flows/graph/zOrder';
@@ -192,6 +195,9 @@ const togglingDisabled = ref(false);
 const loadError = ref<string>();
 const saveError = ref<string>();
 const runtimeError = ref<string>();
+const noticeError = computed(
+  () => loadError.value ?? saveError.value ?? runtimeError.value ?? ''
+);
 const showDeployConfirmation = ref(false);
 const deployDialog = ref<HTMLElement>();
 const discardDialog = ref<HTMLElement>();
@@ -475,8 +481,7 @@ h1 {
   gap: var(--space-3-5);
 }
 
-.request-status,
-.request-error {
+.request-status {
   margin: var(--space-0) var(--space-0) var(--space-5-5);
   padding: var(--space-4-5) var(--space-5-5);
   border-radius: var(--radius-lg);
@@ -518,11 +523,6 @@ h1 {
 .request-status {
   color: var(--color-info-text);
   background: var(--color-info-surface);
-}
-
-.request-error {
-  color: var(--color-danger-text);
-  background: var(--color-danger-surface);
 }
 
 .not-found {

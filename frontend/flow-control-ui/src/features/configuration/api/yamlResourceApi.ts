@@ -51,7 +51,7 @@ const request = async (url: string, init?: RequestInit): Promise<Response> => {
     if (typeof body.message === 'string') message = body.message;
     details = body.details;
   } catch {
-    // Preserve the status when an older server returns a non-JSON error.
+    // The response status is the fallback when the error body is not JSON.
   }
   throw new YamlResourceError(message, response.status, details);
 };

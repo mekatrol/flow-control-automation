@@ -1,5 +1,12 @@
 <template>
   <section class="configuration-page">
+    <AppErrorNotice
+      id="point-sources-error-notice"
+      automation="point-sources-error"
+      :message="error"
+      retryable
+      @retry="load"
+    />
     <div class="page-heading">
       <div>
         <p>External systems</p>
@@ -13,11 +20,7 @@
     </div>
 
     <p v-if="loading" role="status">Loading point sources…</p>
-    <div v-if="error" class="request-error" role="alert">
-      <span>{{ error }}</span>
-      <AppButton automation="point-sources-retry" text="Retry" :icon="retryIcon" @click="load" />
-    </div>
-    <div v-else class="source-list">
+    <div v-if="!error" class="source-list">
       <AppFilter automation="point-sources-filter" constrained @[EVENTS.APPLY_FILTER]="applyFilter">
         <label class="app-filter-field" for="source-filter">
           <span>Filter by name</span>
@@ -60,8 +63,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import newIcon from '@/assets/icons/new-flow-icon.svg';
-import retryIcon from '@/assets/icons/retry-icon.svg';
-import AppButton from '@/components/AppButton.vue';
+import AppErrorNotice from '@/components/AppErrorNotice.vue';
 import AppFilter from '@/components/AppFilter.vue';
 import AppSvg from '@/components/AppSvg.vue';
 import { EVENTS } from '@/constants/events';
