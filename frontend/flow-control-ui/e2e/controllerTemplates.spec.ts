@@ -76,12 +76,13 @@ test('shows and keyboard-navigates the exhaustive read-only default', async ({ p
 
   await page.getByLabel('Filter controller templates').focus();
   await page.keyboard.type('Flow Control');
+  await page.getByRole('button', { name: 'Apply filter' }).click();
 
   // Expected outcome: `row` is visible to the user.
   // Acceptance criteria: `row` must be visible, because this condition proves that
   // shows and keyboard-navigates the exhaustive read-only default.
   await expect(row).toBeVisible();
-  await page.keyboard.press('Tab');
+  await page.getByRole('button', { name: 'Apply filter' }).press('Tab');
 
   // Expected outcome: `page.getByRole('region', { name: 'Controller templates table' })` owns keyboard focus.
   // Acceptance criteria: `page.getByRole('region', { name: 'Controller templates table' })` must be focused, because this condition proves that

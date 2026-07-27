@@ -32,6 +32,7 @@ test('searches the node palette and adds registry-backed nodes', async ({ page }
   // searches the node palette and adds registry-backed nodes.
   await expect(search).toBeVisible();
   await search.fill('timing');
+  await page.getByRole('button', { name: 'Apply filter' }).click();
 
   // Expected outcome: `page.getByRole('button', { name: 'Add Pulse node' })` is visible to the user.
   // Acceptance criteria: `page.getByRole('button', { name: 'Add Pulse node' })` must be visible, because this condition proves that
@@ -72,6 +73,7 @@ test('searches the node palette and adds registry-backed nodes', async ({ page }
   await expect(page.getByRole('button', { name: /Trigger, input, any/ })).toBeVisible();
 
   await search.fill('routing');
+  await page.getByRole('button', { name: 'Apply filter' }).click();
   await page.getByRole('button', { name: 'Add Split node' }).click();
   const split = page.getByRole('button', { name: /New Split, Split node/ });
 
@@ -101,6 +103,7 @@ test('searches the node palette and adds registry-backed nodes', async ({ page }
   await expect(page.getByText('6 nodes', { exact: true })).toBeVisible();
 
   await search.fill('override');
+  await page.getByRole('button', { name: 'Apply filter' }).click();
 
   // Expected outcome: `page.getByRole('heading', { name: 'override', exact: true })` is visible to the user.
   // Acceptance criteria: `page.getByRole('heading', { name: 'override', exact: true })` must be visible, because this condition proves that

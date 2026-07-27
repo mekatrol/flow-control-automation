@@ -352,6 +352,7 @@ test('recovers from a failed save without losing edits', async ({ page }) => {
   // recovers from a failed save without losing edits.
   await expect(page.getByText('Unsaved changes', { exact: true })).toBeVisible();
 
+  await page.getByRole('button', { name: 'Close' }).click();
   await page.getByRole('button', { name: 'Save flow' }).click();
   await expect.poll(() => persistedPayload.nodes[0]?.label).toBe('Retry-safe average');
 

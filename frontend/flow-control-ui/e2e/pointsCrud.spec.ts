@@ -145,7 +145,10 @@ points: []
   // Expected outcome: `page.locator('.error-summary')` displays the required content.
   // Acceptance criteria: `page.locator('.error-summary')` must contain the text `'group contains points'`, because this condition proves that
   // offers explicit conflict recovery for occupied groups.
-  await expect(page.locator('.error-summary')).toContainText('group contains points');
+  await expect(
+    page.getByRole('dialog', { name: 'Unable to complete the request' }).getByRole('alert')
+  ).toContainText('group contains points');
+  await page.getByRole('button', { name: 'Close' }).click();
   await page.getByRole('button', { name: 'Make member points standalone' }).click();
 
   // Expected outcome: `page.getByText('Member points are now standalone.')` is present in the rendered document.

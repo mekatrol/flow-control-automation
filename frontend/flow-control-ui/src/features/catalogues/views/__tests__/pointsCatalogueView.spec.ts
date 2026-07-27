@@ -114,8 +114,8 @@ describe('PointsCatalogueView', () => {
     expect(wrapper.get('[role="alert"]').text()).toContain('missing');
 
     // Expected outcome: The error notice offers a recovery action.
-    // Acceptance criteria: The alert button is labelled "Retry" because a failed
+    // Acceptance criteria: The alert button is labelled "Check again" because a failed
     // catalogue load must remain recoverable without reloading the application.
-    expect(wrapper.get('[role="alert"] button').text()).toBe('Retry');
+    expect(wrapper.get('[role="alert"] button').text()).toBe('Check again');
   });
 });

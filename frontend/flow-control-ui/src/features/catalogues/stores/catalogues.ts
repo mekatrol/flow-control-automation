@@ -1,6 +1,10 @@
 import { computed, ref, shallowRef, type Ref, type ShallowRef } from 'vue';
 import { defineStore } from 'pinia';
-import { catalogueApi, type CatalogueQuery } from '@/features/catalogues/api/catalogueApi';
+import {
+  CatalogueApiError,
+  catalogueApi,
+  type CatalogueQuery
+} from '@/features/catalogues/api/catalogueApi';
 import type {
   ControllerTemplateSummary,
   Page,
@@ -23,6 +27,7 @@ interface PagedStoreSetup<T> {
   result: ShallowRef<Page<T>>;
   loading: Ref<boolean>;
   error: Ref<string>;
+  errorStatus: Ref<number | undefined>;
   load: (query: CatalogueQuery) => Promise<void>;
   cancel: () => void;
 }
@@ -38,6 +43,7 @@ const definePagedStore = <T>(
     const result = shallowRef<Page<T>>(initialPage());
     const loading = ref(false);
     const error = ref('');
+    const errorStatus = ref<number>();
     let generation = 0;
     let controller: AbortController | undefined;
 
@@ -47,19 +53,21 @@ const definePagedStore = <T>(
       controller = new AbortController();
       loading.value = true;
       error.value = '';
+      errorStatus.value = undefined;
       try {
         const next = await request(query, controller.signal);
         if (current === generation) result.value = next;
       } catch (reason) {
         if (current !== generation || controller.signal.aborted) return;
         error.value = message(reason, resource);
+        errorStatus.value = reason instanceof CatalogueApiError ? reason.status : undefined;
       } finally {
         if (current === generation) loading.value = false;
       }
     };
 
     const cancel = (): void => controller?.abort();
-    return { result, loading, error, load, cancel };
+    return { result, loading, error, errorStatus, load, cancel };
   });
 
 export const usePointsCatalogueStore = definePagedStore<PointSummary>(

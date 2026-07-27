@@ -3,8 +3,9 @@
     <AppErrorNotice
       id="points-error-notice"
       automation="points-error"
-      :message="store.error"
+      :message="errorMessage"
       retryable
+      retry-label="Check again"
       @[EVENTS.RETRY]="refresh"
     />
     <div class="page-heading">
@@ -106,6 +107,11 @@ const rangeStart = computed(() =>
 );
 const rangeEnd = computed(() =>
   Math.min(store.result.page * store.result.pageSize, store.result.totalItems)
+);
+const errorMessage = computed(() =>
+  store.errorStatus === 404
+    ? `${store.error} This backend does not support the points API. Check the deployed backend version and try again.`
+    : store.error
 );
 const label = (value: string): string =>
   value.replaceAll('_', ' ').replace(/^\w/, (first) => first.toUpperCase());

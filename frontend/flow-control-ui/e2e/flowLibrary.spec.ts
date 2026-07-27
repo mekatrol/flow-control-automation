@@ -521,9 +521,27 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
   await expect(page.getByText('11–13 of 13')).toBeVisible();
 
   await deployedStatusDropdown.click();
-  await page.getByRole('checkbox', { name: 'All' }).check();
-  await page.getByRole('button', { name: 'Deployment status: All' }).click();
+  const allStatuses = page.getByRole('checkbox', { name: 'All' });
+  await allStatuses.check();
+  await expect(allStatuses).toBeChecked();
+  await expect(page.getByRole('checkbox', { name: 'Draft' })).toBeChecked();
+  await expect(page.getByRole('checkbox', { name: 'Deployed' })).toBeChecked();
+  // Dismiss the menu without targeting the toggle while its accessible name is
+  // changing from "Deployed" to "All". Firefox can otherwise resolve the click
+  // against the stale state and leave the menu covering the Apply action.
+  await page.keyboard.press('Escape');
+  await expect(allStatuses).toBeHidden();
+  const allStatusesResponse = page.waitForResponse((response) => {
+    const url = new URL(response.url());
+    return (
+      url.pathname === '/api/flows' &&
+      url.searchParams.getAll('status').includes('draft') &&
+      url.searchParams.getAll('status').includes('deployed') &&
+      url.searchParams.get('page') === '1'
+    );
+  });
   await applyFilterButton.click();
+  await allStatusesResponse;
 
   // Expected outcome: Navigation reaches the required route.
   // Acceptance criteria: the page URL must match `/status=deployed/`, because this condition proves that

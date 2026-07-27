@@ -197,6 +197,12 @@ const loadError = ref<string>();
 const saveError = ref<string>();
 const runtimeError = ref<string>();
 const noticeError = computed(() => loadError.value ?? saveError.value ?? runtimeError.value ?? '');
+const runtimeFailureMessage = (error: unknown, fallback: string): string =>
+  error instanceof FlowApiError && error.status
+    ? `${error.message} (status ${error.status})`
+    : error instanceof Error
+      ? error.message
+      : fallback;
 const showDeployConfirmation = ref(false);
 const deployDialog = ref<HTMLElement>();
 const discardDialog = ref<HTMLElement>();
@@ -274,7 +280,14 @@ const loadFlow = async (flowId: string): Promise<void> => {
       (error instanceof FlowApiError && error.kind === 'cancelled')
     )
       return;
-    loadError.value = error instanceof Error ? error.message : 'Unable to load this flow.';
+    // A missing flow already has a dedicated, actionable empty state below. Do not
+    // cover its navigation link with a second modal error presentation.
+    loadError.value =
+      error instanceof FlowApiError && error.status === 404
+        ? undefined
+        : error instanceof Error
+          ? error.message
+          : 'Unable to load this flow.';
   } finally {
     if (loadController === controller) loading.value = false;
   }
@@ -290,7 +303,7 @@ const refreshRuntime = async (flowId = props.flowId): Promise<void> => {
     runtimeStore.applySnapshot(snapshot);
   } catch (error) {
     runtimeStore.disconnect(flowId);
-    runtimeError.value = error instanceof Error ? error.message : 'Unable to load runtime state.';
+    runtimeError.value = runtimeFailureMessage(error, 'Unable to load runtime state.');
   }
 };
 
@@ -303,7 +316,7 @@ const deployFlow = async (): Promise<void> => {
     if (snapshot.flowId !== props.flowId) throw new Error('Runtime state belongs to another flow.');
     runtimeStore.completeDeployment(snapshot);
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unable to deploy this flow.';
+    const message = runtimeFailureMessage(error, 'Unable to deploy this flow.');
     runtimeStore.failDeployment(props.flowId, message);
     runtimeError.value = message;
   }

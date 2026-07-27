@@ -17,7 +17,7 @@
       <AppButton
         v-if="retryable"
         v-bind="automation('retry')"
-        text="Retry"
+        :text="retryLabel"
         :icon="retryIcon"
         @click="retry(close)"
       />
@@ -43,12 +43,14 @@ const props = withDefaults(
     message?: string;
     title?: string;
     retryable?: boolean;
+    retryLabel?: string;
     details?: string[];
   }>(),
   {
     message: '',
     title: 'Unable to complete the request',
     retryable: false,
+    retryLabel: 'Retry',
     details: () => []
   }
 );
