@@ -8,17 +8,19 @@
     <span v-if="$slots.icon" class="button-icon-slot">
       <slot name="icon" />
     </span>
-    <span
+    <AppSvg
       v-else-if="icon"
       class="button-icon"
-      :style="{ maskImage: `url(&quot;${icon}&quot;)` }"
-      aria-hidden="true"
+      :src="icon"
+      automation="app-button-icon"
+      :size="18"
     />
     <span v-if="!hideText" class="button-text">{{ text }}</span>
   </button>
 </template>
 
 <script setup lang="ts">
+import AppSvg from '@/components/AppSvg.vue';
 import { useAutomation } from '@/composables/useAutomation';
 
 const props = withDefaults(
@@ -71,19 +73,11 @@ button:disabled {
   border-style: dashed;
 }
 
-.button-icon,
 .button-icon-slot {
   display: inline-block;
   width: 18px;
   height: 18px;
   flex: 0 0 auto;
-}
-
-.button-icon {
-  background-color: currentcolor;
-  mask-position: center;
-  mask-repeat: no-repeat;
-  mask-size: contain;
 }
 
 .button-icon-slot {
@@ -106,7 +100,4 @@ button:disabled {
   stroke-linejoin: round;
 }
 
-.button-icon-slot :deep(img) {
-  filter: var(--filter-node-icon-foreground);
-}
 </style>

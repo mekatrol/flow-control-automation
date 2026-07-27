@@ -100,6 +100,17 @@ Omit the style block when the component needs no styles. Do not use the Options 
 - When no suitable `App*` component exists, use the correct native semantic HTML element. Do not recreate an existing application primitive or substitute a generic `div`/`span` for meaningful HTML.
 - Import icons from `@/assets/icons/`; decorative icons must be hidden from assistive technology.
 
+### Render SVG icons consistently
+
+- Use `AppSvg` for monochrome SVG artwork rendered in HTML. It applies the SVG as a CSS mask so the foreground inherits `currentColor` and follows light, dark, and system theme tokens. Do not duplicate its `mask-image`, mask positioning, sizing, or `background-color: currentcolor` CSS in another component.
+- Pass the imported or runtime SVG URL through `src`. `AppSvg` reacts when `src` changes, so bind the source (`:src="currentIcon"`) when the icon can change while the component is mounted.
+- Use `size` for a square icon or `width` and `height` for independent dimensions. Numeric values are pixels; strings preserve CSS units such as `1em`, `1.5rem`, or `100%`. Use `fit="cover"` only when artwork should fill non-square dimensions; the default is `contain`.
+- Let icons inherit the surrounding semantic text colour whenever possible. When a specific foreground is required, pass a purpose-named theme token such as `color="var(--color-warning-text)"`; do not pass a fixed colour.
+- Omit `label` for decorative artwork; `AppSvg` then hides itself from assistive technology. Supply a concise `label` only when the icon conveys information that is not already available in adjacent text.
+- Give every `AppSvg` a stable `automation` prop, following the same automation naming rules as other application components.
+- Keep an authored `<img>` when colour or photographic artwork must preserve its original appearance, such as a multicolour brand logo. `AppSvg` intentionally renders a single current-colour silhouette.
+- Inside an existing SVG coordinate system, use native SVG elements such as `<image>` or `<use>` because an HTML `AppSvg` component cannot be inserted as SVG geometry. Document any theme normalization needed for these exceptional external images.
+
 ## 5. Add stable automation metadata
 
 Automation hooks are a repository requirement, not optional test decoration.

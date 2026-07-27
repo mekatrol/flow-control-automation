@@ -1,7 +1,11 @@
 <template>
   <aside class="configuration-panel" aria-label="Node configuration">
     <div class="panel-heading">
-      <img :src="getNodeIconUrl(definition.icon)" alt="" />
+      <AppSvg
+        :src="getNodeIconUrl(definition.icon)"
+        automation="node-configuration-icon"
+        :size="22"
+      />
       <div class="heading-copy">
         <strong>Configure {{ definition.label }}</strong>
         <small>{{ node.id }}</small>
@@ -82,6 +86,7 @@ export const editorValueFromInput = (
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 
+import AppSvg from '@/components/AppSvg.vue';
 import { getNodeIconUrl, getNodeKind } from '@/features/flows/nodeKinds';
 import type { NodeEditorField } from '@/features/flows/nodeKinds';
 import type { FlowConfigurationValue, FlowNode } from '@/features/flows/types';
@@ -144,13 +149,6 @@ const updateField = (field: NodeEditorField, event: Event): void => {
   color: var(--color-text-subtle);
   font-size: 10px;
   overflow-wrap: anywhere;
-}
-
-.panel-heading img {
-  flex: 0 0 22px;
-  width: 22px;
-  height: 22px;
-  filter: var(--filter-node-icon-foreground);
 }
 
 .fields {

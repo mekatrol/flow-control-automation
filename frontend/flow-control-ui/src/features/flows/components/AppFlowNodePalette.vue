@@ -19,7 +19,11 @@
           @dragstart="startPaletteDrag(definition.kind, $event)"
         >
           <template #icon>
-            <img :src="getNodeIconUrl(definition.icon)" alt="" />
+            <AppSvg
+              :src="getNodeIconUrl(definition.icon)"
+              :automation="`flow-node-palette-${definition.kind}-icon`"
+              size="100%"
+            />
           </template>
         </AppButton>
       </section>
@@ -67,6 +71,7 @@ export const groupNodeKinds = (
 import { computed, ref } from 'vue';
 
 import AppButton from '@/components/AppButton.vue';
+import AppSvg from '@/components/AppSvg.vue';
 import { useAutomation } from '@/composables/useAutomation';
 import type { FlowNodeKind } from '@/features/flows/types';
 
