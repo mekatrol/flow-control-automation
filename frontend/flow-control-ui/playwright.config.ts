@@ -7,11 +7,16 @@ const baseURL = `http://127.0.0.1:${port}`;
 const useDotnetBackend = process.env.FLOW_UI_E2E_BACKEND === 'dotnet';
 const backendURL = 'http://127.0.0.1:5008';
 const testEncryptionKey = 'AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=';
+const isHeaded = process.argv.includes('--headed');
 
 export default defineConfig({
   testDir: './e2e',
   tsconfig: './tsconfig.app.json',
   fullyParallel: true,
+  // Visible browsers are substantially more resource-intensive. With every test and
+  // browser project fully parallel, headed runs can stall while creating a context or
+  // dispatching an otherwise-ready click. Keep headless runs at Playwright's default.
+  workers: isHeaded ? 1 : undefined,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? 'github' : 'list',
