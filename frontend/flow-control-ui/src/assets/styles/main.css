@@ -44,87 +44,6 @@ a {
   min-height: 100vh;
 }
 
-.app-shell {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-}
-
-.app-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 72px;
-  padding: 0 32px;
-  color: var(--color-header-text);
-  background: var(--color-header-background);
-  border-bottom: 1px solid var(--color-header-border);
-}
-
-.brand {
-  display: inline-flex;
-  flex: none;
-  gap: 12px;
-  align-items: center;
-  color: inherit;
-  text-decoration: none;
-}
-
-.brand-logo {
-  display: block;
-  width: auto;
-  height: 38px;
-}
-
-.brand strong,
-.brand small {
-  display: block;
-}
-
-.brand strong {
-  font-size: 15px;
-  letter-spacing: 0.01em;
-}
-
-.brand small {
-  margin-top: 2px;
-  color: var(--color-header-text-muted);
-  font-size: 11px;
-}
-
-.app-header nav {
-  display: flex;
-  min-width: 0;
-  overflow-x: auto;
-  gap: 8px;
-  align-items: center;
-}
-
-.app-header nav a {
-  flex: none;
-  padding: 9px 13px;
-  color: var(--color-header-nav-text);
-  font-size: 14px;
-  font-weight: 650;
-  text-decoration: none;
-  border-radius: 8px;
-}
-
-.app-header nav a:hover,
-.app-header nav a.router-link-active {
-  color: var(--color-text-on-strong);
-  background: var(--color-header-nav-background-active);
-}
-
-@media (max-width: 640px) {
-  .app-header {
-    padding: 0 18px;
-  }
-
-  .brand small {
-    display: none;
-  }
-}
 /* A visible focus indicator must not depend on each feature remembering to add
    one. This ring covers native controls and custom SVG controls consistently. */
 :focus-visible {
@@ -132,16 +51,24 @@ a {
   outline-offset: 3px;
 }
 
+/* Shared configuration workspace frame.
+   Components: AppPointSourceListView, AppPointSourceEditorView,
+   AppYamlResourceEditorView, AppCredentialManagerView. */
 .configuration-page {
   width: min(1120px, calc(100% - 40px));
   margin: 0 auto;
   padding: 44px 0 64px;
 }
 
+/* Full-width configuration editor variant.
+   Components: AppPointSourceEditorView, AppYamlResourceEditorView. */
 .configuration-page.editor-page {
   width: calc(100% - 40px);
 }
 
+/* Heading layout used across configuration workspaces.
+   Components: AppPointSourceListView, AppPointSourceEditorView,
+   AppYamlResourceEditorView, AppCredentialManagerView. */
 .configuration-page .page-heading {
   display: flex;
   gap: 24px;
@@ -150,10 +77,17 @@ a {
   margin-bottom: 28px;
 }
 
+/* Main page title spacing used across configuration workspaces.
+   Components: AppPointSourceListView, AppPointSourceEditorView,
+   AppYamlResourceEditorView, AppCredentialManagerView. */
 .configuration-page h1 {
   margin: 4px 0 8px;
 }
 
+/* Prominent navigation link shared by configuration and catalogue pages.
+   Components: AppPointSourceListView, AppYamlResourceEditorView,
+   AppControllerTemplatesCatalogueView, AppPointGroupsCatalogueView,
+   AppPointsCatalogueView. */
 .primary-link {
   display: inline-flex;
   padding: 9px 14px;
@@ -166,210 +100,9 @@ a {
   cursor: pointer;
 }
 
-.source-list > label,
-.editor-page form > label {
-  display: block;
-  margin-bottom: 7px;
-  font-weight: 700;
-}
-
-.source-list > input {
-  width: min(420px, 100%);
-  margin-bottom: 24px;
-  padding: 9px 11px;
-}
-
-.source-list table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.source-list th,
-.source-list td {
-  padding: 14px;
-  text-align: left;
-  border-bottom: 1px solid var(--color-border-default);
-}
-
-.source-list th small {
-  display: block;
-  margin-top: 4px;
-  color: var(--color-text-secondary);
-  font-weight: 400;
-}
-
-.credential-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(340px, 0.42fr);
-  gap: 30px;
-  align-items: start;
-}
-
-.credential-layout table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.credential-layout th,
-.credential-layout td {
-  padding: 13px;
-  text-align: left;
-  border-bottom: 1px solid var(--color-border-default);
-}
-
-.credential-layout th small {
-  display: block;
-  margin-top: 4px;
-  color: var(--color-text-secondary);
-  font-weight: 400;
-}
-
-.section-heading {
-  display: flex;
-  gap: 20px;
-  align-items: start;
-  justify-content: space-between;
-  margin-bottom: 18px;
-}
-
-.section-heading h2,
-.section-heading p {
-  margin-top: 0;
-}
-
-.secret-input {
-  position: relative;
-  display: flex;
-}
-
-.secret-input input {
-  width: 100%;
-  padding-right: 60px;
-}
-
-.credential-form .secret-visibility-button {
-  position: absolute;
-  top: 50%;
-  right: 4px;
-  transform: translateY(-50%);
-}
-
-.field-help,
-.secret-notice {
-  margin: 6px 0 0;
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  line-height: 1.45;
-}
-
-.secret-notice {
-  margin-top: 18px;
-  padding: 12px;
-  background: var(--color-surface-inset);
-  border-radius: 7px;
-}
-
-.editor-page textarea {
-  width: 100%;
-  padding: 16px;
-  color: var(--color-text-primary);
-  line-height: 1.5;
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-default);
-  border-radius: 8px;
-  tab-size: 2;
-}
-
-.source-editor-layout.has-guidance {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.46fr);
-  gap: 28px;
-  align-items: start;
-}
-
-.source-guidance {
-  position: sticky;
-  top: 24px;
-  padding: 22px;
-  background: var(--color-surface-subtle);
-  border: 1px solid var(--color-border-default);
-  border-radius: 12px;
-}
-
-.source-guidance h2 {
-  margin: 5px 0 8px;
-  font-size: 21px;
-}
-
-.source-guidance h3 {
-  margin: 22px 0 8px;
-  font-size: 15px;
-}
-
-.source-guidance > p {
-  line-height: 1.5;
-}
-
-.source-guidance fieldset {
-  display: grid;
-  gap: 8px;
-  margin: 20px 0 0;
-  padding: 0;
-  border: 0;
-}
-
-.source-guidance legend {
-  margin-bottom: 8px;
-  font-weight: 750;
-}
-
-.source-guidance fieldset label {
-  display: flex;
-  gap: 10px;
-  padding: 11px;
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-default);
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.source-guidance fieldset label:has(input:checked) {
-  border-color: var(--color-focus-ring);
-  box-shadow: 0 0 0 1px var(--color-focus-ring);
-}
-
-.source-guidance input {
-  align-self: start;
-  margin-top: 3px;
-}
-
-.source-guidance small {
-  display: block;
-  margin-top: 3px;
-  color: var(--color-text-secondary);
-  line-height: 1.35;
-}
-
-.source-guidance pre {
-  max-height: 360px;
-  margin: 0 0 12px;
-  padding: 14px;
-  overflow: auto;
-  color: var(--color-text-primary);
-  font-size: 12px;
-  line-height: 1.45;
-  white-space: pre;
-  background: var(--color-surface-inset);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 8px;
-}
-
-.source-guidance .guidance-note {
-  margin: 18px 0 0;
-  padding-top: 16px;
-  border-top: 1px solid var(--color-border-subtle);
-}
-
+/* Horizontal action group shared by configuration editors.
+   Components: AppPointSourceEditorView, AppYamlResourceEditorView,
+   AppCredentialManagerView. */
 .editor-actions {
   display: flex;
   flex-wrap: wrap;
@@ -377,20 +110,19 @@ a {
   margin: 18px 0;
 }
 
-.test-result {
-  margin-top: 28px;
-  padding: 20px;
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-default);
-  border-radius: 10px;
-}
-
+/* Compact validation-error list shared by configuration editors.
+   Components: AppPointSourceEditorView, AppYamlResourceEditorView,
+   AppCredentialManagerView. */
 .error-summary {
   display: grid;
   gap: 6px;
   margin-bottom: 18px;
 }
 
+/* Accessible visually-hidden content shared by status text and table captions.
+   Components: AppPointSourceListView, AppPointSourceEditorView,
+   AppYamlResourceEditorView, AppCredentialManagerView, AppTablePagination,
+   AppThemeSelector. */
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -403,51 +135,46 @@ a {
 }
 
 @media (max-width: 640px) {
+  /* Responsive configuration frame shared by all configuration workspaces.
+     Components: AppPointSourceListView, AppPointSourceEditorView,
+     AppYamlResourceEditorView, AppCredentialManagerView. */
   .configuration-page {
     width: min(100% - 28px, 1120px);
     padding-top: 28px;
   }
+
+  /* Responsive full-width editor frame.
+     Components: AppPointSourceEditorView, AppYamlResourceEditorView. */
   .configuration-page.editor-page {
     width: calc(100% - 28px);
   }
+
+  /* Stacked mobile heading shared by configuration workspaces.
+     Components: AppPointSourceListView, AppPointSourceEditorView,
+     AppYamlResourceEditorView, AppCredentialManagerView. */
   .configuration-page .page-heading {
     display: block;
   }
+
+  /* Mobile spacing for configuration-page primary links.
+     Components: AppPointSourceListView, AppYamlResourceEditorView. */
   .configuration-page .primary-link {
     margin-top: 16px;
   }
-  .source-list {
-    overflow-x: auto;
-  }
 }
 
-@media (max-width: 900px) {
-  .source-editor-layout.has-guidance {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .source-guidance {
-    position: static;
-    order: -1;
-  }
-
-  .credential-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .credential-form {
-    position: static;
-    grid-row: 1;
-  }
-}
-/* Read-only configuration catalogues share a compact, responsive page frame. */
+/* Read-only configuration catalogue frame.
+   Components: AppControllerTemplatesCatalogueView,
+   AppPointGroupsCatalogueView, AppPointsCatalogueView. */
 .catalogue-page {
   width: min(1500px, calc(100% - 32px));
   margin: 0 auto;
   padding: 32px 0 48px;
 }
 
+/* Catalogue heading layout.
+   Components: AppControllerTemplatesCatalogueView,
+   AppPointGroupsCatalogueView, AppPointsCatalogueView. */
 .catalogue-page .page-heading {
   display: flex;
   gap: 24px;
@@ -456,10 +183,16 @@ a {
   margin-bottom: 28px;
 }
 
+/* Catalogue title spacing.
+   Components: AppControllerTemplatesCatalogueView,
+   AppPointGroupsCatalogueView, AppPointsCatalogueView. */
 .catalogue-page h1 {
   margin: 2px 0 8px;
 }
 
+/* Search/filter control shared by catalogue pages.
+   Components: AppControllerTemplatesCatalogueView,
+   AppPointGroupsCatalogueView, AppPointsCatalogueView. */
 .catalogue-filter {
   display: grid;
   gap: 7px;
@@ -483,6 +216,9 @@ a {
   border-radius: 8px;
 }
 
+/* Secondary table text shared by catalogue pages.
+   Components: AppControllerTemplatesCatalogueView,
+   AppPointGroupsCatalogueView, AppPointsCatalogueView. */
 .catalogue-page th small,
 .catalogue-page td small {
   display: block;
@@ -491,6 +227,9 @@ a {
   font-weight: 400;
 }
 
+/* Request-error and empty-state panels shared by catalogue pages.
+   Components: AppControllerTemplatesCatalogueView,
+   AppPointGroupsCatalogueView, AppPointsCatalogueView. */
 .catalogue-page .request-error,
 .catalogue-page .empty-state {
   padding: 20px;
@@ -499,72 +238,10 @@ a {
   border-radius: 10px;
 }
 
-.example-picker {
-  display: grid;
-  gap: 7px;
-  max-width: 360px;
-  margin-bottom: 18px;
-  font-weight: 700;
-}
-
-.example-picker select {
-  min-height: 44px;
-  padding: 8px 10px;
-  color: var(--color-text-primary);
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-default);
-  border-radius: 8px;
-}
-
-.runtime-panel {
-  margin-top: 28px;
-  padding: 20px;
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-default);
-  border-radius: 12px;
-}
-
-.runtime-panel > div:first-child,
-.runtime-panel dl {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px 20px;
-  align-items: center;
-}
-
-.runtime-panel h2 {
-  margin-right: auto;
-}
-
-.runtime-panel dl div {
-  min-width: 130px;
-}
-
-.runtime-panel dt {
-  color: var(--color-text-secondary);
-  font-size: 12px;
-  font-weight: 750;
-  text-transform: uppercase;
-}
-
-.runtime-panel dd {
-  margin: 4px 0 0;
-  font-weight: 650;
-}
-
-.runtime-diagnostic {
-  padding: 12px;
-  background: var(--color-surface-subtle);
-  border-radius: 8px;
-}
-
-/* Monaco intentionally dims folded/wrapped line numbers too aggressively for
-   the application's AA themes, so keep those informational numbers readable. */
-.monaco-editor .line-numbers.dimmed-line-number {
-  color: var(--color-text-secondary) !important;
-}
-
 @media (max-width: 720px) {
+  /* Responsive catalogue frame.
+     Components: AppControllerTemplatesCatalogueView,
+     AppPointGroupsCatalogueView, AppPointsCatalogueView. */
   .catalogue-page {
     width: min(100% - 20px, 1500px);
     padding-top: 20px;

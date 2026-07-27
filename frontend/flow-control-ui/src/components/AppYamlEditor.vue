@@ -177,7 +177,7 @@ onBeforeUnmount(() => {
 });
 </script>
 
-<style scoped>
+<style scoped lang="css">
 .yaml-editor > label {
   display: block;
   margin-bottom: 7px;
@@ -213,5 +213,11 @@ onBeforeUnmount(() => {
   gap: 5px;
   margin: 0;
   padding-left: 22px;
+}
+
+/* Monaco creates these descendants at runtime, so the scoped rule must cross
+   the component boundary to keep informational line numbers readable. */
+.yaml-editor :deep(.monaco-editor .line-numbers.dimmed-line-number) {
+  color: var(--color-text-secondary) !important;
 }
 </style>

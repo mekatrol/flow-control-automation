@@ -357,3 +357,115 @@ onBeforeUnmount(() => {
   testController?.abort();
 });
 </script>
+
+<style scoped lang="css">
+.source-editor-layout.has-guidance {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.46fr);
+  gap: 28px;
+  align-items: start;
+}
+
+.source-guidance {
+  position: sticky;
+  top: 24px;
+  padding: 22px;
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border-default);
+  border-radius: 12px;
+}
+
+.source-guidance h2 {
+  margin: 5px 0 8px;
+  font-size: 21px;
+}
+
+.source-guidance h3 {
+  margin: 22px 0 8px;
+  font-size: 15px;
+}
+
+.source-guidance > p {
+  line-height: 1.5;
+}
+
+.source-guidance fieldset {
+  display: grid;
+  gap: 8px;
+  margin: 20px 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.source-guidance legend {
+  margin-bottom: 8px;
+  font-weight: 750;
+}
+
+.source-guidance fieldset label {
+  display: flex;
+  gap: 10px;
+  padding: 11px;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-default);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.source-guidance fieldset label:has(input:checked) {
+  border-color: var(--color-focus-ring);
+  box-shadow: 0 0 0 1px var(--color-focus-ring);
+}
+
+.source-guidance input {
+  align-self: start;
+  margin-top: 3px;
+}
+
+.source-guidance small {
+  display: block;
+  margin-top: 3px;
+  color: var(--color-text-secondary);
+  line-height: 1.35;
+}
+
+.source-guidance pre {
+  max-height: 360px;
+  margin: 0 0 12px;
+  padding: 14px;
+  overflow: auto;
+  color: var(--color-text-primary);
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre;
+  background: var(--color-surface-inset);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 8px;
+}
+
+.source-guidance .guidance-note {
+  margin: 18px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.test-result {
+  margin-top: 28px;
+  padding: 20px;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-default);
+  border-radius: 10px;
+}
+
+@media (max-width: 900px) {
+  .source-editor-layout.has-guidance {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .source-guidance {
+    position: static;
+    order: -1;
+  }
+}
+</style>

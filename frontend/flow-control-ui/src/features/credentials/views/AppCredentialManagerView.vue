@@ -390,7 +390,78 @@ onMounted(() => void load());
 onBeforeUnmount(() => controller?.abort());
 </script>
 
-<style lang="css" scoped>
+<style scoped lang="css">
+.credential-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 0.42fr);
+  gap: 30px;
+  align-items: start;
+}
+
+.credential-layout table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.credential-layout th,
+.credential-layout td {
+  padding: 13px;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+.credential-layout th small {
+  display: block;
+  margin-top: 4px;
+  color: var(--color-text-secondary);
+  font-weight: 400;
+}
+
+.section-heading {
+  display: flex;
+  gap: 20px;
+  align-items: start;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.section-heading h2,
+.section-heading p {
+  margin-top: 0;
+}
+
+.secret-input {
+  position: relative;
+  display: flex;
+}
+
+.secret-input input {
+  width: 100%;
+  padding-right: 60px;
+}
+
+.credential-form .secret-visibility-button {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+}
+
+.field-help,
+.secret-notice {
+  margin: 6px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.secret-notice {
+  margin-top: 18px;
+  padding: 12px;
+  background: var(--color-surface-inset);
+  border-radius: 7px;
+}
+
 .credential-form :deep(> form) {
   display: grid;
   padding: 22px;
@@ -416,5 +487,16 @@ onBeforeUnmount(() => controller?.abort());
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-default);
   border-radius: 7px;
+}
+
+@media (max-width: 900px) {
+  .credential-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .credential-form {
+    position: static;
+    grid-row: 1;
+  }
 }
 </style>

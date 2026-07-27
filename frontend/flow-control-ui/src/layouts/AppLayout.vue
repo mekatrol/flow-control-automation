@@ -50,7 +50,79 @@
 import AppThemeSelector from '@/components/AppThemeSelector.vue';
 </script>
 
-<style scoped>
+<style scoped lang="css">
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 72px;
+  padding: 0 32px;
+  color: var(--color-header-text);
+  background: var(--color-header-background);
+  border-bottom: 1px solid var(--color-header-border);
+}
+
+.brand {
+  display: inline-flex;
+  flex: none;
+  gap: 12px;
+  align-items: center;
+  color: inherit;
+  text-decoration: none;
+}
+
+.brand-logo {
+  display: block;
+  width: auto;
+  height: 38px;
+}
+
+.brand strong,
+.brand small {
+  display: block;
+}
+
+.brand strong {
+  font-size: 15px;
+  letter-spacing: 0.01em;
+}
+
+.brand small {
+  margin-top: 2px;
+  color: var(--color-header-text-muted);
+  font-size: 11px;
+}
+
+.app-header nav {
+  display: flex;
+  min-width: 0;
+  overflow-x: auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.app-header nav a {
+  flex: none;
+  padding: 9px 13px;
+  color: var(--color-header-nav-text);
+  font-size: 14px;
+  font-weight: 650;
+  text-decoration: none;
+  border-radius: 8px;
+}
+
+.app-header nav a:hover,
+.app-header nav a.router-link-active {
+  color: var(--color-text-on-strong);
+  background: var(--color-header-nav-background-active);
+}
+
 .skip-link {
   position: fixed;
   z-index: 100;
@@ -65,5 +137,15 @@ import AppThemeSelector from '@/components/AppThemeSelector.vue';
 
 .skip-link:focus {
   transform: translateY(0);
+}
+
+@media (max-width: 640px) {
+  .app-header {
+    padding: 0 18px;
+  }
+
+  .brand small {
+    display: none;
+  }
 }
 </style>

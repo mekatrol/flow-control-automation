@@ -93,3 +93,42 @@ const load = async (): Promise<void> => {
 onMounted(() => void load());
 onBeforeUnmount(() => controller?.abort());
 </script>
+
+<style scoped lang="css">
+.source-list > label {
+  display: block;
+  margin-bottom: 7px;
+  font-weight: 700;
+}
+
+.source-list > input {
+  width: min(420px, 100%);
+  margin-bottom: 24px;
+  padding: 9px 11px;
+}
+
+.source-list table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.source-list th,
+.source-list td {
+  padding: 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+.source-list th small {
+  display: block;
+  margin-top: 4px;
+  color: var(--color-text-secondary);
+  font-weight: 400;
+}
+
+@media (max-width: 640px) {
+  .source-list {
+    overflow-x: auto;
+  }
+}
+</style>
