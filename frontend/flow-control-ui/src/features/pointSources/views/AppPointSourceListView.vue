@@ -18,24 +18,12 @@
       <AppButton automation="point-sources-retry" text="Retry" :icon="retryIcon" @click="load" />
     </div>
     <div v-else class="source-list">
-      <form class="catalogue-filter" role="search" @submit.prevent="applyFilter">
-        <label for="source-filter">Filter by name</label>
-        <div>
-          <input
-            id="source-filter"
-            v-model="filter"
-            class="app-filter-input"
-            type="search"
-            autocomplete="off"
-          />
-          <AppButton
-            automation="point-sources-apply-filter"
-            type="submit"
-            text="Apply filter"
-            :icon="filterIcon"
-          />
-        </div>
-      </form>
+      <AppFilter automation="point-sources-filter" constrained @[EVENTS.APPLY_FILTER]="applyFilter">
+        <label class="app-filter-field" for="source-filter">
+          <span>Filter by name</span>
+          <input id="source-filter" v-model="filter" type="search" autocomplete="off" />
+        </label>
+      </AppFilter>
       <p v-if="!loading && filtered.length === 0" class="empty-state" role="status">
         No point sources found.
       </p>
@@ -71,11 +59,12 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
-import filterIcon from '@/assets/icons/filter-icon.svg';
 import newIcon from '@/assets/icons/new-flow-icon.svg';
 import retryIcon from '@/assets/icons/retry-icon.svg';
 import AppButton from '@/components/AppButton.vue';
+import AppFilter from '@/components/AppFilter.vue';
 import AppSvg from '@/components/AppSvg.vue';
+import { EVENTS } from '@/constants/events';
 import {
   pointSourceApi,
   type PointSourceKind,

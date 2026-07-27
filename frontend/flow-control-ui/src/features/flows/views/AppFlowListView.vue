@@ -33,9 +33,13 @@
     </div>
 
     <div v-if="!error" class="flow-results">
-      <form class="table-tools" role="search" @submit.prevent="applyFilters">
-        <div class="filter-control">
-          <label for="flow-filter">Filter by name</label>
+      <AppFilter
+        automation="flows-filter"
+        class="table-tools"
+        @[EVENTS.APPLY_FILTER]="applyFilters"
+      >
+        <label class="app-filter-field flow-name-filter" for="flow-filter">
+          <span>Filter by name</span>
           <input
             id="flow-filter"
             v-model="filterQuery"
@@ -43,21 +47,16 @@
             autocomplete="off"
             placeholder="Search flow names"
           />
-        </div>
+        </label>
         <AppMultiSelectDropdown
           v-model="filterStatuses"
           automation="flows-status-filter"
+          class="app-filter-field app-filter-field--content"
           label="Deployment status"
           all-label="All"
           :options="statusOptions"
         />
-        <AppButton
-          automation="flows-apply-filter"
-          type="submit"
-          text="Apply filter"
-          :icon="filterIcon"
-        />
-      </form>
+      </AppFilter>
 
       <p v-if="totalItems === 0 && hasActiveFilters" class="empty-state" role="status">
         No flows match the selected filters.
@@ -104,16 +103,17 @@ import { storeToRefs } from 'pinia';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-import filterIcon from '@/assets/icons/filter-icon.svg';
 import newFlowIcon from '@/assets/icons/new-flow-icon.svg';
 import retryIcon from '@/assets/icons/retry-icon.svg';
 import AppButton from '@/components/AppButton.vue';
+import AppFilter from '@/components/AppFilter.vue';
 import AppMultiSelectDropdown, {
   type MultiSelectOption
 } from '@/components/AppMultiSelectDropdown.vue';
 import AppTablePagination from '@/components/AppTablePagination.vue';
 import { useServerPagination } from '@/composables/useServerPagination';
 import { useAutomation } from '@/composables/useAutomation';
+import { EVENTS } from '@/constants/events';
 import { flowApi, type FlowListParameters } from '@/features/flows/api/flowApi';
 import AppFlowTable from '@/features/flows/components/AppFlowTable.vue';
 import { useFlowsStore } from '@/features/flows/stores/flows';
@@ -384,16 +384,14 @@ h1 {
   align-items: center;
 }
 
-.create-flow label,
-.table-tools label {
+.create-flow label {
   color: var(--color-text-primary);
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-bold);
 }
 
-.create-flow input,
-.table-tools input {
-  min-height: 44px;
+.create-flow input {
+  min-height: var(--control-min-height);
   padding: var(--space-4);
   color: var(--color-text-primary);
   background: var(--color-surface-raised);
@@ -447,10 +445,6 @@ h1 {
   align-items: center;
 }
 
-.table-tools input {
-  width: min(360px, 100%);
-}
-
 /* Mobile breakpoint (40rem): stacks page and navigation content for phone layouts. */
 @media (max-width: 40rem) {
   .flow-library {
@@ -468,11 +462,6 @@ h1 {
   }
 
   .table-tools {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .filter-control {
     align-items: stretch;
     flex-direction: column;
   }

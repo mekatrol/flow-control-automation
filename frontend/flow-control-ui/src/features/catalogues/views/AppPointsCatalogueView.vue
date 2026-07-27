@@ -12,24 +12,12 @@
       </RouterLink>
     </div>
 
-    <form class="catalogue-filter" role="search" @submit.prevent="applyFilter">
-      <label for="points-filter">Filter points</label>
-      <div>
-        <input
-          id="points-filter"
-          v-model="filter"
-          class="app-filter-input"
-          type="search"
-          autocomplete="off"
-        />
-        <AppButton
-          automation="points-apply-filter"
-          type="submit"
-          text="Apply filter"
-          :icon="filterIcon"
-        />
-      </div>
-    </form>
+    <AppFilter automation="points-filter" constrained @[EVENTS.APPLY_FILTER]="applyFilter">
+      <label class="app-filter-field" for="points-filter">
+        <span>Filter points</span>
+        <input id="points-filter" v-model="filter" type="search" autocomplete="off" />
+      </label>
+    </AppFilter>
 
     <p v-if="store.loading" role="status">Loading points…</p>
     <div v-else-if="store.error" class="request-error" role="alert">
@@ -96,13 +84,14 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
-import filterIcon from '@/assets/icons/filter-icon.svg';
 import newIcon from '@/assets/icons/new-flow-icon.svg';
 import retryIcon from '@/assets/icons/retry-icon.svg';
 import AppButton from '@/components/AppButton.vue';
+import AppFilter from '@/components/AppFilter.vue';
 import AppSvg from '@/components/AppSvg.vue';
 import AppTable from '@/components/AppTable.vue';
 import AppTablePagination from '@/components/AppTablePagination.vue';
+import { EVENTS } from '@/constants/events';
 import { usePointsCatalogueStore } from '@/features/catalogues/stores/catalogues';
 
 const store = usePointsCatalogueStore();

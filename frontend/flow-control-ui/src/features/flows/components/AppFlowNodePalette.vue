@@ -1,18 +1,16 @@
 <template>
   <aside class="node-palette" aria-label="Function block toolbox">
     <h2>Function blocks</h2>
-    <form role="search" @submit.prevent="applyFilter">
-      <label>
+    <AppFilter
+      automation="flow-node-palette-filter"
+      layout="stacked"
+      @[EVENTS.APPLY_FILTER]="applyFilter"
+    >
+      <label class="app-filter-field">
         <span>Find a node</span>
         <input v-model="filter" type="search" placeholder="Search nodes" />
       </label>
-      <AppButton
-        automation="flow-node-palette-apply-filter"
-        type="submit"
-        text="Apply filter"
-        :icon="filterIcon"
-      />
-    </form>
+    </AppFilter>
     <div v-if="Object.keys(groups).length" class="palette-groups">
       <section v-for="(definitions, category) in groups" :key="category">
         <h3>{{ category }}</h3>
@@ -78,10 +76,11 @@ export const groupNodeKinds = (
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 
-import filterIcon from '@/assets/icons/filter-icon.svg';
 import AppButton from '@/components/AppButton.vue';
+import AppFilter from '@/components/AppFilter.vue';
 import AppSvg from '@/components/AppSvg.vue';
 import { useAutomation } from '@/composables/useAutomation';
+import { EVENTS } from '@/constants/events';
 import type { FlowNodeKind } from '@/features/flows/types';
 
 const emit = defineEmits<{ add: [kind: FlowNodeKind] }>();
@@ -115,26 +114,6 @@ const startPaletteDrag = (kind: FlowNodeKind, event: DragEvent): void => {
   margin: var(--space-0) var(--space-0) var(--space-5-5);
   color: var(--color-palette-heading);
   font-size: var(--font-size-xl);
-}
-
-form,
-label {
-  display: grid;
-  gap: var(--space-4-5);
-}
-
-label {
-  align-items: center;
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-bold);
-}
-
-input {
-  width: 100%;
-  padding: var(--space-3) var(--space-4);
-  border: var(--border-width-default) solid var(--color-border-default);
-  border-radius: var(--radius-sm);
 }
 
 .palette-groups {

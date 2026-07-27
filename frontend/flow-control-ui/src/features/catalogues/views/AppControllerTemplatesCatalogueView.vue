@@ -12,24 +12,16 @@
       </RouterLink>
     </div>
 
-    <form class="catalogue-filter" role="search" @submit.prevent="applyFilter">
-      <label for="templates-filter">Filter controller templates</label>
-      <div>
-        <input
-          id="templates-filter"
-          v-model="filter"
-          class="app-filter-input"
-          type="search"
-          autocomplete="off"
-        />
-        <AppButton
-          automation="controller-templates-apply-filter"
-          type="submit"
-          text="Apply filter"
-          :icon="filterIcon"
-        />
-      </div>
-    </form>
+    <AppFilter
+      automation="controller-templates-filter"
+      constrained
+      @[EVENTS.APPLY_FILTER]="applyFilter"
+    >
+      <label class="app-filter-field" for="templates-filter">
+        <span>Filter controller templates</span>
+        <input id="templates-filter" v-model="filter" type="search" autocomplete="off" />
+      </label>
+    </AppFilter>
 
     <p v-if="store.loading" role="status">Loading controller templates…</p>
     <div v-else-if="store.error" class="request-error" role="alert">
@@ -99,13 +91,14 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
-import filterIcon from '@/assets/icons/filter-icon.svg';
 import newIcon from '@/assets/icons/new-flow-icon.svg';
 import retryIcon from '@/assets/icons/retry-icon.svg';
 import AppButton from '@/components/AppButton.vue';
+import AppFilter from '@/components/AppFilter.vue';
 import AppSvg from '@/components/AppSvg.vue';
 import AppTable from '@/components/AppTable.vue';
 import AppTablePagination from '@/components/AppTablePagination.vue';
+import { EVENTS } from '@/constants/events';
 import type { ControllerTemplateSummary } from '@/features/catalogues/api/catalogueDto';
 import { useControllerTemplatesCatalogueStore } from '@/features/catalogues/stores/catalogues';
 

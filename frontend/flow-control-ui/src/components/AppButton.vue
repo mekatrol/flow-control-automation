@@ -50,7 +50,7 @@ button {
   gap: var(--space-3);
   align-items: center;
   justify-content: center;
-  min-height: 44px;
+  min-height: var(--control-min-height);
   padding: var(--space-4) var(--space-6-5);
   color: var(--color-text-primary);
   font-weight: var(--font-weight-semibold);
@@ -98,5 +98,9 @@ button:disabled {
   stroke-width: var(--stroke-width-standard);
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+.button-text {
+  white-space: nowrap;
 }
 </style>

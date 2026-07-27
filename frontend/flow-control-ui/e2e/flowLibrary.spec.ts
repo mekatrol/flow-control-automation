@@ -318,6 +318,17 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
 
   await page.goto('/flows');
   const table = page.getByRole('table', { name: 'Flows' });
+  const applyFilterButton = page.getByRole('button', { name: 'Apply filter' });
+
+  // Expected outcome: The shared filter exposes a stable automation hook on a semantic search form.
+  // Acceptance criteria: The search landmark has data-automation "flows-filter" because every page filter must use the reusable AppFilter contract.
+  await expect(page.getByRole('search')).toHaveAttribute('data-automation', 'flows-filter');
+
+  // Expected outcome: The apply action remains on one line at the current viewport.
+  // Acceptance criteria: The button text uses nowrap because wrapping made catalogue filters taller than the approved flows layout.
+  expect(
+    await applyFilterButton.locator('.button-text').evaluate((element) => getComputedStyle(element).whiteSpace)
+  ).toBe('nowrap');
 
   // Expected outcome: `table` is visible to the user.
   // Acceptance criteria: `table` must be visible, because this condition proves that
@@ -339,6 +350,7 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
 
   const nameFilter = page.getByRole('searchbox', { name: 'Filter by name' });
   await nameFilter.fill('No matching flow');
+  await applyFilterButton.click();
 
   // Expected outcome: `page.getByText('No flows match the selected filters.')` is visible to the user.
   // Acceptance criteria: `page.getByText('No flows match the selected filters.')` must be visible, because this condition proves that
@@ -360,6 +372,7 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
   // filters, sorts, and paginates the semantic flow table.
   await expect(page.getByRole('button', { name: 'Deployment status: All' })).toBeVisible();
   await nameFilter.fill('');
+  await applyFilterButton.click();
   // Wait for the debounced clear-filter request to finish before changing the
   // sort. Without this user-visible checkpoint, Firefox can click while the
   // previous list refresh is still settling and the response wait becomes racy.
@@ -395,6 +408,7 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
   await expect(table.getByRole('row').nth(1)).toContainText('Flow 25');
 
   await nameFilter.fill('Flow 2');
+  await applyFilterButton.click();
 
   // Expected outcome: Navigation reaches the required route.
   // Acceptance criteria: the page URL must match `/filter=Flow(?:%20|\+`, because this condition proves that
@@ -412,6 +426,7 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
   await expect(page.getByText('1–6 of 6')).toBeVisible();
 
   await nameFilter.fill('Flow');
+  await applyFilterButton.click();
   await page.getByLabel('Items per page').selectOption('20');
   await expect(page).toHaveURL(/pageSize=20/);
   await expect(page.getByText('1–20 of 25')).toBeVisible();
@@ -469,6 +484,7 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
   // filters, sorts, and paginates the semantic flow table.
   await expect(deployedStatusDropdown).toBeVisible();
   await deployedStatusDropdown.click();
+  await applyFilterButton.click();
 
   // Expected outcome: Navigation reaches the required route.
   // Acceptance criteria: the page URL must match `/status=deployed/`, because this condition proves that
@@ -506,6 +522,8 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
 
   await deployedStatusDropdown.click();
   await page.getByRole('checkbox', { name: 'All' }).check();
+  await page.getByRole('button', { name: 'Deployment status: All' }).click();
+  await applyFilterButton.click();
 
   // Expected outcome: Navigation reaches the required route.
   // Acceptance criteria: the page URL must match `/status=deployed/`, because this condition proves that

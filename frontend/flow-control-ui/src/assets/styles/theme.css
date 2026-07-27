@@ -115,6 +115,8 @@
   --space-designer-palette-offset: 13.75rem;
   /* Minimum interactive control height that provides the standard touch target. */
   --control-min-height: 2.75rem;
+  /* Maximum width for a single-field list or catalogue filter form. */
+  --filter-max-width: 32.5rem;
 
   /* Zero border width, used to explicitly remove a native or inherited border. */
   --border-width-none: 0;
