@@ -62,16 +62,16 @@ import AppThemeSelector from '@/components/AppThemeSelector.vue';
   align-items: center;
   justify-content: space-between;
   min-height: 72px;
-  padding: 0 32px;
+  padding: var(--space-0) var(--space-16);
   color: var(--color-header-text);
   background: var(--color-header-background);
-  border-bottom: 1px solid var(--color-header-border);
+  border-bottom: var(--border-width-default) solid var(--color-header-border);
 }
 
 .brand {
   display: inline-flex;
   flex: none;
-  gap: 12px;
+  gap: var(--space-5-5);
   align-items: center;
   color: inherit;
   text-decoration: none;
@@ -89,32 +89,32 @@ import AppThemeSelector from '@/components/AppThemeSelector.vue';
 }
 
 .brand strong {
-  font-size: 15px;
+  font-size: var(--font-size-2xl);
   letter-spacing: 0.01em;
 }
 
 .brand small {
-  margin-top: 2px;
+  margin-top: var(--space-0-5);
   color: var(--color-header-text-muted);
-  font-size: 11px;
+  font-size: var(--font-size-sm);
 }
 
 .app-header nav {
   display: flex;
   min-width: 0;
   overflow-x: auto;
-  gap: 8px;
+  gap: var(--space-3-5);
   align-items: center;
 }
 
 .app-header nav a {
   flex: none;
-  padding: 9px 13px;
+  padding: var(--space-4) var(--space-6);
   color: var(--color-header-nav-text);
-  font-size: 14px;
-  font-weight: 650;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
   text-decoration: none;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
 }
 
 .app-header nav a:hover,
@@ -128,10 +128,10 @@ import AppThemeSelector from '@/components/AppThemeSelector.vue';
   z-index: 100;
   top: 8px;
   left: 8px;
-  padding: 10px 14px;
+  padding: var(--space-4-5) var(--space-6-5);
   color: var(--color-text-on-strong);
   background: var(--color-header-background);
-  border-radius: 7px;
+  border-radius: var(--radius-md);
   transform: translateY(-160%);
 }
 
@@ -139,9 +139,10 @@ import AppThemeSelector from '@/components/AppThemeSelector.vue';
   transform: translateY(0);
 }
 
-@media (max-width: 640px) {
+/* Mobile breakpoint (40rem): stacks page and navigation content for phone layouts. */
+@media (max-width: 40rem) {
   .app-header {
-    padding: 0 18px;
+    padding: var(--space-0) var(--space-9);
   }
 
   .brand small {

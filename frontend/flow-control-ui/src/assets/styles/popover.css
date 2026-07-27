@@ -2,17 +2,17 @@
   --popover-y-offset: -0.35rem;
   --popover-transform-origin: top;
 
-  outline: 2px solid var(--color-popover-outline);
+  outline: var(--outline-width-emphasis) solid var(--color-popover-outline);
 
   width: max-content;
   max-width: calc(100vw - 2rem);
   margin: auto;
-  padding: 1rem;
-  border: 1px solid var(--color-border-default);
-  border-radius: 6px;
+  padding: var(--space-8);
+  border: var(--border-width-default) solid var(--color-border-default);
+  border-radius: var(--radius-sm);
   background: var(--color-surface-neutral);
   color: var(--color-text-primary);
-  box-shadow: 0 1rem 2.5rem var(--color-shadow-dialog);
+  box-shadow: var(--shadow-dialog-compact);
   line-height: 1.5;
   position: fixed;
   inset: 0;
@@ -32,7 +32,7 @@
 .popover-panel[data-placement='top-start'],
 .popover-panel[data-placement='top-end'] {
   inset: auto;
-  margin: 0.5rem 0;
+  margin: var(--space-3-5) var(--space-0);
   position-anchor: auto;
   position-try-fallbacks: flip-block, flip-inline;
 }

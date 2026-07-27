@@ -33,25 +33,31 @@
     </div>
 
     <div v-if="!error" class="flow-results">
-      <div class="table-tools">
+      <form class="table-tools" role="search" @submit.prevent="applyFilters">
         <div class="filter-control">
           <label for="flow-filter">Filter by name</label>
           <input
             id="flow-filter"
-            v-model="query"
+            v-model="filterQuery"
             type="search"
             autocomplete="off"
             placeholder="Search flow names"
           />
         </div>
         <AppMultiSelectDropdown
-          v-model="statusFilters"
+          v-model="filterStatuses"
           automation="flows-status-filter"
           label="Deployment status"
           all-label="All"
           :options="statusOptions"
         />
-      </div>
+        <AppButton
+          automation="flows-apply-filter"
+          type="submit"
+          text="Apply filter"
+          :icon="filterIcon"
+        />
+      </form>
 
       <p v-if="totalItems === 0 && hasActiveFilters" class="empty-state" role="status">
         No flows match the selected filters.
@@ -98,6 +104,7 @@ import { storeToRefs } from 'pinia';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
+import filterIcon from '@/assets/icons/filter-icon.svg';
 import newFlowIcon from '@/assets/icons/new-flow-icon.svg';
 import retryIcon from '@/assets/icons/retry-icon.svg';
 import AppButton from '@/components/AppButton.vue';
@@ -173,6 +180,13 @@ const {
   initialPageSize,
   initialSortDirection
 });
+const filterQuery = ref(query.value);
+const filterStatuses = ref([...statusFilters.value]);
+const applyFilters = (): void => {
+  query.value = filterQuery.value;
+  statusFilters.value = [...filterStatuses.value];
+  page.value = 1;
+};
 const hasActiveFilters = computed(
   () =>
     query.value.trim().length > 0 ||
@@ -329,62 +343,62 @@ onBeforeUnmount(() => {
 <style scoped>
 .flow-library {
   width: min(1180px, calc(100% - 40px));
-  margin: 0 auto;
-  padding: 58px 0;
+  margin: var(--space-0) auto;
+  padding: var(--space-29) var(--space-0);
 }
 
 .page-heading {
   display: flex;
-  gap: 32px;
+  gap: var(--space-16);
   align-items: end;
   justify-content: space-between;
-  margin-bottom: 34px;
+  margin-bottom: var(--space-17);
 }
 
 .eyebrow {
-  margin: 0 0 8px;
+  margin: var(--space-0) var(--space-0) var(--space-3-5);
   color: var(--color-action-primary);
-  font-size: 11px;
-  font-weight: 800;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-black);
   letter-spacing: 0.13em;
   text-transform: uppercase;
 }
 
 h1 {
-  margin: 0;
+  margin: var(--space-0);
   color: var(--color-text-primary);
-  font-size: clamp(34px, 5vw, 52px);
+  font-size: var(--font-size-hero-fluid);
   letter-spacing: -0.04em;
 }
 
 .page-heading p:last-child {
   max-width: 560px;
-  margin: 10px 0 0;
+  margin: var(--space-4-5) var(--space-0) var(--space-0);
   color: var(--color-text-secondary);
 }
 
 .create-flow,
 .request-error {
   display: flex;
-  gap: 8px;
+  gap: var(--space-3-5);
   align-items: center;
 }
 
 .create-flow label,
 .table-tools label {
   color: var(--color-text-primary);
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
 }
 
 .create-flow input,
 .table-tools input {
   min-height: 44px;
-  padding: 9px;
+  padding: var(--space-4);
   color: var(--color-text-primary);
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-default);
-  border-radius: 7px;
+  border: var(--border-width-default) solid var(--color-border-default);
+  border-radius: var(--radius-md);
 }
 
 .create-flow input {
@@ -394,9 +408,9 @@ h1 {
 .request-status,
 .request-error,
 .empty-state {
-  margin-bottom: 22px;
-  padding: 16px;
-  border-radius: 10px;
+  margin-bottom: var(--space-11);
+  padding: var(--space-8);
+  border-radius: var(--radius-xl);
 }
 
 .request-status {
@@ -413,23 +427,23 @@ h1 {
 .empty-state {
   color: var(--color-text-muted);
   background: var(--color-surface-raised);
-  border: 1px dashed var(--color-border-empty);
+  border: var(--border-width-default) dashed var(--color-border-empty);
 }
 
 .empty-state h2 {
-  margin-top: 0;
+  margin-top: var(--space-0);
 }
 
 .table-tools {
   display: flex;
-  gap: 8px;
+  gap: var(--space-3-5);
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: var(--space-8);
 }
 
 .filter-control {
   display: flex;
-  gap: 8px;
+  gap: var(--space-3-5);
   align-items: center;
 }
 
@@ -437,10 +451,11 @@ h1 {
   width: min(360px, 100%);
 }
 
-@media (max-width: 640px) {
+/* Mobile breakpoint (40rem): stacks page and navigation content for phone layouts. */
+@media (max-width: 40rem) {
   .flow-library {
     width: min(100% - 28px, 1180px);
-    padding: 38px 0;
+    padding: var(--space-19) var(--space-0);
   }
 
   .page-heading {

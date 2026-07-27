@@ -551,30 +551,30 @@ const handleDragCancel = (event: PointerEvent): void => {
   overflow: hidden;
   flex-direction: column;
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 14px;
-  box-shadow: 0 18px 45px var(--color-shadow-panel);
+  border: var(--border-width-default) solid var(--color-border-subtle);
+  border-radius: var(--radius-3xl);
+  box-shadow: var(--shadow-panel);
 }
 
 .canvas-toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 18px;
+  gap: var(--space-9);
   align-items: center;
   min-height: 44px;
-  padding: 0 16px;
+  padding: var(--space-0) var(--space-8);
   color: var(--color-text-muted);
-  font-size: 12px;
-  font-weight: 650;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
   background: var(--color-surface-subtle);
-  border-bottom: 1px solid var(--color-border-subtle);
+  border-bottom: var(--border-width-default) solid var(--color-border-subtle);
 }
 
 .designer-workspace {
   position: relative;
   display: flex;
   min-height: 0;
-  padding-left: 220px;
+  padding-left: var(--space-designer-palette-offset);
   flex: 1;
   overflow: hidden;
 }
@@ -597,9 +597,10 @@ const handleDragCancel = (event: PointerEvent): void => {
   flex-direction: column;
 }
 
-@media (max-width: 720px) {
+/* Tablet breakpoint (48rem): reflows multi-column controls and workspace panels. */
+@media (max-width: 48rem) {
   .designer-workspace {
-    padding-left: 0;
+    padding-left: var(--space-0);
     flex-direction: column;
   }
 
@@ -609,8 +610,8 @@ const handleDragCancel = (event: PointerEvent): void => {
     min-width: 0;
     max-height: min(240px, 35%);
     overflow-y: auto;
-    border-right: 0;
-    border-bottom: 1px solid var(--color-border-subtle);
+    border-right: var(--border-width-none);
+    border-bottom: var(--border-width-default) solid var(--color-border-subtle);
   }
 
   .designer-workspace :deep(.configuration-panel) {
@@ -625,36 +626,36 @@ const handleDragCancel = (event: PointerEvent): void => {
 }
 
 .connection-error {
-  margin: 0;
-  padding: 9px 16px;
+  margin: var(--space-0);
+  padding: var(--space-4) var(--space-8);
   color: var(--color-danger-text);
-  font-size: 12px;
-  font-weight: 650;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
   background: var(--color-danger-surface);
-  border-bottom: 1px solid var(--color-danger-border-subtle);
+  border-bottom: var(--border-width-default) solid var(--color-danger-border-subtle);
 }
 
 .zoom-controls {
   display: flex;
-  gap: 8px;
+  gap: var(--space-3-5);
   align-items: center;
   margin-left: auto;
 }
 
 .selection + .zoom-controls {
-  margin-left: 0;
+  margin-left: var(--space-0);
 }
 
 .zoom-controls output {
   width: 38px;
   color: var(--color-text-secondary);
-  font-size: 11px;
+  font-size: var(--font-size-sm);
   text-align: center;
 }
 
 .grid-toggle {
   display: flex;
-  gap: 6px;
+  gap: var(--space-2-5);
   align-items: center;
   color: var(--color-text-secondary);
   white-space: nowrap;
@@ -677,7 +678,7 @@ const handleDragCancel = (event: PointerEvent): void => {
 
 .empty-message {
   fill: var(--color-text-subtle);
-  font-size: 14px;
+  font-size: var(--font-size-xl);
   text-anchor: middle;
 }
 </style>

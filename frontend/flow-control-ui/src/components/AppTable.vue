@@ -43,9 +43,9 @@ const automation = useAutomation(props.automation);
   max-width: 100%;
   overflow-x: auto;
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 12px;
-  box-shadow: 0 12px 30px var(--color-shadow-card);
+  border: var(--border-width-default) solid var(--color-border-subtle);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-card);
 }
 
 table {
@@ -58,28 +58,28 @@ caption {
   position: absolute;
   width: 1px;
   height: 1px;
-  padding: 0;
+  padding: var(--space-0);
   overflow: hidden;
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
-  border: 0;
+  border: var(--border-width-none);
 }
 
 :deep(th),
 :deep(td) {
-  padding: 15px 16px;
+  padding: var(--space-7) var(--space-8);
   text-align: left;
-  border-bottom: 1px solid var(--color-border-subtle);
+  border-bottom: var(--border-width-default) solid var(--color-border-subtle);
 }
 
 :deep(th) {
   color: var(--color-text-secondary);
-  font-size: 12px;
+  font-size: var(--font-size-md);
   letter-spacing: 0.04em;
   background: var(--color-surface-subtle);
 }
 
 :deep(tbody tr:last-child td) {
-  border-bottom: 0;
+  border-bottom: var(--border-width-none);
 }
 </style>

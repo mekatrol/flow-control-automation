@@ -6,13 +6,22 @@
         <h1 id="groups-heading">Point groups</h1>
         <p>Review reusable membership and shared source relationships.</p>
       </div>
-      <RouterLink class="primary-link" :to="{ name: 'point-group-new' }">New group</RouterLink>
+      <RouterLink class="primary-link" :to="{ name: 'point-group-new' }">
+        <AppSvg :src="newIcon" automation="point-groups-new-icon" size="1em" />
+        New group
+      </RouterLink>
     </div>
 
     <form class="catalogue-filter" role="search" @submit.prevent="applyFilter">
       <label for="groups-filter">Filter point groups</label>
       <div>
-        <input id="groups-filter" v-model="filter" type="search" autocomplete="off" />
+        <input
+          id="groups-filter"
+          v-model="filter"
+          class="app-filter-input"
+          type="search"
+          autocomplete="off"
+        />
         <AppButton
           automation="point-groups-apply-filter"
           type="submit"
@@ -77,8 +86,10 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import filterIcon from '@/assets/icons/filter-icon.svg';
+import newIcon from '@/assets/icons/new-flow-icon.svg';
 import retryIcon from '@/assets/icons/retry-icon.svg';
 import AppButton from '@/components/AppButton.vue';
+import AppSvg from '@/components/AppSvg.vue';
 import AppTable from '@/components/AppTable.vue';
 import AppTablePagination from '@/components/AppTablePagination.vue';
 import { usePointGroupsCatalogueStore } from '@/features/catalogues/stores/catalogues';

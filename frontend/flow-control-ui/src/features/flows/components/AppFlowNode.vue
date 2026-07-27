@@ -129,7 +129,7 @@ const connectorKey = (connectorId: string): string => `${props.node.id}:${connec
 
 .node-body {
   stroke: var(--color-control-neutral);
-  stroke-width: 1;
+  stroke-width: var(--stroke-width-fine);
 }
 
 .flow-node[data-node-category='logic'] .node-body {
@@ -156,6 +156,6 @@ const connectorKey = (connectorId: string): string => `${props.node.id}:${connec
 .flow-node:focus .node-body,
 .flow-node.selected .node-body {
   stroke: var(--color-action-primary-text);
-  stroke-width: 4;
+  stroke-width: var(--stroke-width-heavy);
 }
 </style>

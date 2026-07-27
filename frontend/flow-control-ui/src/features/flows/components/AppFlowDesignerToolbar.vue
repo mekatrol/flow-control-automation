@@ -85,7 +85,7 @@ const emit = defineEmits<{ reorder: [command: ZOrderCommand] }>();
 <style scoped>
 .z-order-controls {
   display: flex;
-  gap: 4px;
+  gap: var(--space-1-5);
 }
 
 .layer-front {
@@ -99,14 +99,15 @@ const emit = defineEmits<{ reorder: [command: ZOrderCommand] }>();
 }
 
 .direction {
-  stroke-width: 2.4;
+  stroke-width: var(--stroke-width-medium);
 }
 
 .destination {
-  stroke-width: 2.4;
+  stroke-width: var(--stroke-width-medium);
 }
 
-@media (max-width: 760px) {
+/* Tablet breakpoint (48rem): reflows multi-column controls and workspace panels. */
+@media (max-width: 48rem) {
   .z-order-controls {
     order: 2;
   }

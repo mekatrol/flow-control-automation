@@ -173,7 +173,7 @@ const openFlow = (): void => {
 .flow-name {
   display: inline-block;
   color: var(--color-text-primary);
-  font-weight: 750;
+  font-weight: var(--font-weight-strong);
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
 }
@@ -185,20 +185,20 @@ const openFlow = (): void => {
 .description {
   display: block;
   max-width: 410px;
-  margin-top: 4px;
+  margin-top: var(--space-1-5);
   color: var(--color-text-muted);
-  font-size: 13px;
+  font-size: var(--font-size-lg);
 }
 
 .status {
   display: inline-block;
-  padding: 5px 8px;
+  padding: var(--space-2) var(--space-3-5);
   color: var(--color-text-secondary);
-  font-size: 10px;
-  font-weight: 800;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-black);
   letter-spacing: 0.08em;
   background: var(--color-surface-neutral);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   text-transform: uppercase;
 }
 
@@ -211,7 +211,7 @@ const openFlow = (): void => {
 .rename-flow,
 .delete-confirmation {
   display: flex;
-  gap: 8px;
+  gap: var(--space-3-5);
   align-items: center;
 }
 
@@ -227,17 +227,17 @@ const openFlow = (): void => {
 .rename-flow label {
   width: 100%;
   color: var(--color-text-primary);
-  font-size: 11px;
-  font-weight: 700;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
 }
 
 .rename-flow input {
   min-height: 44px;
-  padding: 8px;
+  padding: var(--space-3-5);
   color: var(--color-text-primary);
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-default);
-  border-radius: 7px;
+  border: var(--border-width-default) solid var(--color-border-default);
+  border-radius: var(--radius-md);
 }
 
 .delete-confirmation {
@@ -245,11 +245,11 @@ const openFlow = (): void => {
   z-index: 2;
   top: calc(100% + 6px);
   right: 12px;
-  padding: 12px;
+  padding: var(--space-5-5);
   color: var(--color-danger-text);
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-danger-border-subtle);
-  border-radius: 8px;
-  box-shadow: 0 10px 30px var(--color-shadow-dialog);
+  border: var(--border-width-default) solid var(--color-danger-border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-menu);
 }
 </style>

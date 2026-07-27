@@ -362,27 +362,27 @@ onBeforeUnmount(() => {
 .source-editor-layout.has-guidance {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(320px, 0.46fr);
-  gap: 28px;
+  gap: var(--space-14);
   align-items: start;
 }
 
 .source-guidance {
   position: sticky;
   top: 24px;
-  padding: 22px;
+  padding: var(--space-11);
   background: var(--color-surface-subtle);
-  border: 1px solid var(--color-border-default);
-  border-radius: 12px;
+  border: var(--border-width-default) solid var(--color-border-default);
+  border-radius: var(--radius-2xl);
 }
 
 .source-guidance h2 {
-  margin: 5px 0 8px;
-  font-size: 21px;
+  margin: var(--space-2) var(--space-0) var(--space-3-5);
+  font-size: var(--font-size-heading-md);
 }
 
 .source-guidance h3 {
-  margin: 22px 0 8px;
-  font-size: 15px;
+  margin: var(--space-11) var(--space-0) var(--space-3-5);
+  font-size: var(--font-size-2xl);
 }
 
 .source-guidance > p {
@@ -391,73 +391,74 @@ onBeforeUnmount(() => {
 
 .source-guidance fieldset {
   display: grid;
-  gap: 8px;
-  margin: 20px 0 0;
-  padding: 0;
-  border: 0;
+  gap: var(--space-3-5);
+  margin: var(--space-10) var(--space-0) var(--space-0);
+  padding: var(--space-0);
+  border: var(--border-width-none);
 }
 
 .source-guidance legend {
-  margin-bottom: 8px;
-  font-weight: 750;
+  margin-bottom: var(--space-3-5);
+  font-weight: var(--font-weight-strong);
 }
 
 .source-guidance fieldset label {
   display: flex;
-  gap: 10px;
-  padding: 11px;
+  gap: var(--space-4-5);
+  padding: var(--space-5);
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-default);
-  border-radius: 8px;
+  border: var(--border-width-default) solid var(--color-border-default);
+  border-radius: var(--radius-lg);
   cursor: pointer;
 }
 
 .source-guidance fieldset label:has(input:checked) {
   border-color: var(--color-focus-ring);
-  box-shadow: 0 0 0 1px var(--color-focus-ring);
+  box-shadow: var(--shadow-focus);
 }
 
 .source-guidance input {
   align-self: start;
-  margin-top: 3px;
+  margin-top: var(--space-1);
 }
 
 .source-guidance small {
   display: block;
-  margin-top: 3px;
+  margin-top: var(--space-1);
   color: var(--color-text-secondary);
   line-height: 1.35;
 }
 
 .source-guidance pre {
   max-height: 360px;
-  margin: 0 0 12px;
-  padding: 14px;
+  margin: var(--space-0) var(--space-0) var(--space-5-5);
+  padding: var(--space-6-5);
   overflow: auto;
   color: var(--color-text-primary);
-  font-size: 12px;
+  font-size: var(--font-size-md);
   line-height: 1.45;
   white-space: pre;
   background: var(--color-surface-inset);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 8px;
+  border: var(--border-width-default) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
 }
 
 .source-guidance .guidance-note {
-  margin: 18px 0 0;
-  padding-top: 16px;
-  border-top: 1px solid var(--color-border-subtle);
+  margin: var(--space-9) var(--space-0) var(--space-0);
+  padding-top: var(--space-8);
+  border-top: var(--border-width-default) solid var(--color-border-subtle);
 }
 
 .test-result {
-  margin-top: 28px;
-  padding: 20px;
+  margin-top: var(--space-14);
+  padding: var(--space-10);
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-default);
-  border-radius: 10px;
+  border: var(--border-width-default) solid var(--color-border-default);
+  border-radius: var(--radius-xl);
 }
 
-@media (max-width: 900px) {
+/* Wide-tablet breakpoint (56.25rem): collapses editor columns before content becomes cramped. */
+@media (max-width: 56.25rem) {
   .source-editor-layout.has-guidance {
     display: flex;
     flex-direction: column;

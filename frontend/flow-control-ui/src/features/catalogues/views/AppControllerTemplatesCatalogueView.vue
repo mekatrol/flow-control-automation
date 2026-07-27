@@ -7,20 +7,29 @@
         <p>Review the capabilities and limits available to flow targets.</p>
       </div>
       <RouterLink class="primary-link" :to="{ name: 'controller-template-new' }">
+        <AppSvg :src="newIcon" automation="controller-templates-new-icon" size="1em" />
         New template
       </RouterLink>
     </div>
 
-    <div class="catalogue-filter">
+    <form class="catalogue-filter" role="search" @submit.prevent="applyFilter">
       <label for="templates-filter">Filter controller templates</label>
-      <input
-        id="templates-filter"
-        v-model="store.filter"
-        type="search"
-        autocomplete="off"
-        @input="store.page = 1"
-      />
-    </div>
+      <div>
+        <input
+          id="templates-filter"
+          v-model="filter"
+          class="app-filter-input"
+          type="search"
+          autocomplete="off"
+        />
+        <AppButton
+          automation="controller-templates-apply-filter"
+          type="submit"
+          text="Apply filter"
+          :icon="filterIcon"
+        />
+      </div>
+    </form>
 
     <p v-if="store.loading" role="status">Loading controller templates…</p>
     <div v-else-if="store.error" class="request-error" role="alert">
@@ -89,15 +98,19 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import filterIcon from '@/assets/icons/filter-icon.svg';
+import newIcon from '@/assets/icons/new-flow-icon.svg';
 import retryIcon from '@/assets/icons/retry-icon.svg';
 import AppButton from '@/components/AppButton.vue';
+import AppSvg from '@/components/AppSvg.vue';
 import AppTable from '@/components/AppTable.vue';
 import AppTablePagination from '@/components/AppTablePagination.vue';
 import type { ControllerTemplateSummary } from '@/features/catalogues/api/catalogueDto';
 import { useControllerTemplatesCatalogueStore } from '@/features/catalogues/stores/catalogues';
 
 const store = useControllerTemplatesCatalogueStore();
+const filter = ref(store.filter);
 const rangeStart = computed(() =>
   store.result.totalItems === 0 ? 0 : (store.result.page - 1) * store.result.pageSize + 1
 );
@@ -114,6 +127,10 @@ const limits = (value: ControllerTemplateSummary['limits']): string => {
     value.minimumIntervalMilliseconds && `${value.minimumIntervalMilliseconds} ms minimum`
   ].filter(Boolean);
   return configured.length ? configured.join(', ') : 'Unrestricted';
+};
+const applyFilter = (): void => {
+  store.filter = filter.value;
+  store.page = 1;
 };
 const setPageSize = (value: number): void => {
   store.pageSize = value;

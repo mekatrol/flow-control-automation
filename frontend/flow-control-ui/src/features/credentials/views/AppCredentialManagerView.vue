@@ -394,7 +394,7 @@ onBeforeUnmount(() => controller?.abort());
 .credential-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(340px, 0.42fr);
-  gap: 30px;
+  gap: var(--space-15);
   align-items: start;
 }
 
@@ -405,29 +405,29 @@ onBeforeUnmount(() => controller?.abort());
 
 .credential-layout th,
 .credential-layout td {
-  padding: 13px;
+  padding: var(--space-6);
   text-align: left;
-  border-bottom: 1px solid var(--color-border-default);
+  border-bottom: var(--border-width-default) solid var(--color-border-default);
 }
 
 .credential-layout th small {
   display: block;
-  margin-top: 4px;
+  margin-top: var(--space-1-5);
   color: var(--color-text-secondary);
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
 }
 
 .section-heading {
   display: flex;
-  gap: 20px;
+  gap: var(--space-10);
   align-items: start;
   justify-content: space-between;
-  margin-bottom: 18px;
+  margin-bottom: var(--space-9);
 }
 
 .section-heading h2,
 .section-heading p {
-  margin-top: 0;
+  margin-top: var(--space-0);
 }
 
 .secret-input {
@@ -437,7 +437,7 @@ onBeforeUnmount(() => controller?.abort());
 
 .secret-input input {
   width: 100%;
-  padding-right: 60px;
+  padding-right: var(--space-30);
 }
 
 .credential-form .secret-visibility-button {
@@ -449,47 +449,48 @@ onBeforeUnmount(() => controller?.abort());
 
 .field-help,
 .secret-notice {
-  margin: 6px 0 0;
+  margin: var(--space-2-5) var(--space-0) var(--space-0);
   color: var(--color-text-secondary);
-  font-size: 13px;
+  font-size: var(--font-size-lg);
   line-height: 1.45;
 }
 
 .secret-notice {
-  margin-top: 18px;
-  padding: 12px;
+  margin-top: var(--space-9);
+  padding: var(--space-5-5);
   background: var(--color-surface-inset);
-  border-radius: 7px;
+  border-radius: var(--radius-md);
 }
 
 .credential-form :deep(> form) {
   display: grid;
-  padding: 22px;
+  padding: var(--space-11);
   background: var(--color-surface-subtle);
-  border: 1px solid var(--color-border-default);
-  border-radius: 12px;
+  border: var(--border-width-default) solid var(--color-border-default);
+  border-radius: var(--radius-2xl);
 }
 
 .credential-form :deep(h2) {
-  margin: 5px 0 20px;
+  margin: var(--space-2) var(--space-0) var(--space-10);
 }
 
 .credential-form :deep(form label) {
-  margin: 13px 0 6px;
-  font-weight: 700;
+  margin: var(--space-6) var(--space-0) var(--space-2-5);
+  font-weight: var(--font-weight-bold);
 }
 
 .credential-form :deep(input),
 .credential-form :deep(select) {
   min-width: 0;
-  padding: 10px 11px;
+  padding: var(--space-4-5) var(--space-5);
   color: var(--color-text-primary);
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-default);
-  border-radius: 7px;
+  border: var(--border-width-default) solid var(--color-border-default);
+  border-radius: var(--radius-md);
 }
 
-@media (max-width: 900px) {
+/* Wide-tablet breakpoint (56.25rem): collapses editor columns before content becomes cramped. */
+@media (max-width: 56.25rem) {
   .credential-layout {
     grid-template-columns: 1fr;
   }

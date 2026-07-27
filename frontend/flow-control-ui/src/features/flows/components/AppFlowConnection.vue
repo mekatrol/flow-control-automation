@@ -43,7 +43,7 @@ const path = computed(() => connectionPath(props.start, props.end, props.startSi
 .flow-connection {
   fill: none;
   stroke: var(--color-connection-default);
-  stroke-width: 3;
+  stroke-width: var(--stroke-width-strong);
 }
 
 .connection-group {
@@ -56,14 +56,14 @@ const path = computed(() => connectionPath(props.start, props.end, props.startSi
      stroke enlarges its pointer target without changing the rendered line. */
   fill: none;
   stroke: var(--color-transparent);
-  stroke-width: 16;
+  stroke-width: var(--stroke-width-hit-target);
 }
 
 .connection-group:hover .flow-connection,
 .connection-group:focus .flow-connection,
 .connection-group.selected .flow-connection {
   stroke: var(--color-action-primary);
-  stroke-width: 5;
+  stroke-width: var(--stroke-width-extra-heavy);
 }
 
 .connection-group.preview {

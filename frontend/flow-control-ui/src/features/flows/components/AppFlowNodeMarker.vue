@@ -20,7 +20,7 @@ defineProps<{
 <style scoped>
 .node-marker {
   pointer-events: none;
-  stroke-width: 1;
+  stroke-width: var(--stroke-width-fine);
   stroke-linejoin: round;
 }
 

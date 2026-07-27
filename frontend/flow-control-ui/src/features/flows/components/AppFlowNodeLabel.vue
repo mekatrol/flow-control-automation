@@ -10,8 +10,8 @@ defineProps<{ label: string; kindLabel: string }>();
 .node-label {
   fill: var(--color-text-primary);
   pointer-events: none;
-  font-size: 16px;
-  font-weight: 500;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
   text-transform: uppercase;
   user-select: none;
 }

@@ -97,7 +97,7 @@ defineExpose({
 }
 
 .prompt-dialog-content h2 {
-  margin-top: 0;
+  margin-top: var(--space-0);
 }
 
 .prompt-dialog-content p {
@@ -107,7 +107,7 @@ defineExpose({
 .prompt-dialog-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 20px;
+  gap: var(--space-4-5);
+  margin-top: var(--space-10);
 }
 </style>

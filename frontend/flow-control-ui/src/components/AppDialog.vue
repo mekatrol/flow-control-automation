@@ -54,13 +54,13 @@ defineExpose({
   max-width: calc(100vw - 2rem);
   max-height: calc(100dvh - 2rem);
   margin: auto;
-  padding: 1rem;
+  padding: var(--space-8);
   overflow: auto;
   color: var(--color-text-primary);
   background: var(--color-surface-neutral);
-  border: 1px solid var(--color-border-default);
-  border-radius: 8px;
-  box-shadow: 0 1rem 2.5rem var(--color-shadow-dialog);
+  border: var(--border-width-default) solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-dialog-compact);
 }
 
 .dialog-panel::backdrop {

@@ -125,17 +125,17 @@ const updateField = (field: NodeEditorField, event: Event): void => {
 <style scoped>
 .configuration-panel {
   min-height: 0;
-  padding: 16px;
+  padding: var(--space-8);
   overflow-y: auto;
   overscroll-behavior-y: contain;
   background: var(--color-surface-subtle);
-  border-left: 1px solid var(--color-border-subtle);
+  border-left: var(--border-width-default) solid var(--color-border-subtle);
   scrollbar-gutter: stable;
 }
 
 .panel-heading {
   display: flex;
-  gap: 10px;
+  gap: var(--space-4-5);
   align-items: flex-start;
   color: var(--color-palette-heading);
 }
@@ -147,33 +147,33 @@ const updateField = (field: NodeEditorField, event: Event): void => {
 
 .panel-heading small {
   color: var(--color-text-subtle);
-  font-size: 10px;
+  font-size: var(--font-size-xs);
   overflow-wrap: anywhere;
 }
 
 .fields {
   display: grid;
-  gap: 14px;
-  margin-top: 18px;
+  gap: var(--space-6-5);
+  margin-top: var(--space-9);
 }
 
 label {
   display: grid;
-  gap: 4px;
+  gap: var(--space-1-5);
   min-width: 0;
   color: var(--color-text-secondary);
-  font-size: 10px;
-  font-weight: 700;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
 }
 
 input:not([type='checkbox']),
 select {
   width: 100%;
   min-height: 32px;
-  padding: 6px 8px;
+  padding: var(--space-2-5) var(--space-3-5);
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-action-primary-border-strong);
-  border-radius: 6px;
+  border: var(--border-width-default) solid var(--color-action-primary-border-strong);
+  border-radius: var(--radius-sm);
 }
 
 [aria-invalid='true'] {

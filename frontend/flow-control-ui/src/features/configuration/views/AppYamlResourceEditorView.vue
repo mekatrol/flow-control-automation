@@ -87,6 +87,7 @@
           class="primary-link"
           :to="{ name: 'controller-template-new' }"
         >
+          <AppSvg :src="newIcon" automation="controller-template-create-icon" size="1em" />
           Create custom template from example
         </RouterLink>
       </div>
@@ -154,11 +155,13 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
 import checkIcon from '@/assets/icons/check-icon.svg';
 import deleteIcon from '@/assets/icons/delete-flow-icon.svg';
+import newIcon from '@/assets/icons/new-flow-icon.svg';
 import pauseIcon from '@/assets/icons/pause-icon.svg';
 import playIcon from '@/assets/icons/play-icon.svg';
 import retryIcon from '@/assets/icons/retry-icon.svg';
 import saveIcon from '@/assets/icons/save-icon.svg';
 import AppButton from '@/components/AppButton.vue';
+import AppSvg from '@/components/AppSvg.vue';
 import AppYamlEditor, { type YamlDiagnostic } from '@/components/AppYamlEditor.vue';
 import {
   controllerTemplateConfigurationApi,
@@ -533,34 +536,34 @@ onBeforeUnmount(() => {
 <style scoped lang="css">
 .example-picker {
   display: grid;
-  gap: 7px;
+  gap: var(--space-3);
   max-width: 360px;
-  margin-bottom: 18px;
-  font-weight: 700;
+  margin-bottom: var(--space-9);
+  font-weight: var(--font-weight-bold);
 }
 
 .example-picker select {
   min-height: 44px;
-  padding: 8px 10px;
+  padding: var(--space-3-5) var(--space-4-5);
   color: var(--color-text-primary);
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-default);
-  border-radius: 8px;
+  border: var(--border-width-default) solid var(--color-border-default);
+  border-radius: var(--radius-lg);
 }
 
 .runtime-panel {
-  margin-top: 28px;
-  padding: 20px;
+  margin-top: var(--space-14);
+  padding: var(--space-10);
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-default);
-  border-radius: 12px;
+  border: var(--border-width-default) solid var(--color-border-default);
+  border-radius: var(--radius-2xl);
 }
 
 .runtime-panel > div:first-child,
 .runtime-panel dl {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px 20px;
+  gap: var(--space-5-5) var(--space-10);
   align-items: center;
 }
 
@@ -574,19 +577,19 @@ onBeforeUnmount(() => {
 
 .runtime-panel dt {
   color: var(--color-text-secondary);
-  font-size: 12px;
-  font-weight: 750;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-strong);
   text-transform: uppercase;
 }
 
 .runtime-panel dd {
-  margin: 4px 0 0;
-  font-weight: 650;
+  margin: var(--space-1-5) var(--space-0) var(--space-0);
+  font-weight: var(--font-weight-semibold);
 }
 
 .runtime-diagnostic {
-  padding: 12px;
+  padding: var(--space-5-5);
   background: var(--color-surface-subtle);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
 }
 </style>

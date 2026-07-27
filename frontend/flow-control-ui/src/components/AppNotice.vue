@@ -41,7 +41,12 @@
             :icon="copyIcon"
             @click="copyToClipboard"
           />
-          <AppButton v-bind="automation('close')" :text="closeLabel" @click="close" />
+          <AppButton
+            v-bind="automation('close')"
+            :text="closeLabel"
+            :icon="cancelIcon"
+            @click="close"
+          />
         </slot>
       </footer>
     </article>
@@ -51,6 +56,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 
+import cancelIcon from '@/assets/icons/cancel-icon.svg';
 import copyIcon from '@/assets/icons/copy-icon.svg';
 import debugIcon from '@/assets/icons/debug-notice-icon.svg';
 import errorIcon from '@/assets/icons/error-notice-icon.svg';
@@ -129,13 +135,13 @@ defineExpose({
 <style scoped>
 :deep(.app-error-dialog) {
   width: min(560px, calc(100vw - 2rem));
-  padding: 0;
+  padding: var(--space-0);
   background: var(--color-surface-raised);
 }
 
 .notice {
   color: var(--notice-text);
-  border-top: 5px solid var(--notice-accent);
+  border-top: var(--border-width-accent) solid var(--notice-accent);
 }
 
 .notice--info {
@@ -164,16 +170,16 @@ defineExpose({
 
 .notice-header {
   display: flex;
-  gap: 0.75rem;
+  gap: var(--space-5-5);
   align-items: center;
-  padding: 1.25rem 1.25rem 1rem;
+  padding: var(--space-10) var(--space-10) var(--space-8);
   background: var(--notice-surface);
 }
 
 .notice-header h2 {
-  margin: 0;
+  margin: var(--space-0);
   color: var(--notice-text);
-  font-size: 1.25rem;
+  font-size: var(--font-size-heading-sm);
 }
 
 .notice-icon {
@@ -181,17 +187,17 @@ defineExpose({
 }
 
 .notice-content {
-  padding: 1.25rem;
+  padding: var(--space-10);
   color: var(--color-text-primary);
   overflow-wrap: anywhere;
 }
 
 .notice-content :deep(p:first-child) {
-  margin-top: 0;
+  margin-top: var(--space-0);
 }
 
 .notice-content :deep(p:last-child) {
-  margin-bottom: 0;
+  margin-bottom: var(--space-0);
 }
 
 .notice-content :deep(a) {
@@ -201,20 +207,21 @@ defineExpose({
 .notice-footer {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.625rem;
+  gap: var(--space-4-5);
   align-items: center;
   justify-content: flex-end;
-  padding: 1rem 1.25rem;
-  border-top: 1px solid var(--color-border-subtle);
+  padding: var(--space-8) var(--space-10);
+  border-top: var(--border-width-default) solid var(--color-border-subtle);
 }
 
 .copy-status {
   min-height: 1.5rem;
-  margin: 0 auto 0 0;
+  margin: var(--space-0) auto var(--space-0) var(--space-0);
   color: var(--color-text-muted);
 }
 
-@media (max-width: 480px) {
+/* Compact breakpoint (30rem): reflows overlays for the narrowest supported viewport. */
+@media (max-width: 30rem) {
   .notice-footer :deep(button) {
     width: 100%;
   }

@@ -47,16 +47,16 @@ const automation = useAutomation(props.automation);
 <style scoped>
 button {
   display: inline-flex;
-  gap: 7px;
+  gap: var(--space-3);
   align-items: center;
   justify-content: center;
   min-height: 44px;
-  padding: 9px 14px;
+  padding: var(--space-4) var(--space-6-5);
   color: var(--color-text-primary);
-  font-weight: 650;
+  font-weight: var(--font-weight-semibold);
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-default);
-  border-radius: 8px;
+  border: var(--border-width-default) solid var(--color-border-default);
+  border-radius: var(--radius-lg);
   cursor: pointer;
 }
 
@@ -95,7 +95,7 @@ button:disabled {
 .button-icon-slot :deep(svg) {
   fill: none;
   stroke: currentcolor;
-  stroke-width: 1.8;
+  stroke-width: var(--stroke-width-standard);
   stroke-linecap: round;
   stroke-linejoin: round;
 }

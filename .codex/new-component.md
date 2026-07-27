@@ -177,10 +177,14 @@ Every new component must be WCAG 2.2 Level AA compliant in all of its states and
 
 - Keep component-specific CSS local in the component's `<style scoped>` block.
 - Put CSS in `src/assets/styles/main.css` only when the same rule is intentionally shared by multiple components. Do not move one-component styling into a global stylesheet.
-- Use color variables defined in `src/assets/styles/theme.css`, such as `--color-text-primary`, `--color-surface-raised`, `--color-border-default`, and the action/status tokens. Do not hard-code colors in component or shared CSS.
-- Follow nearby spacing, radius, typography, shadow, hover, focus, disabled, and responsive patterns.
+- Use the purpose-documented variables in `src/assets/styles/theme.css` for every color, border width, spacing value (including padding, margin, and gap), outline width, font size, font weight, radius, SVG stroke width, and box shadow. Do not hard-code values from these categories in component, layout, view, reset, or shared CSS.
+- Reuse an existing token whose documented purpose and value fit. If no token fits, add a purpose-named token to `theme.css` and place a complete comment immediately above it describing where and why it is used. Do not add an undocumented token or create a component-local custom property for a design-system value.
+- Use `rem` for spacing, font sizes, border widths, outline widths, radii, and shadow dimensions. Use unitless values for font weights and SVG stroke widths. Preserve keyword values such as `auto`, `none`, and `currentcolor` where they express behavior rather than a size.
+- Breakpoints cannot use custom properties. Use only the project's named breakpoint values already present in the stylesheets: Compact `30rem` for the narrowest overlays, Mobile `40rem` for phone page/navigation layouts, Tablet `48rem` for multi-column controls and workspace panels, Wide tablet `56.25rem` for editor columns, and Desktop `64rem` for wide layout constraints. Put the matching name, value, and purpose in a comment immediately above every width-based media query.
+- Components must be responsive at every supported viewport. Start from a layout that can shrink and reflow without horizontal page overflow, then add a documented project breakpoint only where the content requires it.
+- Follow nearby typography, shadow, hover, focus, disabled, and responsive patterns.
 - Use `:deep(...)` deliberately when a scoped parent must style slotted or child content.
-- Add a focused media query when the layout does not work on narrow screens.
+- Verify narrow, mobile, tablet, and desktop behavior, including content reflow, text zoom, touch-target spacing, and long or localized content.
 - Avoid global styling from a component. Shared structural CSS belongs in `main.css`; shared color values belong in `theme.css`.
 
 ## 9. Test observable behavior
@@ -254,11 +258,11 @@ const automation = useAutomation(props.automation);
 
 <style scoped>
 .status-card {
-  padding: 16px;
+  padding: var(--space-8);
   color: var(--color-text-primary);
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-default);
-  border-radius: 8px;
+  border: var(--border-width-default) solid var(--color-border-default);
+  border-radius: var(--radius-lg);
 }
 </style>
 ```

@@ -6,13 +6,22 @@
         <h1 id="points-heading">Points</h1>
         <p>Review standalone and grouped automation points and their capabilities.</p>
       </div>
-      <RouterLink class="primary-link" :to="{ name: 'point-new' }">New point</RouterLink>
+      <RouterLink class="primary-link" :to="{ name: 'point-new' }">
+        <AppSvg :src="newIcon" automation="points-new-icon" size="1em" />
+        New point
+      </RouterLink>
     </div>
 
     <form class="catalogue-filter" role="search" @submit.prevent="applyFilter">
       <label for="points-filter">Filter points</label>
       <div>
-        <input id="points-filter" v-model="filter" type="search" autocomplete="off" />
+        <input
+          id="points-filter"
+          v-model="filter"
+          class="app-filter-input"
+          type="search"
+          autocomplete="off"
+        />
         <AppButton
           automation="points-apply-filter"
           type="submit"
@@ -88,8 +97,10 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import filterIcon from '@/assets/icons/filter-icon.svg';
+import newIcon from '@/assets/icons/new-flow-icon.svg';
 import retryIcon from '@/assets/icons/retry-icon.svg';
 import AppButton from '@/components/AppButton.vue';
+import AppSvg from '@/components/AppSvg.vue';
 import AppTable from '@/components/AppTable.vue';
 import AppTablePagination from '@/components/AppTablePagination.vue';
 import { usePointsCatalogueStore } from '@/features/catalogues/stores/catalogues';

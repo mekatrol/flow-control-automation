@@ -118,12 +118,12 @@ onMounted(() => {
   width: 72px;
   height: 40px;
   min-height: 40px;
-  padding: 4px;
+  padding: var(--space-1-5);
   place-items: center;
   color: var(--color-header-nav-text);
   background: var(--color-transparent);
-  border: 0;
-  border-radius: 8px;
+  border: var(--border-width-none);
+  border-radius: var(--radius-lg);
   cursor: pointer;
 }
 
@@ -148,10 +148,10 @@ onMounted(() => {
   position: absolute;
   width: 1px;
   height: 1px;
-  padding: 0;
+  padding: var(--space-0);
   overflow: hidden;
   white-space: nowrap;
-  border: 0;
+  border: var(--border-width-none);
   clip: rect(0 0 0 0);
   clip-path: inset(50%);
 }

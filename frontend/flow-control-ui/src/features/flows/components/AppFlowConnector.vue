@@ -44,7 +44,7 @@ const emit = defineEmits<{ press: []; activate: []; release: []; preview: [] }>(
 .connector-port {
   fill: var(--color-surface-subtle);
   stroke: var(--color-text-primary);
-  stroke-width: 2;
+  stroke-width: var(--stroke-width-standard);
 }
 
 .flow-connector {
@@ -56,12 +56,12 @@ const emit = defineEmits<{ press: []; activate: []; release: []; preview: [] }>(
 .flow-connector.compatible .connector-port {
   fill: var(--color-action-primary-surface);
   stroke: var(--color-action-primary-indicator);
-  stroke-width: 4;
+  stroke-width: var(--stroke-width-heavy);
 }
 
 .flow-connector.active .connector-port {
   fill: var(--color-text-primary);
   stroke: var(--color-brand-accent);
-  stroke-width: 4;
+  stroke-width: var(--stroke-width-heavy);
 }
 </style>

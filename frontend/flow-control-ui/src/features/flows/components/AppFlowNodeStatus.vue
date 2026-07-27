@@ -28,7 +28,7 @@ defineProps<{
 .status-indicator {
   fill: var(--color-node-status-fill);
   stroke: var(--color-node-status-stroke);
-  stroke-width: 1;
+  stroke-width: var(--stroke-width-fine);
 }
 
 .node-status[aria-label^='deployed'] .status-indicator,
@@ -42,7 +42,7 @@ defineProps<{
 
 .node-status text {
   fill: var(--color-node-status-stopped);
-  font-size: 11px;
+  font-size: var(--font-size-sm);
   text-transform: uppercase;
 }
 </style>

@@ -6,7 +6,10 @@
         <h1>Point sources</h1>
         <p>Define reusable, read-only connections before mapping points.</p>
       </div>
-      <RouterLink class="primary-link" :to="{ name: 'point-source-new' }">New source</RouterLink>
+      <RouterLink class="primary-link" :to="{ name: 'point-source-new' }">
+        <AppSvg :src="newIcon" automation="point-sources-new-icon" size="1em" />
+        New source
+      </RouterLink>
     </div>
 
     <p v-if="loading" role="status">Loading point sources…</p>
@@ -15,8 +18,24 @@
       <AppButton automation="point-sources-retry" text="Retry" :icon="retryIcon" @click="load" />
     </div>
     <div v-else class="source-list">
-      <label for="source-filter">Filter by name</label>
-      <input id="source-filter" v-model="filter" type="search" autocomplete="off" />
+      <form class="catalogue-filter" role="search" @submit.prevent="applyFilter">
+        <label for="source-filter">Filter by name</label>
+        <div>
+          <input
+            id="source-filter"
+            v-model="filter"
+            class="app-filter-input"
+            type="search"
+            autocomplete="off"
+          />
+          <AppButton
+            automation="point-sources-apply-filter"
+            type="submit"
+            text="Apply filter"
+            :icon="filterIcon"
+          />
+        </div>
+      </form>
       <p v-if="!loading && filtered.length === 0" class="empty-state" role="status">
         No point sources found.
       </p>
@@ -52,8 +71,11 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import filterIcon from '@/assets/icons/filter-icon.svg';
+import newIcon from '@/assets/icons/new-flow-icon.svg';
 import retryIcon from '@/assets/icons/retry-icon.svg';
 import AppButton from '@/components/AppButton.vue';
+import AppSvg from '@/components/AppSvg.vue';
 import {
   pointSourceApi,
   type PointSourceKind,
@@ -62,12 +84,18 @@ import {
 
 const sources = ref<PointSourceSummary[]>([]);
 const filter = ref('');
+const appliedFilter = ref('');
 const loading = ref(false);
 const error = ref('');
 let controller: AbortController | undefined;
 const filtered = computed(() =>
-  sources.value.filter(({ name }) => name.toLowerCase().includes(filter.value.trim().toLowerCase()))
+  sources.value.filter(({ name }) =>
+    name.toLowerCase().includes(appliedFilter.value.trim().toLowerCase())
+  )
 );
+const applyFilter = (): void => {
+  appliedFilter.value = filter.value;
+};
 const kindLabel = (kind: PointSourceKind): string =>
   ({ home_assistant: 'Home Assistant', mqtt: 'MQTT', http_json: 'HTTP/JSON' })[kind];
 const formatDate = (value: string): string =>
@@ -95,18 +123,6 @@ onBeforeUnmount(() => controller?.abort());
 </script>
 
 <style scoped lang="css">
-.source-list > label {
-  display: block;
-  margin-bottom: 7px;
-  font-weight: 700;
-}
-
-.source-list > input {
-  width: min(420px, 100%);
-  margin-bottom: 24px;
-  padding: 9px 11px;
-}
-
 .source-list table {
   width: 100%;
   border-collapse: collapse;
@@ -114,19 +130,20 @@ onBeforeUnmount(() => controller?.abort());
 
 .source-list th,
 .source-list td {
-  padding: 14px;
+  padding: var(--space-6-5);
   text-align: left;
-  border-bottom: 1px solid var(--color-border-default);
+  border-bottom: var(--border-width-default) solid var(--color-border-default);
 }
 
 .source-list th small {
   display: block;
-  margin-top: 4px;
+  margin-top: var(--space-1-5);
   color: var(--color-text-secondary);
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
 }
 
-@media (max-width: 640px) {
+/* Mobile breakpoint (40rem): stacks page and navigation content for phone layouts. */
+@media (max-width: 40rem) {
   .source-list {
     overflow-x: auto;
   }

@@ -392,8 +392,8 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', handleBeforeUnl
   height: calc(100dvh - 72px);
   width: calc(100% - 40px);
   min-height: 0;
-  margin: 0 auto;
-  padding: 34px 0 24px;
+  margin: var(--space-0) auto;
+  padding: var(--space-17) var(--space-0) var(--space-12);
   overflow: hidden;
   flex-direction: column;
 }
@@ -405,42 +405,42 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', handleBeforeUnl
 
 .designer-heading {
   display: flex;
-  gap: 28px;
+  gap: var(--space-14);
   align-items: end;
   justify-content: space-between;
-  margin-bottom: 24px;
+  margin-bottom: var(--space-12);
 }
 
 .designer-heading a,
 .not-found a {
   color: var(--color-action-primary);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
   text-decoration: none;
 }
 
 .title-row {
   display: flex;
-  gap: 12px;
+  gap: var(--space-5-5);
   align-items: center;
-  margin-top: 9px;
+  margin-top: var(--space-4);
 }
 
 h1 {
-  margin: 0;
+  margin: var(--space-0);
   color: var(--color-text-primary);
-  font-size: clamp(28px, 4vw, 38px);
+  font-size: var(--font-size-heading-fluid);
   letter-spacing: -0.035em;
 }
 
 .title-row span {
-  padding: 5px 8px;
+  padding: var(--space-2) var(--space-3-5);
   color: var(--color-node-status-fill);
-  font-size: 10px;
-  font-weight: 800;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-black);
   letter-spacing: 0.08em;
   background: var(--color-surface-disabled);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   text-transform: uppercase;
 }
 
@@ -465,21 +465,21 @@ h1 {
 }
 
 .designer-heading p {
-  margin: 7px 0 0;
+  margin: var(--space-3) var(--space-0) var(--space-0);
   color: var(--color-text-muted);
-  font-size: 14px;
+  font-size: var(--font-size-xl);
 }
 
 .heading-actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-3-5);
 }
 
 .request-status,
 .request-error {
-  margin: 0 0 12px;
-  padding: 10px 12px;
-  border-radius: 8px;
+  margin: var(--space-0) var(--space-0) var(--space-5-5);
+  padding: var(--space-4-5) var(--space-5-5);
+  border-radius: var(--radius-lg);
 }
 
 .dialog-backdrop {
@@ -488,20 +488,20 @@ h1 {
   display: grid;
   inset: 0;
   place-items: center;
-  padding: 20px;
+  padding: var(--space-10);
   background: var(--color-modal-backdrop);
 }
 
 .discard-dialog {
   width: min(430px, 100%);
-  padding: 24px;
+  padding: var(--space-12);
   background: var(--color-surface-raised);
-  border-radius: 12px;
-  box-shadow: 0 20px 60px var(--color-shadow-dialog);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-dialog);
 }
 
 .discard-dialog h2 {
-  margin: 0;
+  margin: var(--space-0);
   color: var(--color-text-primary);
 }
 
@@ -511,7 +511,7 @@ h1 {
 
 .discard-dialog > div {
   display: flex;
-  gap: 8px;
+  gap: var(--space-3-5);
   justify-content: end;
 }
 
@@ -526,26 +526,27 @@ h1 {
 }
 
 .not-found {
-  padding: 80px 0;
+  padding: var(--space-40) var(--space-0);
 }
 
 .eyebrow {
-  margin: 0 0 10px;
+  margin: var(--space-0) var(--space-0) var(--space-4-5);
   color: var(--color-danger-text-muted);
-  font-size: 11px;
-  font-weight: 800;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-black);
   letter-spacing: 0.13em;
   text-transform: uppercase;
 }
 
 .not-found h1 {
-  margin-bottom: 24px;
+  margin-bottom: var(--space-12);
 }
 
-@media (max-width: 760px) {
+/* Tablet breakpoint (48rem): reflows multi-column controls and workspace panels. */
+@media (max-width: 48rem) {
   .designer-page {
     width: calc(100% - 28px);
-    padding-top: 20px;
+    padding-top: var(--space-10);
   }
 
   .designer-heading {

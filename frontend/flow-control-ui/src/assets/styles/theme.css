@@ -11,9 +11,162 @@
   color-scheme: light;
 
   --font-family-base: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  /* Smallest application text, reserved for compact diagram annotations. */
+  --font-size-2xs: 0.5625rem;
+  /* Very small application text, used for compact badges and diagram labels. */
+  --font-size-xs: 0.625rem;
+  /* Small application text, used for metadata and dense controls. */
+  --font-size-sm: 0.6875rem;
+  /* Compact body text, used in table headings and secondary labels. */
+  --font-size-md: 0.75rem;
+  /* Secondary body text, used for supporting copy and validation details. */
+  --font-size-lg: 0.8125rem;
+  /* Control text, used for buttons, inputs, and compact body copy. */
+  --font-size-xl: 0.875rem;
+  /* Emphasized control text, used for navigation and section labels. */
+  --font-size-2xl: 0.9375rem;
   --font-size-base: 1rem;
+  /* Small heading text, used for notices and compact section titles. */
+  --font-size-heading-sm: 1.25rem;
+  /* Medium heading text, used for editor card headings. */
+  --font-size-heading-md: 1.3125rem;
+  /* Responsive page-title size, constrained between 1.75rem and 2.375rem. */
+  --font-size-heading-fluid: clamp(1.75rem, 4vw, 2.375rem);
+  /* Responsive hero-title size, constrained between 2.125rem and 3.25rem. */
+  --font-size-hero-fluid: clamp(2.125rem, 5vw, 3.25rem);
+  /* Normal text weight for body copy and unaccented labels. */
+  --font-weight-regular: 400;
+  /* Medium text weight for modest emphasis such as diagram labels. */
+  --font-weight-medium: 500;
+  /* Semibold text weight for interactive controls and navigation. */
+  --font-weight-semibold: 650;
+  /* Bold text weight for headings, labels, and selected items. */
+  --font-weight-bold: 700;
+  /* Strong bold text weight for compact high-emphasis labels. */
+  --font-weight-strong: 750;
+  /* Heaviest text weight for badges and eyebrow labels. */
+  --font-weight-black: 800;
   --line-height-base: 1.6;
   --line-height-heading: 1.1;
+
+  /* Zero spacing, used to explicitly remove default gaps, padding, or margins. */
+  --space-0: 0;
+  /* Hairline spacing for optical alignment adjustments. */
+  --space-0-5: 0.125rem;
+  /* Extra-small spacing for tightly related content. */
+  --space-1: 0.1875rem;
+  /* Small spacing for dense icon and label arrangements. */
+  --space-1-5: 0.25rem;
+  /* Compact spacing for closely related inline content. */
+  --space-2: 0.3125rem;
+  /* Compact control spacing and small text offsets. */
+  --space-2-5: 0.375rem;
+  /* Dense control spacing between icons and labels. */
+  --space-3: 0.4375rem;
+  /* Standard small spacing within compact controls. */
+  --space-3-5: 0.5rem;
+  /* Slightly expanded control inset. */
+  --space-4: 0.5625rem;
+  /* Standard control spacing. */
+  --space-4-5: 0.625rem;
+  /* Comfortable compact-control inset. */
+  --space-5: 0.6875rem;
+  /* Standard content spacing within controls and dense cards. */
+  --space-5-5: 0.75rem;
+  /* Expanded control spacing. */
+  --space-6: 0.8125rem;
+  /* Comfortable control and card inset. */
+  --space-6-5: 0.875rem;
+  /* Large control inset and compact table-cell spacing. */
+  --space-7: 0.9375rem;
+  /* Base layout spacing and standard content inset. */
+  --space-8: 1rem;
+  /* Small section separation. */
+  --space-9: 1.125rem;
+  /* Standard section separation. */
+  --space-10: 1.25rem;
+  /* Spacious card inset. */
+  --space-11: 1.375rem;
+  /* Large section inset and separation. */
+  --space-12: 1.5rem;
+  /* Extra-large section separation. */
+  --space-14: 1.75rem;
+  /* Major layout separation. */
+  --space-15: 1.875rem;
+  /* Wide page gutter and section spacing. */
+  --space-16: 2rem;
+  /* Large page-section spacing. */
+  --space-17: 2.125rem;
+  /* Responsive page gutter at compact widths. */
+  --space-19: 2.375rem;
+  /* Large vertical page spacing. */
+  --space-22: 2.75rem;
+  /* Major page-section spacing. */
+  --space-24: 3rem;
+  /* Spacious page-section inset. */
+  --space-29: 3.625rem;
+  /* Wide control reserve used where trailing actions overlap an input. */
+  --space-30: 3.75rem;
+  /* Large page-bottom spacing. */
+  --space-32: 4rem;
+  /* Empty-state vertical breathing room. */
+  --space-40: 5rem;
+  /* Desktop canvas offset that reserves room for the fixed node palette. */
+  --space-designer-palette-offset: 13.75rem;
+  /* Minimum interactive control height that provides the standard touch target. */
+  --control-min-height: 2.75rem;
+
+  /* Zero border width, used to explicitly remove a native or inherited border. */
+  --border-width-none: 0;
+  /* Standard one-pixel border width for controls, cards, and dividers. */
+  --border-width-default: 0.0625rem;
+  /* Emphasized outline width for popovers and secondary focus indicators. */
+  --outline-width-emphasis: 0.125rem;
+  /* Primary keyboard-focus outline width. */
+  --outline-width-focus: 0.1875rem;
+  /* Strong notice accent border width. */
+  --border-width-accent: 0.3125rem;
+  /* Small corner radius for dense controls and popovers. */
+  --radius-sm: 0.375rem;
+  /* Medium corner radius for compact controls. */
+  --radius-md: 0.4375rem;
+  /* Default corner radius for controls, inputs, and messages. */
+  --radius-lg: 0.5rem;
+  /* Large corner radius for cards and content panels. */
+  --radius-xl: 0.625rem;
+  /* Extra-large corner radius for dialogs and prominent cards. */
+  --radius-2xl: 0.75rem;
+  /* Largest application corner radius for the designer canvas. */
+  --radius-3xl: 0.875rem;
+  /* Fully rounded radius for pills and status badges. */
+  --radius-pill: 999rem;
+  /* Fine SVG stroke used for small markers and node outlines. */
+  --stroke-width-fine: 1;
+  /* Standard SVG stroke used for connectors and icons. */
+  --stroke-width-standard: 2;
+  /* Intermediate SVG stroke used by detailed toolbar icons. */
+  --stroke-width-medium: 2.4;
+  /* Emphasized SVG stroke used for selected connections. */
+  --stroke-width-strong: 3;
+  /* Heavy SVG stroke used for connector interaction states. */
+  --stroke-width-heavy: 4;
+  /* Extra-heavy SVG stroke used for highlighted connections. */
+  --stroke-width-extra-heavy: 5;
+  /* Wide invisible SVG stroke that supplies a usable connection hit target. */
+  --stroke-width-hit-target: 16;
+
+  /* Focus halo drawn immediately outside a focused control. */
+  --shadow-focus: 0 0 0 var(--border-width-default) var(--color-focus-ring);
+  /* Resting card elevation used by tabular surfaces. */
+  --shadow-card: 0 0.75rem 1.875rem var(--color-shadow-card);
+  /* Floating menu elevation used by dropdowns and compact overlays. */
+  --shadow-menu: 0 0.625rem 1.875rem var(--color-shadow-dialog);
+  /* Standard floating-panel elevation used by the designer canvas. */
+  --shadow-panel: 0 1.125rem 2.8125rem var(--color-shadow-panel);
+  /* Deep dialog elevation used for modal and blocking overlays. */
+  --shadow-dialog: 0 1.25rem 3.75rem var(--color-shadow-dialog);
+  /* Compact dialog elevation used by native dialog and popover primitives. */
+  --shadow-dialog-compact: 0 1rem 2.5rem var(--color-shadow-dialog);
 
   /* Page canvas behind all application content. */
   --color-page-background: #f4f7fa;

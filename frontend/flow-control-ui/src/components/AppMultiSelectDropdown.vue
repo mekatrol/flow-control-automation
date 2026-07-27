@@ -109,14 +109,14 @@ onBeforeUnmount(() => {
 .multi-select {
   position: relative;
   display: flex;
-  gap: 8px;
+  gap: var(--space-3-5);
   align-items: center;
 }
 
 .multi-select-label {
   color: var(--color-text-primary);
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
 }
 
 .multi-select-menu {
@@ -127,22 +127,22 @@ onBeforeUnmount(() => {
   display: grid;
   min-width: 220px;
   max-height: 320px;
-  padding: 8px;
+  padding: var(--space-3-5);
   overflow-y: auto;
   color: var(--color-text-primary);
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-default);
-  border-radius: 8px;
-  box-shadow: 0 10px 30px var(--color-shadow-dialog);
+  border: var(--border-width-default) solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-menu);
 }
 
 .multi-select-menu label {
   display: flex;
-  gap: 8px;
+  gap: var(--space-3-5);
   align-items: center;
   min-height: 44px;
-  padding: 6px 8px;
-  border-radius: 6px;
+  padding: var(--space-2-5) var(--space-3-5);
+  border-radius: var(--radius-sm);
   cursor: pointer;
 }
 
@@ -157,15 +157,16 @@ onBeforeUnmount(() => {
 }
 
 .select-all {
-  font-weight: 750;
+  font-weight: var(--font-weight-strong);
 }
 
 .option-separator {
-  margin: 2px 8px;
-  border-top: 1px solid var(--color-border-subtle);
+  margin: var(--space-0-5) var(--space-3-5);
+  border-top: var(--border-width-default) solid var(--color-border-subtle);
 }
 
-@media (max-width: 640px) {
+/* Mobile breakpoint (40rem): stacks page and navigation content for phone layouts. */
+@media (max-width: 40rem) {
   .multi-select {
     align-items: stretch;
     flex-direction: column;

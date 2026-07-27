@@ -10,8 +10,8 @@
 }
 
 * {
-  margin: 0;
-  padding: 0;
+  margin: var(--space-0);
+  padding: var(--space-0);
   font: inherit; /* Get rid of all font sizes and heights */
 }
 
@@ -50,6 +50,6 @@ p {
 @media (prefers-reduced-motion: no-preference) {
   :has(:target) {
     scroll-behavior: smooth;
-    scroll-padding-top: 3rem;
+    scroll-padding-top: var(--space-24);
   }
 }

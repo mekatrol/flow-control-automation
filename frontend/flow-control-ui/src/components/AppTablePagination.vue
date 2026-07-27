@@ -73,47 +73,48 @@ const automation = useAutomation(props.automation);
 .pagination nav,
 .pagination label {
   display: flex;
-  gap: 12px;
+  gap: var(--space-5-5);
   align-items: center;
 }
 
 .pagination {
   justify-content: space-between;
-  margin-top: 16px;
+  margin-top: var(--space-8);
   color: var(--color-text-secondary);
-  font-size: 14px;
+  font-size: var(--font-size-xl);
 }
 
 .pagination label {
-  font-weight: 650;
+  font-weight: var(--font-weight-semibold);
 }
 
 select {
   min-width: 70px;
   min-height: 44px;
-  padding: 8px;
+  padding: var(--space-3-5);
   color: var(--color-text-primary);
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-default);
-  border-radius: 7px;
+  border: var(--border-width-default) solid var(--color-border-default);
+  border-radius: var(--radius-md);
 }
 
 .range {
-  margin: 0;
+  margin: var(--space-0);
 }
 
 .visually-hidden {
   position: absolute;
   width: 1px;
   height: 1px;
-  padding: 0;
+  padding: var(--space-0);
   overflow: hidden;
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
-  border: 0;
+  border: var(--border-width-none);
 }
 
-@media (max-width: 720px) {
+/* Tablet breakpoint (48rem): reflows multi-column controls and workspace panels. */
+@media (max-width: 48rem) {
   .pagination {
     align-items: flex-start;
     flex-direction: column;

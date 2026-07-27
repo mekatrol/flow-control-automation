@@ -11,12 +11,14 @@
   background-color: var(--color-bg);
 }
 
+/* Desktop breakpoint (64rem): reduces wide-screen layout constraints for smaller desktops. */
 @media (max-width: 64rem) {
   :root {
     --app-sidebar-width: 11rem;
   }
 }
 
+/* Tablet breakpoint (48rem): reflows multi-column controls and workspace panels. */
 @media (max-width: 48rem) {
   .page-layout-content {
     flex-direction: column;

@@ -180,39 +180,39 @@ onBeforeUnmount(() => {
 <style scoped lang="css">
 .yaml-editor > label {
   display: block;
-  margin-bottom: 7px;
-  font-weight: 700;
+  margin-bottom: var(--space-3);
+  font-weight: var(--font-weight-bold);
 }
 
 .yaml-editor-surface {
   width: 100%;
   overflow: hidden;
-  border: 1px solid var(--color-border-default);
-  border-radius: 8px;
+  border: var(--border-width-default) solid var(--color-border-default);
+  border-radius: var(--radius-lg);
 }
 
 .yaml-editor-help {
   color: var(--color-text-secondary);
-  font-size: 13px;
+  font-size: var(--font-size-lg);
 }
 
 .yaml-diagnostics {
-  margin-top: 12px;
-  padding: 14px;
-  border: 1px solid var(--color-danger-border);
-  border-radius: 8px;
+  margin-top: var(--space-5-5);
+  padding: var(--space-6-5);
+  border: var(--border-width-default) solid var(--color-danger-border);
+  border-radius: var(--radius-lg);
 }
 
 .yaml-diagnostics h3 {
-  margin: 0 0 8px;
-  font-size: 14px;
+  margin: var(--space-0) var(--space-0) var(--space-3-5);
+  font-size: var(--font-size-xl);
 }
 
 .yaml-diagnostics ol {
   display: grid;
-  gap: 5px;
-  margin: 0;
-  padding-left: 22px;
+  gap: var(--space-2);
+  margin: var(--space-0);
+  padding-left: var(--space-11);
 }
 
 /* Monaco creates these descendants at runtime, so the scoped rule must cross
