@@ -1,0 +1,10 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "debug: KC868-A16v3",
+      "type": "gdbtarget",
+      "request": "attach"
+    }
+  ]
+}

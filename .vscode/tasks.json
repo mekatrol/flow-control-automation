@@ -2,6 +2,58 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "clean: KC868-A16v3",
+      "type": "shell",
+      "command": "${workspaceFolder}/controllers/kincony/kc868-a16/scripts/esp-idf-task.sh",
+      "args": ["${workspaceFolder}/controllers/kincony/kc868-a16", "clean"],
+      "options": {
+        "cwd": "${workspaceFolder}/controllers/kincony/kc868-a16"
+      },
+      "problemMatcher": [],
+      "group": "build"
+    },
+    {
+      "label": "build: KC868-A16v3",
+      "type": "shell",
+      "command": "${workspaceFolder}/controllers/kincony/kc868-a16/scripts/esp-idf-task.sh",
+      "args": ["${workspaceFolder}/controllers/kincony/kc868-a16", "build"],
+      "options": {
+        "cwd": "${workspaceFolder}/controllers/kincony/kc868-a16"
+      },
+      "problemMatcher": "$gcc",
+      "group": "build"
+    },
+    {
+      "label": "flash: KC868-A16v3",
+      "type": "shell",
+      "command": "${workspaceFolder}/controllers/kincony/kc868-a16/scripts/esp-idf-task.sh",
+      "args": [
+        "${workspaceFolder}/controllers/kincony/kc868-a16",
+        "flash",
+        "${input:kc868SerialPort}"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/controllers/kincony/kc868-a16"
+      },
+      "problemMatcher": [],
+      "dependsOn": "build: KC868-A16v3"
+    },
+    {
+      "label": "monitor: KC868-A16v3",
+      "type": "shell",
+      "command": "${workspaceFolder}/controllers/kincony/kc868-a16/scripts/esp-idf-task.sh",
+      "args": [
+        "${workspaceFolder}/controllers/kincony/kc868-a16",
+        "monitor",
+        "${input:kc868SerialPort}"
+      ],
+      "isBackground": true,
+      "options": {
+        "cwd": "${workspaceFolder}/controllers/kincony/kc868-a16"
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "clean: backend",
       "type": "process",
       "command": "dotnet",
@@ -157,6 +209,14 @@
         "dev: frontend"
       ],
       "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "kc868SerialPort",
+      "type": "promptString",
+      "description": "KC868-A16v3 serial port",
+      "default": "/dev/ttyACM0"
     }
   ]
 }

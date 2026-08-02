@@ -1,0 +1,55 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "clean",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/esp-idf-task.sh",
+      "args": ["${workspaceFolder}", "clean"],
+      "problemMatcher": [],
+      "group": "build"
+    },
+    {
+      "label": "build",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/esp-idf-task.sh",
+      "args": ["${workspaceFolder}", "build"],
+      "problemMatcher": "$gcc",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "flash",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/esp-idf-task.sh",
+      "args": ["${workspaceFolder}", "flash", "${input:serialPort}"],
+      "problemMatcher": [],
+      "dependsOn": "build"
+    },
+    {
+      "label": "monitor",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/esp-idf-task.sh",
+      "args": ["${workspaceFolder}", "monitor", "${input:serialPort}"],
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "flash and monitor",
+      "type": "shell",
+      "dependsOrder": "sequence",
+      "dependsOn": ["flash", "monitor"],
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "serialPort",
+      "type": "promptString",
+      "description": "KC868-A16v3 serial port",
+      "default": "/dev/ttyACM0"
+    }
+  ]
+}

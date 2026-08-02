@@ -39,6 +39,8 @@ flow-control-automation/
 │       └── Server.Api/   ASP.NET Core API project
 ├── frontend/
 │   └── flow-control-ui/ Vue application
+├── controllers/
+│   └── kincony/kc868-a16/ ESP-IDF firmware for the KC868-A16v3
 └── .vscode/             Development tasks and extension recommendations
 ```
 
