@@ -1,0 +1,22 @@
+{
+  "version": 4,
+  "configurations": [
+    {
+      "name": "Selected controller board",
+      "compileCommands": "${workspaceFolder}/build-kincony-kc868-a16/compile_commands.json",
+      "includePath": [
+        "${workspaceFolder}/shared",
+        "${workspaceFolder}/build-kincony-kc868-a16/config",
+        "${env:HOME}/.espressif/v6.0.2/esp-idf/components/**"
+      ],
+      "browse": {
+        "path": [
+          "${workspaceFolder}/shared",
+          "${workspaceFolder}/build-kincony-kc868-a16/config",
+          "${env:HOME}/.espressif/v6.0.2/esp-idf/components"
+        ],
+        "limitSymbolsToIncludedHeaders": true
+      }
+    }
+  ]
+}

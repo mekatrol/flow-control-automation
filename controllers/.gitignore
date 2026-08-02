@@ -1,0 +1,9 @@
+/build-*/
+/build-host/
+/.controller-board
+/sdkconfig*
+/.env
+/.env.*
+!/.env.example
+/**/secrets/
+*.key

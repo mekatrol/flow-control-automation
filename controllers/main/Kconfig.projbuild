@@ -1,0 +1,17 @@
+menu "Flow controller"
+
+    config CONTROLLER_WIFI_SSID
+        string "Wi-Fi SSID"
+        default ""
+        help
+            Configure this with menuconfig. sdkconfig is ignored, so the real
+            network name is not committed to source control.
+
+    config CONTROLLER_WIFI_PASSWORD
+        string "Wi-Fi password"
+        default ""
+        help
+            Configure this with menuconfig. sdkconfig is ignored, so the real
+            network password is not committed to source control.
+
+endmenu
