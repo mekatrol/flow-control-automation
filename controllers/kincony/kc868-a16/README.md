@@ -4,6 +4,9 @@ Native C firmware for the KinCony KC868-A16v3, built with ESP-IDF. The initial
 program is deliberately limited to board bring-up: it reports the detected
 ESP32-S3, flash, and PSRAM, then emits a heartbeat once per second.
 
+The phased communications roadmap is in
+[`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md).
+
 ## Hardware target
 
 - ESP32-S3-WROOM-1U-N16R8 (16 MiB flash and 8 MiB octal PSRAM)
