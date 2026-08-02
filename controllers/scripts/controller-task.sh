@@ -102,6 +102,14 @@ run_idf() {
   fi
 }
 
+# Redact local Wi-Fi values because ESP-IDF 6 can echo changed string defaults.
+run_idf_redacted() {
+  run_idf "$@" 2>&1 |
+    sed -E \
+      -e '/CONTROLLER_WIFI_(SSID|PASSWORD)/ s/"[^"]*"/"<redacted>"/g' \
+      -e '/Using default value from sdkconfig/ s/\("[^"]*"\)/("<redacted>")/g'
+}
+
 restore_wifi_configuration() {
   local sdkconfig_file=$1
   local saved_ssid=$2
@@ -139,14 +147,14 @@ case "$action" in
     board=${argument:-}
     configure_board
     printf '%s\n' "$board" > "$selection_file"
-    run_idf set-target "$target"
+    run_idf_redacted set-target "$target"
     restore_wifi_configuration sdkconfig "$saved_wifi_ssid" "$saved_wifi_password"
-    run_idf reconfigure
+    run_idf_redacted reconfigure
     echo "Selected $board; subsequent tasks use $build_directory."
     ;;
-  clean) run_idf fullclean ;;
-  build) run_idf build ;;
-  flash) run_idf -p "${argument:-/dev/ttyACM0}" flash ;;
+  clean) run_idf_redacted fullclean ;;
+  build) run_idf_redacted build ;;
+  flash) run_idf_redacted -p "${argument:-/dev/ttyACM0}" flash ;;
   monitor) run_idf -p "${argument:-/dev/ttyACM0}" monitor ;;
   *)
     echo "unknown action: $action" >&2

@@ -10,9 +10,15 @@ idf_component_register(
         "${SHARED_DIR}/controller_health_format.c"
         "${SHARED_DIR}/diagnostics.c"
         "${SHARED_DIR}/diagnostics_core.c"
+        "${SHARED_DIR}/ethernet_link.c"
+        "${SHARED_DIR}/ethernet_link_core.c"
         "${SHARED_DIR}/network_manager.c"
+        "${SHARED_DIR}/wifi_link.c"
+        "${SHARED_DIR}/wifi_link_core.c"
         "${PLATFORM_DIR}/app_main.c"
         "${PLATFORM_DIR}/platform.c"
+        "${PLATFORM_DIR}/platform_ethernet.c"
+        "${PLATFORM_DIR}/platform_wifi.c"
         "${BOARD_DIR}/board.c"
     INCLUDE_DIRS
         "${SHARED_DIR}")

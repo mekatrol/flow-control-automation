@@ -130,6 +130,10 @@ void network_manager_set_enabled(network_manager_t *manager,
                                  network_link_id_t link_id, bool enabled,
                                  uint64_t now_ms);
 
+/* Stops and immediately restarts one enabled link under supervisor ownership. */
+void network_manager_reconnect(network_manager_t *manager,
+                               network_link_id_t link_id, uint64_t now_ms);
+
 /* Stops all enabled adapters and discards queued events during shutdown. */
 void network_manager_shutdown(network_manager_t *manager, uint64_t now_ms);
 

@@ -92,6 +92,9 @@ static void enter_backoff(network_manager_t *manager, network_link_id_t link_id,
     link->dns_ready = false;
     link->ipv4_address[0] = '\0';
     link->ipv6_address[0] = '\0';
+    /* Reset the adapter outside its callback so the next retry starts cleanly. */
+    if (manager->stop_link != NULL)
+        manager->stop_link(link_id, manager->callback_context);
 }
 
 /* Begins one non-blocking adapter start attempt and delegates work through its callback. */
@@ -191,10 +194,13 @@ static void apply_event(network_manager_t *manager,
             set_link_state(link, NETWORK_LINK_CONNECTING, now_ms, event->reason);
         break;
     case NETWORK_EVENT_ONLINE:
-        copy_text(link->ipv4_address, sizeof(link->ipv4_address),
-                  event->ipv4_address);
-        copy_text(link->ipv6_address, sizeof(link->ipv6_address),
-                  event->ipv6_address);
+        /* Address families arrive independently, so an empty field preserves its peer. */
+        if (event->ipv4_address[0] != '\0')
+            copy_text(link->ipv4_address, sizeof(link->ipv4_address),
+                      event->ipv4_address);
+        if (event->ipv6_address[0] != '\0')
+            copy_text(link->ipv6_address, sizeof(link->ipv6_address),
+                      event->ipv6_address);
         link->dns_ready = event->dns_ready;
         set_link_state(link, NETWORK_LINK_ONLINE, now_ms, event->reason);
         break;
@@ -207,7 +213,11 @@ static void apply_event(network_manager_t *manager,
         enter_backoff(manager, event->link_id, now_ms, event->reason);
         break;
     case NETWORK_EVENT_STOPPED:
-        set_link_state(link, NETWORK_LINK_STOPPED, now_ms, event->reason);
+        /* An expected stop during backoff must not replace its scheduled retry. */
+        if (link->state == NETWORK_LINK_BACKOFF) break;
+        if (link->retry_count != UINT32_MAX) link->retry_count++;
+        set_link_state(link, NETWORK_LINK_BACKOFF, now_ms, event->reason);
+        link->retry_at_ms = now_ms + get_backoff_delay(manager, event->link_id);
         link->dns_ready = false;
         link->ipv4_address[0] = '\0';
         link->ipv6_address[0] = '\0';
@@ -254,6 +264,20 @@ void network_manager_set_enabled(network_manager_t *manager,
         if (manager->stop_link != NULL)
             manager->stop_link(link_id, manager->callback_context);
     }
+}
+
+/* Stops and immediately restarts one enabled link under supervisor ownership. */
+void network_manager_reconnect(network_manager_t *manager,
+                               network_link_id_t link_id, uint64_t now_ms)
+{
+    if (!is_valid_link(link_id) || !manager->config[link_id].enabled) return;
+    /* Backoff ownership prevents the asynchronous stop event from cancelling restart. */
+    set_link_state(&manager->links[link_id], NETWORK_LINK_BACKOFF, now_ms,
+                   REASON_MANUALLY_ENABLED);
+    manager->links[link_id].retry_at_ms = now_ms;
+    /* Stop first so an address and association cannot survive a manual reconnect. */
+    if (manager->stop_link != NULL)
+        manager->stop_link(link_id, manager->callback_context);
 }
 
 /* Stops all enabled adapters and discards queued events during shutdown. */

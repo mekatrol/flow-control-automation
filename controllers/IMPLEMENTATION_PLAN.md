@@ -143,7 +143,7 @@ and state. It must not expose Wi-Fi event types to MQTT.
   Ethernet driver headers.
 - Loss of one link does not mark another active link offline.
 
-## Phase 3 — Resilient Wi-Fi station
+## Phase 3 — Resilient Wi-Fi station (complete)
 
 ### Deliverables
 
@@ -181,6 +181,10 @@ and state. It must not expose Wi-Fi event types to MQTT.
 
 ## Phase 4 — Ethernet link
 
+Current commissioning mode is Ethernet-only: the runtime must not initialize
+or start Wi-Fi even when credentials remain configured in `sdkconfig`. The
+Wi-Fi adapter remains available for a later explicit return to dual-link mode.
+
 ### Deliverables
 
 - Add board-described Ethernet capabilities. The KC868-A16v3 first port uses a
@@ -194,6 +198,8 @@ and state. It must not expose Wi-Fi event types to MQTT.
 - Permit Wi-Fi and Ethernet to be enabled and online concurrently.
 - Record interface-specific addresses and DNS state; never collapse both links
   into one boolean `network_connected` flag.
+- Emit the DHCP-allocated Ethernet IPv4 address and DNS readiness through
+  redacted diagnostics when the interface becomes usable.
 
 ### Tests
 

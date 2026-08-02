@@ -7,6 +7,7 @@
 #include "esp_flash.h"
 #include "esp_heap_caps.h"
 #include "esp_log.h"
+#include "esp_random.h"
 #include "esp_system.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
@@ -78,6 +79,12 @@ uint64_t platform_get_monotonic_ms(void)
 uint64_t platform_get_free_heap_bytes(void)
 {
     return heap_caps_get_free_size(MALLOC_CAP_8BIT);
+}
+
+/* Gets ESP32 hardware entropy for randomized supervisor retry delays. */
+uint32_t platform_get_random_u32(void)
+{
+    return esp_random();
 }
 
 /* Starts a platform task and reports whether task creation succeeded. */

@@ -14,4 +14,29 @@ menu "Flow controller"
             Configure this with menuconfig. sdkconfig is ignored, so the real
             network password is not committed to source control.
 
+    config CONTROLLER_WIFI_HOSTNAME
+        string "Wi-Fi hostname"
+        default "flow-controller"
+        help
+            Hostname supplied to DHCP on the Wi-Fi station interface.
+
+    config CONTROLLER_WIFI_POWER_SAVE
+        bool "Enable minimum modem Wi-Fi power save"
+        default y
+        help
+            Uses minimum modem power saving while preserving automatic DTIM
+            wake-up. Disable this when commissioning latency-sensitive flows.
+
+    config CONTROLLER_ETHERNET_ENABLED
+        bool "Enable W5500 Ethernet"
+        default y
+        help
+            Enables the board-described W5500 interface and supervised DHCP.
+
+    config CONTROLLER_ETHERNET_HOSTNAME
+        string "Ethernet hostname"
+        default "flow-controller"
+        help
+            Hostname supplied to DHCP on the W5500 Ethernet interface.
+
 endmenu

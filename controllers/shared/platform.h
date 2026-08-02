@@ -36,6 +36,9 @@ uint64_t platform_get_monotonic_ms(void);
 /* Gets currently available general-purpose heap memory in bytes. */
 uint64_t platform_get_free_heap_bytes(void);
 
+/* Gets platform hardware entropy for randomized supervisor retry delays. */
+uint32_t platform_get_random_u32(void);
+
 /* Starts a platform task and reports whether task creation succeeded. */
 bool platform_start_task(const char *name, platform_task_function_t function,
                          void *context, size_t stack_size, unsigned priority);

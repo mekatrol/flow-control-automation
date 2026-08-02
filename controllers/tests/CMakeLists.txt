@@ -22,3 +22,17 @@ add_executable(network_manager_tests
 target_include_directories(network_manager_tests PRIVATE ../shared)
 target_compile_options(network_manager_tests PRIVATE -Wall -Wextra -Werror -pedantic)
 add_test(NAME network_manager COMMAND network_manager_tests)
+
+add_executable(wifi_link_core_tests
+    test_wifi_link_core.c
+    ../shared/wifi_link_core.c)
+target_include_directories(wifi_link_core_tests PRIVATE ../shared)
+target_compile_options(wifi_link_core_tests PRIVATE -Wall -Wextra -Werror -pedantic)
+add_test(NAME wifi_link_core COMMAND wifi_link_core_tests)
+
+add_executable(ethernet_link_core_tests
+    test_ethernet_link_core.c
+    ../shared/ethernet_link_core.c)
+target_include_directories(ethernet_link_core_tests PRIVATE ../shared)
+target_compile_options(ethernet_link_core_tests PRIVATE -Wall -Wextra -Werror -pedantic)
+add_test(NAME ethernet_link_core COMMAND ethernet_link_core_tests)

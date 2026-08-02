@@ -182,7 +182,8 @@ static void test_backoff_jitter_stability_and_shutdown(void)
     network_manager_shutdown(&manager, SHUTDOWN_TIME_MS);
     assert(manager.links[NETWORK_LINK_WIFI].state == NETWORK_LINK_STOPPED);
     assert(manager.links[NETWORK_LINK_ETHERNET].state == NETWORK_LINK_STOPPED);
-    assert(fixture.stops[NETWORK_LINK_WIFI] == 1);
+    /* Each failed attempt resets Wi-Fi before the final global shutdown. */
+    assert(fixture.stops[NETWORK_LINK_WIFI] == THIRD_SEQUENCE);
     assert(fixture.stops[NETWORK_LINK_ETHERNET] == 1);
 }
 
@@ -230,6 +231,12 @@ static void test_queue_bounds_and_enable_disable(void)
     network_manager_set_enabled(&manager, NETWORK_LINK_WIFI, true,
                                 FIRST_PROCESS_TIME_MS);
     assert(manager.links[NETWORK_LINK_WIFI].state == NETWORK_LINK_STARTING);
+    network_manager_reconnect(&manager, NETWORK_LINK_WIFI,
+                              SECOND_PROCESS_TIME_MS);
+    network_manager_process(&manager, SECOND_PROCESS_TIME_MS);
+    /* Reconnect owns both stop and start so callers never invoke adapters directly. */
+    assert(fixture.stops[NETWORK_LINK_WIFI] == FIRST_SEQUENCE);
+    assert(fixture.starts[NETWORK_LINK_WIFI] == SECOND_SEQUENCE);
     network_manager_set_enabled(&manager, NETWORK_LINK_WIFI, false,
                                 SECOND_PROCESS_TIME_MS);
     assert(manager.links[NETWORK_LINK_WIFI].state == NETWORK_LINK_DISABLED);

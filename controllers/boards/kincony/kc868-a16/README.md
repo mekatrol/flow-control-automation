@@ -57,10 +57,11 @@ environment configured in another terminal.
 **Set board** creates a root, ignored `sdkconfig`. The board's checked-in
 `sdkconfig.defaults` configures the N16R8 memory and USB console.
 
-Before adding the Wi-Fi runtime, configure credentials with **ESP-IDF: SDK
-Configuration editor (menuconfig)** under **Flow controller**. The SSID
-and password are stored only in the ignored `sdkconfig`; they are never placed
-in checked-in defaults.
+Wi-Fi settings may remain in the ignored `sdkconfig`, but the current
+commissioning runtime deliberately does not initialize or start Wi-Fi. It uses
+the onboard W5500 Ethernet port instead. Ethernet is enabled by default and its
+DHCP hostname defaults to `flow-controller`; both settings are under **Flow
+controller** in menuconfig.
 
 ## Flash and monitor
 
@@ -102,6 +103,37 @@ status uptime_ms=5000 free_heap_bytes=... wifi=disabled ethernet=disabled mqtt=d
 Repeated subsystem errors added in later phases should use
 `diagnostics_emit_limited`; it bounds identical records per time window and
 reports the number suppressed when the next window begins.
+
+### Phase 3 Wi-Fi smoke test
+
+This historical smoke test applies when Wi-Fi runtime support is explicitly
+restored. Wi-Fi is dormant in the current Ethernet-only commissioning build.
+
+With local credentials configured, boot while the access point is unavailable.
+The heartbeat must continue while Wi-Fi reports bounded `backoff` retries. Start
+the access point and confirm Wi-Fi reaches `online` without a controller reset.
+Then remove and restore the access point and confirm association and address
+recovery occur automatically.
+
+Repeat with DHCP unavailable and confirm the 30-second DHCP timeout returns the
+link to supervised backoff. During a longer test, cycle connectivity at least
+100 times while sampling `free_heap_bytes` and task count. Authentication,
+association, address acquisition/loss, and driver failures have distinct
+redacted diagnostic event codes; no event contains the configured SSID or
+password.
+
+### Phase 4 Ethernet smoke test
+
+Connect the first W5500 Ethernet port to a DHCP-enabled network, then boot the
+controller. Diagnostics should progress through `driver_started`,
+`link_up_waiting_for_address`, and `address_ready`. The address-ready record
+contains `ipv4=<allocated-address>` and `dns_ready=1` when DHCP supplied DNS.
+The heartbeat should report `wifi=disabled ethernet=online`.
+
+Remove and restore the cable and confirm the heartbeat continues while
+Ethernet enters bounded backoff and automatically recovers. Also boot once
+without a cable and once with DHCP unavailable; neither case should reset or
+block the controller runtime.
 
 ## Debug
 
