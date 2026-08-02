@@ -45,6 +45,13 @@ environment configured in another terminal.
 `set-target` creates a local, ignored `sdkconfig`. The checked-in
 `sdkconfig.defaults` configures the N16R8 memory and USB console.
 
+Before adding the Wi-Fi runtime, configure credentials with **ESP-IDF: SDK
+Configuration editor (menuconfig)** under **KC868-A16v3 controller**. The SSID
+and password are stored only in the ignored `sdkconfig`; they are never placed
+in checked-in defaults. The **configure target** VS Code task regenerates the
+ESP32-S3 configuration while preserving both credential settings, matching the
+LED-controller firmware workflow.
+
 ## Flash and monitor
 
 Connect the board's USB-C port, then locate the serial device if needed:

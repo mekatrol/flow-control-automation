@@ -2,6 +2,13 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "configure target",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/esp-idf-task.sh",
+      "args": ["${workspaceFolder}", "set-target"],
+      "problemMatcher": []
+    },
+    {
       "label": "clean",
       "type": "shell",
       "command": "${workspaceFolder}/scripts/esp-idf-task.sh",

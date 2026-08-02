@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# ESP-IDF's Kconfig report may echo string values, including the Wi-Fi
+# password. Keep task output free of credentials.
+export KCONFIG_REPORT_VERBOSITY=quiet
+
 if [ "$#" -lt 2 ]; then
-  echo "usage: $0 <project-dir> <clean|build|flash|monitor> [serial-port]" >&2
+  echo "usage: $0 <project-dir> <set-target|clean|build|flash|monitor> [serial-port]" >&2
   exit 2
 fi
 
@@ -92,9 +96,53 @@ run_idf() {
   fi
 }
 
+restore_wifi_configuration() {
+  local sdkconfig_file=$1
+  local saved_ssid=$2
+  local saved_password=$3
+  local temporary_file
+
+  if [ -z "$saved_ssid" ] && [ -z "$saved_password" ]; then
+    return
+  fi
+
+  temporary_file=$(mktemp "${sdkconfig_file}.credentials.XXXXXX")
+  while IFS= read -r configuration_line; do
+    case "$configuration_line" in
+      CONFIG_KC868_A16_WIFI_SSID=*)
+        if [ -n "$saved_ssid" ]; then
+          printf '%s\n' "$saved_ssid"
+        else
+          printf '%s\n' "$configuration_line"
+        fi
+        ;;
+      CONFIG_KC868_A16_WIFI_PASSWORD=*)
+        if [ -n "$saved_password" ]; then
+          printf '%s\n' "$saved_password"
+        else
+          printf '%s\n' "$configuration_line"
+        fi
+        ;;
+      *) printf '%s\n' "$configuration_line" ;;
+    esac
+  done < "$sdkconfig_file" > "$temporary_file"
+  mv "$temporary_file" "$sdkconfig_file"
+}
+
 cd "$project_dir"
 
 case "$action" in
+  set-target)
+    saved_wifi_ssid=
+    saved_wifi_password=
+    if [ -f sdkconfig ]; then
+      saved_wifi_ssid=$(sed -n 's/^\(CONFIG_KC868_A16_WIFI_SSID=.*\)$/\1/p' sdkconfig)
+      saved_wifi_password=$(sed -n 's/^\(CONFIG_KC868_A16_WIFI_PASSWORD=.*\)$/\1/p' sdkconfig)
+    fi
+    run_idf set-target esp32s3
+    restore_wifi_configuration sdkconfig "$saved_wifi_ssid" "$saved_wifi_password"
+    run_idf reconfigure
+    ;;
   clean) run_idf fullclean ;;
   build) run_idf build ;;
   flash) run_idf -p "$serial_port" flash ;;

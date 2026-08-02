@@ -2,6 +2,16 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "configure target: KC868-A16v3",
+      "type": "shell",
+      "command": "${workspaceFolder}/controllers/kincony/kc868-a16/scripts/esp-idf-task.sh",
+      "args": [
+        "${workspaceFolder}/controllers/kincony/kc868-a16",
+        "set-target"
+      ],
+      "problemMatcher": []
+    },
+    {
       "label": "clean: KC868-A16v3",
       "type": "shell",
       "command": "${workspaceFolder}/controllers/kincony/kc868-a16/scripts/esp-idf-task.sh",
