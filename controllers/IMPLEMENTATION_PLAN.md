@@ -101,7 +101,7 @@ and state. It must not expose Wi-Fi event types to MQTT.
 - The main runtime becomes active without waiting for any external service.
 - No configured secret is present in captured console output.
 
-## Phase 2 — Network abstraction and supervisor
+## Phase 2 — Network abstraction and supervisor (complete)
 
 ### Deliverables
 

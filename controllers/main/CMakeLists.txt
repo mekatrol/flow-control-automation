@@ -10,6 +10,7 @@ idf_component_register(
         "${SHARED_DIR}/controller_health_format.c"
         "${SHARED_DIR}/diagnostics.c"
         "${SHARED_DIR}/diagnostics_core.c"
+        "${SHARED_DIR}/network_manager.c"
         "${PLATFORM_DIR}/app_main.c"
         "${PLATFORM_DIR}/platform.c"
         "${BOARD_DIR}/board.c"
