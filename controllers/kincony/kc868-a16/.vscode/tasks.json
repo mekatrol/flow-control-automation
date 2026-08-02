@@ -49,6 +49,20 @@
       "dependsOrder": "sequence",
       "dependsOn": ["flash", "monitor"],
       "problemMatcher": []
+    },
+    {
+      "label": "clean, build, flash",
+      "type": "shell",
+      "dependsOrder": "sequence",
+      "dependsOn": ["clean", "flash"],
+      "problemMatcher": []
+    },
+    {
+      "label": "clean, build, flash, monitor",
+      "type": "shell",
+      "dependsOrder": "sequence",
+      "dependsOn": ["clean", "flash and monitor"],
+      "problemMatcher": []
     }
   ],
   "inputs": [

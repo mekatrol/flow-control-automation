@@ -1,8 +1,9 @@
 # KC868-A16v3 firmware
 
-Native C firmware for the KinCony KC868-A16v3, built with ESP-IDF. The initial
-program is deliberately limited to board bring-up: it reports the detected
-ESP32-S3, flash, and PSRAM, then emits a heartbeat once per second.
+Native C firmware for the KinCony KC868-A16v3, built with ESP-IDF. The firmware
+starts a non-blocking controller runtime and reports structured startup and
+health diagnostics over USB Serial/JTAG. Networking, MQTT, and RS485 are shown
+as disabled until their later implementation phases are installed.
 
 The phased communications roadmap is in
 [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md).
@@ -40,6 +41,14 @@ idf.py set-target esp32s3
 idf.py build
 ```
 
+Run the platform-independent Phase 1 tests without ESP-IDF using:
+
+```sh
+cmake -S tests -B build-host
+cmake --build build-host
+ctest --test-dir build-host --output-on-failure
+```
+
 The VS Code tasks call `scripts/esp-idf-task.sh`, which locates the selected
 ESP-IDF installation and adds its compiler, CMake, Ninja, and Python tools to
 the task environment. This is necessary because task shells do not inherit the
@@ -69,6 +78,31 @@ Download button, tap Reset, start flashing, and then release Download.
 On Linux, USB access may require the udev rules shipped with ESP-IDF. On
 Windows, install Espressif's USB Serial/JTAG driver through the ESP-IDF tools
 installer.
+
+### Phase 1 smoke test
+
+Boot once with both Wi-Fi settings empty, then once with locally configured
+values. In both cases, capture the USB console and check that:
+
+- `startup/banner`, `startup/chip`, `startup/memory`, and
+  `startup/configuration` records appear immediately;
+- configuration reports only `wifi=disabled` or `wifi=enabled` and a redacted
+  credential state—the SSID and password themselves never appear;
+- `runtime/started` says that `app_main` is returning;
+- a `runtime/heartbeat` record appears every five seconds and includes uptime,
+  free heap, and explicit Wi-Fi, Ethernet, MQTT, and RS485 states.
+
+Repeat with no access point, Ethernet cable, broker, or RS485 device attached.
+The expected result is unchanged periodic heartbeat output and no reset. A
+typical status payload is:
+
+```text
+status uptime_ms=5000 free_heap_bytes=... wifi=disabled ethernet=disabled mqtt=disabled rs485=disabled rs485_errors=0 rs485_queue_drops=0
+```
+
+Repeated subsystem errors added in later phases should use
+`diagnostics_emit_limited`; it bounds identical records per time window and
+reports the number suppressed when the next window begins.
 
 ## Debug
 

@@ -64,6 +64,24 @@
       "problemMatcher": []
     },
     {
+      "label": "clean, build, flash: KC868-A16v3",
+      "type": "shell",
+      "dependsOrder": "sequence",
+      "dependsOn": ["clean: KC868-A16v3", "flash: KC868-A16v3"],
+      "problemMatcher": []
+    },
+    {
+      "label": "clean, build, flash, monitor: KC868-A16v3",
+      "type": "shell",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "clean: KC868-A16v3",
+        "flash: KC868-A16v3",
+        "monitor: KC868-A16v3"
+      ],
+      "problemMatcher": []
+    },
+    {
       "label": "clean: backend",
       "type": "process",
       "command": "dotnet",

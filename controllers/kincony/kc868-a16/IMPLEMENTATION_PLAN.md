@@ -52,7 +52,7 @@ controller_runtime
 such as link ID, interface identity, addresses, DNS availability, reachability,
 and state. It must not expose Wi-Fi event types to MQTT.
 
-## Phase 1 — USB diagnostic foundation
+## Phase 1 — USB diagnostic foundation (complete)
 
 ### Deliverables
 
