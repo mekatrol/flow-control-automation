@@ -38,6 +38,11 @@ APIs introduced here must remain usable by those later components.
   processor, operating-system, and board headers remain in adaptation layers.
 - All state transitions expose a read-only health snapshot for diagnostics
   and the future flow runtime.
+- All controller code follows the repository coding rules in `AGENTS.md`:
+  declarations document their contracts, non-obvious logic explains what and
+  why, numeric and string values use documented constants or enums instead of
+  magic values, Boolean predicates use `is_`, value accessors use `get_`, and
+  source files contain one coherent feature or responsibility.
 
 ## Proposed component boundaries
 

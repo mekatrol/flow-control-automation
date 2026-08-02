@@ -14,7 +14,12 @@ typedef struct {
     uint32_t rs485_queue_drops;
 } controller_health_snapshot_t;
 
+/* Initializes health timing before the controller runtime begins work. */
 void controller_health_init(void);
-controller_health_snapshot_t controller_health_snapshot(void);
+
+/* Gets a point-in-time, read-only snapshot of controller subsystem health. */
+controller_health_snapshot_t get_controller_health_snapshot(void);
+
+/* Formats a health snapshot as one bounded structured status line. */
 int controller_health_format(char *output, size_t output_size,
                              const controller_health_snapshot_t *snapshot);

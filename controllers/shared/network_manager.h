@@ -4,17 +4,20 @@
 #include <stddef.h>
 #include <stdint.h>
 
+/* Bounded storage limits prevent network callbacks from growing memory use. */
 #define NETWORK_INTERFACE_NAME_MAX 16
 #define NETWORK_ADDRESS_MAX 48
 #define NETWORK_TRANSITION_REASON_MAX 48
 #define NETWORK_EVENT_QUEUE_CAPACITY 16
 
+/* Stable link identifiers let consumers select routes without driver headers. */
 typedef enum {
     NETWORK_LINK_WIFI,
     NETWORK_LINK_ETHERNET,
     NETWORK_LINK_COUNT,
 } network_link_id_t;
 
+/* Neutral supervisor states shared by every network adapter implementation. */
 typedef enum {
     NETWORK_LINK_DISABLED,
     NETWORK_LINK_STARTING,
@@ -25,6 +28,7 @@ typedef enum {
     NETWORK_LINK_STOPPED,
 } network_link_state_t;
 
+/* Adapter event types describe link changes without platform-specific values. */
 typedef enum {
     NETWORK_EVENT_STARTED,
     NETWORK_EVENT_CONNECTING,
@@ -35,6 +39,7 @@ typedef enum {
     NETWORK_EVENT_STOPPED,
 } network_event_type_t;
 
+/* Consumer policies distinguish automatic selection from explicit binding. */
 typedef enum {
     NETWORK_ROUTE_AUTOMATIC,
     NETWORK_ROUTE_WIFI,
@@ -86,7 +91,10 @@ typedef struct {
     char last_transition_reason[NETWORK_TRANSITION_REASON_MAX];
 } network_link_snapshot_t;
 
+/* Adapter start and stop callback used by a supervisor without blocking it. */
 typedef void (*network_link_action_t)(network_link_id_t link_id, void *context);
+
+/* Entropy callback used to calculate portable deterministic retry jitter. */
 typedef uint32_t (*network_random_t)(void *context);
 
 typedef struct {
@@ -102,6 +110,7 @@ typedef struct {
     void *callback_context;
 } network_manager_t;
 
+/* Initializes independent link supervisors and starts each enabled adapter. */
 void network_manager_init(network_manager_t *manager,
                           const network_link_config_t configs[NETWORK_LINK_COUNT],
                           network_link_action_t start_link,
@@ -109,18 +118,33 @@ void network_manager_init(network_manager_t *manager,
                           network_random_t random,
                           void *callback_context,
                           uint64_t now_ms);
+/* Copies a short-lived adapter event into the bounded owned event queue. */
 bool network_manager_enqueue_event(network_manager_t *manager,
                                    const network_event_t *event);
+
+/* Processes queued events and advances retry and stability timers. */
 void network_manager_process(network_manager_t *manager, uint64_t now_ms);
+
+/* Enables or disables one link without changing the state of another link. */
 void network_manager_set_enabled(network_manager_t *manager,
                                  network_link_id_t link_id, bool enabled,
                                  uint64_t now_ms);
+
+/* Stops all enabled adapters and discards queued events during shutdown. */
 void network_manager_shutdown(network_manager_t *manager, uint64_t now_ms);
-network_link_snapshot_t network_manager_link_snapshot(
+
+/* Gets an owned snapshot for a valid link, or an empty snapshot otherwise. */
+network_link_snapshot_t network_manager_get_link_snapshot(
     const network_manager_t *manager, network_link_id_t link_id);
-bool network_manager_select_link(const network_manager_t *manager,
-                                 network_route_policy_t policy,
-                                 bool require_dns,
-                                 network_link_id_t *selected_link);
-const char *network_link_id_name(network_link_id_t link_id);
-const char *network_link_state_name(network_link_state_t state);
+
+/* Gets an eligible link for a route policy and reports whether one exists. */
+bool network_manager_get_selected_link(const network_manager_t *manager,
+                                       network_route_policy_t policy,
+                                       bool require_dns,
+                                       network_link_id_t *selected_link);
+
+/* Gets the stable diagnostic name associated with a link identifier. */
+const char *network_get_link_id_name(network_link_id_t link_id);
+
+/* Gets the stable diagnostic name associated with a link state. */
+const char *network_get_link_state_name(network_link_state_t state);
