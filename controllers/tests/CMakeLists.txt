@@ -2,6 +2,12 @@ cmake_minimum_required(VERSION 3.16)
 project(controller_host_tests C)
 
 enable_testing()
+
+# Apply the same source-policy gate to host builds so local validation matches firmware builds.
+add_custom_target(check_source_policy ALL
+    COMMAND "${CMAKE_CURRENT_LIST_DIR}/../scripts/check-source-policy.sh" "${CMAKE_CURRENT_LIST_DIR}/.."
+    COMMENT "Checking controller source policies")
+
 add_executable(diagnostics_core_tests
     test_diagnostics_and_health.c
     ../shared/diagnostics_core.c)

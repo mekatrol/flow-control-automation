@@ -32,9 +32,8 @@ static network_manager_t controller_network_manager;
 static ethernet_link_t controller_ethernet_link;
 
 /* Dispatches a supervisor start action to its independent link adapter. */
-static void start_network_link(network_link_id_t link_id, void *context)
+static void start_network_link(network_link_id_t link_id, void * /* context */)
 {
-    (void)context;
     /* Dispatch only Ethernet because Wi-Fi is intentionally dormant. */
     if (link_id == NETWORK_LINK_ETHERNET)
     {
@@ -43,9 +42,8 @@ static void start_network_link(network_link_id_t link_id, void *context)
 }
 
 /* Dispatches a supervisor stop action to its independent link adapter. */
-static void stop_network_link(network_link_id_t link_id, void *context)
+static void stop_network_link(network_link_id_t link_id, void * /* context */)
 {
-    (void)context;
     /* Stop only the independently owned Ethernet interface. */
     if (link_id == NETWORK_LINK_ETHERNET)
     {
@@ -54,9 +52,8 @@ static void stop_network_link(network_link_id_t link_id, void *context)
 }
 
 /* Gets platform entropy through the callback signature required by the supervisor. */
-static uint32_t get_network_random(void *context)
+static uint32_t get_network_random(void * /* context */)
 {
-    (void)context;
     return platform_get_random_u32();
 }
 
@@ -91,9 +88,8 @@ const network_manager_t *get_controller_runtime_network_manager(void)
 }
 
 /* Services communications state machines and emits heartbeat status indefinitely. */
-static void controller_task(void *context)
+static void controller_task(void * /* context */)
 {
-    (void)context;
     char status[STATUS_BUFFER_SIZE];
     uint64_t next_status_ms = platform_get_monotonic_ms();
     initialize_networking();

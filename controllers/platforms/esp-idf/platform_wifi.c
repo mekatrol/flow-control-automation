@@ -63,9 +63,8 @@ static bool is_dns_ready(void)
 }
 
 /* Converts ESP-IDF Wi-Fi callbacks into owned, bounded platform events. */
-static void handle_wifi_event(void *context, esp_event_base_t event_base, int32_t event_id, void *event_data)
+static void handle_wifi_event(void * /* context */, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
-    (void)context;
     if (event_base != WIFI_EVENT)
     {
         return;
@@ -98,9 +97,8 @@ static void handle_wifi_event(void *context, esp_event_base_t event_base, int32_
 }
 
 /* Converts ESP-IDF address callbacks into owned, bounded platform events. */
-static void handle_ip_event(void *context, esp_event_base_t event_base, int32_t event_id, void *event_data)
+static void handle_ip_event(void * /* context */, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
-    (void)context;
     if (event_base != IP_EVENT)
     {
         return;

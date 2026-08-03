@@ -67,6 +67,11 @@ The command formats every tracked `.c` and `.h` file. It deliberately excludes
 untracked and generated files. Review the resulting diff, then run the host
 tests before committing.
 
+Firmware and host builds also enforce the source policy that unused callback
+parameters must be unnamed C23 parameters, with an explanatory comment when
+useful (for example, `void * /* context */`). A `(void)parameter;` suppression
+statement fails the build.
+
 ## Host tests
 
 Shared modules have platform-independent tests:

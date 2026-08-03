@@ -63,10 +63,8 @@ static bool is_dns_ready(void)
 }
 
 /* Converts ESP-IDF Ethernet callbacks into owned platform events. */
-static void handle_ethernet_event(void *context, esp_event_base_t event_base, int32_t event_id, void *event_data)
+static void handle_ethernet_event(void * /* context */, esp_event_base_t event_base, int32_t event_id, void * /* event_data */)
 {
-    (void)context;
-    (void)event_data;
     if (event_base != ETH_EVENT)
     {
         return;
@@ -95,9 +93,8 @@ static void handle_ethernet_event(void *context, esp_event_base_t event_base, in
 }
 
 /* Converts interface-specific address callbacks into owned platform events. */
-static void handle_ip_event(void *context, esp_event_base_t event_base, int32_t event_id, void *event_data)
+static void handle_ip_event(void * /* context */, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
-    (void)context;
     if (event_base != IP_EVENT)
     {
         return;

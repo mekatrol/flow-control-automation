@@ -1,3 +1,4 @@
 {
-    "idf.currentSetup": "/home/dad/.espressif/v6.0.2/esp-idf"
+    "cmake.sourceDirectory": "${workspaceFolder}/tests",
+    "cmake.buildDirectory": "${workspaceFolder}/build-host"
 }
