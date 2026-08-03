@@ -4,7 +4,7 @@ set -euo pipefail
 export KCONFIG_REPORT_VERBOSITY=quiet
 
 if [ "$#" -lt 2 ]; then
-  echo "usage: $0 <controllers-dir> <set-board|clean|build|flash|monitor> [board-or-port]" >&2
+  echo "usage: $0 <controllers-dir> <set-board|format|clean|build|flash|monitor> [board-or-port]" >&2
   exit 2
 fi
 
@@ -151,6 +151,20 @@ case "$action" in
     restore_wifi_configuration sdkconfig "$saved_wifi_ssid" "$saved_wifi_password"
     run_idf_redacted reconfigure
     echo "Selected $board; subsequent tasks use $build_directory."
+    ;;
+  format)
+    # Prefer an existing formatter, then expose ESP-IDF's pinned toolchain so every contributor applies the same repository configuration.
+    if ! command -v clang-format >/dev/null 2>&1; then
+      configure_versioned_esp_idf || true
+    fi
+    if ! command -v clang-format >/dev/null 2>&1; then
+      echo "clang-format was not found; install it or configure the ESP-IDF toolchain." >&2
+      exit 127
+    fi
+    # Format only tracked C sources and headers so generated dependencies and build output remain untouched.
+    while IFS= read -r -d '' source_file; do
+      clang-format -i "$source_file"
+    done < <(git ls-files -z -- '*.c' '*.h')
     ;;
   clean) run_idf_redacted fullclean ;;
   build) run_idf_redacted build ;;

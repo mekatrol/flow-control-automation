@@ -15,4 +15,3 @@ void platform_ethernet_stop(void);
 
 /* Gets one owned event without blocking, or reports an empty queue. */
 bool platform_ethernet_get_event(ethernet_platform_event_t *event);
-

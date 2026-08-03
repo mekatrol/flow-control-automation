@@ -1,0 +1,8 @@
+BasedOnStyle: Microsoft
+ColumnLimit: 200
+IndentCaseLabels: true
+InsertBraces: true
+AlignConsecutiveAssignments:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments: false

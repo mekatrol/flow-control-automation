@@ -4,8 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "network_manager.h"
 #include "diagnostics_core.h"
+#include "network_manager.h"
 
 /* Wi-Fi configuration limits match the IEEE SSID and ESP-IDF station limits. */
 #define WIFI_SSID_MAX_LENGTH 32
@@ -13,13 +13,15 @@
 #define WIFI_HOSTNAME_MAX_LENGTH 32
 
 /* Portable power-save choices keep policy out of the ESP-IDF adapter. */
-typedef enum {
+typedef enum
+{
     WIFI_POWER_SAVE_DISABLED,
     WIFI_POWER_SAVE_MINIMUM_MODEM,
 } wifi_power_save_t;
 
 /* Typed Wi-Fi station settings consumed by shared validation and the adapter. */
-typedef struct {
+typedef struct
+{
     const char *ssid;
     const char *password;
     const char *hostname;
@@ -27,7 +29,8 @@ typedef struct {
 } wifi_link_config_t;
 
 /* Platform event categories preserve Wi-Fi failure detail before neutral mapping. */
-typedef enum {
+typedef enum
+{
     WIFI_PLATFORM_EVENT_DRIVER_STARTED,
     WIFI_PLATFORM_EVENT_ASSOCIATING,
     WIFI_PLATFORM_EVENT_ASSOCIATED,
@@ -40,7 +43,8 @@ typedef enum {
 } wifi_platform_event_type_t;
 
 /* Owned platform event data is safe after an ESP-IDF callback returns. */
-typedef struct {
+typedef struct
+{
     wifi_platform_event_type_t type;
     uint16_t reason_code;
     int8_t rssi_dbm;
@@ -50,7 +54,8 @@ typedef struct {
 } wifi_platform_event_t;
 
 /* Shared Wi-Fi state binds platform events to the neutral network manager. */
-typedef struct {
+typedef struct
+{
     network_manager_t *network_manager;
     uint32_t next_sequence;
     bool platform_initialized;
@@ -66,12 +71,10 @@ bool is_wifi_link_config_valid(const wifi_link_config_t *config);
 bool is_wifi_link_config_enabled(const wifi_link_config_t *config);
 
 /* Gets the neutral event type corresponding to a platform Wi-Fi event. */
-network_event_type_t wifi_link_get_network_event_type(
-    wifi_platform_event_type_t platform_type);
+network_event_type_t wifi_link_get_network_event_type(wifi_platform_event_type_t platform_type);
 
 /* Initializes the platform station without beginning network association. */
-bool wifi_link_init(wifi_link_t *wifi_link, network_manager_t *network_manager,
-                    const wifi_link_config_t *config);
+bool wifi_link_init(wifi_link_t *wifi_link, network_manager_t *network_manager, const wifi_link_config_t *config);
 
 /* Requests one bounded connection attempt from the platform adapter. */
 void wifi_link_start(wifi_link_t *wifi_link);
@@ -83,8 +86,7 @@ void wifi_link_stop(wifi_link_t *wifi_link);
 void wifi_link_process(wifi_link_t *wifi_link, uint64_t now_ms);
 
 /* Enables or disables Wi-Fi for later maintenance and configuration commands. */
-void wifi_link_set_enabled(wifi_link_t *wifi_link, bool enabled,
-                           uint64_t now_ms);
+void wifi_link_set_enabled(wifi_link_t *wifi_link, bool enabled, uint64_t now_ms);
 
 /* Requests an immediate supervised reconnect for later maintenance commands. */
 void wifi_link_reconnect(wifi_link_t *wifi_link, uint64_t now_ms);

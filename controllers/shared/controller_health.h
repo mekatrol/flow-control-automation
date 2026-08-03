@@ -3,7 +3,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-typedef struct {
+typedef struct
+{
     uint64_t uptime_ms;
     uint64_t free_heap_bytes;
     const char *wifi_state;
@@ -21,5 +22,4 @@ void controller_health_init(void);
 controller_health_snapshot_t get_controller_health_snapshot(void);
 
 /* Formats a health snapshot as one bounded structured status line. */
-int controller_health_format(char *output, size_t output_size,
-                             const controller_health_snapshot_t *snapshot);
+int controller_health_format(char *output, size_t output_size, const controller_health_snapshot_t *snapshot);

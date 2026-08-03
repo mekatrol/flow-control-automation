@@ -16,6 +16,13 @@
       "problemMatcher": []
     },
     {
+      "label": "Format",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/controller-task.sh",
+      "args": ["${workspaceFolder}", "format"],
+      "problemMatcher": []
+    },
+    {
       "label": "Build",
       "type": "shell",
       "command": "${workspaceFolder}/scripts/controller-task.sh",
