@@ -7,10 +7,12 @@
 /* Bounded credential lengths prevent persistent or runtime allocation growth. */
 enum
 {
-    SETTINGS_USERNAME_CAPACITY  = 65,
-    SETTINGS_PASSWORD_CAPACITY  = 129,
-    SETTINGS_WIFI_SSID_CAPACITY = 33,
-    SETTINGS_HOSTNAME_CAPACITY  = 64,
+    SETTINGS_USERNAME_CAPACITY       = 65,
+    SETTINGS_PASSWORD_CAPACITY       = 129,
+    SETTINGS_WIFI_SSID_CAPACITY      = 33,
+    SETTINGS_HOSTNAME_CAPACITY       = 64,
+    SETTINGS_MQTT_HOST_CAPACITY      = 129,
+    SETTINGS_MQTT_CLIENT_ID_CAPACITY = 65,
 };
 
 /* Store results preserve distinctions that are significant during recovery. */
@@ -45,6 +47,16 @@ typedef struct
     char value[SETTINGS_PASSWORD_CAPACITY];
 } settings_nullable_string_t;
 
+/* MQTT broker settings are persisted together with credentials for atomic reconfiguration. */
+typedef struct
+{
+    bool enabled;
+    bool is_tls_enabled;
+    uint16_t port;
+    char host[SETTINGS_MQTT_HOST_CAPACITY];
+    char client_id[SETTINGS_MQTT_CLIENT_ID_CAPACITY];
+} settings_mqtt_broker_t;
+
 /* Typed settings are committed together so credential pairs cannot be torn. */
 typedef struct
 {
@@ -55,6 +67,7 @@ typedef struct
     settings_nullable_string_t mqtt_username;
     settings_nullable_string_t mqtt_password;
     settings_nullable_string_t hostname;
+    settings_mqtt_broker_t mqtt_broker;
     bool is_user_reset;
 } controller_settings_t;
 

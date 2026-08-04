@@ -7,7 +7,7 @@
 /* Test buffers remain larger than one complete stable menu exchange. */
 enum
 {
-    TEST_OUTPUT_CAPACITY  = 4096,
+    TEST_OUTPUT_CAPACITY  = 16384,
     TEST_IDLE_TIMEOUT_MS  = 1000,
     TEST_LOGIN_BACKOFF_MS = 100,
 };
@@ -18,11 +18,49 @@ typedef struct
     size_t output_size;
     bool is_reboot_requested;
     bool is_storage_initialized;
+    size_t settings_change_count;
 } terminal_fixture_t;
 
 static const char TEST_USERNAME[]        = "operator";
 static const char TEST_PASSWORD[]        = "private-password";
 static const char TEST_SUCCESS_MESSAGE[] = "Terminal service tests passed";
+
+/* Accepts staged records so terminal persistence paths can be tested without media. */
+static settings_store_result_t stage_record(void *context, const void *record, size_t size)
+{
+    assert(context != NULL);
+    assert(record != NULL);
+    assert(size > 0);
+    return SETTINGS_STORE_OK;
+}
+
+/* Commits staged test records synchronously. */
+static settings_store_result_t commit_records(void *context)
+{
+    assert(context != NULL);
+    return SETTINGS_STORE_OK;
+}
+
+/* Discards staged test records after an injected failure. */
+static void abort_records(void *context)
+{
+    assert(context != NULL);
+}
+
+/* Records live settings application after a durable terminal update. */
+static void settings_changed_fixture(void *context)
+{
+    terminal_fixture_t *fixture = context;
+    fixture->settings_change_count++;
+}
+
+/* Supplies redacted MQTT status for the authenticated status menu. */
+static void get_fixture_mqtt_status(void *context, char *output, size_t capacity)
+{
+    terminal_fixture_t *fixture = context;
+    assert(fixture != NULL);
+    (void)snprintf(output, capacity, "state=online publish_queue=0");
+}
 
 /* Captures transport writes and rejects deterministic overflow. */
 static bool write_fixture(void *context, const char *data, size_t size)
@@ -91,6 +129,11 @@ static terminal_service_t get_authenticated_fixture(terminal_fixture_t *fixture,
     settings->state                             = SETTINGS_STORAGE_READY;
     settings->snapshot.terminal_username.is_set = true;
     settings->snapshot.terminal_password.is_set = true;
+    settings->store.stage_settings              = stage_record;
+    settings->store.stage_bootstrap             = stage_record;
+    settings->store.commit                      = commit_records;
+    settings->store.abort                       = abort_records;
+    settings->store.context                     = fixture;
     (void)snprintf(settings->snapshot.terminal_username.value, sizeof(settings->snapshot.terminal_username.value), "%s",
                    TEST_USERNAME);
     (void)snprintf(settings->snapshot.terminal_password.value, sizeof(settings->snapshot.terminal_password.value), "%s",
@@ -99,6 +142,8 @@ static terminal_service_t get_authenticated_fixture(terminal_fixture_t *fixture,
                                       .write            = write_fixture,
                                       .get_system_info  = get_fixture_system_info,
                                       .reboot           = reboot_fixture,
+                                      .settings_changed = settings_changed_fixture,
+                                      .get_mqtt_status  = get_fixture_mqtt_status,
                                       .context          = fixture,
                                       .idle_timeout_ms  = TEST_IDLE_TIMEOUT_MS,
                                       .login_backoff_ms = TEST_LOGIN_BACKOFF_MS};
@@ -106,6 +151,55 @@ static terminal_service_t get_authenticated_fixture(terminal_fixture_t *fixture,
     terminal_service_init(&service, &config);
     terminal_service_connect(&service, 0);
     return service;
+}
+
+/* Verifies broker settings and status are available through the authenticated terminal. */
+static void test_mqtt_configuration_and_status(void)
+{
+    terminal_fixture_t fixture = {0};
+    settings_service_t settings;
+    terminal_service_t service             = get_authenticated_fixture(&fixture, &settings);
+    settings.snapshot.mqtt_username.is_set = true;
+    settings.snapshot.mqtt_password.is_set = true;
+    (void)snprintf(settings.snapshot.mqtt_username.value, sizeof(settings.snapshot.mqtt_username.value), "broker-user");
+    (void)snprintf(settings.snapshot.mqtt_password.value, sizeof(settings.snapshot.mqtt_password.value), "broker-secret");
+    (void)snprintf(settings.snapshot.mqtt_broker.host, sizeof(settings.snapshot.mqtt_broker.host), "old-broker.example.test");
+    (void)snprintf(settings.snapshot.mqtt_broker.client_id, sizeof(settings.snapshot.mqtt_broker.client_id), "old-client");
+    settings.snapshot.mqtt_broker.port = 1883;
+    send_line(&service, TEST_USERNAME, 1);
+    send_line(&service, TEST_PASSWORD, 2);
+    send_line(&service, "2", 3);
+    send_line(&service, "3", 4);
+    assert(service.state == TERMINAL_STATE_MQTT_MENU);
+    assert(strstr(fixture.output, "broker-user") != NULL);
+    assert(strstr(fixture.output, "old-broker.example.test") != NULL);
+    assert(strstr(fixture.output, "old-client") != NULL);
+    assert(strstr(fixture.output, "broker-secret") == NULL);
+    send_line(&service, "2", 5);
+    assert(strstr(fixture.output, "Current broker host: old-broker.example.test") != NULL);
+    send_line(&service, "/cancel", 6);
+    assert(strcmp(settings.snapshot.mqtt_broker.host, "old-broker.example.test") == 0);
+    assert(service.state == TERMINAL_STATE_MQTT_MENU);
+    send_line(&service, "2", 7);
+    send_line(&service, "broker.example.test", 8);
+    send_line(&service, "3", 9);
+    send_crlf_line(&service, "8883", 10);
+    assert(strstr(fixture.output, "Invalid or overlength input") == NULL);
+    send_line(&service, "4", 11);
+    send_line(&service, "controller-unit", 12);
+    send_line(&service, "5", 13);
+    send_line(&service, "6", 14);
+    assert(strcmp(settings.snapshot.mqtt_broker.host, "broker.example.test") == 0);
+    assert(settings.snapshot.mqtt_broker.port == 8883);
+    assert(strcmp(settings.snapshot.mqtt_broker.client_id, "controller-unit") == 0);
+    assert(settings.snapshot.mqtt_broker.is_tls_enabled);
+    assert(settings.snapshot.mqtt_broker.enabled);
+    assert(fixture.settings_change_count == 5);
+    send_line(&service, "7", 15);
+    assert(strstr(fixture.output, "state=online publish_queue=0") != NULL);
+    assert(strstr(fixture.output, TEST_PASSWORD) == NULL);
+    send_line(&service, "8", 16);
+    assert(service.state == TERMINAL_STATE_SETTINGS_MENU);
 }
 
 /* Verifies authentication, password masking, stable menus, diagnostics exit, and timeout logout. */
@@ -222,6 +316,7 @@ int main(void)
     test_failed_login_is_redacted();
     test_recovery_menu_remains_useful();
     test_recovery_media_initialization_requires_confirmation();
+    test_mqtt_configuration_and_status();
     puts(TEST_SUCCESS_MESSAGE);
     return 0;
 }

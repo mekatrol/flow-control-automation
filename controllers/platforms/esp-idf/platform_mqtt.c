@@ -22,9 +22,11 @@ enum
     MQTT_OUTBOUND_QUEUE_DEPTH    = 16,
     MQTT_MAXIMUM_INBOUND_PAYLOAD = 4096,
     MQTT_EVENT_QUEUE_DEPTH       = MQTT_EVENT_QUEUE_CAPACITY,
+    MQTT_INBOUND_QUEUE_DEPTH     = MQTT_RECEIVE_QUEUE_CAPACITY,
     MQTT_COMMAND_QUEUE_DEPTH     = 4,
     MQTT_TRANSPORT_TASK_STACK    = 4096,
     MQTT_TRANSPORT_TASK_PRIORITY = 5,
+    MQTT_DEFAULT_PORT            = 1883,
 };
 
 /* Transport commands isolate potentially waiting lifecycle calls from controller supervision. */
@@ -32,6 +34,8 @@ typedef enum
 {
     MQTT_COMMAND_CONNECT,
     MQTT_COMMAND_DISCONNECT,
+    MQTT_COMMAND_PUBLISH,
+    MQTT_COMMAND_SUBSCRIBE,
 } mqtt_command_type_t;
 
 typedef struct
@@ -39,6 +43,9 @@ typedef struct
     mqtt_command_type_t type;
     mqtt_broker_config_t config;
     network_link_id_t selected_link;
+    mqtt_owned_publish_t publish;
+    char topic_filter[MQTT_TOPIC_CAPACITY];
+    mqtt_qos_t subscription_qos;
 } mqtt_command_t;
 
 /* Credential references identify platform-owned secrets without placing them in shared health. */
@@ -60,18 +67,13 @@ static const char NETWORK_INTERFACE_ETHERNET_KEY[] = "ETH_DEF";
 static char mqtt_broker_uri[MQTT_BROKER_URI_MAX];
 static QueueHandle_t mqtt_event_queue;
 static QueueHandle_t mqtt_command_queue;
+static QueueHandle_t mqtt_inbound_queue;
 static esp_mqtt_client_handle_t mqtt_client;
+static mqtt_api_t *mqtt_api;
 static atomic_uint_least32_t mqtt_event_sequence;
 static atomic_bool is_failure_reported;
 static const settings_nullable_string_t *mqtt_username;
 static const settings_nullable_string_t *mqtt_password;
-
-/* Kconfig omits disabled Boolean symbols, so expose TLS as an ordinary typed value. */
-#ifdef CONFIG_CONTROLLER_MQTT_TLS_ENABLED
-static const bool is_mqtt_tls_enabled = true;
-#else
-static const bool is_mqtt_tls_enabled = false;
-#endif
 
 /* Gets the neutral route selected by the platform configuration choice. */
 static network_route_policy_t get_mqtt_link_policy(void)
@@ -89,16 +91,6 @@ static network_route_policy_t get_mqtt_link_policy(void)
 static bool is_mqtt_session_persistent(void)
 {
 #ifdef CONFIG_CONTROLLER_MQTT_PERSISTENT_SESSION
-    return true;
-#else
-    return false;
-#endif
-}
-
-/* Tests whether Kconfig requests a retained broker last will. */
-static bool is_mqtt_last_will_retained(void)
-{
-#ifdef CONFIG_CONTROLLER_MQTT_LAST_WILL_RETAIN
     return true;
 #else
     return false;
@@ -191,6 +183,19 @@ static void handle_mqtt_event(void * /* context */, esp_event_base_t /* event_ba
     {
         enqueue_transport_event(MQTT_TRANSPORT_DISCONNECTED, MQTT_ERROR_TRANSPORT, MQTT_EVENT_DISCONNECTED_CODE);
     }
+    else if (event_id == MQTT_EVENT_DATA && event->current_data_offset == 0 && event->data_len == event->total_data_len &&
+             event->topic_len > 0 && event->topic_len < MQTT_TOPIC_CAPACITY && event->data_len >= 0 &&
+             event->data_len < MQTT_PAYLOAD_CAPACITY && mqtt_inbound_queue != NULL)
+    {
+        /* Copy callback-owned buffers before ESP-MQTT reuses them; fragmented or oversized messages are rejected. */
+        mqtt_inbound_message_t message = {
+            .payload_size = (size_t)event->data_len, .qos = (mqtt_qos_t)event->qos, .is_duplicate = event->dup};
+        memcpy(message.topic, event->topic, (size_t)event->topic_len);
+        message.topic[event->topic_len] = '\0';
+        memcpy(message.payload, event->data, message.payload_size);
+        message.payload[message.payload_size] = '\0';
+        (void)xQueueSend(mqtt_inbound_queue, &message, 0);
+    }
 }
 
 /* Stops and releases the current ESP-MQTT client from the transport task. */
@@ -257,6 +262,22 @@ static void mqtt_transport_task(void * /* context */)
         {
             stop_mqtt_client();
         }
+        else if (command.type == MQTT_COMMAND_PUBLISH)
+        {
+            if (mqtt_client != NULL)
+            {
+                (void)esp_mqtt_client_enqueue(mqtt_client, command.publish.topic, (const char *)command.publish.payload,
+                                              (int)command.publish.payload_size, (int)command.publish.qos,
+                                              command.publish.is_retained, true);
+            }
+        }
+        else if (command.type == MQTT_COMMAND_SUBSCRIBE)
+        {
+            if (mqtt_client != NULL)
+            {
+                (void)esp_mqtt_client_subscribe(mqtt_client, command.topic_filter, (int)command.subscription_qos);
+            }
+        }
         else if (!start_mqtt_client(&command.config, command.selected_link))
         {
             enqueue_transport_event(MQTT_TRANSPORT_FAILED, MQTT_ERROR_TRANSPORT, MQTT_ERROR_TRANSPORT_CODE);
@@ -267,13 +288,14 @@ static void mqtt_transport_task(void * /* context */)
 /* Initializes bounded MQTT callback and lifecycle queues without contacting a broker. */
 bool platform_mqtt_initialize(void)
 {
-    if (mqtt_event_queue != NULL && mqtt_command_queue != NULL)
+    if (mqtt_event_queue != NULL && mqtt_command_queue != NULL && mqtt_inbound_queue != NULL)
     {
         return true;
     }
     mqtt_event_queue   = xQueueCreate(MQTT_EVENT_QUEUE_DEPTH, sizeof(mqtt_queued_event_t));
     mqtt_command_queue = xQueueCreate(MQTT_COMMAND_QUEUE_DEPTH, sizeof(mqtt_command_t));
-    return mqtt_event_queue != NULL && mqtt_command_queue != NULL &&
+    mqtt_inbound_queue = xQueueCreate(MQTT_INBOUND_QUEUE_DEPTH, sizeof(mqtt_inbound_message_t));
+    return mqtt_event_queue != NULL && mqtt_command_queue != NULL && mqtt_inbound_queue != NULL &&
            xTaskCreate(mqtt_transport_task, "mqtt_transport", MQTT_TRANSPORT_TASK_STACK, NULL, MQTT_TRANSPORT_TASK_PRIORITY,
                        NULL) == pdPASS;
 }
@@ -328,39 +350,86 @@ bool platform_mqtt_get_event(mqtt_queued_event_t *event)
     return mqtt_event_queue != NULL && xQueueReceive(mqtt_event_queue, event, 0) == pdTRUE;
 }
 
+/* Gets one complete owned inbound MQTT message without blocking. */
+bool platform_mqtt_get_inbound(mqtt_inbound_message_t *message)
+{
+    return mqtt_inbound_queue != NULL && message != NULL && xQueueReceive(mqtt_inbound_queue, message, 0) == pdTRUE;
+}
+
+/* Publishes one bounded message through the active client without waiting for acknowledgement. */
+int32_t platform_mqtt_publish(const char *topic, const void *payload, size_t payload_size, mqtt_qos_t qos, bool is_retained,
+                              void * /* context */)
+{
+    if (mqtt_command_queue == NULL || topic == NULL || payload == NULL || payload_size >= MQTT_PAYLOAD_CAPACITY)
+    {
+        return -1;
+    }
+    mqtt_command_t command = {.type = MQTT_COMMAND_PUBLISH};
+    (void)snprintf(command.publish.topic, sizeof(command.publish.topic), "%s", topic);
+    memcpy(command.publish.payload, payload, payload_size);
+    command.publish.payload_size = payload_size;
+    command.publish.qos          = qos;
+    command.publish.is_retained  = is_retained;
+    return xQueueSend(mqtt_command_queue, &command, 0) == pdTRUE ? 0 : -1;
+}
+
+/* Subscribes the active client to one validated filter without waiting for acknowledgement. */
+bool platform_mqtt_subscribe(const char *topic_filter, mqtt_qos_t qos, void * /* context */)
+{
+    if (mqtt_command_queue == NULL || topic_filter == NULL)
+    {
+        return false;
+    }
+    mqtt_command_t command = {.type = MQTT_COMMAND_SUBSCRIBE, .subscription_qos = qos};
+    (void)snprintf(command.topic_filter, sizeof(command.topic_filter), "%s", topic_filter);
+    return xQueueSend(mqtt_command_queue, &command, 0) == pdTRUE;
+}
+
+/* Registers the portable API whose subscriptions are restored after reconnect. */
+void platform_mqtt_set_api(mqtt_api_t *api)
+{
+    mqtt_api = api;
+}
+
 /* Replays subscriptions registered by the future bidirectional MQTT API. */
 void platform_mqtt_replay_subscriptions(void * /* context */)
 {
-    /* Phase 6 owns the bounded subscription registry; no subscriptions exist yet. */
+    if (mqtt_api != NULL)
+    {
+        mqtt_api_set_online(mqtt_api, true);
+        mqtt_api_replay_subscriptions(mqtt_api);
+    }
 }
 
 /* Gets typed MQTT settings using credentials from the persistent snapshot. */
 void platform_mqtt_get_config(mqtt_broker_config_t *config, const controller_settings_t *settings)
 {
-    mqtt_username      = settings != NULL ? &settings->mqtt_username : NULL;
-    mqtt_password      = settings != NULL ? &settings->mqtt_password : NULL;
-    const char *scheme = is_mqtt_tls_enabled ? MQTT_SCHEME_TLS : MQTT_SCHEME_PLAIN;
-    const int result   = snprintf(mqtt_broker_uri, sizeof(mqtt_broker_uri), MQTT_URI_FORMAT, scheme, CONFIG_CONTROLLER_MQTT_HOST,
-                                  CONFIG_CONTROLLER_MQTT_PORT);
+    mqtt_username                       = settings != NULL ? &settings->mqtt_username : NULL;
+    mqtt_password                       = settings != NULL ? &settings->mqtt_password : NULL;
+    const settings_mqtt_broker_t broker = settings != NULL ? settings->mqtt_broker : (settings_mqtt_broker_t){0};
+    const bool is_tls_enabled           = broker.is_tls_enabled;
+    const uint16_t port                 = broker.port != 0 ? broker.port : MQTT_DEFAULT_PORT;
+    const char *scheme                  = is_tls_enabled ? MQTT_SCHEME_TLS : MQTT_SCHEME_PLAIN;
+    const int result = snprintf(mqtt_broker_uri, sizeof(mqtt_broker_uri), MQTT_URI_FORMAT, scheme, broker.host, port);
     /* An invalid or truncated URI disables the service through normal configuration validation. */
     if (result < 0 || (size_t)result >= sizeof(mqtt_broker_uri))
     {
         mqtt_broker_uri[0] = '\0';
     }
     *config = (mqtt_broker_config_t){
-        .enabled                       = CONFIG_CONTROLLER_MQTT_HOST[0] != '\0',
+        .enabled                       = broker.enabled && broker.host[0] != '\0',
         .uri                           = mqtt_broker_uri,
-        .client_id                     = CONFIG_CONTROLLER_MQTT_CLIENT_ID,
+        .client_id                     = broker.client_id,
         .username_reference            = mqtt_username != NULL && mqtt_username->is_set ? MQTT_USERNAME_REFERENCE : NULL,
         .password_reference            = mqtt_password != NULL && mqtt_password->is_set ? MQTT_PASSWORD_REFERENCE : NULL,
-        .tls_policy                    = is_mqtt_tls_enabled ? MQTT_TLS_PLATFORM_TRUST : MQTT_TLS_DISABLED,
+        .tls_policy                    = is_tls_enabled ? MQTT_TLS_PLATFORM_TRUST : MQTT_TLS_DISABLED,
         .ca_reference                  = NULL,
         .keepalive_seconds             = CONFIG_CONTROLLER_MQTT_KEEPALIVE_SECONDS,
         .session_policy                = is_mqtt_session_persistent() ? MQTT_SESSION_PERSISTENT : MQTT_SESSION_CLEAN,
-        .last_will_topic               = CONFIG_CONTROLLER_MQTT_LAST_WILL_TOPIC,
-        .last_will_payload             = CONFIG_CONTROLLER_MQTT_LAST_WILL_PAYLOAD,
-        .last_will_qos                 = CONFIG_CONTROLLER_MQTT_LAST_WILL_QOS,
-        .is_last_will_retained         = is_mqtt_last_will_retained(),
+        .last_will_topic               = NULL,
+        .last_will_payload             = NULL,
+        .last_will_qos                 = MQTT_QOS_AT_LEAST_ONCE,
+        .is_last_will_retained         = false,
         .maximum_outbound_queue_depth  = MQTT_OUTBOUND_QUEUE_DEPTH,
         .maximum_inbound_payload_bytes = MQTT_MAXIMUM_INBOUND_PAYLOAD,
         .initial_backoff_ms            = CONFIG_CONTROLLER_MQTT_INITIAL_BACKOFF_MS,

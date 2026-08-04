@@ -9,39 +9,65 @@ static const char PROMPT_LOGIN_USERNAME[] = "Username: ";
 static const char PROMPT_LOGIN_PASSWORD[] = "Password: ";
 static const char MAIN_MENU[]             = "\r\n1. System Info\r\n2. Settings\r\n3. Diagnostics\r\n4. Reboot device\r\n> ";
 static const char SETTINGS_MENU[] =
-    "\r\n1. Wi-Fi credentials\r\n2. Terminal credentials\r\n3. MQTT credentials\r\n4. Device hostname\r\n"
+    "\r\n1. Wi-Fi credentials\r\n2. Terminal credentials\r\n3. MQTT configuration\r\n4. Device hostname\r\n"
     "5. Reset configuration\r\n0. Back\r\n> ";
-static const char INVALID_SELECTION[]          = "Invalid selection.\r\n> ";
-static const char INVALID_INPUT[]              = "Invalid or overlength input.\r\n";
-static const char AUTHENTICATION_FAILED[]      = "Authentication failed.\r\n";
-static const char STORAGE_UNAVAILABLE[]        = "Settings storage unavailable.\r\n";
-static const char STORAGE_UNAVAILABLE_FORMAT[] = "Settings storage unavailable: %s.\r\n";
-static const char DIAGNOSTICS_HEADER[]         = "Diagnostics mode. Enter /menu to return.\r\n";
-static const char RESET_PROMPT[]               = "Clear all credentials and settings? Type YES to confirm: ";
-static const char REBOOT_PROMPT[]              = "Reboot device? Type YES to confirm: ";
-static const char REBOOT_UNSUPPORTED[]         = "System reboot not supported by this device.\r\n";
+static const char MQTT_MENU_FORMAT[] =
+    "\r\nMQTT configuration\r\n"
+    "1. Credentials (username: %s, password: %s)\r\n2. Broker host: %s\r\n3. Broker port: %u\r\n"
+    "4. Client ID: %s\r\n5. Toggle TLS: %s\r\n6. Enable/disable: %s\r\n7. Status\r\n8. Back\r\n> ";
+static const char MQTT_HOST_PROMPT_FORMAT[] = "Current broker host: %s\r\nNew broker host (/cancel to keep current): ";
+static const char MQTT_PORT_PROMPT_FORMAT[] = "Current broker port: %u\r\nNew broker port 1-65535 (/cancel to keep current): ";
+static const char MQTT_CLIENT_ID_PROMPT_FORMAT[] = "Current client ID: %s\r\nNew client ID (/cancel to keep current): ";
+static const char MQTT_INVALID_PORT[]            = "Invalid MQTT port.\r\n";
+static const char MQTT_COMMIT_FAILED[]           = "MQTT update failed; previous settings remain active.\r\n";
+static const char MQTT_UPDATE_COMPLETE[]         = "MQTT settings applied.\r\n";
+static const char MQTT_STATUS_UNAVAILABLE[]      = "MQTT status unavailable.\r\n";
+static const char VALUE_UNSET[]                  = "<unset>";
+static const char VALUE_CONFIGURED[]             = "configured";
+static const char VALUE_NOT_CONFIGURED[]         = "not configured";
+static const char VALUE_ENABLED[]                = "enabled";
+static const char VALUE_DISABLED[]               = "disabled";
+static const char CANCEL_INPUT[]                 = "/cancel";
+static const char CANCELLED[]                    = "Change cancelled.\r\n";
+static const char INVALID_SELECTION[]            = "Invalid selection.\r\n> ";
+static const char INVALID_INPUT[]                = "Invalid or overlength input.\r\n";
+static const char AUTHENTICATION_FAILED[]        = "Authentication failed.\r\n";
+static const char STORAGE_UNAVAILABLE[]          = "Settings storage unavailable.\r\n";
+static const char STORAGE_UNAVAILABLE_FORMAT[]   = "Settings storage unavailable: %s.\r\n";
+static const char DIAGNOSTICS_HEADER[]           = "Diagnostics mode. Enter /menu to return.\r\n";
+static const char RESET_PROMPT[]                 = "Clear all credentials and settings? Type YES to confirm: ";
+static const char REBOOT_PROMPT[]                = "Reboot device? Type YES to confirm: ";
+static const char REBOOT_UNSUPPORTED[]           = "System reboot not supported by this device.\r\n";
 static const char RECOVERY_MENU[] =
     "\r\nRecovery mode - persistent settings are unavailable.\r\n1. System Info\r\n2. Reboot device\r\n> ";
 static const char RECOVERY_INITIALIZE_MENU[] = "\r\nRecovery mode - settings media requires initialization.\r\n1. System Info\r\n"
                                                "2. Initialize settings storage\r\n3. Reboot device\r\n> ";
 static const char INITIALIZE_PROMPT[] =
     "This clears only the reserved controller settings sectors. Type ERASE SETTINGS to confirm: ";
-static const char INITIALIZE_FAILED[]         = "Settings storage initialization failed; media remains unavailable.\r\n";
-static const char INITIALIZE_COMPLETE[]       = "Settings storage initialized. Rebooting device.\r\n";
-static const char CREDENTIAL_NAME_PROMPT[]    = "New username/name (empty is allowed): ";
-static const char CREDENTIAL_SECRET_PROMPT[]  = "New password (empty is allowed): ";
-static const char CREDENTIAL_CONFIRM_PROMPT[] = "Replace this credential pair? Type YES to confirm: ";
-static const char CREDENTIAL_COMMIT_FAILED[]  = "Credential update failed; previous settings remain active.\r\n";
-static const char HOSTNAME_PROMPT[]           = "New device hostname: ";
-static const char HOSTNAME_CONFIRM_PROMPT[]   = "Replace the device hostname? Type YES to confirm: ";
-static const char HOSTNAME_INVALID[]          = "Invalid hostname; use 1-63 letters, digits, or hyphens.\r\n";
-static const char HOSTNAME_COMMIT_FAILED[]    = "Hostname update failed; previous settings remain active.\r\n";
-static const char HOSTNAME_COMMIT_COMPLETE[]  = "Hostname updated; reboot to apply it to network interfaces.\r\n";
-static const char DIAGNOSTICS_EXIT[]          = "/menu";
-static const char CONFIRM_VALUE[]             = "YES";
-static const char INITIALIZE_CONFIRM_VALUE[]  = "ERASE SETTINGS";
-static const char LINE_ENDING[]               = "\r\n";
-static const char ERASE_CHARACTER[]           = "\b \b";
+static const char INITIALIZE_FAILED[]             = "Settings storage initialization failed; media remains unavailable.\r\n";
+static const char INITIALIZE_COMPLETE[]           = "Settings storage initialized. Rebooting device.\r\n";
+static const char CREDENTIAL_NAME_PROMPT_FORMAT[] = "Current username/name: %s\r\nNew username/name (/cancel to keep current): ";
+static const char CREDENTIAL_SECRET_PROMPT_FORMAT[] = "Current password: %s\r\nNew password (/cancel to keep current): ";
+static const char CREDENTIAL_CONFIRM_PROMPT[]       = "Replace this credential pair? Type YES to confirm: ";
+static const char CREDENTIAL_COMMIT_FAILED[]        = "Credential update failed; previous settings remain active.\r\n";
+static const char HOSTNAME_PROMPT_FORMAT[]   = "Current device hostname: %s\r\nNew device hostname (/cancel to keep current): ";
+static const char HOSTNAME_CONFIRM_PROMPT[]  = "Replace the device hostname? Type YES to confirm: ";
+static const char HOSTNAME_INVALID[]         = "Invalid hostname; use 1-63 letters, digits, or hyphens.\r\n";
+static const char HOSTNAME_COMMIT_FAILED[]   = "Hostname update failed; previous settings remain active.\r\n";
+static const char HOSTNAME_COMMIT_COMPLETE[] = "Hostname updated; reboot to apply it to network interfaces.\r\n";
+static const char DIAGNOSTICS_EXIT[]         = "/menu";
+static const char CONFIRM_VALUE[]            = "YES";
+static const char INITIALIZE_CONFIRM_VALUE[] = "ERASE SETTINGS";
+static const char LINE_ENDING[]              = "\r\n";
+static const char ERASE_CHARACTER[]          = "\b \b";
+
+/* Broker TCP ports are constrained by the protocol field width. */
+enum
+{
+    MQTT_MINIMUM_PORT = 1,
+    MQTT_MAXIMUM_PORT = 65535,
+    MQTT_DEFAULT_PORT = 1883,
+};
 
 /* Writes a bounded record and accounts for a slow or disconnected transport. */
 static void write_output(terminal_service_t *service, const char *output)
@@ -150,6 +176,78 @@ static void show_main_menu(terminal_service_t *service)
     write_output(service, MAIN_MENU);
 }
 
+/* Displays the authenticated MQTT configuration menu without exposing credentials. */
+static void show_mqtt_menu(terminal_service_t *service)
+{
+    char menu[TERMINAL_OUTPUT_CAPACITY];
+    const controller_settings_t settings = settings_service_get_snapshot(service->config.settings);
+    const settings_mqtt_broker_t *broker = &settings.mqtt_broker;
+    const char *username                 = settings.mqtt_username.is_set ? settings.mqtt_username.value : VALUE_UNSET;
+    const char *password                 = settings.mqtt_password.is_set ? VALUE_CONFIGURED : VALUE_NOT_CONFIGURED;
+    const char *host                     = broker->host[0] != '\0' ? broker->host : VALUE_UNSET;
+    const char *client_id                = broker->client_id[0] != '\0' ? broker->client_id : VALUE_UNSET;
+    const unsigned port                  = broker->port != 0 ? (unsigned)broker->port : MQTT_DEFAULT_PORT;
+    (void)snprintf(menu, sizeof(menu), MQTT_MENU_FORMAT, username, password, host, port, client_id,
+                   broker->is_tls_enabled ? VALUE_ENABLED : VALUE_DISABLED, broker->enabled ? VALUE_ENABLED : VALUE_DISABLED);
+    service->state = TERMINAL_STATE_MQTT_MENU;
+    write_output(service, menu);
+}
+
+/* Writes an MQTT value prompt containing its current non-secret value and cancellation command. */
+static void show_mqtt_text_prompt(terminal_service_t *service, const char *format, const char *current_value)
+{
+    char prompt[TERMINAL_OUTPUT_CAPACITY];
+    (void)snprintf(prompt, sizeof(prompt), format, current_value[0] != '\0' ? current_value : VALUE_UNSET);
+    write_output(service, prompt);
+}
+
+/* Tests whether the current editor may return without changing persistent settings. */
+static bool is_cancelable_editor(terminal_state_t state)
+{
+    return state == TERMINAL_STATE_EDIT_CREDENTIAL_NAME || state == TERMINAL_STATE_EDIT_CREDENTIAL_SECRET ||
+           state == TERMINAL_STATE_CONFIRM_CREDENTIAL || state == TERMINAL_STATE_EDIT_HOSTNAME ||
+           state == TERMINAL_STATE_CONFIRM_HOSTNAME || state == TERMINAL_STATE_EDIT_MQTT_HOST ||
+           state == TERMINAL_STATE_EDIT_MQTT_PORT || state == TERMINAL_STATE_EDIT_MQTT_CLIENT_ID;
+}
+
+/* Cancels an editor and returns to the owning menu without committing staged data. */
+static void cancel_editor(terminal_service_t *service)
+{
+    const bool is_mqtt_editor =
+        service->credential_target == TERMINAL_CREDENTIAL_MQTT || service->state == TERMINAL_STATE_EDIT_MQTT_HOST ||
+        service->state == TERMINAL_STATE_EDIT_MQTT_PORT || service->state == TERMINAL_STATE_EDIT_MQTT_CLIENT_ID;
+    clear_sensitive(service);
+    service->credential_target = TERMINAL_CREDENTIAL_NONE;
+    write_output(service, CANCELLED);
+    if (is_mqtt_editor)
+    {
+        show_mqtt_menu(service);
+    }
+    else
+    {
+        service->state = TERMINAL_STATE_SETTINGS_MENU;
+        write_output(service, SETTINGS_MENU);
+    }
+}
+
+/* Commits one complete settings update and notifies the runtime only after durable success. */
+static bool is_settings_update_successful(terminal_service_t *service, const controller_settings_t *settings)
+{
+    const bool is_success = settings_service_commit(service->config.settings, settings) == SETTINGS_STORE_OK;
+    if (is_success && service->config.settings_changed != NULL)
+    {
+        service->config.settings_changed(service->config.context);
+    }
+    return is_success;
+}
+
+/* Reports a broker update outcome and returns to its stable menu. */
+static void finish_mqtt_update(terminal_service_t *service, bool is_success)
+{
+    write_output(service, is_success ? MQTT_UPDATE_COMPLETE : MQTT_COMMIT_FAILED);
+    show_mqtt_menu(service);
+}
+
 /* Displays only safe recovery operations when persistent authentication is unavailable. */
 static void show_recovery_menu(terminal_service_t *service)
 {
@@ -193,14 +291,47 @@ static void redraw_current_view(terminal_service_t *service)
     {
         write_output(service, SETTINGS_MENU);
     }
+    else if (service->state == TERMINAL_STATE_MQTT_MENU)
+    {
+        show_mqtt_menu(service);
+    }
 }
 
 /* Begins a masked atomic credential-pair editor for one settings owner. */
 static void start_credential_edit(terminal_service_t *service, terminal_credential_target_t target)
 {
+    const controller_settings_t settings      = settings_service_get_snapshot(service->config.settings);
+    const settings_nullable_string_t *current = NULL;
+    if (target == TERMINAL_CREDENTIAL_WIFI)
+    {
+        current = &settings.wifi_ssid;
+    }
+    else if (target == TERMINAL_CREDENTIAL_TERMINAL)
+    {
+        current = &settings.terminal_username;
+    }
+    else if (target == TERMINAL_CREDENTIAL_MQTT)
+    {
+        current = &settings.mqtt_username;
+    }
     service->credential_target = target;
     service->state             = TERMINAL_STATE_EDIT_CREDENTIAL_NAME;
-    write_output(service, CREDENTIAL_NAME_PROMPT);
+    show_mqtt_text_prompt(service, CREDENTIAL_NAME_PROMPT_FORMAT,
+                          current != NULL && current->is_set ? current->value : VALUE_UNSET);
+}
+
+/* Gets whether the current credential target already has a persisted password. */
+static bool is_current_password_configured(const terminal_service_t *service, const controller_settings_t *settings)
+{
+    if (service->credential_target == TERMINAL_CREDENTIAL_WIFI)
+    {
+        return settings->wifi_password.is_set;
+    }
+    if (service->credential_target == TERMINAL_CREDENTIAL_TERMINAL)
+    {
+        return settings->terminal_password.is_set;
+    }
+    return service->credential_target == TERMINAL_CREDENTIAL_MQTT && settings->mqtt_password.is_set;
 }
 
 /* Applies the staged pair to one typed owner and preserves all unrelated settings. */
@@ -232,7 +363,7 @@ static bool is_credential_commit_successful(terminal_service_t *service)
     secret->is_set = true;
     copy_bounded(name->value, sizeof(name->value), service->pending_username);
     copy_bounded(secret->value, sizeof(secret->value), service->pending_secret);
-    const bool is_success = settings_service_commit(service->config.settings, &settings) == SETTINGS_STORE_OK;
+    const bool is_success = is_settings_update_successful(service, &settings);
     memset(&settings, 0, sizeof(settings));
     return is_success;
 }
@@ -302,7 +433,11 @@ static void commit_setup(terminal_service_t *service, const char *password)
 static void handle_line(terminal_service_t *service, uint64_t now_ms)
 {
     controller_settings_t settings = settings_service_get_snapshot(service->config.settings);
-    if (service->state == TERMINAL_STATE_SETUP_USERNAME)
+    if (is_cancelable_editor(service->state) && strcmp(service->line, CANCEL_INPUT) == 0)
+    {
+        cancel_editor(service);
+    }
+    else if (service->state == TERMINAL_STATE_SETUP_USERNAME)
     {
         copy_bounded(service->pending_username, sizeof(service->pending_username), service->line);
         service->state             = TERMINAL_STATE_SETUP_PASSWORD;
@@ -391,23 +526,118 @@ static void handle_line(terminal_service_t *service, uint64_t now_ms)
     }
     else if (service->state == TERMINAL_STATE_SETTINGS_MENU && strcmp(service->line, "3") == 0)
     {
-        start_credential_edit(service, TERMINAL_CREDENTIAL_MQTT);
+        show_mqtt_menu(service);
     }
     else if (service->state == TERMINAL_STATE_SETTINGS_MENU && strcmp(service->line, "4") == 0)
     {
         service->state = TERMINAL_STATE_EDIT_HOSTNAME;
-        write_output(service, HOSTNAME_PROMPT);
+        show_mqtt_text_prompt(service, HOSTNAME_PROMPT_FORMAT, settings.hostname.is_set ? settings.hostname.value : VALUE_UNSET);
     }
     else if (service->state == TERMINAL_STATE_SETTINGS_MENU && strcmp(service->line, "0") == 0)
     {
         show_main_menu(service);
+    }
+    else if (service->state == TERMINAL_STATE_MQTT_MENU && strcmp(service->line, "1") == 0)
+    {
+        start_credential_edit(service, TERMINAL_CREDENTIAL_MQTT);
+    }
+    else if (service->state == TERMINAL_STATE_MQTT_MENU && strcmp(service->line, "2") == 0)
+    {
+        service->state = TERMINAL_STATE_EDIT_MQTT_HOST;
+        show_mqtt_text_prompt(service, MQTT_HOST_PROMPT_FORMAT, settings.mqtt_broker.host);
+    }
+    else if (service->state == TERMINAL_STATE_MQTT_MENU && strcmp(service->line, "3") == 0)
+    {
+        service->state = TERMINAL_STATE_EDIT_MQTT_PORT;
+        char prompt[TERMINAL_OUTPUT_CAPACITY];
+        const unsigned port = settings.mqtt_broker.port != 0 ? (unsigned)settings.mqtt_broker.port : MQTT_DEFAULT_PORT;
+        (void)snprintf(prompt, sizeof(prompt), MQTT_PORT_PROMPT_FORMAT, port);
+        write_output(service, prompt);
+    }
+    else if (service->state == TERMINAL_STATE_MQTT_MENU && strcmp(service->line, "4") == 0)
+    {
+        service->state = TERMINAL_STATE_EDIT_MQTT_CLIENT_ID;
+        show_mqtt_text_prompt(service, MQTT_CLIENT_ID_PROMPT_FORMAT, settings.mqtt_broker.client_id);
+    }
+    else if (service->state == TERMINAL_STATE_MQTT_MENU && (strcmp(service->line, "5") == 0 || strcmp(service->line, "6") == 0))
+    {
+        controller_settings_t updated = settings_service_get_snapshot(service->config.settings);
+        if (strcmp(service->line, "5") == 0)
+        {
+            updated.mqtt_broker.is_tls_enabled = !updated.mqtt_broker.is_tls_enabled;
+        }
+        else
+        {
+            updated.mqtt_broker.enabled = !updated.mqtt_broker.enabled;
+        }
+        finish_mqtt_update(service, is_settings_update_successful(service, &updated));
+        memset(&updated, 0, sizeof(updated));
+    }
+    else if (service->state == TERMINAL_STATE_MQTT_MENU && strcmp(service->line, "7") == 0)
+    {
+        if (service->config.get_mqtt_status != NULL)
+        {
+            char status[TERMINAL_OUTPUT_CAPACITY];
+            service->config.get_mqtt_status(service->config.context, status, sizeof(status));
+            write_output(service, status);
+            write_output(service, LINE_ENDING);
+        }
+        else
+        {
+            write_output(service, MQTT_STATUS_UNAVAILABLE);
+        }
+        show_mqtt_menu(service);
+    }
+    else if (service->state == TERMINAL_STATE_MQTT_MENU && (strcmp(service->line, "8") == 0 || strcmp(service->line, "0") == 0))
+    {
+        service->state = TERMINAL_STATE_SETTINGS_MENU;
+        write_output(service, SETTINGS_MENU);
+    }
+    else if (service->state == TERMINAL_STATE_EDIT_MQTT_HOST)
+    {
+        controller_settings_t updated = settings_service_get_snapshot(service->config.settings);
+        copy_bounded(updated.mqtt_broker.host, sizeof(updated.mqtt_broker.host), service->line);
+        if (service->line[0] == '\0')
+        {
+            updated.mqtt_broker.enabled = false;
+        }
+        finish_mqtt_update(service, is_settings_update_successful(service, &updated));
+        memset(&updated, 0, sizeof(updated));
+    }
+    else if (service->state == TERMINAL_STATE_EDIT_MQTT_CLIENT_ID)
+    {
+        controller_settings_t updated = settings_service_get_snapshot(service->config.settings);
+        copy_bounded(updated.mqtt_broker.client_id, sizeof(updated.mqtt_broker.client_id), service->line);
+        finish_mqtt_update(service, is_settings_update_successful(service, &updated));
+        memset(&updated, 0, sizeof(updated));
+    }
+    else if (service->state == TERMINAL_STATE_EDIT_MQTT_PORT)
+    {
+        unsigned port = 0;
+        char trailing = '\0';
+        if (sscanf(service->line, "%u%c", &port, &trailing) != 1 || port < MQTT_MINIMUM_PORT || port > MQTT_MAXIMUM_PORT)
+        {
+            write_output(service, MQTT_INVALID_PORT);
+            char prompt[TERMINAL_OUTPUT_CAPACITY];
+            const unsigned port = settings.mqtt_broker.port != 0 ? (unsigned)settings.mqtt_broker.port : MQTT_DEFAULT_PORT;
+            (void)snprintf(prompt, sizeof(prompt), MQTT_PORT_PROMPT_FORMAT, port);
+            write_output(service, prompt);
+        }
+        else
+        {
+            controller_settings_t updated = settings_service_get_snapshot(service->config.settings);
+            updated.mqtt_broker.port      = (uint16_t)port;
+            finish_mqtt_update(service, is_settings_update_successful(service, &updated));
+            memset(&updated, 0, sizeof(updated));
+        }
     }
     else if (service->state == TERMINAL_STATE_EDIT_CREDENTIAL_NAME)
     {
         copy_bounded(service->pending_username, sizeof(service->pending_username), service->line);
         service->state             = TERMINAL_STATE_EDIT_CREDENTIAL_SECRET;
         service->is_password_input = true;
-        write_output(service, CREDENTIAL_SECRET_PROMPT);
+        show_mqtt_text_prompt(service, CREDENTIAL_SECRET_PROMPT_FORMAT,
+                              is_current_password_configured(service, &settings) ? VALUE_CONFIGURED : VALUE_NOT_CONFIGURED);
     }
     else if (service->state == TERMINAL_STATE_EDIT_CREDENTIAL_SECRET)
     {
@@ -442,7 +672,8 @@ static void handle_line(terminal_service_t *service, uint64_t now_ms)
         if (!is_hostname_valid(service->line))
         {
             write_output(service, HOSTNAME_INVALID);
-            write_output(service, HOSTNAME_PROMPT);
+            show_mqtt_text_prompt(service, HOSTNAME_PROMPT_FORMAT,
+                                  settings.hostname.is_set ? settings.hostname.value : VALUE_UNSET);
         }
         else
         {
@@ -458,7 +689,7 @@ static void handle_line(terminal_service_t *service, uint64_t now_ms)
             controller_settings_t updated = settings_service_get_snapshot(service->config.settings);
             updated.hostname.is_set       = true;
             copy_bounded(updated.hostname.value, sizeof(updated.hostname.value), service->pending_hostname);
-            if (settings_service_commit(service->config.settings, &updated) == SETTINGS_STORE_OK)
+            if (is_settings_update_successful(service, &updated))
             {
                 write_output(service, HOSTNAME_COMMIT_COMPLETE);
             }

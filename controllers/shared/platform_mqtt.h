@@ -1,5 +1,6 @@
 #pragma once
 
+#include "mqtt_api.h"
 #include "mqtt_service.h"
 #include "settings_service.h"
 
@@ -20,6 +21,19 @@ void platform_mqtt_disconnect(void *context);
 
 /* Gets one owned transport event without blocking, or reports an empty queue. */
 bool platform_mqtt_get_event(mqtt_queued_event_t *event);
+
+/* Gets one complete owned inbound MQTT message without blocking. */
+bool platform_mqtt_get_inbound(mqtt_inbound_message_t *message);
+
+/* Publishes one bounded message through the active client without waiting for acknowledgement. */
+int32_t platform_mqtt_publish(const char *topic, const void *payload, size_t payload_size, mqtt_qos_t qos, bool is_retained,
+                              void *context);
+
+/* Subscribes the active client to one validated filter without waiting for acknowledgement. */
+bool platform_mqtt_subscribe(const char *topic_filter, mqtt_qos_t qos, void *context);
+
+/* Registers the portable API whose subscriptions are restored after reconnect. */
+void platform_mqtt_set_api(mqtt_api_t *api);
 
 /* Replays subscriptions registered by the future bidirectional MQTT API. */
 void platform_mqtt_replay_subscriptions(void *context);

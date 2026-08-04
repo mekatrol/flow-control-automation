@@ -7,7 +7,8 @@ enum
 {
     SETTINGS_FORMAT_VERSION      = 1,
     SETTINGS_SCHEMA_ONE_VERSION  = 1,
-    SETTINGS_SCHEMA_VERSION      = 2,
+    SETTINGS_SCHEMA_TWO_VERSION  = 2,
+    SETTINGS_SCHEMA_VERSION      = 3,
     BOOTSTRAP_STATE_INITIALIZING = 1,
     BOOTSTRAP_STATE_READY        = 2,
 };
@@ -54,6 +55,28 @@ typedef struct
     settings_schema_one_t settings;
     uint32_t integrity;
 } settings_schema_one_record_t;
+
+/* Schema two is retained to migrate records written before broker settings became persistent. */
+typedef struct
+{
+    settings_nullable_string_t wifi_ssid;
+    settings_nullable_string_t wifi_password;
+    settings_nullable_string_t terminal_username;
+    settings_nullable_string_t terminal_password;
+    settings_nullable_string_t mqtt_username;
+    settings_nullable_string_t mqtt_password;
+    settings_nullable_string_t hostname;
+    bool is_user_reset;
+} settings_schema_two_t;
+
+typedef struct
+{
+    uint8_t magic[8];
+    uint32_t schema_version;
+    uint32_t generation;
+    settings_schema_two_t settings;
+    uint32_t integrity;
+} settings_schema_two_record_t;
 
 /* Calculates the portable integrity check used to detect torn or corrupt records. */
 static uint32_t get_integrity(const void *data, size_t size)
@@ -148,6 +171,35 @@ static settings_storage_state_t migrate_schema_one(settings_service_t *service, 
                                                                                      : SETTINGS_STORAGE_UNAVAILABLE;
 }
 
+/* Migrates schema two by preserving settings and adding a disabled blank broker configuration. */
+static settings_storage_state_t migrate_schema_two(settings_service_t *service, const settings_bootstrap_record_t *bootstrap)
+{
+    settings_schema_two_record_t legacy = {0};
+    size_t legacy_size                  = 0;
+    const settings_store_result_t result =
+        service->store.get_settings(service->store.context, &legacy, sizeof(legacy), &legacy_size);
+    if (result != SETTINGS_STORE_OK || legacy_size != sizeof(legacy) ||
+        memcmp(legacy.magic, SETTINGS_MAGIC, sizeof(legacy.magic)) != 0 || legacy.schema_version != SETTINGS_SCHEMA_TWO_VERSION ||
+        legacy.generation != bootstrap->generation ||
+        !is_integrity_valid(&legacy, offsetof(settings_schema_two_record_t, integrity), legacy.integrity))
+    {
+        return get_read_failure_state(result);
+    }
+    service->snapshot       = (controller_settings_t){.wifi_ssid         = legacy.settings.wifi_ssid,
+                                                      .wifi_password     = legacy.settings.wifi_password,
+                                                      .terminal_username = legacy.settings.terminal_username,
+                                                      .terminal_password = legacy.settings.terminal_password,
+                                                      .mqtt_username     = legacy.settings.mqtt_username,
+                                                      .mqtt_password     = legacy.settings.mqtt_password,
+                                                      .hostname          = legacy.settings.hostname,
+                                                      .is_user_reset     = legacy.settings.is_user_reset};
+    service->generation     = legacy.generation;
+    service->schema_version = legacy.schema_version;
+    service->state          = SETTINGS_STORAGE_READY;
+    return settings_service_commit(service, &service->snapshot) == SETTINGS_STORE_OK ? SETTINGS_STORAGE_READY
+                                                                                     : SETTINGS_STORAGE_UNAVAILABLE;
+}
+
 /* Writes and verifies initialization records, publishing ready metadata last. */
 static settings_storage_state_t initialize_storage(settings_service_t *service, const settings_defaults_t *defaults)
 {
@@ -229,6 +281,11 @@ settings_storage_state_t settings_service_initialize(settings_service_t *service
     if (bootstrap.schema_version == SETTINGS_SCHEMA_ONE_VERSION)
     {
         service->state = migrate_schema_one(service, &bootstrap);
+        return service->state;
+    }
+    if (bootstrap.schema_version == SETTINGS_SCHEMA_TWO_VERSION)
+    {
+        service->state = migrate_schema_two(service, &bootstrap);
         return service->state;
     }
 

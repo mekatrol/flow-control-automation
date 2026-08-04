@@ -282,7 +282,7 @@ in this order:
 2. Phase 8 — RS485 service
 3. Phase 9 — Integrated resilience and soak testing
 
-## Phase 7 — Bidirectional MQTT API
+## Phase 7 — Bidirectional MQTT API (complete)
 
 ### Deliverables
 

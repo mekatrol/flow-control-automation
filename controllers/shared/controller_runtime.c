@@ -2,6 +2,7 @@
 
 #include <inttypes.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "board.h"
 #include "controller_health.h"
@@ -34,19 +35,32 @@ enum
     TERMINAL_LOGIN_BACKOFF_MS       = 2000,
     TERMINAL_READ_CAPACITY          = 64,
     SETTINGS_REBOOT_SETTLE_DELAY_MS = 20,
+    MQTT_HEALTH_PAYLOAD_CAPACITY    = 192,
 };
 
 /* Runtime diagnostic identifiers define the stable heartbeat event schema. */
-static const char CONTROLLER_TASK_NAME[]  = "controller_runtime";
-static const char COMPONENT_RUNTIME[]     = "runtime";
-static const char EVENT_HEARTBEAT[]       = "heartbeat";
-static const char FORMAT_STATUS[]         = "%s";
-static const char COMPONENT_MQTT[]        = "mqtt";
-static const char EVENT_MQTT_CONFIG[]     = "configuration_invalid";
-static const char EVENT_MQTT_STATE[]      = "state_change";
-static const char MESSAGE_MQTT_CONFIG[]   = "MQTT host requires a valid client ID and reconnect limits";
-static const char FORMAT_MQTT_STATE[]     = "state=%s transport=%s error=%s reconnect_count=%u queue_depth=%u";
-static const char TRANSPORT_NONE[]        = "none";
+static const char CONTROLLER_TASK_NAME[]           = "controller_runtime";
+static const char COMPONENT_RUNTIME[]              = "runtime";
+static const char EVENT_HEARTBEAT[]                = "heartbeat";
+static const char FORMAT_STATUS[]                  = "%s";
+static const char COMPONENT_MQTT[]                 = "mqtt";
+static const char EVENT_MQTT_CONFIG[]              = "configuration_invalid";
+static const char EVENT_MQTT_STATE[]               = "state_change";
+static const char MESSAGE_MQTT_CONFIG[]            = "MQTT host requires a valid client ID and reconnect limits";
+static const char FORMAT_MQTT_STATE[]              = "state=%s transport=%s error=%s reconnect_count=%u queue_depth=%u";
+static const char TRANSPORT_NONE[]                 = "none";
+static const char MQTT_AVAILABILITY_TOPIC_FORMAT[] = "controllers/%s/status/availability";
+static const char MQTT_HEALTH_TOPIC_FORMAT[]       = "controllers/%s/status/health";
+static const char MQTT_ONLINE_PAYLOAD[]            = "online";
+static const char MQTT_OFFLINE_PAYLOAD[]           = "offline";
+static const char MQTT_AVAILABILITY_CORRELATION[]  = "runtime-availability";
+static const char MQTT_HEALTH_CORRELATION[]        = "runtime-health";
+static const char FORMAT_MQTT_HEALTH_PAYLOAD[] =
+    "{\"schema\":1,\"uptime_ms\":%" PRIu64 ",\"free_heap_bytes\":%" PRIu64 ",\"mqtt_reconnect_count\":%" PRIu32
+    ",\"publish_queue\":%u,\"receive_queue\":%u}";
+static const char FORMAT_MQTT_TERMINAL_STATUS[] =
+    "state=%s\r\ntransport=%s\r\nerror=%s\r\nreconnect_count=%u\r\npublish_queue=%u\r\nreceive_queue=%u\r\n"
+    "publish_rejections=%u\r\nreceive_rejections=%u";
 static const char COMPONENT_SETTINGS[]    = "settings";
 static const char EVENT_SETTINGS_STATE[]  = "state";
 static const char FORMAT_SETTINGS_STATE[] = "state=%s schema=%u generation=%u";
@@ -62,12 +76,39 @@ static const char FORMAT_SYSTEM_INFO[] =
 static network_manager_t controller_network_manager;
 static ethernet_link_t controller_ethernet_link;
 static mqtt_service_t controller_mqtt_service;
+static mqtt_api_t controller_mqtt_api;
 static diagnostic_rate_limiter_t mqtt_event_rate_limiter;
 static mqtt_session_state_t previous_mqtt_state = MQTT_SESSION_DISABLED;
 static settings_service_t controller_settings_service;
 static controller_settings_t controller_settings_snapshot;
 static terminal_service_t controller_terminal_service;
 static platform_settings_result_t platform_settings_result = PLATFORM_SETTINGS_DISABLED;
+static char mqtt_availability_topic[MQTT_TOPIC_CAPACITY];
+static char mqtt_health_topic[MQTT_TOPIC_CAPACITY];
+
+/* Gets platform entropy through the callback signature required by communications supervisors. */
+static uint32_t get_communications_random(void *context);
+
+/* Builds hostname-scoped status topics and applies the retained broker last will. */
+static void configure_mqtt_status_topics(mqtt_broker_config_t *config)
+{
+    const char *hostname = controller_settings_snapshot.hostname.is_set ? controller_settings_snapshot.hostname.value
+                                                                        : get_controller_default_hostname();
+    const int availability_size =
+        snprintf(mqtt_availability_topic, sizeof(mqtt_availability_topic), MQTT_AVAILABILITY_TOPIC_FORMAT, hostname);
+    const int health_size = snprintf(mqtt_health_topic, sizeof(mqtt_health_topic), MQTT_HEALTH_TOPIC_FORMAT, hostname);
+    if (availability_size <= 0 || (size_t)availability_size >= sizeof(mqtt_availability_topic) || health_size <= 0 ||
+        (size_t)health_size >= sizeof(mqtt_health_topic))
+    {
+        mqtt_availability_topic[0] = '\0';
+        mqtt_health_topic[0]       = '\0';
+        return;
+    }
+    config->last_will_topic       = mqtt_availability_topic;
+    config->last_will_payload     = MQTT_OFFLINE_PAYLOAD;
+    config->last_will_qos         = MQTT_QOS_AT_LEAST_ONCE;
+    config->is_last_will_retained = true;
+}
 
 /* Writes terminal output through the board-selected non-blocking transport. */
 static bool write_terminal(void * /* context */, const char *data, size_t size)
@@ -114,6 +155,33 @@ static bool initialize_terminal_storage(void * /* context */)
     return platform_settings_initialize_media();
 }
 
+/* Formats MQTT session and bounded API status without broker settings or credentials. */
+static void get_terminal_mqtt_status(void * /* context */, char *output, size_t capacity)
+{
+    const mqtt_session_health_t session = mqtt_service_get_health(&controller_mqtt_service);
+    const mqtt_api_health_t api         = mqtt_api_get_health(&controller_mqtt_api);
+    (void)snprintf(output, capacity, FORMAT_MQTT_TERMINAL_STATUS, mqtt_get_session_state_name(session.state),
+                   session.is_transport_selected ? session.selected_transport.name : TRANSPORT_NONE,
+                   mqtt_get_error_category_name(session.last_error_category), (unsigned)session.reconnect_count,
+                   (unsigned)api.publish_queue_depth, (unsigned)api.receive_queue_depth, (unsigned)api.publish_rejection_count,
+                   (unsigned)api.receive_rejection_count);
+}
+
+/* Applies a durable terminal settings generation to MQTT without restarting unrelated services. */
+static void apply_terminal_settings(void * /* context */)
+{
+    controller_settings_snapshot = settings_service_get_snapshot(&controller_settings_service);
+    mqtt_service_stop(&controller_mqtt_service);
+    mqtt_broker_config_t mqtt_config;
+    platform_mqtt_get_config(&mqtt_config, &controller_settings_snapshot);
+    configure_mqtt_status_topics(&mqtt_config);
+    mqtt_service_init(&controller_mqtt_service, &mqtt_config, platform_mqtt_get_transport_route, platform_mqtt_connect,
+                      platform_mqtt_disconnect, platform_mqtt_replay_subscriptions, get_communications_random,
+                      &controller_network_manager);
+    previous_mqtt_state = controller_mqtt_service.state;
+    mqtt_api_set_online(&controller_mqtt_api, false);
+}
+
 /* Routes diagnostics through the terminal's explicit authenticated Diagnostics mode. */
 static void emit_terminal_diagnostic(void *context, const char *record)
 {
@@ -133,6 +201,8 @@ static void initialize_terminal(void)
         .get_system_info    = get_terminal_system_info,
         .reboot             = reboot_terminal,
         .initialize_storage = platform_settings_result == PLATFORM_SETTINGS_MEDIA_INVALID ? initialize_terminal_storage : NULL,
+        .settings_changed   = apply_terminal_settings,
+        .get_mqtt_status    = get_terminal_mqtt_status,
         .settings_unavailable_reason = platform_settings_get_result_name(platform_settings_result),
         .context                     = NULL,
         .idle_timeout_ms             = TERMINAL_IDLE_TIMEOUT_MS,
@@ -218,7 +288,10 @@ static void initialize_mqtt(void)
 {
     mqtt_broker_config_t mqtt_config;
     platform_mqtt_get_config(&mqtt_config, &controller_settings_snapshot);
+    configure_mqtt_status_topics(&mqtt_config);
     const bool is_mqtt_platform_ready = platform_mqtt_initialize();
+    mqtt_api_init(&controller_mqtt_api, platform_mqtt_publish, platform_mqtt_subscribe, NULL);
+    platform_mqtt_set_api(&controller_mqtt_api);
     mqtt_service_init(&controller_mqtt_service, &mqtt_config, platform_mqtt_get_transport_route,
                       is_mqtt_platform_ready ? platform_mqtt_connect : NULL, platform_mqtt_disconnect,
                       platform_mqtt_replay_subscriptions, get_communications_random, &controller_network_manager);
@@ -227,6 +300,60 @@ static void initialize_mqtt(void)
     {
         diagnostics_emit(DIAGNOSTIC_ERROR, COMPONENT_MQTT, EVENT_MQTT_CONFIG, MESSAGE_MQTT_CONFIG);
     }
+}
+
+/* Publishes the retained versioned online marker after each successful connection. */
+static void publish_mqtt_availability(void)
+{
+    const mqtt_publish_request_t request = {.topic          = mqtt_availability_topic,
+                                            .payload        = MQTT_ONLINE_PAYLOAD,
+                                            .payload_size   = sizeof(MQTT_ONLINE_PAYLOAD) - 1,
+                                            .qos            = MQTT_QOS_AT_LEAST_ONCE,
+                                            .is_retained    = true,
+                                            .correlation_id = MQTT_AVAILABILITY_CORRELATION,
+                                            .offline_policy = MQTT_OFFLINE_REPLACE_NEWEST};
+    (void)mqtt_api_publish(&controller_mqtt_api, &request);
+}
+
+/* Publishes a coalesced versioned health snapshot whose offline backlog remains one message. */
+static void publish_mqtt_health(void)
+{
+    char payload[MQTT_HEALTH_PAYLOAD_CAPACITY];
+    const controller_health_snapshot_t health = get_controller_health_snapshot();
+    const mqtt_api_health_t mqtt_api_health   = mqtt_api_get_health(&controller_mqtt_api);
+    const int size = snprintf(payload, sizeof(payload), FORMAT_MQTT_HEALTH_PAYLOAD, health.uptime_ms, health.free_heap_bytes,
+                              health.mqtt_reconnect_count, (unsigned)mqtt_api_health.publish_queue_depth,
+                              (unsigned)mqtt_api_health.receive_queue_depth);
+    if (size <= 0 || (size_t)size >= sizeof(payload))
+    {
+        return;
+    }
+    const mqtt_publish_request_t request = {.topic          = mqtt_health_topic,
+                                            .payload        = payload,
+                                            .payload_size   = (size_t)size,
+                                            .qos            = MQTT_QOS_AT_LEAST_ONCE,
+                                            .is_retained    = true,
+                                            .correlation_id = MQTT_HEALTH_CORRELATION,
+                                            .offline_policy = MQTT_OFFLINE_REPLACE_NEWEST};
+    (void)mqtt_api_publish(&controller_mqtt_api, &request);
+}
+
+/* Publishes through the runtime-owned bounded bidirectional MQTT API. */
+mqtt_delivery_status_t controller_runtime_mqtt_publish(const mqtt_publish_request_t *request)
+{
+    return mqtt_api_publish(&controller_mqtt_api, request);
+}
+
+/* Registers one runtime MQTT subscription for automatic reconnect replay. */
+bool controller_runtime_mqtt_subscribe(const mqtt_subscription_t *subscription)
+{
+    return mqtt_api_subscribe(&controller_mqtt_api, subscription);
+}
+
+/* Gets the runtime MQTT API queue and overload snapshot. */
+mqtt_api_health_t get_controller_runtime_mqtt_api_health(void)
+{
+    return mqtt_api_get_health(&controller_mqtt_api);
 }
 
 /* Gets the runtime-owned network manager for read-only consumer discovery. */
@@ -267,8 +394,20 @@ static void process_mqtt(uint64_t now_ms)
     }
     mqtt_service_process(&controller_mqtt_service, now_ms);
     const mqtt_session_health_t health = mqtt_service_get_health(&controller_mqtt_service);
+    mqtt_api_set_online(&controller_mqtt_api, health.state == MQTT_SESSION_ONLINE);
+    mqtt_inbound_message_t inbound;
+    for (size_t processed = 0; processed < MQTT_RECEIVE_QUEUE_CAPACITY && platform_mqtt_get_inbound(&inbound); processed++)
+    {
+        (void)mqtt_api_enqueue_inbound(&controller_mqtt_api, inbound.topic, strlen(inbound.topic), inbound.payload,
+                                       inbound.payload_size, inbound.qos, inbound.is_duplicate);
+    }
+    mqtt_api_process(&controller_mqtt_api);
     if (health.state != previous_mqtt_state)
     {
+        if (health.state == MQTT_SESSION_ONLINE)
+        {
+            publish_mqtt_availability();
+        }
         diagnostics_emit_limited(&mqtt_event_rate_limiter, MQTT_EVENT_RATE_WINDOW_MS, MAXIMUM_MQTT_EVENTS_PER_WINDOW,
                                  health.state == MQTT_SESSION_ONLINE ? DIAGNOSTIC_INFO : DIAGNOSTIC_WARNING, COMPONENT_MQTT,
                                  EVENT_MQTT_STATE, FORMAT_MQTT_STATE, mqtt_get_session_state_name(health.state),
@@ -306,6 +445,7 @@ static void controller_task(void * /* context */)
             const controller_health_snapshot_t snapshot = get_controller_health_snapshot();
             controller_health_format(status, sizeof(status), &snapshot);
             diagnostics_emit(DIAGNOSTIC_INFO, COMPONENT_RUNTIME, EVENT_HEARTBEAT, FORMAT_STATUS, status);
+            publish_mqtt_health();
             next_status_ms = now_ms + STATUS_INTERVAL_MS;
         }
         platform_delay_ms(CONTROLLER_TICK_MS);

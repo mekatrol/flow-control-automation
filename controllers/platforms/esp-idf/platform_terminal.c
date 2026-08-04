@@ -6,7 +6,7 @@
 enum
 {
     TERMINAL_USB_RX_BUFFER_SIZE = 256,
-    TERMINAL_USB_TX_BUFFER_SIZE = 1024,
+    TERMINAL_USB_TX_BUFFER_SIZE = 4096,
 };
 static bool is_terminal_ready;
 

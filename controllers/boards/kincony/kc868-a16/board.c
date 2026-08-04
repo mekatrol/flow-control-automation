@@ -14,6 +14,7 @@ static const char DEFAULT_HOSTNAME[]             = "flow-controller";
 static const char FORMAT_NETWORK_CONFIGURATION[] = "wifi=runtime_disabled ethernet=%s mqtt=%s credentials=persistent";
 static const char FEATURE_ENABLED[]              = "enabled";
 static const char FEATURE_DISABLED[]             = "disabled";
+static const char FEATURE_PERSISTENT[]           = "persistent";
 /* KC868-A16v3 W5500 wiring is fixed by the board schematic. */
 enum
 {
@@ -47,10 +48,8 @@ const char *get_controller_default_hostname(void)
 /* Formats a credential-free board configuration summary into the supplied buffer. */
 void controller_board_format_configuration(char *output, size_t output_size)
 {
-    const bool is_mqtt_enabled = CONFIG_CONTROLLER_MQTT_HOST[0] != '\0' && CONFIG_CONTROLLER_MQTT_CLIENT_ID[0] != '\0';
     (void)snprintf(output, output_size, FORMAT_NETWORK_CONFIGURATION,
-                   CONFIG_CONTROLLER_ETHERNET_ENABLED ? FEATURE_ENABLED : FEATURE_DISABLED,
-                   is_mqtt_enabled ? FEATURE_ENABLED : FEATURE_DISABLED);
+                   CONFIG_CONTROLLER_ETHERNET_ENABLED ? FEATURE_ENABLED : FEATURE_DISABLED, FEATURE_PERSISTENT);
 }
 
 /* Gets the board-described W5500 wiring and Ethernet configuration. */

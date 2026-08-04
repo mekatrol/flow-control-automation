@@ -50,6 +50,13 @@ target_include_directories(mqtt_service_tests PRIVATE ../shared)
 target_compile_options(mqtt_service_tests PRIVATE -Wall -Wextra -Werror -pedantic)
 add_test(NAME mqtt_service COMMAND mqtt_service_tests)
 
+add_executable(mqtt_api_tests
+    test_mqtt_api.c
+    ../shared/mqtt_api.c)
+target_include_directories(mqtt_api_tests PRIVATE ../shared)
+target_compile_options(mqtt_api_tests PRIVATE -Wall -Wextra -Werror -pedantic)
+add_test(NAME mqtt_api COMMAND mqtt_api_tests)
+
 add_executable(settings_service_tests
     test_settings_service.c
     ../shared/settings_service.c)

@@ -30,31 +30,6 @@ menu "Flow controller"
         help
             Enables the board-described W5500 interface and supervised DHCP.
 
-    config CONTROLLER_MQTT_HOST
-        string "MQTT broker host"
-        default ""
-        help
-            Broker DNS name or address. An empty host disables MQTT cleanly.
-
-    config CONTROLLER_MQTT_PORT
-        int "MQTT broker port"
-        range 1 65535
-        default 1883
-        help
-            TCP port used by the MQTT broker.
-
-    config CONTROLLER_MQTT_CLIENT_ID
-        string "MQTT client ID"
-        default ""
-        help
-            Unique broker client identity. Set this whenever MQTT is enabled.
-
-    config CONTROLLER_MQTT_TLS_ENABLED
-        bool "Enable MQTT TLS with the platform trust store"
-        default n
-        help
-            Verifies the broker certificate using the ESP-IDF platform trust store.
-
     config CONTROLLER_MQTT_KEEPALIVE_SECONDS
         int "MQTT keepalive interval in seconds"
         range 1 65535
@@ -77,25 +52,6 @@ menu "Flow controller"
         config CONTROLLER_MQTT_LINK_ETHERNET
             bool "Bind to Ethernet"
     endchoice
-
-    config CONTROLLER_MQTT_LAST_WILL_TOPIC
-        string "MQTT last-will topic"
-        default ""
-        help
-            Empty disables the last will. The payload must be set when a topic is configured.
-
-    config CONTROLLER_MQTT_LAST_WILL_PAYLOAD
-        string "MQTT last-will payload"
-        default "offline"
-
-    config CONTROLLER_MQTT_LAST_WILL_QOS
-        int "MQTT last-will QoS"
-        range 0 2
-        default 1
-
-    config CONTROLLER_MQTT_LAST_WILL_RETAIN
-        bool "Retain MQTT last will"
-        default y
 
     config CONTROLLER_MQTT_INITIAL_BACKOFF_MS
         int "MQTT initial reconnect delay in milliseconds"

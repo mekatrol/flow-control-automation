@@ -13,6 +13,7 @@ idf_component_register(
         "${SHARED_DIR}/ethernet_link.c"
         "${SHARED_DIR}/ethernet_link_core.c"
         "${SHARED_DIR}/mqtt_service.c"
+        "${SHARED_DIR}/mqtt_api.c"
         "${SHARED_DIR}/network_manager.c"
         "${SHARED_DIR}/settings_service.c"
         "${SHARED_DIR}/terminal_service.c"

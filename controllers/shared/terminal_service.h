@@ -34,6 +34,10 @@ typedef enum
     TERMINAL_STATE_RECOVERY_MENU,
     TERMINAL_STATE_RECOVERY_CONFIRM_INITIALIZE,
     TERMINAL_STATE_RECOVERY_CONFIRM_REBOOT,
+    TERMINAL_STATE_MQTT_MENU,
+    TERMINAL_STATE_EDIT_MQTT_HOST,
+    TERMINAL_STATE_EDIT_MQTT_PORT,
+    TERMINAL_STATE_EDIT_MQTT_CLIENT_ID,
 } terminal_state_t;
 
 typedef enum
@@ -67,6 +71,8 @@ typedef bool (*terminal_write_function_t)(void *context, const char *data, size_
 typedef void (*terminal_system_info_function_t)(void *context, char *output, size_t capacity);
 typedef bool (*terminal_reboot_function_t)(void *context);
 typedef bool (*terminal_initialize_storage_function_t)(void *context);
+typedef void (*terminal_settings_changed_function_t)(void *context);
+typedef void (*terminal_mqtt_status_function_t)(void *context, char *output, size_t capacity);
 
 typedef struct
 {
@@ -75,6 +81,8 @@ typedef struct
     terminal_system_info_function_t get_system_info;
     terminal_reboot_function_t reboot;
     terminal_initialize_storage_function_t initialize_storage;
+    terminal_settings_changed_function_t settings_changed;
+    terminal_mqtt_status_function_t get_mqtt_status;
     const char *settings_unavailable_reason;
     void *context;
     uint64_t idle_timeout_ms;
