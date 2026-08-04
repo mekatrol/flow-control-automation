@@ -50,15 +50,16 @@ This creates the ignored local `.controller-board`, selects the ESP32-S3
 target, generates `sdkconfig`, and prepares the board-specific build directory.
 Run the task again whenever switching hardware.
 
-## Configure local credentials
+## Configure local build provisioning
 
-Use ESP-IDF menuconfig or the extension's SDK Configuration Editor to set any
-device-local configuration and secrets under **Flow controller**. Examples
-include Wi-Fi credentials, MQTT credentials, API or service tokens, and other
-values that differ between installations.
+Use ESP-IDF menuconfig or the extension's SDK Configuration Editor to set
+device-local build configuration under **Flow controller**. Wi-Fi, terminal,
+and MQTT credentials are provisioned through the device terminal and stored on
+authenticated persistent media; they are not SDK configuration values.
 
-The generated `sdkconfig` is ignored because it can contain credentials. Never
-put real credentials in `sdkconfig.defaults` or another committed file.
+The generated `sdkconfig` remains ignored because it contains the settings
+storage master key. Never put a real master key in `sdkconfig.defaults` or
+another committed file.
 
 ## Build the firmware
 

@@ -124,6 +124,11 @@ static void test_session_contract(void)
     send_line(&service, "2", 3);
     assert(service.state == TERMINAL_STATE_SETTINGS_MENU);
     assert(strstr(fixture.output, "\b \b") != NULL);
+    send_line(&service, "4", 3);
+    send_line(&service, "controller-a16-01", 3);
+    assert(service.state == TERMINAL_STATE_CONFIRM_HOSTNAME);
+    send_line(&service, "NO", 3);
+    assert(service.state == TERMINAL_STATE_SETTINGS_MENU);
     send_line(&service, "0", 3);
     send_line(&service, "3", 3);
     terminal_service_emit_diagnostic(&service, "diagnostic-record");

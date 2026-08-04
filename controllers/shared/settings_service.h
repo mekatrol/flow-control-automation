@@ -10,6 +10,7 @@ enum
     SETTINGS_USERNAME_CAPACITY  = 65,
     SETTINGS_PASSWORD_CAPACITY  = 129,
     SETTINGS_WIFI_SSID_CAPACITY = 33,
+    SETTINGS_HOSTNAME_CAPACITY  = 64,
 };
 
 /* Store results preserve distinctions that are significant during recovery. */
@@ -53,6 +54,7 @@ typedef struct
     settings_nullable_string_t terminal_password;
     settings_nullable_string_t mqtt_username;
     settings_nullable_string_t mqtt_password;
+    settings_nullable_string_t hostname;
     bool is_user_reset;
 } controller_settings_t;
 

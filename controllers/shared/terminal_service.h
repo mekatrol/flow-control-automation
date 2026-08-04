@@ -10,7 +10,7 @@
 enum
 {
     TERMINAL_LINE_CAPACITY   = 160,
-    TERMINAL_OUTPUT_CAPACITY = 512,
+    TERMINAL_OUTPUT_CAPACITY = 1024,
 };
 
 /* Stable states form the version-one host automation contract. */
@@ -29,6 +29,8 @@ typedef enum
     TERMINAL_STATE_EDIT_CREDENTIAL_NAME,
     TERMINAL_STATE_EDIT_CREDENTIAL_SECRET,
     TERMINAL_STATE_CONFIRM_CREDENTIAL,
+    TERMINAL_STATE_EDIT_HOSTNAME,
+    TERMINAL_STATE_CONFIRM_HOSTNAME,
     TERMINAL_STATE_RECOVERY_MENU,
     TERMINAL_STATE_RECOVERY_CONFIRM_INITIALIZE,
     TERMINAL_STATE_RECOVERY_CONFIRM_REBOOT,
@@ -89,6 +91,7 @@ typedef struct
     char pending_username[SETTINGS_USERNAME_CAPACITY];
     char login_username[SETTINGS_USERNAME_CAPACITY];
     char pending_secret[SETTINGS_PASSWORD_CAPACITY];
+    char pending_hostname[SETTINGS_HOSTNAME_CAPACITY];
     uint64_t last_activity_ms;
     uint64_t login_allowed_ms;
     uint32_t authenticated_session_count;

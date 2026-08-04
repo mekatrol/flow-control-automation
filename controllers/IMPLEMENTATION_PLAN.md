@@ -30,8 +30,8 @@ APIs introduced here must remain usable by those later components.
   server, or broker reachability.
 - Queues, retries, payloads, topic lengths, and diagnostic messages are bounded.
   No reconnect loop may grow memory usage indefinitely.
-- Credential build defaults remain in the ignored local `sdkconfig`. At
-  runtime, typed settings are loaded from an abstract persistent settings store
+- Credentials are provisioned through the authenticated terminal and never
+  compiled into firmware. At runtime, typed settings are loaded from an abstract persistent settings store
   whose board implementation may use an SD card, processor flash, or a separate
   flash device. Secrets must never appear in committed defaults, diagnostics,
   MQTT logs, crash output, or test fixtures.
@@ -158,8 +158,8 @@ manager, Wi-Fi, Ethernet, CAN, or serial types.
 ### Deliverables
 
 - Add typed Wi-Fi configuration sourced from the platform configuration layer.
-  The first ESP-IDF board uses ignored `CONFIG_CONTROLLER_WIFI_SSID` and
-  `CONFIG_CONTROLLER_WIFI_PASSWORD` settings.
+  The first ESP-IDF board reads Wi-Fi credentials from authenticated persistent
+  settings provisioned through the terminal.
 - Initialize the platform persistence, network interfaces, and event system;
   on ESP-IDF, explicitly handle recoverable NVS initialization errors.
 - Run Wi-Fi in station mode with power-save and hostname settings documented.
@@ -192,7 +192,7 @@ manager, Wi-Fi, Ethernet, CAN, or serial types.
 ## Phase 4 — Ethernet link (complete)
 
 Current commissioning mode is Ethernet-only: the runtime must not initialize
-or start Wi-Fi even when credentials remain configured in `sdkconfig`. The
+or start Wi-Fi even when credentials are present in persistent settings. The
 Wi-Fi adapter remains available for a later explicit return to dual-link mode.
 
 ### Deliverables
@@ -436,8 +436,7 @@ flash, or external-flash types to its consumers.
 - Perform first-time initialization as a recoverable transaction:
   1. write an initialization-in-progress bootstrap record;
   2. create and verify the empty storage layout;
-  3. seed every defined setting from its `sdkconfig` default while preserving
-     `null`, empty, and non-empty values;
+  3. create every nullable credential as `null` for terminal provisioning;
   4. read back and verify the seeded settings;
   5. write and verify the ready marker last.
   A reset or card removal before the final marker must resume or safely restart
@@ -447,24 +446,21 @@ flash, or external-flash types to its consumers.
   - `null` means the value has never been set;
   - an empty string means the value has deliberately been set to empty;
   - a non-empty string is the configured value.
-- On first initialization of each missing persisted value, seed its value from
-  the corresponding ignored `sdkconfig` value, including `null` or an empty
-  string. After initialization, the persisted value always takes precedence,
-  including when it is explicitly empty; firmware updates and reflashing must
-  not overwrite it from `sdkconfig`.
+- On first initialization, create missing credential values as `null`. After
+  terminal provisioning, preserve persisted null, empty, and non-empty values
+  across firmware updates and reflashing.
 - Define an atomic settings-service reset operation that writes a complete,
   valid, ready, user-reset settings generation rather than erasing bootstrap
   metadata or making storage appear uninitialized. The reset generation sets
   every nullable credential to `null`, clears every other sensitive value, and
   applies schema-defined blank values to non-sensitive settings. Persist an
   explicit reset-origin marker so subsequent boots, firmware updates, and
-  reflashing never seed the reset values from `sdkconfig`. Terminal credentials
+  reflashing retain the reset state. Terminal credentials
   being `null` intentionally returns the terminal to its constrained first-run
   credential setup flow.
-- Provide `sdkconfig` defaults for Wi-Fi, terminal, and MQTT credential fields.
-  The platform configuration adapter must preserve the distinction between a
-  Kconfig value that is not set and one explicitly set to an empty string
-  rather than collapsing both to an empty C string.
+- Do not expose Wi-Fi, terminal, or MQTT credential fields through Kconfig.
+  Platform adapters consume nullable credential values only from the persistent
+  settings snapshot.
 - Keep per-setting presence metadata in addition to the storage bootstrap
   marker so a stored `null` cannot be mistaken for a missing or uninitialized
   key. Define forward migration, incompatible-version handling, and recovery
@@ -485,9 +481,9 @@ flash, or external-flash types to its consumers.
 
 - Contract tests run against an in-memory fake and cover missing, `null`, empty,
   non-empty, corrupt, and incompatible values plus unavailable storage.
-- Initialization tests cover every combination of missing, `null`, empty, and
-  non-empty `sdkconfig` defaults and prove persisted values are not replaced on
-  later boots or after a simulated firmware reflash.
+- Initialization tests cover missing and `null` initial values and prove
+  terminal-provisioned values are not replaced on later boots or after a
+  simulated firmware reflash.
 - Bootstrap tests cover erased media, a valid ready marker, initialization in
   progress, invalid integrity data, incompatible versions, and foreign media.
   They verify only genuinely uninitialized controller storage is formatted and
@@ -498,7 +494,7 @@ flash, or external-flash types to its consumers.
   the old or new complete credential set, never a mixture.
 - Reset tests verify every credential and sensitive field is absent from the
   committed reset snapshot, the reset generation remains ready, and later
-  boots or simulated reflashes do not repopulate any value from `sdkconfig`.
+  boots or simulated reflashes do not repopulate any credential.
   Fault injection at every reset commit stage must recover the complete old or
   complete blank snapshot, never a partial reset.
 - Migration tests cover supported schema upgrades, unknown future versions,
@@ -516,12 +512,11 @@ flash, or external-flash types to its consumers.
   mechanism and any filesystem.
 - `null`, explicitly empty, and non-empty credential values retain their exact
   meaning across restart, firmware update, and recovery from interrupted writes.
-- Missing persisted values are initialized once from `sdkconfig`; existing
-  persisted values are never silently reset by reflashing.
+- Missing persisted credentials are initialized as `null`; existing persisted
+  values are never silently reset by reflashing.
 - A user-requested configuration reset atomically commits a complete blank
   snapshot, removes all persisted credentials and other sensitive values, and
-  permanently suppresses `sdkconfig` reseeding until settings are explicitly
-  entered again.
+  retains that blank state until settings are explicitly entered again.
 - An uninitialized SD-card storage area is formatted, seeded, verified, and
   marked ready before settings are consumed; an interrupted initialization is
   recoverable and corrupt or foreign media is never silently formatted.
@@ -566,11 +561,14 @@ flash, or external-flash types to its consumers.
   1. `Wi-Fi credentials`
   2. `Terminal credentials`
   3. `MQTT credentials`
-  4. `Reset configuration`
+  4. `Device hostname`
+  5. `Reset configuration`
 - Validate settings before committing them, mask secrets during entry, request
   confirmation before replacing credentials, and write each credential set
   atomically through the Phase 6A typed settings-service contract. Never log,
   redisplay, or retain plaintext secrets longer than required.
+- Persist one validated device hostname and apply it to both Wi-Fi and Ethernet
+  so identical firmware images can retain distinct network identities.
 - Apply changed settings through the owning subsystem without rebooting where
   practical. Wi-Fi and MQTT changes trigger controlled reconnection; terminal
   credential changes invalidate other active terminal sessions and take effect
@@ -580,8 +578,8 @@ flash, or external-flash types to its consumers.
   action through the Phase 6A atomic reset operation. The confirmation prompt
   must state that all credentials and settings will be cleared. Do not emulate
   reset by deleting bootstrap records, formatting storage, or invoking normal
-  first-time initialization because any of those paths could restore secrets
-  from `sdkconfig`. After a successful reset, disconnect MQTT and Wi-Fi where
+  first-time initialization because those paths do not represent an explicit
+  ready reset generation. After a successful reset, disconnect MQTT and Wi-Fi where
   applicable, invalidate every authenticated terminal session, clear sensitive
   input buffers, and enter the terminal first-run credential setup flow. A
   failed commit leaves the previous complete configuration active and reports
@@ -619,7 +617,7 @@ flash, or external-flash types to its consumers.
 - Unit tests cover reset confirmation and cancellation, the complete blank
   snapshot, removal of every credential and sensitive field, reset commit
   rollback, session invalidation, first-run setup after reset, and proof that
-  `sdkconfig` defaults are not restored after reboot or reflash.
+  credentials are not restored after reboot or reflash.
 - Unit tests cover reboot confirmation and cancellation, successful platform
   reboot dispatch, bounded output flushing, watchdog-reset fallback dispatch,
   and the exact unsupported-device response while retaining the terminal
@@ -632,7 +630,7 @@ flash, or external-flash types to its consumers.
   post-authentication view, all menu paths, sustained diagnostics output, a
   stalled terminal reader, and return from diagnostics mode to the menu.
 - On-target USB tests reset a fully populated configuration, power-cycle the
-  controller, and verify that no prior or `sdkconfig` credential returns and
+  controller, and verify that no prior credential returns and
   that terminal first-run setup is presented. They also exercise `Reboot
   device`, verify the reported reset reason, and confirm normal controller
   startup after the SDK or documented watchdog reset path.
@@ -649,7 +647,7 @@ flash, or external-flash types to its consumers.
   credential set, atomically reset all configuration, reboot a supported
   device, and enter or leave live diagnostics through the USB ASCII terminal.
 - Resetting configuration removes all credentials and sensitive values without
-  allowing `sdkconfig` reseeding. The reboot menu remains present on unsupported
+  build-time reseeding. The reboot menu remains present on unsupported
   devices and reports that reboot is unavailable without ending the session.
 - After boot, USB presents terminal authentication or first-run credential
   setup and then the main menu; diagnostics output is not the default USB mode.

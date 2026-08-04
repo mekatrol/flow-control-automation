@@ -106,8 +106,7 @@ run_idf() {
 run_idf_redacted() {
   run_idf "$@" 2>&1 |
     sed -E \
-      -e '/CONTROLLER_WIFI_(SSID|PASSWORD)/ s/"[^"]*"/"<redacted>"/g' \
-      -e '/CONTROLLER_MQTT_(HOST|CLIENT_ID|USERNAME|PASSWORD)/ s/"[^"]*"/"<redacted>"/g' \
+      -e '/CONTROLLER_MQTT_(HOST|CLIENT_ID)/ s/"[^"]*"/"<redacted>"/g' \
       -e '/CONTROLLER_SETTINGS_MASTER_KEY_HEX/ s/"[^"]*"/"<redacted>"/g' \
       -e '/Using default value from sdkconfig/ s/\("[^"]*"\)/("<redacted>")/g'
 }
@@ -120,7 +119,7 @@ restore_controller_configuration() {
   if [ -z "$saved_configuration" ]; then
     return
   fi
-  temporary_file=$(mktemp "${sdkconfig_file}.credentials.XXXXXX")
+  temporary_file=$(mktemp "${sdkconfig_file}.controller.XXXXXX")
   while IFS= read -r configuration_line; do
     local configuration_key=${configuration_line%%=*}
     local replacement=

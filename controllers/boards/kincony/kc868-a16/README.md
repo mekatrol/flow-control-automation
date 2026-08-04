@@ -57,16 +57,20 @@ environment configured in another terminal.
 **Set board** creates a root, ignored `sdkconfig`. The board's checked-in
 `sdkconfig.defaults` configures the N16R8 memory and USB console.
 
-Wi-Fi settings may remain in the ignored `sdkconfig`, but the current
-commissioning runtime deliberately does not initialize or start Wi-Fi. It uses
+Wi-Fi credentials and the device hostname are stored only in authenticated SD
+settings and provisioned through the terminal. The hostname is shared by Wi-Fi
+and Ethernet so boards running the same firmware can use distinct network
+identities. The current commissioning runtime deliberately does not
+initialize or start Wi-Fi. It uses
 the onboard W5500 Ethernet port instead. Ethernet is enabled by default and its
 DHCP hostname defaults to `flow-controller`; both settings are under **Flow
 controller** in menuconfig.
 
-MQTT broker host, port, client ID, username, password, TLS, keepalive, and
-reconnect timing are also configured under **Flow controller**. An empty broker
-host disables MQTT. The generated `sdkconfig` is ignored so broker credentials
-remain local, and startup diagnostics report only a redacted credential state.
+MQTT username and password are stored only in authenticated SD settings and
+provisioned through the terminal. Broker host, port, client ID, TLS, keepalive,
+and reconnect timing remain non-secret build configuration under **Flow
+controller**. An empty broker host disables MQTT, and diagnostics never expose
+credentials.
 
 ## Flash and monitor
 
@@ -240,9 +244,8 @@ exact confirmation `ERASE SETTINGS`. The controller clears and verifies only
 the 16 reserved settings sectors, cleanly releases the SD SPI device, and
 reboots; it does not erase the remainder of the card. The terminal should then present first-run setup when its
 credentials are `null`. After authenticating, enter Diagnostics mode to observe
-`settings/state state=ready schema=1 generation=1` and heartbeat records. Reboot
-with changed Kconfig seed values and verify the persisted values remain
-unchanged. Remove the card and boot again; the terminal reports settings storage
+`settings/state state=ready schema=2 generation=1` and heartbeat records. Reboot
+or reflash and verify the persisted values remain unchanged. Remove the card and boot again; the terminal reports settings storage
 as unavailable while networking and heartbeats continue internally. Also test a
 card whose reserved range contains unrelated data and a card encrypted for
 another controller; neither may be erased or reseeded.
@@ -267,7 +270,7 @@ output to confirm plaintext credentials are absent.
 
 ### Phase 6 authenticated-terminal smoke test
 
-Boot with terminal credentials set to `null`. USB application output must show
+Boot with uninitialized terminal credentials. USB application output must show
 the first-run username prompt rather than the diagnostic stream. Complete the
 username and masked-password flow, then verify the stable four-entry main menu.
 Reboot and confirm the persisted credentials are required and an incorrect
@@ -283,7 +286,7 @@ confirm the controller remains responsive and output drops remain bounded.
 Cancel and then confirm Reboot device, checking the next reset reason is the
 normal software-reset reason. Finally, populate all settings, confirm Reset
 configuration, and power-cycle. The terminal must return to first-run setup;
-none of the old values or local `sdkconfig` seed credentials may return.
+none of the old credential values may return.
 
 The board defaults disable the ESP-IDF primary and secondary consoles, compile
 out SDK component logs, silence the second-stage bootloader, and use silent

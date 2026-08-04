@@ -9,7 +9,8 @@ static const char PROMPT_LOGIN_USERNAME[] = "Username: ";
 static const char PROMPT_LOGIN_PASSWORD[] = "Password: ";
 static const char MAIN_MENU[]             = "\r\n1. System Info\r\n2. Settings\r\n3. Diagnostics\r\n4. Reboot device\r\n> ";
 static const char SETTINGS_MENU[] =
-    "\r\n1. Wi-Fi credentials\r\n2. Terminal credentials\r\n3. MQTT credentials\r\n4. Reset configuration\r\n0. Back\r\n> ";
+    "\r\n1. Wi-Fi credentials\r\n2. Terminal credentials\r\n3. MQTT credentials\r\n4. Device hostname\r\n"
+    "5. Reset configuration\r\n0. Back\r\n> ";
 static const char INVALID_SELECTION[]          = "Invalid selection.\r\n> ";
 static const char INVALID_INPUT[]              = "Invalid or overlength input.\r\n";
 static const char AUTHENTICATION_FAILED[]      = "Authentication failed.\r\n";
@@ -31,6 +32,11 @@ static const char CREDENTIAL_NAME_PROMPT[]    = "New username/name (empty is all
 static const char CREDENTIAL_SECRET_PROMPT[]  = "New password (empty is allowed): ";
 static const char CREDENTIAL_CONFIRM_PROMPT[] = "Replace this credential pair? Type YES to confirm: ";
 static const char CREDENTIAL_COMMIT_FAILED[]  = "Credential update failed; previous settings remain active.\r\n";
+static const char HOSTNAME_PROMPT[]           = "New device hostname: ";
+static const char HOSTNAME_CONFIRM_PROMPT[]   = "Replace the device hostname? Type YES to confirm: ";
+static const char HOSTNAME_INVALID[]          = "Invalid hostname; use 1-63 letters, digits, or hyphens.\r\n";
+static const char HOSTNAME_COMMIT_FAILED[]    = "Hostname update failed; previous settings remain active.\r\n";
+static const char HOSTNAME_COMMIT_COMPLETE[]  = "Hostname updated; reboot to apply it to network interfaces.\r\n";
 static const char DIAGNOSTICS_EXIT[]          = "/menu";
 static const char CONFIRM_VALUE[]             = "YES";
 static const char INITIALIZE_CONFIRM_VALUE[]  = "ERASE SETTINGS";
@@ -69,6 +75,11 @@ static void clear_sensitive(terminal_service_t *service)
     for (size_t index = 0; index < sizeof(service->pending_secret); index++)
     {
         secret[index] = '\0';
+    }
+    volatile char *hostname = service->pending_hostname;
+    for (size_t index = 0; index < sizeof(service->pending_hostname); index++)
+    {
+        hostname[index] = '\0';
     }
     service->line_size = 0;
 }
@@ -109,6 +120,26 @@ static bool is_credential_equal(const settings_nullable_string_t *expected, cons
         difference |= left ^ right;
     }
     return difference == 0U;
+}
+
+/* Tests a portable DNS hostname label before it can be persisted or passed to a network adapter. */
+static bool is_hostname_valid(const char *hostname)
+{
+    const size_t size = get_bounded_length(hostname, SETTINGS_HOSTNAME_CAPACITY);
+    if (size == 0 || size >= SETTINGS_HOSTNAME_CAPACITY || hostname[0] == '-' || hostname[size - 1] == '-')
+    {
+        return false;
+    }
+    for (size_t index = 0; index < size; index++)
+    {
+        const char character = hostname[index];
+        if (!((character >= 'a' && character <= 'z') || (character >= 'A' && character <= 'Z') ||
+              (character >= '0' && character <= '9') || character == '-'))
+        {
+            return false;
+        }
+    }
+    return true;
 }
 
 /* Displays the stable main menu after successful authentication. */
@@ -345,7 +376,7 @@ static void handle_line(terminal_service_t *service, uint64_t now_ms)
         service->state = TERMINAL_STATE_CONFIRM_REBOOT;
         write_output(service, REBOOT_PROMPT);
     }
-    else if (service->state == TERMINAL_STATE_SETTINGS_MENU && strcmp(service->line, "4") == 0)
+    else if (service->state == TERMINAL_STATE_SETTINGS_MENU && strcmp(service->line, "5") == 0)
     {
         service->state = TERMINAL_STATE_CONFIRM_RESET;
         write_output(service, RESET_PROMPT);
@@ -361,6 +392,11 @@ static void handle_line(terminal_service_t *service, uint64_t now_ms)
     else if (service->state == TERMINAL_STATE_SETTINGS_MENU && strcmp(service->line, "3") == 0)
     {
         start_credential_edit(service, TERMINAL_CREDENTIAL_MQTT);
+    }
+    else if (service->state == TERMINAL_STATE_SETTINGS_MENU && strcmp(service->line, "4") == 0)
+    {
+        service->state = TERMINAL_STATE_EDIT_HOSTNAME;
+        write_output(service, HOSTNAME_PROMPT);
     }
     else if (service->state == TERMINAL_STATE_SETTINGS_MENU && strcmp(service->line, "0") == 0)
     {
@@ -400,6 +436,41 @@ static void handle_line(terminal_service_t *service, uint64_t now_ms)
             service->state = TERMINAL_STATE_SETTINGS_MENU;
             write_output(service, SETTINGS_MENU);
         }
+    }
+    else if (service->state == TERMINAL_STATE_EDIT_HOSTNAME)
+    {
+        if (!is_hostname_valid(service->line))
+        {
+            write_output(service, HOSTNAME_INVALID);
+            write_output(service, HOSTNAME_PROMPT);
+        }
+        else
+        {
+            copy_bounded(service->pending_hostname, sizeof(service->pending_hostname), service->line);
+            service->state = TERMINAL_STATE_CONFIRM_HOSTNAME;
+            write_output(service, HOSTNAME_CONFIRM_PROMPT);
+        }
+    }
+    else if (service->state == TERMINAL_STATE_CONFIRM_HOSTNAME)
+    {
+        if (strcmp(service->line, CONFIRM_VALUE) == 0)
+        {
+            controller_settings_t updated = settings_service_get_snapshot(service->config.settings);
+            updated.hostname.is_set       = true;
+            copy_bounded(updated.hostname.value, sizeof(updated.hostname.value), service->pending_hostname);
+            if (settings_service_commit(service->config.settings, &updated) == SETTINGS_STORE_OK)
+            {
+                write_output(service, HOSTNAME_COMMIT_COMPLETE);
+            }
+            else
+            {
+                write_output(service, HOSTNAME_COMMIT_FAILED);
+            }
+            memset(&updated, 0, sizeof(updated));
+        }
+        clear_sensitive(service);
+        service->state = TERMINAL_STATE_SETTINGS_MENU;
+        write_output(service, SETTINGS_MENU);
     }
     else if (service->state == TERMINAL_STATE_CONFIRM_RESET)
     {
@@ -609,6 +680,8 @@ const char *terminal_get_state_name(terminal_state_t state)
                                         "edit_credential_name",
                                         "edit_credential_secret",
                                         "confirm_credential",
+                                        "edit_hostname",
+                                        "confirm_hostname",
                                         "recovery_menu",
                                         "recovery_confirm_initialize",
                                         "recovery_confirm_reboot"};

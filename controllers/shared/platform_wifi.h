@@ -3,10 +3,11 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "settings_service.h"
 #include "wifi_link.h"
 
-/* Gets typed Wi-Fi settings from the platform configuration source. */
-void platform_wifi_get_config(wifi_link_config_t *config);
+/* Gets typed Wi-Fi settings from the persistent settings snapshot. */
+void platform_wifi_get_config(wifi_link_config_t *config, const controller_settings_t *settings);
 
 /* Initializes persistence, interfaces, events, and station driver without connecting. */
 bool platform_wifi_initialize(const wifi_link_config_t *config);

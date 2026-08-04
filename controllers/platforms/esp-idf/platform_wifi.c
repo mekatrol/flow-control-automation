@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "board.h"
 #include "esp_event.h"
 #include "esp_netif.h"
 #include "esp_netif_ip_addr.h"
@@ -154,13 +155,13 @@ static bool initialize_persistence(void)
     return result == ESP_OK;
 }
 
-/* Gets typed Wi-Fi settings from the ignored local sdkconfig. */
-void platform_wifi_get_config(wifi_link_config_t *config)
+/* Gets typed Wi-Fi settings from the persistent settings snapshot. */
+void platform_wifi_get_config(wifi_link_config_t *config, const controller_settings_t *settings)
 {
     *config = (wifi_link_config_t){
-        .ssid       = CONFIG_CONTROLLER_WIFI_SSID,
-        .password   = CONFIG_CONTROLLER_WIFI_PASSWORD,
-        .hostname   = CONFIG_CONTROLLER_WIFI_HOSTNAME,
+        .ssid     = settings != NULL && settings->wifi_ssid.is_set ? settings->wifi_ssid.value : "",
+        .password = settings != NULL && settings->wifi_password.is_set ? settings->wifi_password.value : "",
+        .hostname = settings != NULL && settings->hostname.is_set ? settings->hostname.value : get_controller_default_hostname(),
         .power_save = CONFIG_CONTROLLER_WIFI_POWER_SAVE ? WIFI_POWER_SAVE_MINIMUM_MODEM : WIFI_POWER_SAVE_DISABLED,
     };
 }

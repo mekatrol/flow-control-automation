@@ -1,5 +1,6 @@
 #include "controller_runtime.h"
 
+#include <inttypes.h>
 #include <stdio.h>
 
 #include "board.h"
@@ -49,6 +50,14 @@ static const char TRANSPORT_NONE[]        = "none";
 static const char COMPONENT_SETTINGS[]    = "settings";
 static const char EVENT_SETTINGS_STATE[]  = "state";
 static const char FORMAT_SETTINGS_STATE[] = "state=%s schema=%u generation=%u";
+static const char ADDRESS_UNAVAILABLE[]   = "unavailable";
+static const char FORMAT_SYSTEM_INFO[] =
+    "device=%s\r\nfirmware=%s\r\nversion=%s\r\nhardware=%s\r\nprocessor=%s\r\nhostname=%s\r\n"
+    "uptime_ms=%" PRIu64 "\r\nfree_heap_bytes=%" PRIu64 "\r\nwifi=%s\r\nwifi_ipv4=%s\r\nwifi_ipv6=%s\r\n"
+    "ethernet=%s\r\nethernet_ipv4=%s\r\nethernet_ipv6=%s\r\nmqtt=%s\r\nmqtt_transport=%s\r\n"
+    "mqtt_error=%s\r\nmqtt_reconnect_count=%" PRIu32 "\r\nmqtt_queue_depth=%zu\r\nrs485=%s\r\n"
+    "rs485_errors=%" PRIu32 "\r\nrs485_queue_drops=%" PRIu32 "\r\nterminal=%s\r\nterminal_sessions=%" PRIu32
+    "\r\nterminal_failed_logins=%" PRIu32 "\r\nterminal_output_drops=%" PRIu32 "\r\nbuses=unsupported";
 
 static network_manager_t controller_network_manager;
 static ethernet_link_t controller_ethernet_link;
@@ -70,13 +79,24 @@ static bool write_terminal(void * /* context */, const char *data, size_t size)
 static void get_terminal_system_info(void * /* context */, char *output, size_t capacity)
 {
     platform_startup_info_t startup;
-    char health[STATUS_BUFFER_SIZE];
     platform_get_startup_info(&startup);
-    const controller_health_snapshot_t snapshot = get_controller_health_snapshot();
-    (void)controller_health_format(health, sizeof(health), &snapshot);
-    (void)snprintf(output, capacity, "device=%s firmware=%s version=%s hardware=%s processor=%s %s buses=unsupported",
-                   get_controller_board_name(), startup.firmware_name, startup.firmware_version, get_controller_board_name(),
-                   startup.processor, health);
+    const controller_health_snapshot_t health = get_controller_health_snapshot();
+    const network_link_snapshot_t wifi        = network_manager_get_link_snapshot(&controller_network_manager, NETWORK_LINK_WIFI);
+    const network_link_snapshot_t ethernet =
+        network_manager_get_link_snapshot(&controller_network_manager, NETWORK_LINK_ETHERNET);
+    const char *hostname = controller_settings_snapshot.hostname.is_set ? controller_settings_snapshot.hostname.value
+                                                                        : get_controller_default_hostname();
+    /* Render one field per line so interactive users can scan the snapshot without horizontal wrapping. */
+    (void)snprintf(output, capacity, FORMAT_SYSTEM_INFO, get_controller_board_name(), startup.firmware_name,
+                   startup.firmware_version, get_controller_board_name(), startup.processor, hostname, health.uptime_ms,
+                   health.free_heap_bytes, health.wifi_state,
+                   wifi.ipv4_address[0] != '\0' ? wifi.ipv4_address : ADDRESS_UNAVAILABLE,
+                   wifi.ipv6_address[0] != '\0' ? wifi.ipv6_address : ADDRESS_UNAVAILABLE, health.ethernet_state,
+                   ethernet.ipv4_address[0] != '\0' ? ethernet.ipv4_address : ADDRESS_UNAVAILABLE,
+                   ethernet.ipv6_address[0] != '\0' ? ethernet.ipv6_address : ADDRESS_UNAVAILABLE, health.mqtt_state,
+                   health.mqtt_transport, health.mqtt_error, health.mqtt_reconnect_count, health.mqtt_queue_depth,
+                   health.rs485_state, health.rs485_errors, health.rs485_queue_drops, health.terminal_state,
+                   health.terminal_authenticated_sessions, health.terminal_failed_logins, health.terminal_output_drops);
 }
 
 /* Dispatches the portable reboot request after terminal confirmation. */
@@ -171,6 +191,8 @@ static void initialize_networking(void)
 {
     ethernet_link_config_t ethernet_config;
     controller_board_get_ethernet_config(&ethernet_config);
+    ethernet_config.hostname     = controller_settings_snapshot.hostname.is_set ? controller_settings_snapshot.hostname.value
+                                                                                : get_controller_default_hostname();
     const bool is_ethernet_ready = ethernet_link_init(&controller_ethernet_link, &controller_network_manager, &ethernet_config);
     const network_link_config_t network_configs[NETWORK_LINK_COUNT] = {
         [NETWORK_LINK_WIFI] =
