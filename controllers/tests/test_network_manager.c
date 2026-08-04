@@ -86,7 +86,8 @@ static network_manager_t get_test_manager(fixture_t *fixture, bool wifi, bool et
 {
     const network_link_config_t configs[NETWORK_LINK_COUNT] = {
         [NETWORK_LINK_WIFI]     = {wifi, WIFI_PRIORITY, INITIAL_BACKOFF_MS, MAXIMUM_BACKOFF_MS, JITTER_PERCENT, STABLE_ONLINE_MS},
-        [NETWORK_LINK_ETHERNET] = {ethernet, ETHERNET_PRIORITY, INITIAL_BACKOFF_MS, MAXIMUM_BACKOFF_MS, JITTER_PERCENT, STABLE_ONLINE_MS},
+        [NETWORK_LINK_ETHERNET] = {ethernet, ETHERNET_PRIORITY, INITIAL_BACKOFF_MS, MAXIMUM_BACKOFF_MS, JITTER_PERCENT,
+                                   STABLE_ONLINE_MS},
     };
     network_manager_t manager;
     network_manager_init(&manager, configs, start_link, stop_link, get_fixed_random, fixture, 0);
@@ -94,7 +95,8 @@ static network_manager_t get_test_manager(fixture_t *fixture, bool wifi, bool et
 }
 
 /* Enqueues one synthetic adapter event and requires the bounded queue to accept it. */
-static void enqueue_event(network_manager_t *manager, network_link_id_t id, network_event_type_t type, uint32_t sequence, bool dns, const char *reason)
+static void enqueue_event(network_manager_t *manager, network_link_id_t id, network_event_type_t type, uint32_t sequence,
+                          bool dns, const char *reason)
 {
     const network_event_t value = {
         .link_id        = id,
@@ -207,7 +209,8 @@ static void test_queue_bounds_and_enable_disable(void)
     {
         enqueue_event(&manager, NETWORK_LINK_ETHERNET, NETWORK_EVENT_STARTED, i, false, REASON_QUEUED);
     }
-    const network_event_t overflow = {.link_id = NETWORK_LINK_ETHERNET, .type = NETWORK_EVENT_STARTED, .sequence = OVERFLOW_SEQUENCE};
+    const network_event_t overflow = {
+        .link_id = NETWORK_LINK_ETHERNET, .type = NETWORK_EVENT_STARTED, .sequence = OVERFLOW_SEQUENCE};
     assert(!network_manager_enqueue_event(&manager, &overflow));
     assert(manager.dropped_events == 1);
 }

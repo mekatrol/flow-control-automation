@@ -35,7 +35,8 @@ void controller_board_format_configuration(char *output, size_t output_size)
 {
     const bool is_wifi_configured = CONFIG_CONTROLLER_WIFI_SSID[0] != '\0' && CONFIG_CONTROLLER_WIFI_PASSWORD[0] != '\0';
     /* Report runtime selection while keeping saved credentials out of logs. */
-    (void)snprintf(output, output_size, FORMAT_NETWORK_CONFIGURATION, is_wifi_configured ? CREDENTIALS_CONFIGURED : CREDENTIALS_NOT_CONFIGURED,
+    (void)snprintf(output, output_size, FORMAT_NETWORK_CONFIGURATION,
+                   is_wifi_configured ? CREDENTIALS_CONFIGURED : CREDENTIALS_NOT_CONFIGURED,
                    CONFIG_CONTROLLER_ETHERNET_ENABLED ? FEATURE_ENABLED : FEATURE_DISABLED);
 }
 

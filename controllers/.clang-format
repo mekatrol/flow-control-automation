@@ -1,5 +1,5 @@
 BasedOnStyle: Microsoft
-ColumnLimit: 200
+ColumnLimit: 130
 IndentCaseLabels: true
 InsertBraces: true
 AlignConsecutiveAssignments:

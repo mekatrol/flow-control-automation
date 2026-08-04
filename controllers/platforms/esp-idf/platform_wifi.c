@@ -83,7 +83,8 @@ static void handle_wifi_event(void * /* context */, esp_event_base_t event_base,
             const wifi_event_sta_disconnected_t *disconnected = event_data;
             event.reason_code                                 = disconnected->reason;
             event.rssi_dbm                                    = disconnected->rssi;
-            event.type                                        = is_authentication_failure(disconnected->reason) ? WIFI_PLATFORM_EVENT_AUTHENTICATION_FAILED : WIFI_PLATFORM_EVENT_ASSOCIATION_FAILED;
+            event.type = is_authentication_failure(disconnected->reason) ? WIFI_PLATFORM_EVENT_AUTHENTICATION_FAILED
+                                                                         : WIFI_PLATFORM_EVENT_ASSOCIATION_FAILED;
             break;
         }
         case WIFI_EVENT_STA_STOP:
@@ -216,7 +217,8 @@ bool platform_wifi_initialize(const wifi_link_config_t *config)
     (void)memcpy(station.sta.password, config->password, strlen(config->password));
     /* Match ESP-IDF station guidance: protected credentials require WPA2 or better. */
     station.sta.threshold.authmode = config->password[0] != '\0' ? WIFI_AUTH_WPA2_PSK : WIFI_AUTH_OPEN;
-    if (esp_wifi_set_storage(WIFI_STORAGE_RAM) != ESP_OK || esp_wifi_set_mode(WIFI_MODE_STA) != ESP_OK || esp_wifi_set_config(WIFI_IF_STA, &station) != ESP_OK)
+    if (esp_wifi_set_storage(WIFI_STORAGE_RAM) != ESP_OK || esp_wifi_set_mode(WIFI_MODE_STA) != ESP_OK ||
+        esp_wifi_set_config(WIFI_IF_STA, &station) != ESP_OK)
     {
         return false;
     }

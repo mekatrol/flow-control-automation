@@ -55,7 +55,7 @@ ignored, and no credential is stored in board defaults.
 ## Code formatting
 
 The repository's [`.clang-format`](.clang-format) configuration uses the
-Microsoft base style, permits lines up to 200 columns, and aligns assignment
+Microsoft base style, permits lines up to 130 columns, and aligns assignment
 operators in each contiguous block. A blank line or comment ends an alignment
 block.
 

@@ -62,7 +62,7 @@ static void initialize_networking(void)
 {
     ethernet_link_config_t ethernet_config;
     controller_board_get_ethernet_config(&ethernet_config);
-    const bool is_ethernet_ready                                    = ethernet_link_init(&controller_ethernet_link, &controller_network_manager, &ethernet_config);
+    const bool is_ethernet_ready = ethernet_link_init(&controller_ethernet_link, &controller_network_manager, &ethernet_config);
     const network_link_config_t network_configs[NETWORK_LINK_COUNT] = {
         [NETWORK_LINK_WIFI] =
             {
@@ -78,7 +78,8 @@ static void initialize_networking(void)
                 .stable_online_ms   = ETHERNET_STABLE_ONLINE_MS,
             },
     };
-    network_manager_init(&controller_network_manager, network_configs, start_network_link, stop_network_link, get_network_random, NULL, platform_get_monotonic_ms());
+    network_manager_init(&controller_network_manager, network_configs, start_network_link, stop_network_link, get_network_random,
+                         NULL, platform_get_monotonic_ms());
 }
 
 /* Gets the runtime-owned network manager for read-only consumer discovery. */

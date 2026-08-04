@@ -3,8 +3,9 @@
 /* Tests whether the board-provided Ethernet configuration is usable. */
 bool is_ethernet_link_config_valid(const ethernet_link_config_t *config)
 {
-    return config != NULL && config->hostname != NULL && config->hostname[0] != '\0' && config->clock_gpio >= 0 && config->mosi_gpio >= 0 && config->miso_gpio >= 0 && config->chip_select_gpio >= 0 &&
-           config->interrupt_gpio >= 0 && config->reset_gpio >= 0 && config->spi_clock_hz > 0;
+    return config != NULL && config->hostname != NULL && config->hostname[0] != '\0' && config->clock_gpio >= 0 &&
+           config->mosi_gpio >= 0 && config->miso_gpio >= 0 && config->chip_select_gpio >= 0 && config->interrupt_gpio >= 0 &&
+           config->reset_gpio >= 0 && config->spi_clock_hz > 0;
 }
 
 /* Gets the neutral event type corresponding to a platform Ethernet event. */

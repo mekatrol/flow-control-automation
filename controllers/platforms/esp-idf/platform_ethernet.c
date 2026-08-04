@@ -198,7 +198,8 @@ bool platform_ethernet_initialize(const ethernet_link_config_t *config)
     }
     uint8_t mac_address[ETH_ADDR_LEN];
     /* Use the ESP32's factory Ethernet identity because W5500 has no stored MAC. */
-    if (esp_read_mac(mac_address, ESP_MAC_ETH) != ESP_OK || esp_eth_ioctl(ethernet_driver, ETH_CMD_S_MAC_ADDR, mac_address) != ESP_OK)
+    if (esp_read_mac(mac_address, ESP_MAC_ETH) != ESP_OK ||
+        esp_eth_ioctl(ethernet_driver, ETH_CMD_S_MAC_ADDR, mac_address) != ESP_OK)
     {
         return false;
     }
@@ -214,7 +215,8 @@ bool platform_ethernet_initialize(const ethernet_link_config_t *config)
     {
         return false;
     }
-    if (esp_event_handler_register(ETH_EVENT, ESP_EVENT_ANY_ID, handle_ethernet_event, NULL) != ESP_OK || esp_event_handler_register(IP_EVENT, ESP_EVENT_ANY_ID, handle_ip_event, NULL) != ESP_OK)
+    if (esp_event_handler_register(ETH_EVENT, ESP_EVENT_ANY_ID, handle_ethernet_event, NULL) != ESP_OK ||
+        esp_event_handler_register(IP_EVENT, ESP_EVENT_ANY_ID, handle_ip_event, NULL) != ESP_OK)
     {
         return false;
     }

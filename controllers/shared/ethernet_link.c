@@ -32,7 +32,8 @@ static const char REASON_STOPPED[]       = "stopped";
 static const char *get_event_reason(ethernet_platform_event_type_t type)
 {
     static const char *const reasons[] = {
-        REASON_STARTED, REASON_LINK_UP, REASON_ADDRESS_READY, REASON_ADDRESS_LOST, REASON_LINK_DOWN, REASON_DRIVER_FAILED, REASON_STOPPED,
+        REASON_STARTED,   REASON_LINK_UP,       REASON_ADDRESS_READY, REASON_ADDRESS_LOST,
+        REASON_LINK_DOWN, REASON_DRIVER_FAILED, REASON_STOPPED,
     };
     return type <= ETHERNET_PLATFORM_EVENT_STOPPED ? reasons[type] : REASON_DRIVER_FAILED;
 }
@@ -107,14 +108,19 @@ void ethernet_link_process(ethernet_link_t *ethernet_link)
         };
         if (platform_event.type == ETHERNET_PLATFORM_EVENT_ADDRESS_READY)
         {
-            diagnostics_emit_limited(&ethernet_link->event_rate_limiter, EVENT_RATE_WINDOW_MS, MAXIMUM_EVENTS_PER_WINDOW, DIAGNOSTIC_INFO, COMPONENT_ETHERNET, REASON_ADDRESS_READY, FORMAT_ADDRESS,
-                                     platform_event.ipv4_address, platform_event.ipv6_address, platform_event.dns_ready ? 1U : 0U);
+            diagnostics_emit_limited(&ethernet_link->event_rate_limiter, EVENT_RATE_WINDOW_MS, MAXIMUM_EVENTS_PER_WINDOW,
+                                     DIAGNOSTIC_INFO, COMPONENT_ETHERNET, REASON_ADDRESS_READY, FORMAT_ADDRESS,
+                                     platform_event.ipv4_address, platform_event.ipv6_address,
+                                     platform_event.dns_ready ? 1U : 0U);
         }
         else
         {
-            const diagnostic_severity_t severity = event.type == NETWORK_EVENT_FAILED || event.type == NETWORK_EVENT_CONNECTION_LOST ? DIAGNOSTIC_WARNING : DIAGNOSTIC_INFO;
-            diagnostics_emit_limited(&ethernet_link->event_rate_limiter, EVENT_RATE_WINDOW_MS, MAXIMUM_EVENTS_PER_WINDOW, severity, COMPONENT_ETHERNET, get_event_reason(platform_event.type),
-                                     FORMAT_STATE, get_event_reason(platform_event.type));
+            const diagnostic_severity_t severity =
+                event.type == NETWORK_EVENT_FAILED || event.type == NETWORK_EVENT_CONNECTION_LOST ? DIAGNOSTIC_WARNING
+                                                                                                  : DIAGNOSTIC_INFO;
+            diagnostics_emit_limited(&ethernet_link->event_rate_limiter, EVENT_RATE_WINDOW_MS, MAXIMUM_EVENTS_PER_WINDOW,
+                                     severity, COMPONENT_ETHERNET, get_event_reason(platform_event.type), FORMAT_STATE,
+                                     get_event_reason(platform_event.type));
         }
         (void)network_manager_enqueue_event(ethernet_link->network_manager, &event);
     }

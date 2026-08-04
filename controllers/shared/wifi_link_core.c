@@ -9,7 +9,8 @@ bool is_wifi_link_config_valid(const wifi_link_config_t *config)
     {
         return false;
     }
-    return strlen(config->ssid) <= WIFI_SSID_MAX_LENGTH && strlen(config->password) <= WIFI_PASSWORD_MAX_LENGTH && strlen(config->hostname) <= WIFI_HOSTNAME_MAX_LENGTH && config->hostname[0] != '\0';
+    return strlen(config->ssid) <= WIFI_SSID_MAX_LENGTH && strlen(config->password) <= WIFI_PASSWORD_MAX_LENGTH &&
+           strlen(config->hostname) <= WIFI_HOSTNAME_MAX_LENGTH && config->hostname[0] != '\0';
 }
 
 /* Tests whether an empty SSID intentionally disables the station. */

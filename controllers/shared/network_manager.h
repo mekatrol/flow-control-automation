@@ -120,8 +120,9 @@ typedef struct
 } network_manager_t;
 
 /* Initializes independent link supervisors and starts each enabled adapter. */
-void network_manager_init(network_manager_t *manager, const network_link_config_t configs[NETWORK_LINK_COUNT], network_link_action_t start_link, network_link_action_t stop_link,
-                          network_random_t random, void *callback_context, uint64_t now_ms);
+void network_manager_init(network_manager_t *manager, const network_link_config_t configs[NETWORK_LINK_COUNT],
+                          network_link_action_t start_link, network_link_action_t stop_link, network_random_t random,
+                          void *callback_context, uint64_t now_ms);
 /* Copies a short-lived adapter event into the bounded owned event queue. */
 bool network_manager_enqueue_event(network_manager_t *manager, const network_event_t *event);
 
@@ -141,7 +142,8 @@ void network_manager_shutdown(network_manager_t *manager, uint64_t now_ms);
 network_link_snapshot_t network_manager_get_link_snapshot(const network_manager_t *manager, network_link_id_t link_id);
 
 /* Gets an eligible link for a route policy and reports whether one exists. */
-bool network_manager_get_selected_link(const network_manager_t *manager, network_route_policy_t policy, bool require_dns, network_link_id_t *selected_link);
+bool network_manager_get_selected_link(const network_manager_t *manager, network_route_policy_t policy, bool require_dns,
+                                       network_link_id_t *selected_link);
 
 /* Gets the stable diagnostic name associated with a link identifier. */
 const char *network_get_link_id_name(network_link_id_t link_id);

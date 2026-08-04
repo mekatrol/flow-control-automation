@@ -41,7 +41,8 @@ const char *get_diagnostic_severity_name(diagnostic_severity_t severity)
 }
 
 /* Formats and sanitizes one diagnostic event into a bounded output buffer. */
-int diagnostic_format_event(char *output, size_t output_size, diagnostic_severity_t severity, const char *component, const char *event_code, uint64_t timestamp_ms, const char *message)
+int diagnostic_format_event(char *output, size_t output_size, diagnostic_severity_t severity, const char *component,
+                            const char *event_code, uint64_t timestamp_ms, const char *message)
 {
     if (output == NULL || output_size == 0 || component == NULL || event_code == NULL || message == NULL)
     {
@@ -56,7 +57,8 @@ int diagnostic_format_event(char *output, size_t output_size, diagnostic_severit
         safe_message[target++] = (character == '\n' || character == '\r' || character == '"') ? ' ' : character;
     }
     safe_message[target] = '\0';
-    return snprintf(output, output_size, EVENT_FORMAT, timestamp_ms, get_diagnostic_severity_name(severity), component, event_code, safe_message);
+    return snprintf(output, output_size, EVENT_FORMAT, timestamp_ms, get_diagnostic_severity_name(severity), component,
+                    event_code, safe_message);
 }
 
 /* Formats Wi-Fi configuration presence without exposing credential values. */
@@ -68,11 +70,13 @@ int diagnostic_format_redacted_network_config(char *output, size_t output_size, 
     }
     const bool wifi_enabled          = wifi_ssid != NULL && wifi_ssid[0] != '\0';
     const bool credential_configured = wifi_password != NULL && wifi_password[0] != '\0';
-    return snprintf(output, output_size, NETWORK_CONFIG_FORMAT, wifi_enabled ? VALUE_ENABLED : VALUE_DISABLED, credential_configured ? VALUE_REDACTED : VALUE_NOT_CONFIGURED);
+    return snprintf(output, output_size, NETWORK_CONFIG_FORMAT, wifi_enabled ? VALUE_ENABLED : VALUE_DISABLED,
+                    credential_configured ? VALUE_REDACTED : VALUE_NOT_CONFIGURED);
 }
 
 /* Tests whether an event is allowed and advances the bounded limiter state. */
-bool is_diagnostic_event_allowed(diagnostic_rate_limiter_t *limiter, uint64_t now_ms, uint32_t window_ms, uint32_t maximum_events, uint32_t *previously_suppressed)
+bool is_diagnostic_event_allowed(diagnostic_rate_limiter_t *limiter, uint64_t now_ms, uint32_t window_ms, uint32_t maximum_events,
+                                 uint32_t *previously_suppressed)
 {
     if (previously_suppressed != NULL)
     {

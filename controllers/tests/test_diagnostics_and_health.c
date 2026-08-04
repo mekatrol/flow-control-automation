@@ -37,7 +37,8 @@ static const char TEST_SUCCESS_MESSAGE[]     = "Diagnostics core tests passed";
 static void test_event_formatting(void)
 {
     char output[EVENT_OUTPUT_SIZE];
-    assert(diagnostic_format_event(output, sizeof(output), DIAGNOSTIC_WARNING, COMPONENT_WIFI, EVENT_ASSOCIATION_FAILED, EVENT_TIMESTAMP_MS, UNSAFE_MESSAGE) > 0);
+    assert(diagnostic_format_event(output, sizeof(output), DIAGNOSTIC_WARNING, COMPONENT_WIFI, EVENT_ASSOCIATION_FAILED,
+                                   EVENT_TIMESTAMP_MS, UNSAFE_MESSAGE) > 0);
     assert(strcmp(output, EXPECTED_EVENT) == 0);
 }
 

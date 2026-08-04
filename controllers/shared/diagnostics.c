@@ -38,7 +38,8 @@ static void emit_message(diagnostic_severity_t severity, const char *component, 
 }
 
 /* Expands variadic arguments into bounded storage before emitting the event. */
-static void format_and_emit(diagnostic_severity_t severity, const char *component, const char *event_code, const char *format, va_list args)
+static void format_and_emit(diagnostic_severity_t severity, const char *component, const char *event_code, const char *format,
+                            va_list args)
 {
     char message[DIAGNOSTIC_MESSAGE_SIZE];
     vsnprintf(message, sizeof(message), format, args);
@@ -55,8 +56,9 @@ void diagnostics_emit(diagnostic_severity_t severity, const char *component, con
 }
 
 /* Emits an event only when its bounded rate limiter permits another message. */
-void diagnostics_emit_limited(diagnostic_rate_limiter_t *limiter, uint32_t window_ms, uint32_t maximum_events, diagnostic_severity_t severity, const char *component, const char *event_code,
-                              const char *format, ...)
+void diagnostics_emit_limited(diagnostic_rate_limiter_t *limiter, uint32_t window_ms, uint32_t maximum_events,
+                              diagnostic_severity_t severity, const char *component, const char *event_code, const char *format,
+                              ...)
 {
     uint32_t suppressed = 0;
     /* Rate limiting preserves logging capacity during repeated subsystem failures. */
@@ -66,7 +68,8 @@ void diagnostics_emit_limited(diagnostic_rate_limiter_t *limiter, uint32_t windo
     }
     if (suppressed > 0)
     {
-        diagnostics_emit(DIAGNOSTIC_WARNING, component, EVENT_MESSAGES_SUPPRESSED, FORMAT_MESSAGES_SUPPRESSED, suppressed, event_code);
+        diagnostics_emit(DIAGNOSTIC_WARNING, component, EVENT_MESSAGES_SUPPRESSED, FORMAT_MESSAGES_SUPPRESSED, suppressed,
+                         event_code);
     }
     va_list args;
     va_start(args, format);

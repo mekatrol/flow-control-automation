@@ -129,8 +129,9 @@ static void begin_start(network_manager_t *manager, network_link_id_t link_id, u
 }
 
 /* Initializes independent link supervisors and starts each enabled adapter. */
-void network_manager_init(network_manager_t *manager, const network_link_config_t configs[NETWORK_LINK_COUNT], network_link_action_t start_link, network_link_action_t stop_link,
-                          network_random_t random, void *callback_context, uint64_t now_ms)
+void network_manager_init(network_manager_t *manager, const network_link_config_t configs[NETWORK_LINK_COUNT],
+                          network_link_action_t start_link, network_link_action_t stop_link, network_random_t random,
+                          void *callback_context, uint64_t now_ms)
 {
     memset(manager, 0, sizeof(*manager));
     manager->start_link       = start_link;
@@ -151,7 +152,8 @@ void network_manager_init(network_manager_t *manager, const network_link_config_
             manager->config[id].jitter_percent = PERCENT_SCALE;
         }
         manager->links[id].link_id = id;
-        set_link_state(&manager->links[id], configs[id].enabled ? NETWORK_LINK_STARTING : NETWORK_LINK_DISABLED, now_ms, configs[id].enabled ? REASON_ENABLED : REASON_NOT_CONFIGURED);
+        set_link_state(&manager->links[id], configs[id].enabled ? NETWORK_LINK_STARTING : NETWORK_LINK_DISABLED, now_ms,
+                       configs[id].enabled ? REASON_ENABLED : REASON_NOT_CONFIGURED);
         if (configs[id].enabled && start_link != NULL)
         {
             start_link(id, callback_context);
@@ -271,7 +273,8 @@ void network_manager_process(network_manager_t *manager, uint64_t now_ms)
             begin_start(manager, id, now_ms, REASON_RETRY_DUE);
         }
         /* A stable connection proves old failures are no longer useful health information. */
-        if (link->state == NETWORK_LINK_ONLINE && link->retry_count > 0 && now_ms - link->transitioned_at_ms >= manager->config[id].stable_online_ms)
+        if (link->state == NETWORK_LINK_ONLINE && link->retry_count > 0 &&
+            now_ms - link->transitioned_at_ms >= manager->config[id].stable_online_ms)
         {
             link->retry_count = 0;
         }
@@ -348,7 +351,8 @@ static bool is_link_eligible(const network_manager_t *manager, network_link_id_t
 }
 
 /* Gets an eligible link for a route policy and reports whether one exists. */
-bool network_manager_get_selected_link(const network_manager_t *manager, network_route_policy_t policy, bool require_dns, network_link_id_t *selected_link)
+bool network_manager_get_selected_link(const network_manager_t *manager, network_route_policy_t policy, bool require_dns,
+                                       network_link_id_t *selected_link)
 {
     if (manager == NULL || selected_link == NULL)
     {
@@ -373,7 +377,8 @@ bool network_manager_get_selected_link(const network_manager_t *manager, network
     network_link_id_t best = NETWORK_LINK_WIFI;
     for (network_link_id_t id = NETWORK_LINK_WIFI; id < NETWORK_LINK_COUNT; id++)
     {
-        if (is_link_eligible(manager, id, require_dns) && (!found || manager->config[id].priority < manager->config[best].priority))
+        if (is_link_eligible(manager, id, require_dns) &&
+            (!found || manager->config[id].priority < manager->config[best].priority))
         {
             best  = id;
             found = true;
@@ -403,6 +408,7 @@ const char *network_get_link_id_name(network_link_id_t link_id)
 /* Gets the stable diagnostic name associated with a link state. */
 const char *network_get_link_state_name(network_link_state_t state)
 {
-    static const char *const names[] = {STATE_DISABLED, STATE_STARTING, STATE_CONNECTING, STATE_ONLINE, STATE_DEGRADED, STATE_BACKOFF, STATE_STOPPED};
+    static const char *const names[] = {STATE_DISABLED, STATE_STARTING, STATE_CONNECTING, STATE_ONLINE,
+                                        STATE_DEGRADED, STATE_BACKOFF,  STATE_STOPPED};
     return state <= NETWORK_LINK_STOPPED ? names[state] : LINK_NAME_UNKNOWN;
 }

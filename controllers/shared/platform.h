@@ -42,7 +42,8 @@ uint64_t platform_get_free_heap_bytes(void);
 uint32_t platform_get_random_u32(void);
 
 /* Starts a platform task and reports whether task creation succeeded. */
-bool platform_start_task(const char *name, platform_task_function_t function, void *context, size_t stack_size, unsigned priority);
+bool platform_start_task(const char *name, platform_task_function_t function, void *context, size_t stack_size,
+                         unsigned priority);
 
 /* Delays only the calling task for at least the requested duration. */
 void platform_delay_ms(uint32_t delay_ms);

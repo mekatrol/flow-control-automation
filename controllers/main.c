@@ -32,14 +32,17 @@ void controller_main(void)
 {
     platform_startup_info_t startup;
     char configuration[STARTUP_CONFIGURATION_SIZE];
-    
+
     /* Collect platform and board details before the task starts for one coherent banner. */
     platform_get_startup_info(&startup);
     controller_board_format_configuration(configuration, sizeof(configuration));
 
-    diagnostics_emit(DIAGNOSTIC_INFO, COMPONENT_STARTUP, EVENT_BANNER, FORMAT_BANNER, startup.firmware_name, startup.firmware_version, get_controller_board_name(), startup.reset_reason);
-    diagnostics_emit(DIAGNOSTIC_INFO, COMPONENT_STARTUP, EVENT_PROCESSOR, FORMAT_PROCESSOR, startup.processor, startup.processor_cores, startup.silicon_revision_major, startup.silicon_revision_minor);
-    diagnostics_emit(DIAGNOSTIC_INFO, COMPONENT_STARTUP, EVENT_MEMORY, FORMAT_MEMORY, (unsigned long long)startup.flash_bytes, (unsigned long long)startup.external_ram_bytes);
+    diagnostics_emit(DIAGNOSTIC_INFO, COMPONENT_STARTUP, EVENT_BANNER, FORMAT_BANNER, startup.firmware_name,
+                     startup.firmware_version, get_controller_board_name(), startup.reset_reason);
+    diagnostics_emit(DIAGNOSTIC_INFO, COMPONENT_STARTUP, EVENT_PROCESSOR, FORMAT_PROCESSOR, startup.processor,
+                     startup.processor_cores, startup.silicon_revision_major, startup.silicon_revision_minor);
+    diagnostics_emit(DIAGNOSTIC_INFO, COMPONENT_STARTUP, EVENT_MEMORY, FORMAT_MEMORY, (unsigned long long)startup.flash_bytes,
+                     (unsigned long long)startup.external_ram_bytes);
     diagnostics_emit(DIAGNOSTIC_INFO, COMPONENT_STARTUP, EVENT_CONFIGURATION, FORMAT_TEXT, configuration);
 
     if (!controller_runtime_start())
