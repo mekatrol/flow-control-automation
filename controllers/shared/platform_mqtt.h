@@ -1,9 +1,10 @@
 #pragma once
 
 #include "mqtt_service.h"
+#include "settings_service.h"
 
-/* Gets typed MQTT settings with credential references from the local platform configuration. */
-void platform_mqtt_get_config(mqtt_broker_config_t *config);
+/* Gets typed MQTT settings using credentials from the persistent snapshot. */
+void platform_mqtt_get_config(mqtt_broker_config_t *config, const controller_settings_t *settings);
 
 /* Initializes bounded platform MQTT callback storage without contacting a broker. */
 bool platform_mqtt_initialize(void);

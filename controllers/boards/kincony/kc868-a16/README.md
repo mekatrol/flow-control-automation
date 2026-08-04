@@ -169,6 +169,36 @@ When a last-will topic is configured, forcibly remove controller power and
 confirm the broker publishes the configured offline payload with the selected
 QoS and retain policy.
 
+### Phase 6A settings-storage smoke test
+
+The raw settings adapter owns exactly 16 consecutive 512-byte sectors beginning
+at `CONTROLLER_SETTINGS_FIRST_RESERVED_SECTOR`. Keep this range outside every
+partition and filesystem; zero disables the adapter. The firmware never guesses
+an unused range and never formats other SD content. The card-detect input is
+active low.
+
+Provision a random 64-hex-character `CONTROLLER_SETTINGS_MASTER_KEY_HEX` only in
+the ignored local `sdkconfig`. AES-256-GCM protects each slot, and its key is
+derived from that provisioned secret plus the ESP32-S3 factory identity. Moving
+the card to another controller or using the wrong secret must fail authentication
+without exposing or overwriting its contents. Losing this key makes the settings
+unrecoverable; it must not be committed, logged, or stored on the SD card.
+
+Reserve the sector range, configure the key and start sector, insert a blank SD
+card, and boot. Expect `settings/state state=ready schema=1 generation=1`, followed
+by the normal heartbeat. Reboot with changed Kconfig seed values and verify the
+persisted values remain unchanged. Remove the card and boot again; expect
+`state=unavailable` while networking and heartbeats continue. Also test a card
+whose reserved range contains unrelated data and a card encrypted for another
+controller; neither may be erased or reseeded.
+
+For power-loss testing, interrupt each of the initializing-marker, value, and
+ready-marker writes. A subsequent boot must either use the previous authenticated
+slot or restart incomplete first-time initialization. Repeat while atomically
+changing a complete credential pair; recovery must expose the old pair or the new
+pair, never one value from each. Capture the reserved sectors and all console
+output to confirm plaintext credentials are absent.
+
 ## Debug
 
 The ESP32-S3 has built-in JTAG, and the A16v3 exposes USB Serial/JTAG through

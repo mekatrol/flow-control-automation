@@ -7,11 +7,12 @@
 #include "network_manager.h"
 #include "platform.h"
 #include "platform_mqtt.h"
+#include "platform_settings.h"
 
 /* Runtime scheduling values balance responsive supervision with bounded CPU use. */
 enum
 {
-    CONTROLLER_TASK_STACK_SIZE      = 4096,
+    CONTROLLER_TASK_STACK_SIZE      = 24576,
     CONTROLLER_TASK_PRIORITY        = 5,
     STATUS_INTERVAL_MS              = 5000,
     CONTROLLER_TICK_MS              = 100,
@@ -27,22 +28,45 @@ enum
 };
 
 /* Runtime diagnostic identifiers define the stable heartbeat event schema. */
-static const char CONTROLLER_TASK_NAME[] = "controller_runtime";
-static const char COMPONENT_RUNTIME[]    = "runtime";
-static const char EVENT_HEARTBEAT[]      = "heartbeat";
-static const char FORMAT_STATUS[]        = "%s";
-static const char COMPONENT_MQTT[]       = "mqtt";
-static const char EVENT_MQTT_CONFIG[]    = "configuration_invalid";
-static const char EVENT_MQTT_STATE[]     = "state_change";
-static const char MESSAGE_MQTT_CONFIG[]  = "MQTT host requires a valid client ID and reconnect limits";
-static const char FORMAT_MQTT_STATE[]    = "state=%s transport=%s error=%s reconnect_count=%u queue_depth=%u";
-static const char TRANSPORT_NONE[]       = "none";
+static const char CONTROLLER_TASK_NAME[]  = "controller_runtime";
+static const char COMPONENT_RUNTIME[]     = "runtime";
+static const char EVENT_HEARTBEAT[]       = "heartbeat";
+static const char FORMAT_STATUS[]         = "%s";
+static const char COMPONENT_MQTT[]        = "mqtt";
+static const char EVENT_MQTT_CONFIG[]     = "configuration_invalid";
+static const char EVENT_MQTT_STATE[]      = "state_change";
+static const char MESSAGE_MQTT_CONFIG[]   = "MQTT host requires a valid client ID and reconnect limits";
+static const char FORMAT_MQTT_STATE[]     = "state=%s transport=%s error=%s reconnect_count=%u queue_depth=%u";
+static const char TRANSPORT_NONE[]        = "none";
+static const char COMPONENT_SETTINGS[]    = "settings";
+static const char EVENT_SETTINGS_STATE[]  = "state";
+static const char FORMAT_SETTINGS_STATE[] = "state=%s schema=%u generation=%u";
 
 static network_manager_t controller_network_manager;
 static ethernet_link_t controller_ethernet_link;
 static mqtt_service_t controller_mqtt_service;
 static diagnostic_rate_limiter_t mqtt_event_rate_limiter;
 static mqtt_session_state_t previous_mqtt_state = MQTT_SESSION_DISABLED;
+static settings_service_t controller_settings_service;
+static controller_settings_t controller_settings_snapshot;
+
+/* Initializes board-selected settings and reports only redacted storage metadata. */
+static void initialize_settings(void)
+{
+    settings_storage_config_t storage_config;
+    settings_defaults_t defaults;
+    settings_store_t store;
+    controller_board_get_settings_storage_config(&storage_config);
+    controller_board_get_settings_defaults(&defaults);
+    const bool is_store_ready = platform_settings_initialize(&storage_config, &store);
+    const settings_storage_state_t state =
+        settings_service_initialize(&controller_settings_service, is_store_ready ? &store : NULL, &defaults);
+    controller_settings_snapshot = state == SETTINGS_STORAGE_READY ? settings_service_get_snapshot(&controller_settings_service)
+                                                                   : (controller_settings_t){0};
+    diagnostics_emit(state == SETTINGS_STORAGE_READY ? DIAGNOSTIC_INFO : DIAGNOSTIC_WARNING, COMPONENT_SETTINGS,
+                     EVENT_SETTINGS_STATE, FORMAT_SETTINGS_STATE, settings_get_storage_state_name(state),
+                     controller_settings_service.schema_version, controller_settings_service.generation);
+}
 
 /* Dispatches a supervisor start action to its independent link adapter. */
 static void start_network_link(network_link_id_t link_id, void * /* context */)
@@ -99,7 +123,7 @@ static void initialize_networking(void)
 static void initialize_mqtt(void)
 {
     mqtt_broker_config_t mqtt_config;
-    platform_mqtt_get_config(&mqtt_config);
+    platform_mqtt_get_config(&mqtt_config, &controller_settings_snapshot);
     const bool is_mqtt_platform_ready = platform_mqtt_initialize();
     mqtt_service_init(&controller_mqtt_service, &mqtt_config, platform_mqtt_get_transport_route,
                       is_mqtt_platform_ready ? platform_mqtt_connect : NULL, platform_mqtt_disconnect,
@@ -160,6 +184,7 @@ static void controller_task(void * /* context */)
 {
     char status[STATUS_BUFFER_SIZE];
     uint64_t next_status_ms = platform_get_monotonic_ms();
+    initialize_settings();
     initialize_networking();
     initialize_mqtt();
     for (;;)

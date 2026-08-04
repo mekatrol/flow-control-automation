@@ -63,6 +63,8 @@ static QueueHandle_t mqtt_command_queue;
 static esp_mqtt_client_handle_t mqtt_client;
 static atomic_uint_least32_t mqtt_event_sequence;
 static atomic_bool is_failure_reported;
+static const settings_nullable_string_t *mqtt_username;
+static const settings_nullable_string_t *mqtt_password;
 
 /* Kconfig omits disabled Boolean symbols, so expose TLS as an ordinary typed value. */
 #ifdef CONFIG_CONTROLLER_MQTT_TLS_ENABLED
@@ -332,9 +334,11 @@ void platform_mqtt_replay_subscriptions(void * /* context */)
     /* Phase 6 owns the bounded subscription registry; no subscriptions exist yet. */
 }
 
-/* Gets typed MQTT settings with credential references from the ignored local sdkconfig. */
-void platform_mqtt_get_config(mqtt_broker_config_t *config)
+/* Gets typed MQTT settings using credentials from the persistent snapshot. */
+void platform_mqtt_get_config(mqtt_broker_config_t *config, const controller_settings_t *settings)
 {
+    mqtt_username      = settings != NULL ? &settings->mqtt_username : NULL;
+    mqtt_password      = settings != NULL ? &settings->mqtt_password : NULL;
     const char *scheme = is_mqtt_tls_enabled ? MQTT_SCHEME_TLS : MQTT_SCHEME_PLAIN;
     const int result   = snprintf(mqtt_broker_uri, sizeof(mqtt_broker_uri), MQTT_URI_FORMAT, scheme, CONFIG_CONTROLLER_MQTT_HOST,
                                   CONFIG_CONTROLLER_MQTT_PORT);
@@ -347,8 +351,8 @@ void platform_mqtt_get_config(mqtt_broker_config_t *config)
         .enabled                       = CONFIG_CONTROLLER_MQTT_HOST[0] != '\0',
         .uri                           = mqtt_broker_uri,
         .client_id                     = CONFIG_CONTROLLER_MQTT_CLIENT_ID,
-        .username_reference            = CONFIG_CONTROLLER_MQTT_USERNAME[0] != '\0' ? MQTT_USERNAME_REFERENCE : NULL,
-        .password_reference            = CONFIG_CONTROLLER_MQTT_PASSWORD[0] != '\0' ? MQTT_PASSWORD_REFERENCE : NULL,
+        .username_reference            = mqtt_username != NULL && mqtt_username->is_set ? MQTT_USERNAME_REFERENCE : NULL,
+        .password_reference            = mqtt_password != NULL && mqtt_password->is_set ? MQTT_PASSWORD_REFERENCE : NULL,
         .tls_policy                    = is_mqtt_tls_enabled ? MQTT_TLS_PLATFORM_TRUST : MQTT_TLS_DISABLED,
         .ca_reference                  = NULL,
         .keepalive_seconds             = CONFIG_CONTROLLER_MQTT_KEEPALIVE_SECONDS,
@@ -368,11 +372,11 @@ void platform_mqtt_get_config(mqtt_broker_config_t *config)
 /* Gets the configured broker username for use only by the MQTT transport adapter. */
 const char *platform_mqtt_get_username(void)
 {
-    return CONFIG_CONTROLLER_MQTT_USERNAME;
+    return mqtt_username != NULL && mqtt_username->is_set ? mqtt_username->value : NULL;
 }
 
 /* Gets the configured broker password for use only by the MQTT transport adapter. */
 const char *platform_mqtt_get_password(void)
 {
-    return CONFIG_CONTROLLER_MQTT_PASSWORD;
+    return mqtt_password != NULL && mqtt_password->is_set ? mqtt_password->value : NULL;
 }

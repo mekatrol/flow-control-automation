@@ -397,7 +397,7 @@ still `null`, the first-run credential setup flow. Successful authentication or
 first-run setup leads directly to the main menu. Diagnostics are streamed only
 after the user selects menu option 3.
 
-### Phase 6A — Persistent settings foundation (implement first)
+### Phase 6A — Persistent settings foundation (reset extension pending)
 
 Persistence is the first implementation step in Phase 6 because terminal
 authentication and every writable Settings menu entry depend on it. The shared
@@ -452,6 +452,15 @@ flash, or external-flash types to its consumers.
   string. After initialization, the persisted value always takes precedence,
   including when it is explicitly empty; firmware updates and reflashing must
   not overwrite it from `sdkconfig`.
+- Define an atomic settings-service reset operation that writes a complete,
+  valid, ready, user-reset settings generation rather than erasing bootstrap
+  metadata or making storage appear uninitialized. The reset generation sets
+  every nullable credential to `null`, clears every other sensitive value, and
+  applies schema-defined blank values to non-sensitive settings. Persist an
+  explicit reset-origin marker so subsequent boots, firmware updates, and
+  reflashing never seed the reset values from `sdkconfig`. Terminal credentials
+  being `null` intentionally returns the terminal to its constrained first-run
+  credential setup flow.
 - Provide `sdkconfig` defaults for Wi-Fi, terminal, and MQTT credential fields.
   The platform configuration adapter must preserve the distinction between a
   Kconfig value that is not set and one explicitly set to an empty string
@@ -487,6 +496,11 @@ flash, or external-flash types to its consumers.
   failures at every initialization and commit stage. Initialization must remain
   resumable until the ready marker is durable, and updates must recover either
   the old or new complete credential set, never a mixture.
+- Reset tests verify every credential and sensitive field is absent from the
+  committed reset snapshot, the reset generation remains ready, and later
+  boots or simulated reflashes do not repopulate any value from `sdkconfig`.
+  Fault injection at every reset commit stage must recover the complete old or
+  complete blank snapshot, never a partial reset.
 - Migration tests cover supported schema upgrades, unknown future versions,
   corrupt initialization markers, and interrupted first-time seeding.
 - On-target tests cover boot with no SD card, insertion and removal, repeated
@@ -504,6 +518,10 @@ flash, or external-flash types to its consumers.
   meaning across restart, firmware update, and recovery from interrupted writes.
 - Missing persisted values are initialized once from `sdkconfig`; existing
   persisted values are never silently reset by reflashing.
+- A user-requested configuration reset atomically commits a complete blank
+  snapshot, removes all persisted credentials and other sensitive values, and
+  permanently suppresses `sdkconfig` reseeding until settings are explicitly
+  entered again.
 - An uninitialized SD-card storage area is formatted, seeded, verified, and
   marked ready before settings are consumed; an interrupted initialization is
   recoverable and corrupt or foreign media is never silently formatted.
@@ -538,6 +556,7 @@ flash, or external-flash types to its consumers.
   1. `System Info`
   2. `Settings`
   3. `Diagnostics`
+  4. `Reboot device`
 - Implement `System Info` as a read-only snapshot containing all information
   available on the device, including device name, firmware and hardware model
   information, uptime, network-interface state and IP addresses, and configured
@@ -547,6 +566,7 @@ flash, or external-flash types to its consumers.
   1. `Wi-Fi credentials`
   2. `Terminal credentials`
   3. `MQTT credentials`
+  4. `Reset configuration`
 - Validate settings before committing them, mask secrets during entry, request
   confirmation before replacing credentials, and write each credential set
   atomically through the Phase 6A typed settings-service contract. Never log,
@@ -556,6 +576,25 @@ flash, or external-flash types to its consumers.
   credential changes invalidate other active terminal sessions and take effect
   no later than the next authentication attempt. Report whether a restart is
   required when a platform cannot apply a change live.
+- Implement `Reset configuration` as an explicitly confirmed destructive
+  action through the Phase 6A atomic reset operation. The confirmation prompt
+  must state that all credentials and settings will be cleared. Do not emulate
+  reset by deleting bootstrap records, formatting storage, or invoking normal
+  first-time initialization because any of those paths could restore secrets
+  from `sdkconfig`. After a successful reset, disconnect MQTT and Wi-Fi where
+  applicable, invalidate every authenticated terminal session, clear sensitive
+  input buffers, and enter the terminal first-run credential setup flow. A
+  failed commit leaves the previous complete configuration active and reports
+  failure without displaying stored values.
+- Implement `Reboot device` through a portable platform reboot contract after
+  explicit user confirmation. The selected board adapter should request a
+  normal reboot using its underlying SDK. If a normal reboot API is unavailable,
+  it may deliberately stop servicing a board watchdog only when watchdog
+  ownership and the resulting reset are documented and bounded. If neither
+  mechanism is supported, keep the menu entry stable and return exactly
+  `System reboot not supported by this device.` without disrupting the session.
+  Flush only already-queued non-sensitive terminal output for a bounded period
+  before requesting reboot; never wait indefinitely for a slow terminal.
 - Implement `Diagnostics` by attaching the session to the existing diagnostics
   event stream. Preserve the current USB diagnostics logger output, apply
   bounded buffering and drop accounting for slow readers, and provide a
@@ -577,6 +616,14 @@ flash, or external-flash types to its consumers.
   secrets.
 - Unit tests cover validation, confirmation, atomic commit failure, and
   rollback for Wi-Fi, terminal, and MQTT credential changes.
+- Unit tests cover reset confirmation and cancellation, the complete blank
+  snapshot, removal of every credential and sensitive field, reset commit
+  rollback, session invalidation, first-run setup after reset, and proof that
+  `sdkconfig` defaults are not restored after reboot or reflash.
+- Unit tests cover reboot confirmation and cancellation, successful platform
+  reboot dispatch, bounded output flushing, watchdog-reset fallback dispatch,
+  and the exact unsupported-device response while retaining the terminal
+  session.
 - Integration tests verify that Wi-Fi and MQTT credential changes reconnect
   only their owning subsystems and that a terminal credential change prevents
   reuse of the previous password.
@@ -584,6 +631,11 @@ flash, or external-flash types to its consumers.
   and disconnect, first-run setup, authentication, the main menu as the default
   post-authentication view, all menu paths, sustained diagnostics output, a
   stalled terminal reader, and return from diagnostics mode to the menu.
+- On-target USB tests reset a fully populated configuration, power-cycle the
+  controller, and verify that no prior or `sdkconfig` credential returns and
+  that terminal first-run setup is presented. They also exercise `Reboot
+  device`, verify the reported reset reason, and confirm normal controller
+  startup after the SDK or documented watchdog reset path.
 - Security tests capture terminal and diagnostic output during login and every
   settings operation and verify that no plaintext secret is emitted or left in
   reusable command history.
@@ -594,8 +646,11 @@ flash, or external-flash types to its consumers.
 ### Exit criteria
 
 - An authenticated user can access system information, update each supported
-  credential set, and enter or leave live diagnostics through the USB ASCII
-  terminal.
+  credential set, atomically reset all configuration, reboot a supported
+  device, and enter or leave live diagnostics through the USB ASCII terminal.
+- Resetting configuration removes all credentials and sensitive values without
+  allowing `sdkconfig` reseeding. The reboot menu remains present on unsupported
+  devices and reports that reboot is unavailable without ending the session.
 - After boot, USB presents terminal authentication or first-run credential
   setup and then the main menu; diagnostics output is not the default USB mode.
 - Terminal absence, disconnect, malformed input, failed authentication, and a

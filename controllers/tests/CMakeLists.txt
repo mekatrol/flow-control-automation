@@ -49,3 +49,10 @@ add_executable(mqtt_service_tests
 target_include_directories(mqtt_service_tests PRIVATE ../shared)
 target_compile_options(mqtt_service_tests PRIVATE -Wall -Wextra -Werror -pedantic)
 add_test(NAME mqtt_service COMMAND mqtt_service_tests)
+
+add_executable(settings_service_tests
+    test_settings_service.c
+    ../shared/settings_service.c)
+target_include_directories(settings_service_tests PRIVATE ../shared)
+target_compile_options(settings_service_tests PRIVATE -Wall -Wextra -Werror -pedantic)
+add_test(NAME settings_service COMMAND settings_service_tests)

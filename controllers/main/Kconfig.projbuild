@@ -1,5 +1,29 @@
 menu "Flow controller"
 
+    config CONTROLLER_SETTINGS_MASTER_KEY_HEX
+        string "Settings encryption master key (64 hexadecimal characters)"
+        default ""
+        help
+            Provision only in ignored local sdkconfig. The platform derives a
+            device-bound AES-256-GCM key from this value and the factory identity.
+            Empty or malformed values leave persistent settings unavailable.
+
+    config CONTROLLER_SETTINGS_FIRST_RESERVED_SECTOR
+        int "First SD sector reserved exclusively for controller settings"
+        range 0 2147483647
+        default 0
+        help
+            Zero disables raw settings storage. Provision a nonzero start sector
+            for a dedicated 16-sector area outside all partitions and filesystems.
+            Firmware never writes outside that explicitly reserved area.
+
+    config CONTROLLER_WIFI_SSID_IS_SET
+        bool "Seed Wi-Fi SSID as set"
+        default n
+        help
+            Disabled means null on first storage initialization. Enabled preserves
+            even an explicitly empty Wi-Fi SSID as a set value.
+
     config CONTROLLER_WIFI_SSID
         string "Wi-Fi SSID"
         default ""
@@ -13,6 +37,30 @@ menu "Flow controller"
         help
             Configure this with menuconfig. sdkconfig is ignored, so the real
             network password is not committed to source control.
+
+    config CONTROLLER_WIFI_PASSWORD_IS_SET
+        bool "Seed Wi-Fi password as set"
+        default n
+
+    config CONTROLLER_TERMINAL_USERNAME
+        string "Initial terminal username"
+        default ""
+        help
+            Used only when initializing empty controller storage.
+
+    config CONTROLLER_TERMINAL_USERNAME_IS_SET
+        bool "Seed terminal username as set"
+        default n
+
+    config CONTROLLER_TERMINAL_PASSWORD
+        string "Initial terminal password"
+        default ""
+        help
+            Used only when initializing empty controller storage.
+
+    config CONTROLLER_TERMINAL_PASSWORD_IS_SET
+        bool "Seed terminal password as set"
+        default n
 
     config CONTROLLER_WIFI_HOSTNAME
         string "Wi-Fi hostname"
@@ -64,11 +112,19 @@ menu "Flow controller"
         help
             Optional broker username stored only in the ignored local sdkconfig.
 
+    config CONTROLLER_MQTT_USERNAME_IS_SET
+        bool "Seed MQTT username as set"
+        default n
+
     config CONTROLLER_MQTT_PASSWORD
         string "MQTT password"
         default ""
         help
             Optional broker password stored only in the ignored local sdkconfig.
+
+    config CONTROLLER_MQTT_PASSWORD_IS_SET
+        bool "Seed MQTT password as set"
+        default n
 
     config CONTROLLER_MQTT_TLS_ENABLED
         bool "Enable MQTT TLS with the platform trust store"
