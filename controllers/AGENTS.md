@@ -1,6 +1,14 @@
 # Repository coding rules
 
 These rules apply to all code in the 'controllers' directory in this repository.
+Agents must ensure that every code change, including new code and modifications
+to existing code, follows all rules in this file and the formatting rules in
+`.clang-format`. Do not introduce or preserve noncompliant code in a file being
+changed.
+
+Developers and agents working from a clean environment must follow
+[`SETUP_DEV.md`](SETUP_DEV.md) for toolchain, board-selection, build, test, and
+formatting setup.
 
 1. Every method or function declaration must have a preceding comment that
    describes its contract: what it does, its relevant preconditions, and its

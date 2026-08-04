@@ -7,6 +7,9 @@ in `boards/`. The shared [`main.c`](main.c) is the controller entry point on
 every platform. A thin platform entry (for example ESP-IDF's `app_main`) calls
 it.
 
+For a clean machine or newly cloned repository, follow
+[`SETUP_DEV.md`](SETUP_DEV.md) before building.
+
 The first supported board is the KinCony KC868-A16v3 on ESP32-S3. Future ESP32,
 Raspberry Pi, STM32, and other targets should add a board description and, only
 when necessary, a platform adaptation. Shared services such as diagnostics,
