@@ -4,7 +4,7 @@ This directory is the firmware workspace for all flow-controller hardware.
 Portable runtime and communication services live in `shared/`; processor and
 operating-system adaptations live in `platforms/`; hardware definitions live
 in `boards/`. The shared [`main.c`](main.c) is the controller entry point on
-every platform. A thin platform entry (for example ESP-IDF's `app_main`) calls
+every platform. A thin platform entry (for example ESP-IDF's `platform_main`) calls
 it.
 
 For a clean machine or newly cloned repository, follow

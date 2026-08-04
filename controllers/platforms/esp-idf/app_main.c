@@ -2,7 +2,7 @@
 void controller_main(void);
 
 /* Delegates startup so the platform entry remains free of controller logic. */
-void app_main(void)
+void platform_main(void)
 {
     controller_main();
 }

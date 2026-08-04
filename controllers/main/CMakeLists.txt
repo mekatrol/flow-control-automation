@@ -15,7 +15,7 @@ idf_component_register(
         "${SHARED_DIR}/network_manager.c"
         "${SHARED_DIR}/wifi_link.c"
         "${SHARED_DIR}/wifi_link_core.c"
-        "${PLATFORM_DIR}/app_main.c"
+        "${PLATFORM_DIR}/platform_main.c"
         "${PLATFORM_DIR}/platform.c"
         "${PLATFORM_DIR}/platform_ethernet.c"
         "${PLATFORM_DIR}/platform_wifi.c"

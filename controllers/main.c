@@ -32,6 +32,7 @@ void controller_main(void)
 {
     platform_startup_info_t startup;
     char configuration[STARTUP_CONFIGURATION_SIZE];
+    
     /* Collect platform and board details before the task starts for one coherent banner. */
     platform_get_startup_info(&startup);
     controller_board_format_configuration(configuration, sizeof(configuration));
