@@ -273,7 +273,7 @@ Wi-Fi adapter remains available for a later explicit return to dual-link mode.
 
 ## Remaining implementation order
 
-Phase 6, the authenticated ASCII terminal port, is the next phase to implement.
+Phase 6, the authenticated ASCII terminal port, is complete.
 Its detailed scope appears below the pre-existing remaining phases so the
 terminal requirements stay together. After Phase 6, implementation continues
 in this order:
@@ -383,7 +383,7 @@ in this order:
 - The communications foundation is ready for physical I/O and flow-runtime
   implementation.
 
-## Phase 6 — Authenticated ASCII terminal port (next)
+## Phase 6 — Authenticated ASCII terminal port (complete)
 
 The first terminal transport is the board's USB port. The shell and menu must
 depend on a terminal transport contract rather than USB driver types so another
@@ -397,7 +397,7 @@ still `null`, the first-run credential setup flow. Successful authentication or
 first-run setup leads directly to the main menu. Diagnostics are streamed only
 after the user selects menu option 3.
 
-### Phase 6A — Persistent settings foundation (reset extension pending)
+### Phase 6A — Persistent settings foundation (complete)
 
 Persistence is the first implementation step in Phase 6 because terminal
 authentication and every writable Settings menu entry depend on it. The shared

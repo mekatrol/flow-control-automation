@@ -3,8 +3,17 @@ CONFIG_SPIRAM=y
 CONFIG_SPIRAM_MODE_OCT=y
 CONFIG_SPIRAM_SPEED_80M=y
 CONFIG_SPIRAM_BOOT_INIT=y
-CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+# Keep ESP-IDF stdout, stderr, and component logs away from the USB terminal.
+# The terminal service owns USB Serial/JTAG directly through its driver.
+CONFIG_ESP_CONSOLE_NONE=y
 CONFIG_ESP_CONSOLE_SECONDARY_NONE=y
+# Compile out SDK logs so component diagnostics cannot bypass the terminal mode gate.
+CONFIG_LOG_DEFAULT_LEVEL_NONE=y
+CONFIG_LOG_MAXIMUM_EQUALS_DEFAULT=y
+# The second-stage bootloader shares the physical USB connection and must remain silent.
+CONFIG_BOOTLOADER_LOG_LEVEL_NONE=y
+# Avoid panic text corrupting an interactive session; reset reason remains available after reboot.
+CONFIG_ESP_SYSTEM_PANIC_SILENT_REBOOT=y
 CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
 CONFIG_CONTROLLER_WIFI_SSID_IS_SET=n
 CONFIG_CONTROLLER_WIFI_PASSWORD_IS_SET=n

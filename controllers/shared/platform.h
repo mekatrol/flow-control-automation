@@ -50,3 +50,6 @@ void platform_delay_ms(uint32_t delay_ms);
 
 /* Writes a diagnostic message through the platform's logging transport. */
 void platform_log(platform_log_level_t level, const char *component, const char *message);
+
+/* Requests a normal platform reboot after callers complete bounded output flushing. */
+bool platform_reboot(void);

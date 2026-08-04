@@ -184,13 +184,79 @@ the card to another controller or using the wrong secret must fail authenticatio
 without exposing or overwriting its contents. Losing this key makes the settings
 unrecoverable; it must not be committed, logged, or stored on the SD card.
 
-Reserve the sector range, configure the key and start sector, insert a blank SD
-card, and boot. Expect `settings/state state=ready schema=1 generation=1`, followed
-by the normal heartbeat. Reboot with changed Kconfig seed values and verify the
-persisted values remain unchanged. Remove the card and boot again; expect
-`state=unavailable` while networking and heartbeats continue. Also test a card
-whose reserved range contains unrelated data and a card encrypted for another
-controller; neither may be erased or reseeded.
+For a dedicated blank 2 GB card, sectors 2048 through 2063 may be reserved for
+controller settings. Keep that range excluded from every future filesystem or
+application-persistence partition. Set the active configuration to sector 2048:
+
+```sh
+sed -i \
+  's/^CONFIG_CONTROLLER_SETTINGS_FIRST_RESERVED_SECTOR=.*/CONFIG_CONTROLLER_SETTINGS_FIRST_RESERVED_SECTOR=2048/' \
+  sdkconfig
+```
+
+Generate and install the device-local encryption key without printing it or
+placing the key itself in shell history:
+
+```sh
+settings_key=$(openssl rand -hex 32)
+sed -i \
+  "s|^CONFIG_CONTROLLER_SETTINGS_MASTER_KEY_HEX=.*|CONFIG_CONTROLLER_SETTINGS_MASTER_KEY_HEX=\"$settings_key\"|" \
+  sdkconfig
+unset settings_key
+```
+
+Verify the active sector and key length without displaying the key:
+
+```sh
+awk -F= '
+  /^CONFIG_CONTROLLER_SETTINGS_FIRST_RESERVED_SECTOR=/ { print "reserved_sector=" $2 }
+  /^CONFIG_CONTROLLER_SETTINGS_MASTER_KEY_HEX=/ {
+    value=$2
+    gsub(/^"|"$/, "", value)
+    print "master_key_hex_length=" length(value)
+  }
+' sdkconfig
+```
+
+The expected values are `reserved_sector=2048` and
+`master_key_hex_length=64`. Check the active `sdkconfig`, not
+`sdkconfig.old`; ESP-IDF retains the latter only as a backup during target or
+configuration regeneration. The board-selection task preserves existing
+`CONFIG_CONTROLLER_*` values when it regenerates `sdkconfig`.
+
+Build and flash the provisioned configuration before monitoring:
+
+```sh
+./scripts/controller-task.sh . build
+./scripts/controller-task.sh . flash /dev/ttyACM0
+./scripts/controller-task.sh . monitor /dev/ttyACM0
+```
+
+Reserve the sector range, configure the key and start sector, insert an SD card,
+and boot. A new or PC-formatted card commonly contains filesystem data in the
+reserved sectors and enters the recovery menu with
+`media_invalid_or_foreign`. Select `Initialize settings storage`, then type the
+exact confirmation `ERASE SETTINGS`. The controller clears and verifies only
+the 16 reserved settings sectors, cleanly releases the SD SPI device, and
+reboots; it does not erase the remainder of the card. The terminal should then present first-run setup when its
+credentials are `null`. After authenticating, enter Diagnostics mode to observe
+`settings/state state=ready schema=1 generation=1` and heartbeat records. Reboot
+with changed Kconfig seed values and verify the persisted values remain
+unchanged. Remove the card and boot again; the terminal reports settings storage
+as unavailable while networking and heartbeats continue internally. Also test a
+card whose reserved range contains unrelated data and a card encrypted for
+another controller; neither may be erased or reseeded.
+
+When settings storage is unavailable, the terminal enters a constrained
+recovery menu. It always exposes redacted System Info and confirmed Reboot
+device operations. When the card is accessible but its reserved sectors are
+foreign or cannot be authenticated, the menu also exposes confirmed settings
+storage initialization. Automatic erasure is intentionally prohibited because
+the media might contain settings encrypted for another controller or a damaged
+generation worth recovering. Settings and Diagnostics remain unavailable until
+persistent credentials can be loaded and verified.
+If the USB host attaches after the initial prompt was sent, press Enter on an
+empty line to redraw the active prompt or menu.
 
 For power-loss testing, interrupt each of the initializing-marker, value, and
 ready-marker writes. A subsequent boot must either use the previous authenticated
@@ -198,6 +264,33 @@ slot or restart incomplete first-time initialization. Repeat while atomically
 changing a complete credential pair; recovery must expose the old pair or the new
 pair, never one value from each. Capture the reserved sectors and all console
 output to confirm plaintext credentials are absent.
+
+### Phase 6 authenticated-terminal smoke test
+
+Boot with terminal credentials set to `null`. USB application output must show
+the first-run username prompt rather than the diagnostic stream. Complete the
+username and masked-password flow, then verify the stable four-entry main menu.
+Reboot and confirm the persisted credentials are required and an incorrect
+password is delayed and counted without being echoed.
+
+Exercise System Info and confirm it contains only redacted portable snapshots.
+Update each credential pair through Settings, cancelling once and confirming
+once. Terminal password replacement must invalidate the current login. Enter
+Diagnostics and confirm structured events appear only in that mode; enter
+`/menu` to leave it. Stall the reader while network and MQTT events occur and
+confirm the controller remains responsive and output drops remain bounded.
+
+Cancel and then confirm Reboot device, checking the next reset reason is the
+normal software-reset reason. Finally, populate all settings, confirm Reset
+configuration, and power-cycle. The terminal must return to first-run setup;
+none of the old values or local `sdkconfig` seed credentials may return.
+
+The board defaults disable the ESP-IDF primary and secondary consoles, compile
+out SDK component logs, silence the second-stage bootloader, and use silent
+panic reboot. The terminal service still owns USB Serial/JTAG directly. A few
+first-stage ROM lines can appear immediately at reset because they execute
+before firmware configuration; do not burn an eFuse merely to suppress them.
+Once application startup begins, only terminal-service output should use USB.
 
 ## Debug
 

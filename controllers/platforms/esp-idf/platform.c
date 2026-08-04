@@ -6,7 +6,6 @@
 #include "esp_chip_info.h"
 #include "esp_flash.h"
 #include "esp_heap_caps.h"
-#include "esp_log.h"
 #include "esp_random.h"
 #include "esp_system.h"
 #include "esp_timer.h"
@@ -31,7 +30,6 @@ static const char RESET_WATCHDOG[]           = "watchdog";
 static const char RESET_DEEP_SLEEP[]         = "deep_sleep";
 static const char RESET_BROWNOUT[]           = "brownout";
 static const char RESET_UNKNOWN[]            = "unknown";
-static const char LOG_LINE_FORMAT[]          = "%s\n";
 
 /* Gets a portable reset reason name from the ESP-IDF reset enumeration. */
 static const char *get_reset_reason_name(esp_reset_reason_t reason)
@@ -113,21 +111,14 @@ void platform_delay_ms(uint32_t delay_ms)
 }
 
 /* Writes a diagnostic message through the ESP-IDF logging transport. */
-void platform_log(platform_log_level_t level, const char *component, const char *message)
+void platform_log(platform_log_level_t /* level */, const char * /* component */, const char * /* message */)
 {
-    esp_log_level_t esp_level = ESP_LOG_INFO;
-    /* Translate portable levels here so shared services never include ESP headers. */
-    if (level == PLATFORM_LOG_DEBUG)
-    {
-        esp_level = ESP_LOG_DEBUG;
-    }
-    if (level == PLATFORM_LOG_WARNING)
-    {
-        esp_level = ESP_LOG_WARN;
-    }
-    if (level == PLATFORM_LOG_ERROR)
-    {
-        esp_level = ESP_LOG_ERROR;
-    }
-    esp_log_write(esp_level, component, LOG_LINE_FORMAT, message);
+    /* The interactive USB terminal owns output; diagnostics are exposed only through its explicit stream mode. */
+}
+
+/* Requests the ESP-IDF normal software-reset path and does not return on success. */
+bool platform_reboot(void)
+{
+    esp_restart();
+    return true;
 }

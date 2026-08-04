@@ -232,6 +232,14 @@ settings_store_result_t settings_service_commit(settings_service_t *service, con
     return SETTINGS_STORE_OK;
 }
 
+/* Atomically commits a ready blank generation that must never be reseeded from build defaults. */
+settings_store_result_t settings_service_reset(settings_service_t *service)
+{
+    controller_settings_t reset = {0};
+    reset.is_user_reset         = true;
+    return settings_service_commit(service, &reset);
+}
+
 /* Gets the stable diagnostic name for a settings storage state. */
 const char *settings_get_storage_state_name(settings_storage_state_t state)
 {

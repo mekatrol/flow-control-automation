@@ -4,6 +4,7 @@
 
 #include "mqtt_service.h"
 #include "network_manager.h"
+#include "terminal_service.h"
 
 /* Starts the non-blocking controller runtime task and reports creation success. */
 bool controller_runtime_start(void);
@@ -13,3 +14,6 @@ const network_manager_t *get_controller_runtime_network_manager(void);
 
 /* Gets the runtime-owned MQTT health snapshot for diagnostics and consumers. */
 mqtt_session_health_t get_controller_runtime_mqtt_health(void);
+
+/* Gets the runtime-owned terminal health snapshot without credential data. */
+terminal_health_t get_controller_runtime_terminal_health(void);

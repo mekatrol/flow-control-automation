@@ -2,6 +2,11 @@
 
 #include "diagnostics_core.h"
 
+typedef void (*diagnostics_sink_function_t)(void *context, const char *record);
+
+/* Selects an optional bounded live stream sink while retaining platform logging. */
+void diagnostics_set_sink(diagnostics_sink_function_t sink, void *context);
+
 /* Emits one structured diagnostic event through the platform logger. */
 void diagnostics_emit(diagnostic_severity_t severity, const char *component, const char *event_code, const char *format, ...);
 

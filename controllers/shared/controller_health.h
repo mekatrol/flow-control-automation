@@ -17,6 +17,10 @@ typedef struct
     const char *rs485_state;
     uint32_t rs485_errors;
     uint32_t rs485_queue_drops;
+    const char *terminal_state;
+    uint32_t terminal_authenticated_sessions;
+    uint32_t terminal_failed_logins;
+    uint32_t terminal_output_drops;
 } controller_health_snapshot_t;
 
 /* Initializes health timing before the controller runtime begins work. */

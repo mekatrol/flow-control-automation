@@ -108,6 +108,7 @@ run_idf_redacted() {
     sed -E \
       -e '/CONTROLLER_WIFI_(SSID|PASSWORD)/ s/"[^"]*"/"<redacted>"/g' \
       -e '/CONTROLLER_MQTT_(HOST|CLIENT_ID|USERNAME|PASSWORD)/ s/"[^"]*"/"<redacted>"/g' \
+      -e '/CONTROLLER_SETTINGS_MASTER_KEY_HEX/ s/"[^"]*"/"<redacted>"/g' \
       -e '/Using default value from sdkconfig/ s/\("[^"]*"\)/("<redacted>")/g'
 }
 

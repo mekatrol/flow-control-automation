@@ -53,6 +53,7 @@ typedef struct
     settings_nullable_string_t terminal_password;
     settings_nullable_string_t mqtt_username;
     settings_nullable_string_t mqtt_password;
+    bool is_user_reset;
 } controller_settings_t;
 
 /* Platform defaults retain Kconfig null versus explicitly empty semantics. */
@@ -88,6 +89,9 @@ controller_settings_t settings_service_get_snapshot(const settings_service_t *se
 
 /* Atomically replaces the complete typed settings snapshot. */
 settings_store_result_t settings_service_commit(settings_service_t *service, const controller_settings_t *settings);
+
+/* Atomically commits a ready blank generation that must never be reseeded from build defaults. */
+settings_store_result_t settings_service_reset(settings_service_t *service);
 
 /* Gets the stable diagnostic name for a settings storage state. */
 const char *settings_get_storage_state_name(settings_storage_state_t state);

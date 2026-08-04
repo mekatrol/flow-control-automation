@@ -12,6 +12,15 @@
 static const char EVENT_MESSAGES_SUPPRESSED[] = "messages_suppressed";
 /* Describes the limiter summary fields in the structured diagnostic payload. */
 static const char FORMAT_MESSAGES_SUPPRESSED[] = "suppressed=%u previous_event=%s";
+static diagnostics_sink_function_t live_sink;
+static void *live_sink_context;
+
+/* Selects an optional bounded live stream sink while retaining platform logging. */
+void diagnostics_set_sink(diagnostics_sink_function_t sink, void *context)
+{
+    live_sink         = sink;
+    live_sink_context = context;
+}
 
 /* Gets the platform log level corresponding to a portable severity. */
 static platform_log_level_t get_platform_level(diagnostic_severity_t severity)
@@ -35,6 +44,10 @@ static void emit_message(diagnostic_severity_t severity, const char *component, 
     char event[DIAGNOSTIC_EVENT_SIZE];
     diagnostic_format_event(event, sizeof(event), severity, component, event_code, platform_get_monotonic_ms(), message);
     platform_log(get_platform_level(severity), component, event);
+    if (live_sink != NULL)
+    {
+        live_sink(live_sink_context, event);
+    }
 }
 
 /* Expands variadic arguments into bounded storage before emitting the event. */

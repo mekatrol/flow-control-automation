@@ -23,18 +23,23 @@ controller_health_snapshot_t get_controller_health_snapshot(void)
     const network_link_snapshot_t wifi     = network_manager_get_link_snapshot(network, NETWORK_LINK_WIFI);
     const network_link_snapshot_t ethernet = network_manager_get_link_snapshot(network, NETWORK_LINK_ETHERNET);
     const mqtt_session_health_t mqtt       = get_controller_runtime_mqtt_health();
+    const terminal_health_t terminal       = get_controller_runtime_terminal_health();
     return (controller_health_snapshot_t){
-        .uptime_ms            = now_ms >= started_ms ? now_ms - started_ms : 0,
-        .free_heap_bytes      = platform_get_free_heap_bytes(),
-        .wifi_state           = network_get_link_state_name(wifi.state),
-        .ethernet_state       = network_get_link_state_name(ethernet.state),
-        .mqtt_state           = mqtt_get_session_state_name(mqtt.state),
-        .mqtt_error           = mqtt_get_error_category_name(mqtt.last_error_category),
-        .mqtt_transport       = mqtt.is_transport_selected ? mqtt.selected_transport.name : LINK_NONE,
-        .mqtt_reconnect_count = mqtt.reconnect_count,
-        .mqtt_queue_depth     = mqtt.queued_event_count,
-        .rs485_state          = STATE_DISABLED,
-        .rs485_errors         = 0,
-        .rs485_queue_drops    = 0,
+        .uptime_ms                       = now_ms >= started_ms ? now_ms - started_ms : 0,
+        .free_heap_bytes                 = platform_get_free_heap_bytes(),
+        .wifi_state                      = network_get_link_state_name(wifi.state),
+        .ethernet_state                  = network_get_link_state_name(ethernet.state),
+        .mqtt_state                      = mqtt_get_session_state_name(mqtt.state),
+        .mqtt_error                      = mqtt_get_error_category_name(mqtt.last_error_category),
+        .mqtt_transport                  = mqtt.is_transport_selected ? mqtt.selected_transport.name : LINK_NONE,
+        .mqtt_reconnect_count            = mqtt.reconnect_count,
+        .mqtt_queue_depth                = mqtt.queued_event_count,
+        .rs485_state                     = STATE_DISABLED,
+        .rs485_errors                    = 0,
+        .rs485_queue_drops               = 0,
+        .terminal_state                  = terminal_get_state_name(terminal.state),
+        .terminal_authenticated_sessions = terminal.authenticated_session_count,
+        .terminal_failed_logins          = terminal.failed_login_count,
+        .terminal_output_drops           = terminal.output_drop_count,
     };
 }

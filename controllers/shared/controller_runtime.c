@@ -1,5 +1,7 @@
 #include "controller_runtime.h"
 
+#include <stdio.h>
+
 #include "board.h"
 #include "controller_health.h"
 #include "diagnostics.h"
@@ -8,11 +10,13 @@
 #include "platform.h"
 #include "platform_mqtt.h"
 #include "platform_settings.h"
+#include "platform_terminal.h"
+#include "terminal_service.h"
 
 /* Runtime scheduling values balance responsive supervision with bounded CPU use. */
 enum
 {
-    CONTROLLER_TASK_STACK_SIZE      = 24576,
+    CONTROLLER_TASK_STACK_SIZE      = 49152,
     CONTROLLER_TASK_PRIORITY        = 5,
     STATUS_INTERVAL_MS              = 5000,
     CONTROLLER_TICK_MS              = 100,
@@ -25,6 +29,10 @@ enum
     MAXIMUM_MQTT_EVENTS_PER_TICK    = 8,
     MQTT_EVENT_RATE_WINDOW_MS       = 10000,
     MAXIMUM_MQTT_EVENTS_PER_WINDOW  = 4,
+    TERMINAL_IDLE_TIMEOUT_MS        = 300000,
+    TERMINAL_LOGIN_BACKOFF_MS       = 2000,
+    TERMINAL_READ_CAPACITY          = 64,
+    SETTINGS_REBOOT_SETTLE_DELAY_MS = 20,
 };
 
 /* Runtime diagnostic identifiers define the stable heartbeat event schema. */
@@ -49,6 +57,70 @@ static diagnostic_rate_limiter_t mqtt_event_rate_limiter;
 static mqtt_session_state_t previous_mqtt_state = MQTT_SESSION_DISABLED;
 static settings_service_t controller_settings_service;
 static controller_settings_t controller_settings_snapshot;
+static terminal_service_t controller_terminal_service;
+static platform_settings_result_t platform_settings_result = PLATFORM_SETTINGS_DISABLED;
+
+/* Writes terminal output through the board-selected non-blocking transport. */
+static bool write_terminal(void * /* context */, const char *data, size_t size)
+{
+    return platform_terminal_write(data, size);
+}
+
+/* Formats a redacted device snapshot from portable board, platform, and subsystem contracts. */
+static void get_terminal_system_info(void * /* context */, char *output, size_t capacity)
+{
+    platform_startup_info_t startup;
+    char health[STATUS_BUFFER_SIZE];
+    platform_get_startup_info(&startup);
+    const controller_health_snapshot_t snapshot = get_controller_health_snapshot();
+    (void)controller_health_format(health, sizeof(health), &snapshot);
+    (void)snprintf(output, capacity, "device=%s firmware=%s version=%s hardware=%s processor=%s %s buses=unsupported",
+                   get_controller_board_name(), startup.firmware_name, startup.firmware_version, get_controller_board_name(),
+                   startup.processor, health);
+}
+
+/* Dispatches the portable reboot request after terminal confirmation. */
+static bool reboot_terminal(void * /* context */)
+{
+    platform_settings_prepare_reboot();
+    /* Give the powered card time to observe inactive chip select before the CPU resets its GPIO routing. */
+    platform_delay_ms(SETTINGS_REBOOT_SETTLE_DELAY_MS);
+    return platform_reboot();
+}
+
+/* Initializes user-confirmed foreign settings media without touching sectors outside the reserved range. */
+static bool initialize_terminal_storage(void * /* context */)
+{
+    return platform_settings_initialize_media();
+}
+
+/* Routes diagnostics through the terminal's explicit authenticated Diagnostics mode. */
+static void emit_terminal_diagnostic(void *context, const char *record)
+{
+    terminal_service_emit_diagnostic(context, record);
+}
+
+/* Initializes the default USB terminal without waiting for a connected peer. */
+static void initialize_terminal(void)
+{
+    if (!platform_terminal_initialize())
+    {
+        return;
+    }
+    const terminal_config_t config = {
+        .settings           = &controller_settings_service,
+        .write              = write_terminal,
+        .get_system_info    = get_terminal_system_info,
+        .reboot             = reboot_terminal,
+        .initialize_storage = platform_settings_result == PLATFORM_SETTINGS_MEDIA_INVALID ? initialize_terminal_storage : NULL,
+        .settings_unavailable_reason = platform_settings_get_result_name(platform_settings_result),
+        .context                     = NULL,
+        .idle_timeout_ms             = TERMINAL_IDLE_TIMEOUT_MS,
+        .login_backoff_ms            = TERMINAL_LOGIN_BACKOFF_MS};
+    terminal_service_init(&controller_terminal_service, &config);
+    diagnostics_set_sink(emit_terminal_diagnostic, &controller_terminal_service);
+    terminal_service_connect(&controller_terminal_service, platform_get_monotonic_ms());
+}
 
 /* Initializes board-selected settings and reports only redacted storage metadata. */
 static void initialize_settings(void)
@@ -58,9 +130,9 @@ static void initialize_settings(void)
     settings_store_t store;
     controller_board_get_settings_storage_config(&storage_config);
     controller_board_get_settings_defaults(&defaults);
-    const bool is_store_ready = platform_settings_initialize(&storage_config, &store);
-    const settings_storage_state_t state =
-        settings_service_initialize(&controller_settings_service, is_store_ready ? &store : NULL, &defaults);
+    platform_settings_result             = platform_settings_initialize(&storage_config, &store);
+    const settings_storage_state_t state = settings_service_initialize(
+        &controller_settings_service, platform_settings_result == PLATFORM_SETTINGS_READY ? &store : NULL, &defaults);
     controller_settings_snapshot = state == SETTINGS_STORAGE_READY ? settings_service_get_snapshot(&controller_settings_service)
                                                                    : (controller_settings_t){0};
     diagnostics_emit(state == SETTINGS_STORAGE_READY ? DIAGNOSTIC_INFO : DIAGNOSTIC_WARNING, COMPONENT_SETTINGS,
@@ -147,6 +219,12 @@ mqtt_session_health_t get_controller_runtime_mqtt_health(void)
     return mqtt_service_get_health(&controller_mqtt_service);
 }
 
+/* Gets the runtime-owned terminal health snapshot without credential data. */
+terminal_health_t get_controller_runtime_terminal_health(void)
+{
+    return terminal_service_get_health(&controller_terminal_service);
+}
+
 /* Drains bounded platform events and advances the portable MQTT supervisor. */
 static void process_mqtt(uint64_t now_ms)
 {
@@ -185,6 +263,7 @@ static void controller_task(void * /* context */)
     char status[STATUS_BUFFER_SIZE];
     uint64_t next_status_ms = platform_get_monotonic_ms();
     initialize_settings();
+    initialize_terminal();
     initialize_networking();
     initialize_mqtt();
     for (;;)
@@ -196,6 +275,10 @@ static void controller_task(void * /* context */)
         network_manager_process(&controller_network_manager, now_ms);
         /* MQTT consumes only current neutral link snapshots and owned platform events. */
         process_mqtt(now_ms);
+        uint8_t terminal_input[TERMINAL_READ_CAPACITY];
+        const size_t terminal_input_size = platform_terminal_read(terminal_input, sizeof(terminal_input));
+        terminal_service_receive(&controller_terminal_service, terminal_input, terminal_input_size, now_ms);
+        terminal_service_process(&controller_terminal_service, now_ms);
         if (now_ms >= next_status_ms)
         {
             const controller_health_snapshot_t snapshot = get_controller_health_snapshot();
