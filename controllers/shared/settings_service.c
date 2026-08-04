@@ -143,7 +143,7 @@ static settings_storage_state_t get_read_failure_state(settings_store_result_t r
     return SETTINGS_STORAGE_CORRUPT;
 }
 
-/* Migrates a valid schema-one record by preserving every credential and adding a null hostname. */
+/* Migrates a valid schema-one record by preserving credentials and applying the configured default hostname. */
 static settings_storage_state_t migrate_schema_one(settings_service_t *service, const settings_bootstrap_record_t *bootstrap)
 {
     settings_schema_one_record_t legacy = {0};
@@ -163,6 +163,7 @@ static settings_storage_state_t migrate_schema_one(settings_service_t *service, 
                                                       .terminal_password = legacy.settings.terminal_password,
                                                       .mqtt_username     = legacy.settings.mqtt_username,
                                                       .mqtt_password     = legacy.settings.mqtt_password,
+                                                      .hostname          = service->defaults.hostname,
                                                       .is_user_reset     = legacy.settings.is_user_reset};
     service->generation     = legacy.generation;
     service->schema_version = legacy.schema_version;
@@ -185,14 +186,19 @@ static settings_storage_state_t migrate_schema_two(settings_service_t *service, 
     {
         return get_read_failure_state(result);
     }
-    service->snapshot       = (controller_settings_t){.wifi_ssid         = legacy.settings.wifi_ssid,
-                                                      .wifi_password     = legacy.settings.wifi_password,
-                                                      .terminal_username = legacy.settings.terminal_username,
-                                                      .terminal_password = legacy.settings.terminal_password,
-                                                      .mqtt_username     = legacy.settings.mqtt_username,
-                                                      .mqtt_password     = legacy.settings.mqtt_password,
-                                                      .hostname          = legacy.settings.hostname,
-                                                      .is_user_reset     = legacy.settings.is_user_reset};
+    service->snapshot = (controller_settings_t){.wifi_ssid         = legacy.settings.wifi_ssid,
+                                                .wifi_password     = legacy.settings.wifi_password,
+                                                .terminal_username = legacy.settings.terminal_username,
+                                                .terminal_password = legacy.settings.terminal_password,
+                                                .mqtt_username     = legacy.settings.mqtt_username,
+                                                .mqtt_password     = legacy.settings.mqtt_password,
+                                                .hostname          = legacy.settings.hostname,
+                                                .is_user_reset     = legacy.settings.is_user_reset};
+    if (!service->snapshot.hostname.is_set)
+    {
+        /* Older records without a hostname adopt the board default before the migrated generation is committed. */
+        service->snapshot.hostname = service->defaults.hostname;
+    }
     service->generation     = legacy.generation;
     service->schema_version = legacy.schema_version;
     service->state          = SETTINGS_STORAGE_READY;
@@ -238,6 +244,7 @@ settings_storage_state_t settings_service_initialize(settings_service_t *service
         return service->state;
     }
     service->store                        = *store;
+    service->defaults                     = *defaults;
     settings_bootstrap_record_t bootstrap = {0};
     size_t bootstrap_size                 = 0;
     const settings_store_result_t bootstrap_result =
@@ -308,6 +315,15 @@ settings_storage_state_t settings_service_initialize(settings_service_t *service
     service->generation     = values.generation;
     service->schema_version = values.schema_version;
     service->state          = SETTINGS_STORAGE_READY;
+    if (!service->snapshot.hostname.is_set && service->defaults.hostname.is_set)
+    {
+        /* Repair schema-current records created before the hostname default became mandatory. */
+        service->snapshot.hostname = service->defaults.hostname;
+        if (settings_service_commit(service, &service->snapshot) != SETTINGS_STORE_OK)
+        {
+            service->state = SETTINGS_STORAGE_UNAVAILABLE;
+        }
+    }
     return service->state;
 }
 
@@ -347,8 +363,7 @@ settings_store_result_t settings_service_commit(settings_service_t *service, con
 /* Atomically commits a ready blank generation that must never be reseeded from build defaults. */
 settings_store_result_t settings_service_reset(settings_service_t *service)
 {
-    controller_settings_t reset = {0};
-    reset.is_user_reset         = true;
+    controller_settings_t reset = {.hostname = service->defaults.hostname, .is_user_reset = true};
     return settings_service_commit(service, &reset);
 }
 

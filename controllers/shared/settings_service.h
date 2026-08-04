@@ -89,6 +89,7 @@ typedef struct
 typedef struct
 {
     settings_store_t store;
+    settings_defaults_t defaults;
     controller_settings_t snapshot;
     settings_storage_state_t state;
     uint32_t generation;

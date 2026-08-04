@@ -83,5 +83,7 @@ void controller_board_get_settings_storage_config(settings_storage_config_t *con
 /* Gets blank first-initialization defaults because all user credentials are provisioned through the terminal. */
 void controller_board_get_settings_defaults(settings_defaults_t *defaults)
 {
-    *defaults = (settings_defaults_t){0};
+    *defaults                 = (settings_defaults_t){0};
+    defaults->hostname.is_set = true;
+    (void)snprintf(defaults->hostname.value, sizeof(defaults->hostname.value), "%s", DEFAULT_HOSTNAME);
 }

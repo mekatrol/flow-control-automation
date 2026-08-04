@@ -219,6 +219,9 @@ static void test_session_contract(void)
     assert(service.state == TERMINAL_STATE_SETTINGS_MENU);
     assert(strstr(fixture.output, "\b \b") != NULL);
     send_line(&service, "4", 3);
+    send_line(&service, "invalid_host", 3);
+    assert(service.state == TERMINAL_STATE_EDIT_HOSTNAME);
+    assert(strstr(fixture.output, "Invalid hostname") != NULL);
     send_line(&service, "controller-a16-01", 3);
     assert(service.state == TERMINAL_STATE_CONFIRM_HOSTNAME);
     send_line(&service, "NO", 3);

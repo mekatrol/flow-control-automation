@@ -238,19 +238,22 @@ static void test_reset_remains_blank_after_reflash(void)
     fake_store_t fake                  = {.is_available = true};
     const settings_store_t store       = get_fake_store(&fake);
     const settings_defaults_t defaults = {.terminal_username = get_nullable(true, "seed-user"),
-                                          .terminal_password = get_nullable(true, "seed-password")};
+                                          .terminal_password = get_nullable(true, "seed-password"),
+                                          .hostname          = get_nullable(true, "flow-controller")};
     settings_service_t service;
     assert(settings_service_initialize(&service, &store, &defaults) == SETTINGS_STORAGE_READY);
     assert(settings_service_reset(&service) == SETTINGS_STORE_OK);
     const controller_settings_t reset = settings_service_get_snapshot(&service);
     assert(reset.is_user_reset);
     assert(!reset.terminal_username.is_set && !reset.terminal_password.is_set);
+    assert(reset.hostname.is_set && strcmp(reset.hostname.value, "flow-controller") == 0);
 
     settings_service_t reflashed;
     assert(settings_service_initialize(&reflashed, &store, &defaults) == SETTINGS_STORAGE_READY);
     const controller_settings_t recovered = settings_service_get_snapshot(&reflashed);
     assert(recovered.is_user_reset);
     assert(!recovered.terminal_username.is_set && !recovered.terminal_password.is_set);
+    assert(recovered.hostname.is_set && strcmp(recovered.hostname.value, "flow-controller") == 0);
 }
 
 /* Runs settings contract and recovery tests. */

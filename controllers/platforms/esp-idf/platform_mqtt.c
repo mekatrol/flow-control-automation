@@ -404,22 +404,23 @@ void platform_mqtt_replay_subscriptions(void * /* context */)
 /* Gets typed MQTT settings using credentials from the persistent snapshot. */
 void platform_mqtt_get_config(mqtt_broker_config_t *config, const controller_settings_t *settings)
 {
-    mqtt_username                       = settings != NULL ? &settings->mqtt_username : NULL;
-    mqtt_password                       = settings != NULL ? &settings->mqtt_password : NULL;
-    const settings_mqtt_broker_t broker = settings != NULL ? settings->mqtt_broker : (settings_mqtt_broker_t){0};
-    const bool is_tls_enabled           = broker.is_tls_enabled;
-    const uint16_t port                 = broker.port != 0 ? broker.port : MQTT_DEFAULT_PORT;
-    const char *scheme                  = is_tls_enabled ? MQTT_SCHEME_TLS : MQTT_SCHEME_PLAIN;
-    const int result = snprintf(mqtt_broker_uri, sizeof(mqtt_broker_uri), MQTT_URI_FORMAT, scheme, broker.host, port);
+    mqtt_username                                    = settings != NULL ? &settings->mqtt_username : NULL;
+    mqtt_password                                    = settings != NULL ? &settings->mqtt_password : NULL;
+    static const settings_mqtt_broker_t EMPTY_BROKER = {0};
+    const settings_mqtt_broker_t *broker             = settings != NULL ? &settings->mqtt_broker : &EMPTY_BROKER;
+    const bool is_tls_enabled                        = broker->is_tls_enabled;
+    const uint16_t port                              = broker->port != 0 ? broker->port : MQTT_DEFAULT_PORT;
+    const char *scheme                               = is_tls_enabled ? MQTT_SCHEME_TLS : MQTT_SCHEME_PLAIN;
+    const int result = snprintf(mqtt_broker_uri, sizeof(mqtt_broker_uri), MQTT_URI_FORMAT, scheme, broker->host, port);
     /* An invalid or truncated URI disables the service through normal configuration validation. */
     if (result < 0 || (size_t)result >= sizeof(mqtt_broker_uri))
     {
         mqtt_broker_uri[0] = '\0';
     }
     *config = (mqtt_broker_config_t){
-        .enabled                       = broker.enabled && broker.host[0] != '\0',
+        .enabled                       = broker->enabled && broker->host[0] != '\0',
         .uri                           = mqtt_broker_uri,
-        .client_id                     = broker.client_id,
+        .client_id                     = broker->client_id,
         .username_reference            = mqtt_username != NULL && mqtt_username->is_set ? MQTT_USERNAME_REFERENCE : NULL,
         .password_reference            = mqtt_password != NULL && mqtt_password->is_set ? MQTT_PASSWORD_REFERENCE : NULL,
         .tls_policy                    = is_tls_enabled ? MQTT_TLS_PLATFORM_TRUST : MQTT_TLS_DISABLED,
