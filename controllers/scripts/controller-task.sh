@@ -102,33 +102,34 @@ run_idf() {
   fi
 }
 
-# Redact local Wi-Fi values because ESP-IDF 6 can echo changed string defaults.
+# Redact local network values because ESP-IDF 6 can echo changed string defaults.
 run_idf_redacted() {
   run_idf "$@" 2>&1 |
     sed -E \
       -e '/CONTROLLER_WIFI_(SSID|PASSWORD)/ s/"[^"]*"/"<redacted>"/g' \
+      -e '/CONTROLLER_MQTT_(HOST|CLIENT_ID|USERNAME|PASSWORD)/ s/"[^"]*"/"<redacted>"/g' \
       -e '/Using default value from sdkconfig/ s/\("[^"]*"\)/("<redacted>")/g'
 }
 
-restore_wifi_configuration() {
+# Restores local controller settings after set-target regenerates sdkconfig.
+restore_controller_configuration() {
   local sdkconfig_file=$1
-  local saved_ssid=$2
-  local saved_password=$3
+  local saved_configuration=$2
   local temporary_file
-  if [ -z "$saved_ssid" ] && [ -z "$saved_password" ]; then
+  if [ -z "$saved_configuration" ]; then
     return
   fi
   temporary_file=$(mktemp "${sdkconfig_file}.credentials.XXXXXX")
   while IFS= read -r configuration_line; do
-    case "$configuration_line" in
-      CONFIG_CONTROLLER_WIFI_SSID=*)
-        if [ -n "$saved_ssid" ]; then printf '%s\n' "$saved_ssid"; else printf '%s\n' "$configuration_line"; fi
-        ;;
-      CONFIG_CONTROLLER_WIFI_PASSWORD=*)
-        if [ -n "$saved_password" ]; then printf '%s\n' "$saved_password"; else printf '%s\n' "$configuration_line"; fi
-        ;;
-      *) printf '%s\n' "$configuration_line" ;;
-    esac
+    local configuration_key=${configuration_line%%=*}
+    local replacement=
+    while IFS= read -r saved_line; do
+      if [ "${saved_line%%=*}" = "$configuration_key" ]; then
+        replacement=$saved_line
+        break
+      fi
+    done <<< "$saved_configuration"
+    printf '%s\n' "${replacement:-$configuration_line}"
   done < "$sdkconfig_file" > "$temporary_file"
   mv "$temporary_file" "$sdkconfig_file"
 }
@@ -138,17 +139,15 @@ cd "$controllers_dir"
 
 case "$action" in
   set-board)
-    saved_wifi_ssid=
-    saved_wifi_password=
+    saved_controller_configuration=
     if [ -f sdkconfig ]; then
-      saved_wifi_ssid=$(sed -n 's/^\(CONFIG_CONTROLLER_WIFI_SSID=.*\)$/\1/p' sdkconfig)
-      saved_wifi_password=$(sed -n 's/^\(CONFIG_CONTROLLER_WIFI_PASSWORD=.*\)$/\1/p' sdkconfig)
+      saved_controller_configuration=$(sed -n '/^CONFIG_CONTROLLER_.*=/p' sdkconfig)
     fi
     board=${argument:-}
     configure_board
     printf '%s\n' "$board" > "$selection_file"
     run_idf_redacted set-target "$target"
-    restore_wifi_configuration sdkconfig "$saved_wifi_ssid" "$saved_wifi_password"
+    restore_controller_configuration sdkconfig "$saved_controller_configuration"
     run_idf_redacted reconfigure
     echo "Selected $board; subsequent tasks use $build_directory."
     ;;
@@ -161,10 +160,10 @@ case "$action" in
       echo "clang-format was not found; install it or configure the ESP-IDF toolchain." >&2
       exit 127
     fi
-    # Format only tracked C sources and headers so generated dependencies and build output remain untouched.
+    # Include tracked and new non-ignored sources so formatting works before files are staged or committed.
     while IFS= read -r -d '' source_file; do
       clang-format -i "$source_file"
-    done < <(git ls-files -z -- '*.c' '*.h')
+    done < <(git ls-files -z --cached --others --exclude-standard -- '*.c' '*.h')
     ;;
   clean) run_idf_redacted fullclean ;;
   build) run_idf_redacted build ;;

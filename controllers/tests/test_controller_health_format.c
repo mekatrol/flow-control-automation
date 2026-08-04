@@ -12,6 +12,8 @@ enum
     FREE_HEAP_BYTES   = 123456,
     RS485_ERRORS      = 4,
     RS485_QUEUE_DROPS = 2,
+    MQTT_RECONNECTS   = 3,
+    MQTT_QUEUE_DEPTH  = 1,
 };
 
 /* Stable fixture strings represent one state from each controller subsystem. */
@@ -19,8 +21,11 @@ static const char STATE_DISABLED[]       = "disabled";
 static const char STATE_ONLINE[]         = "online";
 static const char STATE_BACKOFF[]        = "backoff";
 static const char STATE_STOPPED[]        = "stopped";
+static const char ERROR_BROKER[]         = "broker";
+static const char LINK_ETHERNET[]        = "ethernet";
 static const char EXPECTED_HEALTH[]      = "status uptime_ms=9876 free_heap_bytes=123456 wifi=disabled "
-                                           "ethernet=online mqtt=backoff rs485=stopped rs485_errors=4 "
+                                           "ethernet=online mqtt=backoff mqtt_transport=ethernet mqtt_error=broker "
+                                           "mqtt_reconnect_count=3 mqtt_queue_depth=1 rs485=stopped rs485_errors=4 "
                                            "rs485_queue_drops=2";
 static const char TEST_SUCCESS_MESSAGE[] = "Controller health format tests passed";
 
@@ -28,14 +33,18 @@ static const char TEST_SUCCESS_MESSAGE[] = "Controller health format tests passe
 static void test_health_formatting(void)
 {
     const controller_health_snapshot_t snapshot = {
-        .uptime_ms         = UPTIME_MS,
-        .free_heap_bytes   = FREE_HEAP_BYTES,
-        .wifi_state        = STATE_DISABLED,
-        .ethernet_state    = STATE_ONLINE,
-        .mqtt_state        = STATE_BACKOFF,
-        .rs485_state       = STATE_STOPPED,
-        .rs485_errors      = RS485_ERRORS,
-        .rs485_queue_drops = RS485_QUEUE_DROPS,
+        .uptime_ms            = UPTIME_MS,
+        .free_heap_bytes      = FREE_HEAP_BYTES,
+        .wifi_state           = STATE_DISABLED,
+        .ethernet_state       = STATE_ONLINE,
+        .mqtt_state           = STATE_BACKOFF,
+        .mqtt_error           = ERROR_BROKER,
+        .mqtt_transport       = LINK_ETHERNET,
+        .mqtt_reconnect_count = MQTT_RECONNECTS,
+        .mqtt_queue_depth     = MQTT_QUEUE_DEPTH,
+        .rs485_state          = STATE_STOPPED,
+        .rs485_errors         = RS485_ERRORS,
+        .rs485_queue_drops    = RS485_QUEUE_DROPS,
     };
     char output[OUTPUT_SIZE];
     assert(controller_health_format(output, sizeof(output), &snapshot) > 0);

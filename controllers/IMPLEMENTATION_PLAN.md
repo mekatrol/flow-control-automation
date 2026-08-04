@@ -21,8 +21,9 @@ APIs introduced here must remain usable by those later components.
 - Every communications subsystem is an independently supervised state machine.
   A failed subsystem reports degraded status and retries without restarting or
   blocking unrelated controller work.
-- MQTT depends on an abstract network service, never directly on Wi-Fi or an
-  Ethernet driver.
+- MQTT depends on an abstract transport-route provider. IP adapters may use the
+  network manager, while CAN, RS485, RS232, and future adapters remain free to
+  provide routes without compiling against networking.
 - Wi-Fi and Ethernet are separate network links. They may be active
   simultaneously and must not be assumed to share a subnet, gateway, DNS
   server, or broker reachability.
@@ -54,7 +55,7 @@ controller_main / controller_runtime
 │   ├── wifi_link
 │   └── ethernet_link
 ├── mqtt_service
-│   └── one supervised session per configured broker/link policy
+│   └── one supervised session per configured broker/transport policy
 └── rs485_service
     └── serial framing and request/receive queues
 
@@ -66,9 +67,9 @@ board
 └── identity, capabilities, pins, buses, and typed configuration sources
 ```
 
-`network_manager` publishes link events and snapshots using neutral concepts
-such as link ID, interface identity, addresses, DNS availability, reachability,
-and state. It must not expose Wi-Fi event types to MQTT.
+An IP MQTT adapter may translate `network_manager` snapshots into the opaque
+transport-route contract. The MQTT service itself must not include network
+manager, Wi-Fi, Ethernet, CAN, or serial types.
 
 ## Phase 1 — Portable diagnostic foundation (complete)
 
@@ -215,20 +216,21 @@ Wi-Fi adapter remains available for a later explicit return to dual-link mode.
 - Wi-Fi-only, Ethernet-only, and simultaneous dual-link operation are supported
   by the same network-manager contract.
 
-## Phase 5 — Transport-independent MQTT service
+## Phase 5 — Transport-independent MQTT service (complete)
 
 ### Deliverables
 
 - Add typed broker configuration for URI, client ID, credential references,
-  TLS policy, keepalive, session policy, link policy, limits, and reconnect
-  timing. Literal production secrets must not enter committed defaults.
+  TLS policy, keepalive, session policy, limits, and reconnect timing. Keep
+  transport-selection policy in the selected platform adapter. Literal
+  production secrets must not enter committed defaults.
 - Implement a supervised MQTT session state machine such as `disabled`,
-  `waiting_for_network`, `connecting`, `online`, `backoff`, and `stopping`.
-- MQTT subscribes to neutral network events. It must not include or inspect
-  Wi-Fi-specific events.
-- Bind each MQTT session to its selected interface when a link policy is
-  explicit. For `automatic`, select an eligible link and re-evaluate after
-  reachability failure according to a documented priority/failover policy.
+  `waiting_for_transport`, `connecting`, `online`, `backoff`, and `stopping`.
+- MQTT consumes opaque route availability and generation snapshots. It must not
+  include or inspect network-manager, Wi-Fi, Ethernet, CAN, or serial events.
+- Bind each MQTT session to its selected transport route. An IP adapter applies
+  its configured Wi-Fi/Ethernet policy and re-evaluates reachability according
+  to the documented network priority/failover policy.
 - If the same logical service must be reachable independently through two
   isolated networks, configure two MQTT sessions. Do not silently publish the
   same message twice through both links.
@@ -242,7 +244,7 @@ Wi-Fi adapter remains available for a later explicit return to dual-link mode.
 
 ### Tests
 
-- Unit tests for MQTT state transitions, network eligibility, failover policy,
+- Unit tests for MQTT state transitions, transport eligibility, route changes,
   backoff, duplicate events, and subscription replay.
 - Integration test with a local broker starts the controller before the broker,
   then verifies connection when the broker becomes available.
@@ -255,9 +257,10 @@ Wi-Fi adapter remains available for a later explicit return to dual-link mode.
 
 ### Exit criteria
 
-- MQTT reconnects after either network or broker failure without blocking the
-  controller runtime.
-- MQTT has no compile-time dependency on the Wi-Fi or W5500 implementation.
+- MQTT reconnects after either transport-route or broker failure without
+  blocking the controller runtime.
+- The shared MQTT service has no compile-time dependency on the network manager
+  or on any Wi-Fi, Ethernet, CAN, RS485, or RS232 implementation.
 
 ## Phase 6 — Bidirectional MQTT API
 

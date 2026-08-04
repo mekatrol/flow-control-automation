@@ -39,4 +39,98 @@ menu "Flow controller"
         help
             Hostname supplied to DHCP on the W5500 Ethernet interface.
 
+    config CONTROLLER_MQTT_HOST
+        string "MQTT broker host"
+        default ""
+        help
+            Broker DNS name or address. An empty host disables MQTT cleanly.
+
+    config CONTROLLER_MQTT_PORT
+        int "MQTT broker port"
+        range 1 65535
+        default 1883
+        help
+            TCP port used by the MQTT broker.
+
+    config CONTROLLER_MQTT_CLIENT_ID
+        string "MQTT client ID"
+        default ""
+        help
+            Unique broker client identity. Set this whenever MQTT is enabled.
+
+    config CONTROLLER_MQTT_USERNAME
+        string "MQTT username"
+        default ""
+        help
+            Optional broker username stored only in the ignored local sdkconfig.
+
+    config CONTROLLER_MQTT_PASSWORD
+        string "MQTT password"
+        default ""
+        help
+            Optional broker password stored only in the ignored local sdkconfig.
+
+    config CONTROLLER_MQTT_TLS_ENABLED
+        bool "Enable MQTT TLS with the platform trust store"
+        default n
+        help
+            Verifies the broker certificate using the ESP-IDF platform trust store.
+
+    config CONTROLLER_MQTT_KEEPALIVE_SECONDS
+        int "MQTT keepalive interval in seconds"
+        range 1 65535
+        default 60
+
+    config CONTROLLER_MQTT_PERSISTENT_SESSION
+        bool "Request a persistent MQTT session"
+        default n
+
+    choice CONTROLLER_MQTT_LINK_POLICY
+        prompt "MQTT network link policy"
+        default CONTROLLER_MQTT_LINK_AUTOMATIC
+
+        config CONTROLLER_MQTT_LINK_AUTOMATIC
+            bool "Automatic priority and failover"
+
+        config CONTROLLER_MQTT_LINK_WIFI
+            bool "Bind to Wi-Fi"
+
+        config CONTROLLER_MQTT_LINK_ETHERNET
+            bool "Bind to Ethernet"
+    endchoice
+
+    config CONTROLLER_MQTT_LAST_WILL_TOPIC
+        string "MQTT last-will topic"
+        default ""
+        help
+            Empty disables the last will. The payload must be set when a topic is configured.
+
+    config CONTROLLER_MQTT_LAST_WILL_PAYLOAD
+        string "MQTT last-will payload"
+        default "offline"
+
+    config CONTROLLER_MQTT_LAST_WILL_QOS
+        int "MQTT last-will QoS"
+        range 0 2
+        default 1
+
+    config CONTROLLER_MQTT_LAST_WILL_RETAIN
+        bool "Retain MQTT last will"
+        default y
+
+    config CONTROLLER_MQTT_INITIAL_BACKOFF_MS
+        int "MQTT initial reconnect delay in milliseconds"
+        range 1 3600000
+        default 1000
+
+    config CONTROLLER_MQTT_MAXIMUM_BACKOFF_MS
+        int "MQTT maximum reconnect delay in milliseconds"
+        range 1 3600000
+        default 60000
+
+    config CONTROLLER_MQTT_BACKOFF_JITTER_PERCENT
+        int "MQTT reconnect jitter percentage"
+        range 0 100
+        default 20
+
 endmenu

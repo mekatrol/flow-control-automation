@@ -42,3 +42,10 @@ add_executable(ethernet_link_core_tests
 target_include_directories(ethernet_link_core_tests PRIVATE ../shared)
 target_compile_options(ethernet_link_core_tests PRIVATE -Wall -Wextra -Werror -pedantic)
 add_test(NAME ethernet_link_core COMMAND ethernet_link_core_tests)
+
+add_executable(mqtt_service_tests
+    test_mqtt_service.c
+    ../shared/mqtt_service.c)
+target_include_directories(mqtt_service_tests PRIVATE ../shared)
+target_compile_options(mqtt_service_tests PRIVATE -Wall -Wextra -Werror -pedantic)
+add_test(NAME mqtt_service COMMAND mqtt_service_tests)

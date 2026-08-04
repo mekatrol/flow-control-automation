@@ -5,12 +5,13 @@
 #include "sdkconfig.h"
 
 /* Stable identity distinguishes this board revision in diagnostics. */
-static const char BOARD_NAME[]                   = "kincony-kc868-a16-v3";
-static const char FORMAT_NETWORK_CONFIGURATION[] = "wifi=runtime_disabled wifi_credentials=%s ethernet=%s";
-static const char CREDENTIALS_CONFIGURED[]       = "<redacted>";
-static const char CREDENTIALS_NOT_CONFIGURED[]   = "not_configured";
-static const char FEATURE_ENABLED[]              = "enabled";
-static const char FEATURE_DISABLED[]             = "disabled";
+static const char BOARD_NAME[] = "kincony-kc868-a16-v3";
+static const char FORMAT_NETWORK_CONFIGURATION[] =
+    "wifi=runtime_disabled wifi_credentials=%s ethernet=%s mqtt=%s mqtt_credentials=%s";
+static const char CREDENTIALS_CONFIGURED[]     = "<redacted>";
+static const char CREDENTIALS_NOT_CONFIGURED[] = "not_configured";
+static const char FEATURE_ENABLED[]            = "enabled";
+static const char FEATURE_DISABLED[]           = "disabled";
 
 /* KC868-A16v3 W5500 wiring is fixed by the board schematic. */
 enum
@@ -34,10 +35,15 @@ const char *get_controller_board_name(void)
 void controller_board_format_configuration(char *output, size_t output_size)
 {
     const bool is_wifi_configured = CONFIG_CONTROLLER_WIFI_SSID[0] != '\0' && CONFIG_CONTROLLER_WIFI_PASSWORD[0] != '\0';
+    const bool is_mqtt_configured = CONFIG_CONTROLLER_MQTT_HOST[0] != '\0' && CONFIG_CONTROLLER_MQTT_CLIENT_ID[0] != '\0';
+    const bool is_mqtt_credentials_configured =
+        CONFIG_CONTROLLER_MQTT_USERNAME[0] != '\0' || CONFIG_CONTROLLER_MQTT_PASSWORD[0] != '\0';
     /* Report runtime selection while keeping saved credentials out of logs. */
     (void)snprintf(output, output_size, FORMAT_NETWORK_CONFIGURATION,
                    is_wifi_configured ? CREDENTIALS_CONFIGURED : CREDENTIALS_NOT_CONFIGURED,
-                   CONFIG_CONTROLLER_ETHERNET_ENABLED ? FEATURE_ENABLED : FEATURE_DISABLED);
+                   CONFIG_CONTROLLER_ETHERNET_ENABLED ? FEATURE_ENABLED : FEATURE_DISABLED,
+                   is_mqtt_configured ? FEATURE_ENABLED : FEATURE_DISABLED,
+                   is_mqtt_credentials_configured ? CREDENTIALS_CONFIGURED : CREDENTIALS_NOT_CONFIGURED);
 }
 
 /* Gets the board-described W5500 wiring and Ethernet configuration. */

@@ -66,8 +66,9 @@ command-line invocation is:
 ./scripts/controller-task.sh . format
 ```
 
-The command formats every tracked `.c` and `.h` file. It deliberately excludes
-untracked and generated files. Review the resulting diff, then run the host
+The command formats every tracked or untracked non-ignored `.c` and `.h` file,
+so new sources are formatted before staging or committing. Generated and
+ignored files remain excluded. Review the resulting diff, then run the host
 tests before committing.
 
 Firmware and host builds also enforce the source policy that unused callback

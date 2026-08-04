@@ -7,6 +7,7 @@ static uint64_t started_ms;
 
 /* Disabled state is shared by subsystems that do not yet have an implementation. */
 static const char STATE_DISABLED[] = "disabled";
+static const char LINK_NONE[]      = "none";
 
 /* Initializes health timing before the controller runtime begins work. */
 void controller_health_init(void)
@@ -21,14 +22,19 @@ controller_health_snapshot_t get_controller_health_snapshot(void)
     const network_manager_t *network       = get_controller_runtime_network_manager();
     const network_link_snapshot_t wifi     = network_manager_get_link_snapshot(network, NETWORK_LINK_WIFI);
     const network_link_snapshot_t ethernet = network_manager_get_link_snapshot(network, NETWORK_LINK_ETHERNET);
+    const mqtt_session_health_t mqtt       = get_controller_runtime_mqtt_health();
     return (controller_health_snapshot_t){
-        .uptime_ms         = now_ms >= started_ms ? now_ms - started_ms : 0,
-        .free_heap_bytes   = platform_get_free_heap_bytes(),
-        .wifi_state        = network_get_link_state_name(wifi.state),
-        .ethernet_state    = network_get_link_state_name(ethernet.state),
-        .mqtt_state        = STATE_DISABLED,
-        .rs485_state       = STATE_DISABLED,
-        .rs485_errors      = 0,
-        .rs485_queue_drops = 0,
+        .uptime_ms            = now_ms >= started_ms ? now_ms - started_ms : 0,
+        .free_heap_bytes      = platform_get_free_heap_bytes(),
+        .wifi_state           = network_get_link_state_name(wifi.state),
+        .ethernet_state       = network_get_link_state_name(ethernet.state),
+        .mqtt_state           = mqtt_get_session_state_name(mqtt.state),
+        .mqtt_error           = mqtt_get_error_category_name(mqtt.last_error_category),
+        .mqtt_transport       = mqtt.is_transport_selected ? mqtt.selected_transport.name : LINK_NONE,
+        .mqtt_reconnect_count = mqtt.reconnect_count,
+        .mqtt_queue_depth     = mqtt.queued_event_count,
+        .rs485_state          = STATE_DISABLED,
+        .rs485_errors         = 0,
+        .rs485_queue_drops    = 0,
     };
 }

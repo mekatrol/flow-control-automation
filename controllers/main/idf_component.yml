@@ -1,2 +1,3 @@
 dependencies:
+  espressif/mqtt: "^1.0.0"
   espressif/w5500: "^2.0.0"

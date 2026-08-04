@@ -10,6 +10,10 @@ typedef struct
     const char *wifi_state;
     const char *ethernet_state;
     const char *mqtt_state;
+    const char *mqtt_error;
+    const char *mqtt_transport;
+    uint32_t mqtt_reconnect_count;
+    size_t mqtt_queue_depth;
     const char *rs485_state;
     uint32_t rs485_errors;
     uint32_t rs485_queue_drops;

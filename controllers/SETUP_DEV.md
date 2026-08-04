@@ -94,9 +94,10 @@ Run the VS Code **Format** task or:
 ./scripts/controller-task.sh . format
 ```
 
-The command formats all tracked `.c` and `.h` files using `.clang-format` and
-the `clang-format` binary supplied by the ESP-IDF toolchain. Review the diff,
-run the host tests, and build the firmware before committing.
+The command formats all tracked or untracked non-ignored `.c` and `.h` files
+using `.clang-format` and the `clang-format` binary supplied by the ESP-IDF
+toolchain. Review the diff, run the host tests, and build the firmware before
+committing.
 
 ## Flash and monitor
 

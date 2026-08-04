@@ -63,6 +63,11 @@ the onboard W5500 Ethernet port instead. Ethernet is enabled by default and its
 DHCP hostname defaults to `flow-controller`; both settings are under **Flow
 controller** in menuconfig.
 
+MQTT broker host, port, client ID, username, password, TLS, keepalive, and
+reconnect timing are also configured under **Flow controller**. An empty broker
+host disables MQTT. The generated `sdkconfig` is ignored so broker credentials
+remain local, and startup diagnostics report only a redacted credential state.
+
 ## Flash and monitor
 
 Connect the board's USB-C port, then locate the serial device if needed:
@@ -134,6 +139,35 @@ Remove and restore the cable and confirm the heartbeat continues while
 Ethernet enters bounded backoff and automatically recovers. Also boot once
 without a cable and once with DHCP unavailable; neither case should reset or
 block the controller runtime.
+
+### Phase 5 MQTT smoke test
+
+Configure the broker host, port, a unique client ID, optional username and
+password, TLS policy, session policy, link policy, last will, and reconnect
+timing under **Flow controller**. Leave the host empty for the disabled test.
+No broker value or credential is committed in defaults.
+
+For the recovery test, run a broker reachable through the selected Ethernet
+interface. Start the controller before the broker and confirm the heartbeat
+continues with `mqtt=backoff`; then start the broker and confirm
+`mqtt=online mqtt_transport=ethernet mqtt_error=none`. Restart the broker and remove
+and restore the Ethernet cable. Each failure must increment
+`mqtt_reconnect_count`, enter bounded backoff, and recover without stopping the
+runtime heartbeat. An address change must also recreate the broker session.
+
+For route binding, select Ethernet and verify the broker connection uses the
+W5500 interface. When dual-link runtime operation is restored, repeat with
+Wi-Fi selected and with automatic policy on isolated subnets. A session bound
+to one link must not reach the broker through the other link; automatic policy
+may select the next eligible link only after supervised failure and backoff.
+
+For negative security tests, enable TLS and separately test an untrusted CA, a
+hostname mismatch, and invalid broker credentials. Health must report `tls` or
+`authentication` as appropriate, diagnostics must contain only stable error
+codes, and neither the username nor password may appear in captured output.
+When a last-will topic is configured, forcibly remove controller power and
+confirm the broker publishes the configured offline payload with the selected
+QoS and retain policy.
 
 ## Debug
 
