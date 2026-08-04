@@ -4,9 +4,10 @@
 
 This plan builds a portable communications foundation for the future flow
 runtime across ESP32, Raspberry Pi, STM32, and later controller families. It
-covers diagnostics, non-blocking networking, bidirectional MQTT, and RS485.
-The KinCony KC868-A16v3 is the first board implementation; hardware-specific
-details are board properties rather than shared-service assumptions.
+covers diagnostics, non-blocking networking, bidirectional MQTT, RS485, and an
+authenticated ASCII terminal. The KinCony KC868-A16v3 is the first board
+implementation; hardware-specific details are board properties rather than
+shared-service assumptions.
 
 The flow evaluator, physical input/output support, persistent flow storage, and
 remote firmware updates are deliberately outside this plan. Communications
@@ -29,9 +30,11 @@ APIs introduced here must remain usable by those later components.
   server, or broker reachability.
 - Queues, retries, payloads, topic lengths, and diagnostic messages are bounded.
   No reconnect loop may grow memory usage indefinitely.
-- Credentials remain in the ignored local `sdkconfig` or a later secure
-  provisioning store. Secrets must never appear in committed defaults,
-  diagnostics, MQTT logs, crash output, or test fixtures.
+- Credential build defaults remain in the ignored local `sdkconfig`. At
+  runtime, typed settings are loaded from an abstract persistent settings store
+  whose board implementation may use an SD card, processor flash, or a separate
+  flash device. Secrets must never appear in committed defaults, diagnostics,
+  MQTT logs, crash output, or test fixtures.
 - Runtime code consumes configuration through typed modules rather than reading
   platform facilities such as Kconfig, device tree, or environment variables
   throughout the application.
@@ -49,8 +52,13 @@ APIs introduced here must remain usable by those later components.
 
 ```text
 controller_main / controller_runtime
+├── terminal_service
+│   ├── ASCII shell and authentication
+│   └── diagnostics stream
+├── settings_service
+│   └── board-selected persistent settings store
 ├── diagnostics
-│   └── platform diagnostic transport
+│   └── bounded diagnostic event source
 ├── network_manager
 │   ├── wifi_link
 │   └── ethernet_link
@@ -64,7 +72,8 @@ platform
 └── architecture/OS drivers
 
 board
-└── identity, capabilities, pins, buses, and typed configuration sources
+└── identity, capabilities, pins, buses, terminal ports, and typed
+    configuration sources
 ```
 
 An IP MQTT adapter may translate `network_manager` snapshots into the opaque
@@ -262,7 +271,18 @@ Wi-Fi adapter remains available for a later explicit return to dual-link mode.
 - The shared MQTT service has no compile-time dependency on the network manager
   or on any Wi-Fi, Ethernet, CAN, RS485, or RS232 implementation.
 
-## Phase 6 — Bidirectional MQTT API
+## Remaining implementation order
+
+Phase 6, the authenticated ASCII terminal port, is the next phase to implement.
+Its detailed scope appears below the pre-existing remaining phases so the
+terminal requirements stay together. After Phase 6, implementation continues
+in this order:
+
+1. Phase 7 — Bidirectional MQTT API
+2. Phase 8 — RS485 service
+3. Phase 9 — Integrated resilience and soak testing
+
+## Phase 7 — Bidirectional MQTT API
 
 ### Deliverables
 
@@ -298,7 +318,7 @@ Wi-Fi adapter remains available for a later explicit return to dual-link mode.
 - Independent components can safely publish and subscribe through MQTT.
 - Offline and overload behaviour is bounded, observable, and tested.
 
-## Phase 7 — RS485 service
+## Phase 8 — RS485 service
 
 ### Deliverables
 
@@ -333,7 +353,7 @@ Wi-Fi adapter remains available for a later explicit return to dual-link mode.
   work.
 - Controller diagnostics clearly expose RS485 state and errors.
 
-## Phase 8 — Integrated resilience and soak testing
+## Phase 9 — Integrated resilience and soak testing
 
 ### Deliverables
 
@@ -362,6 +382,228 @@ Wi-Fi adapter remains available for a later explicit return to dual-link mode.
   failure testing.
 - The communications foundation is ready for physical I/O and flow-runtime
   implementation.
+
+## Phase 6 — Authenticated ASCII terminal port (next)
+
+The first terminal transport is the board's USB port. The shell and menu must
+depend on a terminal transport contract rather than USB driver types so another
+serial or network-backed terminal can be added later. This phase converts the
+current always-on USB diagnostics output into an authenticated interactive
+terminal while retaining diagnostics streaming as an explicit terminal mode.
+After boot, the USB port defaults to the interactive terminal rather than the
+diagnostics stream. Once persistent settings are ready, an attached terminal
+receives either the authentication prompt or, when terminal credentials are
+still `null`, the first-run credential setup flow. Successful authentication or
+first-run setup leads directly to the main menu. Diagnostics are streamed only
+after the user selects menu option 3.
+
+### Phase 6A — Persistent settings foundation (implement first)
+
+Persistence is the first implementation step in Phase 6 because terminal
+authentication and every writable Settings menu entry depend on it. The shared
+settings service must not require a filesystem or expose SD-card, processor
+flash, or external-flash types to its consumers.
+
+#### Deliverables
+
+- Define an abstract persistent settings-store contract for reading, staging,
+  atomically committing, and removing versioned typed values. The contract must
+  distinguish an unavailable store, a missing value, an explicitly stored empty
+  string, valid data, and corrupt or incompatible data.
+- Keep storage mechanics behind a board-selected adapter. Initial
+  implementations may use raw records, a key/value library, or a filesystem,
+  but no shared settings or terminal code may depend on files, paths, sectors,
+  partitions, or a particular storage driver.
+- Implement the first adapter using the KC868-A16v3 SD card connected with MOSI
+  GPIO12, SCLK GPIO13, MISO GPIO14, CS GPIO11, and card detect GPIO21. Treat card
+  absence, removal, write protection, initialization failure, full media, I/O
+  failure, and corrupt records as reason-coded degraded states without blocking
+  controller startup.
+- Reserve a documented bootstrap record in the controller-owned storage area.
+  It contains a storage magic marker, format version, settings-schema version,
+  record generation, and integrity check. The storage adapter reads and
+  validates this record before attempting to load any setting.
+- Use the bootstrap marker to classify media as `uninitialized`, `ready`,
+  `initialization_interrupted`, `incompatible`, `corrupt`, or `foreign`. Do not
+  treat corrupt, incompatible, or foreign media as blank and do not silently
+  erase or reseed it.
+- When storage is uninitialized, initialize the controller-owned storage area
+  before starting the terminal service. For the initial raw SD-card adapter,
+  formatting means creating an empty record layout and bootstrap metadata; it
+  does not require a partition table, directory, or filesystem. Do not format
+  portions of the SD card outside the explicitly reserved controller storage
+  area.
+- Perform first-time initialization as a recoverable transaction:
+  1. write an initialization-in-progress bootstrap record;
+  2. create and verify the empty storage layout;
+  3. seed every defined setting from its `sdkconfig` default while preserving
+     `null`, empty, and non-empty values;
+  4. read back and verify the seeded settings;
+  5. write and verify the ready marker last.
+  A reset or card removal before the final marker must resume or safely restart
+  initialization and must never expose partially seeded settings as ready.
+- Define credential settings as nullable values, separately from their string
+  contents:
+  - `null` means the value has never been set;
+  - an empty string means the value has deliberately been set to empty;
+  - a non-empty string is the configured value.
+- On first initialization of each missing persisted value, seed its value from
+  the corresponding ignored `sdkconfig` value, including `null` or an empty
+  string. After initialization, the persisted value always takes precedence,
+  including when it is explicitly empty; firmware updates and reflashing must
+  not overwrite it from `sdkconfig`.
+- Provide `sdkconfig` defaults for Wi-Fi, terminal, and MQTT credential fields.
+  The platform configuration adapter must preserve the distinction between a
+  Kconfig value that is not set and one explicitly set to an empty string
+  rather than collapsing both to an empty C string.
+- Keep per-setting presence metadata in addition to the storage bootstrap
+  marker so a stored `null` cannot be mistaken for a missing or uninitialized
+  key. Define forward migration, incompatible-version handling, and recovery
+  from an interrupted first-time seed operation.
+- Commit a complete credential update atomically so a reset or card removal
+  cannot leave a partially updated username/password pair. Retain the previous
+  valid record until the replacement is durably committed and verified.
+- Define the protection policy for secrets stored on removable SD media,
+  including whether the first implementation encrypts them at rest and how any
+  device-bound key is obtained. Diagnostics may expose storage health and
+  schema version but never stored values, usernames, passwords, or key
+  material.
+- Expose typed snapshots to Wi-Fi, terminal, and MQTT through the settings
+  service. Those consumers must not read `sdkconfig` or the SD-card adapter
+  directly.
+
+#### Tests
+
+- Contract tests run against an in-memory fake and cover missing, `null`, empty,
+  non-empty, corrupt, and incompatible values plus unavailable storage.
+- Initialization tests cover every combination of missing, `null`, empty, and
+  non-empty `sdkconfig` defaults and prove persisted values are not replaced on
+  later boots or after a simulated firmware reflash.
+- Bootstrap tests cover erased media, a valid ready marker, initialization in
+  progress, invalid integrity data, incompatible versions, and foreign media.
+  They verify only genuinely uninitialized controller storage is formatted and
+  seeded automatically.
+- Atomicity tests inject reset, removal, short-write, full-media, and read-back
+  failures at every initialization and commit stage. Initialization must remain
+  resumable until the ready marker is durable, and updates must recover either
+  the old or new complete credential set, never a mixture.
+- Migration tests cover supported schema upgrades, unknown future versions,
+  corrupt initialization markers, and interrupted first-time seeding.
+- On-target tests cover boot with no SD card, insertion and removal, repeated
+  writes, power loss during a write, and restoration of the last valid settings
+  without stopping the controller heartbeat.
+- Security tests inspect SD contents, logs, diagnostics, crash output, and test
+  artifacts according to the defined at-rest protection policy.
+
+#### Exit criteria
+
+- The selected controller loads and atomically persists typed settings through
+  its SD-card adapter while shared consumers remain independent of the storage
+  mechanism and any filesystem.
+- `null`, explicitly empty, and non-empty credential values retain their exact
+  meaning across restart, firmware update, and recovery from interrupted writes.
+- Missing persisted values are initialized once from `sdkconfig`; existing
+  persisted values are never silently reset by reflashing.
+- An uninitialized SD-card storage area is formatted, seeded, verified, and
+  marked ready before settings are consumed; an interrupted initialization is
+  recoverable and corrupt or foreign media is never silently formatted.
+- Storage absence or failure is observable and cannot block controller startup
+  or unrelated runtime work.
+
+### Deliverables
+
+- Add a non-blocking `terminal_service` with bounded input lines, output
+  records, session timeouts, and queues. A disconnected, unauthenticated, or
+  slow terminal must not delay the controller runtime or diagnostic producers.
+- Add an ASCII-only, line-oriented shell over the board's USB terminal port.
+  Reject control characters and overlength input cleanly, support backspace and
+  common line endings, and do not require ANSI cursor-control support.
+- Make the terminal login/setup prompt the default USB mode after boot. Do not
+  emit the live diagnostics stream before authentication or menu selection;
+  boot diagnostics remain available to internal bounded diagnostic storage and
+  are displayed live only when the authenticated user enters Diagnostics mode.
+- Require a terminal username and password before displaying or accepting menu
+  commands. Do not echo passwords, compare credentials safely, rate-limit
+  failed attempts, and clear session state on disconnect or idle timeout.
+- When either required terminal credential is `null`, present a constrained
+  first-run setup flow that can only establish and persist the missing terminal
+  credentials. It must not expose the main menu or other settings until the
+  credentials are committed successfully. An explicitly empty credential is a
+  set value and must not trigger first-run setup.
+- Define a secure initial terminal-credential provisioning and recovery policy.
+  No universal or production default password may be committed to the
+  repository, printed in diagnostics, or exposed by the system-information
+  menu.
+- Present this stable top-level menu after authentication:
+  1. `System Info`
+  2. `Settings`
+  3. `Diagnostics`
+- Implement `System Info` as a read-only snapshot containing all information
+  available on the device, including device name, firmware and hardware model
+  information, uptime, network-interface state and IP addresses, and configured
+  CAN, RS485, RS232, or other bus addresses. Mark unavailable or unsupported
+  fields explicitly and redact secrets and credential-derived values.
+- Implement a `Settings` submenu with these entries:
+  1. `Wi-Fi credentials`
+  2. `Terminal credentials`
+  3. `MQTT credentials`
+- Validate settings before committing them, mask secrets during entry, request
+  confirmation before replacing credentials, and write each credential set
+  atomically through the Phase 6A typed settings-service contract. Never log,
+  redisplay, or retain plaintext secrets longer than required.
+- Apply changed settings through the owning subsystem without rebooting where
+  practical. Wi-Fi and MQTT changes trigger controlled reconnection; terminal
+  credential changes invalidate other active terminal sessions and take effect
+  no later than the next authentication attempt. Report whether a restart is
+  required when a platform cannot apply a change live.
+- Implement `Diagnostics` by attaching the session to the existing diagnostics
+  event stream. Preserve the current USB diagnostics logger output, apply
+  bounded buffering and drop accounting for slow readers, and provide a
+  documented ASCII escape command that returns to the main menu without
+  restarting the controller.
+- Keep menu labels and command identifiers in a versioned terminal contract so
+  host-side tests and future automation can rely on stable behaviour.
+- Expose terminal state, authenticated-session count, failed-login count,
+  output-drop count, and last disconnect reason in the controller health
+  snapshot without exposing usernames or passwords.
+
+### Tests
+
+- Unit tests cover authentication success and failure, retry throttling,
+  disconnect and idle-timeout logout, password non-echo, line editing, invalid
+  characters, overlength input, menu navigation, and diagnostics-mode exit.
+- Unit tests verify every `System Info` field for available, unavailable, and
+  unsupported data and confirm that snapshots never contain configured
+  secrets.
+- Unit tests cover validation, confirmation, atomic commit failure, and
+  rollback for Wi-Fi, terminal, and MQTT credential changes.
+- Integration tests verify that Wi-Fi and MQTT credential changes reconnect
+  only their owning subsystems and that a terminal credential change prevents
+  reuse of the previous password.
+- On-target USB tests cover boot with no terminal connected, repeated connect
+  and disconnect, first-run setup, authentication, the main menu as the default
+  post-authentication view, all menu paths, sustained diagnostics output, a
+  stalled terminal reader, and return from diagnostics mode to the menu.
+- Security tests capture terminal and diagnostic output during login and every
+  settings operation and verify that no plaintext secret is emitted or left in
+  reusable command history.
+- Concurrent fault tests exercise the terminal while networking, MQTT, and
+  RS485 repeatedly fail and recover, confirming that terminal traffic does not
+  block their supervisors or the main heartbeat.
+
+### Exit criteria
+
+- An authenticated user can access system information, update each supported
+  credential set, and enter or leave live diagnostics through the USB ASCII
+  terminal.
+- After boot, USB presents terminal authentication or first-run credential
+  setup and then the main menu; diagnostics output is not the default USB mode.
+- Terminal absence, disconnect, malformed input, failed authentication, and a
+  slow reader cannot block the controller or grow memory without bound.
+- Credentials and other secrets are absent from terminal output, diagnostics,
+  crash output, committed defaults, and automated-test artifacts.
+- The shell is independent of the USB implementation and can accept another
+  terminal transport without changing its menu or authentication logic.
 
 ## Completion requirements for every phase
 
