@@ -179,7 +179,7 @@ and state. It must not expose Wi-Fi event types to MQTT.
 - Controller boot and its main task loop are independent of Wi-Fi availability.
 - Wi-Fi recovers after access-point or DHCP loss without manual intervention.
 
-## Phase 4 — Ethernet link
+## Phase 4 — Ethernet link (complete)
 
 Current commissioning mode is Ethernet-only: the runtime must not initialize
 or start Wi-Fi even when credentials remain configured in `sdkconfig`. The
