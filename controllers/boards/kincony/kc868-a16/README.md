@@ -146,7 +146,7 @@ debug session. The OpenOCD board configuration is:
 board/esp32s3-builtin.cfg
 ```
 
-Set a breakpoint in `platform_main`, connect and power the board, and start the
+Set a breakpoint in `app_main`, connect and power the board, and start the
 debugger. Debugging requires Espressif's OpenOCD and Xtensa GDB from the ESP-IDF
 tool installation; a generic system OpenOCD build is not sufficient.
 
