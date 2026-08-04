@@ -1,4 +1,7 @@
 {
-    "cmake.sourceDirectory": "${workspaceFolder}/tests",
-    "cmake.buildDirectory": "${workspaceFolder}/build-host"
+  "cmake.sourceDirectory": "${workspaceFolder}/tests",
+  "cmake.buildDirectory": "${workspaceFolder}/build-host",
+  "idf.buildPath": "${workspaceFolder}/build-kincony-kc868-a16",
+  "idf.buildPathWin": "${workspaceFolder}\\build-kincony-kc868-a16",
+  "idf.currentSetup": "/home/dad/.espressif/v6.0.2/esp-idf"
 }
