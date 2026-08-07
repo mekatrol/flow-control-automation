@@ -149,6 +149,7 @@ static void test_initialization_preserves_value_meaning(void)
         .wifi_password     = get_nullable(true, ""),
         .terminal_username = get_nullable(true, "operator"),
         .terminal_password = get_nullable(false, NULL),
+        .rs485             = {.address = 0, .baud_rate = 115200},
     };
     settings_service_t service;
     assert(settings_service_initialize(&service, &store, &defaults) == SETTINGS_STORAGE_READY);
@@ -157,6 +158,7 @@ static void test_initialization_preserves_value_meaning(void)
     assert(snapshot.wifi_password.is_set && snapshot.wifi_password.value[0] == '\0');
     assert(snapshot.terminal_username.is_set && strcmp(snapshot.terminal_username.value, "operator") == 0);
     assert(!snapshot.terminal_password.is_set);
+    assert(snapshot.rs485.address == 0 && snapshot.rs485.baud_rate == 115200);
 }
 
 /* Verifies later boots use persisted values instead of replacement defaults. */
@@ -239,7 +241,8 @@ static void test_reset_remains_blank_after_reflash(void)
     const settings_store_t store       = get_fake_store(&fake);
     const settings_defaults_t defaults = {.terminal_username = get_nullable(true, "seed-user"),
                                           .terminal_password = get_nullable(true, "seed-password"),
-                                          .hostname          = get_nullable(true, "flow-controller")};
+                                          .hostname          = get_nullable(true, "flow-controller"),
+                                          .rs485             = {.address = 0, .baud_rate = 115200}};
     settings_service_t service;
     assert(settings_service_initialize(&service, &store, &defaults) == SETTINGS_STORAGE_READY);
     assert(settings_service_reset(&service) == SETTINGS_STORE_OK);
@@ -247,6 +250,7 @@ static void test_reset_remains_blank_after_reflash(void)
     assert(reset.is_user_reset);
     assert(!reset.terminal_username.is_set && !reset.terminal_password.is_set);
     assert(reset.hostname.is_set && strcmp(reset.hostname.value, "flow-controller") == 0);
+    assert(reset.rs485.address == 0 && reset.rs485.baud_rate == 115200);
 
     settings_service_t reflashed;
     assert(settings_service_initialize(&reflashed, &store, &defaults) == SETTINGS_STORAGE_READY);

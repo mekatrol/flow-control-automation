@@ -318,7 +318,7 @@ in this order:
 - Independent components can safely publish and subscribe through MQTT.
 - Offline and overload behaviour is bounded, observable, and tested.
 
-## Phase 8 — RS485 service
+## Phase 8 — RS485 service (implementation complete; on-target validation pending)
 
 ### Deliverables
 
@@ -562,7 +562,8 @@ flash, or external-flash types to its consumers.
   2. `Terminal credentials`
   3. `MQTT credentials`
   4. `Device hostname`
-  5. `Reset configuration`
+  5. `RS485 configuration`
+  6. `Reset configuration`
 - Validate settings before committing them, mask secrets during entry, request
   confirmation before replacing credentials, and write each credential set
   atomically through the Phase 6A typed settings-service contract. Never log,

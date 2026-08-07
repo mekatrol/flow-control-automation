@@ -11,6 +11,7 @@
 #include "network_manager.h"
 #include "platform.h"
 #include "platform_mqtt.h"
+#include "platform_rs485.h"
 #include "platform_settings.h"
 #include "platform_terminal.h"
 #include "terminal_service.h"
@@ -36,6 +37,7 @@ enum
     TERMINAL_READ_CAPACITY          = 64,
     SETTINGS_REBOOT_SETTLE_DELAY_MS = 20,
     MQTT_HEALTH_PAYLOAD_CAPACITY    = 192,
+    MAXIMUM_RS485_EVENTS_PER_TICK   = 8,
 };
 
 /* Runtime diagnostic identifiers define the stable heartbeat event schema. */
@@ -64,14 +66,18 @@ static const char FORMAT_MQTT_TERMINAL_STATUS[] =
 static const char COMPONENT_SETTINGS[]    = "settings";
 static const char EVENT_SETTINGS_STATE[]  = "state";
 static const char FORMAT_SETTINGS_STATE[] = "state=%s schema=%u generation=%u";
+static const char COMPONENT_RS485[]       = "rs485";
+static const char EVENT_RS485_STATE[]     = "state";
+static const char FORMAT_RS485_STATE[]    = "state=%s baud=%u format=%u%c%u protocol=raw automatic_direction=1";
 static const char ADDRESS_UNAVAILABLE[]   = "unavailable";
 static const char FORMAT_SYSTEM_INFO[] =
     "device=%s\r\nfirmware=%s\r\nversion=%s\r\nhardware=%s\r\nprocessor=%s\r\nhostname=%s\r\n"
     "uptime_ms=%" PRIu64 "\r\nfree_heap_bytes=%" PRIu64 "\r\nwifi=%s\r\nwifi_ipv4=%s\r\nwifi_ipv6=%s\r\n"
     "ethernet=%s\r\nethernet_ipv4=%s\r\nethernet_ipv6=%s\r\nmqtt=%s\r\nmqtt_transport=%s\r\n"
     "mqtt_error=%s\r\nmqtt_reconnect_count=%" PRIu32 "\r\nmqtt_queue_depth=%zu\r\nrs485=%s\r\n"
-    "rs485_errors=%" PRIu32 "\r\nrs485_queue_drops=%" PRIu32 "\r\nterminal=%s\r\nterminal_sessions=%" PRIu32
-    "\r\nterminal_failed_logins=%" PRIu32 "\r\nterminal_output_drops=%" PRIu32 "\r\nbuses=unsupported";
+    "rs485_address=%u\r\nrs485_baud_rate=%" PRIu32 "\r\nrs485_errors=%" PRIu32 "\r\nrs485_queue_drops=%" PRIu32
+    "\r\nterminal=%s\r\nterminal_sessions=%" PRIu32 "\r\nterminal_failed_logins=%" PRIu32 "\r\nterminal_output_drops=%" PRIu32
+    "\r\nbuses=unsupported";
 
 static network_manager_t controller_network_manager;
 static ethernet_link_t controller_ethernet_link;
@@ -82,9 +88,29 @@ static mqtt_session_state_t previous_mqtt_state = MQTT_SESSION_DISABLED;
 static settings_service_t controller_settings_service;
 static controller_settings_t controller_settings_snapshot;
 static terminal_service_t controller_terminal_service;
+static rs485_service_t controller_rs485_service;
 static platform_settings_result_t platform_settings_result = PLATFORM_SETTINGS_DISABLED;
 static char mqtt_availability_topic[MQTT_TOPIC_CAPACITY];
 static char mqtt_health_topic[MQTT_TOPIC_CAPACITY];
+
+/* Gets the persisted RS485 baud or the board build default while settings are unavailable. */
+static uint32_t get_rs485_baud_rate(void)
+{
+    if (controller_settings_snapshot.rs485.baud_rate != 0)
+    {
+        return controller_settings_snapshot.rs485.baud_rate;
+    }
+    rs485_config_t config;
+    controller_board_get_rs485_config(&config);
+    return config.baud_rate;
+}
+
+/* Gets the stable one-character diagnostic parity marker for the configured UART format. */
+static char get_rs485_parity_marker(rs485_parity_t parity)
+{
+    static const char markers[] = {'N', 'E', 'O'};
+    return parity <= RS485_PARITY_ODD ? markers[parity] : markers[RS485_PARITY_NONE];
+}
 
 /* Gets platform entropy through the callback signature required by communications supervisors. */
 static uint32_t get_communications_random(void *context);
@@ -136,8 +162,9 @@ static void get_terminal_system_info(void * /* context */, char *output, size_t 
                    ethernet.ipv4_address[0] != '\0' ? ethernet.ipv4_address : ADDRESS_UNAVAILABLE,
                    ethernet.ipv6_address[0] != '\0' ? ethernet.ipv6_address : ADDRESS_UNAVAILABLE, health.mqtt_state,
                    health.mqtt_transport, health.mqtt_error, health.mqtt_reconnect_count, health.mqtt_queue_depth,
-                   health.rs485_state, health.rs485_errors, health.rs485_queue_drops, health.terminal_state,
-                   health.terminal_authenticated_sessions, health.terminal_failed_logins, health.terminal_output_drops);
+                   health.rs485_state, (unsigned)controller_settings_snapshot.rs485.address, get_rs485_baud_rate(),
+                   health.rs485_errors, health.rs485_queue_drops, health.terminal_state, health.terminal_authenticated_sessions,
+                   health.terminal_failed_logins, health.terminal_output_drops);
 }
 
 /* Dispatches the portable reboot request after terminal confirmation. */
@@ -180,6 +207,13 @@ static void apply_terminal_settings(void * /* context */)
                       &controller_network_manager);
     previous_mqtt_state = controller_mqtt_service.state;
     mqtt_api_set_online(&controller_mqtt_api, false);
+    rs485_config_t rs485_config;
+    controller_board_get_rs485_config(&rs485_config);
+    rs485_config.baud_rate = get_rs485_baud_rate();
+    if (platform_rs485_reconfigure(&rs485_config))
+    {
+        (void)rs485_service_init(&controller_rs485_service, &rs485_config, platform_rs485_write);
+    }
 }
 
 /* Routes diagnostics through the terminal's explicit authenticated Diagnostics mode. */
@@ -356,6 +390,24 @@ mqtt_api_health_t get_controller_runtime_mqtt_api_health(void)
     return mqtt_api_get_health(&controller_mqtt_api);
 }
 
+/* Gets the runtime-owned RS485 health snapshot without exposing frame contents. */
+rs485_health_t get_controller_runtime_rs485_health(void)
+{
+    return rs485_service_get_health(&controller_rs485_service);
+}
+
+/* Copies a complete frame into the runtime-owned bounded RS485 transmit queue. */
+bool controller_runtime_rs485_send(const uint8_t *data, size_t size)
+{
+    return rs485_service_send(&controller_rs485_service, data, size);
+}
+
+/* Gets and removes the oldest complete runtime-owned RS485 receive frame. */
+bool controller_runtime_rs485_get_received(rs485_frame_t *frame)
+{
+    return rs485_service_get_received(&controller_rs485_service, frame);
+}
+
 /* Gets the runtime-owned network manager for read-only consumer discovery. */
 const network_manager_t *get_controller_runtime_network_manager(void)
 {
@@ -418,6 +470,55 @@ static void process_mqtt(uint64_t now_ms)
     }
 }
 
+/* Initializes the automatic-direction board UART without waiting for an attached peer. */
+static void initialize_rs485(void)
+{
+    rs485_config_t config;
+    controller_board_get_rs485_config(&config);
+    config.baud_rate             = get_rs485_baud_rate();
+    const bool is_platform_ready = !config.enabled || platform_rs485_initialize(&config);
+    (void)rs485_service_init(&controller_rs485_service, &config,
+                             is_platform_ready && config.enabled ? platform_rs485_write : NULL);
+    const rs485_health_t health = rs485_service_get_health(&controller_rs485_service);
+    diagnostics_emit(is_platform_ready ? DIAGNOSTIC_INFO : DIAGNOSTIC_ERROR, COMPONENT_RS485, EVENT_RS485_STATE,
+                     FORMAT_RS485_STATE, rs485_get_state_name(health.state), config.baud_rate, (unsigned)config.data_bits,
+                     get_rs485_parity_marker(config.parity), config.stop_bits == RS485_STOP_BITS_2 ? 2U : 1U);
+}
+
+/* Drains bounded UART events and advances timeout-delimited raw framing. */
+static void process_rs485(uint64_t now_ms)
+{
+    platform_rs485_event_t event;
+    for (size_t processed = 0; processed < MAXIMUM_RS485_EVENTS_PER_TICK && platform_rs485_get_event(&event); processed++)
+    {
+        switch (event.type)
+        {
+            case PLATFORM_RS485_EVENT_DATA:
+                rs485_service_receive_bytes(&controller_rs485_service, event.data, event.size, now_ms);
+                break;
+            case PLATFORM_RS485_EVENT_FRAMING_ERROR:
+                rs485_service_report_error(&controller_rs485_service, RS485_TRANSPORT_ERROR_FRAMING);
+                break;
+            case PLATFORM_RS485_EVENT_PARITY_ERROR:
+                rs485_service_report_error(&controller_rs485_service, RS485_TRANSPORT_ERROR_PARITY);
+                break;
+            case PLATFORM_RS485_EVENT_OVERFLOW:
+                rs485_service_report_error(&controller_rs485_service, RS485_TRANSPORT_ERROR_OVERFLOW);
+                break;
+            case PLATFORM_RS485_EVENT_QUEUE_DROP:
+                rs485_service_report_queue_drops(&controller_rs485_service, (uint32_t)event.size);
+                break;
+        }
+    }
+    rs485_service_process(&controller_rs485_service, now_ms);
+    /* Commissioning echo consumes complete frames and returns identical owned bytes at the configured line rate. */
+    rs485_frame_t frame;
+    while (rs485_service_get_received(&controller_rs485_service, &frame))
+    {
+        (void)rs485_service_send(&controller_rs485_service, frame.data, frame.size);
+    }
+}
+
 /* Services communications state machines and emits heartbeat status indefinitely. */
 static void controller_task(void * /* context */)
 {
@@ -427,6 +528,7 @@ static void controller_task(void * /* context */)
     initialize_terminal();
     initialize_networking();
     initialize_mqtt();
+    initialize_rs485();
     for (;;)
     {
         const uint64_t now_ms = platform_get_monotonic_ms();
@@ -436,6 +538,8 @@ static void controller_task(void * /* context */)
         network_manager_process(&controller_network_manager, now_ms);
         /* MQTT consumes only current neutral link snapshots and owned platform events. */
         process_mqtt(now_ms);
+        /* RS485 has its own bounded transport path and cannot delay network or MQTT processing. */
+        process_rs485(now_ms);
         uint8_t terminal_input[TERMINAL_READ_CAPACITY];
         const size_t terminal_input_size = platform_terminal_read(terminal_input, sizeof(terminal_input));
         terminal_service_receive(&controller_terminal_service, terminal_input, terminal_input_size, now_ms);

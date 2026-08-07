@@ -31,12 +31,32 @@ enum
     SETTINGS_CHIP_SELECT_GPIO = 11,
     SETTINGS_CARD_DETECT_GPIO = 21,
     SETTINGS_SPI_CLOCK_HZ     = 10000000,
+    RS485_TRANSMIT_GPIO       = 16,
+    RS485_RECEIVE_GPIO        = 17,
+    RS485_DEFAULT_ADDRESS     = 0,
 };
 
 /* Gets the stable board name used by diagnostics and configuration. */
 const char *get_controller_board_name(void)
 {
     return BOARD_NAME;
+}
+
+/* Gets the KC868-A16v3 automatic-direction RS485 UART configuration without inventing an RTS pin. */
+void controller_board_get_rs485_config(rs485_config_t *config)
+{
+    *config = (rs485_config_t){.enabled              = CONFIG_CONTROLLER_RS485_ENABLED,
+                               .transmit_gpio        = RS485_TRANSMIT_GPIO,
+                               .receive_gpio         = RS485_RECEIVE_GPIO,
+                               .baud_rate            = CONFIG_CONTROLLER_RS485_BAUD_RATE,
+                               .data_bits            = (rs485_data_bits_t)CONFIG_CONTROLLER_RS485_DATA_BITS,
+                               .parity               = (rs485_parity_t)CONFIG_CONTROLLER_RS485_PARITY,
+                               .stop_bits            = (rs485_stop_bits_t)CONFIG_CONTROLLER_RS485_STOP_BITS,
+                               .receive_timeout_ms   = CONFIG_CONTROLLER_RS485_RECEIVE_TIMEOUT_MS,
+                               .maximum_frame_size   = CONFIG_CONTROLLER_RS485_MAXIMUM_FRAME_SIZE,
+                               .transmit_queue_depth = CONFIG_CONTROLLER_RS485_TRANSMIT_QUEUE_DEPTH,
+                               .receive_queue_depth  = CONFIG_CONTROLLER_RS485_RECEIVE_QUEUE_DEPTH,
+                               .protocol             = RS485_PROTOCOL_RAW};
 }
 
 /* Gets the safe fallback hostname used until the user persists a device-specific value. */
@@ -85,5 +105,7 @@ void controller_board_get_settings_defaults(settings_defaults_t *defaults)
 {
     *defaults                 = (settings_defaults_t){0};
     defaults->hostname.is_set = true;
+    defaults->rs485.address   = RS485_DEFAULT_ADDRESS;
+    defaults->rs485.baud_rate = CONFIG_CONTROLLER_RS485_BAUD_RATE;
     (void)snprintf(defaults->hostname.value, sizeof(defaults->hostname.value), "%s", DEFAULT_HOSTNAME);
 }

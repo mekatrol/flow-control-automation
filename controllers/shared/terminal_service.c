@@ -10,7 +10,17 @@ static const char PROMPT_LOGIN_PASSWORD[] = "Password: ";
 static const char MAIN_MENU[]             = "\r\n1. System Info\r\n2. Settings\r\n3. Diagnostics\r\n4. Reboot device\r\n> ";
 static const char SETTINGS_MENU[] =
     "\r\n1. Wi-Fi credentials\r\n2. Terminal credentials\r\n3. MQTT configuration\r\n4. Device hostname\r\n"
-    "5. Reset configuration\r\n0. Back\r\n> ";
+    "5. RS485 configuration\r\n6. Reset configuration\r\n0. Back\r\n> ";
+static const char RS485_MENU_FORMAT[] =
+    "\r\nRS485 configuration\r\n1. Controller address: %u\r\n2. Baud rate: %u bps\r\n3. Back\r\n> ";
+static const char RS485_ADDRESS_PROMPT_FORMAT[] =
+    "Current controller address: %u\r\nNew address 0-65535 (/cancel to keep current): ";
+static const char RS485_BAUD_PROMPT_FORMAT[] =
+    "Current baud rate: %u bps\r\nNew baud rate 300-3000000 (/cancel to keep current): ";
+static const char RS485_INVALID_ADDRESS[] = "Invalid RS485 address.\r\n";
+static const char RS485_INVALID_BAUD[]    = "Invalid RS485 baud rate.\r\n";
+static const char RS485_UPDATE_COMPLETE[] = "RS485 settings applied.\r\n";
+static const char RS485_COMMIT_FAILED[]   = "RS485 update failed; previous settings remain active.\r\n";
 static const char MQTT_MENU_FORMAT[] =
     "\r\nMQTT configuration\r\n"
     "1. Credentials (username: %s, password: %s)\r\n2. Broker host: %s\r\n3. Broker port: %u\r\n"
@@ -64,9 +74,12 @@ static const char ERASE_CHARACTER[]          = "\b \b";
 /* Broker TCP ports are constrained by the protocol field width. */
 enum
 {
-    MQTT_MINIMUM_PORT = 1,
-    MQTT_MAXIMUM_PORT = 65535,
-    MQTT_DEFAULT_PORT = 1883,
+    MQTT_MINIMUM_PORT       = 1,
+    MQTT_MAXIMUM_PORT       = 65535,
+    MQTT_DEFAULT_PORT       = 1883,
+    RS485_MINIMUM_BAUD_RATE = 300,
+    RS485_MAXIMUM_BAUD_RATE = 3000000,
+    RS485_MAXIMUM_ADDRESS   = 65535,
 };
 
 /* Writes a bounded record and accounts for a slow or disconnected transport. */
@@ -193,6 +206,16 @@ static void show_mqtt_menu(terminal_service_t *service)
     write_output(service, menu);
 }
 
+/* Displays the RS485 address and line rate without exposing transport implementation details. */
+static void show_rs485_menu(terminal_service_t *service)
+{
+    char menu[TERMINAL_OUTPUT_CAPACITY];
+    const settings_rs485_t rs485 = settings_service_get_snapshot(service->config.settings).rs485;
+    (void)snprintf(menu, sizeof(menu), RS485_MENU_FORMAT, (unsigned)rs485.address, (unsigned)rs485.baud_rate);
+    service->state = TERMINAL_STATE_RS485_MENU;
+    write_output(service, menu);
+}
+
 /* Writes an MQTT value prompt containing its current non-secret value and cancellation command. */
 static void show_mqtt_text_prompt(terminal_service_t *service, const char *format, const char *current_value)
 {
@@ -207,7 +230,8 @@ static bool is_cancelable_editor(terminal_state_t state)
     return state == TERMINAL_STATE_EDIT_CREDENTIAL_NAME || state == TERMINAL_STATE_EDIT_CREDENTIAL_SECRET ||
            state == TERMINAL_STATE_CONFIRM_CREDENTIAL || state == TERMINAL_STATE_EDIT_HOSTNAME ||
            state == TERMINAL_STATE_CONFIRM_HOSTNAME || state == TERMINAL_STATE_EDIT_MQTT_HOST ||
-           state == TERMINAL_STATE_EDIT_MQTT_PORT || state == TERMINAL_STATE_EDIT_MQTT_CLIENT_ID;
+           state == TERMINAL_STATE_EDIT_MQTT_PORT || state == TERMINAL_STATE_EDIT_MQTT_CLIENT_ID ||
+           state == TERMINAL_STATE_EDIT_RS485_ADDRESS || state == TERMINAL_STATE_EDIT_RS485_BAUD_RATE;
 }
 
 /* Cancels an editor and returns to the owning menu without committing staged data. */
@@ -216,12 +240,18 @@ static void cancel_editor(terminal_service_t *service)
     const bool is_mqtt_editor =
         service->credential_target == TERMINAL_CREDENTIAL_MQTT || service->state == TERMINAL_STATE_EDIT_MQTT_HOST ||
         service->state == TERMINAL_STATE_EDIT_MQTT_PORT || service->state == TERMINAL_STATE_EDIT_MQTT_CLIENT_ID;
+    const bool is_rs485_editor =
+        service->state == TERMINAL_STATE_EDIT_RS485_ADDRESS || service->state == TERMINAL_STATE_EDIT_RS485_BAUD_RATE;
     clear_sensitive(service);
     service->credential_target = TERMINAL_CREDENTIAL_NONE;
     write_output(service, CANCELLED);
     if (is_mqtt_editor)
     {
         show_mqtt_menu(service);
+    }
+    else if (is_rs485_editor)
+    {
+        show_rs485_menu(service);
     }
     else
     {
@@ -511,7 +541,7 @@ static void handle_line(terminal_service_t *service, uint64_t now_ms)
         service->state = TERMINAL_STATE_CONFIRM_REBOOT;
         write_output(service, REBOOT_PROMPT);
     }
-    else if (service->state == TERMINAL_STATE_SETTINGS_MENU && strcmp(service->line, "5") == 0)
+    else if (service->state == TERMINAL_STATE_SETTINGS_MENU && strcmp(service->line, "6") == 0)
     {
         service->state = TERMINAL_STATE_CONFIRM_RESET;
         write_output(service, RESET_PROMPT);
@@ -533,6 +563,10 @@ static void handle_line(terminal_service_t *service, uint64_t now_ms)
         service->state = TERMINAL_STATE_EDIT_HOSTNAME;
         show_mqtt_text_prompt(service, HOSTNAME_PROMPT_FORMAT, settings.hostname.is_set ? settings.hostname.value : VALUE_UNSET);
     }
+    else if (service->state == TERMINAL_STATE_SETTINGS_MENU && strcmp(service->line, "5") == 0)
+    {
+        show_rs485_menu(service);
+    }
     else if (service->state == TERMINAL_STATE_SETTINGS_MENU && strcmp(service->line, "0") == 0)
     {
         show_main_menu(service);
@@ -540,6 +574,66 @@ static void handle_line(terminal_service_t *service, uint64_t now_ms)
     else if (service->state == TERMINAL_STATE_MQTT_MENU && strcmp(service->line, "1") == 0)
     {
         start_credential_edit(service, TERMINAL_CREDENTIAL_MQTT);
+    }
+    else if (service->state == TERMINAL_STATE_RS485_MENU && strcmp(service->line, "1") == 0)
+    {
+        char prompt[TERMINAL_OUTPUT_CAPACITY];
+        (void)snprintf(prompt, sizeof(prompt), RS485_ADDRESS_PROMPT_FORMAT, (unsigned)settings.rs485.address);
+        service->state = TERMINAL_STATE_EDIT_RS485_ADDRESS;
+        write_output(service, prompt);
+    }
+    else if (service->state == TERMINAL_STATE_RS485_MENU && strcmp(service->line, "2") == 0)
+    {
+        char prompt[TERMINAL_OUTPUT_CAPACITY];
+        (void)snprintf(prompt, sizeof(prompt), RS485_BAUD_PROMPT_FORMAT, (unsigned)settings.rs485.baud_rate);
+        service->state = TERMINAL_STATE_EDIT_RS485_BAUD_RATE;
+        write_output(service, prompt);
+    }
+    else if (service->state == TERMINAL_STATE_RS485_MENU && (strcmp(service->line, "3") == 0 || strcmp(service->line, "0") == 0))
+    {
+        service->state = TERMINAL_STATE_SETTINGS_MENU;
+        write_output(service, SETTINGS_MENU);
+    }
+    else if (service->state == TERMINAL_STATE_EDIT_RS485_ADDRESS)
+    {
+        unsigned address = 0;
+        char trailing    = '\0';
+        if (sscanf(service->line, "%u%c", &address, &trailing) != 1 || address > RS485_MAXIMUM_ADDRESS)
+        {
+            write_output(service, RS485_INVALID_ADDRESS);
+            char prompt[TERMINAL_OUTPUT_CAPACITY];
+            (void)snprintf(prompt, sizeof(prompt), RS485_ADDRESS_PROMPT_FORMAT, (unsigned)settings.rs485.address);
+            write_output(service, prompt);
+        }
+        else
+        {
+            controller_settings_t updated = settings_service_get_snapshot(service->config.settings);
+            updated.rs485.address         = (uint16_t)address;
+            const bool is_success         = is_settings_update_successful(service, &updated);
+            write_output(service, is_success ? RS485_UPDATE_COMPLETE : RS485_COMMIT_FAILED);
+            show_rs485_menu(service);
+        }
+    }
+    else if (service->state == TERMINAL_STATE_EDIT_RS485_BAUD_RATE)
+    {
+        unsigned baud_rate = 0;
+        char trailing      = '\0';
+        if (sscanf(service->line, "%u%c", &baud_rate, &trailing) != 1 || baud_rate < RS485_MINIMUM_BAUD_RATE ||
+            baud_rate > RS485_MAXIMUM_BAUD_RATE)
+        {
+            write_output(service, RS485_INVALID_BAUD);
+            char prompt[TERMINAL_OUTPUT_CAPACITY];
+            (void)snprintf(prompt, sizeof(prompt), RS485_BAUD_PROMPT_FORMAT, (unsigned)settings.rs485.baud_rate);
+            write_output(service, prompt);
+        }
+        else
+        {
+            controller_settings_t updated = settings_service_get_snapshot(service->config.settings);
+            updated.rs485.baud_rate       = baud_rate;
+            const bool is_success         = is_settings_update_successful(service, &updated);
+            write_output(service, is_success ? RS485_UPDATE_COMPLETE : RS485_COMMIT_FAILED);
+            show_rs485_menu(service);
+        }
     }
     else if (service->state == TERMINAL_STATE_MQTT_MENU && strcmp(service->line, "2") == 0)
     {
@@ -915,6 +1009,13 @@ const char *terminal_get_state_name(terminal_state_t state)
                                         "confirm_hostname",
                                         "recovery_menu",
                                         "recovery_confirm_initialize",
-                                        "recovery_confirm_reboot"};
-    return state <= TERMINAL_STATE_RECOVERY_CONFIRM_REBOOT ? names[state] : "unknown";
+                                        "recovery_confirm_reboot",
+                                        "mqtt_menu",
+                                        "edit_mqtt_host",
+                                        "edit_mqtt_port",
+                                        "edit_mqtt_client_id",
+                                        "rs485_menu",
+                                        "edit_rs485_address",
+                                        "edit_rs485_baud_rate"};
+    return state <= TERMINAL_STATE_EDIT_RS485_BAUD_RATE ? names[state] : "unknown";
 }

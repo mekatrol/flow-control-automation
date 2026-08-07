@@ -5,6 +5,7 @@
 #include "mqtt_api.h"
 #include "mqtt_service.h"
 #include "network_manager.h"
+#include "rs485_service.h"
 #include "terminal_service.h"
 
 /* Starts the non-blocking controller runtime task and reports creation success. */
@@ -27,3 +28,12 @@ mqtt_api_health_t get_controller_runtime_mqtt_api_health(void);
 
 /* Gets the runtime-owned terminal health snapshot without credential data. */
 terminal_health_t get_controller_runtime_terminal_health(void);
+
+/* Gets the runtime-owned RS485 health snapshot without exposing frame contents. */
+rs485_health_t get_controller_runtime_rs485_health(void);
+
+/* Copies a complete frame into the runtime-owned bounded RS485 transmit queue. */
+bool controller_runtime_rs485_send(const uint8_t *data, size_t size);
+
+/* Gets and removes the oldest complete runtime-owned RS485 receive frame. */
+bool controller_runtime_rs485_get_received(rs485_frame_t *frame);

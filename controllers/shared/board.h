@@ -3,6 +3,7 @@
 #include <stddef.h>
 
 #include "ethernet_link.h"
+#include "rs485_service.h"
 #include "settings_service.h"
 
 typedef struct
@@ -27,6 +28,9 @@ void controller_board_format_configuration(char *output, size_t output_size);
 
 /* Gets the board-described W5500 wiring and Ethernet configuration. */
 void controller_board_get_ethernet_config(ethernet_link_config_t *config);
+
+/* Gets the board-described automatic-direction RS485 UART configuration. */
+void controller_board_get_rs485_config(rs485_config_t *config);
 
 /* Gets the board-described raw SD storage wiring. */
 void controller_board_get_settings_storage_config(settings_storage_config_t *config);

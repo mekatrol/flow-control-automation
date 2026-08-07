@@ -57,6 +57,13 @@ typedef struct
     char client_id[SETTINGS_MQTT_CLIENT_ID_CAPACITY];
 } settings_mqtt_broker_t;
 
+/* RS485 node settings are persisted together so address and line rate cannot be torn. */
+typedef struct
+{
+    uint16_t address;
+    uint32_t baud_rate;
+} settings_rs485_t;
+
 /* Typed settings are committed together so credential pairs cannot be torn. */
 typedef struct
 {
@@ -68,6 +75,7 @@ typedef struct
     settings_nullable_string_t mqtt_password;
     settings_nullable_string_t hostname;
     settings_mqtt_broker_t mqtt_broker;
+    settings_rs485_t rs485;
     bool is_user_reset;
 } controller_settings_t;
 

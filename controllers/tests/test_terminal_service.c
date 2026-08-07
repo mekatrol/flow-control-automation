@@ -237,6 +237,34 @@ static void test_session_contract(void)
     assert(service.last_disconnect_reason == TERMINAL_DISCONNECT_IDLE_TIMEOUT);
 }
 
+/* Verifies authenticated users can atomically update RS485 address and baud rate. */
+static void test_rs485_configuration(void)
+{
+    terminal_fixture_t fixture = {0};
+    settings_service_t settings;
+    terminal_service_t service        = get_authenticated_fixture(&fixture, &settings);
+    settings.snapshot.rs485.address   = 0;
+    settings.snapshot.rs485.baud_rate = 115200;
+    send_line(&service, TEST_USERNAME, 1);
+    send_line(&service, TEST_PASSWORD, 2);
+    send_line(&service, "2", 3);
+    send_line(&service, "5", 4);
+    assert(service.state == TERMINAL_STATE_RS485_MENU);
+    assert(strstr(fixture.output, "Controller address: 0") != NULL);
+    assert(strstr(fixture.output, "Baud rate: 115200 bps") != NULL);
+    send_line(&service, "1", 5);
+    send_line(&service, "65536", 6);
+    assert(strstr(fixture.output, "Invalid RS485 address") != NULL);
+    send_line(&service, "42", 7);
+    assert(settings.snapshot.rs485.address == 42);
+    send_line(&service, "2", 8);
+    send_line(&service, "115", 9);
+    assert(strstr(fixture.output, "Invalid RS485 baud rate") != NULL);
+    send_line(&service, "9600", 10);
+    assert(settings.snapshot.rs485.baud_rate == 9600);
+    assert(fixture.settings_change_count == 2);
+}
+
 /* Verifies bad credentials are counted and throttled without exposing the password. */
 static void test_failed_login_is_redacted(void)
 {
@@ -320,6 +348,7 @@ int main(void)
     test_recovery_menu_remains_useful();
     test_recovery_media_initialization_requires_confirmation();
     test_mqtt_configuration_and_status();
+    test_rs485_configuration();
     puts(TEST_SUCCESS_MESSAGE);
     return 0;
 }

@@ -295,6 +295,57 @@ first-stage ROM lines can appear immediately at reset because they execute
 before firmware configuration; do not burn an eFuse merely to suppress them.
 Once application startup begins, only terminal-service output should use USB.
 
+### Phase 8 RS485 adapter test
+
+The KC868-A16v3 uses GPIO16 for TX and GPIO17 for RX behind its onboard
+automatic-direction RS485 transceiver. There is no software RTS/DE pin. Connect
+the Waveshare adapter `A+` to controller `A`, `B-` to controller `B`, and, for a
+short bench setup with a non-isolated adapter, GND to GND. Do not connect either
+RS485 signal to the controller supply terminals. Use termination only at the
+two physical ends of a longer bus.
+
+On Linux Mint, identify the adapter without assuming a stable device number:
+
+```sh
+ls -l /dev/serial/by-id/
+```
+
+Configure the firmware and adapter identically. Defaults are raw protocol,
+115200 baud, 8 data bits, no parity, one stop bit, and a 20 ms inter-byte frame
+timeout. A simple receive test from Linux is:
+
+```sh
+port=/dev/serial/by-id/usb-your-waveshare-adapter
+stty -F "$port" 115200 cs8 -parenb -cstopb -ixon -ixoff raw
+printf 'mint-to-controller' >"$port"
+```
+
+The commissioning firmware echoes every complete raw frame. Test both
+directions from one Mint shell without opening the adapter in another program:
+
+```sh
+port=/dev/serial/by-id/usb-1a86_USB_Single_Serial_586D012048-if00
+stty -F "$port" 115200 cs8 -parenb -cstopb -ixon -ixoff raw
+printf 'rs485-echo-test' >"$port"
+timeout 2 od -An -tc -N 15 <"$port"
+```
+
+The output should contain `rs485-echo-test`. Send groups separated by more
+than the configured receive timeout to create distinct raw frames. Repeat with
+A/B swapped if no bytes arrive because some vendors label differential
+polarity oppositely.
+
+Use the authenticated USB terminal on `/dev/ttyACM0`, then select `Settings`
+and `RS485 configuration` to change the 16-bit controller address or baud rate.
+The defaults are address 0 and 115200 bps. System Info displays both values.
+After changing baud, immediately re-run `stty` on the Waveshare port with the
+new rate; the terminal itself remains on the separate ESP32 USB connection.
+
+During disconnect, malformed-format, continuous-input, and peer-restart tests,
+the heartbeat must continue. `rs485_errors` and `rs485_queue_drops` must rise
+when faults are injected, and normal traffic must resume without rebooting
+networking, MQTT, or the controller.
+
 ## Debug
 
 The ESP32-S3 has built-in JTAG, and the A16v3 exposes USB Serial/JTAG through

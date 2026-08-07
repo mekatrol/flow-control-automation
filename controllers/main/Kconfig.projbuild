@@ -30,6 +30,52 @@ menu "Flow controller"
         help
             Enables the board-described W5500 interface and supervised DHCP.
 
+    config CONTROLLER_RS485_ENABLED
+        bool "Enable first RS485 port"
+        default y
+        help
+            Enables UART1 on the board-described automatic-direction transceiver.
+
+    config CONTROLLER_RS485_BAUD_RATE
+        int "RS485 baud rate"
+        range 300 3000000
+        default 115200
+
+    config CONTROLLER_RS485_DATA_BITS
+        int "RS485 data bits"
+        range 7 8
+        default 8
+
+    config CONTROLLER_RS485_PARITY
+        int "RS485 parity (0 none, 1 even, 2 odd)"
+        range 0 2
+        default 0
+
+    config CONTROLLER_RS485_STOP_BITS
+        int "RS485 stop bits (0 one, 1 two)"
+        range 0 1
+        default 0
+
+    config CONTROLLER_RS485_RECEIVE_TIMEOUT_MS
+        int "RS485 raw-frame inter-byte timeout in milliseconds"
+        range 1 10000
+        default 20
+
+    config CONTROLLER_RS485_MAXIMUM_FRAME_SIZE
+        int "RS485 maximum frame size"
+        range 1 256
+        default 256
+
+    config CONTROLLER_RS485_TRANSMIT_QUEUE_DEPTH
+        int "RS485 transmit frame queue depth"
+        range 1 8
+        default 8
+
+    config CONTROLLER_RS485_RECEIVE_QUEUE_DEPTH
+        int "RS485 receive frame queue depth"
+        range 1 8
+        default 8
+
     config CONTROLLER_MQTT_KEEPALIVE_SECONDS
         int "MQTT keepalive interval in seconds"
         range 1 65535

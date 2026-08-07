@@ -57,6 +57,13 @@ target_include_directories(mqtt_api_tests PRIVATE ../shared)
 target_compile_options(mqtt_api_tests PRIVATE -Wall -Wextra -Werror -pedantic)
 add_test(NAME mqtt_api COMMAND mqtt_api_tests)
 
+add_executable(rs485_service_tests
+    test_rs485_service.c
+    ../shared/rs485_service.c)
+target_include_directories(rs485_service_tests PRIVATE ../shared)
+target_compile_options(rs485_service_tests PRIVATE -Wall -Wextra -Werror -pedantic)
+add_test(NAME rs485_service COMMAND rs485_service_tests)
+
 add_executable(settings_service_tests
     test_settings_service.c
     ../shared/settings_service.c)
