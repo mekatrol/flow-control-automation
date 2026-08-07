@@ -358,13 +358,18 @@ in this order:
 
 ## Phase 9 — Bespoke controller protocol
 
+**Status: complete. Implementation, portable tests, production build, flash,
+and core RS485 on-target validation passed on 2026-08-07.**
+
 The normative wire contract, field layouts, operation codes, typed values,
 security rules, and transfer state machines are defined in [`PROTOCOL.md`](PROTOCOL.md).
 The protocol initially runs over the Phase 8 RS485 service, but its message
 codec and dispatcher must not depend on UART or ESP-IDF types so the same
 contract can later use TCP, MQTT, CAN, or another bounded transport.
 
-### Phase 9A — Framing, discovery, and read-only device API (implementation and core on-target validation complete)
+### Phase 9A — Framing, discovery, and read-only device API
+
+**Status: complete.**
 
 #### Deliverables
 
@@ -412,22 +417,21 @@ contract can later use TCP, MQTT, CAN, or another bounded transport.
 
 #### Validation status
 
-- All 12 portable host suites pass, including protocol framing, CRC,
+- All 15 portable host suites pass, including protocol framing, CRC,
   dispatcher, duplicate-transaction, point-provider, unavailable-data, and
   single/block I/O tests.
 - The production ESP32-S3 image builds, flashes, and boots on the selected
   KinCony KC868-A16v3.
 - Linux Mint communication through the Waveshare USB-to-RS485 adapter verifies
-  post-flash whole-I/O reads, unchanged-state whole-output writes, and
-  unchanged-state single-output writes. The observed `0x00c0` output bitmap was
-  preserved during live testing.
+  post-flash whole-I/O reads and point enumeration. The observed `0x00c0`
+  output bitmap was preserved during live testing.
 - Extended physical negative testing for injected bad CRC, wrong-address
   traffic, bus noise, collisions, and disconnect/reconnect remains part of the
   broader integration and soak work rather than blocking the implemented API.
 
 ### Phase 9B — Authentication and replay protection
 
-**Status: implementation complete; portable validation complete.**
+**Status: complete, including on-target authentication validation.**
 
 #### Deliverables
 
@@ -468,10 +472,13 @@ contract can later use TCP, MQTT, CAN, or another bounded transport.
   replayed sequences, dispatcher challenge/prove, and rejection of an
   unwrapped protected operation. The Linux client independently implements and
   verifies the normative transcripts.
+- Live challenge/proof, authenticated request and response tags, mandatory
+  output authentication, session close, and repeated one-shot sessions passed
+  through the Waveshare RS485 adapter.
 
 ### Phase 9C — Transactional flow transfer
 
-**Status: implementation complete; portable and production-build validation complete.**
+**Status: complete, including on-target transactional and recovery validation.**
 
 #### Deliverables
 
@@ -524,10 +531,12 @@ contract can later use TCP, MQTT, CAN, or another bounded transport.
 - Execution remains deliberately distinct: schema 1 is transferred and
   activated as an opaque compiled artifact; evaluator bytecode is outside this
   phase and is not inferred from authoring data.
+- A live schema-1 fixture completed authenticated upload, validation, atomic
+  commit, activation, exact download comparison, and recovery after reboot.
 
 ### Phase 9D — Point commands and subscriptions
 
-**Status: implementation complete; portable and production-build validation complete.**
+**Status: complete, including authenticated on-target output validation.**
 
 Read-only I/O groundwork is implemented ahead of this phase: the KC868-A16
 polls and caches 16 active-low digital inputs and 16 active-low relay outputs,
@@ -571,6 +580,9 @@ session policy on local RS485 and future routable transports.
   point or whole-I/O reads.
 - Portable tests cover arbitration, replacement, relinquish, expiry, rejection,
   subscription saturation/coalescing/gaps, and coherent direct I/O behavior.
+- Live unauthenticated output mutation was rejected before provider dispatch;
+  authenticated block write, single-point arbitration, and relinquish passed
+  while preserving the observed `0x00c0` output bitmap.
 
 ### Phase 9 completion validation
 
