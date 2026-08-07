@@ -162,6 +162,10 @@ case "$action" in
     fi
     # Include tracked and new non-ignored sources so formatting works before files are staged or committed.
     while IFS= read -r -d '' source_file; do
+      # A refactor can leave a tracked path deleted while its replacement is still unstaged.
+      if [ ! -f "$source_file" ]; then
+        continue
+      fi
       clang-format -i "$source_file"
     done < <(git ls-files -z --cached --others --exclude-standard -- '*.c' '*.h')
     ;;

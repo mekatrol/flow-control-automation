@@ -1,7 +1,7 @@
-#include "board.h"
-#include "controller_runtime.h"
-#include "diagnostics.h"
-#include "platform.h"
+#include "board/config.h"
+#include "controller/runtime.h"
+#include "diagnostics/service.h"
+#include "platform/core.h"
 
 /* Startup diagnostic components and event codes form the stable boot schema. */
 static const char COMPONENT_STARTUP[]   = "startup";

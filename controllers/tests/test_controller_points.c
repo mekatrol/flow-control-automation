@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "controller_points.h"
+#include "controller/points.h"
 
 static uint16_t written_outputs;
 static const char TEST_SUCCESS_MESSAGE[] = "Controller point arbitration tests passed";

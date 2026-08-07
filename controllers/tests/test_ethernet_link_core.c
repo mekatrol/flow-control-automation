@@ -1,7 +1,7 @@
 #include <assert.h>
 #include <stdio.h>
 
-#include "ethernet_link.h"
+#include "ethernet/link.h"
 
 /* Named test data documents the smallest valid board-provided configuration. */
 enum

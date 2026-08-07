@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "controller_flow.h"
+#include "flow/service.h"
 
 static controller_flow_metadata_t durable_metadata;
 static uint8_t durable_artifact[CONTROLLER_FLOW_ARTIFACT_CAPACITY];

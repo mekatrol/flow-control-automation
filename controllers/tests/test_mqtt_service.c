@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "mqtt_service.h"
+#include "mqtt/service.h"
 
 /* Named timing, route, and limit values make supervisor expectations explicit. */
 enum

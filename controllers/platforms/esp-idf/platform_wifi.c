@@ -1,9 +1,9 @@
-#include "platform_wifi.h"
+#include "platform/wifi.h"
 
 #include <stdio.h>
 #include <string.h>
 
-#include "board.h"
+#include "board/config.h"
 #include "esp_event.h"
 #include "esp_netif.h"
 #include "esp_netif_ip_addr.h"

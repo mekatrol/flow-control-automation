@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "wifi_link.h"
+#include "wifi/link.h"
 
 /* Valid fixtures exercise enabled, intentionally disabled, and open stations. */
 static const char VALID_SSID[]           = "test-network";

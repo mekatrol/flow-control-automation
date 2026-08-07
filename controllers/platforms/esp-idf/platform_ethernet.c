@@ -1,4 +1,4 @@
-#include "platform_ethernet.h"
+#include "platform/ethernet.h"
 
 #include <stdio.h>
 

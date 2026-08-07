@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "terminal_service.h"
+#include "terminal/service.h"
 
 /* Test buffers remain larger than one complete stable menu exchange. */
 enum

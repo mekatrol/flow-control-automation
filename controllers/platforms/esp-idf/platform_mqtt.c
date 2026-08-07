@@ -1,4 +1,4 @@
-#include "platform_mqtt.h"
+#include "platform/mqtt.h"
 
 #include <net/if.h>
 #include <stdatomic.h>
@@ -12,7 +12,7 @@
 #include "freertos/queue.h"
 #include "freertos/task.h"
 #include "mqtt_client.h"
-#include "network_manager.h"
+#include "network/manager.h"
 #include "sdkconfig.h"
 
 /* URI and queue limits keep platform configuration bounded before transport startup. */

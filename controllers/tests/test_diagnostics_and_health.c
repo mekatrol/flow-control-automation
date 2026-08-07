@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "diagnostics_core.h"
+#include "diagnostics/core.h"
 
 /* Fixture sizes provide bounded output storage for each formatter contract. */
 enum

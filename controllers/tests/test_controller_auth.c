@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "controller_auth.h"
+#include "controller/auth.h"
 
 static uint8_t random_seed               = 1;
 static const char TEST_SUCCESS_MESSAGE[] = "Controller authentication tests passed";

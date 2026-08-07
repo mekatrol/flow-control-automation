@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "controller_protocol.h"
+#include "controller/protocol.h"
 
 /* Fixture limits and identities make version-one wire expectations explicit. */
 enum

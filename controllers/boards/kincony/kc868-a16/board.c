@@ -1,4 +1,4 @@
-#include "board.h"
+#include "board/config.h"
 
 #include <stdio.h>
 

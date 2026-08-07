@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "controller_io.h"
+#include "controller/io.h"
 
 static const char TEST_SUCCESS_MESSAGE[] = "Controller I/O tests passed";
 static uint16_t written_outputs;

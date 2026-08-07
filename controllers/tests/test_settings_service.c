@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "settings_service.h"
+#include "settings/service.h"
 
 /* Fake limits exceed the current records while remaining bounded in tests. */
 enum

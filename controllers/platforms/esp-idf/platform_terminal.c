@@ -1,4 +1,4 @@
-#include "platform_terminal.h"
+#include "platform/terminal.h"
 
 #include "driver/usb_serial_jtag.h"
 

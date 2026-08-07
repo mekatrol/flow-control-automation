@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "controller_health.h"
+#include "controller/health.h"
 
 /* Fixture values make the formatted health schema expectation explicit. */
 enum

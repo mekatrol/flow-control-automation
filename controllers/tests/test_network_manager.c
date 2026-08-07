@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "network_manager.h"
+#include "network/manager.h"
 
 /* Shared fixture values make supervisor timing and priority expectations explicit. */
 enum

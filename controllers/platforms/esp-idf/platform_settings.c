@@ -1,4 +1,4 @@
-#include "platform_settings.h"
+#include "platform/settings.h"
 
 #include <string.h>
 

@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "rs485_service.h"
+#include "rs485/service.h"
 
 /* Fixture values exercise timeout framing and both bounded queues. */
 enum
