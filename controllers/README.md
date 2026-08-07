@@ -175,14 +175,40 @@ access, so secure the cabinet and physical bus wiring.
 
 Provision a unique 32-byte protocol credential through the authenticated
 terminal's **Settings > Protocol key** option. The value is write-only and is
-entered as 64 hexadecimal characters. Keep it in a protected shell variable;
-it is used by the client to establish a fresh HMAC session for each protected
-invocation:
+entered as 64 hexadecimal characters. Generate one with OpenSSL:
 
 ```sh
-FCP_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+openssl rand -hex 32
+```
+
+Python's standard library is an equivalent fallback:
+
+```sh
+python3 -c 'import secrets; print(secrets.token_hex(32))'
+```
+
+Enter the generated value in the terminal settings and store it in an
+appropriate secret manager. Do not paste the key directly into a shell command,
+where it would be retained in shell history. Load it into a protected shell
+variable interactively when using the client:
+
+```sh
+read -rsp "FCP key: " FCP_KEY; echo
+```
+
+The client uses the variable to establish a fresh HMAC session for each
+protected invocation:
+
+```sh
 ./scripts/fcp-client.py "$FCP_PORT" set-output --address 0 --point output-01 --state on --key "$FCP_KEY" --priority 8
 ./scripts/fcp-client.py "$FCP_PORT" relinquish --address 0 --point output-01 --source-id fcp-client --key "$FCP_KEY"
+```
+
+Generate and provision a replacement immediately if a key is exposed. Clear
+the variable when the session is finished:
+
+```sh
+unset FCP_KEY
 ```
 
 Upload an immutable compiled artifact, activate it separately, and verify an
