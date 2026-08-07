@@ -1,0 +1,20 @@
+{
+  "envelopeSchema": 1,
+  "bodySchema": 1,
+  "flowId": "memory-feedback",
+  "revision": 2,
+  "controllerTemplateId": "kincony-kc868-a16",
+  "controllerTemplateRevision": 3,
+  "nodeIds": [
+    "constant-true",
+    "memory-1",
+    "or-1",
+    "output-01-node"
+  ],
+  "pointReferences": [
+    {
+      "pointId": "output-01",
+      "direction": "proposed_write"
+    }
+  ]
+}

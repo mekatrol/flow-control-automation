@@ -27,8 +27,8 @@ artifact validation, lifecycle integration, and production commissioning.
   currently creates synthetic running/stopped snapshots rather than executing
   flows or communicating with a controller.
 - FCP can upload, validate, commit, activate, and inspect metadata for one
-  opaque artifact. Artifact schema 1 has no executable body specification, and
-  activation does not execute it.
+  artifact. Executable envelope/body schema 1 is now frozen with shared golden
+  fixtures, but activation does not execute it.
 - The controller has coherent point sampling and output arbitration, but no
   artifact decoder, evaluator, per-node snapshot, manual-step operation, or
   volatile debug-session lifecycle.
@@ -167,6 +167,45 @@ the session must expire without periodic authenticated lease renewal.
 
 ### Phase 1: Freeze contracts and fixtures
 
+Status: complete. The frozen contracts are
+[`controller-executable-flow-contract-v1.md`](controller-executable-flow-contract-v1.md)
+and [`controller-debug-contract-v1.md`](controller-debug-contract-v1.md). Shared
+binary artifacts, decoded forms, input frames, expected snapshots, and stable
+validation failures live under `testdata/contracts/flow-executable-v1/`; the
+backend snapshot schema is `testdata/contracts/debug-snapshot.schema.v1.json`.
+
+Verified baseline before the Windows handoff on 2026-08-07:
+
+- Portable controller host tests: 16 passed.
+- Backend tests: 145 passed, including 3 shared-fixture contract tests.
+- Deterministic fixture regeneration, controller source policy, and whitespace
+  checks passed.
+
+### Windows handoff
+
+From a PowerShell prompt at the repository root, verify the generated fixtures
+and .NET consumer:
+
+```powershell
+node .\tools\generate-flow-contract-fixtures.mjs --check
+dotnet test .\backend\Server\Server.slnx -m:1 -nodeReuse:false
+```
+
+The controller build invokes a Bash source-policy gate. Run its checks from Git
+Bash or WSL with a C compiler and CMake available:
+
+```bash
+controllers/scripts/check-source-policy.sh controllers
+cmake -S controllers/tests -B build/controller-host-tests
+cmake --build build/controller-host-tests
+ctest --test-dir build/controller-host-tests --output-on-failure
+```
+
+Resume with Phase 2 only after these checks. Keep decoder/validator,
+deterministic schedule construction, evaluator, and snapshot capture in
+portable C under `controllers/shared/flow/`. Do not begin the backend compiler
+or firmware/FCP debug operations until Phase 2 fixtures pass in host tests.
+
 1. Assign executable artifact envelope and body schema versions.
 2. Specify the initial node encodings, type rules, memory semantics, limits,
    deterministic scheduling rules, and validation reason codes.
@@ -184,6 +223,9 @@ Exit criteria:
 - Malformed, incompatible, and cyclic examples have stable expected errors.
 
 ### Phase 2: Implement portable decode, validation, and evaluation
+
+Status: next. No decoder, validator, schedule builder, evaluator, or firmware
+debug-session implementation exists yet.
 
 1. Add flow artifact modules under `controllers/shared/flow/` for bounded
    decoding, semantic validation, schedule construction, and prepared runtime

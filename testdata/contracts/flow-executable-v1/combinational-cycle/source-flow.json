@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "id": "combinational-cycle",
+  "revision": 1,
+  "controllerTemplateId": "kincony-kc868-a16",
+  "controllerTemplateRevision": 3,
+  "execution": {
+    "mode": "manual",
+    "intervalMs": 0,
+    "inputQualityPolicy": "require_good"
+  },
+  "nodes": [
+    {
+      "id": "not-a",
+      "kind": "not",
+      "configuration": {}
+    },
+    {
+      "id": "not-b",
+      "kind": "not",
+      "configuration": {}
+    }
+  ],
+  "connections": [
+    {
+      "source": {
+        "nodeId": "not-a",
+        "portId": "value"
+      },
+      "target": {
+        "nodeId": "not-b",
+        "portId": "in"
+      }
+    },
+    {
+      "source": {
+        "nodeId": "not-b",
+        "portId": "value"
+      },
+      "target": {
+        "nodeId": "not-a",
+        "portId": "in"
+      }
+    }
+  ]
+}

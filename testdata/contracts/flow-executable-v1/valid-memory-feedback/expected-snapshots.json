@@ -1,0 +1,1 @@
+[{"tickNumber":1,"nodes":{"memory-1":false,"or-1":true},"proposedOutputs":{"output-01":false}},{"tickNumber":2,"nodes":{"memory-1":true,"or-1":true},"proposedOutputs":{"output-01":true}}]

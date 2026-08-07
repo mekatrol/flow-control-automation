@@ -1,0 +1,17 @@
+[
+  {
+    "id": "input-01",
+    "direction": "input",
+    "type": "digital"
+  },
+  {
+    "id": "input-08",
+    "direction": "input",
+    "type": "digital"
+  },
+  {
+    "id": "output-01",
+    "direction": "output",
+    "type": "digital"
+  }
+]

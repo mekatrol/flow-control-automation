@@ -46,6 +46,13 @@ target_include_directories(controller_flow_tests PRIVATE ../shared)
 target_compile_options(controller_flow_tests PRIVATE -Wall -Wextra -Werror -pedantic)
 add_test(NAME controller_flow COMMAND controller_flow_tests)
 
+add_executable(flow_contract_fixture_tests
+    test_flow_contract_fixtures.c)
+target_compile_definitions(flow_contract_fixture_tests PRIVATE
+    FLOW_CONTRACT_FIXTURE_DIRECTORY="${CMAKE_CURRENT_LIST_DIR}/../../testdata/contracts/flow-executable-v1")
+target_compile_options(flow_contract_fixture_tests PRIVATE -Wall -Wextra -Werror -pedantic)
+add_test(NAME flow_contract_fixtures COMMAND flow_contract_fixture_tests)
+
 add_executable(controller_points_tests
     test_controller_points.c
     ../shared/controller/points.c)

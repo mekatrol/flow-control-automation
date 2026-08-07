@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "id": "memory-feedback",
+  "revision": 2,
+  "controllerTemplateId": "kincony-kc868-a16",
+  "controllerTemplateRevision": 3,
+  "execution": {
+    "mode": "manual",
+    "intervalMs": 0,
+    "inputQualityPolicy": "require_good"
+  },
+  "nodes": [
+    {
+      "id": "constant-true",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      }
+    },
+    {
+      "id": "memory-1",
+      "kind": "memory",
+      "configuration": {
+        "value": false
+      }
+    },
+    {
+      "id": "or-1",
+      "kind": "or",
+      "configuration": {}
+    },
+    {
+      "id": "output-01-node",
+      "kind": "digitalOutput",
+      "configuration": {
+        "pointId": "output-01"
+      }
+    }
+  ],
+  "connections": [
+    {
+      "source": {
+        "nodeId": "constant-true",
+        "portId": "value"
+      },
+      "target": {
+        "nodeId": "or-1",
+        "portId": "a"
+      }
+    },
+    {
+      "source": {
+        "nodeId": "memory-1",
+        "portId": "value"
+      },
+      "target": {
+        "nodeId": "or-1",
+        "portId": "b"
+      }
+    },
+    {
+      "source": {
+        "nodeId": "or-1",
+        "portId": "value"
+      },
+      "target": {
+        "nodeId": "memory-1",
+        "portId": "in"
+      }
+    },
+    {
+      "source": {
+        "nodeId": "memory-1",
+        "portId": "value"
+      },
+      "target": {
+        "nodeId": "output-01-node",
+        "portId": "in"
+      }
+    }
+  ]
+}

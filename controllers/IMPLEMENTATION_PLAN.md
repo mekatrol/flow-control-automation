@@ -9,10 +9,11 @@ documented in [`FEATURES.md`](FEATURES.md), the FCP wire contract is defined in
 [`README.md`](README.md).
 
 The existing flow service transfers, validates, commits, activates, and
-recovers one opaque schema-1 artifact, but activation does not yet execute it.
-The work below defines the artifact representation and adds a deterministic,
-bounded evaluator without moving editable graph or backend concerns onto the
-controller.
+recovers one schema-1 artifact, but activation does not yet execute it. The
+artifact representation is now frozen by
+[`../docs/controller-executable-flow-contract-v1.md`](../docs/controller-executable-flow-contract-v1.md)
+and shared golden fixtures. The remaining work adds a deterministic, bounded
+evaluator without moving editable graph or backend concerns onto the controller.
 
 ## Architectural rules
 
@@ -46,11 +47,10 @@ to users as a delay or feedback node) with a compiler-supplied initial value.
 On activation or reset, the node emits that initial value. During a tick it
 captures its input, and it emits the captured value on the following tick.
 
-The initial digital memory value defaults to `false` only when the artifact
-format explicitly permits an omitted default; the compiler should normally
-encode the user's chosen initial value. Future stateful data types must define
-their own valid initial-value encoding and cannot rely on zeroed memory as an
-implicit semantic default.
+Executable body schema 1 always encodes the initial digital memory value as one
+strict Boolean byte; omission is invalid. Future stateful data types must
+define their own valid initial-value encoding and cannot rely on zeroed memory
+as an implicit semantic default.
 
 The compiler and controller validator remove stateful-node input dependencies
 when constructing the same-tick dependency graph. The remaining combinational
@@ -79,6 +79,12 @@ to `false`.
 
 ### Phase 1: Specify executable artifact schema
 
+Status: complete as part of controller debugging Phase 1. The normative schema
+is `docs/controller-executable-flow-contract-v1.md`; shared exact binary,
+decoded, validation, input, and tick fixtures are in
+`testdata/contracts/flow-executable-v1/`. Portable C and .NET tests consume the
+same fixture set.
+
 - Replace opaque schema 1 with a separately versioned deterministic body
   specification covering typed constants, nodes, ports, connections, initial
   state, input-quality policy, execution mode and interval, and output source,
@@ -95,6 +101,10 @@ to `false`.
   when evaluator semantics change incompatibly.
 
 ### Phase 2: Decode and validate before activation
+
+Status: next implementation step. Start with bounded decoding and semantic
+validation against every shared fixture, then construct the deterministic
+schedule. Do not couple this code to ESP-IDF or durable activation.
 
 - Add a portable decoder that performs checked offset/length arithmetic and
   rejects unknown schema versions, node kinds, types, flags, or non-canonical

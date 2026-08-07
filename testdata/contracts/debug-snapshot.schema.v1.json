@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://flow-control.local/contracts/debug-snapshot.schema.v1.json",
+  "title": "Controller debug snapshot v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "debugSessionId", "flowId", "revision", "lifecycleState", "mode",
+    "tickNumber", "sampledAtMs", "completedAtMs", "executionDurationUs",
+    "inputValidity", "nodes", "proposedOutputs", "overrunCount",
+    "evaluationFailureCount", "lastReasonCode", "lastReason", "lastReasonPath"
+  ],
+  "properties": {
+    "debugSessionId": { "$ref": "#/$defs/sessionId" },
+    "flowId": { "$ref": "#/$defs/id" },
+    "revision": { "$ref": "#/$defs/u32NonZero" },
+    "lifecycleState": { "enum": ["ready", "paused", "fault"] },
+    "mode": { "enum": ["manual", "fixed_interval"] },
+    "tickNumber": { "$ref": "#/$defs/u64Json" },
+    "sampledAtMs": { "$ref": "#/$defs/u64Json" },
+    "completedAtMs": { "$ref": "#/$defs/u64Json" },
+    "executionDurationUs": { "$ref": "#/$defs/u32" },
+    "inputValidity": {
+      "type": "array",
+      "uniqueItems": true,
+      "maxItems": 3,
+      "items": { "enum": ["coherent", "all_present", "all_good"] }
+    },
+    "nodes": {
+      "type": "array",
+      "maxItems": 128,
+      "items": { "$ref": "#/$defs/node" }
+    },
+    "proposedOutputs": {
+      "type": "array",
+      "maxItems": 64,
+      "items": { "$ref": "#/$defs/output" }
+    },
+    "overrunCount": { "$ref": "#/$defs/u32" },
+    "evaluationFailureCount": { "$ref": "#/$defs/u32" },
+    "lastReasonCode": { "type": "integer", "minimum": 0, "maximum": 65535 },
+    "lastReason": { "type": "string", "minLength": 1, "maxLength": 63 },
+    "lastReasonPath": { "type": "string", "maxLength": 63 }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 63,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "sessionId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 20,
+      "pattern": "^(0|[1-9][0-9]*)$"
+    },
+    "u32": { "type": "integer", "minimum": 0, "maximum": 4294967295 },
+    "u32NonZero": { "type": "integer", "minimum": 1, "maximum": 4294967295 },
+    "u64Json": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+    "state": { "enum": ["idle", "evaluated", "fault", "unavailable"] },
+    "quality": { "enum": ["good", "uncertain", "bad", "unavailable"] },
+    "typedValue": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "value"],
+          "properties": {
+            "type": { "const": "digital" },
+            "value": { "type": "boolean" }
+          }
+        }
+      ]
+    },
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nodeId", "state", "quality", "typedValue"],
+      "properties": {
+        "nodeId": { "$ref": "#/$defs/id" },
+        "state": { "$ref": "#/$defs/state" },
+        "quality": { "$ref": "#/$defs/quality" },
+        "typedValue": { "$ref": "#/$defs/typedValue" }
+      }
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pointId", "state", "quality", "proposedValue"],
+      "properties": {
+        "pointId": { "$ref": "#/$defs/id" },
+        "state": { "$ref": "#/$defs/state" },
+        "quality": { "$ref": "#/$defs/quality" },
+        "proposedValue": { "type": "boolean" }
+      }
+    }
+  }
+}

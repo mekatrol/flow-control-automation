@@ -1,0 +1,44 @@
+[
+  {
+    "tick": 1,
+    "sampledAtMs": 1000,
+    "inputs": {
+      "input-01": false,
+      "input-08": false
+    },
+    "expected": {
+      "and-main": false,
+      "input-01-node": false,
+      "input-08-node": false,
+      "output-01-node": false
+    }
+  },
+  {
+    "tick": 2,
+    "sampledAtMs": 1100,
+    "inputs": {
+      "input-01": true,
+      "input-08": false
+    },
+    "expected": {
+      "and-main": false,
+      "input-01-node": true,
+      "input-08-node": false,
+      "output-01-node": false
+    }
+  },
+  {
+    "tick": 3,
+    "sampledAtMs": 1200,
+    "inputs": {
+      "input-01": true,
+      "input-08": true
+    },
+    "expected": {
+      "and-main": true,
+      "input-01-node": true,
+      "input-08-node": true,
+      "output-01-node": true
+    }
+  }
+]

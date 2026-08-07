@@ -376,10 +376,10 @@ ID/revision, referenced point/source revisions, execution mode/interval,
 node/connection counts, required capabilities/limits, payload length, and
 SHA-256 digest.
 
-The body uses a separately versioned deterministic encoding. Exact bytecode and
-evaluator representation must receive a specification and golden fixtures when
-the controller evaluator is designed. FCP transfer treats it as opaque bytes;
-the deployment validator owns semantics.
+Envelope schema 1 and body schema 1 use the deterministic encoding in
+[`../docs/controller-executable-flow-contract-v1.md`](../docs/controller-executable-flow-contract-v1.md).
+FCP transfer still treats the bytes as opaque; the deployment validator owns
+their semantics.
 
 ## 12. Flow operations
 
@@ -429,9 +429,17 @@ The initial durable profile stores one committed flow in an atomic NVS blob and
 one volatile staging transfer. Upload status permits retransmission and resume
 within the current boot; a reboot discards staging but recovers either the old
 complete generation or the newly committed complete generation. Artifact
-schema 1 is the supported opaque transfer schema until the evaluator encoding
-is standardized; digest and schema validation occur before commit, while
-activation remains a distinct durable operation.
+schema 1 is the executable envelope and body contract linked above; digest and
+schema validation occur before commit, while activation remains a distinct
+durable operation.
+
+### 12.1 Volatile debug operations
+
+Opcodes `0x50` through `0x58` reserve the authenticated volatile debug-session
+profile. Their lifecycle, lease, chunk, snapshot, and shadow-safety contracts
+are specified in
+[`../docs/controller-debug-contract-v1.md`](../docs/controller-debug-contract-v1.md).
+They never mutate durable upload or committed-generation state.
 
 ## 13. Idempotency
 

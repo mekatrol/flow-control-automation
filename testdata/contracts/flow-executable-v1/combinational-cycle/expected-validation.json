@@ -1,0 +1,6 @@
+{
+  "valid": false,
+  "reasonCode": 16,
+  "reason": "combinational_cycle",
+  "path": "/nodes/not-a"
+}

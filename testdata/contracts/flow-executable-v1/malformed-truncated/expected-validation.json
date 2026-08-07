@@ -1,0 +1,6 @@
+{
+  "valid": false,
+  "reasonCode": 3,
+  "reason": "length_mismatch",
+  "path": "/artifactLength"
+}
