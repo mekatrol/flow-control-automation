@@ -302,7 +302,9 @@ static void send_response(controller_protocol_t *protocol, const controller_prot
 /* Tests whether an operation requires an authenticated envelope on every transport. */
 static bool is_authentication_required(uint8_t operation)
 {
-    return operation == CONTROLLER_PROTOCOL_OPERATION_RELINQUISH_COMMAND ||
+    return operation == CONTROLLER_PROTOCOL_OPERATION_COMMAND_POINT ||
+           operation == CONTROLLER_PROTOCOL_OPERATION_RELINQUISH_COMMAND ||
+           operation == CONTROLLER_PROTOCOL_OPERATION_COMMAND_OUTPUT_BLOCK ||
            operation == CONTROLLER_PROTOCOL_OPERATION_CLOSE_SESSION ||
            (operation >= CONTROLLER_PROTOCOL_OPERATION_LIST_FLOWS && operation <= CONTROLLER_PROTOCOL_OPERATION_GET_FLOW_RUNTIME);
 }

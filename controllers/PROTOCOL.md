@@ -62,10 +62,9 @@ Broadcast is allowed only for operations marked broadcast-safe. Discovery uses
 collision avoidance. Other broadcast requests do not receive responses, and
 mutations must never be broadcast.
 
-The initial physically connected RS485 profile permits unauthenticated local
-output commands as an explicit deployment policy. This does not apply to
-routable transports or flow/configuration mutations. Operators must treat
-physical RS485 access as control access and secure the cabinet and bus wiring.
+All output commands require an authenticated session on RS485 and routable
+transports. Physical bus access still permits traffic observation and denial of
+service, so operators must secure the cabinet and bus wiring.
 
 ## 4. Frame format
 
@@ -253,9 +252,9 @@ transactions.
 | `0x13` | subscribe changes    | policy         | no       |
 | `0x14` | point change event   | session        | no       |
 | `0x15` | get I/O block        | policy         | no       |
-| `0x18` | command point        | no on RS485    | yes      |
+| `0x18` | command point        | required       | yes      |
 | `0x19` | relinquish command   | required       | yes      |
-| `0x1a` | command output block | no on RS485    | yes      |
+| `0x1a` | command output block | required       | yes      |
 
 Point IDs are canonical bounded strings, not numeric register aliases.
 Pagination uses an opaque bounded continuation token and stable order within a
@@ -296,10 +295,9 @@ cached sample:
 | 5      | 8    | sampled at     | Monotonic sample timestamp in milliseconds   |
 | 13     | 4    | sequence       | Increasing cached sample sequence            |
 
-The unauthenticated RS485 single-output command payload is
-`point_id:string8, value:bool`. Only
+The authenticated single-output command uses the arbitrated body below. Only
 `output-01` through `output-16` are accepted. The response repeats the validated
-payload. The block-output command payload and response are a `u16` bitmap where
+payload. The authenticated block-output command payload and response are a `u16` bitmap where
 bit 0 controls output 1 and bit 15 controls output 16. A set bit means active.
 The two PCF8574 banks are written in channel order; because they are separate
 devices, a bus fault can leave the first bank updated and the second unchanged.
@@ -364,8 +362,7 @@ sequences are rejected before mutation. Tags use constant-time comparison.
 Challenges and sessions expire; session count and attempts are bounded. Address
 or major-version changes invalidate a session.
 
-Except for the explicitly local RS485 output-command policy in section 3,
-mutations require a valid session plus operation, peer, and provider permission.
+Mutations require a valid session plus operation, peer, and provider permission.
 Read-only authentication policy is explicit and may be tightened by deployment.
 
 ## 11. Compiled deployment artifact

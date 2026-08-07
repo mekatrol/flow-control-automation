@@ -435,10 +435,9 @@ contract can later use TCP, MQTT, CAN, or another bounded transport.
   settings. Never reuse the terminal password or transmit a long-term secret.
 - Implement the challenge, nonce, session, sequence, and HMAC rules in
   `PROTOCOL.md`, including constant-time authentication-tag comparison.
-- Require authentication for flow transfer/activation, configuration,
-  higher-level point arbitration, overrides, relinquish, and every future
-  mutation. The physically secured RS485 profile's direct output commands are
-  an explicit exception. Read-only policy remains explicit and configurable.
+- Require authentication for output commands, flow transfer/activation,
+  configuration, point arbitration, overrides, relinquish, and every future
+  mutation. Read-only policy remains explicit and configurable.
 - Bind each bounded session to controller address, peer, version, negotiated
   capabilities, expiry, and increasing sequence numbers. Reject replay before
   calling a mutating provider.
@@ -533,16 +532,13 @@ contract can later use TCP, MQTT, CAN, or another bounded transport.
 Read-only I/O groundwork is implemented ahead of this phase: the KC868-A16
 polls and caches 16 active-low digital inputs and 16 active-low relay outputs,
 exposes stable `input-01`/`output-01` point IDs, and supports coherent whole-I/O
-block reads. The local RS485 profile also supports unicast single and block
-output writes without authentication as an explicit physical-access policy.
-Routable transports and higher-level point arbitration remain subject to Phase
-9B and the Phase 9D work below.
+block reads. Single and block output writes require the same authenticated
+session policy on local RS485 and future routable transports.
 
 #### Deliverables
 
-- Add authenticated typed point commands for routable transports and
-  arbitration sources after safety policies and provider permissions exist;
-  keep the local RS485 direct-output exception explicit.
+- Add authenticated typed point commands for all transports and arbitration
+  sources after safety policies and provider permissions exist.
 - Carry source ID, command class, priority, typed value, correlation ID, issue
   time, optional expiry, and reason; do not use last-write-wins semantics.
 - Relinquish only the caller's command. Reserve release-all, out-of-service, and
@@ -569,8 +565,7 @@ Routable transports and higher-level point arbitration remain subject to Phase
 - Sixteen digital outputs support bounded source-owned commands with class,
   priority, correlation, monotonic issue/expiry, replacement, arbitration,
   expiry, and caller-only relinquish. Lower numeric priority wins independent
-  of arrival order; physical RS485 direct writes remain the documented local
-  exception.
+  of arrival order, and every output mutation requires authentication.
 - Four bounded output-change subscriptions coalesce pending changes and expose
   increasing sequence and explicit gap state so clients can resynchronize with
   point or whole-I/O reads.
@@ -581,11 +576,15 @@ Routable transports and higher-level point arbitration remain subject to Phase
 
 - All 15 portable host suites pass with source-policy and formatting checks.
 - The production ESP32-S3 image builds successfully for the KinCony
-  KC868-A16v3 with 34% of the application partition free.
+  KC868-A16v3 with 33% of the application partition free.
 - The final Phase 9 image was flashed and exercised on 2026-08-07 through the
   Waveshare adapter. Device information, capabilities, health, point listing,
   and whole-I/O reads succeeded. Unchanged-state block and single-output writes
   both preserved the observed `0x00c0` output bitmap.
+- After output authentication became mandatory, a raw unauthenticated block
+  write returned `unauthorized` before provider dispatch. Authenticated block
+  and arbitrated single-output writes succeeded, the test command was
+  relinquished, and the final observed output bitmap remained `0x00c0`.
 - After provisioning the write-only protocol key, authenticated challenge,
   proof, request signing, and response verification succeeded on the live bus.
   A 49-byte `phase9-live` fixture completed upload, digest/schema validation,

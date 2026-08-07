@@ -313,7 +313,7 @@ static void test_discovery_delay(void)
     assert(response.operation == CONTROLLER_PROTOCOL_OPERATION_DISCOVER && response.source == CONTROLLER_ADDRESS);
 }
 
-/* Verifies complete I/O reads are coherent and complete output writes reach their provider. */
+/* Verifies complete I/O reads are coherent and unauthenticated output writes are rejected. */
 static void test_io_block_and_output_write(void)
 {
     controller_protocol_t protocol = get_protocol();
@@ -329,7 +329,8 @@ static void test_io_block_and_output_write(void)
         encode_request(CONTROLLER_ADDRESS, CONTROLLER_PROTOCOL_OPERATION_COMMAND_OUTPUT_BLOCK, command, sizeof(command), frame);
     controller_protocol_receive(&protocol, frame, size, 1);
     assert(controller_protocol_decode(sent_frame, sent_size, &response) == CONTROLLER_PROTOCOL_DECODE_OK);
-    assert(response.flags == 1 && commanded_outputs == UINT16_C(0x0101));
+    assert((response.flags & 2U) != 0U && response.payload[0] == CONTROLLER_PROTOCOL_ERROR_UNAUTHORIZED);
+    assert(commanded_outputs != UINT16_C(0x0101));
 }
 
 /* Runs portable FCP codec and dispatcher tests and returns success. */

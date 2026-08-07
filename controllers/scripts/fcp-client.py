@@ -28,7 +28,7 @@ OPERATIONS = {"echo": 0x01, "discover": 0x02, "capabilities": 0x03,
               "list-flows": 0x40, "flow-metadata": 0x41, "upload": 0x42,
               "upload-status": 0x43, "download": 0x48, "activate": 0x4A,
               "deactivate": 0x4B, "remove-flow": 0x4C, "flow-runtime": 0x4D}
-PROTECTED_OPERATIONS = set(range(0x40, 0x4E)) | {0x19, 0x32}
+PROTECTED_OPERATIONS = set(range(0x40, 0x4E)) | {0x18, 0x19, 0x1A, 0x32}
 AUTH_CHALLENGE = 0x30
 AUTH_PROVE = 0x31
 UPLOAD_CHUNK = 0x44
@@ -291,7 +291,7 @@ def main():
     key = bytes.fromhex(arguments.key) if arguments.key else None
     if key is not None and len(key) != 32:
         raise ValueError("--key must contain exactly 64 hexadecimal characters")
-    is_protected = operation in PROTECTED_OPERATIONS or (arguments.command == "set-output" and key is not None)
+    is_protected = operation in PROTECTED_OPERATIONS
     if is_protected and key is None:
         raise ValueError(f"{arguments.command} requires --key")
     if arguments.command in ("upload", "download") and arguments.file is None:

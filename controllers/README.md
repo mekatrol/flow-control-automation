@@ -116,7 +116,7 @@ The Linux client currently supports these operations:
 | `subscribe`     | `0x13` | Subscribe to an output bitmap                |
 | `changes`       | `0x14` | Collect the pending subscription event       |
 | `read-io`       | `0x15` | Read all 16 inputs and outputs               |
-| `set-output`    | `0x18` | Direct or authenticated arbitrated command   |
+| `set-output`    | `0x18` | Authenticated arbitrated output command      |
 | `relinquish`    | `0x19` | Relinquish the caller's arbitrated command   |
 | `set-outputs`   | `0x1a` | Replace the complete 16-output bitmap        |
 | `close-session` | `0x32` | Close a newly authenticated session          |
@@ -164,14 +164,14 @@ In the block result, bit 0 is channel 1 and bit 15 is channel 16. A set bit
 means logically active. Write one output or the complete output bitmap:
 
 ```sh
-./scripts/fcp-client.py "$FCP_PORT" set-output --address 0 --point output-01 --state on
-./scripts/fcp-client.py "$FCP_PORT" set-output --address 0 --point output-01 --state off
-./scripts/fcp-client.py "$FCP_PORT" set-outputs --address 0 --outputs 0x0005
+./scripts/fcp-client.py "$FCP_PORT" set-output --address 0 --point output-01 --state on --key "$FCP_KEY"
+./scripts/fcp-client.py "$FCP_PORT" set-output --address 0 --point output-01 --state off --key "$FCP_KEY"
+./scripts/fcp-client.py "$FCP_PORT" set-outputs --address 0 --outputs 0x0005 --key "$FCP_KEY"
 ```
 
-The RS485 profile intentionally permits these output commands without protocol
-authentication. Anyone with bus access therefore has control access. Output
-commands are unicast-only; secure the cabinet and physical bus wiring.
+Both output commands require `--key` and are unicast-only. Authentication does
+not prevent observation or denial of service by someone with physical bus
+access, so secure the cabinet and physical bus wiring.
 
 Provision a unique 32-byte protocol credential through the authenticated
 terminal's **Settings > Protocol key** option. The value is write-only and is
