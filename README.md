@@ -2,6 +2,10 @@
 
 Flow Control Automation is a home automation flow engine with a graphical editor for creating, deploying, and managing automation logic.
 
+The cross-stack roadmap for compiling, loading, stepping, and inspecting flows
+on hardware controllers is documented in the
+[`controller flow debugging implementation plan`](docs/controller-flow-debugging-plan.md).
+
 ## What the Application Does
 
 The application allows users to build automation flows by connecting visual nodes in a web interface. Each deployed flow runs independently in the backend and can be triggered in two ways:
