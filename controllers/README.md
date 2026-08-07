@@ -86,6 +86,7 @@ cmake --build build-host
 ctest --test-dir build-host --output-on-failure
 ```
 
-The phased roadmap is in [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md).
+The phased roadmap is in [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md),
+and the normative bespoke wire contract is in [`PROTOCOL.md`](PROTOCOL.md).
 Board-specific wiring and commissioning notes belong under that board's
 directory.

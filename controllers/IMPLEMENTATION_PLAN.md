@@ -9,9 +9,11 @@ authenticated ASCII terminal. The KinCony KC868-A16v3 is the first board
 implementation; hardware-specific details are board properties rather than
 shared-service assumptions.
 
-The flow evaluator, physical input/output support, persistent flow storage, and
-remote firmware updates are deliberately outside this plan. Communications
-APIs introduced here must remain usable by those later components.
+The flow evaluator, physical input/output support, and remote firmware updates
+are deliberately outside this plan. Phase 9 adds only the abstract transactional
+store required to transfer compiled flow artifacts safely; artifact compilation
+and evaluation remain later components. Communications APIs introduced here
+must remain usable by those components.
 
 ## Architectural rules
 
@@ -280,7 +282,8 @@ in this order:
 
 1. Phase 7 — Bidirectional MQTT API
 2. Phase 8 — RS485 service
-3. Phase 9 — Integrated resilience and soak testing
+3. Phase 9 — Bespoke controller protocol
+4. Phase 10 — Integrated resilience and soak testing
 
 ## Phase 7 — Bidirectional MQTT API (complete)
 
@@ -353,22 +356,173 @@ in this order:
   work.
 - Controller diagnostics clearly expose RS485 state and errors.
 
-## Phase 9 — Integrated resilience and soak testing
+## Phase 9 — Bespoke controller protocol
+
+The normative wire contract, field layouts, operation codes, typed values,
+security rules, and transfer state machines are defined in [`PROTOCOL.md`](PROTOCOL.md).
+The protocol initially runs over the Phase 8 RS485 service, but its message
+codec and dispatcher must not depend on UART or ESP-IDF types so the same
+contract can later use TCP, MQTT, CAN, or another bounded transport.
+
+### Phase 9A — Framing, discovery, and read-only device API
+
+#### Deliverables
+
+- Replace commissioning echo with the versioned binary frame defined in
+  `PROTOCOL.md`: magic, version, flags, destination and source addresses,
+  transaction ID, operation code, payload length, payload, and CRC-16.
+- Parse and encode little-endian fields without casting unaligned wire buffers
+  to C structures. Validate magic, version, flags, address, operation, declared
+  length, reserved fields, and CRC before dispatch.
+- Reject trailing data, truncated frames, unsupported versions, and oversized
+  payloads deterministically. Keep frame ownership and all queues bounded.
+- Treat controller address 0 as valid unicast and reserve 65535 for broadcast.
+  Broadcast responses follow the collision-avoidance rules in `PROTOCOL.md`.
+- Implement discovery, capabilities, device information, health, and explicit
+  echo operations with transaction-correlated, reason-coded responses.
+- Define an abstract point provider independently of physical I/O. Implement
+  point enumeration, definition reads, and runtime-value reads when data exists;
+  otherwise return `not_ready` or `unsupported`, never an invented value.
+- Preserve canonical point types `analog`, `digital`, `multi_state`, `integer`,
+  and `text`. Return typed value, units, quality, reliability, service state,
+  and timestamps together.
+- Expose frame, CRC, address, version, operation, provider, response-drop, and
+  duplicate-transaction counters through health.
+
+#### Tests
+
+- Golden-vector tests cover every field, endian conversion, CRC, minimum and
+  maximum frames, and encode/decode round trips.
+- Negative tests cover bad magic, version, flags, address, length, CRC,
+  reserved fields, operation, truncated data, trailing data, and oversize.
+- Dispatcher tests cover unicast, broadcast, duplicates, unavailable providers,
+  unsupported operations, and bounded response queues.
+- Point tests cover every type, finite analog values, integer boundaries,
+  Boolean validation, bounded UTF-8, units, quality, reliability, service state,
+  and timestamps.
+- Linux Mint integration tests use the Waveshare adapter for discovery, device
+  information, health, echo, bad CRC, and wrong-address traffic.
+
+#### Exit criteria
+
+- A host can identify and interrogate the controller using a documented binary
+  protocol without relying on the commissioning raw echo.
+- Invalid or foreign traffic cannot block the controller or make unavailable
+  point data appear trustworthy.
+
+### Phase 9B — Authentication and replay protection
+
+#### Deliverables
+
+- Add a device-bound protocol credential provisioned through authenticated
+  settings. Never reuse the terminal password or transmit a long-term secret.
+- Implement the challenge, nonce, session, sequence, and HMAC rules in
+  `PROTOCOL.md`, including constant-time authentication-tag comparison.
+- Require authentication for flow transfer/activation, configuration, point
+  commands, overrides, relinquish, and every future mutation. Read-only policy
+  remains explicit and configurable.
+- Bind each bounded session to controller address, peer, version, negotiated
+  capabilities, expiry, and increasing sequence numbers. Reject replay before
+  calling a mutating provider.
+- Bound sessions, attempts, nonce lifetime, and diagnostics; never log keys,
+  tags, or credential-derived material.
+
+#### Tests
+
+- Cover valid sessions, bad tags, altered messages, repeated sequences, expired
+  challenges/sessions, address changes, nonce reuse, throttling, and saturation.
+- Verify unauthenticated reads follow policy and unauthenticated mutations never
+  call their provider.
+- Inspect diagnostics, crash output, settings media, and artifacts for secrets.
+
+#### Exit criteria
+
+- Authenticated sessions authorize mutations, and captured traffic cannot be
+  replayed to repeat a command or deployment.
+
+### Phase 9C — Transactional flow transfer
+
+#### Deliverables
+
+- Define a backend-compiled, versioned controller artifact. Do not send editable
+  UI graphs, YAML, backend persistence JSON, credentials, live telemetry,
+  viewport, selection, or other authoring-only state.
+- Capture validated flow and referenced point/template/source revisions as one
+  immutable deployment snapshot before transfer.
+- Add an abstract persistent flow store with staging separate from the active
+  generation and no dependency on SD, flash, filesystem, or evaluator types.
+- Implement authenticated begin, status/resume, chunk write, validate, commit,
+  abort, list, metadata, download, activate, deactivate, and remove operations.
+- Identify artifacts by bounded flow ID, revision, byte length, and SHA-256.
+  Accept exact duplicate chunks idempotently and reject conflicting overlap.
+- Verify bounds and complete digest before validation. Atomically publish and
+  activate complete generations so interruption retains a complete old or new
+  generation, never partial bytes.
+- Bound storage, chunk size, transfers, flows, nodes, connections, strings, and
+  artifact size. Report insufficient storage before accepting impossible work.
+- Keep upload, validation, persistence, activation, and evaluator state as
+  separate observable results. Never silently reduce a flow to fit a target.
+
+#### Tests
+
+- Cover all transfer states, ordering, retransmission, overlap, bounds, digest
+  mismatch, revision conflict, storage full, unsupported artifact versions,
+  validation diagnostics, cancellation, and exact download round trips.
+- Inject interruption at every stage and prove reboot recovery selects a
+  complete old or complete new generation.
+- Interleave point reads, duplicates, MQTT failures, RS485 noise, and transfers
+  without starving heartbeat or diagnostics.
+
+#### Exit criteria
+
+- An authenticated host can resume and atomically deploy or retrieve a bounded
+  compiled artifact without partial state becoming active.
+- Transport, durable storage, validation, activation, and execution remain
+  distinct outcomes.
+
+### Phase 9D — Point commands and subscriptions
+
+#### Deliverables
+
+- Add authenticated typed point commands only after point arbitration, safety
+  policies, physical I/O, and provider permissions exist.
+- Carry source ID, command class, priority, typed value, correlation ID, issue
+  time, optional expiry, and reason; do not use last-write-wins semantics.
+- Relinquish only the caller's command. Reserve release-all, out-of-service, and
+  overrides for explicitly privileged capabilities.
+- Add bounded change subscriptions with sequence numbers and explicit
+  overflow/resynchronization behaviour.
+- Return specific results for disabled, unreadable, uncommandable, stale,
+  bad-quality, unavailable, and unsupported points without coercion.
+
+#### Tests
+
+- Cover permissions, all value types, limits, safety rejection, arbitration,
+  expiry, relinquish, duplicates, idempotency, and correlation.
+- Saturate subscriptions and force gaps, reconnects, and peer restart; clients
+  must detect loss and resynchronize using point reads.
+
+#### Exit criteria
+
+- Reads, commands, relinquish, and notifications preserve the parent
+  repository's typed point, quality, safety, and arbitration contracts.
+
+## Phase 10 — Integrated resilience and soak testing
 
 ### Deliverables
 
 - Add one consolidated, immutable controller health snapshot consumed by diagnostics,
   MQTT status publishing, and the future flow runtime.
 - Define watchdog ownership and prove all supervised tasks remain responsive.
-- Add reason-coded counters for network, MQTT, RS485, queue, memory, and task
-  failures.
+- Add reason-coded counters for network, MQTT, RS485, protocol, authentication,
+  transfer, queue, memory, storage, and task failures.
 - Document field troubleshooting using the board diagnostic transport and
   observable MQTT status.
 
 ### Tests
 
-- Run a minimum 24-hour soak with Wi-Fi, Ethernet, MQTT publish/subscribe, and
-  RS485 traffic active.
+- Run a minimum 24-hour soak with Wi-Fi, Ethernet, MQTT publish/subscribe,
+  authenticated protocol, point-read, flow-transfer, and RS485 traffic active.
 - Inject access-point loss, cable loss, DHCP failure, DNS failure, broker restart,
   invalid MQTT credentials, RS485 disconnect/noise, and diagnostic reconnects.
 - Verify the main task heartbeat never stops, watchdogs do not fire, queues stay
