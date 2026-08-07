@@ -65,8 +65,11 @@ firmware. Work that is not yet complete remains in
 - UART format, timeouts, frame limits, and queue depths are configurable.
   Framing, parity, overflow, timeout, collision/protocol, and queue-drop health
   counters are exposed to diagnostics.
-- Implementation and portable tests are complete; remaining physical bus
-  validation is tracked in the implementation plan.
+- Portable and on-target validation covers FCP discovery, information, health,
+  coherent I/O, normal request/response traffic, wrong-address rejection,
+  wrong-baud recovery, CRC rejection, truncated frames, and bounded malformed
+  input. The ESP-IDF UART event task has a bounded stack sized for maximum-frame
+  processing under load.
 
 ## Flow Controller Protocol
 

@@ -9,10 +9,12 @@
 /* UART1 is dedicated to the board RS485 transceiver; queue sizes bound driver memory. */
 enum
 {
-    RS485_UART_NUMBER       = UART_NUM_1,
-    RS485_UART_BUFFER_SIZE  = 1024,
-    RS485_UART_EVENT_DEPTH  = 16,
-    RS485_EVENT_QUEUE_DEPTH = 16,
+    RS485_UART_NUMBER      = UART_NUM_1,
+    RS485_UART_BUFFER_SIZE = 1024,
+    /* The event task needs room for one owned maximum-size frame plus ESP-IDF UART and queue call frames. */
+    RS485_UART_TASK_STACK_SIZE = 4096,
+    RS485_UART_EVENT_DEPTH     = 16,
+    RS485_EVENT_QUEUE_DEPTH    = 16,
 };
 
 static QueueHandle_t uart_event_queue;
@@ -119,7 +121,7 @@ bool platform_rs485_initialize(const rs485_config_t *config)
     {
         return false;
     }
-    return xTaskCreate(rs485_uart_event_task, "rs485_uart_events", RS485_UART_BUFFER_SIZE, NULL, 6, NULL) == pdPASS;
+    return xTaskCreate(rs485_uart_event_task, "rs485_uart_events", RS485_UART_TASK_STACK_SIZE, NULL, 6, NULL) == pdPASS;
 }
 
 /* Applies a validated UART format to an initialized port without waiting for traffic. */

@@ -295,7 +295,7 @@ first-stage ROM lines can appear immediately at reset because they execute
 before firmware configuration; do not burn an eFuse merely to suppress them.
 Once application startup begins, only terminal-service output should use USB.
 
-### Phase 8 RS485 adapter test
+### RS485 adapter test
 
 The KC868-A16v3 uses GPIO16 for TX and GPIO17 for RX behind its onboard
 automatic-direction RS485 transceiver. There is no software RTS/DE pin. Connect
@@ -310,30 +310,23 @@ On Linux Mint, identify the adapter without assuming a stable device number:
 ls -l /dev/serial/by-id/
 ```
 
-Configure the firmware and adapter identically. Defaults are raw protocol,
+Configure the firmware and adapter identically. Defaults are FCP version 1,
 115200 baud, 8 data bits, no parity, one stop bit, and a 20 ms inter-byte frame
-timeout. A simple receive test from Linux is:
-
-```sh
-port=/dev/serial/by-id/usb-your-waveshare-adapter
-stty -F "$port" 115200 cs8 -parenb -cstopb -ixon -ixoff raw
-printf 'mint-to-controller' >"$port"
-```
-
-The commissioning firmware echoes every complete raw frame. Test both
-directions from one Mint shell without opening the adapter in another program:
+timeout. Test both directions with the dependency-free FCP client:
 
 ```sh
 port=/dev/serial/by-id/usb-1a86_USB_Single_Serial_586D012048-if00
-stty -F "$port" 115200 cs8 -parenb -cstopb -ixon -ixoff raw
-printf 'rs485-echo-test' >"$port"
-timeout 2 od -An -tc -N 15 <"$port"
+./scripts/fcp-client.py "$port" discover
+./scripts/fcp-client.py "$port" info --address 0
+./scripts/fcp-client.py "$port" health --address 0
+./scripts/fcp-client.py "$port" echo --address 0 --text "rs485-echo-test"
 ```
 
-The output should contain `rs485-echo-test`. Send groups separated by more
-than the configured receive timeout to create distinct raw frames. Repeat with
-A/B swapped if no bytes arrive because some vendors label differential
-polarity oppositely.
+The echo response payload should contain the hexadecimal ASCII encoding of
+`rs485-echo-test`. Repeat with A/B swapped if no responses arrive because some
+vendors label differential polarity oppositely. Do not send arbitrary raw text
+to production firmware because the protocol codec correctly rejects it as a
+malformed FCP frame.
 
 Use the authenticated USB terminal on `/dev/ttyACM0`, then select `Settings`
 and `RS485 configuration` to change the 16-bit controller address or baud rate.
@@ -345,6 +338,14 @@ During disconnect, malformed-format, continuous-input, and peer-restart tests,
 the heartbeat must continue. `rs485_errors` and `rs485_queue_drops` must rise
 when faults are injected, and normal traffic must resume without rebooting
 networking, MQTT, or the controller.
+
+On 2026-08-07, live tests passed discovery, information, health, coherent I/O,
+wrong-address, wrong-baud, bad-CRC, truncated-frame, and malformed-stream
+recovery while preserving output bitmap `0x00c0`. Malformed-stream testing
+identified and fixed an undersized UART event-task stack that had reset the
+controller under load. A temporary outage during high-rate repeated client
+invocations recovered without rebooting or changing the outputs. This result
+was accepted as completing the RS485 validation phase.
 
 ## Debug
 
