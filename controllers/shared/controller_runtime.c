@@ -6,11 +6,13 @@
 
 #include "board.h"
 #include "controller_health.h"
+#include "controller_io.h"
 #include "controller_protocol.h"
 #include "diagnostics.h"
 #include "ethernet_link.h"
 #include "network_manager.h"
 #include "platform.h"
+#include "platform_io.h"
 #include "platform_mqtt.h"
 #include "platform_rs485.h"
 #include "platform_settings.h"
@@ -40,6 +42,7 @@ enum
     MQTT_HEALTH_PAYLOAD_CAPACITY    = 192,
     MAXIMUM_RS485_EVENTS_PER_TICK   = 8,
     PROTOCOL_DEVICE_ID_CAPACITY     = 40,
+    IO_POLL_INTERVAL_MS             = 100,
 };
 
 /* Runtime diagnostic identifiers define the stable heartbeat event schema. */
@@ -92,6 +95,9 @@ static controller_settings_t controller_settings_snapshot;
 static terminal_service_t controller_terminal_service;
 static rs485_service_t controller_rs485_service;
 static controller_protocol_t controller_protocol;
+static controller_io_t controller_io;
+static bool is_io_ready;
+static uint64_t next_io_poll_ms;
 static char protocol_device_id[PROTOCOL_DEVICE_ID_CAPACITY];
 static platform_settings_result_t platform_settings_result = PLATFORM_SETTINGS_DISABLED;
 static char mqtt_availability_topic[MQTT_TOPIC_CAPACITY];
@@ -112,8 +118,43 @@ static void initialize_controller_protocol(void)
     const controller_protocol_config_t config = {.address          = controller_settings_snapshot.rs485.address,
                                                  .device_id        = protocol_device_id,
                                                  .hardware_model   = get_controller_board_name(),
-                                                 .firmware_version = startup.firmware_version};
+                                                 .firmware_version = startup.firmware_version,
+                                                 .point_provider   = controller_io_get_point_provider(&controller_io),
+                                                 .get_io_block     = controller_io_get_protocol_block,
+                                                 .set_output       = controller_io_set_protocol_output,
+                                                 .set_output_block = controller_io_set_protocol_output_block,
+                                                 .io_context       = &controller_io};
     (void)controller_protocol_init(&controller_protocol, &config, send_protocol_frame, &controller_rs485_service);
+}
+
+/* Initializes field I/O in a safe read-only mode and leaves failed hardware explicitly unavailable. */
+static void initialize_io(void)
+{
+    controller_io_init(&controller_io);
+    platform_io_config_t config;
+    controller_board_get_io_config(&config);
+    is_io_ready = platform_io_initialize(&config);
+    if (is_io_ready)
+    {
+        controller_io_set_writer(&controller_io, platform_io_write_outputs);
+    }
+    next_io_poll_ms = platform_get_monotonic_ms();
+}
+
+/* Polls all PCF8574 banks into one cache so protocol reads never block on field I/O. */
+static void process_io(uint64_t now_ms)
+{
+    if (!is_io_ready || now_ms < next_io_poll_ms)
+    {
+        return;
+    }
+    uint16_t inputs        = 0;
+    uint16_t outputs       = 0;
+    bool are_inputs_valid  = false;
+    bool are_outputs_valid = false;
+    platform_io_read(&inputs, &are_inputs_valid, &outputs, &are_outputs_valid);
+    controller_io_update(&controller_io, inputs, are_inputs_valid, outputs, are_outputs_valid, (int64_t)now_ms);
+    next_io_poll_ms = now_ms + IO_POLL_INTERVAL_MS;
 }
 
 /* Gets the persisted RS485 baud or the board build default while settings are unavailable. */
@@ -560,6 +601,7 @@ static void controller_task(void * /* context */)
     initialize_terminal();
     initialize_networking();
     initialize_mqtt();
+    initialize_io();
     initialize_rs485();
     for (;;)
     {
@@ -570,6 +612,8 @@ static void controller_task(void * /* context */)
         network_manager_process(&controller_network_manager, now_ms);
         /* MQTT consumes only current neutral link snapshots and owned platform events. */
         process_mqtt(now_ms);
+        /* Field samples are cached before protocol dispatch for coherent non-blocking reads. */
+        process_io(now_ms);
         /* RS485 has its own bounded transport path and cannot delay network or MQTT processing. */
         process_rs485(now_ms);
         uint8_t terminal_input[TERMINAL_READ_CAPACITY];

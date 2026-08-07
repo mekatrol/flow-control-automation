@@ -34,6 +34,13 @@ enum
     RS485_TRANSMIT_GPIO       = 16,
     RS485_RECEIVE_GPIO        = 17,
     RS485_DEFAULT_ADDRESS     = 0,
+    IO_SDA_GPIO               = 9,
+    IO_SCL_GPIO               = 10,
+    IO_BUS_CLOCK_HZ           = 100000,
+    INPUT_FIRST_ADDRESS       = 0x21,
+    INPUT_SECOND_ADDRESS      = 0x22,
+    OUTPUT_FIRST_ADDRESS      = 0x24,
+    OUTPUT_SECOND_ADDRESS     = 0x25,
 };
 
 /* Gets the stable board name used by diagnostics and configuration. */
@@ -57,6 +64,18 @@ void controller_board_get_rs485_config(rs485_config_t *config)
                                .transmit_queue_depth = CONFIG_CONTROLLER_RS485_TRANSMIT_QUEUE_DEPTH,
                                .receive_queue_depth  = CONFIG_CONTROLLER_RS485_RECEIVE_QUEUE_DEPTH,
                                .protocol             = RS485_PROTOCOL_RAW};
+}
+
+/* Gets the board-described PCF8574 field I/O bus and logical polarity. */
+void controller_board_get_io_config(platform_io_config_t *config)
+{
+    *config = (platform_io_config_t){.sda_gpio               = IO_SDA_GPIO,
+                                     .scl_gpio               = IO_SCL_GPIO,
+                                     .clock_hz               = IO_BUS_CLOCK_HZ,
+                                     .input_addresses        = {INPUT_FIRST_ADDRESS, INPUT_SECOND_ADDRESS},
+                                     .output_addresses       = {OUTPUT_FIRST_ADDRESS, OUTPUT_SECOND_ADDRESS},
+                                     .are_inputs_active_low  = true,
+                                     .are_outputs_active_low = true};
 }
 
 /* Gets the safe fallback hostname used until the user persists a device-specific value. */

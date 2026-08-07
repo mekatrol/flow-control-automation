@@ -18,7 +18,7 @@ enum
     PROTOCOL_MAXIMUM_SLOTS           = 64,
     PROTOCOL_MAXIMUM_SLOT_TIME_MS    = 1000,
     PROTOCOL_POINT_TYPE_MASK         = 0x1f,
-    PROTOCOL_OPERATION_BITMAP_SIZE   = 3,
+    PROTOCOL_OPERATION_BITMAP_SIZE   = 4,
     PROTOCOL_MAXIMUM_POINT_COUNT     = 1024,
     PROTOCOL_DISCOVERY_NONCE_SIZE    = 4,
     PROTOCOL_DISCOVERY_SEED_CAPACITY = UINT8_MAX + PROTOCOL_DISCOVERY_NONCE_SIZE,
@@ -377,6 +377,24 @@ static bool get_requested_point_id(const controller_protocol_message_t *request,
     return true;
 }
 
+/* Decodes a bounded point ID followed by one strict Boolean output value. */
+static bool get_output_command(const controller_protocol_message_t *request, char *point_id, size_t capacity, bool *value)
+{
+    if (request->payload_size < 3)
+    {
+        return false;
+    }
+    const size_t id_size = request->payload[0];
+    if (id_size == 0 || id_size >= capacity || request->payload_size != id_size + 2U || request->payload[id_size + 1U] > 1U)
+    {
+        return false;
+    }
+    (void)memcpy(point_id, &request->payload[1], id_size);
+    point_id[id_size] = '\0';
+    *value            = request->payload[id_size + 1U] != 0U;
+    return true;
+}
+
 /* Finds a point definition by stable ID using the provider's bounded enumeration. */
 static controller_protocol_provider_result_t get_definition_by_id(const controller_protocol_point_provider_t *provider,
                                                                   const char *point_id,
@@ -579,15 +597,16 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                 send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
                 break;
             }
-            response.payload_size = 10;
+            response.payload_size = 11;
             response.payload[0]   = PROTOCOL_CAPABILITY_MINOR;
             put_u16(&response.payload[1], CONTROLLER_PROTOCOL_FRAME_CAPACITY);
             put_u16(&response.payload[3], CONTROLLER_PROTOCOL_PAYLOAD_CAPACITY);
-            response.payload[5] = PROTOCOL_OPERATION_BITMAP_SIZE;
-            response.payload[6] = UINT8_C(0x3e);
-            response.payload[7] = 0;
-            response.payload[8] = UINT8_C(0x07);
-            response.payload[9] = PROTOCOL_POINT_TYPE_MASK;
+            response.payload[5]  = PROTOCOL_OPERATION_BITMAP_SIZE;
+            response.payload[6]  = UINT8_C(0x3e);
+            response.payload[7]  = 0;
+            response.payload[8]  = UINT8_C(0x27);
+            response.payload[9]  = UINT8_C(0x05);
+            response.payload[10] = PROTOCOL_POINT_TYPE_MASK;
             send_response(protocol, &response);
             break;
         case CONTROLLER_PROTOCOL_OPERATION_GET_DEVICE_INFO:
@@ -631,6 +650,85 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
         case CONTROLLER_PROTOCOL_OPERATION_GET_POINT_VALUE:
             handle_get_point_value(protocol, request);
             break;
+        case CONTROLLER_PROTOCOL_OPERATION_GET_IO_BLOCK:
+            if (request->payload_size != 0)
+            {
+                send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
+                break;
+            }
+            if (protocol->config.get_io_block == NULL)
+            {
+                send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_NOT_READY);
+                break;
+            }
+            controller_protocol_io_block_t block;
+            const controller_protocol_provider_result_t block_result =
+                protocol->config.get_io_block(protocol->config.io_context, &block);
+            if (block_result != CONTROLLER_PROTOCOL_PROVIDER_OK)
+            {
+                protocol->health.provider_error_count++;
+                send_error(protocol, request, get_provider_error(block_result));
+                break;
+            }
+            put_u16(&response.payload[0], block.inputs);
+            put_u16(&response.payload[2], block.outputs);
+            response.payload[4] = block.validity_flags;
+            put_u64(&response.payload[5], (uint64_t)block.sampled_at_ms);
+            put_u32(&response.payload[13], block.sequence);
+            response.payload_size = 17;
+            send_response(protocol, &response);
+            break;
+        case CONTROLLER_PROTOCOL_OPERATION_COMMAND_POINT: {
+            char output_id[CONTROLLER_PROTOCOL_POINT_ID_CAPACITY];
+            bool output_value = false;
+            if (!get_output_command(request, output_id, sizeof(output_id), &output_value))
+            {
+                send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
+                break;
+            }
+            if (protocol->config.set_output == NULL)
+            {
+                send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_NOT_READY);
+                break;
+            }
+            const controller_protocol_provider_result_t output_result =
+                protocol->config.set_output(protocol->config.io_context, output_id, output_value);
+            if (output_result != CONTROLLER_PROTOCOL_PROVIDER_OK)
+            {
+                protocol->health.provider_error_count++;
+                send_error(protocol, request, get_provider_error(output_result));
+                break;
+            }
+            response.payload_size = request->payload_size;
+            (void)memcpy(response.payload, request->payload, request->payload_size);
+            send_response(protocol, &response);
+            break;
+        }
+        case CONTROLLER_PROTOCOL_OPERATION_COMMAND_OUTPUT_BLOCK: {
+            if (request->payload_size != sizeof(uint16_t))
+            {
+                send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
+                break;
+            }
+            if (protocol->config.set_output_block == NULL)
+            {
+                send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_NOT_READY);
+                break;
+            }
+            const uint16_t requested_outputs = get_u16(request->payload);
+            const controller_protocol_provider_result_t output_block_result =
+                protocol->config.set_output_block(protocol->config.io_context, requested_outputs);
+            if (output_block_result != CONTROLLER_PROTOCOL_PROVIDER_OK)
+            {
+                protocol->health.provider_error_count++;
+                send_error(protocol, request, get_provider_error(output_block_result));
+                break;
+            }
+            put_u16(response.payload, requested_outputs);
+            response.payload_size = sizeof(uint16_t);
+            send_response(protocol, &response);
+            break;
+        }
         default:
             protocol->health.unsupported_operation_count++;
             send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_UNSUPPORTED_OPERATION);

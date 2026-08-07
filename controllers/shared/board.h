@@ -3,6 +3,7 @@
 #include <stddef.h>
 
 #include "ethernet_link.h"
+#include "platform_io.h"
 #include "rs485_service.h"
 #include "settings_service.h"
 
@@ -31,6 +32,9 @@ void controller_board_get_ethernet_config(ethernet_link_config_t *config);
 
 /* Gets the board-described automatic-direction RS485 UART configuration. */
 void controller_board_get_rs485_config(rs485_config_t *config);
+
+/* Gets the board-described PCF8574 field I/O bus and logical polarity. */
+void controller_board_get_io_config(platform_io_config_t *config);
 
 /* Gets the board-described raw SD storage wiring. */
 void controller_board_get_settings_storage_config(settings_storage_config_t *config);

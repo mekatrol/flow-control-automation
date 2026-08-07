@@ -418,9 +418,10 @@ contract can later use TCP, MQTT, CAN, or another bounded transport.
   settings. Never reuse the terminal password or transmit a long-term secret.
 - Implement the challenge, nonce, session, sequence, and HMAC rules in
   `PROTOCOL.md`, including constant-time authentication-tag comparison.
-- Require authentication for flow transfer/activation, configuration, point
-  commands, overrides, relinquish, and every future mutation. Read-only policy
-  remains explicit and configurable.
+- Require authentication for flow transfer/activation, configuration,
+  higher-level point arbitration, overrides, relinquish, and every future
+  mutation. The physically secured RS485 profile's direct output commands are
+  an explicit exception. Read-only policy remains explicit and configurable.
 - Bind each bounded session to controller address, peer, version, negotiated
   capabilities, expiry, and increasing sequence numbers. Reject replay before
   calling a mutating provider.
@@ -482,10 +483,19 @@ contract can later use TCP, MQTT, CAN, or another bounded transport.
 
 ### Phase 9D — Point commands and subscriptions
 
+Read-only I/O groundwork is implemented ahead of this phase: the KC868-A16
+polls and caches 16 active-low digital inputs and 16 active-low relay outputs,
+exposes stable `input-01`/`output-01` point IDs, and supports coherent whole-I/O
+block reads. The local RS485 profile also supports unicast single and block
+output writes without authentication as an explicit physical-access policy.
+Routable transports and higher-level point arbitration remain subject to Phase
+9B and the Phase 9D work below.
+
 #### Deliverables
 
-- Add authenticated typed point commands only after point arbitration, safety
-  policies, physical I/O, and provider permissions exist.
+- Add authenticated typed point commands for routable transports and
+  arbitration sources after safety policies and provider permissions exist;
+  keep the local RS485 direct-output exception explicit.
 - Carry source ID, command class, priority, typed value, correlation ID, issue
   time, optional expiry, and reason; do not use last-write-wins semantics.
 - Relinquish only the caller's command. Reserve release-all, out-of-service, and

@@ -102,6 +102,26 @@ For the Waveshare adapter currently used during commissioning, set:
 FCP_PORT=/dev/serial/by-id/usb-1a86_USB_Single_Serial_586D012048-if00
 ```
 
+The Linux client currently supports these operations:
+
+| Command        | Opcode | Purpose                                  |
+| -------------- | ------ | ---------------------------------------- |
+| `echo`         | `0x01` | Return the supplied test payload         |
+| `discover`     | `0x02` | Discover controllers on the RS485 bus    |
+| `capabilities` | `0x03` | Read supported protocol capabilities     |
+| `info`         | `0x04` | Read controller identity and version     |
+| `health`       | `0x05` | Read protocol health counters            |
+| `list-points`  | `0x10` | Enumerate input and output point IDs     |
+| `read-point`   | `0x12` | Read one named input or output           |
+| `read-io`      | `0x15` | Read all 16 inputs and outputs           |
+| `set-output`   | `0x18` | Set one named output                     |
+| `set-outputs`  | `0x1a` | Replace the complete 16-output bitmap    |
+
+The client generates a fresh random 16-bit transaction ID for every invocation
+so separate commands cannot be mistaken for retransmissions. Use
+`--transaction 0x1234` only when deliberately testing duplicate-request
+handling.
+
 Discover attached controllers using the default 115200 bps link:
 
 ```sh
@@ -116,6 +136,29 @@ controller address `0`:
 ./scripts/fcp-client.py "$FCP_PORT" capabilities --address 0
 ./scripts/fcp-client.py "$FCP_PORT" health --address 0
 ```
+
+Read all 16 inputs and 16 outputs as one coherent bitmap, or read one named
+point:
+
+```sh
+./scripts/fcp-client.py "$FCP_PORT" read-io --address 0
+./scripts/fcp-client.py "$FCP_PORT" read-point --address 0 --point input-01
+./scripts/fcp-client.py "$FCP_PORT" read-point --address 0 --point output-16
+./scripts/fcp-client.py "$FCP_PORT" list-points --address 0
+```
+
+In the block result, bit 0 is channel 1 and bit 15 is channel 16. A set bit
+means logically active. Write one output or the complete output bitmap:
+
+```sh
+./scripts/fcp-client.py "$FCP_PORT" set-output --address 0 --point output-01 --state on
+./scripts/fcp-client.py "$FCP_PORT" set-output --address 0 --point output-01 --state off
+./scripts/fcp-client.py "$FCP_PORT" set-outputs --address 0 --outputs 0x0005
+```
+
+The RS485 profile intentionally permits these output commands without protocol
+authentication. Anyone with bus access therefore has control access. Output
+commands are unicast-only; secure the cabinet and physical bus wiring.
 
 Verify a transaction-correlated echo:
 

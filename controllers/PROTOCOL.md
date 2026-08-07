@@ -63,6 +63,11 @@ Broadcast is allowed only for operations marked broadcast-safe. Discovery uses
 collision avoidance. Other broadcast requests do not receive responses, and
 mutations must never be broadcast.
 
+The initial physically connected RS485 profile permits unauthenticated local
+output commands as an explicit deployment policy. This does not apply to
+routable transports or flow/configuration mutations. Operators must treat
+physical RS485 access as control access and secure the cabinet and bus wiring.
+
 ## 4. Frame format
 
 | Offset | Size | Field          | Meaning                                     |
@@ -248,8 +253,10 @@ transactions.
 | `0x12` | get point value      | policy         | no       |
 | `0x13` | subscribe changes    | policy         | no       |
 | `0x14` | point change event   | session        | no       |
-| `0x18` | command point        | required       | yes      |
+| `0x15` | get I/O block        | policy         | no       |
+| `0x18` | command point        | no on RS485    | yes      |
 | `0x19` | relinquish command   | required       | yes      |
+| `0x1a` | command output block | no on RS485    | yes      |
 
 Point IDs are canonical bounded strings, not numeric register aliases.
 Pagination uses an opaque bounded continuation token and stable order within a
@@ -273,6 +280,30 @@ sequence:u32
 
 These fields form one snapshot. A bad or missing value must not become zero,
 false, empty text, or good quality.
+
+The implemented KC868-A16 provider exposes `input-01` through `input-16`, then
+`output-01` through `output-16`. Each is a digital point. Inputs and outputs are
+converted from the board's active-low electrical representation to logical
+`false`/`true` values.
+
+The get-I/O-block request has an empty payload. Its response is one coherent
+cached sample:
+
+| Offset | Size | Field          | Meaning                                      |
+| ------ | ---- | -------------- | -------------------------------------------- |
+| 0      | 2    | inputs         | Bits 0-15 represent logical inputs 1-16      |
+| 2      | 2    | outputs        | Bits 0-15 represent logical outputs 1-16     |
+| 4      | 1    | validity flags | Bit 0 inputs valid; bit 1 outputs valid      |
+| 5      | 8    | sampled at     | Monotonic sample timestamp in milliseconds   |
+| 13     | 4    | sequence       | Increasing cached sample sequence            |
+
+The single-output command payload is `point_id:string8, value:bool`. Only
+`output-01` through `output-16` are accepted. The response repeats the validated
+payload. The block-output command payload and response are a `u16` bitmap where
+bit 0 controls output 1 and bit 15 controls output 16. A set bit means active.
+The two PCF8574 banks are written in channel order; because they are separate
+devices, a bus fault can leave the first bank updated and the second unchanged.
+The next block read reports the observed state.
 
 Commands contain point ID, typed value, stable source ID, command class,
 priority, correlation ID, issue timestamp, optional expiry, and reason. The
@@ -307,7 +338,8 @@ sequences are rejected before mutation. Tags use constant-time comparison.
 Challenges and sessions expire; session count and attempts are bounded. Address
 or major-version changes invalidate a session.
 
-Mutations require a valid session plus operation, peer, and provider permission.
+Except for the explicitly local RS485 output-command policy in section 3,
+mutations require a valid session plus operation, peer, and provider permission.
 Read-only authentication policy is explicit and may be tightened by deployment.
 
 ## 11. Compiled deployment artifact

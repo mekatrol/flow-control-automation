@@ -29,6 +29,13 @@ target_include_directories(controller_protocol_tests PRIVATE ../shared)
 target_compile_options(controller_protocol_tests PRIVATE -Wall -Wextra -Werror -pedantic)
 add_test(NAME controller_protocol COMMAND controller_protocol_tests)
 
+add_executable(controller_io_tests
+    test_controller_io.c
+    ../shared/controller_io.c)
+target_include_directories(controller_io_tests PRIVATE ../shared)
+target_compile_options(controller_io_tests PRIVATE -Wall -Wextra -Werror -pedantic)
+add_test(NAME controller_io COMMAND controller_io_tests)
+
 add_executable(network_manager_tests
     test_network_manager.c
     ../shared/network_manager.c)

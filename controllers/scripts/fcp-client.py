@@ -3,6 +3,7 @@
 
 import argparse
 import os
+import secrets
 import select
 import struct
 import termios
@@ -17,7 +18,15 @@ BROADCAST_ADDRESS = 0xFFFF
 BAUD_RATES = {9600: termios.B9600, 19200: termios.B19200, 38400: termios.B38400,
               57600: termios.B57600, 115200: termios.B115200}
 OPERATIONS = {"echo": 0x01, "discover": 0x02, "capabilities": 0x03,
-              "info": 0x04, "health": 0x05}
+              "info": 0x04, "health": 0x05, "list-points": 0x10,
+              "read-point": 0x12, "read-io": 0x15, "set-output": 0x18,
+              "set-outputs": 0x1A}
+ERROR_NAMES = {1: "malformed", 2: "unsupported_version", 3: "unsupported_operation",
+               4: "wrong_state", 5: "invalid_argument", 6: "not_found", 7: "not_ready",
+               8: "unsupported", 9: "unauthorized", 10: "forbidden", 11: "replay",
+               12: "busy", 13: "queue_full", 14: "storage_unavailable", 15: "storage_full",
+               16: "revision_conflict", 17: "digest_mismatch", 18: "validation_failed",
+               19: "safety_rejected", 20: "internal_error"}
 
 
 # Calculates the normative CRC-16/Modbus value for one byte string.
@@ -87,7 +96,12 @@ def get_arguments():
     parser.add_argument("--address", type=int, default=0)
     parser.add_argument("--baud", type=int, choices=BAUD_RATES, default=115200)
     parser.add_argument("--text", default="hello", help="echo payload text")
+    parser.add_argument("--point", help="point ID for read-point, such as input-01 or output-16")
+    parser.add_argument("--state", choices=("on", "off"), help="logical state for set-output")
+    parser.add_argument("--outputs", type=lambda value: int(value, 0), help="16-bit bitmap for set-outputs")
     parser.add_argument("--timeout", type=float, default=2.0)
+    parser.add_argument("--transaction", type=lambda value: int(value, 0),
+                        help="explicit 16-bit transaction ID; defaults to a random value")
     return parser.parse_args()
 
 
@@ -99,7 +113,26 @@ def main():
     payload = struct.pack("<IBH", int(time.time()) & 0xFFFFFFFF, 8, 10) if arguments.command == "discover" else b""
     if arguments.command == "echo":
         payload = arguments.text.encode("utf-8")
-    request = get_frame(destination, 1, operation, payload)
+    elif arguments.command == "list-points":
+        payload = struct.pack("<HB", 0, 32)
+    elif arguments.command == "read-point":
+        if not arguments.point:
+            raise ValueError("read-point requires --point")
+        point_id = arguments.point.encode("utf-8")
+        payload = bytes([len(point_id)]) + point_id
+    elif arguments.command == "set-output":
+        if not arguments.point or arguments.state is None:
+            raise ValueError("set-output requires --point output-NN and --state on|off")
+        point_id = arguments.point.encode("utf-8")
+        payload = bytes([len(point_id)]) + point_id + bytes([arguments.state == "on"])
+    elif arguments.command == "set-outputs":
+        if arguments.outputs is None or not 0 <= arguments.outputs <= 0xFFFF:
+            raise ValueError("set-outputs requires a 16-bit --outputs bitmap")
+        payload = struct.pack("<H", arguments.outputs)
+    transaction = secrets.randbits(16) if arguments.transaction is None else arguments.transaction
+    if not 0 <= transaction <= 0xFFFF:
+        raise ValueError("transaction ID must fit in 16 bits")
+    request = get_frame(destination, transaction, operation, payload)
     file_descriptor = os.open(arguments.port, os.O_RDWR | os.O_NOCTTY | os.O_NONBLOCK)
     try:
         configure_port(file_descriptor, arguments.baud)
@@ -107,6 +140,12 @@ def main():
         os.write(file_descriptor, request)
         header, response_payload = get_decoded(read_frame(file_descriptor, arguments.timeout))
         print(f"flags=0x{header[1]:02x} source={header[3]} transaction={header[4]} operation=0x{header[5]:02x}")
+        if header[1] & 0x02 and len(response_payload) >= 2:
+            error_code = struct.unpack_from("<H", response_payload)[0]
+            print(f"error={ERROR_NAMES.get(error_code, 'unknown')} code={error_code}")
+        if arguments.command == "read-io" and len(response_payload) == 17:
+            inputs, outputs, validity = struct.unpack_from("<HHB", response_payload)
+            print(f"inputs=0x{inputs:04x} outputs=0x{outputs:04x} validity=0x{validity:02x}")
         print(response_payload.hex(" "))
     finally:
         os.close(file_descriptor)

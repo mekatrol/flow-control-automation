@@ -366,14 +366,15 @@ default and changing those eFuses can be irreversible.
 
 ## Known board connections
 
-The bring-up program does not drive field outputs. These definitions are
-recorded here for later board-support work:
+The runtime polls all four PCF8574 devices every 100 ms. It converts their
+active-low electrical state into logical active-high point values. FCP can
+write one relay or a complete 16-relay bitmap through unicast RS485 commands.
 
 | Function | Connection |
 | --- | --- |
 | I2C | SDA GPIO9, SCL GPIO10 |
 | Outputs 1-8 / 9-16 | PCF8574 at `0x24` / `0x25`, active low |
-| Inputs 1-8 / 9-16 | PCF8574 at `0x21` / `0x22` |
+| Inputs 1-8 / 9-16 | PCF8574 at `0x21` / `0x22`, active low |
 | EEPROM / RTC / display | I2C `0x50` / `0x68` / `0x3c` |
 | Analog A1-A4 | GPIO4, GPIO6, GPIO7, GPIO5 |
 | RS485 | TX GPIO16, RX GPIO17 |

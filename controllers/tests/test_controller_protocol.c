@@ -18,6 +18,32 @@ static const char DEVICE_ID[]            = "controller-001";
 static const char HARDWARE_MODEL[]       = "test-board";
 static const char FIRMWARE_VERSION[]     = "1.2.3";
 static const char TEST_SUCCESS_MESSAGE[] = "Controller protocol tests passed";
+static uint16_t commanded_outputs;
+
+/* Captures one single-output command for dispatcher contract tests. */
+static controller_protocol_provider_result_t set_output(void *context, const char *point_id, bool value)
+{
+    assert(context == NULL && strcmp(point_id, "output-01") == 0);
+    commanded_outputs = value ? 1U : 0U;
+    return CONTROLLER_PROTOCOL_PROVIDER_OK;
+}
+
+/* Captures one complete output bitmap for dispatcher contract tests. */
+static controller_protocol_provider_result_t set_output_block(void *context, uint16_t outputs)
+{
+    assert(context == NULL);
+    commanded_outputs = outputs;
+    return CONTROLLER_PROTOCOL_PROVIDER_OK;
+}
+
+/* Supplies one coherent digital block without performing hardware work in dispatch. */
+static controller_protocol_provider_result_t get_io_block(void *context, controller_protocol_io_block_t *block)
+{
+    assert(context == NULL && block != NULL);
+    *block = (controller_protocol_io_block_t){
+        .inputs = UINT16_C(0x8001), .outputs = UINT16_C(0x4002), .validity_flags = 3, .sampled_at_ms = 1234, .sequence = 9};
+    return CONTROLLER_PROTOCOL_PROVIDER_OK;
+}
 
 /* Captures one complete encoded response for deterministic dispatcher assertions. */
 static bool capture_send(void *context, const uint8_t *data, size_t size)
@@ -36,7 +62,10 @@ static controller_protocol_t get_protocol(void)
     const controller_protocol_config_t config = {.address          = CONTROLLER_ADDRESS,
                                                  .device_id        = DEVICE_ID,
                                                  .hardware_model   = HARDWARE_MODEL,
-                                                 .firmware_version = FIRMWARE_VERSION};
+                                                 .firmware_version = FIRMWARE_VERSION,
+                                                 .get_io_block     = get_io_block,
+                                                 .set_output       = set_output,
+                                                 .set_output_block = set_output_block};
     assert(controller_protocol_init(&protocol, &config, capture_send, NULL));
     sent_size = 0;
     return protocol;
@@ -197,6 +226,25 @@ static void test_discovery_delay(void)
     assert(response.operation == CONTROLLER_PROTOCOL_OPERATION_DISCOVER && response.source == CONTROLLER_ADDRESS);
 }
 
+/* Verifies complete I/O reads are coherent and complete output writes reach their provider. */
+static void test_io_block_and_output_write(void)
+{
+    controller_protocol_t protocol = get_protocol();
+    uint8_t frame[CONTROLLER_PROTOCOL_FRAME_CAPACITY];
+    size_t size = encode_request(CONTROLLER_ADDRESS, CONTROLLER_PROTOCOL_OPERATION_GET_IO_BLOCK, NULL, 0, frame);
+    controller_protocol_receive(&protocol, frame, size, 0);
+    controller_protocol_message_t response;
+    assert(controller_protocol_decode(sent_frame, sent_size, &response) == CONTROLLER_PROTOCOL_DECODE_OK);
+    assert(response.payload_size == 17 && response.payload[0] == 1 && response.payload[1] == 0x80);
+    protocol                = get_protocol();
+    const uint8_t command[] = {1, 1};
+    size =
+        encode_request(CONTROLLER_ADDRESS, CONTROLLER_PROTOCOL_OPERATION_COMMAND_OUTPUT_BLOCK, command, sizeof(command), frame);
+    controller_protocol_receive(&protocol, frame, size, 1);
+    assert(controller_protocol_decode(sent_frame, sent_size, &response) == CONTROLLER_PROTOCOL_DECODE_OK);
+    assert(response.flags == 1 && commanded_outputs == UINT16_C(0x0101));
+}
+
 /* Runs portable FCP codec and dispatcher tests and returns success. */
 int main(void)
 {
@@ -208,6 +256,7 @@ int main(void)
     test_address_and_operation_handling();
     test_unavailable_point_provider();
     test_discovery_delay();
+    test_io_block_and_output_write();
     puts(TEST_SUCCESS_MESSAGE);
     return 0;
 }

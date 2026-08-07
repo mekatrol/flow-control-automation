@@ -27,6 +27,9 @@ typedef enum
     CONTROLLER_PROTOCOL_OPERATION_LIST_POINTS          = 0x10,
     CONTROLLER_PROTOCOL_OPERATION_GET_POINT_DEFINITION = 0x11,
     CONTROLLER_PROTOCOL_OPERATION_GET_POINT_VALUE      = 0x12,
+    CONTROLLER_PROTOCOL_OPERATION_GET_IO_BLOCK         = 0x15,
+    CONTROLLER_PROTOCOL_OPERATION_COMMAND_POINT        = 0x18,
+    CONTROLLER_PROTOCOL_OPERATION_COMMAND_OUTPUT_BLOCK = 0x1a,
 } controller_protocol_operation_t;
 
 /* Protocol errors are stable wire values and never expose platform error codes. */
@@ -40,6 +43,7 @@ typedef enum
     CONTROLLER_PROTOCOL_ERROR_NOT_FOUND             = 6,
     CONTROLLER_PROTOCOL_ERROR_NOT_READY             = 7,
     CONTROLLER_PROTOCOL_ERROR_UNSUPPORTED           = 8,
+    CONTROLLER_PROTOCOL_ERROR_UNAUTHORIZED          = 9,
     CONTROLLER_PROTOCOL_ERROR_QUEUE_FULL            = 13,
     CONTROLLER_PROTOCOL_ERROR_INTERNAL              = 20,
 } controller_protocol_error_t;
@@ -131,11 +135,31 @@ typedef struct
 
 typedef struct
 {
+    uint16_t inputs;
+    uint16_t outputs;
+    uint8_t validity_flags;
+    int64_t sampled_at_ms;
+    uint32_t sequence;
+} controller_protocol_io_block_t;
+
+/* Block providers return one coherent snapshot without performing field I/O in the dispatcher. */
+typedef controller_protocol_provider_result_t (*controller_protocol_get_io_block_t)(void *context,
+                                                                                    controller_protocol_io_block_t *block);
+typedef controller_protocol_provider_result_t (*controller_protocol_set_output_t)(void *context, const char *point_id,
+                                                                                  bool value);
+typedef controller_protocol_provider_result_t (*controller_protocol_set_output_block_t)(void *context, uint16_t outputs);
+
+typedef struct
+{
     uint16_t address;
     const char *device_id;
     const char *hardware_model;
     const char *firmware_version;
     controller_protocol_point_provider_t point_provider;
+    controller_protocol_get_io_block_t get_io_block;
+    controller_protocol_set_output_t set_output;
+    controller_protocol_set_output_block_t set_output_block;
+    void *io_context;
 } controller_protocol_config_t;
 
 typedef struct
