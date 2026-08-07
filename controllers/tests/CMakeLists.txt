@@ -22,6 +22,13 @@ target_include_directories(controller_health_format_tests PRIVATE ../shared)
 target_compile_options(controller_health_format_tests PRIVATE -Wall -Wextra -Werror -pedantic)
 add_test(NAME controller_health_format COMMAND controller_health_format_tests)
 
+add_executable(controller_protocol_tests
+    test_controller_protocol.c
+    ../shared/controller_protocol.c)
+target_include_directories(controller_protocol_tests PRIVATE ../shared)
+target_compile_options(controller_protocol_tests PRIVATE -Wall -Wextra -Werror -pedantic)
+add_test(NAME controller_protocol COMMAND controller_protocol_tests)
+
 add_executable(network_manager_tests
     test_network_manager.c
     ../shared/network_manager.c)

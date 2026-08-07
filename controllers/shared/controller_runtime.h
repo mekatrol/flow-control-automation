@@ -2,6 +2,7 @@
 
 #include <stdbool.h>
 
+#include "controller_protocol.h"
 #include "mqtt_api.h"
 #include "mqtt_service.h"
 #include "network_manager.h"
@@ -37,3 +38,6 @@ bool controller_runtime_rs485_send(const uint8_t *data, size_t size);
 
 /* Gets and removes the oldest complete runtime-owned RS485 receive frame. */
 bool controller_runtime_rs485_get_received(rs485_frame_t *frame);
+
+/* Gets protocol validation and response counters without exposing message content. */
+controller_protocol_health_t get_controller_runtime_protocol_health(void);

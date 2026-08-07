@@ -364,7 +364,7 @@ The protocol initially runs over the Phase 8 RS485 service, but its message
 codec and dispatcher must not depend on UART or ESP-IDF types so the same
 contract can later use TCP, MQTT, CAN, or another bounded transport.
 
-### Phase 9A — Framing, discovery, and read-only device API
+### Phase 9A — Framing, discovery, and read-only device API (implementation complete; on-target validation pending)
 
 #### Deliverables
 

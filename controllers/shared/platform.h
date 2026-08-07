@@ -32,6 +32,9 @@ typedef struct
 /* Gets immutable platform and firmware properties used by the startup banner. */
 void platform_get_startup_info(platform_startup_info_t *info);
 
+/* Formats a stable non-secret device identity for discovery and protocol responses. */
+void platform_get_device_id(char *output, size_t capacity);
+
 /* Gets elapsed platform time from a monotonic clock in milliseconds. */
 uint64_t platform_get_monotonic_ms(void);
 

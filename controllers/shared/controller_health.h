@@ -17,6 +17,8 @@ typedef struct
     const char *rs485_state;
     uint32_t rs485_errors;
     uint32_t rs485_queue_drops;
+    uint32_t protocol_errors;
+    uint32_t protocol_response_drops;
     const char *terminal_state;
     uint32_t terminal_authenticated_sessions;
     uint32_t terminal_failed_logins;

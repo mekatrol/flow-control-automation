@@ -6,6 +6,7 @@
 
 #include "board.h"
 #include "controller_health.h"
+#include "controller_protocol.h"
 #include "diagnostics.h"
 #include "ethernet_link.h"
 #include "network_manager.h"
@@ -38,6 +39,7 @@ enum
     SETTINGS_REBOOT_SETTLE_DELAY_MS = 20,
     MQTT_HEALTH_PAYLOAD_CAPACITY    = 192,
     MAXIMUM_RS485_EVENTS_PER_TICK   = 8,
+    PROTOCOL_DEVICE_ID_CAPACITY     = 40,
 };
 
 /* Runtime diagnostic identifiers define the stable heartbeat event schema. */
@@ -68,7 +70,7 @@ static const char EVENT_SETTINGS_STATE[]  = "state";
 static const char FORMAT_SETTINGS_STATE[] = "state=%s schema=%u generation=%u";
 static const char COMPONENT_RS485[]       = "rs485";
 static const char EVENT_RS485_STATE[]     = "state";
-static const char FORMAT_RS485_STATE[]    = "state=%s baud=%u format=%u%c%u protocol=raw automatic_direction=1";
+static const char FORMAT_RS485_STATE[]    = "state=%s baud=%u format=%u%c%u protocol=fcp-v1 automatic_direction=1";
 static const char ADDRESS_UNAVAILABLE[]   = "unavailable";
 static const char FORMAT_SYSTEM_INFO[] =
     "device=%s\r\nfirmware=%s\r\nversion=%s\r\nhardware=%s\r\nprocessor=%s\r\nhostname=%s\r\n"
@@ -76,8 +78,8 @@ static const char FORMAT_SYSTEM_INFO[] =
     "ethernet=%s\r\nethernet_ipv4=%s\r\nethernet_ipv6=%s\r\nmqtt=%s\r\nmqtt_transport=%s\r\n"
     "mqtt_error=%s\r\nmqtt_reconnect_count=%" PRIu32 "\r\nmqtt_queue_depth=%zu\r\nrs485=%s\r\n"
     "rs485_address=%u\r\nrs485_baud_rate=%" PRIu32 "\r\nrs485_errors=%" PRIu32 "\r\nrs485_queue_drops=%" PRIu32
-    "\r\nterminal=%s\r\nterminal_sessions=%" PRIu32 "\r\nterminal_failed_logins=%" PRIu32 "\r\nterminal_output_drops=%" PRIu32
-    "\r\nbuses=unsupported";
+    "\r\nprotocol_errors=%" PRIu32 "\r\nprotocol_response_drops=%" PRIu32 "\r\nterminal=%s\r\nterminal_sessions=%" PRIu32
+    "\r\nterminal_failed_logins=%" PRIu32 "\r\nterminal_output_drops=%" PRIu32 "\r\nbuses=unsupported";
 
 static network_manager_t controller_network_manager;
 static ethernet_link_t controller_ethernet_link;
@@ -89,9 +91,30 @@ static settings_service_t controller_settings_service;
 static controller_settings_t controller_settings_snapshot;
 static terminal_service_t controller_terminal_service;
 static rs485_service_t controller_rs485_service;
+static controller_protocol_t controller_protocol;
+static char protocol_device_id[PROTOCOL_DEVICE_ID_CAPACITY];
 static platform_settings_result_t platform_settings_result = PLATFORM_SETTINGS_DISABLED;
 static char mqtt_availability_topic[MQTT_TOPIC_CAPACITY];
 static char mqtt_health_topic[MQTT_TOPIC_CAPACITY];
+
+/* Copies an encoded protocol response into the bounded RS485 transmit queue. */
+static bool send_protocol_frame(void *context, const uint8_t *data, size_t size)
+{
+    return rs485_service_send(context, data, size);
+}
+
+/* Initializes the transport-neutral protocol dispatcher from current persistent address settings. */
+static void initialize_controller_protocol(void)
+{
+    platform_startup_info_t startup;
+    platform_get_startup_info(&startup);
+    platform_get_device_id(protocol_device_id, sizeof(protocol_device_id));
+    const controller_protocol_config_t config = {.address          = controller_settings_snapshot.rs485.address,
+                                                 .device_id        = protocol_device_id,
+                                                 .hardware_model   = get_controller_board_name(),
+                                                 .firmware_version = startup.firmware_version};
+    (void)controller_protocol_init(&controller_protocol, &config, send_protocol_frame, &controller_rs485_service);
+}
 
 /* Gets the persisted RS485 baud or the board build default while settings are unavailable. */
 static uint32_t get_rs485_baud_rate(void)
@@ -154,17 +177,17 @@ static void get_terminal_system_info(void * /* context */, char *output, size_t 
     const char *hostname = controller_settings_snapshot.hostname.is_set ? controller_settings_snapshot.hostname.value
                                                                         : get_controller_default_hostname();
     /* Render one field per line so interactive users can scan the snapshot without horizontal wrapping. */
-    (void)snprintf(output, capacity, FORMAT_SYSTEM_INFO, get_controller_board_name(), startup.firmware_name,
-                   startup.firmware_version, get_controller_board_name(), startup.processor, hostname, health.uptime_ms,
-                   health.free_heap_bytes, health.wifi_state,
-                   wifi.ipv4_address[0] != '\0' ? wifi.ipv4_address : ADDRESS_UNAVAILABLE,
-                   wifi.ipv6_address[0] != '\0' ? wifi.ipv6_address : ADDRESS_UNAVAILABLE, health.ethernet_state,
-                   ethernet.ipv4_address[0] != '\0' ? ethernet.ipv4_address : ADDRESS_UNAVAILABLE,
-                   ethernet.ipv6_address[0] != '\0' ? ethernet.ipv6_address : ADDRESS_UNAVAILABLE, health.mqtt_state,
-                   health.mqtt_transport, health.mqtt_error, health.mqtt_reconnect_count, health.mqtt_queue_depth,
-                   health.rs485_state, (unsigned)controller_settings_snapshot.rs485.address, get_rs485_baud_rate(),
-                   health.rs485_errors, health.rs485_queue_drops, health.terminal_state, health.terminal_authenticated_sessions,
-                   health.terminal_failed_logins, health.terminal_output_drops);
+    (void)snprintf(
+        output, capacity, FORMAT_SYSTEM_INFO, get_controller_board_name(), startup.firmware_name, startup.firmware_version,
+        get_controller_board_name(), startup.processor, hostname, health.uptime_ms, health.free_heap_bytes, health.wifi_state,
+        wifi.ipv4_address[0] != '\0' ? wifi.ipv4_address : ADDRESS_UNAVAILABLE,
+        wifi.ipv6_address[0] != '\0' ? wifi.ipv6_address : ADDRESS_UNAVAILABLE, health.ethernet_state,
+        ethernet.ipv4_address[0] != '\0' ? ethernet.ipv4_address : ADDRESS_UNAVAILABLE,
+        ethernet.ipv6_address[0] != '\0' ? ethernet.ipv6_address : ADDRESS_UNAVAILABLE, health.mqtt_state, health.mqtt_transport,
+        health.mqtt_error, health.mqtt_reconnect_count, health.mqtt_queue_depth, health.rs485_state,
+        (unsigned)controller_settings_snapshot.rs485.address, get_rs485_baud_rate(), health.rs485_errors,
+        health.rs485_queue_drops, health.protocol_errors, health.protocol_response_drops, health.terminal_state,
+        health.terminal_authenticated_sessions, health.terminal_failed_logins, health.terminal_output_drops);
 }
 
 /* Dispatches the portable reboot request after terminal confirmation. */
@@ -213,6 +236,7 @@ static void apply_terminal_settings(void * /* context */)
     if (platform_rs485_reconfigure(&rs485_config))
     {
         (void)rs485_service_init(&controller_rs485_service, &rs485_config, platform_rs485_write);
+        initialize_controller_protocol();
     }
 }
 
@@ -408,6 +432,12 @@ bool controller_runtime_rs485_get_received(rs485_frame_t *frame)
     return rs485_service_get_received(&controller_rs485_service, frame);
 }
 
+/* Gets protocol validation and response counters without exposing message content. */
+controller_protocol_health_t get_controller_runtime_protocol_health(void)
+{
+    return controller_protocol_get_health(&controller_protocol);
+}
+
 /* Gets the runtime-owned network manager for read-only consumer discovery. */
 const network_manager_t *get_controller_runtime_network_manager(void)
 {
@@ -479,6 +509,7 @@ static void initialize_rs485(void)
     const bool is_platform_ready = !config.enabled || platform_rs485_initialize(&config);
     (void)rs485_service_init(&controller_rs485_service, &config,
                              is_platform_ready && config.enabled ? platform_rs485_write : NULL);
+    initialize_controller_protocol();
     const rs485_health_t health = rs485_service_get_health(&controller_rs485_service);
     diagnostics_emit(is_platform_ready ? DIAGNOSTIC_INFO : DIAGNOSTIC_ERROR, COMPONENT_RS485, EVENT_RS485_STATE,
                      FORMAT_RS485_STATE, rs485_get_state_name(health.state), config.baud_rate, (unsigned)config.data_bits,
@@ -511,12 +542,13 @@ static void process_rs485(uint64_t now_ms)
         }
     }
     rs485_service_process(&controller_rs485_service, now_ms);
-    /* Commissioning echo consumes complete frames and returns identical owned bytes at the configured line rate. */
+    /* Complete transport frames enter the validated protocol codec; raw commissioning echo is no longer active. */
     rs485_frame_t frame;
     while (rs485_service_get_received(&controller_rs485_service, &frame))
     {
-        (void)rs485_service_send(&controller_rs485_service, frame.data, frame.size);
+        controller_protocol_receive(&controller_protocol, frame.data, frame.size, now_ms);
     }
+    controller_protocol_process(&controller_protocol, now_ms);
 }
 
 /* Services communications state machines and emits heartbeat status indefinitely. */

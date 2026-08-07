@@ -6,6 +6,7 @@ idf_component_register(
     SRCS
         "../main.c"
         "${SHARED_DIR}/controller_runtime.c"
+        "${SHARED_DIR}/controller_protocol.c"
         "${SHARED_DIR}/controller_health.c"
         "${SHARED_DIR}/controller_health_format.c"
         "${SHARED_DIR}/diagnostics.c"

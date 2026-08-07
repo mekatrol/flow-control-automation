@@ -6,10 +6,11 @@ This document is the normative design for the bespoke Flow Controller Protocol
 (FCP). It supports discovery and diagnostics, typed point access, authenticated
 commands, and resumable transfer of compiled flow deployments.
 
-FCP version 1 is planned by Phase 9 of `IMPLEMENTATION_PLAN.md`; it is not yet
-fully implemented. The Phase 8 RS485 service currently supplies bounded raw
-frames and commissioning echo. Firmware must not advertise an operation until
-its dispatcher and provider satisfy this contract.
+FCP version 1 is implemented incrementally by Phase 9 of
+`IMPLEMENTATION_PLAN.md`. Phase 9A framing, discovery, device interrogation,
+health, echo, and read-only point dispatch are implemented. Authentication,
+flow transfer, commands, and subscriptions remain planned and must not be
+advertised until their dispatcher and provider satisfy this contract.
 
 The words **must**, **must not**, **should**, and **may** are normative. Numeric
 multi-byte fields use little-endian order. Receivers decode bytes explicitly and
@@ -185,7 +186,7 @@ corrupt payload, or platform paths.
 | ------ | ---------------------- | -------------- | --------- |
 | `0x01` | echo                   | no             | no        |
 | `0x02` | discover               | no             | yes       |
-| `0x03` | get capabilities       | no             | yes       |
+| `0x03` | get capabilities       | no             | no        |
 | `0x04` | get device information | policy         | no        |
 | `0x05` | get health             | policy         | no        |
 
@@ -194,7 +195,7 @@ Echo returns the exact payload and does not interpret an embedded address.
 Discovery request fields are `nonce:u32, slot_count:u8, slot_time_ms:u16`.
 Each controller calculates `CRC16(stable_device_identity || nonce) %
 slot_count`, waits that many slots, and responds with configured address,
-non-secret device ID, hardware model, firmware version, and capability digest.
+non-secret device ID, hardware model, and firmware version.
 Slot count must be nonzero and bounded. A host retries with more slots after a
 collision. Factory identity is not returned unless identity policy permits it.
 
@@ -202,6 +203,41 @@ Capabilities return protocol minor version, frame/chunk limits, authentication
 algorithms, operation bitmap, point types, artifact versions, and controller
 limits. Extension fields are ignored only when their capability schema permits
 extension.
+
+### 8.1 Implemented Phase 9A payloads
+
+The discovery request uses this payload:
+
+| Offset | Size | Field        | Meaning                              |
+| ------ | ---- | ------------ | ------------------------------------ |
+| 0      | 4    | nonce        | Caller-selected discovery nonce      |
+| 4      | 1    | slot count   | Number of collision-avoidance slots  |
+| 5      | 2    | slot time ms | Duration of each slot in milliseconds |
+
+Discovery and device-information responses use this payload:
+
+| Offset   | Size | Field            | Meaning                         |
+| -------- | ---- | ---------------- | ------------------------------- |
+| 0        | 2    | address          | Configured controller address   |
+| 2        | N    | device ID        | Non-secret `string8` identity   |
+| 2+N      | M    | hardware model   | `string8` board model           |
+| 2+N+M    | K    | firmware version | `string8` firmware version      |
+
+Capabilities use this fixed payload:
+
+| Offset | Size | Field            | Meaning                                      |
+| ------ | ---- | ---------------- | -------------------------------------------- |
+| 0      | 1    | minor version    | Implemented protocol minor version           |
+| 1      | 2    | frame limit      | Maximum encoded frame size                   |
+| 3      | 2    | payload limit    | Maximum payload size                         |
+| 5      | 1    | bitmap size      | Number of operation-bitmap bytes             |
+| 6      | 3    | operation bitmap | Bit `opcode % 8` in byte `opcode / 8`        |
+| 9      | 1    | point-type mask  | Bit `type - 1` for each supported point type |
+
+Health returns eleven consecutive `u32` counters in this order: accepted
+frames, bad magic, bad version, bad flags, bad length, bad CRC, address misses,
+unsupported operations, provider errors, response drops, and duplicate
+transactions.
 
 ## 9. Point operations
 

@@ -6,6 +6,7 @@
 #include "esp_chip_info.h"
 #include "esp_flash.h"
 #include "esp_heap_caps.h"
+#include "esp_mac.h"
 #include "esp_random.h"
 #include "esp_system.h"
 #include "esp_timer.h"
@@ -57,6 +58,22 @@ static const char *get_reset_reason_name(esp_reset_reason_t reason)
         default:
             return RESET_UNKNOWN;
     }
+}
+
+/* Formats the factory station identity without exposing settings or credential material. */
+void platform_get_device_id(char *output, size_t capacity)
+{
+    uint8_t address[6] = {0};
+    if (esp_read_mac(address, ESP_MAC_WIFI_STA) != ESP_OK)
+    {
+        if (capacity > 0)
+        {
+            output[0] = '\0';
+        }
+        return;
+    }
+    (void)snprintf(output, capacity, "esp32s3-%02x%02x%02x%02x%02x%02x", address[0], address[1], address[2], address[3],
+                   address[4], address[5]);
 }
 
 /* Gets immutable platform and firmware properties used by the startup banner. */

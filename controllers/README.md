@@ -86,6 +86,51 @@ cmake --build build-host
 ctest --test-dir build-host --output-on-failure
 ```
 
+## Test FCP over RS485 from Linux
+
+Use the dependency-free `scripts/fcp-client.py` utility to send FCP version 1
+requests through a USB-to-RS485 adapter. Prefer the stable path under
+`/dev/serial/by-id/` rather than a changeable `/dev/ttyACM*` name:
+
+```sh
+ls -l /dev/serial/by-id/
+```
+
+For the Waveshare adapter currently used during commissioning, set:
+
+```sh
+FCP_PORT=/dev/serial/by-id/usb-1a86_USB_Single_Serial_586D012048-if00
+```
+
+Discover attached controllers using the default 115200 bps link:
+
+```sh
+./scripts/fcp-client.py "$FCP_PORT" discover
+```
+
+Read device information, capabilities, and health from the factory-default
+controller address `0`:
+
+```sh
+./scripts/fcp-client.py "$FCP_PORT" info --address 0
+./scripts/fcp-client.py "$FCP_PORT" capabilities --address 0
+./scripts/fcp-client.py "$FCP_PORT" health --address 0
+```
+
+Verify a transaction-correlated echo:
+
+```sh
+./scripts/fcp-client.py "$FCP_PORT" echo --address 0 --text "RS485 test"
+```
+
+Pass `--baud` after the command when the controller uses another configured
+rate, for example `health --address 42 --baud 57600`. Run
+`./scripts/fcp-client.py --help` for all options. If opening the adapter fails
+with `Permission denied`, add the Linux user to the group owning the device
+(commonly `dialout`) and start a new login session. Connect RS485 A to A, B to
+B, and signal ground to ground before testing; swap A and B if the adapter and
+controller use opposite terminal naming.
+
 The phased roadmap is in [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md),
 and the normative bespoke wire contract is in [`PROTOCOL.md`](PROTOCOL.md).
 Board-specific wiring and commissioning notes belong under that board's
