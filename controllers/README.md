@@ -10,6 +10,9 @@ it.
 For a clean machine or newly cloned repository, follow
 [`SETUP_DEV.md`](SETUP_DEV.md) before building.
 
+See [`FEATURES.md`](FEATURES.md) for the implemented firmware capabilities and
+[`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) for work that remains.
+
 The first supported board is the KinCony KC868-A16v3 on ESP32-S3. Future ESP32,
 Raspberry Pi, STM32, and other targets should add a board description and, only
 when necessary, a platform adaptation. Shared services such as diagnostics,
@@ -239,7 +242,8 @@ with `Permission denied`, add the Linux user to the group owning the device
 B, and signal ground to ground before testing; swap A and B if the adapter and
 controller use opposite terminal naming.
 
-The phased roadmap is in [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md),
-and the normative bespoke wire contract is in [`PROTOCOL.md`](PROTOCOL.md).
+Implemented capabilities are summarized in [`FEATURES.md`](FEATURES.md), the
+remaining roadmap is in [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md), and
+the normative bespoke wire contract is in [`PROTOCOL.md`](PROTOCOL.md).
 Board-specific wiring and commissioning notes belong under that board's
 directory.
