@@ -19,6 +19,34 @@ static const char HARDWARE_MODEL[]       = "test-board";
 static const char FIRMWARE_VERSION[]     = "1.2.3";
 static const char TEST_SUCCESS_MESSAGE[] = "Controller protocol tests passed";
 static uint16_t commanded_outputs;
+static uint8_t auth_random_seed = 1;
+
+/* Supplies deterministic nonzero session material for dispatcher authentication tests. */
+static bool get_auth_random(void *context, uint8_t *output, size_t size)
+{
+    assert(context == NULL);
+    for (size_t index = 0; index < size; index++)
+    {
+        output[index] = auth_random_seed++;
+    }
+    return true;
+}
+
+/* Supplies a deterministic keyed stand-in for dispatcher authentication tests. */
+static bool get_auth_hmac(void *context, const uint8_t *message, size_t message_size, uint8_t tag[CONTROLLER_AUTH_TAG_SIZE])
+{
+    assert(context == NULL);
+    uint8_t state = 0x5a;
+    for (size_t index = 0; index < message_size; index++)
+    {
+        state = (uint8_t)((state * 33U) ^ message[index]);
+    }
+    for (size_t index = 0; index < CONTROLLER_AUTH_TAG_SIZE; index++)
+    {
+        tag[index] = (uint8_t)(state + index);
+    }
+    return true;
+}
 
 /* Captures one single-output command for dispatcher contract tests. */
 static controller_protocol_provider_result_t set_output(void *context, const char *point_id, bool value)
@@ -86,6 +114,65 @@ static size_t encode_request(uint16_t destination, uint8_t operation, const uint
     size_t frame_size = 0;
     assert(controller_protocol_encode(&request, frame, CONTROLLER_PROTOCOL_FRAME_CAPACITY, &frame_size));
     return frame_size;
+}
+
+/* Encodes one request with a distinct transaction for multi-step session exchanges. */
+static size_t encode_transaction_request(uint16_t destination, uint16_t transaction, uint8_t operation, const uint8_t *payload,
+                                         size_t payload_size, uint8_t *frame)
+{
+    controller_protocol_message_t request = {.destination  = destination,
+                                             .source       = HOST_ADDRESS,
+                                             .transaction  = transaction,
+                                             .operation    = operation,
+                                             .payload_size = payload_size};
+    if (payload_size > 0)
+    {
+        memcpy(request.payload, payload, payload_size);
+    }
+    size_t frame_size = 0;
+    assert(controller_protocol_encode(&request, frame, CONTROLLER_PROTOCOL_FRAME_CAPACITY, &frame_size));
+    return frame_size;
+}
+
+/* Verifies challenge/proof dispatch and rejection of an unwrapped protected operation. */
+static void test_authentication_dispatch(void)
+{
+    controller_auth_t auth;
+    const controller_auth_config_t auth_config = {.get_hmac              = get_auth_hmac,
+                                                  .get_random            = get_auth_random,
+                                                  .challenge_lifetime_ms = 100,
+                                                  .session_lifetime_ms   = 1000,
+                                                  .maximum_attempts      = 3};
+    assert(controller_auth_init(&auth, &auth_config));
+    controller_protocol_t protocol;
+    const controller_protocol_config_t config = {.address          = CONTROLLER_ADDRESS,
+                                                 .device_id        = DEVICE_ID,
+                                                 .hardware_model   = HARDWARE_MODEL,
+                                                 .firmware_version = FIRMWARE_VERSION,
+                                                 .auth             = &auth};
+    assert(controller_protocol_init(&protocol, &config, capture_send, NULL));
+    const uint8_t client_nonce[CONTROLLER_AUTH_NONCE_SIZE] = {7};
+    uint8_t frame[CONTROLLER_PROTOCOL_FRAME_CAPACITY];
+    size_t size = encode_transaction_request(CONTROLLER_ADDRESS, 1, CONTROLLER_PROTOCOL_OPERATION_AUTH_CHALLENGE, client_nonce,
+                                             sizeof(client_nonce), frame);
+    controller_protocol_receive(&protocol, frame, size, 1);
+    controller_protocol_message_t response;
+    assert(controller_protocol_decode(sent_frame, sent_size, &response) == CONTROLLER_PROTOCOL_DECODE_OK);
+    assert(response.payload_size == sizeof(uint32_t) + CONTROLLER_AUTH_NONCE_SIZE);
+    uint32_t session_id = 0;
+    memcpy(&session_id, response.payload, sizeof(session_id));
+    uint8_t proof_payload[sizeof(uint32_t) + CONTROLLER_AUTH_TAG_SIZE];
+    memcpy(proof_payload, &session_id, sizeof(session_id));
+    assert(controller_auth_get_proof(&auth, HOST_ADDRESS, session_id, &proof_payload[sizeof(session_id)]));
+    size = encode_transaction_request(CONTROLLER_ADDRESS, 2, CONTROLLER_PROTOCOL_OPERATION_AUTH_PROVE, proof_payload,
+                                      sizeof(proof_payload), frame);
+    controller_protocol_receive(&protocol, frame, size, 2);
+    assert(controller_protocol_decode(sent_frame, sent_size, &response) == CONTROLLER_PROTOCOL_DECODE_OK);
+    assert(response.flags == 1 && response.payload_size == sizeof(session_id));
+    size = encode_transaction_request(CONTROLLER_ADDRESS, 3, CONTROLLER_PROTOCOL_OPERATION_LIST_FLOWS, NULL, 0, frame);
+    controller_protocol_receive(&protocol, frame, size, 3);
+    assert(controller_protocol_decode(sent_frame, sent_size, &response) == CONTROLLER_PROTOCOL_DECODE_OK);
+    assert((response.flags & 2U) != 0U && response.payload[0] == CONTROLLER_PROTOCOL_ERROR_UNAUTHORIZED);
 }
 
 /* Verifies the published CRC check value and frame header byte order. */
@@ -257,6 +344,7 @@ int main(void)
     test_unavailable_point_provider();
     test_discovery_delay();
     test_io_block_and_output_write();
+    test_authentication_dispatch();
     puts(TEST_SUCCESS_MESSAGE);
     return 0;
 }

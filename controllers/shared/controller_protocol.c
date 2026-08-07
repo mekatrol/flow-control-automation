@@ -6,28 +6,49 @@
 /* Wire constants define the fixed version-one framing and bounded discovery policy. */
 enum
 {
-    PROTOCOL_MAGIC_FIRST             = 0x46,
-    PROTOCOL_MAGIC_SECOND            = 0x43,
-    PROTOCOL_VERSION                 = 1,
-    PROTOCOL_FLAG_RESPONSE           = 1,
-    PROTOCOL_FLAG_ERROR              = 2,
-    PROTOCOL_FLAG_MORE               = 8,
-    PROTOCOL_ALLOWED_FLAGS           = 0x0f,
-    PROTOCOL_BROADCAST_ADDRESS       = 0xffff,
-    PROTOCOL_CAPABILITY_MINOR        = 0,
-    PROTOCOL_MAXIMUM_SLOTS           = 64,
-    PROTOCOL_MAXIMUM_SLOT_TIME_MS    = 1000,
-    PROTOCOL_POINT_TYPE_MASK         = 0x1f,
-    PROTOCOL_OPERATION_BITMAP_SIZE   = 4,
-    PROTOCOL_MAXIMUM_POINT_COUNT     = 1024,
-    PROTOCOL_DISCOVERY_NONCE_SIZE    = 4,
-    PROTOCOL_DISCOVERY_SEED_CAPACITY = UINT8_MAX + PROTOCOL_DISCOVERY_NONCE_SIZE,
+    PROTOCOL_MAGIC_FIRST               = 0x46,
+    PROTOCOL_MAGIC_SECOND              = 0x43,
+    PROTOCOL_VERSION                   = 1,
+    PROTOCOL_FLAG_RESPONSE             = 1,
+    PROTOCOL_FLAG_ERROR                = 2,
+    PROTOCOL_FLAG_AUTHENTICATED        = 4,
+    PROTOCOL_FLAG_MORE                 = 8,
+    PROTOCOL_ALLOWED_FLAGS             = 0x0f,
+    PROTOCOL_BROADCAST_ADDRESS         = 0xffff,
+    PROTOCOL_CAPABILITY_MINOR          = 0,
+    PROTOCOL_MAXIMUM_SLOTS             = 64,
+    PROTOCOL_MAXIMUM_SLOT_TIME_MS      = 1000,
+    PROTOCOL_POINT_TYPE_MASK           = 0x1f,
+    PROTOCOL_OPERATION_BITMAP_SIZE     = 10,
+    PROTOCOL_MAXIMUM_POINT_COUNT       = 1024,
+    PROTOCOL_DISCOVERY_NONCE_SIZE      = 4,
+    PROTOCOL_DISCOVERY_SEED_CAPACITY   = UINT8_MAX + PROTOCOL_DISCOVERY_NONCE_SIZE,
+    PROTOCOL_AUTH_ENVELOPE_PREFIX_SIZE = sizeof(uint32_t) + sizeof(uint64_t),
+    PROTOCOL_AUTH_ENVELOPE_SIZE        = PROTOCOL_AUTH_ENVELOPE_PREFIX_SIZE + CONTROLLER_AUTH_TAG_SIZE,
+    PROTOCOL_AUTH_BODY_CAPACITY        = CONTROLLER_PROTOCOL_PAYLOAD_CAPACITY - PROTOCOL_AUTH_ENVELOPE_SIZE,
 };
 
 /* Reads an unsigned 16-bit little-endian field without assuming buffer alignment. */
 static uint16_t get_u16(const uint8_t *data)
 {
     return (uint16_t)data[0] | ((uint16_t)data[1] << 8U);
+}
+
+/* Reads an unsigned 32-bit little-endian field without assuming buffer alignment. */
+static uint32_t get_u32(const uint8_t *data)
+{
+    return (uint32_t)data[0] | ((uint32_t)data[1] << 8U) | ((uint32_t)data[2] << 16U) | ((uint32_t)data[3] << 24U);
+}
+
+/* Reads an unsigned 64-bit little-endian field without assuming buffer alignment. */
+static uint64_t get_u64(const uint8_t *data)
+{
+    uint64_t value = 0;
+    for (size_t index = 0; index < sizeof(value); index++)
+    {
+        value |= (uint64_t)data[index] << (index * 8U);
+    }
+    return value;
 }
 
 /* Writes an unsigned 16-bit value in the normative little-endian order. */
@@ -220,6 +241,34 @@ bool controller_protocol_init(controller_protocol_t *protocol, const controller_
 /* Sends one response and accounts for encode or bounded transport rejection. */
 static void send_response(controller_protocol_t *protocol, const controller_protocol_message_t *response)
 {
+    controller_protocol_message_t authenticated_response;
+    if (protocol->is_authenticated_dispatch)
+    {
+        if (response->payload_size + PROTOCOL_AUTH_ENVELOPE_SIZE > CONTROLLER_PROTOCOL_PAYLOAD_CAPACITY)
+        {
+            protocol->health.response_drop_count++;
+            return;
+        }
+        authenticated_response = *response;
+        (void)memmove(&authenticated_response.payload[PROTOCOL_AUTH_ENVELOPE_PREFIX_SIZE], response->payload,
+                      response->payload_size);
+        put_u32(authenticated_response.payload, protocol->authenticated_session_id);
+        uint64_t sequence = 0;
+        uint8_t tag[CONTROLLER_AUTH_TAG_SIZE];
+        if (!controller_auth_sign_response(protocol->config.auth, response->destination, protocol->authenticated_session_id,
+                                           response->operation, response->payload, response->payload_size,
+                                           protocol->authenticated_now_ms, &sequence, tag))
+        {
+            protocol->health.response_drop_count++;
+            return;
+        }
+        put_u64(&authenticated_response.payload[sizeof(uint32_t)], sequence);
+        (void)memcpy(&authenticated_response.payload[PROTOCOL_AUTH_ENVELOPE_PREFIX_SIZE + response->payload_size], tag,
+                     sizeof(tag));
+        authenticated_response.payload_size = response->payload_size + PROTOCOL_AUTH_ENVELOPE_SIZE;
+        authenticated_response.flags |= PROTOCOL_FLAG_AUTHENTICATED;
+        response = &authenticated_response;
+    }
     uint8_t frame[CONTROLLER_PROTOCOL_FRAME_CAPACITY];
     size_t frame_size = 0;
     if (!controller_protocol_encode(response, frame, sizeof(frame), &frame_size))
@@ -242,6 +291,50 @@ static void send_response(controller_protocol_t *protocol, const controller_prot
     {
         protocol->health.response_drop_count++;
     }
+    if (protocol->is_session_close_pending)
+    {
+        /* Close only after signing and queuing the response so the peer can verify completion. */
+        controller_auth_close(protocol->config.auth, response->destination, protocol->authenticated_session_id);
+        protocol->is_session_close_pending = false;
+    }
+}
+
+/* Tests whether an operation requires an authenticated envelope on every transport. */
+static bool is_authentication_required(uint8_t operation)
+{
+    return operation == CONTROLLER_PROTOCOL_OPERATION_RELINQUISH_COMMAND ||
+           operation == CONTROLLER_PROTOCOL_OPERATION_CLOSE_SESSION ||
+           (operation >= CONTROLLER_PROTOCOL_OPERATION_LIST_FLOWS && operation <= CONTROLLER_PROTOCOL_OPERATION_GET_FLOW_RUNTIME);
+}
+
+/* Verifies and removes one authenticated envelope before semantic dispatch. */
+static bool unwrap_authenticated_request(controller_protocol_t *protocol, controller_protocol_message_t *request, uint64_t now_ms)
+{
+    if (protocol->config.auth == NULL || request->payload_size < PROTOCOL_AUTH_ENVELOPE_SIZE)
+    {
+        return false;
+    }
+    const uint32_t session_id = get_u32(request->payload);
+    uint64_t sequence         = 0;
+    for (size_t index = 0; index < sizeof(sequence); index++)
+    {
+        sequence |= (uint64_t)request->payload[sizeof(session_id) + index] << (index * 8U);
+    }
+    const size_t body_size = request->payload_size - PROTOCOL_AUTH_ENVELOPE_SIZE;
+    const uint8_t *body    = &request->payload[PROTOCOL_AUTH_ENVELOPE_PREFIX_SIZE];
+    const uint8_t *tag     = &body[body_size];
+    if (!controller_auth_verify_request(protocol->config.auth, request->source, session_id, sequence, request->operation, body,
+                                        body_size, tag, now_ms))
+    {
+        return false;
+    }
+    (void)memmove(request->payload, body, body_size);
+    request->payload_size               = body_size;
+    request->flags                      = 0;
+    protocol->is_authenticated_dispatch = true;
+    protocol->authenticated_session_id  = session_id;
+    protocol->authenticated_now_ms      = now_ms;
+    return true;
 }
 
 /* Initializes response addressing and correlation from a trusted request. */
@@ -393,6 +486,66 @@ static bool get_output_command(const controller_protocol_message_t *request, cha
     point_id[id_size] = '\0';
     *value            = request->payload[id_size + 1U] != 0U;
     return true;
+}
+
+/* Parses one authenticated output command with source, priority, correlation, and lifetime metadata. */
+static bool get_arbitrated_command(const controller_protocol_message_t *request, controller_point_command_t *command)
+{
+    if (request->payload_size < 5)
+    {
+        return false;
+    }
+    size_t offset   = 0;
+    command->output = request->payload[offset++];
+    if (request->payload[offset] > 1U)
+    {
+        return false;
+    }
+    command->value           = request->payload[offset++] != 0U;
+    const size_t source_size = request->payload[offset++];
+    if (source_size == 0 || source_size >= sizeof(command->source_id) || offset + source_size + 3U > request->payload_size)
+    {
+        return false;
+    }
+    (void)memcpy(command->source_id, &request->payload[offset], source_size);
+    command->source_id[source_size] = '\0';
+    offset += source_size;
+    command->command_class        = request->payload[offset++];
+    command->priority             = request->payload[offset++];
+    const size_t correlation_size = request->payload[offset++];
+    if (correlation_size == 0 || correlation_size >= sizeof(command->correlation_id) ||
+        offset + correlation_size + 16U != request->payload_size)
+    {
+        return false;
+    }
+    (void)memcpy(command->correlation_id, &request->payload[offset], correlation_size);
+    command->correlation_id[correlation_size] = '\0';
+    offset += correlation_size;
+    command->issued_at_ms = (int64_t)get_u64(&request->payload[offset]);
+    offset += 8;
+    command->expires_at_ms = (int64_t)get_u64(&request->payload[offset]);
+    return true;
+}
+
+/* Maps point arbitration results into stable protocol errors. */
+static controller_protocol_error_t get_point_error(controller_point_result_t result)
+{
+    switch (result)
+    {
+        case CONTROLLER_POINT_INVALID_ARGUMENT:
+            return CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT;
+        case CONTROLLER_POINT_NOT_FOUND:
+            return CONTROLLER_PROTOCOL_ERROR_NOT_FOUND;
+        case CONTROLLER_POINT_QUEUE_FULL:
+            return CONTROLLER_PROTOCOL_ERROR_QUEUE_FULL;
+        case CONTROLLER_POINT_NOT_READY:
+            return CONTROLLER_PROTOCOL_ERROR_NOT_READY;
+        case CONTROLLER_POINT_FAILED:
+            return CONTROLLER_PROTOCOL_ERROR_INTERNAL;
+        case CONTROLLER_POINT_OK:
+            return CONTROLLER_PROTOCOL_ERROR_INTERNAL;
+    }
+    return CONTROLLER_PROTOCOL_ERROR_INTERNAL;
 }
 
 /* Finds a point definition by stable ID using the provider's bounded enumeration. */
@@ -580,8 +733,104 @@ static bool set_device_info_payload(const controller_protocol_t *protocol, contr
     return true;
 }
 
+/* Maps flow-service outcomes into the stable protocol error vocabulary. */
+static controller_protocol_error_t get_flow_error(controller_flow_result_t result)
+{
+    switch (result)
+    {
+        case CONTROLLER_FLOW_INVALID_ARGUMENT:
+            return CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT;
+        case CONTROLLER_FLOW_WRONG_STATE:
+            return CONTROLLER_PROTOCOL_ERROR_WRONG_STATE;
+        case CONTROLLER_FLOW_REVISION_CONFLICT:
+            return CONTROLLER_PROTOCOL_ERROR_REVISION_CONFLICT;
+        case CONTROLLER_FLOW_STORAGE_UNAVAILABLE:
+            return CONTROLLER_PROTOCOL_ERROR_STORAGE_UNAVAILABLE;
+        case CONTROLLER_FLOW_STORAGE_FULL:
+            return CONTROLLER_PROTOCOL_ERROR_STORAGE_FULL;
+        case CONTROLLER_FLOW_DIGEST_MISMATCH:
+            return CONTROLLER_PROTOCOL_ERROR_DIGEST_MISMATCH;
+        case CONTROLLER_FLOW_VALIDATION_FAILED:
+            return CONTROLLER_PROTOCOL_ERROR_VALIDATION_FAILED;
+        case CONTROLLER_FLOW_NOT_FOUND:
+            return CONTROLLER_PROTOCOL_ERROR_NOT_FOUND;
+        case CONTROLLER_FLOW_OK:
+            return CONTROLLER_PROTOCOL_ERROR_INTERNAL;
+    }
+    return CONTROLLER_PROTOCOL_ERROR_INTERNAL;
+}
+
+/* Encodes one bounded committed-flow metadata record. */
+static bool append_flow_metadata(controller_protocol_message_t *response, const controller_flow_metadata_t *metadata)
+{
+    size_t offset = 0;
+    if (!append_string8(response->payload, sizeof(response->payload), &offset, metadata->id, sizeof(metadata->id)) ||
+        offset + 45U > sizeof(response->payload))
+    {
+        return false;
+    }
+    put_u32(&response->payload[offset], metadata->revision);
+    offset += 4;
+    put_u32(&response->payload[offset], metadata->artifact_schema);
+    offset += 4;
+    put_u32(&response->payload[offset], (uint32_t)metadata->size);
+    offset += 4;
+    (void)memcpy(&response->payload[offset], metadata->digest, CONTROLLER_FLOW_DIGEST_SIZE);
+    offset += CONTROLLER_FLOW_DIGEST_SIZE;
+    response->payload[offset++] = metadata->is_active ? 1U : 0U;
+    response->payload_size      = offset;
+    return true;
+}
+
+/* Parses upload-begin metadata and optimistic revision fields from one authenticated body. */
+static bool get_upload_metadata(const controller_protocol_message_t *request, controller_flow_metadata_t *metadata,
+                                bool *has_expected_revision, uint32_t *expected_revision)
+{
+    if (request->payload_size < 1)
+    {
+        return false;
+    }
+    const size_t id_size    = request->payload[0];
+    const size_t fixed_size = 1U + id_size + 4U + 4U + 4U + CONTROLLER_FLOW_DIGEST_SIZE + 1U + 4U;
+    if (id_size == 0 || id_size >= sizeof(metadata->id) || request->payload_size != fixed_size)
+    {
+        return false;
+    }
+    size_t offset = 1;
+    (void)memcpy(metadata->id, &request->payload[offset], id_size);
+    metadata->id[id_size] = '\0';
+    offset += id_size;
+    metadata->revision = get_u32(&request->payload[offset]);
+    offset += 4;
+    metadata->artifact_schema = get_u32(&request->payload[offset]);
+    offset += 4;
+    metadata->size = get_u32(&request->payload[offset]);
+    offset += 4;
+    (void)memcpy(metadata->digest, &request->payload[offset], CONTROLLER_FLOW_DIGEST_SIZE);
+    offset += CONTROLLER_FLOW_DIGEST_SIZE;
+    if (request->payload[offset] > 1U)
+    {
+        return false;
+    }
+    *has_expected_revision = request->payload[offset++] != 0U;
+    *expected_revision     = get_u32(&request->payload[offset]);
+    return true;
+}
+
+/* Sends a stable mapped error or reports a successful flow operation to its caller. */
+static bool is_flow_result_success(controller_protocol_t *protocol, const controller_protocol_message_t *request,
+                                   controller_flow_result_t result)
+{
+    if (result == CONTROLLER_FLOW_OK)
+    {
+        return true;
+    }
+    send_error(protocol, request, get_flow_error(result));
+    return false;
+}
+
 /* Dispatches one trusted non-discovery request synchronously into the response queue. */
-static void dispatch_request(controller_protocol_t *protocol, const controller_protocol_message_t *request)
+static void dispatch_request(controller_protocol_t *protocol, const controller_protocol_message_t *request, uint64_t now_ms)
 {
     controller_protocol_message_t response = get_response(protocol, request);
     switch (request->operation)
@@ -597,16 +846,22 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                 send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
                 break;
             }
-            response.payload_size = 11;
+            response.payload_size = 17;
             response.payload[0]   = PROTOCOL_CAPABILITY_MINOR;
             put_u16(&response.payload[1], CONTROLLER_PROTOCOL_FRAME_CAPACITY);
             put_u16(&response.payload[3], CONTROLLER_PROTOCOL_PAYLOAD_CAPACITY);
             response.payload[5]  = PROTOCOL_OPERATION_BITMAP_SIZE;
             response.payload[6]  = UINT8_C(0x3e);
             response.payload[7]  = 0;
-            response.payload[8]  = UINT8_C(0x27);
-            response.payload[9]  = UINT8_C(0x05);
-            response.payload[10] = PROTOCOL_POINT_TYPE_MASK;
+            response.payload[8]  = UINT8_C(0x3f);
+            response.payload[9]  = UINT8_C(0x07);
+            response.payload[10] = 0;
+            response.payload[11] = 0;
+            response.payload[12] = UINT8_C(0x07);
+            response.payload[13] = 0;
+            response.payload[14] = UINT8_MAX;
+            response.payload[15] = UINT8_C(0x3f);
+            response.payload[16] = PROTOCOL_POINT_TYPE_MASK;
             send_response(protocol, &response);
             break;
         case CONTROLLER_PROTOCOL_OPERATION_GET_DEVICE_INFO:
@@ -679,6 +934,28 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
             send_response(protocol, &response);
             break;
         case CONTROLLER_PROTOCOL_OPERATION_COMMAND_POINT: {
+            if (protocol->is_authenticated_dispatch)
+            {
+                controller_point_command_t command = {0};
+                if (protocol->config.points == NULL || !get_arbitrated_command(request, &command))
+                {
+                    send_error(protocol, request,
+                               protocol->config.points == NULL ? CONTROLLER_PROTOCOL_ERROR_NOT_READY
+                                                               : CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
+                    break;
+                }
+                const controller_point_result_t result =
+                    controller_points_command(protocol->config.points, &command, (int64_t)now_ms);
+                if (result != CONTROLLER_POINT_OK)
+                {
+                    send_error(protocol, request, get_point_error(result));
+                    break;
+                }
+                response.payload_size = request->payload_size;
+                (void)memcpy(response.payload, request->payload, request->payload_size);
+                send_response(protocol, &response);
+                break;
+            }
             char output_id[CONTROLLER_PROTOCOL_POINT_ID_CAPACITY];
             bool output_value = false;
             if (!get_output_command(request, output_id, sizeof(output_id), &output_value))
@@ -704,6 +981,78 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
             send_response(protocol, &response);
             break;
         }
+        case CONTROLLER_PROTOCOL_OPERATION_RELINQUISH_COMMAND: {
+            if (protocol->config.points == NULL || request->payload_size < 3)
+            {
+                send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
+                break;
+            }
+            const uint8_t output     = request->payload[0];
+            const size_t source_size = request->payload[1];
+            if (source_size == 0 || source_size >= CONTROLLER_POINT_SOURCE_ID_CAPACITY ||
+                request->payload_size != source_size + 2U)
+            {
+                send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
+                break;
+            }
+            char source_id[CONTROLLER_POINT_SOURCE_ID_CAPACITY];
+            (void)memcpy(source_id, &request->payload[2], source_size);
+            source_id[source_size] = '\0';
+            const controller_point_result_t result =
+                controller_points_relinquish(protocol->config.points, output, source_id, (int64_t)now_ms);
+            if (result != CONTROLLER_POINT_OK)
+            {
+                send_error(protocol, request, get_point_error(result));
+                break;
+            }
+            response.payload_size = request->payload_size;
+            (void)memcpy(response.payload, request->payload, request->payload_size);
+            send_response(protocol, &response);
+            break;
+        }
+        case CONTROLLER_PROTOCOL_OPERATION_SUBSCRIBE_CHANGES: {
+            if (protocol->config.points == NULL || request->payload_size != sizeof(uint16_t))
+            {
+                send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
+                break;
+            }
+            const controller_point_result_t result =
+                controller_points_subscribe(protocol->config.points, request->source, get_u16(request->payload));
+            if (result != CONTROLLER_POINT_OK)
+            {
+                send_error(protocol, request, get_point_error(result));
+                break;
+            }
+            response.payload_size = request->payload_size;
+            (void)memcpy(response.payload, request->payload, request->payload_size);
+            send_response(protocol, &response);
+            break;
+        }
+        case CONTROLLER_PROTOCOL_OPERATION_POINT_CHANGE_EVENT: {
+            if (protocol->config.points == NULL || request->payload_size != 0)
+            {
+                send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
+                break;
+            }
+            uint16_t changed  = 0;
+            uint16_t values   = 0;
+            uint32_t sequence = 0;
+            bool has_gap      = false;
+            const controller_point_result_t result =
+                controller_points_get_event(protocol->config.points, request->source, &changed, &values, &sequence, &has_gap);
+            if (result != CONTROLLER_POINT_OK)
+            {
+                send_error(protocol, request, get_point_error(result));
+                break;
+            }
+            put_u16(response.payload, changed);
+            put_u16(&response.payload[2], values);
+            put_u32(&response.payload[4], sequence);
+            response.payload[8]   = has_gap ? 1U : 0U;
+            response.payload_size = 9;
+            send_response(protocol, &response);
+            break;
+        }
         case CONTROLLER_PROTOCOL_OPERATION_COMMAND_OUTPUT_BLOCK: {
             if (request->payload_size != sizeof(uint16_t))
             {
@@ -726,6 +1075,265 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
             }
             put_u16(response.payload, requested_outputs);
             response.payload_size = sizeof(uint16_t);
+            send_response(protocol, &response);
+            break;
+        }
+        case CONTROLLER_PROTOCOL_OPERATION_AUTH_CHALLENGE: {
+            if (request->payload_size != CONTROLLER_AUTH_NONCE_SIZE || protocol->config.auth == NULL)
+            {
+                send_error(protocol, request,
+                           request->payload_size == CONTROLLER_AUTH_NONCE_SIZE ? CONTROLLER_PROTOCOL_ERROR_NOT_READY
+                                                                               : CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
+                break;
+            }
+            uint32_t session_id = 0;
+            uint8_t device_nonce[CONTROLLER_AUTH_NONCE_SIZE];
+            if (!controller_auth_create_challenge(protocol->config.auth, request->source, request->payload, now_ms, &session_id,
+                                                  device_nonce))
+            {
+                send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_BUSY);
+                break;
+            }
+            put_u32(response.payload, session_id);
+            (void)memcpy(&response.payload[sizeof(session_id)], device_nonce, sizeof(device_nonce));
+            response.payload_size = sizeof(session_id) + sizeof(device_nonce);
+            send_response(protocol, &response);
+            break;
+        }
+        case CONTROLLER_PROTOCOL_OPERATION_AUTH_PROVE: {
+            const size_t proof_payload_size = sizeof(uint32_t) + CONTROLLER_AUTH_TAG_SIZE;
+            if (request->payload_size != proof_payload_size || protocol->config.auth == NULL)
+            {
+                send_error(protocol, request,
+                           request->payload_size == proof_payload_size ? CONTROLLER_PROTOCOL_ERROR_NOT_READY
+                                                                       : CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
+                break;
+            }
+            const uint32_t session_id = get_u32(request->payload);
+            if (!controller_auth_verify_proof(protocol->config.auth, request->source, session_id,
+                                              &request->payload[sizeof(session_id)], now_ms))
+            {
+                send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_UNAUTHORIZED);
+                break;
+            }
+            put_u32(response.payload, session_id);
+            response.payload_size = sizeof(session_id);
+            send_response(protocol, &response);
+            break;
+        }
+        case CONTROLLER_PROTOCOL_OPERATION_CLOSE_SESSION: {
+            if (request->payload_size != sizeof(uint32_t) || protocol->config.auth == NULL)
+            {
+                send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
+                break;
+            }
+            if (get_u32(request->payload) != protocol->authenticated_session_id)
+            {
+                send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
+                break;
+            }
+            /* Defer invalidation until send_response has signed the final authenticated response. */
+            protocol->is_session_close_pending = true;
+            response.payload_size              = 0;
+            send_response(protocol, &response);
+            break;
+        }
+        case CONTROLLER_PROTOCOL_OPERATION_LIST_FLOWS: {
+            if (request->payload_size != 0 || protocol->config.flow == NULL)
+            {
+                send_error(protocol, request,
+                           protocol->config.flow == NULL ? CONTROLLER_PROTOCOL_ERROR_NOT_READY
+                                                         : CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
+                break;
+            }
+            controller_flow_metadata_t metadata;
+            const controller_flow_result_t result = controller_flow_get_metadata(protocol->config.flow, &metadata);
+            response.payload[0]                   = result == CONTROLLER_FLOW_OK ? 1U : 0U;
+            response.payload_size                 = 1;
+            if (result == CONTROLLER_FLOW_OK)
+            {
+                controller_protocol_message_t encoded = response;
+                if (!append_flow_metadata(&encoded, &metadata) || encoded.payload_size + 1U > PROTOCOL_AUTH_BODY_CAPACITY)
+                {
+                    send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_INTERNAL);
+                    break;
+                }
+                (void)memmove(&response.payload[1], encoded.payload, encoded.payload_size);
+                response.payload_size = encoded.payload_size + 1U;
+            }
+            send_response(protocol, &response);
+            break;
+        }
+        case CONTROLLER_PROTOCOL_OPERATION_GET_FLOW_METADATA:
+        case CONTROLLER_PROTOCOL_OPERATION_DOWNLOAD_BEGIN:
+        case CONTROLLER_PROTOCOL_OPERATION_GET_FLOW_RUNTIME: {
+            if (request->payload_size != 0 || protocol->config.flow == NULL)
+            {
+                send_error(protocol, request,
+                           protocol->config.flow == NULL ? CONTROLLER_PROTOCOL_ERROR_NOT_READY
+                                                         : CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
+                break;
+            }
+            controller_flow_metadata_t metadata;
+            if (!is_flow_result_success(protocol, request, controller_flow_get_metadata(protocol->config.flow, &metadata)))
+            {
+                break;
+            }
+            if (!append_flow_metadata(&response, &metadata) || response.payload_size > PROTOCOL_AUTH_BODY_CAPACITY)
+            {
+                send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_INTERNAL);
+                break;
+            }
+            send_response(protocol, &response);
+            break;
+        }
+        case CONTROLLER_PROTOCOL_OPERATION_UPLOAD_BEGIN: {
+            if (protocol->config.flow == NULL)
+            {
+                send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_NOT_READY);
+                break;
+            }
+            controller_flow_metadata_t metadata = {0};
+            bool has_expected_revision          = false;
+            uint32_t expected_revision          = 0;
+            if (!get_upload_metadata(request, &metadata, &has_expected_revision, &expected_revision))
+            {
+                send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
+                break;
+            }
+            uint32_t transfer_id = ((uint32_t)request->source << 16U) | request->transaction;
+            if (transfer_id == 0)
+            {
+                transfer_id = 1;
+            }
+            if (!is_flow_result_success(protocol, request,
+                                        controller_flow_begin(protocol->config.flow, &metadata, has_expected_revision,
+                                                              expected_revision, transfer_id)))
+            {
+                break;
+            }
+            put_u32(response.payload, transfer_id);
+            put_u16(&response.payload[4], (uint16_t)(PROTOCOL_AUTH_BODY_CAPACITY - 8U));
+            response.payload_size = 6;
+            send_response(protocol, &response);
+            break;
+        }
+        case CONTROLLER_PROTOCOL_OPERATION_UPLOAD_STATUS: {
+            if (request->payload_size != sizeof(uint32_t) || protocol->config.flow == NULL ||
+                !protocol->config.flow->is_transfer_open || protocol->config.flow->transfer_id != get_u32(request->payload))
+            {
+                send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_WRONG_STATE);
+                break;
+            }
+            put_u32(response.payload, protocol->config.flow->transfer_id);
+            put_u32(&response.payload[4], (uint32_t)protocol->config.flow->covered_bytes);
+            put_u32(&response.payload[8], (uint32_t)protocol->config.flow->staging.size);
+            response.payload[12]  = protocol->config.flow->is_validated ? 1U : 0U;
+            response.payload_size = 13;
+            send_response(protocol, &response);
+            break;
+        }
+        case CONTROLLER_PROTOCOL_OPERATION_UPLOAD_CHUNK: {
+            if (request->payload_size <= 8 || protocol->config.flow == NULL)
+            {
+                send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
+                break;
+            }
+            const uint32_t transfer_id = get_u32(request->payload);
+            const uint32_t offset      = get_u32(&request->payload[4]);
+            if (!is_flow_result_success(protocol, request,
+                                        controller_flow_write(protocol->config.flow, transfer_id, offset, &request->payload[8],
+                                                              request->payload_size - 8U)))
+            {
+                break;
+            }
+            put_u32(response.payload, transfer_id);
+            put_u32(&response.payload[4], (uint32_t)protocol->config.flow->covered_bytes);
+            response.payload_size = 8;
+            send_response(protocol, &response);
+            break;
+        }
+        case CONTROLLER_PROTOCOL_OPERATION_UPLOAD_VALIDATE:
+        case CONTROLLER_PROTOCOL_OPERATION_UPLOAD_COMMIT:
+        case CONTROLLER_PROTOCOL_OPERATION_UPLOAD_ABORT: {
+            if (request->payload_size != sizeof(uint32_t) || protocol->config.flow == NULL)
+            {
+                send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
+                break;
+            }
+            const uint32_t transfer_id      = get_u32(request->payload);
+            controller_flow_result_t result = CONTROLLER_FLOW_WRONG_STATE;
+            if (request->operation == CONTROLLER_PROTOCOL_OPERATION_UPLOAD_VALIDATE)
+            {
+                result = controller_flow_validate(protocol->config.flow, transfer_id);
+            }
+            else if (request->operation == CONTROLLER_PROTOCOL_OPERATION_UPLOAD_COMMIT)
+            {
+                result = controller_flow_commit(protocol->config.flow, transfer_id);
+            }
+            else
+            {
+                result = controller_flow_abort(protocol->config.flow, transfer_id);
+            }
+            if (!is_flow_result_success(protocol, request, result))
+            {
+                break;
+            }
+            put_u32(response.payload, transfer_id);
+            response.payload_size = sizeof(transfer_id);
+            send_response(protocol, &response);
+            break;
+        }
+        case CONTROLLER_PROTOCOL_OPERATION_DOWNLOAD_CHUNK: {
+            if (request->payload_size != 5 || protocol->config.flow == NULL || request->payload[4] == 0)
+            {
+                send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
+                break;
+            }
+            const uint32_t offset = get_u32(request->payload);
+            const size_t maximum =
+                request->payload[4] < PROTOCOL_AUTH_BODY_CAPACITY - 4U ? request->payload[4] : PROTOCOL_AUTH_BODY_CAPACITY - 4U;
+            size_t downloaded_size = 0;
+            const controller_flow_result_t result =
+                controller_flow_read(protocol->config.flow, offset, &response.payload[4], maximum, &downloaded_size);
+            if (!is_flow_result_success(protocol, request, result))
+            {
+                break;
+            }
+            put_u32(response.payload, offset);
+            response.payload_size = 4U + downloaded_size;
+            send_response(protocol, &response);
+            break;
+        }
+        case CONTROLLER_PROTOCOL_OPERATION_ACTIVATE_FLOW:
+        case CONTROLLER_PROTOCOL_OPERATION_DEACTIVATE_FLOW: {
+            if (request->payload_size != 0 || protocol->config.flow == NULL)
+            {
+                send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
+                break;
+            }
+            if (!is_flow_result_success(
+                    protocol, request,
+                    controller_flow_set_active(protocol->config.flow,
+                                               request->operation == CONTROLLER_PROTOCOL_OPERATION_ACTIVATE_FLOW)))
+            {
+                break;
+            }
+            response.payload_size = 0;
+            send_response(protocol, &response);
+            break;
+        }
+        case CONTROLLER_PROTOCOL_OPERATION_REMOVE_FLOW: {
+            if (request->payload_size != 0 || protocol->config.flow == NULL)
+            {
+                send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
+                break;
+            }
+            if (!is_flow_result_success(protocol, request, controller_flow_remove(protocol->config.flow)))
+            {
+                break;
+            }
+            response.payload_size = 0;
             send_response(protocol, &response);
             break;
         }
@@ -832,8 +1440,25 @@ void controller_protocol_receive(controller_protocol_t *protocol, const uint8_t 
     protocol->is_request_active   = true;
     protocol->active_request_size = size;
     (void)memcpy(protocol->active_request, frame, size);
-    dispatch_request(protocol, &request);
-    protocol->is_request_active = false;
+    if ((request.flags & PROTOCOL_FLAG_AUTHENTICATED) != 0U)
+    {
+        if (!unwrap_authenticated_request(protocol, &request, now_ms))
+        {
+            send_error(protocol, &request, CONTROLLER_PROTOCOL_ERROR_UNAUTHORIZED);
+            protocol->is_request_active = false;
+            return;
+        }
+    }
+    else if (is_authentication_required(request.operation))
+    {
+        send_error(protocol, &request, CONTROLLER_PROTOCOL_ERROR_UNAUTHORIZED);
+        protocol->is_request_active = false;
+        return;
+    }
+    dispatch_request(protocol, &request, now_ms);
+    protocol->is_authenticated_dispatch = false;
+    protocol->is_session_close_pending  = false;
+    protocol->is_request_active         = false;
 }
 
 /* Sends a pending collision-delayed discovery response when its bounded slot expires. */

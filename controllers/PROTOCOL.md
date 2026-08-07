@@ -6,11 +6,10 @@ This document is the normative design for the bespoke Flow Controller Protocol
 (FCP). It supports discovery and diagnostics, typed point access, authenticated
 commands, and resumable transfer of compiled flow deployments.
 
-FCP version 1 is implemented incrementally by Phase 9 of
-`IMPLEMENTATION_PLAN.md`. Phase 9A framing, discovery, device interrogation,
-health, echo, and read-only point dispatch are implemented. Authentication,
-flow transfer, commands, and subscriptions remain planned and must not be
-advertised until their dispatcher and provider satisfy this contract.
+FCP version 1 is implemented by Phase 9 of `IMPLEMENTATION_PLAN.md`. The
+implemented controller profile includes framing, device and point reads,
+authenticated sessions, bounded point arbitration and subscriptions, and
+transactional transfer of one compiled artifact up to 8192 bytes.
 
 The words **must**, **must not**, **should**, and **may** are normative. Numeric
 multi-byte fields use little-endian order. Receivers decode bytes explicitly and
@@ -236,8 +235,8 @@ Capabilities use this fixed payload:
 | 1      | 2    | frame limit      | Maximum encoded frame size                   |
 | 3      | 2    | payload limit    | Maximum payload size                         |
 | 5      | 1    | bitmap size      | Number of operation-bitmap bytes             |
-| 6      | 3    | operation bitmap | Bit `opcode % 8` in byte `opcode / 8`        |
-| 9      | 1    | point-type mask  | Bit `type - 1` for each supported point type |
+| 6      | 10   | operation bitmap | Bit `opcode % 8` in byte `opcode / 8`        |
+| 16     | 1    | point-type mask  | Bit `type - 1` for each supported point type |
 
 Health returns eleven consecutive `u32` counters in this order: accepted
 frames, bad magic, bad version, bad flags, bad length, bad CRC, address misses,
@@ -297,7 +296,8 @@ cached sample:
 | 5      | 8    | sampled at     | Monotonic sample timestamp in milliseconds   |
 | 13     | 4    | sequence       | Increasing cached sample sequence            |
 
-The single-output command payload is `point_id:string8, value:bool`. Only
+The unauthenticated RS485 single-output command payload is
+`point_id:string8, value:bool`. Only
 `output-01` through `output-16` are accepted. The response repeats the validated
 payload. The block-output command payload and response are a `u16` bitmap where
 bit 0 controls output 1 and bit 15 controls output 16. A set bit means active.
@@ -305,13 +305,29 @@ The two PCF8574 banks are written in channel order; because they are separate
 devices, a bus fault can leave the first bank updated and the second unchanged.
 The next block read reports the observed state.
 
-Commands contain point ID, typed value, stable source ID, command class,
-priority, correlation ID, issue timestamp, optional expiry, and reason. The
-provider validates type, units, limits, permissions, service state, safety, and
-command arbitration before success.
+The authenticated digital-output command body is:
 
-Subscriptions are bounded and events use increasing sequences. Overflow
-creates an explicit gap; clients resynchronize by reading current values.
+| Offset       | Size | Field          | Meaning                                      |
+| ------------ | ---- | -------------- | -------------------------------------------- |
+| 0            | 1    | output index   | Zero-based output index, 0-15                |
+| 1            | 1    | value          | Strict Boolean, 0 or 1                       |
+| 2            | 1+N  | source ID      | Non-empty `string8`, maximum 32 bytes        |
+| 3+N          | 1    | command class  | Application-defined command class            |
+| 4+N          | 1    | priority       | Arbitration priority 1-16; 1 is highest      |
+| 5+N          | 1+M  | correlation ID | Non-empty `string8`, maximum 32 bytes        |
+| 6+N+M        | 8    | issued at      | Controller-monotonic milliseconds or zero    |
+| 14+N+M       | 8    | expires at     | Monotonic deadline; `INT64_MIN` means none   |
+
+One `(output, source ID, priority)` command replaces the prior command owned by
+that source. Numerically lowest priority wins independently of arrival order.
+Relinquish uses `output_index:u8, source_id:string8` and removes only that
+source's commands for the output.
+
+The implemented subscription body is an output `u16` mask. Event polling has
+an empty body and returns `changed_mask:u16, values:u16, sequence:u32,
+has_gap:bool`. Four peers are retained. A second change before the pending event
+is collected coalesces the mask and sets `has_gap`; clients then resynchronize
+with point or I/O-block reads.
 
 ## 10. Authentication and replay protection
 
@@ -324,15 +340,25 @@ creates an explicit gap; clients resynchronize by reading current values.
 Version 1 uses HMAC-SHA-256 with a separately provisioned device-bound protocol
 key. Terminal and MQTT passwords must not be reused.
 
-Challenge/prove establishes a bounded session ID, expiry, negotiated
-capabilities, and initial sequences. Each authenticated payload begins:
+The challenge request is a 16-byte client nonce. Its response is
+`session_id:u32, device_nonce:16 bytes`. The proof request is
+`session_id:u32, proof:32 bytes`; its success response repeats the session ID.
+The proof is HMAC-SHA-256 over:
+
+```text
+"FCP1PROF", peer:u16, session_id:u32, client_nonce:16, device_nonce:16
+```
+
+Challenge/prove establishes a bounded session ID and expiry. Each authenticated
+payload begins:
 
 ```text
 session_id:u32, sequence:u64, body:bytes, tag:32 bytes
 ```
 
-The tag covers a protocol domain separator, complete header with final payload
-length, session ID, sequence, and body. Responses are authenticated too.
+Request tags cover `"FCP1REQT", peer:u16, session_id:u32, sequence:u64,
+operation:u8, body`. Response tags use the `"FCP1RESP"` domain and the same
+fields. Responses are authenticated too.
 Sequences strictly increase independently in each direction. Repeated or lower
 sequences are rejected before mutation. Tags use constant-time comparison.
 Challenges and sessions expire; session count and attempts are bounded. Address
@@ -362,8 +388,8 @@ the deployment validator owns semantics.
 
 | Opcode | Name                 | Authentication |
 | ------ | -------------------- | -------------- |
-| `0x40` | list flows           | policy         |
-| `0x41` | get flow metadata    | policy         |
+| `0x40` | list flows           | required       |
+| `0x41` | get flow metadata    | required       |
 | `0x42` | upload begin         | required       |
 | `0x43` | upload status/resume | required       |
 | `0x44` | upload chunk         | required       |
@@ -375,14 +401,17 @@ the deployment validator owns semantics.
 | `0x4a` | activate flow        | required       |
 | `0x4b` | deactivate flow      | required       |
 | `0x4c` | remove flow          | required       |
-| `0x4d` | get flow runtime     | policy         |
+| `0x4d` | get flow runtime     | required       |
 
-Upload begin supplies flow ID, revision, artifact schema, total length,
-SHA-256, and optional expected current revision. The response contains transfer
-ID, accepted chunk limit, storage availability, and resume state.
+Upload begin is `flow_id:string8, revision:u32, artifact_schema:u32,
+total_length:u32, sha256:32 bytes, has_expected_revision:bool,
+expected_revision:u32`. The expected-revision field is always present and is
+ignored when its Boolean is false. The response is `transfer_id:u32,
+chunk_limit:u16`.
 
-Each chunk contains transfer ID, absolute offset, length, bytes, and chunk CRC.
-Ranges stay within the declaration. Exact duplicate chunks are idempotent;
+Each upload chunk contains `transfer_id:u32, absolute_offset:u32, bytes`. The
+frame CRC protects the complete chunk. Ranges stay within the declaration.
+Exact duplicate chunks are idempotent;
 conflicting overlap rejects the transfer. Progress is persisted according to
 advertised resume capability.
 
@@ -392,8 +421,20 @@ Commit atomically publishes a durable inactive generation. Activation is a
 separate operation and atomically selects a validated generation. Power loss
 leaves the previous generation or complete new generation, never partial data.
 
-Download returns exact stored bytes and metadata in bounded chunks. Removal
-cannot silently remove a running flow or referenced state.
+Upload status returns `transfer_id:u32, covered_bytes:u32, total_bytes:u32,
+validated:bool`. Validate, commit, and abort take `transfer_id:u32`. Metadata is
+`flow_id:string8, revision:u32, artifact_schema:u32, total_length:u32,
+sha256:32 bytes, active:bool`. Download-chunk requests are
+`absolute_offset:u32, maximum_bytes:u8`; responses repeat the offset followed
+by exact bytes. Removal cannot remove an active generation.
+
+The initial durable profile stores one committed flow in an atomic NVS blob and
+one volatile staging transfer. Upload status permits retransmission and resume
+within the current boot; a reboot discards staging but recovers either the old
+complete generation or the newly committed complete generation. Artifact
+schema 1 is the supported opaque transfer schema until the evaluator encoding
+is standardized; digest and schema validation occur before commit, while
+activation remains a distinct durable operation.
 
 ## 13. Idempotency
 

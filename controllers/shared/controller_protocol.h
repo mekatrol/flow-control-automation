@@ -4,6 +4,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "controller_auth.h"
+#include "controller_flow.h"
+#include "controller_points.h"
+
 /* Version-one wire limits preserve the 256-byte RS485 transport bound. */
 enum
 {
@@ -27,9 +31,29 @@ typedef enum
     CONTROLLER_PROTOCOL_OPERATION_LIST_POINTS          = 0x10,
     CONTROLLER_PROTOCOL_OPERATION_GET_POINT_DEFINITION = 0x11,
     CONTROLLER_PROTOCOL_OPERATION_GET_POINT_VALUE      = 0x12,
+    CONTROLLER_PROTOCOL_OPERATION_SUBSCRIBE_CHANGES    = 0x13,
+    CONTROLLER_PROTOCOL_OPERATION_POINT_CHANGE_EVENT   = 0x14,
     CONTROLLER_PROTOCOL_OPERATION_GET_IO_BLOCK         = 0x15,
     CONTROLLER_PROTOCOL_OPERATION_COMMAND_POINT        = 0x18,
+    CONTROLLER_PROTOCOL_OPERATION_RELINQUISH_COMMAND   = 0x19,
     CONTROLLER_PROTOCOL_OPERATION_COMMAND_OUTPUT_BLOCK = 0x1a,
+    CONTROLLER_PROTOCOL_OPERATION_AUTH_CHALLENGE       = 0x30,
+    CONTROLLER_PROTOCOL_OPERATION_AUTH_PROVE           = 0x31,
+    CONTROLLER_PROTOCOL_OPERATION_CLOSE_SESSION        = 0x32,
+    CONTROLLER_PROTOCOL_OPERATION_LIST_FLOWS           = 0x40,
+    CONTROLLER_PROTOCOL_OPERATION_GET_FLOW_METADATA    = 0x41,
+    CONTROLLER_PROTOCOL_OPERATION_UPLOAD_BEGIN         = 0x42,
+    CONTROLLER_PROTOCOL_OPERATION_UPLOAD_STATUS        = 0x43,
+    CONTROLLER_PROTOCOL_OPERATION_UPLOAD_CHUNK         = 0x44,
+    CONTROLLER_PROTOCOL_OPERATION_UPLOAD_VALIDATE      = 0x45,
+    CONTROLLER_PROTOCOL_OPERATION_UPLOAD_COMMIT        = 0x46,
+    CONTROLLER_PROTOCOL_OPERATION_UPLOAD_ABORT         = 0x47,
+    CONTROLLER_PROTOCOL_OPERATION_DOWNLOAD_BEGIN       = 0x48,
+    CONTROLLER_PROTOCOL_OPERATION_DOWNLOAD_CHUNK       = 0x49,
+    CONTROLLER_PROTOCOL_OPERATION_ACTIVATE_FLOW        = 0x4a,
+    CONTROLLER_PROTOCOL_OPERATION_DEACTIVATE_FLOW      = 0x4b,
+    CONTROLLER_PROTOCOL_OPERATION_REMOVE_FLOW          = 0x4c,
+    CONTROLLER_PROTOCOL_OPERATION_GET_FLOW_RUNTIME     = 0x4d,
 } controller_protocol_operation_t;
 
 /* Protocol errors are stable wire values and never expose platform error codes. */
@@ -44,7 +68,13 @@ typedef enum
     CONTROLLER_PROTOCOL_ERROR_NOT_READY             = 7,
     CONTROLLER_PROTOCOL_ERROR_UNSUPPORTED           = 8,
     CONTROLLER_PROTOCOL_ERROR_UNAUTHORIZED          = 9,
+    CONTROLLER_PROTOCOL_ERROR_BUSY                  = 12,
     CONTROLLER_PROTOCOL_ERROR_QUEUE_FULL            = 13,
+    CONTROLLER_PROTOCOL_ERROR_STORAGE_UNAVAILABLE   = 14,
+    CONTROLLER_PROTOCOL_ERROR_STORAGE_FULL          = 15,
+    CONTROLLER_PROTOCOL_ERROR_REVISION_CONFLICT     = 16,
+    CONTROLLER_PROTOCOL_ERROR_DIGEST_MISMATCH       = 17,
+    CONTROLLER_PROTOCOL_ERROR_VALIDATION_FAILED     = 18,
     CONTROLLER_PROTOCOL_ERROR_INTERNAL              = 20,
 } controller_protocol_error_t;
 
@@ -160,6 +190,9 @@ typedef struct
     controller_protocol_set_output_t set_output;
     controller_protocol_set_output_block_t set_output_block;
     void *io_context;
+    controller_auth_t *auth;
+    controller_flow_t *flow;
+    controller_points_t *points;
 } controller_protocol_config_t;
 
 typedef struct
@@ -199,6 +232,10 @@ typedef struct
     uint8_t cached_request[CONTROLLER_PROTOCOL_FRAME_CAPACITY];
     size_t cached_response_size;
     uint8_t cached_response[CONTROLLER_PROTOCOL_FRAME_CAPACITY];
+    bool is_authenticated_dispatch;
+    bool is_session_close_pending;
+    uint32_t authenticated_session_id;
+    uint64_t authenticated_now_ms;
 } controller_protocol_t;
 
 /* Calculates the normative CRC-16/Modbus value for a byte range. */

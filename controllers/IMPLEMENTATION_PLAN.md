@@ -364,7 +364,7 @@ The protocol initially runs over the Phase 8 RS485 service, but its message
 codec and dispatcher must not depend on UART or ESP-IDF types so the same
 contract can later use TCP, MQTT, CAN, or another bounded transport.
 
-### Phase 9A — Framing, discovery, and read-only device API (implementation complete; on-target validation pending)
+### Phase 9A — Framing, discovery, and read-only device API (implementation and core on-target validation complete)
 
 #### Deliverables
 
@@ -410,7 +410,24 @@ contract can later use TCP, MQTT, CAN, or another bounded transport.
 - Invalid or foreign traffic cannot block the controller or make unavailable
   point data appear trustworthy.
 
+#### Validation status
+
+- All 12 portable host suites pass, including protocol framing, CRC,
+  dispatcher, duplicate-transaction, point-provider, unavailable-data, and
+  single/block I/O tests.
+- The production ESP32-S3 image builds, flashes, and boots on the selected
+  KinCony KC868-A16v3.
+- Linux Mint communication through the Waveshare USB-to-RS485 adapter verifies
+  post-flash whole-I/O reads, unchanged-state whole-output writes, and
+  unchanged-state single-output writes. The observed `0x00c0` output bitmap was
+  preserved during live testing.
+- Extended physical negative testing for injected bad CRC, wrong-address
+  traffic, bus noise, collisions, and disconnect/reconnect remains part of the
+  broader integration and soak work rather than blocking the implemented API.
+
 ### Phase 9B — Authentication and replay protection
+
+**Status: implementation complete; portable validation complete.**
 
 #### Deliverables
 
@@ -441,7 +458,21 @@ contract can later use TCP, MQTT, CAN, or another bounded transport.
 - Authenticated sessions authorize mutations, and captured traffic cannot be
   replayed to repeat a command or deployment.
 
+#### Validation status
+
+- A separately provisioned, write-only 256-bit protocol credential is stored
+  through authenticated settings and imported into volatile PSA key storage.
+- Four bounded challenge/session slots implement HMAC-SHA-256 proof, independent
+  request/response sequences, constant-time tag comparison, expiry, throttling,
+  close, and invalidation after settings changes.
+- Portable tests cover valid and bad proofs, expiry, saturation, altered tags,
+  replayed sequences, dispatcher challenge/prove, and rejection of an
+  unwrapped protected operation. The Linux client independently implements and
+  verifies the normative transcripts.
+
 ### Phase 9C — Transactional flow transfer
+
+**Status: implementation complete; portable and production-build validation complete.**
 
 #### Deliverables
 
@@ -481,7 +512,23 @@ contract can later use TCP, MQTT, CAN, or another bounded transport.
 - Transport, durable storage, validation, activation, and execution remain
   distinct outcomes.
 
+#### Validation status
+
+- One 8192-byte bounded opaque schema-1 artifact has separate volatile staging,
+  validated, atomically committed, and active states. The durable ESP-IDF store
+  uses one versioned NVS blob so incomplete staging is never recovered.
+- Out-of-order and duplicate chunks, conflicting overlap, incomplete coverage,
+  digest and schema failures, abort, revision preconditions, exact download,
+  activation, removal protection, and reboot recovery are covered by portable
+  tests. The Linux client implements the complete upload/validate/commit and
+  download state machines.
+- Execution remains deliberately distinct: schema 1 is transferred and
+  activated as an opaque compiled artifact; evaluator bytecode is outside this
+  phase and is not inferred from authoring data.
+
 ### Phase 9D — Point commands and subscriptions
+
+**Status: implementation complete; portable and production-build validation complete.**
 
 Read-only I/O groundwork is implemented ahead of this phase: the KC868-A16
 polls and caches 16 active-low digital inputs and 16 active-low relay outputs,
@@ -516,6 +563,40 @@ Routable transports and higher-level point arbitration remain subject to Phase
 
 - Reads, commands, relinquish, and notifications preserve the parent
   repository's typed point, quality, safety, and arbitration contracts.
+
+#### Validation status
+
+- Sixteen digital outputs support bounded source-owned commands with class,
+  priority, correlation, monotonic issue/expiry, replacement, arbitration,
+  expiry, and caller-only relinquish. Lower numeric priority wins independent
+  of arrival order; physical RS485 direct writes remain the documented local
+  exception.
+- Four bounded output-change subscriptions coalesce pending changes and expose
+  increasing sequence and explicit gap state so clients can resynchronize with
+  point or whole-I/O reads.
+- Portable tests cover arbitration, replacement, relinquish, expiry, rejection,
+  subscription saturation/coalescing/gaps, and coherent direct I/O behavior.
+
+### Phase 9 completion validation
+
+- All 15 portable host suites pass with source-policy and formatting checks.
+- The production ESP32-S3 image builds successfully for the KinCony
+  KC868-A16v3 with 34% of the application partition free.
+- The final Phase 9 image was flashed and exercised on 2026-08-07 through the
+  Waveshare adapter. Device information, capabilities, health, point listing,
+  and whole-I/O reads succeeded. Unchanged-state block and single-output writes
+  both preserved the observed `0x00c0` output bitmap.
+- After provisioning the write-only protocol key, authenticated challenge,
+  proof, request signing, and response verification succeeded on the live bus.
+  A 49-byte `phase9-live` fixture completed upload, digest/schema validation,
+  atomic commit, activation, exact download comparison, and reboot recovery.
+  The durable flow provider now initializes NVS independently of the unused
+  Wi-Fi adapter.
+- Six consecutive authenticated metadata/list invocations succeeded after the
+  client began closing each one-shot session, proving that completed commands
+  no longer exhaust the four bounded session slots. The recovered temporary
+  fixture remains active pending explicit authorization to deactivate and
+  remove persistent controller state.
 
 ## Phase 10 — Integrated resilience and soak testing
 

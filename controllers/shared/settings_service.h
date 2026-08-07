@@ -73,6 +73,7 @@ typedef struct
     settings_nullable_string_t terminal_password;
     settings_nullable_string_t mqtt_username;
     settings_nullable_string_t mqtt_password;
+    settings_nullable_string_t protocol_key;
     settings_nullable_string_t hostname;
     settings_mqtt_broker_t mqtt_broker;
     settings_rs485_t rs485;

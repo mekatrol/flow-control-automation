@@ -265,6 +265,27 @@ static void test_rs485_configuration(void)
     assert(fixture.settings_change_count == 2);
 }
 
+/* Verifies protocol credentials are validated, stored, and never echoed by the terminal. */
+static void test_protocol_key_configuration(void)
+{
+    terminal_fixture_t fixture = {0};
+    settings_service_t settings;
+    terminal_service_t service = get_authenticated_fixture(&fixture, &settings);
+    const char key[]           = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+    send_line(&service, TEST_USERNAME, 1);
+    send_line(&service, TEST_PASSWORD, 2);
+    send_line(&service, "2", 3);
+    send_line(&service, "6", 4);
+    assert(service.state == TERMINAL_STATE_EDIT_PROTOCOL_KEY);
+    send_line(&service, "invalid", 5);
+    assert(!settings.snapshot.protocol_key.is_set);
+    send_line(&service, key, 6);
+    assert(settings.snapshot.protocol_key.is_set);
+    assert(strcmp(settings.snapshot.protocol_key.value, key) == 0);
+    assert(strstr(fixture.output, key) == NULL);
+    assert(fixture.settings_change_count == 1);
+}
+
 /* Verifies bad credentials are counted and throttled without exposing the password. */
 static void test_failed_login_is_redacted(void)
 {
@@ -349,6 +370,7 @@ int main(void)
     test_recovery_media_initialization_requires_confirmation();
     test_mqtt_configuration_and_status();
     test_rs485_configuration();
+    test_protocol_key_configuration();
     puts(TEST_SUCCESS_MESSAGE);
     return 0;
 }

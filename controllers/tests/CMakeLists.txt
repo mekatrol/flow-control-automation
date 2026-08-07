@@ -24,10 +24,34 @@ add_test(NAME controller_health_format COMMAND controller_health_format_tests)
 
 add_executable(controller_protocol_tests
     test_controller_protocol.c
-    ../shared/controller_protocol.c)
+    ../shared/controller_protocol.c
+    ../shared/controller_auth.c
+    ../shared/controller_flow.c
+    ../shared/controller_points.c)
 target_include_directories(controller_protocol_tests PRIVATE ../shared)
 target_compile_options(controller_protocol_tests PRIVATE -Wall -Wextra -Werror -pedantic)
 add_test(NAME controller_protocol COMMAND controller_protocol_tests)
+
+add_executable(controller_auth_tests
+    test_controller_auth.c
+    ../shared/controller_auth.c)
+target_include_directories(controller_auth_tests PRIVATE ../shared)
+target_compile_options(controller_auth_tests PRIVATE -Wall -Wextra -Werror -pedantic)
+add_test(NAME controller_auth COMMAND controller_auth_tests)
+
+add_executable(controller_flow_tests
+    test_controller_flow.c
+    ../shared/controller_flow.c)
+target_include_directories(controller_flow_tests PRIVATE ../shared)
+target_compile_options(controller_flow_tests PRIVATE -Wall -Wextra -Werror -pedantic)
+add_test(NAME controller_flow COMMAND controller_flow_tests)
+
+add_executable(controller_points_tests
+    test_controller_points.c
+    ../shared/controller_points.c)
+target_include_directories(controller_points_tests PRIVATE ../shared)
+target_compile_options(controller_points_tests PRIVATE -Wall -Wextra -Werror -pedantic)
+add_test(NAME controller_points COMMAND controller_points_tests)
 
 add_executable(controller_io_tests
     test_controller_io.c

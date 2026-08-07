@@ -10,7 +10,12 @@ static const char PROMPT_LOGIN_PASSWORD[] = "Password: ";
 static const char MAIN_MENU[]             = "\r\n1. System Info\r\n2. Settings\r\n3. Diagnostics\r\n4. Reboot device\r\n> ";
 static const char SETTINGS_MENU[] =
     "\r\n1. Wi-Fi credentials\r\n2. Terminal credentials\r\n3. MQTT configuration\r\n4. Device hostname\r\n"
-    "5. RS485 configuration\r\n6. Reset configuration\r\n0. Back\r\n> ";
+    "5. RS485 configuration\r\n6. Protocol key\r\n7. Reset configuration\r\n0. Back\r\n> ";
+static const char PROTOCOL_KEY_PROMPT[] =
+    "Protocol key is write-only. Enter exactly 64 hexadecimal characters (/cancel to keep current): ";
+static const char PROTOCOL_KEY_INVALID[]  = "Invalid protocol key; exactly 64 hexadecimal characters are required.\r\n";
+static const char PROTOCOL_KEY_COMPLETE[] = "Protocol key updated and active sessions invalidated.\r\n";
+static const char PROTOCOL_KEY_FAILED[]   = "Protocol key update failed; previous key remains active.\r\n";
 static const char RS485_MENU_FORMAT[] =
     "\r\nRS485 configuration\r\n1. Controller address: %u\r\n2. Baud rate: %u bps\r\n3. Back\r\n> ";
 static const char RS485_ADDRESS_PROMPT_FORMAT[] =
@@ -80,7 +85,27 @@ enum
     RS485_MINIMUM_BAUD_RATE = 300,
     RS485_MAXIMUM_BAUD_RATE = 3000000,
     RS485_MAXIMUM_ADDRESS   = 65535,
+    PROTOCOL_KEY_CHARACTERS = 64,
 };
+
+/* Tests whether a write-only protocol key is exactly one 256-bit hexadecimal value. */
+static bool is_protocol_key_valid(const char *value)
+{
+    if (strlen(value) != PROTOCOL_KEY_CHARACTERS)
+    {
+        return false;
+    }
+    for (size_t index = 0; index < PROTOCOL_KEY_CHARACTERS; index++)
+    {
+        const char character = value[index];
+        if (!((character >= '0' && character <= '9') || (character >= 'a' && character <= 'f') ||
+              (character >= 'A' && character <= 'F')))
+        {
+            return false;
+        }
+    }
+    return true;
+}
 
 /* Writes a bounded record and accounts for a slow or disconnected transport. */
 static void write_output(terminal_service_t *service, const char *output)
@@ -231,7 +256,8 @@ static bool is_cancelable_editor(terminal_state_t state)
            state == TERMINAL_STATE_CONFIRM_CREDENTIAL || state == TERMINAL_STATE_EDIT_HOSTNAME ||
            state == TERMINAL_STATE_CONFIRM_HOSTNAME || state == TERMINAL_STATE_EDIT_MQTT_HOST ||
            state == TERMINAL_STATE_EDIT_MQTT_PORT || state == TERMINAL_STATE_EDIT_MQTT_CLIENT_ID ||
-           state == TERMINAL_STATE_EDIT_RS485_ADDRESS || state == TERMINAL_STATE_EDIT_RS485_BAUD_RATE;
+           state == TERMINAL_STATE_EDIT_RS485_ADDRESS || state == TERMINAL_STATE_EDIT_RS485_BAUD_RATE ||
+           state == TERMINAL_STATE_EDIT_PROTOCOL_KEY;
 }
 
 /* Cancels an editor and returns to the owning menu without committing staged data. */
@@ -541,7 +567,7 @@ static void handle_line(terminal_service_t *service, uint64_t now_ms)
         service->state = TERMINAL_STATE_CONFIRM_REBOOT;
         write_output(service, REBOOT_PROMPT);
     }
-    else if (service->state == TERMINAL_STATE_SETTINGS_MENU && strcmp(service->line, "6") == 0)
+    else if (service->state == TERMINAL_STATE_SETTINGS_MENU && strcmp(service->line, "7") == 0)
     {
         service->state = TERMINAL_STATE_CONFIRM_RESET;
         write_output(service, RESET_PROMPT);
@@ -566,6 +592,12 @@ static void handle_line(terminal_service_t *service, uint64_t now_ms)
     else if (service->state == TERMINAL_STATE_SETTINGS_MENU && strcmp(service->line, "5") == 0)
     {
         show_rs485_menu(service);
+    }
+    else if (service->state == TERMINAL_STATE_SETTINGS_MENU && strcmp(service->line, "6") == 0)
+    {
+        service->state             = TERMINAL_STATE_EDIT_PROTOCOL_KEY;
+        service->is_password_input = true;
+        write_output(service, PROTOCOL_KEY_PROMPT);
     }
     else if (service->state == TERMINAL_STATE_SETTINGS_MENU && strcmp(service->line, "0") == 0)
     {
@@ -593,6 +625,27 @@ static void handle_line(terminal_service_t *service, uint64_t now_ms)
     {
         service->state = TERMINAL_STATE_SETTINGS_MENU;
         write_output(service, SETTINGS_MENU);
+    }
+    else if (service->state == TERMINAL_STATE_EDIT_PROTOCOL_KEY)
+    {
+        service->is_password_input = false;
+        if (!is_protocol_key_valid(service->line))
+        {
+            write_output(service, PROTOCOL_KEY_INVALID);
+            service->is_password_input = true;
+            write_output(service, PROTOCOL_KEY_PROMPT);
+        }
+        else
+        {
+            controller_settings_t updated = settings_service_get_snapshot(service->config.settings);
+            updated.protocol_key.is_set   = true;
+            copy_bounded(updated.protocol_key.value, sizeof(updated.protocol_key.value), service->line);
+            const bool is_success = is_settings_update_successful(service, &updated);
+            memset(&updated, 0, sizeof(updated));
+            write_output(service, is_success ? PROTOCOL_KEY_COMPLETE : PROTOCOL_KEY_FAILED);
+            service->state = TERMINAL_STATE_SETTINGS_MENU;
+            write_output(service, SETTINGS_MENU);
+        }
     }
     else if (service->state == TERMINAL_STATE_EDIT_RS485_ADDRESS)
     {
@@ -1016,6 +1069,7 @@ const char *terminal_get_state_name(terminal_state_t state)
                                         "edit_mqtt_client_id",
                                         "rs485_menu",
                                         "edit_rs485_address",
-                                        "edit_rs485_baud_rate"};
+                                        "edit_rs485_baud_rate",
+                                        "edit_protocol_key"};
     return state <= TERMINAL_STATE_EDIT_RS485_BAUD_RATE ? names[state] : "unknown";
 }

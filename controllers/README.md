@@ -104,18 +104,31 @@ FCP_PORT=/dev/serial/by-id/usb-1a86_USB_Single_Serial_586D012048-if00
 
 The Linux client currently supports these operations:
 
-| Command        | Opcode | Purpose                                  |
-| -------------- | ------ | ---------------------------------------- |
-| `echo`         | `0x01` | Return the supplied test payload         |
-| `discover`     | `0x02` | Discover controllers on the RS485 bus    |
-| `capabilities` | `0x03` | Read supported protocol capabilities     |
-| `info`         | `0x04` | Read controller identity and version     |
-| `health`       | `0x05` | Read protocol health counters            |
-| `list-points`  | `0x10` | Enumerate input and output point IDs     |
-| `read-point`   | `0x12` | Read one named input or output           |
-| `read-io`      | `0x15` | Read all 16 inputs and outputs           |
-| `set-output`   | `0x18` | Set one named output                     |
-| `set-outputs`  | `0x1a` | Replace the complete 16-output bitmap    |
+| Command         | Opcode | Purpose                                      |
+| --------------- | ------ | -------------------------------------------- |
+| `echo`          | `0x01` | Return the supplied test payload             |
+| `discover`      | `0x02` | Discover controllers on the RS485 bus        |
+| `capabilities`  | `0x03` | Read supported protocol capabilities         |
+| `info`          | `0x04` | Read controller identity and version         |
+| `health`        | `0x05` | Read protocol health counters                |
+| `list-points`   | `0x10` | Enumerate input and output point IDs         |
+| `read-point`    | `0x12` | Read one named input or output               |
+| `subscribe`     | `0x13` | Subscribe to an output bitmap                |
+| `changes`       | `0x14` | Collect the pending subscription event       |
+| `read-io`       | `0x15` | Read all 16 inputs and outputs               |
+| `set-output`    | `0x18` | Direct or authenticated arbitrated command   |
+| `relinquish`    | `0x19` | Relinquish the caller's arbitrated command   |
+| `set-outputs`   | `0x1a` | Replace the complete 16-output bitmap        |
+| `close-session` | `0x32` | Close a newly authenticated session          |
+| `list-flows`    | `0x40` | List committed flow metadata                 |
+| `flow-metadata` | `0x41` | Read committed flow metadata                 |
+| `upload`        | `0x42` | Upload, validate, and atomically commit a file |
+| `upload-status` | `0x43` | Read volatile upload progress                |
+| `download`      | `0x48` | Download the committed artifact exactly      |
+| `activate`      | `0x4a` | Atomically activate the committed flow       |
+| `deactivate`    | `0x4b` | Atomically deactivate the committed flow     |
+| `remove-flow`   | `0x4c` | Remove an inactive committed flow            |
+| `flow-runtime`  | `0x4d` | Read current committed/active metadata       |
 
 The client generates a fresh random 16-bit transaction ID for every invocation
 so separate commands cannot be mistaken for retransmissions. Use
@@ -159,6 +172,32 @@ means logically active. Write one output or the complete output bitmap:
 The RS485 profile intentionally permits these output commands without protocol
 authentication. Anyone with bus access therefore has control access. Output
 commands are unicast-only; secure the cabinet and physical bus wiring.
+
+Provision a unique 32-byte protocol credential through the authenticated
+terminal's **Settings > Protocol key** option. The value is write-only and is
+entered as 64 hexadecimal characters. Keep it in a protected shell variable;
+it is used by the client to establish a fresh HMAC session for each protected
+invocation:
+
+```sh
+FCP_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+./scripts/fcp-client.py "$FCP_PORT" set-output --address 0 --point output-01 --state on --key "$FCP_KEY" --priority 8
+./scripts/fcp-client.py "$FCP_PORT" relinquish --address 0 --point output-01 --source-id fcp-client --key "$FCP_KEY"
+```
+
+Upload an immutable compiled artifact, activate it separately, and verify an
+exact download. Schema 1 is currently an opaque bounded artifact; activation
+does not yet execute it because evaluator bytecode is deliberately outside
+Phase 9.
+
+```sh
+./scripts/fcp-client.py "$FCP_PORT" upload --address 0 --key "$FCP_KEY" --file flow.fca --flow-id plant-1 --revision 1 --schema 1
+./scripts/fcp-client.py "$FCP_PORT" activate --address 0 --key "$FCP_KEY"
+./scripts/fcp-client.py "$FCP_PORT" download --address 0 --key "$FCP_KEY" --file downloaded.fca
+cmp flow.fca downloaded.fca
+./scripts/fcp-client.py "$FCP_PORT" deactivate --address 0 --key "$FCP_KEY"
+./scripts/fcp-client.py "$FCP_PORT" remove-flow --address 0 --key "$FCP_KEY"
+```
 
 Verify a transaction-correlated echo:
 

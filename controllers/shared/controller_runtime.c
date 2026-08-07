@@ -5,13 +5,18 @@
 #include <string.h>
 
 #include "board.h"
+#include "controller_auth.h"
+#include "controller_flow.h"
 #include "controller_health.h"
 #include "controller_io.h"
+#include "controller_points.h"
 #include "controller_protocol.h"
 #include "diagnostics.h"
 #include "ethernet_link.h"
 #include "network_manager.h"
 #include "platform.h"
+#include "platform_auth.h"
+#include "platform_flow.h"
 #include "platform_io.h"
 #include "platform_mqtt.h"
 #include "platform_rs485.h"
@@ -43,6 +48,9 @@ enum
     MAXIMUM_RS485_EVENTS_PER_TICK   = 8,
     PROTOCOL_DEVICE_ID_CAPACITY     = 40,
     IO_POLL_INTERVAL_MS             = 100,
+    AUTH_CHALLENGE_LIFETIME_MS      = 30000,
+    AUTH_SESSION_LIFETIME_MS        = 900000,
+    AUTH_MAXIMUM_ATTEMPTS           = 3,
 };
 
 /* Runtime diagnostic identifiers define the stable heartbeat event schema. */
@@ -95,6 +103,10 @@ static controller_settings_t controller_settings_snapshot;
 static terminal_service_t controller_terminal_service;
 static rs485_service_t controller_rs485_service;
 static controller_protocol_t controller_protocol;
+static controller_auth_t controller_auth;
+static controller_flow_t controller_flow;
+static controller_points_t controller_points;
+static bool is_flow_ready;
 static controller_io_t controller_io;
 static bool is_io_ready;
 static uint64_t next_io_poll_ms;
@@ -115,16 +127,39 @@ static void initialize_controller_protocol(void)
     platform_startup_info_t startup;
     platform_get_startup_info(&startup);
     platform_get_device_id(protocol_device_id, sizeof(protocol_device_id));
-    const controller_protocol_config_t config = {.address          = controller_settings_snapshot.rs485.address,
-                                                 .device_id        = protocol_device_id,
-                                                 .hardware_model   = get_controller_board_name(),
-                                                 .firmware_version = startup.firmware_version,
-                                                 .point_provider   = controller_io_get_point_provider(&controller_io),
-                                                 .get_io_block     = controller_io_get_protocol_block,
-                                                 .set_output       = controller_io_set_protocol_output,
-                                                 .set_output_block = controller_io_set_protocol_output_block,
-                                                 .io_context       = &controller_io};
+    platform_auth_deinitialize();
+    const bool is_auth_ready = controller_settings_snapshot.protocol_key.is_set &&
+                               platform_auth_initialize(controller_settings_snapshot.protocol_key.value);
+    if (is_auth_ready)
+    {
+        const controller_auth_config_t auth_config = {.get_hmac              = platform_auth_get_hmac,
+                                                      .get_random            = platform_auth_get_random,
+                                                      .challenge_lifetime_ms = AUTH_CHALLENGE_LIFETIME_MS,
+                                                      .session_lifetime_ms   = AUTH_SESSION_LIFETIME_MS,
+                                                      .maximum_attempts      = AUTH_MAXIMUM_ATTEMPTS};
+        (void)controller_auth_init(&controller_auth, &auth_config);
+    }
+    controller_protocol_config_t config = {.address          = controller_settings_snapshot.rs485.address,
+                                           .device_id        = protocol_device_id,
+                                           .hardware_model   = get_controller_board_name(),
+                                           .firmware_version = startup.firmware_version,
+                                           .point_provider   = controller_io_get_point_provider(&controller_io),
+                                           .get_io_block     = controller_io_get_protocol_block,
+                                           .set_output       = controller_io_set_protocol_output,
+                                           .set_output_block = controller_io_set_protocol_output_block,
+                                           .io_context       = &controller_io,
+                                           .auth             = is_auth_ready ? &controller_auth : NULL};
+    config.flow                         = is_flow_ready ? &controller_flow : NULL;
+    config.points                       = is_io_ready ? &controller_points : NULL;
     (void)controller_protocol_init(&controller_protocol, &config, send_protocol_frame, &controller_rs485_service);
+}
+
+/* Recovers one complete durable flow generation after NVS initialization. */
+static void initialize_flow(void)
+{
+    controller_flow_store_t store;
+    is_flow_ready = platform_flow_initialize(&store) && controller_flow_init(&controller_flow, platform_flow_get_digest,
+                                                                             platform_flow_is_artifact_valid, NULL, &store);
 }
 
 /* Initializes field I/O in a safe read-only mode and leaves failed hardware explicitly unavailable. */
@@ -137,6 +172,7 @@ static void initialize_io(void)
     if (is_io_ready)
     {
         controller_io_set_writer(&controller_io, platform_io_write_outputs);
+        (void)controller_points_init(&controller_points, platform_io_write_outputs);
     }
     next_io_poll_ms = platform_get_monotonic_ms();
 }
@@ -154,6 +190,11 @@ static void process_io(uint64_t now_ms)
     bool are_outputs_valid = false;
     platform_io_read(&inputs, &are_inputs_valid, &outputs, &are_outputs_valid);
     controller_io_update(&controller_io, inputs, are_inputs_valid, outputs, are_outputs_valid, (int64_t)now_ms);
+    if (are_outputs_valid)
+    {
+        controller_points_observe(&controller_points, outputs);
+    }
+    controller_points_process(&controller_points, (int64_t)now_ms);
     next_io_poll_ms = now_ms + IO_POLL_INTERVAL_MS;
 }
 
@@ -600,6 +641,7 @@ static void controller_task(void * /* context */)
     initialize_settings();
     initialize_terminal();
     initialize_networking();
+    initialize_flow();
     initialize_mqtt();
     initialize_io();
     initialize_rs485();
