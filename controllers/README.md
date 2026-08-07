@@ -164,7 +164,21 @@ point:
 ```
 
 In the block result, bit 0 is channel 1 and bit 15 is channel 16. A set bit
-means logically active. Write one output or the complete output bitmap:
+means logically active. To test pushbuttons connected to inputs 1 and 8,
+continuously read the I/O bitmap:
+
+```sh
+watch -n 0.25 ./scripts/fcp-client.py "$FCP_PORT" read-io --address 0
+```
+
+With no other inputs active, `inputs=0x0000` means both buttons are released,
+`inputs=0x0001` means input 1 is pressed, `inputs=0x0080` means input 8 is
+pressed, and `inputs=0x0081` means both are pressed. Other active inputs add
+their corresponding bits to these values. Confirm that bit 0 of `validity` is
+set; a fully valid I/O result is reported as `validity=0x03`. Press `Ctrl+C` to
+stop monitoring.
+
+Write one output or the complete output bitmap:
 
 ```sh
 ./scripts/fcp-client.py "$FCP_PORT" set-output --address 0 --point output-01 --state on --key "$FCP_KEY"
