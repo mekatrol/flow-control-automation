@@ -4,9 +4,16 @@ project(controller_host_tests C)
 enable_testing()
 
 # Apply the same source-policy gate to host builds so local validation matches firmware builds.
-add_custom_target(check_source_policy ALL
-    COMMAND "${CMAKE_CURRENT_LIST_DIR}/../scripts/check-source-policy.sh" "${CMAKE_CURRENT_LIST_DIR}/.."
-    COMMENT "Checking controller source policies")
+if(CMAKE_HOST_WIN32)
+    add_custom_target(check_source_policy ALL
+        COMMAND powershell.exe -NoProfile -ExecutionPolicy Bypass -File
+            "${CMAKE_CURRENT_LIST_DIR}/../scripts/check-source-policy.ps1" "${CMAKE_CURRENT_LIST_DIR}/.."
+        COMMENT "Checking controller source policies")
+else()
+    add_custom_target(check_source_policy ALL
+        COMMAND "${CMAKE_CURRENT_LIST_DIR}/../scripts/check-source-policy.sh" "${CMAKE_CURRENT_LIST_DIR}/.."
+        COMMENT "Checking controller source policies")
+endif()
 
 add_executable(diagnostics_core_tests
     test_diagnostics_and_health.c
@@ -47,7 +54,11 @@ target_compile_options(controller_flow_tests PRIVATE -Wall -Wextra -Werror -peda
 add_test(NAME controller_flow COMMAND controller_flow_tests)
 
 add_executable(flow_contract_fixture_tests
-    test_flow_contract_fixtures.c)
+    test_flow_contract_fixtures.c
+    ../shared/flow/executable.c
+    ../shared/flow/runtime.c
+    ../shared/flow/sha256.c)
+target_include_directories(flow_contract_fixture_tests PRIVATE ../shared)
 target_compile_definitions(flow_contract_fixture_tests PRIVATE
     FLOW_CONTRACT_FIXTURE_DIRECTORY="${CMAKE_CURRENT_LIST_DIR}/../../testdata/contracts/flow-executable-v1")
 target_compile_options(flow_contract_fixture_tests PRIVATE -Wall -Wextra -Werror -pedantic)

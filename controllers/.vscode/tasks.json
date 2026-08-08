@@ -6,6 +6,10 @@
       "type": "shell",
       "command": "${workspaceFolder}/scripts/controller-task.sh",
       "args": ["${workspaceFolder}", "set-board", "${input:controllerBoard}"],
+      "windows": {
+        "command": "powershell.exe",
+        "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}\\scripts\\controller-task.ps1", "${workspaceFolder}", "set-board", "${input:controllerBoard}"]
+      },
       "problemMatcher": []
     },
     {
@@ -13,6 +17,10 @@
       "type": "shell",
       "command": "${workspaceFolder}/scripts/controller-task.sh",
       "args": ["${workspaceFolder}", "clean"],
+      "windows": {
+        "command": "powershell.exe",
+        "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}\\scripts\\controller-task.ps1", "${workspaceFolder}", "clean"]
+      },
       "problemMatcher": []
     },
     {
@@ -20,6 +28,10 @@
       "type": "shell",
       "command": "${workspaceFolder}/scripts/controller-task.sh",
       "args": ["${workspaceFolder}", "format"],
+      "windows": {
+        "command": "powershell.exe",
+        "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}\\scripts\\controller-task.ps1", "${workspaceFolder}", "format"]
+      },
       "problemMatcher": []
     },
     {
@@ -27,6 +39,10 @@
       "type": "shell",
       "command": "${workspaceFolder}/scripts/controller-task.sh",
       "args": ["${workspaceFolder}", "build"],
+      "windows": {
+        "command": "powershell.exe",
+        "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}\\scripts\\controller-task.ps1", "${workspaceFolder}", "build"]
+      },
       "group": {"kind": "build", "isDefault": true},
       "problemMatcher": "$gcc"
     },
@@ -34,7 +50,11 @@
       "label": "Flash",
       "type": "shell",
       "command": "${workspaceFolder}/scripts/controller-task.sh",
-      "args": ["${workspaceFolder}", "flash", "${input:serialPort}"],
+      "args": ["${workspaceFolder}", "flash", "${input:controllerSerialPort}"],
+      "windows": {
+        "command": "powershell.exe",
+        "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}\\scripts\\controller-task.ps1", "${workspaceFolder}", "flash", "${input:controllerSerialPort}"]
+      },
       "dependsOn": "Build",
       "problemMatcher": []
     },
@@ -42,7 +62,11 @@
       "label": "Monitor",
       "type": "shell",
       "command": "${workspaceFolder}/scripts/controller-task.sh",
-      "args": ["${workspaceFolder}", "monitor", "${input:serialPort}"],
+      "args": ["${workspaceFolder}", "monitor", "${input:controllerSerialPort}"],
+      "windows": {
+        "command": "powershell.exe",
+        "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}\\scripts\\controller-task.ps1", "${workspaceFolder}", "monitor", "${input:controllerSerialPort}"]
+      },
       "isBackground": true,
       "problemMatcher": []
     },
@@ -74,10 +98,10 @@
       "default": "kincony-kc868-a16"
     },
     {
-      "id": "serialPort",
+      "id": "controllerSerialPort",
       "type": "promptString",
-      "description": "Controller serial port",
-      "default": "/dev/ttyACM0"
+      "description": "Controller serial port (for example COM5 on Windows or /dev/ttyACM0 on Linux)",
+      "default": ""
     }
   ]
 }

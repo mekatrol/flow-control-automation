@@ -18,6 +18,13 @@ include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(flow_controller)
 
 # Enforce repository source policies during every firmware build so violations cannot reach an image.
-add_custom_target(check_source_policy ALL
-    COMMAND "${CMAKE_CURRENT_LIST_DIR}/scripts/check-source-policy.sh" "${CMAKE_CURRENT_LIST_DIR}"
-    COMMENT "Checking controller source policies")
+if(CMAKE_HOST_WIN32)
+    add_custom_target(check_source_policy ALL
+        COMMAND powershell.exe -NoProfile -ExecutionPolicy Bypass -File
+            "${CMAKE_CURRENT_LIST_DIR}/scripts/check-source-policy.ps1" "${CMAKE_CURRENT_LIST_DIR}"
+        COMMENT "Checking controller source policies")
+else()
+    add_custom_target(check_source_policy ALL
+        COMMAND "${CMAKE_CURRENT_LIST_DIR}/scripts/check-source-policy.sh" "${CMAKE_CURRENT_LIST_DIR}"
+        COMMENT "Checking controller source policies")
+endif()

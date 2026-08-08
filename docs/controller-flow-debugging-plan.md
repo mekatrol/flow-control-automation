@@ -224,8 +224,13 @@ Exit criteria:
 
 ### Phase 2: Implement portable decode, validation, and evaluation
 
-Status: next. No decoder, validator, schedule builder, evaluator, or firmware
-debug-session implementation exists yet.
+Status: complete. Portable schema-1 decoding, SHA-256 verification, semantic
+validation, target-point resolution, deterministic schedule construction, and
+the manual tick runtime live under `controllers/shared/flow/`. The runtime uses
+fixed-capacity current/next state and publishes a snapshot only after a whole
+tick succeeds. Shared-fixture host tests cover the valid artifacts, every
+frozen invalid result, two-button truth-table ticks, memory feedback, and
+all-or-nothing input-quality failure.
 
 1. Add flow artifact modules under `controllers/shared/flow/` for bounded
    decoding, semantic validation, schedule construction, and prepared runtime
