@@ -260,8 +260,8 @@ canonical compiler input and deterministic lowering rules are frozen in
 
 1. **Complete:** Introduce a compiler boundary separate from flow persistence
    and runtime transport.
-2. Resolve controller template, point definitions, capabilities, and revisions
-   before compilation.
+2. **Complete:** Resolve controller template, point definitions, capabilities,
+   limits, and revisions before compilation.
 3. Validate the editable graph and lower supported nodes into the canonical
    artifact.
 4. Produce a node-ID correlation map and deterministic artifact digest.

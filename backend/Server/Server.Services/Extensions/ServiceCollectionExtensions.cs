@@ -53,6 +53,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IControllerTemplateValidator, ControllerTemplateValidator>();
         services.AddSingleton<IControllerTemplateStore, ControllerTemplateFileStore>();
         services.AddScoped<IPointDefinitionStore, PointDefinitionDatabaseStore>();
+        services.AddScoped<IFlowCompilationTargetResolver, FlowCompilationTargetResolver>();
         services.AddScoped<IPointReadService, PointReadService>();
         services.AddScoped<IPointSourceService, PointSourceDatabaseService>();
         services.AddScoped<CredentialDatabaseService>();
