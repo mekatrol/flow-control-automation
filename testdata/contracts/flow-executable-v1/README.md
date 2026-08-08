@@ -1,9 +1,12 @@
 # Executable flow contract v1 fixtures
 
-Each fixture directory contains the editable source graph, exact compiled
+Each fixture directory contains the canonical compiler source graph, exact compiled
 `artifact.bin`, a reviewable `artifact.hex` mirror, the decoded structure, and
 the expected stable validation result. Valid execution fixtures additionally
 contain coherent input frames and expected tick snapshots.
+
+The `source-flow.json` files conform to the normative source language in
+[`docs/controller-flow-source-contract-v1.md`](../../../docs/controller-flow-source-contract-v1.md).
 
 `valid-source-order-permutation` deliberately reverses source node and
 connection order and must remain byte-identical to `valid-two-button-and`.

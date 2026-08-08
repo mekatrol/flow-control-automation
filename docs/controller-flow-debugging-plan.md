@@ -252,8 +252,14 @@ Exit criteria:
 
 ### Phase 3: Implement the backend compiler
 
-1. Introduce a compiler boundary separate from flow persistence and runtime
-   transport.
+Status: in progress. The transport- and persistence-independent compiler
+boundary, resolved compilation input, artifact result, node correlation map,
+and structured diagnostic contracts are defined in `Server.Services`. The
+canonical compiler input and deterministic lowering rules are frozen in
+[`controller-flow-source-contract-v1.md`](controller-flow-source-contract-v1.md).
+
+1. **Complete:** Introduce a compiler boundary separate from flow persistence
+   and runtime transport.
 2. Resolve controller template, point definitions, capabilities, and revisions
    before compilation.
 3. Validate the editable graph and lower supported nodes into the canonical
