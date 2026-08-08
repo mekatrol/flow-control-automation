@@ -88,7 +88,7 @@ On Linux, USB access may require the udev rules shipped with ESP-IDF. On
 Windows, install Espressif's USB Serial/JTAG driver through the ESP-IDF tools
 installer.
 
-### Phase 1 smoke test
+### Startup and resilience smoke test
 
 Boot once with both Wi-Fi settings empty, then once with locally configured
 values. In both cases, capture the USB console and check that:
@@ -113,7 +113,7 @@ Repeated subsystem errors added in later phases should use
 `diagnostics_emit_limited`; it bounds identical records per time window and
 reports the number suppressed when the next window begins.
 
-### Phase 3 Wi-Fi smoke test
+### Dormant Wi-Fi smoke test (historical)
 
 This historical smoke test applies when Wi-Fi runtime support is explicitly
 restored. Wi-Fi is dormant in the current Ethernet-only commissioning build.
@@ -131,7 +131,7 @@ association, address acquisition/loss, and driver failures have distinct
 redacted diagnostic event codes; no event contains the configured SSID or
 password.
 
-### Phase 4 Ethernet smoke test
+### Ethernet smoke test
 
 Connect the first W5500 Ethernet port to a DHCP-enabled network, then boot the
 controller. Diagnostics should progress through `driver_started`,
@@ -144,7 +144,7 @@ Ethernet enters bounded backoff and automatically recovers. Also boot once
 without a cable and once with DHCP unavailable; neither case should reset or
 block the controller runtime.
 
-### Phase 5 MQTT smoke test
+### MQTT smoke test
 
 Configure the broker host, port, a unique client ID, optional username and
 password, TLS policy, session policy, link policy, last will, and reconnect
@@ -173,7 +173,7 @@ When a last-will topic is configured, forcibly remove controller power and
 confirm the broker publishes the configured offline payload with the selected
 QoS and retain policy.
 
-### Phase 6A settings-storage smoke test
+### Provision and test persistent settings storage
 
 The raw settings adapter owns exactly 16 consecutive 512-byte sectors beginning
 at `CONTROLLER_SETTINGS_FIRST_RESERVED_SECTOR`. Keep this range outside every
@@ -190,43 +190,46 @@ unrecoverable; it must not be committed, logged, or stored on the SD card.
 
 For a dedicated blank 2 GB card, sectors 2048 through 2063 may be reserved for
 controller settings. Keep that range excluded from every future filesystem or
-application-persistence partition. Set the active configuration to sector 2048:
+application-persistence partition.
+
+Generate and install the device-local encryption key directly into the active
+`sdkconfig` without printing it or placing it in shell history. Run the helper
+from the `controllers` directory:
 
 ```sh
-sed -i \
-  's/^CONFIG_CONTROLLER_SETTINGS_FIRST_RESERVED_SECTOR=.*/CONFIG_CONTROLLER_SETTINGS_FIRST_RESERVED_SECTOR=2048/' \
-  sdkconfig
+bash ./scripts/provision-settings-storage.sh .
 ```
 
-Generate and install the device-local encryption key without printing it or
-placing the key itself in shell history:
+The optional second argument changes the first reserved sector when a different
+16-sector range has been deliberately reserved:
 
-```sh
-settings_key=$(openssl rand -hex 32)
-sed -i \
-  "s|^CONFIG_CONTROLLER_SETTINGS_MASTER_KEY_HEX=.*|CONFIG_CONTROLLER_SETTINGS_MASTER_KEY_HEX=\"$settings_key\"|" \
-  sdkconfig
-unset settings_key
+```bash
+bash ./scripts/provision-settings-storage.sh . 4096
 ```
 
-Verify the active sector and key length without displaying the key:
+On Windows PowerShell, run the native helper from the same `controllers`
+directory:
 
-```sh
-awk -F= '
-  /^CONFIG_CONTROLLER_SETTINGS_FIRST_RESERVED_SECTOR=/ { print "reserved_sector=" $2 }
-  /^CONFIG_CONTROLLER_SETTINGS_MASTER_KEY_HEX=/ {
-    value=$2
-    gsub(/^"|"$/, "", value)
-    print "master_key_hex_length=" length(value)
-  }
-' sdkconfig
+```powershell
+& .\scripts\provision-settings-storage.ps1 .
 ```
 
-The expected values are `reserved_sector=2048` and
-`master_key_hex_length=64`. Check the active `sdkconfig`, not
-`sdkconfig.old`; ESP-IDF retains the latter only as a backup during target or
-configuration regeneration. The board-selection task preserves existing
-`CONFIG_CONTROLLER_*` values when it regenerates `sdkconfig`.
+Pass a different deliberately reserved start sector as the second argument when
+required:
+
+```powershell
+& .\scripts\provision-settings-storage.ps1 . 4096
+```
+
+Both helpers default to sector 2048, update `sdkconfig` directly, and report
+only `reserved_sector=2048` and `master_key_hex_length=64`. They require an
+existing `sdkconfig`, so run the **Set board** task first. Check the active
+`sdkconfig`, not `sdkconfig.old`; ESP-IDF retains the latter only as a backup
+during target or configuration regeneration. The board-selection task
+preserves existing `CONFIG_CONTROLLER_*` values when it regenerates
+`sdkconfig`. Back up the generated key from the ignored local `sdkconfig` into
+a secret manager if settings must remain recoverable across development-machine
+loss. Never print or commit the key.
 
 Build and flash the provisioned configuration before monitoring:
 
@@ -268,7 +271,7 @@ changing a complete credential pair; recovery must expose the old pair or the ne
 pair, never one value from each. Capture the reserved sectors and all console
 output to confirm plaintext credentials are absent.
 
-### Phase 6 authenticated-terminal smoke test
+### Authenticated terminal smoke test
 
 Boot with uninitialized terminal credentials. USB application output must show
 the first-run username prompt rather than the diagnostic stream. Complete the

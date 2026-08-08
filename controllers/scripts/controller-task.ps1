@@ -134,6 +134,29 @@ function Get-WindowsSerialPort {
     throw "Multiple serial ports were detected ($($ports -join ', ')). Run the task again and enter the controller COM port."
 }
 
+# Removes only the selected board's generated build directory after validating its exact absolute path.
+function Remove-ControllerBuildDirectory {
+    $controllersPath = [IO.Path]::GetFullPath($ControllersDirectory).TrimEnd('\', '/')
+    $expectedPath = Join-Path $controllersPath $configuration.BuildDirectory
+    $buildPath = [IO.Path]::GetFullPath($expectedPath).TrimEnd('\', '/')
+    if (-not $buildPath.Equals($expectedPath.TrimEnd('\', '/'), [StringComparison]::OrdinalIgnoreCase) -or
+        -not ([IO.Path]::GetDirectoryName($buildPath)).Equals($controllersPath, [StringComparison]::OrdinalIgnoreCase) -or
+        ([IO.Path]::GetFileName($buildPath)) -ne $configuration.BuildDirectory) {
+        throw "Refusing to clean unexpected build path: $buildPath"
+    }
+    if (-not (Test-Path -LiteralPath $buildPath)) {
+        Write-Host "Build directory '$buildPath' does not exist. Nothing to clean."
+        return
+    }
+    try {
+        Remove-Item -LiteralPath $buildPath -Recurse -Force
+    }
+    catch [IO.IOException] {
+        throw "The build directory is in use. Stop any active Build, Flash, or Monitor task, close its VS Code terminal, and run Clean again. Locked path: $($_.Exception.Message)"
+    }
+    Write-Host "Removed generated build directory '$buildPath'."
+}
+
 $configuration = Get-BoardConfiguration -Board $board
 Push-Location $ControllersDirectory
 try {
@@ -171,7 +194,7 @@ try {
                 }
             }
         }
-        'clean' { Invoke-Idf -Arguments @('fullclean') }
+        'clean' { Remove-ControllerBuildDirectory }
         'build' { Invoke-Idf -Arguments @('build') }
         'flash' { Invoke-Idf -Arguments @('-p', (Get-WindowsSerialPort -RequestedPort $Argument), 'flash') }
         'monitor' { Invoke-Idf -Arguments @('-p', (Get-WindowsSerialPort -RequestedPort $Argument), 'monitor') }
