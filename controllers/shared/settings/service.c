@@ -5,14 +5,10 @@
 /* Persistent format constants define the versioned controller-owned record contract. */
 enum
 {
-    SETTINGS_FORMAT_VERSION       = 1,
-    SETTINGS_SCHEMA_ONE_VERSION   = 1,
-    SETTINGS_SCHEMA_TWO_VERSION   = 2,
-    SETTINGS_SCHEMA_THREE_VERSION = 3,
-    SETTINGS_SCHEMA_FOUR_VERSION  = 4,
-    SETTINGS_SCHEMA_VERSION       = 5,
-    BOOTSTRAP_STATE_INITIALIZING  = 1,
-    BOOTSTRAP_STATE_READY         = 2,
+    SETTINGS_FORMAT_VERSION      = 1,
+    SETTINGS_SCHEMA_VERSION      = 1,
+    BOOTSTRAP_STATE_INITIALIZING = 1,
+    BOOTSTRAP_STATE_READY        = 2,
 };
 
 static const uint8_t BOOTSTRAP_MAGIC[8] = {'F', 'C', 'S', 'E', 'T', '0', '1', '\0'};
@@ -36,96 +32,6 @@ typedef struct
     controller_settings_t settings;
     uint32_t integrity;
 } settings_value_record_t;
-
-/* Schema one is retained only to migrate credential records written before hostname persistence. */
-typedef struct
-{
-    settings_nullable_string_t wifi_ssid;
-    settings_nullable_string_t wifi_password;
-    settings_nullable_string_t terminal_username;
-    settings_nullable_string_t terminal_password;
-    settings_nullable_string_t mqtt_username;
-    settings_nullable_string_t mqtt_password;
-    bool is_user_reset;
-} settings_schema_one_t;
-
-typedef struct
-{
-    uint8_t magic[8];
-    uint32_t schema_version;
-    uint32_t generation;
-    settings_schema_one_t settings;
-    uint32_t integrity;
-} settings_schema_one_record_t;
-
-/* Schema two is retained to migrate records written before broker settings became persistent. */
-typedef struct
-{
-    settings_nullable_string_t wifi_ssid;
-    settings_nullable_string_t wifi_password;
-    settings_nullable_string_t terminal_username;
-    settings_nullable_string_t terminal_password;
-    settings_nullable_string_t mqtt_username;
-    settings_nullable_string_t mqtt_password;
-    settings_nullable_string_t hostname;
-    bool is_user_reset;
-} settings_schema_two_t;
-
-typedef struct
-{
-    uint8_t magic[8];
-    uint32_t schema_version;
-    uint32_t generation;
-    settings_schema_two_t settings;
-    uint32_t integrity;
-} settings_schema_two_record_t;
-
-/* Schema three is retained to migrate records written before RS485 settings became persistent. */
-typedef struct
-{
-    settings_nullable_string_t wifi_ssid;
-    settings_nullable_string_t wifi_password;
-    settings_nullable_string_t terminal_username;
-    settings_nullable_string_t terminal_password;
-    settings_nullable_string_t mqtt_username;
-    settings_nullable_string_t mqtt_password;
-    settings_nullable_string_t hostname;
-    settings_mqtt_broker_t mqtt_broker;
-    bool is_user_reset;
-} settings_schema_three_t;
-
-typedef struct
-{
-    uint8_t magic[8];
-    uint32_t schema_version;
-    uint32_t generation;
-    settings_schema_three_t settings;
-    uint32_t integrity;
-} settings_schema_three_record_t;
-
-/* Schema four is retained to migrate records written before protocol-key provisioning. */
-typedef struct
-{
-    settings_nullable_string_t wifi_ssid;
-    settings_nullable_string_t wifi_password;
-    settings_nullable_string_t terminal_username;
-    settings_nullable_string_t terminal_password;
-    settings_nullable_string_t mqtt_username;
-    settings_nullable_string_t mqtt_password;
-    settings_nullable_string_t hostname;
-    settings_mqtt_broker_t mqtt_broker;
-    settings_rs485_t rs485;
-    bool is_user_reset;
-} settings_schema_four_t;
-
-typedef struct
-{
-    uint8_t magic[8];
-    uint32_t schema_version;
-    uint32_t generation;
-    settings_schema_four_t settings;
-    uint32_t integrity;
-} settings_schema_four_record_t;
 
 /* Calculates the portable integrity check used to detect torn or corrupt records. */
 static uint32_t get_integrity(const void *data, size_t size)
@@ -192,131 +98,6 @@ static settings_storage_state_t get_read_failure_state(settings_store_result_t r
     return SETTINGS_STORAGE_CORRUPT;
 }
 
-/* Migrates a valid schema-one record by preserving credentials and applying the configured default hostname. */
-static settings_storage_state_t migrate_schema_one(settings_service_t *service, const settings_bootstrap_record_t *bootstrap)
-{
-    settings_schema_one_record_t legacy = {0};
-    size_t legacy_size                  = 0;
-    const settings_store_result_t result =
-        service->store.get_settings(service->store.context, &legacy, sizeof(legacy), &legacy_size);
-    if (result != SETTINGS_STORE_OK || legacy_size != sizeof(legacy) ||
-        memcmp(legacy.magic, SETTINGS_MAGIC, sizeof(legacy.magic)) != 0 || legacy.schema_version != SETTINGS_SCHEMA_ONE_VERSION ||
-        legacy.generation != bootstrap->generation ||
-        !is_integrity_valid(&legacy, offsetof(settings_schema_one_record_t, integrity), legacy.integrity))
-    {
-        return get_read_failure_state(result);
-    }
-    service->snapshot       = (controller_settings_t){.wifi_ssid         = legacy.settings.wifi_ssid,
-                                                      .wifi_password     = legacy.settings.wifi_password,
-                                                      .terminal_username = legacy.settings.terminal_username,
-                                                      .terminal_password = legacy.settings.terminal_password,
-                                                      .mqtt_username     = legacy.settings.mqtt_username,
-                                                      .mqtt_password     = legacy.settings.mqtt_password,
-                                                      .hostname          = service->defaults.hostname,
-                                                      .is_user_reset     = legacy.settings.is_user_reset};
-    service->generation     = legacy.generation;
-    service->schema_version = legacy.schema_version;
-    service->state          = SETTINGS_STORAGE_READY;
-    return settings_service_commit(service, &service->snapshot) == SETTINGS_STORE_OK ? SETTINGS_STORAGE_READY
-                                                                                     : SETTINGS_STORAGE_UNAVAILABLE;
-}
-
-/* Migrates schema two by preserving settings and adding a disabled blank broker configuration. */
-static settings_storage_state_t migrate_schema_two(settings_service_t *service, const settings_bootstrap_record_t *bootstrap)
-{
-    settings_schema_two_record_t legacy = {0};
-    size_t legacy_size                  = 0;
-    const settings_store_result_t result =
-        service->store.get_settings(service->store.context, &legacy, sizeof(legacy), &legacy_size);
-    if (result != SETTINGS_STORE_OK || legacy_size != sizeof(legacy) ||
-        memcmp(legacy.magic, SETTINGS_MAGIC, sizeof(legacy.magic)) != 0 || legacy.schema_version != SETTINGS_SCHEMA_TWO_VERSION ||
-        legacy.generation != bootstrap->generation ||
-        !is_integrity_valid(&legacy, offsetof(settings_schema_two_record_t, integrity), legacy.integrity))
-    {
-        return get_read_failure_state(result);
-    }
-    service->snapshot = (controller_settings_t){.wifi_ssid         = legacy.settings.wifi_ssid,
-                                                .wifi_password     = legacy.settings.wifi_password,
-                                                .terminal_username = legacy.settings.terminal_username,
-                                                .terminal_password = legacy.settings.terminal_password,
-                                                .mqtt_username     = legacy.settings.mqtt_username,
-                                                .mqtt_password     = legacy.settings.mqtt_password,
-                                                .hostname          = legacy.settings.hostname,
-                                                .is_user_reset     = legacy.settings.is_user_reset};
-    if (!service->snapshot.hostname.is_set)
-    {
-        /* Older records without a hostname adopt the board default before the migrated generation is committed. */
-        service->snapshot.hostname = service->defaults.hostname;
-    }
-    service->generation     = legacy.generation;
-    service->schema_version = legacy.schema_version;
-    service->state          = SETTINGS_STORAGE_READY;
-    return settings_service_commit(service, &service->snapshot) == SETTINGS_STORE_OK ? SETTINGS_STORAGE_READY
-                                                                                     : SETTINGS_STORAGE_UNAVAILABLE;
-}
-
-/* Migrates schema three by preserving all fields and applying board RS485 defaults. */
-static settings_storage_state_t migrate_schema_three(settings_service_t *service, const settings_bootstrap_record_t *bootstrap)
-{
-    settings_schema_three_record_t legacy = {0};
-    size_t legacy_size                    = 0;
-    const settings_store_result_t result =
-        service->store.get_settings(service->store.context, &legacy, sizeof(legacy), &legacy_size);
-    if (result != SETTINGS_STORE_OK || legacy_size != sizeof(legacy) ||
-        memcmp(legacy.magic, SETTINGS_MAGIC, sizeof(legacy.magic)) != 0 ||
-        legacy.schema_version != SETTINGS_SCHEMA_THREE_VERSION || legacy.generation != bootstrap->generation ||
-        !is_integrity_valid(&legacy, offsetof(settings_schema_three_record_t, integrity), legacy.integrity))
-    {
-        return get_read_failure_state(result);
-    }
-    service->snapshot       = (controller_settings_t){.wifi_ssid         = legacy.settings.wifi_ssid,
-                                                      .wifi_password     = legacy.settings.wifi_password,
-                                                      .terminal_username = legacy.settings.terminal_username,
-                                                      .terminal_password = legacy.settings.terminal_password,
-                                                      .mqtt_username     = legacy.settings.mqtt_username,
-                                                      .mqtt_password     = legacy.settings.mqtt_password,
-                                                      .hostname          = legacy.settings.hostname,
-                                                      .mqtt_broker       = legacy.settings.mqtt_broker,
-                                                      .rs485             = service->defaults.rs485,
-                                                      .is_user_reset     = legacy.settings.is_user_reset};
-    service->generation     = legacy.generation;
-    service->schema_version = legacy.schema_version;
-    service->state          = SETTINGS_STORAGE_READY;
-    return settings_service_commit(service, &service->snapshot) == SETTINGS_STORE_OK ? SETTINGS_STORAGE_READY
-                                                                                     : SETTINGS_STORAGE_UNAVAILABLE;
-}
-
-/* Migrates schema four by preserving all settings and leaving the new protocol key unprovisioned. */
-static settings_storage_state_t migrate_schema_four(settings_service_t *service, const settings_bootstrap_record_t *bootstrap)
-{
-    settings_schema_four_record_t legacy = {0};
-    size_t legacy_size                   = 0;
-    const settings_store_result_t result =
-        service->store.get_settings(service->store.context, &legacy, sizeof(legacy), &legacy_size);
-    if (result != SETTINGS_STORE_OK || legacy_size != sizeof(legacy) ||
-        memcmp(legacy.magic, SETTINGS_MAGIC, sizeof(legacy.magic)) != 0 ||
-        legacy.schema_version != SETTINGS_SCHEMA_FOUR_VERSION || legacy.generation != bootstrap->generation ||
-        !is_integrity_valid(&legacy, offsetof(settings_schema_four_record_t, integrity), legacy.integrity))
-    {
-        return get_read_failure_state(result);
-    }
-    service->snapshot       = (controller_settings_t){.wifi_ssid         = legacy.settings.wifi_ssid,
-                                                      .wifi_password     = legacy.settings.wifi_password,
-                                                      .terminal_username = legacy.settings.terminal_username,
-                                                      .terminal_password = legacy.settings.terminal_password,
-                                                      .mqtt_username     = legacy.settings.mqtt_username,
-                                                      .mqtt_password     = legacy.settings.mqtt_password,
-                                                      .hostname          = legacy.settings.hostname,
-                                                      .mqtt_broker       = legacy.settings.mqtt_broker,
-                                                      .rs485             = legacy.settings.rs485,
-                                                      .is_user_reset     = legacy.settings.is_user_reset};
-    service->generation     = legacy.generation;
-    service->schema_version = legacy.schema_version;
-    service->state          = SETTINGS_STORAGE_READY;
-    return settings_service_commit(service, &service->snapshot) == SETTINGS_STORE_OK ? SETTINGS_STORAGE_READY
-                                                                                     : SETTINGS_STORAGE_UNAVAILABLE;
-}
-
 /* Writes and verifies initialization records, publishing ready metadata last. */
 static settings_storage_state_t initialize_storage(settings_service_t *service, const settings_defaults_t *defaults)
 {
@@ -380,7 +161,7 @@ settings_storage_state_t settings_service_initialize(settings_service_t *service
         service->state = SETTINGS_STORAGE_CORRUPT;
         return service->state;
     }
-    if (bootstrap.format_version != SETTINGS_FORMAT_VERSION || bootstrap.schema_version > SETTINGS_SCHEMA_VERSION)
+    if (bootstrap.format_version != SETTINGS_FORMAT_VERSION || bootstrap.schema_version != SETTINGS_SCHEMA_VERSION)
     {
         service->state = SETTINGS_STORAGE_INCOMPATIBLE;
         return service->state;
@@ -396,27 +177,6 @@ settings_storage_state_t settings_service_initialize(settings_service_t *service
         service->state = SETTINGS_STORAGE_CORRUPT;
         return service->state;
     }
-    if (bootstrap.schema_version == SETTINGS_SCHEMA_ONE_VERSION)
-    {
-        service->state = migrate_schema_one(service, &bootstrap);
-        return service->state;
-    }
-    if (bootstrap.schema_version == SETTINGS_SCHEMA_TWO_VERSION)
-    {
-        service->state = migrate_schema_two(service, &bootstrap);
-        return service->state;
-    }
-    if (bootstrap.schema_version == SETTINGS_SCHEMA_THREE_VERSION)
-    {
-        service->state = migrate_schema_three(service, &bootstrap);
-        return service->state;
-    }
-    if (bootstrap.schema_version == SETTINGS_SCHEMA_FOUR_VERSION)
-    {
-        service->state = migrate_schema_four(service, &bootstrap);
-        return service->state;
-    }
-
     settings_value_record_t values              = {0};
     size_t values_size                          = 0;
     const settings_store_result_t values_result = store->get_settings(store->context, &values, sizeof(values), &values_size);
@@ -436,15 +196,6 @@ settings_storage_state_t settings_service_initialize(settings_service_t *service
     service->generation     = values.generation;
     service->schema_version = values.schema_version;
     service->state          = SETTINGS_STORAGE_READY;
-    if (!service->snapshot.hostname.is_set && service->defaults.hostname.is_set)
-    {
-        /* Repair schema-current records created before the hostname default became mandatory. */
-        service->snapshot.hostname = service->defaults.hostname;
-        if (settings_service_commit(service, &service->snapshot) != SETTINGS_STORE_OK)
-        {
-            service->state = SETTINGS_STORAGE_UNAVAILABLE;
-        }
-    }
     return service->state;
 }
 

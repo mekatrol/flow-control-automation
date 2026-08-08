@@ -247,7 +247,7 @@ exact confirmation `ERASE SETTINGS`. The controller clears and verifies only
 the 16 reserved settings sectors, cleanly releases the SD SPI device, and
 reboots; it does not erase the remainder of the card. The terminal should then present first-run setup when its
 credentials are `null`. After authenticating, enter Diagnostics mode to observe
-`settings/state state=ready schema=2 generation=1` and heartbeat records. Reboot
+`settings/state state=ready schema=1 generation=1` and heartbeat records. Reboot
 or reflash and verify the persisted values remain unchanged. Remove the card and boot again; the terminal reports settings storage
 as unavailable while networking and heartbeats continue internally. Also test a
 card whose reserved range contains unrelated data and a card encrypted for
