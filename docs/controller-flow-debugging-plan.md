@@ -257,14 +257,17 @@ boundary, resolved compilation input, artifact result, node correlation map,
 and structured diagnostic contracts are defined in `Server.Services`. The
 canonical compiler input and deterministic lowering rules are frozen in
 [`controller-flow-source-contract-v1.md`](controller-flow-source-contract-v1.md).
+The schema-1 compiler now validates and canonically encodes the supported graph
+and reproduces the shared valid artifacts byte for byte.
 
 1. **Complete:** Introduce a compiler boundary separate from flow persistence
    and runtime transport.
 2. **Complete:** Resolve controller template, point definitions, capabilities,
    limits, and revisions before compilation.
-3. Validate the editable graph and lower supported nodes into the canonical
-   artifact.
-4. Produce a node-ID correlation map and deterministic artifact digest.
+3. **Complete:** Validate the canonical source graph and lower supported nodes
+   into the executable schema-1 artifact.
+4. **Complete:** Produce a node-ID correlation map and deterministic artifact
+   digest.
 5. Run compiler output through golden fixture tests and, in integration tests,
    through the portable controller decoder.
 6. Return structured compile errors with stable graph paths suitable for node
