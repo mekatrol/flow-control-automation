@@ -1,0 +1,18 @@
+diagnostics_core 1 0.0557081
+controller_health_format 1 0.039211
+controller_protocol 1 0.0359515
+controller_auth 1 0.0352358
+controller_flow 1 0.039427
+flow_contract_fixtures 1 0.0995629
+flow_debug 1 0.0371048
+controller_points 1 0.0457522
+controller_io 1 0.0362282
+network_manager 1 0.0369156
+wifi_link_core 1 0.036552
+ethernet_link_core 1 0.0356213
+mqtt_service 1 0.0350783
+mqtt_api 1 0.0368115
+rs485_service 1 0.0380689
+settings_service 1 0.0334055
+terminal_service 1 0.0349552
+---

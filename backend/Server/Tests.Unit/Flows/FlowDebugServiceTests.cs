@@ -155,6 +155,15 @@ public sealed class FlowDebugServiceTests
             return Task.CompletedTask;
         }
 
+        public Task<ControllerDebugWireStatus> RunAsync(ulong sessionId, uint intervalMilliseconds, CancellationToken cancellationToken) =>
+            Task.FromResult(Status(state: 7, tick: 1));
+
+        public Task<ControllerDebugWireStatus> PauseAsync(ulong sessionId, CancellationToken cancellationToken) =>
+            Task.FromResult(Status(state: 4, tick: 1));
+
+        public Task<ControllerDebugSnapshotEnvelope> ReadSnapshotAsync(ulong sessionId, ulong tickNumber, CancellationToken cancellationToken) =>
+            Task.FromResult(new ControllerDebugSnapshotEnvelope(42, tickNumber, snapshot, new byte[32]));
+
         public Task StopAsync(ulong sessionId, CancellationToken cancellationToken)
         {
             Calls.Add("stop");

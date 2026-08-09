@@ -27,8 +27,9 @@ static flow_input_sample_t INPUTS[]              = {{.point_id = "input-01", .qu
                                                     {.point_id = "input-08", .quality = FLOW_QUALITY_GOOD}};
 
 /* Supplies one coherent input image without exposing physical output adapters. */
-static bool get_input(void * /* context */, flow_input_frame_t *frame)
+static bool get_input(void *context, flow_input_frame_t *frame)
 {
+    assert(context == NULL);
     *frame = (flow_input_frame_t){
         .samples = INPUTS, .sample_count = sizeof(INPUTS) / sizeof(INPUTS[0]), .sampled_at_ms = 1000, .is_coherent = true};
     return true;
@@ -87,6 +88,28 @@ static void test_complete_lifecycle(void)
     flow_sha256(assembled, assembled_size, assembled_digest);
     assert(assembled_size == header.total_length);
     assert(memcmp(assembled_digest, header.digest, sizeof(header.digest)) == 0);
+    assert(flow_debug_run(&debug, TEST_OWNER, session_id, 20, 20) == FLOW_DEBUG_OK);
+    flow_debug_process(&debug, 20);
+    assert(debug.state == FLOW_DEBUG_RUNNING && debug.runtime.tick_number == 2);
+    flow_debug_process(&debug, 40);
+    assert(debug.runtime.tick_number == 3);
+    assert(flow_debug_pause(&debug, TEST_OWNER, session_id, 41) == FLOW_DEBUG_OK);
+    INPUTS[0].value = false;
+    flow_debug_process(&debug, 100);
+    assert(debug.runtime.tick_number == 3);
+    assert(flow_debug_step(&debug, TEST_OWNER, session_id, 101) == FLOW_DEBUG_OK);
+    assert(debug.runtime.tick_number == 4);
+    /* Repeated delayed supervisor calls skip deadlines without overlapping or starving status work. */
+    assert(flow_debug_run(&debug, TEST_OWNER, session_id, 10, 110) == FLOW_DEBUG_OK);
+    for (uint64_t now_ms = 110; now_ms < 10110; now_ms += 25)
+    {
+        flow_debug_process(&debug, now_ms);
+        flow_debug_status_t status;
+        assert(flow_debug_get_status(&debug, TEST_OWNER, session_id, now_ms, &status) == FLOW_DEBUG_OK);
+    }
+    assert(debug.runtime.tick_number == 404);
+    assert(debug.missed_deadline_count > 0 && debug.overrun_count > 0);
+    assert(flow_debug_pause(&debug, TEST_OWNER, session_id, 10110) == FLOW_DEBUG_OK);
     assert(flow_debug_stop(&debug, TEST_OWNER, session_id) == FLOW_DEBUG_OK);
     assert(debug.state == FLOW_DEBUG_EMPTY && debug.artifact_length == 0);
 }

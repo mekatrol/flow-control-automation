@@ -38,6 +38,9 @@ void platform_get_device_id(char *output, size_t capacity);
 /* Gets elapsed platform time from a monotonic clock in milliseconds. */
 uint64_t platform_get_monotonic_ms(void);
 
+/* Gets monotonic microseconds for bounded execution-duration measurements. */
+uint64_t platform_get_monotonic_us(void);
+
 /* Gets currently available general-purpose heap memory in bytes. */
 uint64_t platform_get_free_heap_bytes(void);
 

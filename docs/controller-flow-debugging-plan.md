@@ -383,16 +383,26 @@ Exit criteria:
 
 ### Phase 7: Add continuous shadow execution
 
-1. Add fixed-interval run and pause operations using the evaluator's monotonic
+Status: complete. The controller now owns fixed-interval monotonic scheduling,
+skips missed deadlines without overlapping ticks, freezes evaluator memory on
+pause, and samples fresh coherent inputs when execution resumes. Authenticated
+run/pause operations extend FCP through `0x5a`; latest-only immutable snapshot
+publication decouples evaluation from RS485 transfer. The backend exposes
+run/pause commands and change-driven inspection, while the designer rate-limits
+polling and displays duration, high-water, missed-deadline, overrun, input
+quality, and evaluation-failure diagnostics. Portable lifecycle stress coverage
+exercises delayed supervisor work alongside status/lease traffic.
+
+1. **Complete:** Add fixed-interval run and pause operations using the evaluator's monotonic
    schedule and no-overlap policy.
-2. Publish change-driven or rate-limited snapshots so RS485 and the UI cannot
+2. **Complete:** Publish change-driven or rate-limited snapshots so RS485 and the UI cannot
    be flooded by every tick.
-3. Add execution duration, high-water mark, missed-deadline, overrun, input
+3. **Complete:** Add execution duration, high-water mark, missed-deadline, overrun, input
    quality, and evaluation-failure displays.
-4. Define whether pause freezes memory state while inputs continue changing;
+4. **Complete:** Define whether pause freezes memory state while inputs continue changing;
    the recommended behaviour is that pause freezes evaluator state and the
    next step samples fresh inputs.
-5. Stress test debugging while other controller services are busy.
+5. **Complete:** Stress test debugging while other controller services are busy.
 
 Exit criteria:
 

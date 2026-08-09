@@ -435,11 +435,17 @@ durable operation.
 
 ### 12.1 Volatile debug operations
 
-Opcodes `0x50` through `0x58` reserve the authenticated volatile debug-session
+Opcodes `0x50` through `0x5a` reserve the authenticated volatile debug-session
 profile. Their lifecycle, lease, chunk, snapshot, and shadow-safety contracts
 are specified in
 [`../docs/controller-debug-contract-v1.md`](../docs/controller-debug-contract-v1.md).
 They never mutate durable upload or committed-generation state.
+
+`0x59` starts fixed-interval shadow execution with a `session_id:u64` and
+`interval_ms:u32` payload. Intervals are bounded to 10 through 60000 ms. `0x5a`
+pauses the running session with a `session_id:u64` payload. Both return the
+normal debug status payload. Scheduling uses monotonic deadlines, skips rather
+than overlaps late ticks, and preserves memory while paused.
 
 ## 13. Idempotency
 

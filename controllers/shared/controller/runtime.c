@@ -184,6 +184,12 @@ static bool get_debug_input(void * /* context */, flow_input_frame_t *frame)
     return true;
 }
 
+/* Gets platform monotonic microseconds through the portable debug timing adapter. */
+static uint64_t get_debug_time_us(void * /* context */)
+{
+    return platform_get_monotonic_us();
+}
+
 /* Builds the fixed KC868 digital target table used only for volatile shadow evaluation. */
 static bool initialize_debug(void)
 {
@@ -216,7 +222,12 @@ static bool initialize_debug(void)
                                    .point_count            = CONTROLLER_IO_POINT_COUNT,
                                    .supported_capabilities = UINT32_C(0x1f),
                                    .maximum_snapshot_bytes = FLOW_DEBUG_SNAPSHOT_CAPACITY};
-    return flow_debug_init(&controller_debug, &debug_target, get_debug_input, NULL);
+    const bool is_initialized = flow_debug_init(&controller_debug, &debug_target, get_debug_input, NULL);
+    if (is_initialized)
+    {
+        flow_debug_set_time_source(&controller_debug, get_debug_time_us, NULL);
+    }
+    return is_initialized;
 }
 
 /* Initializes field I/O in a safe read-only mode and leaves failed hardware explicitly unavailable. */
@@ -714,6 +725,11 @@ static void controller_task(void * /* context */)
         process_mqtt(now_ms);
         /* Field samples are cached before protocol dispatch for coherent non-blocking reads. */
         process_io(now_ms);
+        if (is_debug_ready)
+        {
+            /* Continuous shadow evaluation shares the monotonic supervisor loop and never blocks on protocol transfer. */
+            flow_debug_process(&controller_debug, now_ms);
+        }
         /* RS485 has its own bounded transport path and cannot delay network or MQTT processing. */
         process_rs485(now_ms);
         uint8_t terminal_input[TERMINAL_READ_CAPACITY];

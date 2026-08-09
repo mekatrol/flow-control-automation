@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"D:/repos/flow-control-automation/build/controller-host-tests-clangcl/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

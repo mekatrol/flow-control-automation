@@ -11,6 +11,8 @@ public sealed record DebugRuntimeSnapshot
     public required ulong SampledAtMs { get; init; }
     public required ulong CompletedAtMs { get; init; }
     public required uint ExecutionDurationUs { get; init; }
+    public uint ExecutionHighWaterUs { get; init; }
+    public uint MissedDeadlineCount { get; init; }
     public IReadOnlyList<string> InputValidity { get; init; } = [];
     public IReadOnlyList<DebugNodeSnapshot> Nodes { get; init; } = [];
     public IReadOnlyList<DebugProposedOutput> ProposedOutputs { get; init; } = [];

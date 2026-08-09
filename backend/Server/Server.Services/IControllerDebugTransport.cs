@@ -21,6 +21,15 @@ public interface IControllerDebugTransport
         ulong sessionId,
         CancellationToken cancellationToken);
 
+    Task<ControllerDebugWireStatus> RunAsync(ulong sessionId, uint intervalMilliseconds, CancellationToken cancellationToken);
+
+    Task<ControllerDebugWireStatus> PauseAsync(ulong sessionId, CancellationToken cancellationToken);
+
+    Task<ControllerDebugSnapshotEnvelope> ReadSnapshotAsync(
+        ulong sessionId,
+        ulong tickNumber,
+        CancellationToken cancellationToken);
+
     Task RenewLeaseAsync(ulong sessionId, CancellationToken cancellationToken);
 
     Task StopAsync(ulong sessionId, CancellationToken cancellationToken);

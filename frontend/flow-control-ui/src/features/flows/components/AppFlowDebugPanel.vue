@@ -19,6 +19,11 @@
     <div v-if="snapshot" class="snapshot" :class="{ stale }">
       <span>Tick {{ snapshot.tickNumber }}</span>
       <span>{{ snapshot.executionDurationUs }} µs</span>
+      <span>High-water {{ snapshot.executionHighWaterUs ?? snapshot.executionDurationUs }} µs</span>
+      <span>Missed deadlines {{ snapshot.missedDeadlineCount ?? 0 }}</span>
+      <span>Overruns {{ snapshot.overrunCount }}</span>
+      <span>Evaluation failures {{ snapshot.evaluationFailureCount }}</span>
+      <span>Input {{ snapshot.inputValidity.join(', ') || 'unavailable' }}</span>
       <span v-if="stale">Stale snapshot — graph revision changed</span>
       <span v-else>Current shadow snapshot</span>
       <span v-if="snapshot.lastReason">{{ snapshot.lastReason }}</span>

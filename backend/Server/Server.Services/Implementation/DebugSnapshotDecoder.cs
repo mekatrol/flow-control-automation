@@ -11,7 +11,8 @@ public static class DebugSnapshotDecoder
     public static DebugRuntimeSnapshot Decode(ControllerDebugSnapshotEnvelope envelope)
     {
         var reader = new SnapshotReader(envelope.Bytes.Span);
-        if (reader.ReadUInt16() != 1)
+        var schema = reader.ReadUInt16();
+        if (schema is not (1 or 2))
         {
             throw Protocol("unsupported snapshot schema");
         }
@@ -19,7 +20,7 @@ public static class DebugSnapshotDecoder
         var flowId = reader.ReadString();
         var revision = reader.ReadUInt32();
         var state = Name(StateNames, reader.ReadByte(), "lifecycle state");
-        var mode = reader.ReadByte() == 1 ? "manual" : throw Protocol("unknown execution mode");
+        var mode = reader.ReadByte() switch { 1 => "manual", 2 => "fixed_interval", _ => throw Protocol("unknown execution mode") };
         var tick = reader.ReadUInt64();
         var sampledAt = reader.ReadUInt64();
         var completedAt = reader.ReadUInt64();
@@ -31,6 +32,8 @@ public static class DebugSnapshotDecoder
         var failureCount = reader.ReadUInt32();
         var reasonCode = reader.ReadUInt16();
         var reasonPath = reader.ReadString(allowEmpty: true);
+        var highWater = schema >= 2 ? reader.ReadUInt32() : duration;
+        var missedDeadlines = schema >= 2 ? reader.ReadUInt32() : 0;
         if (sessionId != envelope.SessionId || tick != envelope.TickNumber || completedAt < sampledAt
             || sessionId > MaximumSafeJsonInteger || tick > MaximumSafeJsonInteger
             || sampledAt > MaximumSafeJsonInteger || completedAt > MaximumSafeJsonInteger
@@ -100,6 +103,8 @@ public static class DebugSnapshotDecoder
             SampledAtMs = sampledAt,
             CompletedAtMs = completedAt,
             ExecutionDurationUs = duration,
+            ExecutionHighWaterUs = highWater,
+            MissedDeadlineCount = missedDeadlines,
             InputValidity = inputValidity,
             Nodes = nodes,
             ProposedOutputs = outputs,
@@ -112,7 +117,7 @@ public static class DebugSnapshotDecoder
     }
 
     private static readonly string[] StateNames =
-        ["empty", "loading", "ready", "stepping", "paused", "fault", "stopped"];
+        ["empty", "loading", "ready", "stepping", "paused", "fault", "stopped", "running"];
     private static readonly string[] NodeStateNames = ["idle", "evaluated", "fault", "unavailable"];
     private static readonly string[] QualityNames = ["good", "uncertain", "bad", "unavailable"];
     private static readonly string[] ReasonNames =

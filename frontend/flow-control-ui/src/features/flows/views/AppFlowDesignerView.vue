@@ -256,7 +256,11 @@ const debugSnapshot = ref<DebugRuntimeSnapshot>();
 const debugRevision = ref<number>();
 const debugError = ref<string>();
 let debugController: AbortController | undefined;
-let runTimer: ReturnType<typeof window.setTimeout> | undefined;
+let debugPollTimer: ReturnType<typeof window.setInterval> | undefined;
+const stopDebugPolling = (): void => {
+  if (debugPollTimer !== undefined) window.clearInterval(debugPollTimer);
+  debugPollTimer = undefined;
+};
 const deploying = computed(() => runtimeStore.isDeploying(props.flowId));
 let loadController: AbortController | undefined;
 const loadGuard = createLatestRequestGuard();
@@ -306,10 +310,6 @@ const executableSource = (): ExecutableFlowSource | undefined => {
 };
 const debugFailure = (error: unknown): string =>
   error instanceof Error ? error.message : 'Debug operation failed.';
-const clearRunTimer = (): void => {
-  if (runTimer !== undefined) window.clearTimeout(runTimer);
-  runTimer = undefined;
-};
 const loadDebugSession = async (): Promise<void> => {
   debugController?.abort();
   debugController = new AbortController();
@@ -347,32 +347,53 @@ const stepDebugSession = async (): Promise<void> => {
     debugSnapshot.value = snapshot;
     debugLifecycle.value = 'ready';
   } catch (error) {
-    clearRunTimer();
     debugLifecycle.value = 'fault';
     debugError.value = debugFailure(error);
   }
 };
-const scheduleDebugStep = (): void => {
-  clearRunTimer();
-  runTimer = window.setTimeout(async () => {
-    if (debugLifecycle.value !== 'running') return;
-    await stepDebugSession();
-    if ((['ready'] as DesignerDebugLifecycle[]).includes(debugLifecycle.value)) {
-      debugLifecycle.value = 'running';
-      scheduleDebugStep();
-    }
-  }, 500);
+const runDebugSession = async (): Promise<void> => {
+  const sessionId = debugSessionId.value;
+  if (!sessionId) return;
+  try {
+    const session = await flowDebugApi.run(props.flowId, sessionId);
+    debugLifecycle.value = session.lifecycleState === 'running' ? 'running' : 'fault';
+    stopDebugPolling();
+    debugPollTimer = window.setInterval(async () => {
+      if (debugLifecycle.value !== 'running') return;
+      try {
+        const current = await flowDebugApi.inspect(props.flowId, sessionId);
+        if (current.snapshot) debugSnapshot.value = current.snapshot;
+        if (current.lifecycleState !== 'running') {
+          debugLifecycle.value =
+            current.lifecycleState === 'empty' ? 'stopped' : current.lifecycleState;
+          stopDebugPolling();
+        }
+      } catch (error) {
+        debugLifecycle.value = 'fault';
+        debugError.value = debugFailure(error);
+        stopDebugPolling();
+      }
+    }, 250);
+  } catch (error) {
+    debugLifecycle.value = 'fault';
+    debugError.value = debugFailure(error);
+  }
 };
-const runDebugSession = (): void => {
-  debugLifecycle.value = 'running';
-  scheduleDebugStep();
-};
-const pauseDebugSession = (): void => {
-  clearRunTimer();
-  debugLifecycle.value = 'paused';
+const pauseDebugSession = async (): Promise<void> => {
+  const sessionId = debugSessionId.value;
+  if (!sessionId) return;
+  stopDebugPolling();
+  try {
+    const session = await flowDebugApi.pause(props.flowId, sessionId);
+    debugSnapshot.value = session.snapshot;
+    debugLifecycle.value = 'paused';
+  } catch (error) {
+    debugLifecycle.value = 'fault';
+    debugError.value = debugFailure(error);
+  }
 };
 const stopDebugSession = async (keepalive = false): Promise<void> => {
-  clearRunTimer();
+  stopDebugPolling();
   debugController?.abort();
   const sessionId = debugSessionId.value;
   debugSessionId.value = undefined;

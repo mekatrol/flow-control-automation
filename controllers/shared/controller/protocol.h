@@ -64,6 +64,8 @@ typedef enum
     CONTROLLER_PROTOCOL_OPERATION_DEBUG_SNAPSHOT_CHUNK  = 0x56,
     CONTROLLER_PROTOCOL_OPERATION_DEBUG_RENEW           = 0x57,
     CONTROLLER_PROTOCOL_OPERATION_DEBUG_STOP            = 0x58,
+    CONTROLLER_PROTOCOL_OPERATION_DEBUG_RUN             = 0x59,
+    CONTROLLER_PROTOCOL_OPERATION_DEBUG_PAUSE           = 0x5a,
 } controller_protocol_operation_t;
 
 /* Protocol errors are stable wire values and never expose platform error codes. */

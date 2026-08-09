@@ -7,10 +7,12 @@
 
 enum
 {
-    SNAPSHOT_SCHEMA          = 1,
+    SNAPSHOT_SCHEMA          = 2,
     SNAPSHOT_MODE_MANUAL     = 1,
+    SNAPSHOT_MODE_FIXED      = 2,
     SNAPSHOT_STATE_EVALUATED = 1,
     SNAPSHOT_VALUE_DIGITAL   = 2,
+    SNAPSHOT_PUBLISH_INTERVAL_MS = 500,
 };
 
 /* Tests whether one artifact byte was already supplied by a prior chunk. */
@@ -101,13 +103,27 @@ static void clear_session(flow_debug_t *debug)
     const flow_target_t *target            = debug->target;
     const flow_debug_get_input_t get_input = debug->get_input;
     void *input_context                    = debug->input_context;
+    const flow_debug_get_time_us_t get_time_us = debug->get_time_us;
+    void *time_context                         = debug->time_context;
     const uint64_t next_session_id         = debug->next_session_id;
     (void)memset(debug, 0, sizeof(*debug));
     debug->target          = target;
     debug->get_input       = get_input;
     debug->input_context   = input_context;
+    debug->get_time_us     = get_time_us;
+    debug->time_context    = time_context;
     debug->next_session_id = next_session_id;
     debug->state           = FLOW_DEBUG_EMPTY;
+}
+
+/* Installs an optional monotonic microsecond source used to measure evaluator duration and high-water time. */
+void flow_debug_set_time_source(flow_debug_t *debug, flow_debug_get_time_us_t get_time_us, void *time_context)
+{
+    if (debug != NULL)
+    {
+        debug->get_time_us  = get_time_us;
+        debug->time_context = time_context;
+    }
 }
 
 /* Tests session identity and ownership without revealing another peer's session. */
@@ -138,13 +154,16 @@ static bool encode_snapshot(flow_debug_t *debug, uint64_t completed_at_ms)
     const bool header_ok =
         append_u16(debug, &offset, SNAPSHOT_SCHEMA) && append_u64(debug, &offset, debug->session_id) &&
         append_string(debug, &offset, debug->executable.flow_id) && append_u32(debug, &offset, debug->executable.revision) &&
-        append_u8(debug, &offset, (uint8_t)FLOW_DEBUG_PAUSED) && append_u8(debug, &offset, SNAPSHOT_MODE_MANUAL) &&
+        append_u8(debug, &offset, (uint8_t)debug->state) &&
+        append_u8(debug, &offset, debug->state == FLOW_DEBUG_RUNNING ? SNAPSHOT_MODE_FIXED : SNAPSHOT_MODE_MANUAL) &&
         append_u64(debug, &offset, snapshot->tick_number) && append_u64(debug, &offset, snapshot->sampled_at_ms) &&
-        append_u64(debug, &offset, completed_at_ms) && append_u32(debug, &offset, 0) &&
+        append_u64(debug, &offset, completed_at_ms) && append_u32(debug, &offset, debug->execution_duration_us) &&
         append_u8(debug, &offset, snapshot->input_validity) && append_u16(debug, &offset, snapshot->node_count) &&
-        append_u16(debug, &offset, snapshot->output_count) && append_u32(debug, &offset, 0) &&
+        append_u16(debug, &offset, snapshot->output_count) && append_u32(debug, &offset, debug->overrun_count) &&
         append_u32(debug, &offset, snapshot->evaluation_failure_count) &&
-        append_u16(debug, &offset, (uint16_t)snapshot->last_result.code) && append_u8(debug, &offset, 0);
+        append_u16(debug, &offset, (uint16_t)snapshot->last_result.code) && append_u8(debug, &offset, 0) &&
+        append_u32(debug, &offset, debug->execution_high_water_us) &&
+        append_u32(debug, &offset, debug->missed_deadline_count);
     if (!header_ok)
     {
         return false;
@@ -314,6 +333,7 @@ flow_debug_result_t flow_debug_step(flow_debug_t *debug, uint32_t owner_id, uint
         return FLOW_DEBUG_WRONG_STATE;
     }
     debug->state             = FLOW_DEBUG_STEPPING;
+    const uint64_t started_us = debug->get_time_us == NULL ? 0U : debug->get_time_us(debug->time_context);
     flow_input_frame_t input = {0};
     if (!debug->get_input(debug->input_context, &input))
     {
@@ -322,10 +342,76 @@ flow_debug_result_t flow_debug_step(flow_debug_t *debug, uint32_t owner_id, uint
         return FLOW_DEBUG_VALIDATION_FAILED;
     }
     debug->last_result = flow_runtime_step(&debug->runtime, &input);
-    if (debug->last_result.code != FLOW_REASON_OK || !encode_snapshot(debug, now_ms))
+    const uint64_t completed_us = debug->get_time_us == NULL ? started_us : debug->get_time_us(debug->time_context);
+    const uint64_t duration_us  = completed_us >= started_us ? completed_us - started_us : 0U;
+    debug->execution_duration_us = duration_us > UINT32_MAX ? UINT32_MAX : (uint32_t)duration_us;
+    if (debug->execution_duration_us > debug->execution_high_water_us)
+    {
+        debug->execution_high_water_us = debug->execution_duration_us;
+    }
+    if (debug->last_result.code != FLOW_REASON_OK)
     {
         debug->state = FLOW_DEBUG_FAULT;
         return FLOW_DEBUG_VALIDATION_FAILED;
+    }
+    debug->state = FLOW_DEBUG_PAUSED;
+    if (!encode_snapshot(debug, now_ms))
+    {
+        debug->state = FLOW_DEBUG_FAULT;
+        return FLOW_DEBUG_VALIDATION_FAILED;
+    }
+    debug->published_tick_number    = debug->runtime.tick_number;
+    debug->last_snapshot_publish_ms = now_ms;
+    renew_lease(debug, now_ms);
+    return FLOW_DEBUG_OK;
+}
+
+/* Starts fixed-interval shadow execution from ready or paused state without overlapping evaluator ticks. */
+flow_debug_result_t flow_debug_run(flow_debug_t *debug, uint32_t owner_id, uint64_t session_id, uint32_t interval_ms,
+                                   uint64_t now_ms)
+{
+    enum
+    {
+        MINIMUM_INTERVAL_MS = 10,
+        MAXIMUM_INTERVAL_MS = 60000,
+    };
+    if (debug == NULL || interval_ms < MINIMUM_INTERVAL_MS || interval_ms > MAXIMUM_INTERVAL_MS)
+    {
+        return FLOW_DEBUG_INVALID_ARGUMENT;
+    }
+    flow_debug_process(debug, now_ms);
+    const flow_debug_result_t access = get_access(debug, owner_id, session_id);
+    if (access != FLOW_DEBUG_OK)
+    {
+        return access;
+    }
+    if (debug->state != FLOW_DEBUG_READY && debug->state != FLOW_DEBUG_PAUSED)
+    {
+        return FLOW_DEBUG_WRONG_STATE;
+    }
+    debug->interval_ms  = interval_ms;
+    debug->next_tick_ms = now_ms;
+    debug->state        = FLOW_DEBUG_RUNNING;
+    renew_lease(debug, now_ms);
+    return FLOW_DEBUG_OK;
+}
+
+/* Pauses continuous execution while preserving memory and samples fresh inputs on the next step or run tick. */
+flow_debug_result_t flow_debug_pause(flow_debug_t *debug, uint32_t owner_id, uint64_t session_id, uint64_t now_ms)
+{
+    if (debug == NULL)
+    {
+        return FLOW_DEBUG_INVALID_ARGUMENT;
+    }
+    flow_debug_process(debug, now_ms);
+    const flow_debug_result_t access = get_access(debug, owner_id, session_id);
+    if (access != FLOW_DEBUG_OK)
+    {
+        return access;
+    }
+    if (debug->state != FLOW_DEBUG_RUNNING)
+    {
+        return FLOW_DEBUG_WRONG_STATE;
     }
     debug->state = FLOW_DEBUG_PAUSED;
     renew_lease(debug, now_ms);
@@ -352,8 +438,13 @@ flow_debug_result_t flow_debug_get_status(flow_debug_t *debug, uint32_t owner_id
                                     .covered_bytes      = debug->covered_bytes,
                                     .artifact_length    = debug->artifact_length,
                                     .flow_revision      = debug->executable.revision,
-                                    .tick_number        = debug->runtime.tick_number,
+                                    .tick_number        = debug->published_tick_number,
                                     .lease_remaining_ms = FLOW_DEBUG_LEASE_MS,
+                                    .interval_ms         = debug->interval_ms,
+                                    .execution_duration_us = debug->execution_duration_us,
+                                    .execution_high_water_us = debug->execution_high_water_us,
+                                    .missed_deadline_count = debug->missed_deadline_count,
+                                    .overrun_count       = debug->overrun_count,
                                     .last_result        = debug->last_result};
     return FLOW_DEBUG_OK;
 }
@@ -366,13 +457,12 @@ flow_debug_result_t flow_debug_get_snapshot_header(flow_debug_t *debug, uint32_t
     {
         return FLOW_DEBUG_INVALID_ARGUMENT;
     }
-    flow_debug_process(debug, now_ms);
     const flow_debug_result_t access = get_access(debug, owner_id, session_id);
     if (access != FLOW_DEBUG_OK)
     {
         return access;
     }
-    if (debug->snapshot_length == 0U || debug->runtime.tick_number != tick_number)
+    if (debug->snapshot_length == 0U || debug->published_tick_number != tick_number)
     {
         return FLOW_DEBUG_NOT_FOUND;
     }
@@ -452,9 +542,61 @@ flow_debug_result_t flow_debug_stop(flow_debug_t *debug, uint32_t owner_id, uint
 /* Expires and clears a session whose authenticated lease deadline has elapsed. */
 void flow_debug_process(flow_debug_t *debug, uint64_t now_ms)
 {
-    if (debug != NULL && debug->state != FLOW_DEBUG_EMPTY && now_ms >= debug->lease_deadline_ms)
+    if (debug == NULL)
+    {
+        return;
+    }
+    if (debug->state != FLOW_DEBUG_EMPTY && now_ms >= debug->lease_deadline_ms)
     {
         debug->state = FLOW_DEBUG_STOPPED;
         clear_session(debug);
+        return;
+    }
+    if (debug->state == FLOW_DEBUG_RUNNING && now_ms >= debug->next_tick_ms)
+    {
+        const uint64_t scheduled_ms = debug->next_tick_ms;
+        if (now_ms > scheduled_ms)
+        {
+            const uint64_t late_intervals = (now_ms - scheduled_ms) / debug->interval_ms;
+            debug->missed_deadline_count += late_intervals > UINT32_MAX - debug->missed_deadline_count
+                                                 ? UINT32_MAX - debug->missed_deadline_count
+                                                 : (uint32_t)late_intervals;
+            debug->overrun_count += late_intervals > 0U && debug->overrun_count < UINT32_MAX ? 1U : 0U;
+        }
+        const uint64_t started_us = debug->get_time_us == NULL ? 0U : debug->get_time_us(debug->time_context);
+        flow_input_frame_t input = {0};
+        if (!debug->get_input(debug->input_context, &input))
+        {
+            debug->last_result = (flow_result_t){.code = FLOW_REASON_INPUT_QUALITY_REJECTED};
+            debug->state       = FLOW_DEBUG_FAULT;
+            return;
+        }
+        debug->last_result = flow_runtime_step(&debug->runtime, &input);
+        if (debug->last_result.code != FLOW_REASON_OK)
+        {
+            debug->state = FLOW_DEBUG_FAULT;
+            return;
+        }
+        const uint64_t completed_us = debug->get_time_us == NULL ? started_us : debug->get_time_us(debug->time_context);
+        const uint64_t duration_us  = completed_us >= started_us ? completed_us - started_us : 0U;
+        debug->execution_duration_us = duration_us > UINT32_MAX ? UINT32_MAX : (uint32_t)duration_us;
+        if (debug->execution_duration_us > debug->execution_high_water_us)
+        {
+            debug->execution_high_water_us = debug->execution_duration_us;
+        }
+        debug->next_tick_ms = scheduled_ms + ((now_ms - scheduled_ms) / debug->interval_ms + 1U) * debug->interval_ms;
+        /* Encoding only the latest state bounds publication work; evaluation never waits for snapshot transfer. */
+        const bool is_publish_due = debug->last_snapshot_publish_ms == 0U ||
+                                    now_ms - debug->last_snapshot_publish_ms >= SNAPSHOT_PUBLISH_INTERVAL_MS;
+        if (is_publish_due && !encode_snapshot(debug, now_ms))
+        {
+            debug->state = FLOW_DEBUG_FAULT;
+            return;
+        }
+        if (is_publish_due)
+        {
+            debug->published_tick_number    = debug->runtime.tick_number;
+            debug->last_snapshot_publish_ms = now_ms;
+        }
     }
 }

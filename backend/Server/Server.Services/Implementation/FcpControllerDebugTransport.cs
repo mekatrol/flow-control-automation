@@ -77,6 +77,31 @@ public sealed class FcpControllerDebugTransport(IFcpClient client) : IController
         var expectedLength = BinaryPrimitives.ReadUInt32LittleEndian(step.Span[8..]);
         var expectedDigest = step.Slice(12, DigestBytes).ToArray();
 
+        return await ReadSnapshotAsync(sessionId, tick, expectedLength, expectedDigest, cancellationToken);
+    }
+
+    public Task<ControllerDebugWireStatus> RunAsync(ulong sessionId, uint intervalMilliseconds, CancellationToken cancellationToken)
+    {
+        if (intervalMilliseconds is < 10 or > 60000) throw new ArgumentOutOfRangeException(nameof(intervalMilliseconds));
+        var body = new byte[12];
+        BinaryPrimitives.WriteUInt64LittleEndian(body, sessionId);
+        BinaryPrimitives.WriteUInt32LittleEndian(body.AsSpan(8), intervalMilliseconds);
+        return RunCoreAsync(body, cancellationToken);
+    }
+
+    private async Task<ControllerDebugWireStatus> RunCoreAsync(byte[] body, CancellationToken cancellationToken) =>
+        ParseStatus(await Exchange(0x59, body, cancellationToken));
+
+    public async Task<ControllerDebugWireStatus> PauseAsync(ulong sessionId, CancellationToken cancellationToken) =>
+        ParseStatus(await Exchange(0x5a, SessionBody(sessionId), cancellationToken));
+
+    public async Task<ControllerDebugSnapshotEnvelope> ReadSnapshotAsync(
+        ulong sessionId, ulong tickNumber, CancellationToken cancellationToken) =>
+        await ReadSnapshotAsync(sessionId, tickNumber, null, null, cancellationToken);
+
+    private async Task<ControllerDebugSnapshotEnvelope> ReadSnapshotAsync(
+        ulong sessionId, ulong tick, uint? expectedLength, byte[]? expectedDigest, CancellationToken cancellationToken)
+    {
         var headerBody = new byte[16];
         BinaryPrimitives.WriteUInt64LittleEndian(headerBody, sessionId);
         BinaryPrimitives.WriteUInt64LittleEndian(headerBody.AsSpan(8), tick);
@@ -87,6 +112,8 @@ public sealed class FcpControllerDebugTransport(IFcpClient client) : IController
         var totalLength = BinaryPrimitives.ReadUInt32LittleEndian(header.Span[16..]);
         var chunkCount = BinaryPrimitives.ReadUInt16LittleEndian(header.Span[20..]);
         var chunkLimit = BinaryPrimitives.ReadUInt16LittleEndian(header.Span[22..]);
+        expectedLength ??= totalLength;
+        expectedDigest ??= header.Slice(24, DigestBytes).ToArray();
         if (headerSession != sessionId || headerTick != tick || totalLength != expectedLength
             || totalLength is 0 or > 16384 || chunkCount == 0 || chunkLimit == 0
             || !header.Span.Slice(24, DigestBytes).SequenceEqual(expectedDigest))

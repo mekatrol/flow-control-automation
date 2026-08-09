@@ -13,6 +13,8 @@ public static class FlowDebugEndpointRouteBuilderExtensions
         endpoints.MapPost("/api/flows/{flowId}/debug-sessions", Start);
         endpoints.MapGet("/api/flows/{flowId}/debug-sessions/{sessionId}", Get);
         endpoints.MapPost("/api/flows/{flowId}/debug-sessions/{sessionId}/step", Step);
+        endpoints.MapPost("/api/flows/{flowId}/debug-sessions/{sessionId}/run", Run);
+        endpoints.MapPost("/api/flows/{flowId}/debug-sessions/{sessionId}/pause", Pause);
         endpoints.MapPost("/api/flows/{flowId}/debug-sessions/{sessionId}/stop", Stop);
         endpoints.MapGet("/api/flows/{flowId}/debug-sessions/{sessionId}/events", Events);
         return endpoints;
@@ -88,6 +90,33 @@ public static class FlowDebugEndpointRouteBuilderExtensions
         }
     }
 
+    private static async Task<IResult> Run(
+        string flowId, string sessionId, RunDebugSessionRequest request, IFlowDebugService debug,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return Results.Json(await debug.RunAsync(flowId, sessionId, request.IntervalMilliseconds, cancellationToken));
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            return MapError(exception);
+        }
+    }
+
+    private static async Task<IResult> Pause(
+        string flowId, string sessionId, IFlowDebugService debug, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return Results.Json(await debug.PauseAsync(flowId, sessionId, cancellationToken));
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            return MapError(exception);
+        }
+    }
+
     private static async Task<IResult> Events(
         string flowId,
         string sessionId,
@@ -107,7 +136,7 @@ public static class FlowDebugEndpointRouteBuilderExtensions
                         var bytes = Encoding.UTF8.GetBytes($"event: status\ndata: {json}\n\n");
                         await stream.WriteAsync(bytes, cancellationToken);
                         await stream.FlushAsync(cancellationToken);
-                        await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
+                        await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken);
                         try
                         {
                             current = await debug.GetAsync(flowId, sessionId, cancellationToken);

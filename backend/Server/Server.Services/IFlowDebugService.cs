@@ -19,6 +19,10 @@ public interface IFlowDebugService
         string sessionId,
         CancellationToken cancellationToken);
 
+    Task<FlowDebugSession> RunAsync(string flowId, string sessionId, uint intervalMilliseconds, CancellationToken cancellationToken);
+
+    Task<FlowDebugSession> PauseAsync(string flowId, string sessionId, CancellationToken cancellationToken);
+
     Task StopAsync(
         string flowId,
         string sessionId,

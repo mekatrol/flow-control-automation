@@ -23,6 +23,7 @@ typedef enum
     FLOW_DEBUG_PAUSED   = 4,
     FLOW_DEBUG_FAULT    = 5,
     FLOW_DEBUG_STOPPED  = 6,
+    FLOW_DEBUG_RUNNING  = 7,
 } flow_debug_state_t;
 
 typedef enum
@@ -38,6 +39,7 @@ typedef enum
 } flow_debug_result_t;
 
 typedef bool (*flow_debug_get_input_t)(void *context, flow_input_frame_t *frame);
+typedef uint64_t (*flow_debug_get_time_us_t)(void *context);
 
 typedef struct
 {
@@ -48,6 +50,11 @@ typedef struct
     uint32_t flow_revision;
     uint64_t tick_number;
     uint32_t lease_remaining_ms;
+    uint32_t interval_ms;
+    uint32_t execution_duration_us;
+    uint32_t execution_high_water_us;
+    uint32_t missed_deadline_count;
+    uint32_t overrun_count;
     flow_result_t last_result;
 } flow_debug_status_t;
 
@@ -68,6 +75,14 @@ typedef struct
     uint64_t next_session_id;
     uint32_t owner_id;
     uint64_t lease_deadline_ms;
+    uint64_t next_tick_ms;
+    uint64_t published_tick_number;
+    uint64_t last_snapshot_publish_ms;
+    uint32_t interval_ms;
+    uint32_t execution_duration_us;
+    uint32_t execution_high_water_us;
+    uint32_t missed_deadline_count;
+    uint32_t overrun_count;
     uint32_t artifact_length;
     uint32_t covered_bytes;
     uint8_t artifact_digest[FLOW_DEBUG_DIGEST_BYTES];
@@ -82,10 +97,15 @@ typedef struct
     const flow_target_t *target;
     flow_debug_get_input_t get_input;
     void *input_context;
+    flow_debug_get_time_us_t get_time_us;
+    void *time_context;
 } flow_debug_t;
 
 /* Initializes an empty volatile debug owner with immutable target and input adapters. */
 bool flow_debug_init(flow_debug_t *debug, const flow_target_t *target, flow_debug_get_input_t get_input, void *input_context);
+
+/* Installs an optional monotonic microsecond source used to measure evaluator duration and high-water time. */
+void flow_debug_set_time_source(flow_debug_t *debug, flow_debug_get_time_us_t get_time_us, void *time_context);
 
 /* Starts a bounded load, optionally replacing an existing session owned by any authenticated peer. */
 flow_debug_result_t flow_debug_begin(flow_debug_t *debug, uint32_t owner_id, bool replace_existing, uint32_t artifact_length,
@@ -100,6 +120,13 @@ flow_debug_result_t flow_debug_prepare(flow_debug_t *debug, uint32_t owner_id, u
 
 /* Samples physical inputs and atomically evaluates one complete shadow tick. */
 flow_debug_result_t flow_debug_step(flow_debug_t *debug, uint32_t owner_id, uint64_t session_id, uint64_t now_ms);
+
+/* Starts fixed-interval shadow execution from ready or paused state without overlapping evaluator ticks. */
+flow_debug_result_t flow_debug_run(flow_debug_t *debug, uint32_t owner_id, uint64_t session_id, uint32_t interval_ms,
+                                   uint64_t now_ms);
+
+/* Pauses continuous execution while preserving memory and samples fresh inputs on the next step or run tick. */
+flow_debug_result_t flow_debug_pause(flow_debug_t *debug, uint32_t owner_id, uint64_t session_id, uint64_t now_ms);
 
 /* Gets status for the owning session and renews its fixed lease. */
 flow_debug_result_t flow_debug_get_status(flow_debug_t *debug, uint32_t owner_id, uint64_t session_id, uint64_t now_ms,

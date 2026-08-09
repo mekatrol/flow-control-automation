@@ -14,14 +14,15 @@ cleanup as stop. Controller reboot always starts in `empty`.
 ## 2. Lifecycle
 
 States and wire values are `empty=0`, `loading=1`, `ready=2`, `stepping=3`,
-`paused=4`, `fault=5`, and `stopped=6`.
+`paused=4`, `fault=5`, `stopped=6`, and `running=7`.
 
 ```text
 empty --load--> loading --complete+validate+prepare--> ready
 ready --step--> stepping --tick committed--> paused
+ready|paused --run--> running --pause--> paused
 loading|stepping --failure--> fault
 ready|paused --preparation/evaluation failure--> fault
-loading|ready|stepping|paused|fault --stop/expiry/replacement--> stopped
+loading|ready|stepping|paused|running|fault --stop/expiry/replacement--> stopped
 stopped --cleanup complete--> empty
 ```
 
@@ -29,7 +30,9 @@ stopped --cleanup complete--> empty
 recorded and applied after the bounded tick finishes. Requests invalid for the
 current state fail with FCP `wrong_state` and do not change it. A step is valid
 from `ready` or `paused`. Fault retains its last complete snapshot, if any,
-until stop or expiry. No operation resumes a faulted session.
+until stop or expiry. No operation resumes a faulted session. Pause freezes
+memory and all evaluator state; inputs are not latched while paused, so the
+next step or scheduled tick samples a fresh coherent input image.
 
 ## 3. Authentication, lease, and identity
 
@@ -63,6 +66,8 @@ mutating except status and snapshot reads.
 | `0x56` | snapshot chunk | `session_id:u64, tick_number:u64, chunk_index:u16` | chunk payload below |
 | `0x57` | renew lease | `session_id:u64` | `lease_ms:u32` |
 | `0x58` | debug stop | `session_id:u64` | `stopped_session_id:u64` |
+| `0x59` | debug run | `session_id:u64, interval_ms:u32` | debug status |
+| `0x5a` | debug pause | `session_id:u64` | debug status |
 
 Load chunks permit exact idempotent overlap and reject conflicting overlap.
 Prepare requires full coverage, verifies whole-artifact SHA-256, then validates
@@ -77,7 +82,7 @@ last_reason_code:u16, last_reason_path:string8(63)
 The operation body plus the authenticated envelope must fit FCP's 241-byte
 payload. Consequently the negotiated `chunk_limit` may not exceed 180 bytes.
 
-## 5. Immutable snapshot wire schema 1
+## 5. Immutable snapshot wire schemas
 
 The snapshot byte stream is canonical and immutable. A header response is:
 
@@ -103,13 +108,19 @@ reader using the old tick then gets `not_found`, never mixed data.
 The reassembled stream begins:
 
 ```text
-schema:u16 (=1), session_id:u64, flow_id:string8(63), revision:u32,
+schema:u16 (=1 or 2), session_id:u64, flow_id:string8(63), revision:u32,
 lifecycle_state:u8, mode:u8, tick_number:u64, sampled_at_ms:u64,
 completed_at_ms:u64, execution_duration_us:u32, input_validity:u8,
 node_count:u16, proposed_output_count:u16, overrun_count:u32,
 evaluation_failure_count:u32, last_reason_code:u16,
 last_reason_path:string8(63)
 ```
+
+Schema 2 appends `execution_high_water_us:u32` and
+`missed_deadline_count:u32` to this header before the node records. Schema 1
+remains decodable for compatibility. Continuous snapshots use
+`mode=fixed_interval(2)` and lifecycle `running(7)`; manual snapshots use
+`mode=manual(1)`.
 
 It is followed by `node_count` node records, then output records. Input-validity
 bits are bit 0 coherent, bit 1 all present, and bit 2 all good; bits 3-7 are

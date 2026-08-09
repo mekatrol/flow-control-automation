@@ -7,7 +7,8 @@ export type DebugLifecycleState =
   | 'stepping'
   | 'paused'
   | 'fault'
-  | 'stopped';
+  | 'stopped'
+  | 'running';
 
 export interface DebugTypedValue {
   type: string;
@@ -38,6 +39,8 @@ export interface DebugRuntimeSnapshot {
   sampledAtMs: number;
   completedAtMs: number;
   executionDurationUs: number;
+  executionHighWaterUs?: number;
+  missedDeadlineCount?: number;
   inputValidity: string[];
   nodes: DebugNodeSnapshot[];
   proposedOutputs: DebugProposedOutput[];
@@ -93,7 +96,11 @@ const string = (value: unknown, path: string): string => {
 };
 const lifecycle = (value: unknown): DebugLifecycleState => {
   const state = text(value, 'lifecycleState') as DebugLifecycleState;
-  if (!['empty', 'loading', 'ready', 'stepping', 'paused', 'fault', 'stopped'].includes(state))
+  if (
+    !['empty', 'loading', 'ready', 'stepping', 'paused', 'fault', 'stopped', 'running'].includes(
+      state
+    )
+  )
     throw new TypeError('lifecycleState is invalid.');
   return state;
 };
@@ -135,6 +142,11 @@ export const parseDebugSnapshot = (value: unknown): DebugRuntimeSnapshot => {
     sampledAtMs: number(value.sampledAtMs, 'sampledAtMs'),
     completedAtMs: number(value.completedAtMs, 'completedAtMs'),
     executionDurationUs: number(value.executionDurationUs, 'executionDurationUs'),
+    executionHighWaterUs: number(
+      value.executionHighWaterUs ?? value.executionDurationUs,
+      'executionHighWaterUs'
+    ),
+    missedDeadlineCount: number(value.missedDeadlineCount ?? 0, 'missedDeadlineCount'),
     inputValidity: value.inputValidity.map((item, index) => text(item, `inputValidity[${index}]`)),
     nodes: value.nodes.map(parseNode),
     proposedOutputs: value.proposedOutputs.map((item, index) => {
@@ -227,6 +239,23 @@ export const flowDebugApi = {
       `${base(flowId)}/${encodeURIComponent(sessionId)}/step`,
       { method: 'POST', signal },
       parseDebugSnapshot
+    ),
+  run: (flowId: string, sessionId: string, intervalMilliseconds = 500, signal?: AbortSignal) =>
+    request(
+      `${base(flowId)}/${encodeURIComponent(sessionId)}/run`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ intervalMilliseconds }),
+        signal
+      },
+      parseSession
+    ),
+  pause: (flowId: string, sessionId: string, signal?: AbortSignal) =>
+    request(
+      `${base(flowId)}/${encodeURIComponent(sessionId)}/pause`,
+      { method: 'POST', signal },
+      parseSession
     ),
   stop: async (flowId: string, sessionId: string, keepalive = false): Promise<void> => {
     const response = await fetch(`${base(flowId)}/${encodeURIComponent(sessionId)}/stop`, {

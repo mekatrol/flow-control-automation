@@ -308,7 +308,7 @@ static bool is_authentication_required(uint8_t operation)
            operation == CONTROLLER_PROTOCOL_OPERATION_CLOSE_SESSION ||
            (operation >= CONTROLLER_PROTOCOL_OPERATION_LIST_FLOWS &&
             operation <= CONTROLLER_PROTOCOL_OPERATION_GET_FLOW_RUNTIME) ||
-           (operation >= CONTROLLER_PROTOCOL_OPERATION_DEBUG_LOAD_BEGIN && operation <= CONTROLLER_PROTOCOL_OPERATION_DEBUG_STOP);
+           (operation >= CONTROLLER_PROTOCOL_OPERATION_DEBUG_LOAD_BEGIN && operation <= CONTROLLER_PROTOCOL_OPERATION_DEBUG_PAUSE);
 }
 
 /* Verifies and removes one authenticated envelope before semantic dispatch. */
@@ -1501,7 +1501,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
             const uint64_t session_id = get_u64(request->payload);
             flow_debug_result_t result =
                 flow_debug_step(protocol->config.debug, protocol->authenticated_session_id, session_id, now_ms);
-            flow_debug_snapshot_header_t header;
+            flow_debug_snapshot_header_t header = {0};
             if (result == FLOW_DEBUG_OK)
             {
                 result = flow_debug_get_snapshot_header(protocol->config.debug, protocol->authenticated_session_id, session_id,
@@ -1618,6 +1618,50 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
             put_u64(response.payload, session_id);
             response.payload_size = sizeof(uint64_t);
             send_response(protocol, &response);
+            break;
+        }
+        case CONTROLLER_PROTOCOL_OPERATION_DEBUG_RUN: {
+            if (protocol->config.debug == NULL || request->payload_size != sizeof(uint64_t) + sizeof(uint32_t))
+            {
+                send_error(protocol, request, protocol->config.debug == NULL ? CONTROLLER_PROTOCOL_ERROR_NOT_READY
+                                                                             : CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
+                break;
+            }
+            const uint64_t session_id = get_u64(request->payload);
+            flow_debug_result_t result = flow_debug_run(protocol->config.debug, protocol->authenticated_session_id, session_id,
+                                                        get_u32(&request->payload[sizeof(uint64_t)]), now_ms);
+            flow_debug_status_t status;
+            if (result == FLOW_DEBUG_OK)
+            {
+                result = flow_debug_get_status(protocol->config.debug, protocol->authenticated_session_id, session_id, now_ms,
+                                               &status);
+            }
+            if (is_debug_result_success(protocol, request, result) && set_debug_status_payload(&response, &status))
+            {
+                send_response(protocol, &response);
+            }
+            break;
+        }
+        case CONTROLLER_PROTOCOL_OPERATION_DEBUG_PAUSE: {
+            if (protocol->config.debug == NULL || request->payload_size != sizeof(uint64_t))
+            {
+                send_error(protocol, request, protocol->config.debug == NULL ? CONTROLLER_PROTOCOL_ERROR_NOT_READY
+                                                                             : CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
+                break;
+            }
+            const uint64_t session_id = get_u64(request->payload);
+            flow_debug_result_t result = flow_debug_pause(protocol->config.debug, protocol->authenticated_session_id, session_id,
+                                                          now_ms);
+            flow_debug_status_t status;
+            if (result == FLOW_DEBUG_OK)
+            {
+                result = flow_debug_get_status(protocol->config.debug, protocol->authenticated_session_id, session_id, now_ms,
+                                               &status);
+            }
+            if (is_debug_result_success(protocol, request, result) && set_debug_status_payload(&response, &status))
+            {
+                send_response(protocol, &response);
+            }
             break;
         }
         default:

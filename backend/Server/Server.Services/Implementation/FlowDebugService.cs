@@ -62,7 +62,12 @@ public sealed class FlowDebugService(
         var id = ParseAndMatch(flowId, sessionId);
         var status = await transport.GetStatusAsync(id, cancellationToken);
         ValidateStatus(status, id, registry.Session!.Revision);
-        var updated = ToSession(flowId, status, registry.Session.Snapshot);
+        var snapshot = registry.Session.Snapshot;
+        if (status.TickNumber > 0 && (snapshot is null || snapshot.TickNumber != status.TickNumber))
+        {
+            snapshot = DebugSnapshotDecoder.Decode(await transport.ReadSnapshotAsync(id, status.TickNumber, cancellationToken));
+        }
+        var updated = ToSession(flowId, status, snapshot);
         registry.Session = updated;
         return updated;
     }
@@ -118,6 +123,40 @@ public sealed class FlowDebugService(
         }
     }
 
+    public async Task<FlowDebugSession> RunAsync(
+        string flowId, string sessionId, uint intervalMilliseconds, CancellationToken cancellationToken)
+    {
+        await registry.Gate.WaitAsync(cancellationToken);
+        try
+        {
+            var id = ParseAndMatch(flowId, sessionId);
+            var status = await transport.RunAsync(id, intervalMilliseconds, cancellationToken);
+            ValidateStatus(status, id, registry.Session!.Revision);
+            return registry.Session = ToSession(flowId, status, registry.Session.Snapshot);
+        }
+        finally
+        {
+            registry.Gate.Release();
+        }
+    }
+
+    public async Task<FlowDebugSession> PauseAsync(
+        string flowId, string sessionId, CancellationToken cancellationToken)
+    {
+        await registry.Gate.WaitAsync(cancellationToken);
+        try
+        {
+            var id = ParseAndMatch(flowId, sessionId);
+            var status = await transport.PauseAsync(id, cancellationToken);
+            ValidateStatus(status, id, registry.Session!.Revision);
+            return registry.Session = ToSession(flowId, status, registry.Session.Snapshot);
+        }
+        finally
+        {
+            registry.Gate.Release();
+        }
+    }
+
     private ulong ParseAndMatch(string flowId, string sessionId)
     {
         if (!ulong.TryParse(sessionId, NumberStyles.None, CultureInfo.InvariantCulture, out var id)
@@ -133,7 +172,7 @@ public sealed class FlowDebugService(
 
     private static void ValidateStatus(ControllerDebugWireStatus status, ulong sessionId, uint revision)
     {
-        if (status.SessionId != sessionId || status.FlowRevision != revision || status.State > 6)
+        if (status.SessionId != sessionId || status.FlowRevision != revision || status.State > 7)
         {
             throw new ControllerGatewayException("protocol", "Controller status identity is inconsistent.");
         }
@@ -158,7 +197,7 @@ public sealed class FlowDebugService(
         };
 
     private static readonly string[] StateNames =
-        ["empty", "loading", "ready", "stepping", "paused", "fault", "stopped"];
+        ["empty", "loading", "ready", "stepping", "paused", "fault", "stopped", "running"];
     private static readonly string[] ReasonNames =
     [
         "ok", "malformed", "unsupported_schema", "length_mismatch", "digest_mismatch", "limit_exceeded",

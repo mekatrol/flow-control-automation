@@ -103,6 +103,12 @@ uint64_t platform_get_monotonic_ms(void)
     return (uint64_t)(esp_timer_get_time() / MICROSECONDS_PER_MILLISECOND);
 }
 
+/* Gets monotonic microseconds for bounded execution-duration measurements. */
+uint64_t platform_get_monotonic_us(void)
+{
+    return (uint64_t)esp_timer_get_time();
+}
+
 /* Gets currently available general-purpose heap memory in bytes. */
 uint64_t platform_get_free_heap_bytes(void)
 {
