@@ -4,7 +4,7 @@ Flow Control Automation is a home automation flow engine with a graphical editor
 
 The cross-stack roadmap for compiling, loading, stepping, and inspecting flows
 on hardware controllers is documented in the
-[`controller flow debugging implementation plan`](docs/controller-flow-debugging-plan.md).
+[`controller flow debugging architecture reference`](docs/controller-flow-debugging-architecture.md).
 
 ## What the Application Does
 
