@@ -86,6 +86,7 @@ static bool get_transport_route(mqtt_transport_route_t *route, void *context)
     {
         return false;
     }
+
     *route = fixture->route;
     return true;
 }
@@ -97,6 +98,7 @@ static bool connect_transport(const mqtt_broker_config_t *config, const mqtt_tra
     fixture_t *fixture = context;
     fixture->connect_count++;
     fixture->connected_route = route->identifier;
+
     return fixture->connect_result;
 }
 
@@ -118,6 +120,7 @@ static void replay_subscriptions(void *context)
 static uint32_t get_midpoint_random(void *context)
 {
     assert(context != NULL);
+
     return TEST_INITIAL_BACKOFF_MS * TEST_JITTER_PERCENT / 100;
 }
 
@@ -127,6 +130,7 @@ static mqtt_service_t get_service(fixture_t *fixture, const mqtt_broker_config_t
     mqtt_service_t service;
     mqtt_service_init(&service, config, get_transport_route, connect_transport, disconnect_transport, replay_subscriptions,
                       get_midpoint_random, fixture);
+
     return service;
 }
 
@@ -256,5 +260,6 @@ int main(void)
     test_route_change_reconnect();
     test_event_queue_limit();
     puts(TEST_SUCCESS_MESSAGE);
+
     return 0;
 }

@@ -70,6 +70,7 @@ bool is_mqtt_broker_config_valid(const mqtt_broker_config_t *config)
     }
     /* A pinned policy cannot verify a broker without a platform credential reference. */
     const bool is_last_will_valid = !is_nonempty(config->last_will_topic) || is_nonempty(config->last_will_payload);
+
     return is_last_will_valid && (config->tls_policy != MQTT_TLS_PINNED_CA || is_nonempty(config->ca_reference));
 }
 
@@ -107,6 +108,7 @@ bool mqtt_service_enqueue_event(mqtt_service_t *service, const mqtt_transport_ev
     if (service->event_count == MQTT_EVENT_QUEUE_CAPACITY)
     {
         service->dropped_events++;
+
         return false;
     }
     const size_t tail                = (service->event_head + service->event_count) % MQTT_EVENT_QUEUE_CAPACITY;
@@ -116,6 +118,7 @@ bool mqtt_service_enqueue_event(mqtt_service_t *service, const mqtt_transport_ev
     destination->error_category      = event->error_category;
     copy_text(destination->error_detail, sizeof(destination->error_detail), event->error_detail);
     service->event_count++;
+
     return true;
 }
 
@@ -147,6 +150,7 @@ static uint32_t get_backoff_delay(mqtt_service_t *service)
         const int64_t offset = (int64_t)(service->random(service->callback_context) % width) - (int64_t)range;
         delay                = (uint64_t)((int64_t)delay + offset);
     }
+
     return (uint32_t)(delay > service->config.maximum_backoff_ms ? service->config.maximum_backoff_ms : delay);
 }
 
@@ -226,6 +230,7 @@ static bool is_selected_transport_eligible(const mqtt_service_t *service)
         return false;
     }
     mqtt_transport_route_t current_route;
+
     return service->get_transport_route(&current_route, service->callback_context) &&
            current_route.identifier == service->selected_transport.identifier &&
            current_route.generation == service->selected_transport.generation;
@@ -240,6 +245,7 @@ static void try_connect(mqtt_service_t *service, uint64_t now_ms)
     {
         service->state                 = MQTT_SESSION_WAITING_FOR_TRANSPORT;
         service->is_transport_selected = false;
+
         return;
     }
     service->selected_transport    = route;
@@ -317,6 +323,7 @@ mqtt_session_health_t mqtt_service_get_health(const mqtt_service_t *service)
     health.subscription_replay_count = service->subscription_replay_count;
     health.retry_at_ms               = service->retry_at_ms;
     copy_text(health.last_error_detail, sizeof(health.last_error_detail), service->last_error_detail);
+
     return health;
 }
 
@@ -325,6 +332,7 @@ const char *mqtt_get_session_state_name(mqtt_session_state_t state)
 {
     static const char *const names[] = {
         STATE_DISABLED, STATE_WAITING_FOR_TRANSPORT, STATE_CONNECTING, STATE_ONLINE, STATE_BACKOFF, STATE_STOPPING};
+
     return state <= MQTT_SESSION_STOPPING ? names[state] : STATE_UNKNOWN;
 }
 
@@ -333,5 +341,6 @@ const char *mqtt_get_error_category_name(mqtt_error_category_t category)
 {
     static const char *const names[] = {ERROR_NONE,           ERROR_ROUTE,  ERROR_DNS,      ERROR_TLS,
                                         ERROR_AUTHENTICATION, ERROR_BROKER, ERROR_TRANSPORT};
+
     return category <= MQTT_ERROR_TRANSPORT ? names[category] : STATE_UNKNOWN;
 }

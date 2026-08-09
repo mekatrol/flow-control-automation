@@ -25,6 +25,7 @@ static flow_result_t get_runtime_result(flow_reason_code_t code, const char *nod
         memcpy(&result.path[prefix_size], node_id, node_id_size);
         result.path[prefix_size + node_id_size] = '\0';
     }
+
     return result;
 }
 
@@ -38,6 +39,7 @@ static const flow_connection_t *get_driver(const flow_executable_t *flow, uint16
             return &flow->connections[index];
         }
     }
+
     return NULL;
 }
 
@@ -57,10 +59,12 @@ static bool get_input_value(const flow_executable_t *flow, const bool values[FLO
             {
                 return false;
             }
+
             *value = values[driver->source_node_index];
             return true;
         }
     }
+
     return false;
 }
 
@@ -74,6 +78,7 @@ static const flow_input_sample_t *get_sample(const flow_input_frame_t *input, co
             return &input->samples[index];
         }
     }
+
     return NULL;
 }
 
@@ -86,6 +91,7 @@ bool flow_runtime_init(flow_runtime_t *runtime, const flow_executable_t *executa
     }
     *runtime = (flow_runtime_t){.executable = executable};
     flow_runtime_reset(runtime);
+
     return true;
 }
 
@@ -129,6 +135,7 @@ flow_result_t flow_runtime_step(flow_runtime_t *runtime, const flow_input_frame_
     if (!input->is_coherent)
     {
         runtime->evaluation_failure_count++;
+
         return get_runtime_result(FLOW_REASON_INPUT_QUALITY_REJECTED, NULL);
     }
 
@@ -148,6 +155,7 @@ flow_result_t flow_runtime_step(flow_runtime_t *runtime, const flow_input_frame_
                 if (sample == NULL || sample->quality != FLOW_QUALITY_GOOD)
                 {
                     runtime->evaluation_failure_count++;
+
                     return get_runtime_result(FLOW_REASON_INPUT_QUALITY_REJECTED, node->id);
                 }
                 working_values[node_index] = sample->value;
@@ -236,10 +244,12 @@ flow_result_t flow_runtime_step(flow_runtime_t *runtime, const flow_input_frame_
     memcpy(runtime->next_memory, working_memory, sizeof(runtime->next_memory));
     runtime->snapshot    = next;
     runtime->tick_number = next.tick_number;
+
     return get_runtime_result(FLOW_REASON_OK, NULL);
 
 evaluation_failed:
     runtime->evaluation_failure_count++;
+
     return get_runtime_result(FLOW_REASON_EVALUATION_FAILED, NULL);
 }
 

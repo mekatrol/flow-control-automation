@@ -13,10 +13,11 @@ non-ignored ``.c`` and ``.h`` file.
 The current bespoke rules are:
 
 1. Put a blank line before a control-flow statement that opens an ``if``,
-   ``for``, ``while``, or ``switch`` block, except when the statement is the
-   first item after an opening brace.  If a contiguous comment immediately
-   precedes the statement, put the blank line before that comment so the
-   comment remains visually attached to the statement it documents.
+   ``for``, ``while``, or ``switch`` block, and before a ``return`` statement,
+   except when the statement is the first item after an opening brace.  If a
+   contiguous comment immediately precedes the statement, put the blank line
+   before that comment so the comment remains visually attached to the
+   statement it documents.
 2. Change a discarded function call such as ``(void)read_value();`` to the
    ordinary expression statement ``read_value();``.  Other uses of ``void``,
    including pointer casts and unused-variable suppressions, are untouched.
@@ -33,9 +34,9 @@ uncertain.
 
 In particular, the formatter currently assumes:
 
-* control keywords begin their formatted source line;
+* supported statement keywords begin their formatted source line;
 * discarded calls begin with ``(void)`` followed by a simple C identifier;
-* comments attached to control statements occupy contiguous, comment-leading
+* comments attached to separated statements occupy contiguous, comment-leading
   lines; and
 * an opening brace at the end of the previous line identifies the first item
   in a block.
@@ -76,13 +77,13 @@ import sys
 from pathlib import Path
 
 
-# A block-opening control statement is eligible for vertical separation.  The
-# pattern is anchored to the start of a clang-formatted line so constructs such
-# as ``else if``, ``} while (...)``, macro bodies, and text later on a line do
-# not accidentally match.  The indentation capture is descriptive and leaves
-# room for future transformations even though the spacing rule only tests the
-# match today.
-CONTROL_BLOCK = re.compile(r"^(?P<indent>\s*)(?:if|for|while|switch)\s*\(")
+# Block-opening control statements and returns are eligible for vertical
+# separation.  The pattern is anchored to the start of a clang-formatted line
+# so constructs such as ``else if``, ``} while (...)``, macro bodies, and text
+# later on a line do not accidentally match.  Requiring an opening parenthesis
+# after a control keyword and a word boundary after ``return`` prevents matches
+# against identifiers that merely start with one of those words.
+SEPARATED_STATEMENT = re.compile(r"^\s*(?:(?:if|for|while|switch)\s*\(|return\b)")
 
 # A discarded-result cast is removable only when it starts a statement and is
 # followed by a direct call through a simple identifier.  The lookahead checks
@@ -96,19 +97,19 @@ DISCARDED_CALL_CAST = re.compile(r"^(?P<indent>\s*)\(void\)(?=\s*[A-Za-z_]\w*\s*
 # This recognizes C++-style comments, the first and interior lines of common C
 # block-comment layouts, and a standalone terminator.  Trailing comments are
 # deliberately excluded because they document the preceding code rather than
-# the following control statement.
+# the following separated statement.
 COMMENT_LINE = re.compile(r"^\s*(?://|/\*|\*|\*/)")
 
 
 # Tests whether a source line belongs to a comment block that may document the
-# following control statement.  The caller must supply one line without its
+# following separated statement.  The caller must supply one line without its
 # newline terminator; the result is true only when the first non-whitespace
 # token is recognized as comment syntax.
 def is_comment_line(line: str) -> bool:
     return COMMENT_LINE.match(line) is not None
 
 
-# Gets the insertion index for whitespace associated with a control statement.
+# Gets the insertion index for whitespace associated with a separated statement.
 # ``statement_index`` must identify the next position after the already
 # formatted lines.  The result is either that position or the beginning of its
 # immediately preceding contiguous comment block.  Moving the anchor, rather
@@ -160,7 +161,7 @@ def format_source(source: str) -> str:
         # Resolve spacing against output accumulated so far.  Doing this during
         # construction avoids index drift when multiple blank lines are added
         # to the same file.
-        if CONTROL_BLOCK.match(line):
+        if SEPARATED_STATEMENT.match(line):
             anchor = get_spacing_anchor(formatted, len(formatted))
             if is_blank_line_required(formatted, anchor):
                 formatted.insert(anchor, "")

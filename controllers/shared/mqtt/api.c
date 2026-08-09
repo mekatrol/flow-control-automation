@@ -22,6 +22,7 @@ static size_t get_bounded_length(const char *value, size_t capacity)
     {
         size++;
     }
+
     return size;
 }
 
@@ -63,6 +64,7 @@ bool is_mqtt_topic_valid(const char *topic, bool is_filter)
             return false;
         }
     }
+
     return true;
 }
 
@@ -136,9 +138,11 @@ static bool is_publish_coalesced(mqtt_api_t *api, const mqtt_publish_request_t *
             copy_text(publish->correlation_id, sizeof(publish->correlation_id),
                       request->correlation_id != NULL ? request->correlation_id : "");
             api->health.coalesced_count++;
+
             return true;
         }
     }
+
     return false;
 }
 
@@ -160,6 +164,7 @@ mqtt_delivery_status_t mqtt_api_publish(mqtt_api_t *api, const mqtt_publish_requ
             record_delivery(api, request != NULL ? request->correlation_id : NULL, MQTT_DELIVERY_REJECTED_INVALID,
                             MQTT_TRANSPORT_FAILURE_ID);
         }
+
         return MQTT_DELIVERY_REJECTED_INVALID;
     }
 
@@ -167,12 +172,14 @@ mqtt_delivery_status_t mqtt_api_publish(mqtt_api_t *api, const mqtt_publish_requ
     {
         api->health.publish_rejection_count++;
         record_delivery(api, request->correlation_id, MQTT_DELIVERY_REJECTED_OFFLINE, MQTT_TRANSPORT_FAILURE_ID);
+
         return MQTT_DELIVERY_REJECTED_OFFLINE;
     }
 
     if (request->offline_policy == MQTT_OFFLINE_REPLACE_NEWEST && is_publish_coalesced(api, request))
     {
         record_delivery(api, request->correlation_id, MQTT_DELIVERY_ACCEPTED, 0);
+
         return MQTT_DELIVERY_ACCEPTED;
     }
 
@@ -180,10 +187,12 @@ mqtt_delivery_status_t mqtt_api_publish(mqtt_api_t *api, const mqtt_publish_requ
     {
         api->health.publish_rejection_count++;
         record_delivery(api, request->correlation_id, MQTT_DELIVERY_REJECTED_QUEUE_FULL, MQTT_TRANSPORT_FAILURE_ID);
+
         return MQTT_DELIVERY_REJECTED_QUEUE_FULL;
     }
     enqueue_publish(api, request);
     record_delivery(api, request->correlation_id, MQTT_DELIVERY_ACCEPTED, 0);
+
     return MQTT_DELIVERY_ACCEPTED;
 }
 
@@ -197,6 +206,7 @@ bool mqtt_api_get_delivery_result(mqtt_api_t *api, mqtt_delivery_result_t *resul
     *result            = api->deliveries[api->delivery_head];
     api->delivery_head = (api->delivery_head + 1) % MQTT_DELIVERY_QUEUE_CAPACITY;
     api->delivery_count--;
+
     return true;
 }
 
@@ -234,9 +244,11 @@ bool mqtt_api_subscribe(mqtt_api_t *api, const mqtt_subscription_t *subscription
             {
                 (void)api->subscribe_transport(owned->topic_filter, owned->qos, api->transport_context);
             }
+
             return true;
         }
     }
+
     return false;
 }
 
@@ -270,6 +282,7 @@ bool mqtt_api_enqueue_inbound(mqtt_api_t *api, const char *topic, size_t topic_s
         {
             api->health.receive_rejection_count++;
         }
+
         return false;
     }
     const size_t tail               = (api->receive_head + api->receive_count) % MQTT_RECEIVE_QUEUE_CAPACITY;
@@ -280,6 +293,7 @@ bool mqtt_api_enqueue_inbound(mqtt_api_t *api, const char *topic, size_t topic_s
     if (!is_mqtt_topic_valid(message->topic, false))
     {
         api->health.receive_rejection_count++;
+
         return false;
     }
     memcpy(message->payload, payload, payload_size);
@@ -289,6 +303,7 @@ bool mqtt_api_enqueue_inbound(mqtt_api_t *api, const char *topic, size_t topic_s
     message->is_duplicate          = is_duplicate;
     api->receive_count++;
     api->health.receive_queue_depth = api->receive_count;
+
     return true;
 }
 
@@ -315,6 +330,7 @@ static bool is_topic_match(const char *filter, const char *topic)
             return false;
         }
     }
+
     return (*filter == '\0' && *topic == '\0') || (*filter == '#' && filter[1] == '\0');
 }
 

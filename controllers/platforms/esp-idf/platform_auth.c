@@ -33,6 +33,7 @@ static bool get_hex_nibble(char character, uint8_t *value)
         *value = (uint8_t)(character - 'A' + 10);
         return true;
     }
+
     return false;
 }
 
@@ -55,6 +56,7 @@ bool platform_auth_initialize(const char *provisioned_key_hex)
         if (!get_hex_nibble(provisioned_key_hex[index * 2], &high) || !get_hex_nibble(provisioned_key_hex[index * 2 + 1], &low))
         {
             memset(provisioned_key, 0, sizeof(provisioned_key));
+
             return false;
         }
         provisioned_key[index] = (uint8_t)((high << 4U) | low);
@@ -63,6 +65,7 @@ bool platform_auth_initialize(const char *provisioned_key_hex)
     if (psa_crypto_init() != PSA_SUCCESS)
     {
         memset(provisioned_key, 0, sizeof(provisioned_key));
+
         return false;
     }
     psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
@@ -74,6 +77,7 @@ bool platform_auth_initialize(const char *provisioned_key_hex)
     psa_reset_key_attributes(&attributes);
     /* Erase the decoded copy after PSA has imported it into opaque volatile storage. */
     memset(provisioned_key, 0, sizeof(provisioned_key));
+
     return result == PSA_SUCCESS;
 }
 
@@ -82,6 +86,7 @@ bool platform_auth_get_hmac(void * /* context */, const uint8_t *message, size_t
                             uint8_t tag[CONTROLLER_AUTH_TAG_SIZE])
 {
     size_t tag_size = 0;
+
     return protocol_key_id != 0 && message != NULL && tag != NULL &&
            psa_mac_compute(protocol_key_id, PSA_ALG_HMAC(PSA_ALG_SHA_256), message, message_size, tag, CONTROLLER_AUTH_TAG_SIZE,
                            &tag_size) == PSA_SUCCESS &&

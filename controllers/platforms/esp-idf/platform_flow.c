@@ -38,6 +38,7 @@ static bool initialize_persistence(void)
         }
         result = nvs_flash_init();
     }
+
     return result == ESP_OK;
 }
 
@@ -55,6 +56,7 @@ static bool load_flow(void * /* context */, controller_flow_metadata_t *metadata
     }
     *metadata = record.metadata;
     memcpy(artifact, record.artifact, metadata->size);
+
     return true;
 }
 
@@ -67,6 +69,7 @@ static bool commit_flow(void * /* context */, const controller_flow_metadata_t *
     }
     platform_flow_record_t record = {.version = FLOW_RECORD_VERSION, .metadata = *metadata};
     memcpy(record.artifact, artifact, metadata->size);
+
     return nvs_set_blob(flow_handle, FLOW_RECORD_KEY, &record, sizeof(record)) == ESP_OK && nvs_commit(flow_handle) == ESP_OK;
 }
 
@@ -83,6 +86,7 @@ bool platform_flow_initialize(controller_flow_store_t *store)
     {
         return false;
     }
+
     *store = (controller_flow_store_t){.load = load_flow, .commit = commit_flow, .remove = remove_flow};
     return true;
 }
@@ -91,6 +95,7 @@ bool platform_flow_initialize(controller_flow_store_t *store)
 bool platform_flow_get_digest(void * /* context */, const uint8_t *data, size_t size, uint8_t digest[CONTROLLER_FLOW_DIGEST_SIZE])
 {
     size_t digest_size = 0;
+
     return data != NULL && size > 0 && digest != NULL && psa_crypto_init() == PSA_SUCCESS &&
            psa_hash_compute(PSA_ALG_SHA_256, data, size, digest, CONTROLLER_FLOW_DIGEST_SIZE, &digest_size) == PSA_SUCCESS &&
            digest_size == CONTROLLER_FLOW_DIGEST_SIZE;
@@ -100,5 +105,6 @@ bool platform_flow_get_digest(void * /* context */, const uint8_t *data, size_t 
 bool platform_flow_is_artifact_valid(void * /* context */, const controller_flow_metadata_t *metadata, const uint8_t *artifact)
 {
     const uint32_t supported_schema = 1;
+
     return metadata != NULL && artifact != NULL && metadata->artifact_schema == supported_schema && metadata->size > 0;
 }

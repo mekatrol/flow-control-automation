@@ -14,19 +14,26 @@ network_event_type_t ethernet_link_get_network_event_type(ethernet_platform_even
     switch (platform_type)
     {
         case ETHERNET_PLATFORM_EVENT_DRIVER_STARTED:
+
             return NETWORK_EVENT_STARTED;
         case ETHERNET_PLATFORM_EVENT_LINK_UP:
+
             return NETWORK_EVENT_CONNECTING;
         case ETHERNET_PLATFORM_EVENT_ADDRESS_READY:
+
             return NETWORK_EVENT_ONLINE;
         case ETHERNET_PLATFORM_EVENT_ADDRESS_LOST:
         case ETHERNET_PLATFORM_EVENT_LINK_DOWN:
+
             return NETWORK_EVENT_CONNECTION_LOST;
         case ETHERNET_PLATFORM_EVENT_DRIVER_FAILED:
+
             return NETWORK_EVENT_FAILED;
         case ETHERNET_PLATFORM_EVENT_STOPPED:
+
             return NETWORK_EVENT_STOPPED;
         default:
+
             return NETWORK_EVENT_FAILED;
     }
 }

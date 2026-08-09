@@ -19,6 +19,7 @@ int controller_health_format(char *output, size_t output_size, const controller_
     {
         return -1;
     }
+
     return snprintf(output, output_size, HEALTH_FORMAT, snapshot->uptime_ms, snapshot->free_heap_bytes, snapshot->wifi_state,
                     snapshot->ethernet_state, snapshot->mqtt_state, snapshot->mqtt_transport, snapshot->mqtt_error,
                     snapshot->mqtt_reconnect_count, snapshot->mqtt_queue_depth, snapshot->rs485_state, snapshot->rs485_errors,

@@ -100,6 +100,7 @@ static uint32_t get_backoff_delay(network_manager_t *manager, network_link_id_t 
     {
         delay = config->maximum_backoff_ms;
     }
+
     return (uint32_t)delay;
 }
 
@@ -186,6 +187,7 @@ bool network_manager_enqueue_event(network_manager_t *manager, const network_eve
     if (manager->event_count == NETWORK_EVENT_QUEUE_CAPACITY)
     {
         manager->dropped_events++;
+
         return false;
     }
     const size_t tail = (manager->event_head + manager->event_count) % NETWORK_EVENT_QUEUE_CAPACITY;
@@ -200,6 +202,7 @@ bool network_manager_enqueue_event(network_manager_t *manager, const network_eve
     copy_text(queued->ipv6_address, sizeof(queued->ipv6_address), event->ipv6_address);
     copy_text(queued->reason, sizeof(queued->reason), event->reason);
     manager->event_count++;
+
     return true;
 }
 
@@ -369,6 +372,7 @@ void network_manager_shutdown(network_manager_t *manager, uint64_t now_ms)
 network_link_snapshot_t network_manager_get_link_snapshot(const network_manager_t *manager, network_link_id_t link_id)
 {
     network_link_snapshot_t empty = {0};
+
     return is_valid_link(link_id) ? manager->links[link_id] : empty;
 }
 
@@ -399,6 +403,7 @@ bool network_manager_get_selected_link(const network_manager_t *manager, network
         {
             return false;
         }
+
         *selected_link = id;
         return true;
     }
@@ -420,6 +425,7 @@ bool network_manager_get_selected_link(const network_manager_t *manager, network
     {
         *selected_link = best;
     }
+
     return found;
 }
 
@@ -435,6 +441,7 @@ const char *network_get_link_id_name(network_link_id_t link_id)
     {
         return LINK_NAME_ETHERNET;
     }
+
     return LINK_NAME_UNKNOWN;
 }
 
@@ -443,5 +450,6 @@ const char *network_get_link_state_name(network_link_state_t state)
 {
     static const char *const names[] = {STATE_DISABLED, STATE_STARTING, STATE_CONNECTING, STATE_ONLINE,
                                         STATE_DEGRADED, STATE_BACKOFF,  STATE_STOPPED};
+
     return state <= NETWORK_LINK_STOPPED ? names[state] : LINK_NAME_UNKNOWN;
 }

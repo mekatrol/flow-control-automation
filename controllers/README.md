@@ -60,9 +60,9 @@ ignored, and no credential is stored in board defaults.
 The repository's [`.clang-format`](.clang-format) configuration uses the
 Microsoft base style, permits lines up to 130 columns, and aligns assignment
 operators in each contiguous block. A repository-owned post-formatter then
-separates control-flow blocks with blank lines and removes `(void)` casts from
-discarded function-call results. A blank line or comment ends an assignment
-alignment block.
+separates control-flow blocks and return statements with blank lines, and
+removes `(void)` casts from discarded function-call results. A blank line or
+comment ends an assignment alignment block.
 
 Before committing, run **Tasks: Run Task** and choose **Format**. The equivalent
 command-line invocation is:

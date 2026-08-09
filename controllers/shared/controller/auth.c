@@ -50,6 +50,7 @@ static bool is_tag_equal(const uint8_t *left, const uint8_t *right)
     {
         difference |= left[index] ^ right[index];
     }
+
     return difference == 0;
 }
 
@@ -65,6 +66,7 @@ static controller_auth_session_t *get_session(controller_auth_t *auth, uint16_t 
             return session;
         }
     }
+
     return NULL;
 }
 
@@ -91,6 +93,7 @@ bool controller_auth_init(controller_auth_t *auth, const controller_auth_config_
     }
     *auth        = (controller_auth_t){0};
     auth->config = *config;
+
     return true;
 }
 
@@ -119,6 +122,7 @@ bool controller_auth_create_challenge(controller_auth_t *auth, uint16_t peer,
     if (session == NULL || !auth->config.get_random(auth->config.context, random_data, sizeof(random_data)))
     {
         auth->health.saturation_count++;
+
         return false;
     }
     uint32_t id = 0;
@@ -131,6 +135,7 @@ bool controller_auth_create_challenge(controller_auth_t *auth, uint16_t peer,
     if (id == 0 || get_session(auth, peer, id) != NULL)
     {
         auth->health.saturation_count++;
+
         return false;
     }
     *session = (controller_auth_session_t){
@@ -140,6 +145,7 @@ bool controller_auth_create_challenge(controller_auth_t *auth, uint16_t peer,
     *session_id = id;
     memcpy(device_nonce, session->device_nonce, CONTROLLER_AUTH_NONCE_SIZE);
     auth->health.challenge_count++;
+
     return true;
 }
 
@@ -163,6 +169,7 @@ bool controller_auth_get_proof(controller_auth_t *auth, uint16_t peer, uint32_t 
     put_u32(&message[AUTH_DOMAIN_SIZE + 2], session_id);
     memcpy(&message[AUTH_DOMAIN_SIZE + 6], session->client_nonce, CONTROLLER_AUTH_NONCE_SIZE);
     memcpy(&message[AUTH_DOMAIN_SIZE + 6 + CONTROLLER_AUTH_NONCE_SIZE], session->device_nonce, CONTROLLER_AUTH_NONCE_SIZE);
+
     return auth->config.get_hmac(auth->config.context, message, sizeof(message), proof);
 }
 
@@ -187,11 +194,13 @@ bool controller_auth_verify_proof(controller_auth_t *auth, uint16_t peer, uint32
         {
             *session = (controller_auth_session_t){0};
         }
+
         return false;
     }
     session->is_authenticated = true;
     session->expires_at_ms    = now_ms + auth->config.session_lifetime_ms;
     auth->health.authenticated_count++;
+
     return true;
 }
 
@@ -211,6 +220,7 @@ static bool get_envelope_tag(controller_auth_t *auth, const uint8_t *domain, uin
     put_u64(&message[AUTH_DOMAIN_SIZE + 6], sequence);
     message[AUTH_DOMAIN_SIZE + 14] = operation;
     memcpy(&message[AUTH_ENVELOPE_PREFIX_SIZE], body, body_size);
+
     return auth->config.get_hmac(auth->config.context, message, AUTH_ENVELOPE_PREFIX_SIZE + body_size, tag);
 }
 
@@ -232,9 +242,11 @@ bool controller_auth_verify_request(controller_auth_t *auth, uint16_t peer, uint
         !is_tag_equal(expected, tag))
     {
         auth->health.replay_count++;
+
         return false;
     }
     session->receive_sequence = sequence;
+
     return true;
 }
 
@@ -261,7 +273,8 @@ bool controller_auth_sign_response(controller_auth_t *auth, uint16_t peer, uint3
         return false;
     }
     session->transmit_sequence = next_sequence;
-    *sequence                  = next_sequence;
+
+    *sequence = next_sequence;
     return true;
 }
 

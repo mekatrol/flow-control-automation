@@ -28,14 +28,19 @@ const char *get_diagnostic_severity_name(diagnostic_severity_t severity)
     switch (severity)
     {
         case DIAGNOSTIC_DEBUG:
+
             return SEVERITY_DEBUG;
         case DIAGNOSTIC_INFO:
+
             return SEVERITY_INFO;
         case DIAGNOSTIC_WARNING:
+
             return SEVERITY_WARNING;
         case DIAGNOSTIC_ERROR:
+
             return SEVERITY_ERROR;
         default:
+
             return VALUE_UNKNOWN;
     }
 }
@@ -58,6 +63,7 @@ int diagnostic_format_event(char *output, size_t output_size, diagnostic_severit
         safe_message[target++] = (character == '\n' || character == '\r' || character == '"') ? ' ' : character;
     }
     safe_message[target] = '\0';
+
     return snprintf(output, output_size, EVENT_FORMAT, timestamp_ms, get_diagnostic_severity_name(severity), component,
                     event_code, safe_message);
 }
@@ -71,6 +77,7 @@ int diagnostic_format_redacted_network_config(char *output, size_t output_size, 
     }
     const bool wifi_enabled          = wifi_ssid != NULL && wifi_ssid[0] != '\0';
     const bool credential_configured = wifi_password != NULL && wifi_password[0] != '\0';
+
     return snprintf(output, output_size, NETWORK_CONFIG_FORMAT, wifi_enabled ? VALUE_ENABLED : VALUE_DISABLED,
                     credential_configured ? VALUE_REDACTED : VALUE_NOT_CONFIGURED);
 }
@@ -106,8 +113,10 @@ bool is_diagnostic_event_allowed(diagnostic_rate_limiter_t *limiter, uint64_t no
     if (limiter->emitted < maximum_events)
     {
         ++limiter->emitted;
+
         return true;
     }
     ++limiter->suppressed;
+
     return false;
 }

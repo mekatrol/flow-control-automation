@@ -76,5 +76,6 @@ int main(void)
     test_redaction();
     test_rate_limiting();
     puts(TEST_SUCCESS_MESSAGE);
+
     return 0;
 }

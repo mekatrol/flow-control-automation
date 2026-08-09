@@ -44,6 +44,7 @@ static uint32_t get_integrity(const void *data, size_t size)
         value ^= bytes[index];
         value *= UINT32_C(16777619);
     }
+
     return value;
 }
 
@@ -63,6 +64,7 @@ static settings_bootstrap_record_t get_bootstrap_record(uint32_t generation, uin
     record.generation     = generation;
     record.state          = state;
     record.integrity      = get_integrity(&record, offsetof(settings_bootstrap_record_t, integrity));
+
     return record;
 }
 
@@ -75,6 +77,7 @@ static settings_value_record_t get_value_record(const controller_settings_t *set
     record.generation     = generation;
     record.settings       = *settings;
     record.integrity      = get_integrity(&record, offsetof(settings_value_record_t, integrity));
+
     return record;
 }
 
@@ -97,6 +100,7 @@ static settings_storage_state_t get_read_failure_state(settings_store_result_t r
     {
         return SETTINGS_STORAGE_INCOMPATIBLE;
     }
+
     return SETTINGS_STORAGE_CORRUPT;
 }
 
@@ -109,6 +113,7 @@ static settings_storage_state_t initialize_storage(settings_service_t *service, 
         service->store.commit(service->store.context) != SETTINGS_STORE_OK)
     {
         service->store.abort(service->store.context);
+
         return SETTINGS_STORAGE_UNAVAILABLE;
     }
 
@@ -121,11 +126,13 @@ static settings_storage_state_t initialize_storage(settings_service_t *service, 
         service->store.commit(service->store.context) != SETTINGS_STORE_OK)
     {
         service->store.abort(service->store.context);
+
         return SETTINGS_STORAGE_INITIALIZATION_INTERRUPTED;
     }
     service->snapshot       = *defaults;
     service->generation     = ready.generation;
     service->schema_version = ready.schema_version;
+
     return SETTINGS_STORAGE_READY;
 }
 
@@ -150,30 +157,35 @@ settings_storage_state_t settings_service_initialize(settings_service_t *service
     if (bootstrap_result == SETTINGS_STORE_MISSING)
     {
         service->state = initialize_storage(service, defaults);
+
         return service->state;
     }
 
     if (bootstrap_result != SETTINGS_STORE_OK || bootstrap_size != sizeof(bootstrap))
     {
         service->state = get_read_failure_state(bootstrap_result);
+
         return service->state;
     }
 
     if (memcmp(bootstrap.magic, BOOTSTRAP_MAGIC, sizeof(bootstrap.magic)) != 0)
     {
         service->state = SETTINGS_STORAGE_FOREIGN;
+
         return service->state;
     }
 
     if (!is_integrity_valid(&bootstrap, offsetof(settings_bootstrap_record_t, integrity), bootstrap.integrity))
     {
         service->state = SETTINGS_STORAGE_CORRUPT;
+
         return service->state;
     }
 
     if (bootstrap.format_version != SETTINGS_FORMAT_VERSION || bootstrap.schema_version != SETTINGS_SCHEMA_VERSION)
     {
         service->state = SETTINGS_STORAGE_INCOMPATIBLE;
+
         return service->state;
     }
 
@@ -181,12 +193,14 @@ settings_storage_state_t settings_service_initialize(settings_service_t *service
     {
         /* Restart seeding from defaults because an initializing generation was never exposed. */
         service->state = initialize_storage(service, defaults);
+
         return service->state;
     }
 
     if (bootstrap.state != BOOTSTRAP_STATE_READY)
     {
         service->state = SETTINGS_STORAGE_CORRUPT;
+
         return service->state;
     }
     settings_value_record_t values              = {0};
@@ -198,18 +212,21 @@ settings_storage_state_t settings_service_initialize(settings_service_t *service
         !is_integrity_valid(&values, offsetof(settings_value_record_t, integrity), values.integrity))
     {
         service->state = get_read_failure_state(values_result);
+
         return service->state;
     }
 
     if (values.schema_version != bootstrap.schema_version || values.generation != bootstrap.generation)
     {
         service->state = SETTINGS_STORAGE_CORRUPT;
+
         return service->state;
     }
     service->snapshot       = values.settings;
     service->generation     = values.generation;
     service->schema_version = values.schema_version;
     service->state          = SETTINGS_STORAGE_READY;
+
     return service->state;
 }
 
@@ -234,6 +251,7 @@ settings_store_result_t settings_service_commit(settings_service_t *service, con
         service->store.stage_bootstrap(service->store.context, &ready, sizeof(ready)) != SETTINGS_STORE_OK)
     {
         service->store.abort(service->store.context);
+
         return SETTINGS_STORE_IO_ERROR;
     }
     const settings_store_result_t result = service->store.commit(service->store.context);
@@ -241,10 +259,12 @@ settings_store_result_t settings_service_commit(settings_service_t *service, con
     if (result != SETTINGS_STORE_OK)
     {
         service->store.abort(service->store.context);
+
         return result;
     }
     service->snapshot   = *settings;
     service->generation = generation;
+
     return SETTINGS_STORE_OK;
 }
 
@@ -253,6 +273,7 @@ settings_store_result_t settings_service_reset(settings_service_t *service)
 {
     controller_settings_t reset = {
         .hostname = service->defaults.hostname, .rs485 = service->defaults.rs485, .is_user_reset = true};
+
     return settings_service_commit(service, &reset);
 }
 
@@ -261,5 +282,6 @@ const char *settings_get_storage_state_name(settings_storage_state_t state)
 {
     static const char *const names[] = {"unavailable", "uninitialized", "initialization_interrupted", "ready", "incompatible",
                                         "corrupt",     "foreign"};
+
     return state <= SETTINGS_STORAGE_FOREIGN ? names[state] : "unknown";
 }

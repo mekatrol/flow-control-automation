@@ -37,6 +37,7 @@ static flow_result_t get_result(flow_reason_code_t code, const char *path)
     {
         snprintf(result.path, sizeof(result.path), "%s", path);
     }
+
     return result;
 }
 
@@ -50,6 +51,7 @@ static flow_result_t get_identifier_result(flow_reason_code_t code, const char *
     memcpy(result.path, prefix, prefix_size);
     memcpy(&result.path[prefix_size], identifier, identifier_size);
     result.path[prefix_size + identifier_size] = '\0';
+
     return result;
 }
 
@@ -60,6 +62,7 @@ static bool get_u8(reader_t *reader, uint8_t *value)
     {
         return false;
     }
+
     *value = reader->bytes[reader->offset++];
     return true;
 }
@@ -74,6 +77,7 @@ static bool get_u16(reader_t *reader, uint16_t *value)
     {
         return false;
     }
+
     *value = (uint16_t)low | (uint16_t)((uint16_t)high << 8U);
     return true;
 }
@@ -88,6 +92,7 @@ static bool get_u32(reader_t *reader, uint32_t *value)
     {
         return false;
     }
+
     *value = (uint32_t)low | ((uint32_t)high << 16U);
     return true;
 }
@@ -111,6 +116,7 @@ static bool is_identifier(const uint8_t *bytes, size_t size)
             return false;
         }
     }
+
     return true;
 }
 
@@ -127,6 +133,7 @@ static bool get_id(reader_t *reader, char destination[FLOW_EXECUTABLE_MAX_ID_BYT
     memcpy(destination, &reader->bytes[reader->offset], length);
     destination[length] = '\0';
     reader->offset += length;
+
     return true;
 }
 
@@ -155,6 +162,7 @@ static flow_result_t get_nodes(reader_t *reader, flow_executable_t *flow)
         {
             char path[FLOW_EXECUTABLE_MAX_PATH_BYTES + 1];
             snprintf(path, sizeof(path), "/nodes/%u", index);
+
             return get_result(FLOW_REASON_NON_CANONICAL_ORDER, path);
         }
 
@@ -211,6 +219,7 @@ static flow_result_t get_nodes(reader_t *reader, flow_executable_t *flow)
         }
         reader->offset = config_start + config_size;
     }
+
     return get_result(FLOW_REASON_OK, "");
 }
 
@@ -256,6 +265,7 @@ static flow_result_t get_ports(reader_t *reader, flow_executable_t *flow)
             }
         }
     }
+
     return get_result(FLOW_REASON_OK, "");
 }
 
@@ -297,6 +307,7 @@ static flow_result_t get_connections(reader_t *reader, flow_executable_t *flow)
         {
             char path[FLOW_EXECUTABLE_MAX_PATH_BYTES + 1];
             snprintf(path, sizeof(path), "/connections/%u", index);
+
             return get_result(FLOW_REASON_INCOMPATIBLE_TYPE, path);
         }
 
@@ -308,6 +319,7 @@ static flow_result_t get_connections(reader_t *reader, flow_executable_t *flow)
             }
         }
     }
+
     return get_result(FLOW_REASON_OK, "");
 }
 
@@ -359,6 +371,7 @@ static flow_result_t get_points(reader_t *reader, flow_executable_t *flow, const
             return get_identifier_result(FLOW_REASON_MISSING_POINT, "/points/", point->id);
         }
     }
+
     return get_result(FLOW_REASON_OK, "");
 }
 
@@ -414,6 +427,7 @@ static flow_result_t is_shape_valid(const flow_executable_t *flow)
             }
         }
     }
+
     return get_result(FLOW_REASON_OK, "");
 }
 
@@ -469,6 +483,7 @@ static flow_result_t get_schedule(flow_executable_t *flow)
             }
         }
     }
+
     return get_result(FLOW_REASON_OK, "");
 }
 
@@ -640,5 +655,6 @@ flow_result_t flow_executable_prepare(const uint8_t *artifact, size_t artifact_s
     {
         return result;
     }
+
     return get_schedule(flow);
 }

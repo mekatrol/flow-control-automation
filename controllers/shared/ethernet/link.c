@@ -35,6 +35,7 @@ static const char *get_event_reason(ethernet_platform_event_type_t type)
         REASON_STARTED,   REASON_LINK_UP,       REASON_ADDRESS_READY, REASON_ADDRESS_LOST,
         REASON_LINK_DOWN, REASON_DRIVER_FAILED, REASON_STOPPED,
     };
+
     return type <= ETHERNET_PLATFORM_EVENT_STOPPED ? reasons[type] : REASON_DRIVER_FAILED;
 }
 
@@ -52,6 +53,7 @@ bool ethernet_link_init(ethernet_link_t *ethernet_link, network_manager_t *netwo
     {
         diagnostics_emit(DIAGNOSTIC_ERROR, COMPONENT_ETHERNET, EVENT_INIT_FAILED, MESSAGE_INIT_FAILED);
     }
+
     return ethernet_link->platform_initialized;
 }
 

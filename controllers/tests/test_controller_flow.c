@@ -19,6 +19,7 @@ static bool get_digest(void *context, const uint8_t *data, size_t size, uint8_t 
     {
         digest[index % CONTROLLER_FLOW_DIGEST_SIZE] ^= data[index];
     }
+
     return true;
 }
 
@@ -26,6 +27,7 @@ static bool get_digest(void *context, const uint8_t *data, size_t size, uint8_t 
 static bool is_artifact_valid(void *context, const controller_flow_metadata_t *metadata, const uint8_t *artifact)
 {
     assert(context == NULL && artifact != NULL);
+
     return metadata->artifact_schema == 1;
 }
 
@@ -40,6 +42,7 @@ static bool load_flow(void *context, controller_flow_metadata_t *metadata, uint8
     }
     *metadata = durable_metadata;
     memcpy(artifact, durable_artifact, metadata->size);
+
     return true;
 }
 
@@ -50,6 +53,7 @@ static bool commit_flow(void *context, const controller_flow_metadata_t *metadat
     durable_metadata = *metadata;
     memcpy(durable_artifact, artifact, metadata->size);
     has_durable = true;
+
     return true;
 }
 
@@ -58,6 +62,7 @@ static bool remove_flow(void *context)
 {
     assert(context == NULL);
     has_durable = false;
+
     return true;
 }
 
@@ -67,6 +72,7 @@ static controller_flow_t get_flow(void)
     controller_flow_t flow;
     const controller_flow_store_t store = {.load = load_flow, .commit = commit_flow, .remove = remove_flow};
     assert(controller_flow_init(&flow, get_digest, is_artifact_valid, NULL, &store));
+
     return flow;
 }
 
@@ -76,6 +82,7 @@ static controller_flow_metadata_t get_metadata(const uint8_t *artifact, size_t s
     controller_flow_metadata_t metadata = {.revision = revision, .artifact_schema = 1, .size = size};
     memcpy(metadata.id, "flow-1", sizeof("flow-1"));
     assert(get_digest(NULL, artifact, size, metadata.digest));
+
     return metadata;
 }
 
@@ -133,5 +140,6 @@ int main(void)
     test_transfer_round_trip();
     test_rejections();
     puts(TEST_SUCCESS_MESSAGE);
+
     return 0;
 }

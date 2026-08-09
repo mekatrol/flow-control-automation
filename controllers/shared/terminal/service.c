@@ -106,6 +106,7 @@ static bool is_protocol_key_valid(const char *value)
             return false;
         }
     }
+
     return true;
 }
 
@@ -165,6 +166,7 @@ static size_t get_bounded_length(const char *value, size_t capacity)
     {
         size++;
     }
+
     return size;
 }
 
@@ -193,6 +195,7 @@ static bool is_credential_equal(const settings_nullable_string_t *expected, cons
         const unsigned right = index < actual_size ? (unsigned char)actual[index] : 0U;
         difference |= left ^ right;
     }
+
     return difference == 0U;
 }
 
@@ -216,6 +219,7 @@ static bool is_hostname_valid(const char *hostname)
             return false;
         }
     }
+
     return true;
 }
 
@@ -309,6 +313,7 @@ static bool is_settings_update_successful(terminal_service_t *service, const con
     {
         service->config.settings_changed(service->config.context);
     }
+
     return is_success;
 }
 
@@ -405,6 +410,7 @@ static bool is_current_password_configured(const terminal_service_t *service, co
     {
         return settings->terminal_password.is_set;
     }
+
     return service->credential_target == TERMINAL_CREDENTIAL_MQTT && settings->mqtt_password.is_set;
 }
 
@@ -441,6 +447,7 @@ static bool is_credential_commit_successful(terminal_service_t *service)
     copy_bounded(secret->value, sizeof(secret->value), service->pending_secret);
     const bool is_success = is_settings_update_successful(service, &settings);
     memset(&settings, 0, sizeof(settings));
+
     return is_success;
 }
 
@@ -462,6 +469,7 @@ static void start_authentication(terminal_service_t *service)
             write_output(service, STORAGE_UNAVAILABLE);
         }
         show_recovery_menu(service);
+
         return;
     }
     const controller_settings_t settings = settings_service_get_snapshot(service->config.settings);
@@ -1112,5 +1120,6 @@ const char *terminal_get_state_name(terminal_state_t state)
                                         "edit_rs485_address",
                                         "edit_rs485_baud_rate",
                                         "edit_protocol_key"};
+
     return state <= TERMINAL_STATE_EDIT_RS485_BAUD_RATE ? names[state] : "unknown";
 }

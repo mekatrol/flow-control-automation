@@ -39,19 +39,11 @@ formatting setup.
    functionality in the same source file. Constants, types, and enums may be
    grouped when they form a coherent shared contract.
 
-8. Put a blank line before each control-flow statement that opens a block,
-   unless it is the first statement after an opening brace. When a comment
-   immediately documents the statement, put the blank line before the comment
-   instead. The repository format task enforces this rule.
-
-9. Do not cast a discarded function-call result to `(void)`. Call the function
-   directly when its result is intentionally ignored. The repository format
-   task removes these casts.
-
-8. Put a blank line before each control-flow statement that opens a block,
-   unless it is the first statement after an opening brace. When a comment
-   immediately documents the statement, put the blank line before the comment
-   instead. The repository format task enforces this rule.
+8. Put a blank line before each control-flow statement that opens a block and
+   before each `return` statement, unless it is the first statement after an
+   opening brace. When a comment immediately documents the statement, put the
+   blank line before the comment instead. The repository format task enforces
+   this rule.
 
 9. Do not cast a discarded function-call result to `(void)`. Call the function
    directly when its result is intentionally ignored. The repository format

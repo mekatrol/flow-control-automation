@@ -39,6 +39,7 @@ static size_t get_fixture(const char *relative_path, uint8_t *bytes, size_t capa
     assert(!ferror(file));
     assert(feof(file));
     assert(fclose(file) == 0);
+
     return size;
 }
 
@@ -50,6 +51,7 @@ static flow_result_t get_prepared_fixture(const char *fixture_id, flow_executabl
     const int length = snprintf(path, sizeof(path), "%s/artifact.bin", fixture_id);
     assert(length > 0 && (size_t)length < sizeof(path));
     const size_t size = get_fixture(path, bytes, sizeof(bytes));
+
     return flow_executable_prepare(bytes, size, &TARGET, flow);
 }
 
@@ -64,6 +66,7 @@ static bool get_node_value(const flow_tick_snapshot_t *snapshot, const char *nod
         }
     }
     assert(false);
+
     return false;
 }
 
@@ -163,5 +166,6 @@ int main(void)
     test_two_button_ticks();
     test_memory_feedback();
     test_failed_tick_is_atomic();
+
     return 0;
 }

@@ -110,6 +110,7 @@ static platform_settings_result_t get_card_initialization_result(const sdmmc_hos
     {
         return PLATFORM_SETTINGS_CARD_INITIALIZATION_UNSUPPORTED;
     }
+
     return PLATFORM_SETTINGS_CARD_INITIALIZATION_FAILED;
 }
 
@@ -123,6 +124,7 @@ static bool get_crypto_key(const uint8_t key[SETTINGS_KEY_BYTES], mbedtls_svc_ke
     psa_set_key_bits(&attributes, SETTINGS_KEY_BYTES * 8);
     const psa_status_t result = psa_import_key(&attributes, key, SETTINGS_KEY_BYTES, key_id);
     psa_reset_key_attributes(&attributes);
+
     return result == PSA_SUCCESS;
 }
 
@@ -146,6 +148,7 @@ static bool get_hex_nibble(char character, uint8_t *value)
         *value = (uint8_t)(character - 'A' + 10);
         return true;
     }
+
     return false;
 }
 
@@ -176,6 +179,7 @@ static bool derive_settings_key(uint8_t key[SETTINGS_KEY_BYTES])
     if (esp_read_mac(factory_mac, ESP_MAC_WIFI_STA) != ESP_OK)
     {
         memset(provisioned_key, 0, sizeof(provisioned_key));
+
         return false;
     }
     uint8_t derivation_input[SETTINGS_KEY_BYTES + sizeof(factory_mac) + sizeof(KEY_CONTEXT)];
@@ -189,6 +193,7 @@ static bool derive_settings_key(uint8_t key[SETTINGS_KEY_BYTES])
                             key_size == SETTINGS_KEY_BYTES;
     memset(derivation_input, 0, sizeof(derivation_input));
     memset(provisioned_key, 0, sizeof(provisioned_key));
+
     return is_success;
 }
 
@@ -249,6 +254,7 @@ static bool read_slot(platform_settings_context_t *context, uint32_t slot, setti
     if (!is_decrypted)
     {
         memset(plaintext, 0, sizeof(plaintext));
+
         return false;
     }
     memcpy(payload->bootstrap, plaintext, header->bootstrap_size);
@@ -257,6 +263,7 @@ static bool read_slot(platform_settings_context_t *context, uint32_t slot, setti
     payload->settings_size = header->settings_size;
     *generation            = header->generation;
     memset(plaintext, 0, sizeof(plaintext));
+
     return true;
 }
 
@@ -309,6 +316,7 @@ static settings_store_result_t write_slot(platform_settings_context_t *context, 
     {
         return SETTINGS_STORE_IO_ERROR;
     }
+
     return SETTINGS_STORE_OK;
 }
 
@@ -331,6 +339,7 @@ static settings_store_result_t get_record(const platform_settings_context_t *con
         return SETTINGS_STORE_CORRUPT;
     }
     memcpy(record, source, source_size);
+
     *size = source_size;
     return SETTINGS_STORE_OK;
 }
@@ -339,6 +348,7 @@ static settings_store_result_t get_record(const platform_settings_context_t *con
 static settings_store_result_t get_bootstrap(void *opaque, void *record, size_t capacity, size_t *size)
 {
     platform_settings_context_t *context = opaque;
+
     return get_record(context, context->current.bootstrap, context->current.bootstrap_size, record, capacity, size);
 }
 
@@ -346,6 +356,7 @@ static settings_store_result_t get_bootstrap(void *opaque, void *record, size_t 
 static settings_store_result_t get_settings(void *opaque, void *record, size_t capacity, size_t *size)
 {
     platform_settings_context_t *context = opaque;
+
     return get_record(context, context->current.settings, context->current.settings_size, record, capacity, size);
 }
 
@@ -363,6 +374,7 @@ static settings_store_result_t stage_record(platform_settings_context_t *context
         return SETTINGS_STORE_FULL;
     }
     memcpy(destination, record, size);
+
     *destination_size = size;
     return SETTINGS_STORE_OK;
 }
@@ -371,6 +383,7 @@ static settings_store_result_t stage_record(platform_settings_context_t *context
 static settings_store_result_t stage_bootstrap(void *opaque, const void *record, size_t size)
 {
     platform_settings_context_t *context = opaque;
+
     return stage_record(context, context->staged.bootstrap, &context->staged.bootstrap_size, record, size);
 }
 
@@ -378,6 +391,7 @@ static settings_store_result_t stage_bootstrap(void *opaque, const void *record,
 static settings_store_result_t stage_settings(void *opaque, const void *record, size_t size)
 {
     platform_settings_context_t *context = opaque;
+
     return stage_record(context, context->staged.settings, &context->staged.settings_size, record, size);
 }
 
@@ -409,6 +423,7 @@ static settings_store_result_t commit(void *opaque)
         context->active_slot = target_slot;
         memset(&context->staged, 0, sizeof(context->staged));
     }
+
     return result;
 }
 
@@ -510,9 +525,11 @@ platform_settings_result_t platform_settings_initialize(const settings_storage_c
     {
         /* Nonblank unauthenticated data is foreign or corrupt and must not be overwritten. */
         settings_context.is_media_initializable = true;
+
         return PLATFORM_SETTINGS_MEDIA_INVALID;
     }
     settings_context.is_ready = true;
+
     return PLATFORM_SETTINGS_READY;
 }
 
@@ -536,11 +553,13 @@ bool platform_settings_initialize_media(void)
             memcmp(cleared_slot, verified_slot, sizeof(cleared_slot)) != 0)
         {
             memset(verified_slot, 0, sizeof(verified_slot));
+
             return false;
         }
     }
     memset(verified_slot, 0, sizeof(verified_slot));
     settings_context.is_media_initializable = false;
+
     return true;
 }
 
@@ -576,5 +595,6 @@ const char *platform_settings_get_result_name(platform_settings_result_t result)
                                         "card_initialization_unsupported",
                                         "card_too_small",
                                         "media_invalid_or_foreign"};
+
     return result <= PLATFORM_SETTINGS_MEDIA_INVALID ? names[result] : "unknown";
 }

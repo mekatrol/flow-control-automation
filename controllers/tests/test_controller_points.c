@@ -11,6 +11,7 @@ static const char TEST_SUCCESS_MESSAGE[] = "Controller point arbitration tests p
 static bool write_outputs(uint16_t outputs)
 {
     written_outputs = outputs;
+
     return true;
 }
 
@@ -25,6 +26,7 @@ static controller_point_command_t get_command(uint8_t output, uint8_t priority, 
                                           .expires_at_ms = INT64_MIN};
     snprintf(command.source_id, sizeof(command.source_id), "%s", source);
     snprintf(command.correlation_id, sizeof(command.correlation_id), "correlation-%u", priority);
+
     return command;
 }
 
@@ -75,5 +77,6 @@ int main(void)
     test_arbitration_and_relinquish();
     test_expiry_and_subscription();
     puts(TEST_SUCCESS_MESSAGE);
+
     return 0;
 }

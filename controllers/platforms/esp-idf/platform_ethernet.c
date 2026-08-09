@@ -38,6 +38,7 @@ static bool is_driver_started;
 static bool is_gpio_interrupt_service_ready(void)
 {
     const esp_err_t result = gpio_install_isr_service(ESP_INTR_FLAG_LOWMED);
+
     /* Another feature may own the shared service, which is already usable. */
     return result == ESP_OK || result == ESP_ERR_INVALID_STATE;
 }
@@ -60,6 +61,7 @@ static bool is_dns_ready(void)
     {
         return false;
     }
+
     return dns.ip.type == ESP_IPADDR_TYPE_V4 && dns.ip.u_addr.ip4.addr != 0;
 }
 
@@ -89,6 +91,7 @@ static void handle_ethernet_event(void * /* context */, esp_event_base_t event_b
             event.type        = ETHERNET_PLATFORM_EVENT_STOPPED;
             break;
         default:
+
             return;
     }
     enqueue_platform_event(&event);
@@ -236,6 +239,7 @@ bool platform_ethernet_initialize(const ethernet_link_config_t *config)
     {
         return false;
     }
+
     return true;
 }
 
@@ -246,6 +250,7 @@ bool platform_ethernet_start(void)
     {
         return true;
     }
+
     return ethernet_driver != NULL && esp_eth_start(ethernet_driver) == ESP_OK;
 }
 

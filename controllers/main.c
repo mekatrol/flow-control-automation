@@ -48,6 +48,7 @@ void controller_main(void)
     if (!controller_runtime_start())
     {
         diagnostics_emit(DIAGNOSTIC_ERROR, COMPONENT_RUNTIME, EVENT_START_FAILED, MESSAGE_START_FAILED);
+
         return;
     }
     diagnostics_emit(DIAGNOSTIC_INFO, COMPONENT_RUNTIME, EVENT_STARTED, MESSAGE_STARTED);

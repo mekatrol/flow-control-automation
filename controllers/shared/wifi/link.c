@@ -42,6 +42,7 @@ static const char *get_event_reason(wifi_platform_event_type_t type)
         REASON_DRIVER_STARTED,        REASON_ASSOCIATING,        REASON_ASSOCIATED,    REASON_ADDRESS_READY, REASON_ADDRESS_LOST,
         REASON_AUTHENTICATION_FAILED, REASON_ASSOCIATION_FAILED, REASON_DRIVER_FAILED, REASON_STOPPED,
     };
+
     return type <= WIFI_PLATFORM_EVENT_STOPPED ? reasons[type] : REASON_DRIVER_FAILED;
 }
 
@@ -58,6 +59,7 @@ bool wifi_link_init(wifi_link_t *wifi_link, network_manager_t *network_manager, 
     if (!is_wifi_link_config_valid(config))
     {
         diagnostics_emit(DIAGNOSTIC_ERROR, COMPONENT_WIFI, EVENT_CONFIG_INVALID, MESSAGE_CONFIG_INVALID);
+
         return false;
     }
 
@@ -72,6 +74,7 @@ bool wifi_link_init(wifi_link_t *wifi_link, network_manager_t *network_manager, 
     {
         diagnostics_emit(DIAGNOSTIC_ERROR, COMPONENT_WIFI, EVENT_PLATFORM_INIT_FAILED, MESSAGE_PLATFORM_INIT_FAILED);
     }
+
     return wifi_link->platform_initialized;
 }
 

@@ -38,6 +38,7 @@ static bool write_transport(const uint8_t *data, size_t size)
 {
     written_size = size;
     memcpy(written_data, data, size);
+
     return true;
 }
 
@@ -150,5 +151,6 @@ int main(void)
     test_receive_queue_saturation();
     test_error_counters();
     puts(TEST_SUCCESS_MESSAGE);
+
     return 0;
 }

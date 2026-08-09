@@ -38,24 +38,34 @@ static const char *get_reset_reason_name(esp_reset_reason_t reason)
     switch (reason)
     {
         case ESP_RST_POWERON:
+
             return RESET_POWER_ON;
         case ESP_RST_EXT:
+
             return RESET_EXTERNAL;
         case ESP_RST_SW:
+
             return RESET_SOFTWARE;
         case ESP_RST_PANIC:
+
             return RESET_PANIC;
         case ESP_RST_INT_WDT:
+
             return RESET_INTERRUPT_WATCHDOG;
         case ESP_RST_TASK_WDT:
+
             return RESET_TASK_WATCHDOG;
         case ESP_RST_WDT:
+
             return RESET_WATCHDOG;
         case ESP_RST_DEEPSLEEP:
+
             return RESET_DEEP_SLEEP;
         case ESP_RST_BROWNOUT:
+
             return RESET_BROWNOUT;
         default:
+
             return RESET_UNKNOWN;
     }
 }
@@ -71,6 +81,7 @@ void platform_get_device_id(char *output, size_t capacity)
         {
             output[0] = '\0';
         }
+
         return;
     }
     snprintf(output, capacity, "esp32s3-%02x%02x%02x%02x%02x%02x", address[0], address[1], address[2], address[3], address[4],
@@ -144,5 +155,6 @@ void platform_log(platform_log_level_t /* level */, const char * /* component */
 bool platform_reboot(void)
 {
     esp_restart();
+
     return true;
 }

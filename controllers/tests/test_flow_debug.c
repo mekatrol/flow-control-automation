@@ -38,6 +38,7 @@ static bool command_output(void *context, const char *point_id, bool value, uint
     live_command_value = value;
     *is_effective      = true;
     live_command_count++;
+
     return true;
 }
 
@@ -54,6 +55,7 @@ static bool get_input(void *context, flow_input_frame_t *frame)
     assert(context == NULL);
     *frame = (flow_input_frame_t){
         .samples = INPUTS, .sample_count = sizeof(INPUTS) / sizeof(INPUTS[0]), .sampled_at_ms = 1000, .is_coherent = true};
+
     return true;
 }
 
@@ -68,6 +70,7 @@ static size_t get_artifact(uint8_t *artifact, size_t capacity)
     const size_t size = fread(artifact, 1, capacity, file);
     assert(!ferror(file) && feof(file));
     assert(fclose(file) == 0);
+
     return size;
 }
 
@@ -169,5 +172,6 @@ int main(void)
     test_complete_lifecycle();
     test_safety_and_expiry();
     puts("flow debug tests passed");
+
     return 0;
 }

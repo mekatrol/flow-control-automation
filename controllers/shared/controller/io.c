@@ -61,6 +61,7 @@ static controller_protocol_provider_result_t get_point_count(void *context, size
     {
         return CONTROLLER_PROTOCOL_PROVIDER_FAILED;
     }
+
     *count = CONTROLLER_IO_POINT_COUNT;
     return CONTROLLER_PROTOCOL_PROVIDER_OK;
 }
@@ -80,6 +81,7 @@ static controller_protocol_provider_result_t get_point_definition(void *context,
                                                  .type          = CONTROLLER_PROTOCOL_POINT_DIGITAL,
                                                  .service_flags = is_input ? INPUT_SERVICE_FLAGS : OUTPUT_SERVICE_FLAGS};
     snprintf(definition->id, sizeof(definition->id), is_input ? INPUT_ID_FORMAT : OUTPUT_ID_FORMAT, channel);
+
     return CONTROLLER_PROTOCOL_PROVIDER_OK;
 }
 
@@ -97,6 +99,7 @@ static bool is_point_id_valid(void *context, const char *point_id, size_t *index
             return true;
         }
     }
+
     return false;
 }
 
@@ -129,6 +132,7 @@ static controller_protocol_provider_result_t get_point_value(void *context, cons
     value->source_timestamp_ms = INT64_MIN;
     value->updated_at_ms       = INT64_MIN;
     value->sequence            = io->snapshot.sequence;
+
     return CONTROLLER_PROTOCOL_PROVIDER_OK;
 }
 
@@ -159,6 +163,7 @@ controller_protocol_provider_result_t controller_io_get_protocol_block(void *con
                                                                 (io->snapshot.are_outputs_valid ? 2U : 0U),
                                               .sampled_at_ms = io->snapshot.sampled_at_ms,
                                               .sequence      = io->snapshot.sequence};
+
     return CONTROLLER_PROTOCOL_PROVIDER_OK;
 }
 
@@ -180,6 +185,7 @@ controller_protocol_provider_result_t controller_io_set_protocol_output_block(vo
     io->snapshot.outputs           = outputs;
     io->snapshot.are_outputs_valid = true;
     io->snapshot.sequence++;
+
     return CONTROLLER_PROTOCOL_PROVIDER_OK;
 }
 
@@ -200,5 +206,6 @@ controller_protocol_provider_result_t controller_io_set_protocol_output(void *co
     }
     const uint16_t mask    = (uint16_t)(1U << (index - CONTROLLER_IO_INPUT_COUNT));
     const uint16_t outputs = value ? (uint16_t)(io->snapshot.outputs | mask) : (uint16_t)(io->snapshot.outputs & ~mask);
+
     return controller_io_set_protocol_output_block(context, outputs);
 }

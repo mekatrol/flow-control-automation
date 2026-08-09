@@ -40,17 +40,20 @@ bool rs485_service_init(rs485_service_t *service, const rs485_config_t *config, 
     if (config == NULL || !config->enabled)
     {
         service->state = RS485_STATE_DISABLED;
+
         return true;
     }
 
     if (!is_rs485_config_valid(config) || transport_write == NULL)
     {
         service->state = RS485_STATE_DEGRADED;
+
         return false;
     }
     service->config          = *config;
     service->transport_write = transport_write;
     service->state           = RS485_STATE_ONLINE;
+
     return true;
 }
 
@@ -66,12 +69,14 @@ bool rs485_service_send(rs485_service_t *service, const uint8_t *data, size_t si
     if (service->transmit_count >= service->config.transmit_queue_depth)
     {
         service->counters.transmit_queue_drop_count++;
+
         return false;
     }
     const size_t tail = (service->transmit_head + service->transmit_count) % service->config.transmit_queue_depth;
     service->transmit_queue[tail].size = size;
     memcpy(service->transmit_queue[tail].data, data, size);
     service->transmit_count++;
+
     return true;
 }
 
@@ -87,6 +92,7 @@ static void complete_receive_frame(rs485_service_t *service)
     {
         service->counters.receive_queue_drop_count++;
         service->receive_size = 0;
+
         return;
     }
     const size_t tail                 = (service->receive_head + service->receive_count) % service->config.receive_queue_depth;
@@ -115,6 +121,7 @@ void rs485_service_receive_bytes(rs485_service_t *service, const uint8_t *data, 
         service->counters.overflow_count++;
         service->receive_size = 0;
         service->state        = RS485_STATE_DEGRADED;
+
         return;
     }
     memcpy(&service->receive_buffer[service->receive_size], data, size);
@@ -184,6 +191,7 @@ void rs485_service_process(rs485_service_t *service, uint64_t now_ms)
         if (!service->transport_write(frame->data, frame->size))
         {
             service->state = RS485_STATE_DEGRADED;
+
             return;
         }
         service->transmit_head = (service->transmit_head + 1) % service->config.transmit_queue_depth;
@@ -203,6 +211,7 @@ bool rs485_service_get_received(rs485_service_t *service, rs485_frame_t *frame)
     *frame                = service->receive_queue[service->receive_head];
     service->receive_head = (service->receive_head + 1) % service->config.receive_queue_depth;
     service->receive_count--;
+
     return true;
 }
 
@@ -217,6 +226,7 @@ rs485_health_t rs485_service_get_health(const rs485_service_t *service)
     health.state                = service->state;
     health.transmit_queue_depth = service->transmit_count;
     health.receive_queue_depth  = service->receive_count;
+
     return health;
 }
 
@@ -224,5 +234,6 @@ rs485_health_t rs485_service_get_health(const rs485_service_t *service)
 const char *rs485_get_state_name(rs485_state_t state)
 {
     static const char *const names[] = {STATE_DISABLED, STATE_STARTING, STATE_ONLINE, STATE_DEGRADED};
+
     return state <= RS485_STATE_DEGRADED ? names[state] : STATE_DEGRADED;
 }

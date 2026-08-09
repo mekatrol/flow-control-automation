@@ -12,6 +12,7 @@ static uint16_t written_outputs;
 static bool write_outputs(uint16_t outputs)
 {
     written_outputs = outputs;
+
     return true;
 }
 
@@ -84,5 +85,6 @@ int main(void)
     test_unavailable_values();
     test_output_writes();
     puts(TEST_SUCCESS_MESSAGE);
+
     return 0;
 }

@@ -22,6 +22,7 @@ static bool add_device(uint8_t address, uint32_t clock_hz, i2c_master_dev_handle
 {
     const i2c_device_config_t config = {
         .dev_addr_length = I2C_ADDR_BIT_LEN_7, .device_address = address, .scl_speed_hz = clock_hz};
+
     return i2c_master_bus_add_device(io_bus, &config, device) == ESP_OK;
 }
 
@@ -61,6 +62,7 @@ bool platform_io_initialize(const platform_io_config_t *config)
             return false;
         }
     }
+
     return true;
 }
 
@@ -76,6 +78,7 @@ static bool read_banks(i2c_master_dev_handle_t *devices, uint16_t *value)
             return false;
         }
     }
+
     *value = (uint16_t)banks[0] | ((uint16_t)banks[1] << 8U);
     return true;
 }
@@ -115,5 +118,6 @@ bool platform_io_write_outputs(uint16_t outputs)
             return false;
         }
     }
+
     return true;
 }

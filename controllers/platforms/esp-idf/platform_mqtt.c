@@ -79,10 +79,13 @@ static const settings_nullable_string_t *mqtt_password;
 static network_route_policy_t get_mqtt_link_policy(void)
 {
 #ifdef CONFIG_CONTROLLER_MQTT_LINK_WIFI
+
     return NETWORK_ROUTE_WIFI;
 #elif defined(CONFIG_CONTROLLER_MQTT_LINK_ETHERNET)
+
     return NETWORK_ROUTE_ETHERNET;
 #else
+
     return NETWORK_ROUTE_AUTOMATIC;
 #endif
 }
@@ -91,8 +94,10 @@ static network_route_policy_t get_mqtt_link_policy(void)
 static bool is_mqtt_session_persistent(void)
 {
 #ifdef CONFIG_CONTROLLER_MQTT_PERSISTENT_SESSION
+
     return true;
 #else
+
     return false;
 #endif
 }
@@ -101,6 +106,7 @@ static bool is_mqtt_session_persistent(void)
 static esp_netif_t *get_network_interface(network_link_id_t link_id)
 {
     const char *key = link_id == NETWORK_LINK_WIFI ? NETWORK_INTERFACE_WIFI_KEY : NETWORK_INTERFACE_ETHERNET_KEY;
+
     return esp_netif_get_handle_from_ifkey(key);
 }
 
@@ -146,6 +152,7 @@ static mqtt_error_category_t get_error_category(const esp_mqtt_error_codes_t *er
     {
         return MQTT_ERROR_TLS;
     }
+
     return MQTT_ERROR_TRANSPORT;
 }
 
@@ -155,14 +162,19 @@ static const char *get_error_code(mqtt_error_category_t category)
     switch (category)
     {
         case MQTT_ERROR_AUTHENTICATION:
+
             return MQTT_ERROR_AUTHENTICATION_CODE;
         case MQTT_ERROR_BROKER:
+
             return MQTT_ERROR_BROKER_CODE;
         case MQTT_ERROR_DNS:
+
             return MQTT_ERROR_DNS_CODE;
         case MQTT_ERROR_TLS:
+
             return MQTT_ERROR_TLS_CODE;
         default:
+
             return MQTT_ERROR_TRANSPORT_CODE;
     }
 }
@@ -249,8 +261,10 @@ static bool start_mqtt_client(const mqtt_broker_config_t *config, network_link_i
         esp_mqtt_client_start(mqtt_client) != ESP_OK)
     {
         stop_mqtt_client();
+
         return false;
     }
+
     return true;
 }
 
@@ -303,6 +317,7 @@ bool platform_mqtt_initialize(void)
     mqtt_event_queue   = xQueueCreate(MQTT_EVENT_QUEUE_DEPTH, sizeof(mqtt_queued_event_t));
     mqtt_command_queue = xQueueCreate(MQTT_COMMAND_QUEUE_DEPTH, sizeof(mqtt_command_t));
     mqtt_inbound_queue = xQueueCreate(MQTT_INBOUND_QUEUE_DEPTH, sizeof(mqtt_inbound_message_t));
+
     return mqtt_event_queue != NULL && mqtt_command_queue != NULL && mqtt_inbound_queue != NULL &&
            xTaskCreate(mqtt_transport_task, "mqtt_transport", MQTT_TRANSPORT_TASK_STACK, NULL, MQTT_TRANSPORT_TASK_PRIORITY,
                        NULL) == pdPASS;
@@ -325,6 +340,7 @@ bool platform_mqtt_get_transport_route(mqtt_transport_route_t *route, void *cont
                                         .generation = snapshot.transitioned_at_ms,
     };
     snprintf(route->name, sizeof(route->name), "%s", network_get_link_id_name(selected_link));
+
     return true;
 }
 
@@ -351,6 +367,7 @@ bool platform_mqtt_connect(const mqtt_broker_config_t *config, const mqtt_transp
         .config        = *config,
         .selected_link = (network_link_id_t)route->identifier,
     };
+
     return xQueueSend(mqtt_command_queue, &command, 0) == pdTRUE;
 }
 
@@ -380,6 +397,7 @@ int32_t platform_mqtt_publish(const char *topic, const void *payload, size_t pay
     command.publish.payload_size = payload_size;
     command.publish.qos          = qos;
     command.publish.is_retained  = is_retained;
+
     return xQueueSend(mqtt_command_queue, &command, 0) == pdTRUE ? 0 : -1;
 }
 
@@ -392,6 +410,7 @@ bool platform_mqtt_subscribe(const char *topic_filter, mqtt_qos_t qos, void * /*
     }
     mqtt_command_t command = {.type = MQTT_COMMAND_SUBSCRIBE, .subscription_qos = qos};
     snprintf(command.topic_filter, sizeof(command.topic_filter), "%s", topic_filter);
+
     return xQueueSend(mqtt_command_queue, &command, 0) == pdTRUE;
 }
 

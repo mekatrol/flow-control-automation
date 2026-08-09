@@ -66,5 +66,6 @@ int main(void)
     test_configuration_validation();
     test_platform_event_mapping();
     puts(TEST_SUCCESS_MESSAGE);
+
     return 0;
 }

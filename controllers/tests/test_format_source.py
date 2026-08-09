@@ -27,6 +27,17 @@ class FormatSourceTests(unittest.TestCase):
         expected = "    work();\n\n    /* Explain why the branch is needed. */\n    if (ready)\n"
         self.assertEqual(FORMATTER.format_source(source), expected)
 
+    # Ensures a return and its documentation are separated from preceding work.
+    def test_adds_blank_line_before_documented_return(self) -> None:
+        source = "    work();\n    /* Return whether a usable IPv4 address was found. */\n    return dns.ip.type == IPV4 && dns.ip.address != 0;\n"
+        expected = "    work();\n\n    /* Return whether a usable IPv4 address was found. */\n    return dns.ip.type == IPV4 && dns.ip.address != 0;\n"
+        self.assertEqual(FORMATTER.format_source(source), expected)
+
+    # Ensures a return used as a block's first statement stays next to its opening brace.
+    def test_does_not_separate_first_return_after_opening_brace(self) -> None:
+        source = "int get_value(void)\n{\n    return VALUE;\n}\n"
+        self.assertEqual(FORMATTER.format_source(source), source)
+
     # Ensures ignored call results use ordinary expression statements.
     def test_removes_discarded_function_call_cast(self) -> None:
         source = "    (void)get_u32(&reader, &value);\n"

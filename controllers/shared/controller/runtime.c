@@ -183,6 +183,7 @@ static bool get_debug_input(void * /* context */, flow_input_frame_t *frame)
                                   .sample_count  = CONTROLLER_IO_INPUT_COUNT,
                                   .sampled_at_ms = (uint64_t)snapshot.sampled_at_ms,
                                   .is_coherent   = snapshot.are_inputs_valid};
+
     return true;
 }
 
@@ -205,6 +206,7 @@ static bool get_debug_output_index(const char *point_id, uint8_t *output)
             return true;
         }
     }
+
     return false;
 }
 
@@ -234,6 +236,7 @@ static bool command_debug_output(void * /* context */, const char *point_id, boo
     {
         return false;
     }
+
     *is_effective = controller_points_is_source_effective(&controller_points, output, DEBUG_SOURCE_ID);
     return true;
 }
@@ -292,6 +295,7 @@ static bool initialize_debug(void)
         flow_debug_set_time_source(&controller_debug, get_debug_time_us, NULL);
         flow_debug_set_output_adapter(&controller_debug, command_debug_output, relinquish_debug_output, NULL);
     }
+
     return is_initialized;
 }
 
@@ -343,6 +347,7 @@ static uint32_t get_rs485_baud_rate(void)
     }
     rs485_config_t config;
     controller_board_get_rs485_config(&config);
+
     return config.baud_rate;
 }
 
@@ -350,6 +355,7 @@ static uint32_t get_rs485_baud_rate(void)
 static char get_rs485_parity_marker(rs485_parity_t parity)
 {
     static const char markers[] = {'N', 'E', 'O'};
+
     return parity <= RS485_PARITY_ODD ? markers[parity] : markers[RS485_PARITY_NONE];
 }
 
@@ -370,6 +376,7 @@ static void configure_mqtt_status_topics(mqtt_broker_config_t *config)
     {
         mqtt_availability_topic[0] = '\0';
         mqtt_health_topic[0]       = '\0';
+
         return;
     }
     config->last_will_topic       = mqtt_availability_topic;
@@ -414,6 +421,7 @@ static bool reboot_terminal(void * /* context */)
     platform_settings_prepare_reboot();
     /* Give the powered card time to observe inactive chip select before the CPU resets its GPIO routing. */
     platform_delay_ms(SETTINGS_REBOOT_SETTLE_DELAY_MS);
+
     return platform_reboot();
 }
 
@@ -829,5 +837,6 @@ static void controller_task(void * /* context */)
 bool controller_runtime_start(void)
 {
     controller_health_init();
+
     return platform_start_task(CONTROLLER_TASK_NAME, controller_task, NULL, CONTROLLER_TASK_STACK_SIZE, CONTROLLER_TASK_PRIORITY);
 }

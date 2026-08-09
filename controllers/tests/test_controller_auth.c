@@ -16,6 +16,7 @@ static bool get_random(void *context, uint8_t *output, size_t size)
     {
         output[index] = random_seed++;
     }
+
     return true;
 }
 
@@ -35,6 +36,7 @@ static bool get_hmac(void *context, const uint8_t *message, size_t message_size,
         state      = (state ^ (uint32_t)index) * UINT32_C(16777619);
         tag[index] = (uint8_t)(state >> ((index % sizeof(state)) * 8U));
     }
+
     return true;
 }
 
@@ -48,6 +50,7 @@ static controller_auth_t get_auth(void)
                                              .session_lifetime_ms   = 1000,
                                              .maximum_attempts      = 3};
     assert(controller_auth_init(&auth, &config));
+
     return auth;
 }
 
@@ -141,5 +144,6 @@ int main(void)
     test_bad_proof_and_expiry();
     test_capacity();
     puts(TEST_SUCCESS_MESSAGE);
+
     return 0;
 }

@@ -31,6 +31,7 @@ static settings_store_result_t stage_record(void *context, const void *record, s
     assert(context != NULL);
     assert(record != NULL);
     assert(size > 0);
+
     return SETTINGS_STORE_OK;
 }
 
@@ -38,6 +39,7 @@ static settings_store_result_t stage_record(void *context, const void *record, s
 static settings_store_result_t commit_records(void *context)
 {
     assert(context != NULL);
+
     return SETTINGS_STORE_OK;
 }
 
@@ -74,6 +76,7 @@ static bool write_fixture(void *context, const char *data, size_t size)
     memcpy(fixture->output + fixture->output_size, data, size);
     fixture->output_size += size;
     fixture->output[fixture->output_size] = '\0';
+
     return true;
 }
 
@@ -90,6 +93,7 @@ static bool reboot_fixture(void *context)
 {
     terminal_fixture_t *fixture  = context;
     fixture->is_reboot_requested = true;
+
     return true;
 }
 
@@ -98,6 +102,7 @@ static bool initialize_storage_fixture(void *context)
 {
     terminal_fixture_t *fixture     = context;
     fixture->is_storage_initialized = true;
+
     return true;
 }
 
@@ -149,6 +154,7 @@ static terminal_service_t get_authenticated_fixture(terminal_fixture_t *fixture,
     terminal_service_t service;
     terminal_service_init(&service, &config);
     terminal_service_connect(&service, 0);
+
     return service;
 }
 
@@ -371,5 +377,6 @@ int main(void)
     test_rs485_configuration();
     test_protocol_key_configuration();
     puts(TEST_SUCCESS_MESSAGE);
+
     return 0;
 }

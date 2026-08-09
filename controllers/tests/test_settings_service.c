@@ -43,6 +43,7 @@ static settings_store_result_t get_fake_record(const uint8_t *source, size_t sou
         return SETTINGS_STORE_CORRUPT;
     }
     memcpy(record, source, source_size);
+
     *size = source_size;
     return SETTINGS_STORE_OK;
 }
@@ -51,6 +52,7 @@ static settings_store_result_t get_fake_record(const uint8_t *source, size_t sou
 static settings_store_result_t get_fake_bootstrap(void *context, void *record, size_t capacity, size_t *size)
 {
     fake_store_t *fake = context;
+
     return get_fake_record(fake->bootstrap, fake->bootstrap_size, fake->is_available, record, capacity, size);
 }
 
@@ -58,6 +60,7 @@ static settings_store_result_t get_fake_bootstrap(void *context, void *record, s
 static settings_store_result_t get_fake_settings(void *context, void *record, size_t capacity, size_t *size)
 {
     fake_store_t *fake = context;
+
     return get_fake_record(fake->settings, fake->settings_size, fake->is_available, record, capacity, size);
 }
 
@@ -72,6 +75,7 @@ static settings_store_result_t stage_fake_bootstrap(void *context, const void *r
     }
     memcpy(fake->staged_bootstrap, record, size);
     fake->staged_bootstrap_size = size;
+
     return SETTINGS_STORE_OK;
 }
 
@@ -86,6 +90,7 @@ static settings_store_result_t stage_fake_settings(void *context, const void *re
     }
     memcpy(fake->staged_settings, record, size);
     fake->staged_settings_size = size;
+
     return SETTINGS_STORE_OK;
 }
 
@@ -112,6 +117,7 @@ static settings_store_result_t commit_fake(void *context)
     }
     fake->staged_bootstrap_size = 0;
     fake->staged_settings_size  = 0;
+
     return SETTINGS_STORE_OK;
 }
 
@@ -144,6 +150,7 @@ static settings_nullable_string_t get_nullable(bool is_set, const char *value)
     {
         snprintf(result.value, sizeof(result.value), "%s", value);
     }
+
     return result;
 }
 
@@ -278,5 +285,6 @@ int main(void)
     test_corrupt_ready_record_is_rejected();
     test_reset_remains_blank_after_reflash();
     puts("settings service tests passed");
+
     return 0;
 }

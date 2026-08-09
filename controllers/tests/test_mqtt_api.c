@@ -35,6 +35,7 @@ static int32_t publish_transport(const char *topic, const void *payload, size_t 
     assert(qos == MQTT_QOS_AT_LEAST_ONCE);
     assert(is_retained);
     fixture->publish_count++;
+
     return TEST_MESSAGE_ID;
 }
 
@@ -45,6 +46,7 @@ static bool subscribe_transport(const char *topic_filter, mqtt_qos_t qos, void *
     assert(strcmp(topic_filter, TEST_FILTER) == 0);
     assert(qos == MQTT_QOS_AT_LEAST_ONCE);
     fixture->subscribe_count++;
+
     return true;
 }
 
@@ -137,5 +139,6 @@ int main(void)
     test_subscription_and_inbound_ownership();
     test_rejection_limits();
     puts("MQTT API tests passed");
+
     return 0;
 }

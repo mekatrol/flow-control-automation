@@ -37,8 +37,10 @@ static bool is_authentication_failure(uint16_t reason)
         case WIFI_REASON_802_1X_AUTH_FAILED:
         case WIFI_REASON_AUTH_FAIL:
         case WIFI_REASON_HANDSHAKE_TIMEOUT:
+
             return true;
         default:
+
             return false;
     }
 }
@@ -61,6 +63,7 @@ static bool is_dns_ready(void)
     {
         return false;
     }
+
     return dns.ip.type == ESP_IPADDR_TYPE_V4 && dns.ip.u_addr.ip4.addr != 0;
 }
 
@@ -95,6 +98,7 @@ static void handle_wifi_event(void * /* context */, esp_event_base_t event_base,
             event.type        = WIFI_PLATFORM_EVENT_STOPPED;
             break;
         default:
+
             return;
     }
     enqueue_platform_event(&event);
@@ -158,6 +162,7 @@ static bool initialize_persistence(void)
         }
         result = nvs_flash_init();
     }
+
     return result == ESP_OK;
 }
 
@@ -239,6 +244,7 @@ bool platform_wifi_initialize(const wifi_link_config_t *config)
         return false;
     }
     const wifi_ps_type_t power_save = config->power_save == WIFI_POWER_SAVE_MINIMUM_MODEM ? WIFI_PS_MIN_MODEM : WIFI_PS_NONE;
+
     return esp_wifi_set_ps(power_save) == ESP_OK;
 }
 
@@ -249,6 +255,7 @@ bool platform_wifi_start(void)
     {
         return esp_wifi_connect() == ESP_OK;
     }
+
     return esp_wifi_start() == ESP_OK;
 }
 
@@ -261,6 +268,7 @@ bool platform_wifi_connect(void)
     }
     wifi_platform_event_t event = {.type = WIFI_PLATFORM_EVENT_ASSOCIATING};
     enqueue_platform_event(&event);
+
     return esp_wifi_connect() == ESP_OK;
 }
 

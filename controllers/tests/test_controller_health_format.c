@@ -67,5 +67,6 @@ int main(void)
 {
     test_health_formatting();
     puts(TEST_SUCCESS_MESSAGE);
+
     return 0;
 }

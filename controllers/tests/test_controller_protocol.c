@@ -30,6 +30,7 @@ static bool get_auth_random(void *context, uint8_t *output, size_t size)
     {
         output[index] = auth_random_seed++;
     }
+
     return true;
 }
 
@@ -48,6 +49,7 @@ static bool get_auth_hmac(void *context, const uint8_t *message, size_t message_
     {
         tag[index] = (uint8_t)(state + index);
     }
+
     return true;
 }
 
@@ -56,6 +58,7 @@ static controller_protocol_provider_result_t set_output(void *context, const cha
 {
     assert(context == NULL && strcmp(point_id, "output-01") == 0);
     commanded_outputs = value ? 1U : 0U;
+
     return CONTROLLER_PROTOCOL_PROVIDER_OK;
 }
 
@@ -64,6 +67,7 @@ static controller_protocol_provider_result_t set_output_block(void *context, uin
 {
     assert(context == NULL);
     commanded_outputs = outputs;
+
     return CONTROLLER_PROTOCOL_PROVIDER_OK;
 }
 
@@ -73,6 +77,7 @@ static controller_protocol_provider_result_t get_io_block(void *context, control
     assert(context == NULL && block != NULL);
     *block = (controller_protocol_io_block_t){
         .inputs = UINT16_C(0x8001), .outputs = UINT16_C(0x4002), .validity_flags = 3, .sampled_at_ms = 1234, .sequence = 9};
+
     return CONTROLLER_PROTOCOL_PROVIDER_OK;
 }
 
@@ -83,6 +88,7 @@ static bool capture_send(void *context, const uint8_t *data, size_t size)
     assert(size <= sizeof(sent_frame));
     memcpy(sent_frame, data, size);
     sent_size = size;
+
     return true;
 }
 
@@ -99,6 +105,7 @@ static controller_protocol_t get_protocol(void)
                                                  .set_output_block = set_output_block};
     assert(controller_protocol_init(&protocol, &config, capture_send, NULL));
     sent_size = 0;
+
     return protocol;
 }
 
@@ -117,6 +124,7 @@ static size_t encode_request(uint16_t destination, uint8_t operation, const uint
     }
     size_t frame_size = 0;
     assert(controller_protocol_encode(&request, frame, CONTROLLER_PROTOCOL_FRAME_CAPACITY, &frame_size));
+
     return frame_size;
 }
 
@@ -136,6 +144,7 @@ static size_t encode_transaction_request(uint16_t destination, uint16_t transact
     }
     size_t frame_size = 0;
     assert(controller_protocol_encode(&request, frame, CONTROLLER_PROTOCOL_FRAME_CAPACITY, &frame_size));
+
     return frame_size;
 }
 
@@ -353,5 +362,6 @@ int main(void)
     test_io_block_and_output_write();
     test_authentication_dispatch();
     puts(TEST_SUCCESS_MESSAGE);
+
     return 0;
 }

@@ -12,6 +12,7 @@ static bool is_id_valid(const char *id)
             return index > 0;
         }
     }
+
     return false;
 }
 
@@ -64,6 +65,7 @@ bool controller_flow_init(controller_flow_t *flow, controller_flow_digest_t get_
         {
             memset(&flow->committed, 0, sizeof(flow->committed));
             memset(flow->committed_artifact, 0, sizeof(flow->committed_artifact));
+
             return false;
         }
         uint8_t digest[CONTROLLER_FLOW_DIGEST_SIZE];
@@ -73,10 +75,12 @@ bool controller_flow_init(controller_flow_t *flow, controller_flow_digest_t get_
         {
             memset(&flow->committed, 0, sizeof(flow->committed));
             memset(flow->committed_artifact, 0, sizeof(flow->committed_artifact));
+
             return false;
         }
         flow->has_committed = true;
     }
+
     return true;
 }
 
@@ -111,6 +115,7 @@ controller_flow_result_t controller_flow_begin(controller_flow_t *flow, const co
     flow->staging.is_active = false;
     flow->transfer_id       = transfer_id;
     flow->is_transfer_open  = true;
+
     return CONTROLLER_FLOW_OK;
 }
 
@@ -145,6 +150,7 @@ controller_flow_result_t controller_flow_write(controller_flow_t *flow, uint32_t
         }
     }
     flow->is_validated = false;
+
     return CONTROLLER_FLOW_OK;
 }
 
@@ -177,6 +183,7 @@ controller_flow_result_t controller_flow_validate(controller_flow_t *flow, uint3
         return CONTROLLER_FLOW_VALIDATION_FAILED;
     }
     flow->is_validated = true;
+
     return CONTROLLER_FLOW_OK;
 }
 
@@ -196,6 +203,7 @@ controller_flow_result_t controller_flow_commit(controller_flow_t *flow, uint32_
     memcpy(flow->committed_artifact, flow->staging_artifact, flow->staging.size);
     flow->has_committed = true;
     clear_staging(flow);
+
     return CONTROLLER_FLOW_OK;
 }
 
@@ -207,6 +215,7 @@ controller_flow_result_t controller_flow_abort(controller_flow_t *flow, uint32_t
         return CONTROLLER_FLOW_WRONG_STATE;
     }
     clear_staging(flow);
+
     return CONTROLLER_FLOW_OK;
 }
 
@@ -225,6 +234,7 @@ controller_flow_result_t controller_flow_set_active(controller_flow_t *flow, boo
         return CONTROLLER_FLOW_STORAGE_UNAVAILABLE;
     }
     flow->committed = updated;
+
     return CONTROLLER_FLOW_OK;
 }
 
@@ -248,6 +258,7 @@ controller_flow_result_t controller_flow_remove(controller_flow_t *flow)
     memset(&flow->committed, 0, sizeof(flow->committed));
     memset(flow->committed_artifact, 0, sizeof(flow->committed_artifact));
     flow->has_committed = false;
+
     return CONTROLLER_FLOW_OK;
 }
 
@@ -263,6 +274,7 @@ controller_flow_result_t controller_flow_get_metadata(const controller_flow_t *f
     {
         return CONTROLLER_FLOW_NOT_FOUND;
     }
+
     *metadata = flow->committed;
     return CONTROLLER_FLOW_OK;
 }
@@ -288,5 +300,6 @@ controller_flow_result_t controller_flow_read(const controller_flow_t *flow, siz
     const size_t remaining = flow->committed.size - offset;
     *size                  = remaining < capacity ? remaining : capacity;
     memcpy(output, &flow->committed_artifact[offset], *size);
+
     return CONTROLLER_FLOW_OK;
 }

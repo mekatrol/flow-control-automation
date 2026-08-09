@@ -12,6 +12,7 @@ static bool is_string_valid(const char *value, size_t capacity)
             return index > 0;
         }
     }
+
     return false;
 }
 
@@ -40,6 +41,7 @@ static uint16_t get_effective_outputs(const controller_points_t *points)
             outputs             = winner->value ? (uint16_t)(outputs | mask) : (uint16_t)(outputs & ~mask);
         }
     }
+
     return outputs;
 }
 
@@ -59,6 +61,7 @@ static controller_point_result_t apply_outputs(controller_points_t *points)
     }
     points->commanded_outputs = outputs;
     points->are_outputs_valid = true;
+
     return CONTROLLER_POINT_OK;
 }
 
@@ -71,6 +74,7 @@ bool controller_points_init(controller_points_t *points, bool (*write_outputs)(u
     }
     *points               = (controller_points_t){0};
     points->write_outputs = write_outputs;
+
     return true;
 }
 
@@ -87,6 +91,7 @@ controller_point_result_t controller_points_command(controller_points_t *points,
         {
             points->health.command_rejection_count++;
         }
+
         return CONTROLLER_POINT_INVALID_ARGUMENT;
     }
     controller_point_command_t *slot = NULL;
@@ -111,6 +116,7 @@ controller_point_result_t controller_points_command(controller_points_t *points,
     if (slot == NULL)
     {
         points->health.command_rejection_count++;
+
         return CONTROLLER_POINT_QUEUE_FULL;
     }
     const controller_point_command_t previous = *slot;
@@ -122,9 +128,11 @@ controller_point_result_t controller_points_command(controller_points_t *points,
     {
         *slot = previous;
         points->health.command_rejection_count++;
+
         return result;
     }
     points->health.accepted_command_count++;
+
     return CONTROLLER_POINT_OK;
 }
 
@@ -159,6 +167,7 @@ controller_point_result_t controller_points_relinquish(controller_points_t *poin
     {
         points->health.relinquished_command_count++;
     }
+
     return result;
 }
 
@@ -180,6 +189,7 @@ bool controller_points_is_source_effective(const controller_points_t *points, ui
             winner = candidate;
         }
     }
+
     return winner != NULL && strcmp(winner->source_id, source_id) == 0;
 }
 
@@ -236,8 +246,10 @@ controller_point_result_t controller_points_subscribe(controller_points_t *point
     if (slot == NULL)
     {
         points->health.subscription_drop_count++;
+
         return CONTROLLER_POINT_QUEUE_FULL;
     }
+
     *slot = (controller_point_subscription_t){.is_used = true, .peer = peer, .point_mask = point_mask};
     return CONTROLLER_POINT_OK;
 }
@@ -256,6 +268,7 @@ void controller_points_observe(controller_points_t *points, uint16_t outputs)
         points->base_outputs      = outputs;
         points->observed_points   = outputs;
         points->are_outputs_valid = true;
+
         return;
     }
     const uint16_t changed  = points->observed_points ^ outputs;
@@ -322,9 +335,11 @@ controller_point_result_t controller_points_get_event(controller_points_t *point
             *has_gap                   = subscription->has_gap;
             subscription->pending_mask = 0;
             subscription->has_gap      = false;
+
             return CONTROLLER_POINT_OK;
         }
     }
+
     return CONTROLLER_POINT_NOT_FOUND;
 }
 

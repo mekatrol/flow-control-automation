@@ -28,12 +28,16 @@ static platform_log_level_t get_platform_level(diagnostic_severity_t severity)
     switch (severity)
     {
         case DIAGNOSTIC_DEBUG:
+
             return PLATFORM_LOG_DEBUG;
         case DIAGNOSTIC_WARNING:
+
             return PLATFORM_LOG_WARNING;
         case DIAGNOSTIC_ERROR:
+
             return PLATFORM_LOG_ERROR;
         default:
+
             return PLATFORM_LOG_INFO;
     }
 }

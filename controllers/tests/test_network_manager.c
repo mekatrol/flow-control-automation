@@ -91,6 +91,7 @@ static network_manager_t get_test_manager(fixture_t *fixture, bool wifi, bool et
     };
     network_manager_t manager;
     network_manager_init(&manager, configs, start_link, stop_link, get_fixed_random, fixture, 0);
+
     return manager;
 }
 
@@ -252,5 +253,6 @@ int main(void)
     test_queue_bounds_and_enable_disable();
     test_event_queue_owns_callback_data();
     puts(TEST_SUCCESS_MESSAGE);
+
     return 0;
 }

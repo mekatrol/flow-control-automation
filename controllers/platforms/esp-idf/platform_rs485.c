@@ -31,6 +31,7 @@ static uart_word_length_t get_uart_data_bits(rs485_data_bits_t data_bits)
 static uart_parity_t get_uart_parity(rs485_parity_t parity)
 {
     static const uart_parity_t values[] = {UART_PARITY_DISABLE, UART_PARITY_EVEN, UART_PARITY_ODD};
+
     return values[parity];
 }
 
@@ -126,6 +127,7 @@ bool platform_rs485_initialize(const rs485_config_t *config)
     {
         return false;
     }
+
     return xTaskCreate(rs485_uart_event_task, "rs485_uart_events", RS485_UART_TASK_STACK_SIZE, NULL, 6, NULL) == pdPASS;
 }
 
@@ -142,6 +144,7 @@ bool platform_rs485_reconfigure(const rs485_config_t *config)
                                        .stop_bits  = get_uart_stop_bits(config->stop_bits),
                                        .flow_ctrl  = UART_HW_FLOWCTRL_DISABLE,
                                        .source_clk = UART_SCLK_DEFAULT};
+
     return uart_param_config(RS485_UART_NUMBER, &uart_config) == ESP_OK;
 }
 
@@ -166,5 +169,6 @@ bool platform_rs485_get_event(platform_rs485_event_t *event)
         *event = (platform_rs485_event_t){.type = PLATFORM_RS485_EVENT_QUEUE_DROP, .size = drop_count};
         return true;
     }
+
     return false;
 }

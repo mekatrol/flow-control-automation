@@ -16,6 +16,7 @@ bool platform_terminal_initialize(void)
     usb_serial_jtag_driver_config_t config = {.tx_buffer_size = TERMINAL_USB_TX_BUFFER_SIZE,
                                               .rx_buffer_size = TERMINAL_USB_RX_BUFFER_SIZE};
     is_terminal_ready                      = usb_serial_jtag_driver_install(&config) == ESP_OK;
+
     return is_terminal_ready;
 }
 
@@ -27,6 +28,7 @@ size_t platform_terminal_read(uint8_t *data, size_t capacity)
         return 0;
     }
     const int size = usb_serial_jtag_read_bytes(data, capacity, 0);
+
     return size > 0 ? (size_t)size : 0;
 }
 
