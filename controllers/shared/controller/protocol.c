@@ -308,7 +308,8 @@ static bool is_authentication_required(uint8_t operation)
            operation == CONTROLLER_PROTOCOL_OPERATION_CLOSE_SESSION ||
            (operation >= CONTROLLER_PROTOCOL_OPERATION_LIST_FLOWS &&
             operation <= CONTROLLER_PROTOCOL_OPERATION_GET_FLOW_RUNTIME) ||
-           (operation >= CONTROLLER_PROTOCOL_OPERATION_DEBUG_LOAD_BEGIN && operation <= CONTROLLER_PROTOCOL_OPERATION_DEBUG_PAUSE);
+           (operation >= CONTROLLER_PROTOCOL_OPERATION_DEBUG_LOAD_BEGIN &&
+            operation <= CONTROLLER_PROTOCOL_OPERATION_DEBUG_ENABLE_LIVE_OUTPUT);
 }
 
 /* Verifies and removes one authenticated envelope before semantic dispatch. */
@@ -931,7 +932,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
             response.payload[14] = UINT8_MAX;
             response.payload[15] = UINT8_C(0x3f);
             response.payload[16] = UINT8_MAX;
-            response.payload[17] = UINT8_C(0x01);
+            response.payload[17] = UINT8_C(0x0f);
             response.payload[18] = PROTOCOL_POINT_TYPE_MASK;
             send_response(protocol, &response);
             break;
@@ -1662,6 +1663,56 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
             {
                 send_response(protocol, &response);
             }
+            break;
+        }
+        case CONTROLLER_PROTOCOL_OPERATION_DEBUG_ENABLE_LIVE_OUTPUT: {
+            const size_t prefix_size = sizeof(uint64_t) + 1U;
+            if (protocol->config.debug == NULL || request->payload_size < prefix_size)
+            {
+                send_error(protocol, request, protocol->config.debug == NULL ? CONTROLLER_PROTOCOL_ERROR_NOT_READY
+                                                                             : CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
+                return;
+            }
+            const uint8_t point_count = request->payload[sizeof(uint64_t)];
+            char point_ids[FLOW_EXECUTABLE_MAX_OUTPUTS][FLOW_EXECUTABLE_MAX_ID_BYTES + 1U];
+            const char *confirmed_points[FLOW_EXECUTABLE_MAX_OUTPUTS];
+            size_t offset = prefix_size;
+            bool is_valid = point_count > 0U && point_count <= FLOW_EXECUTABLE_MAX_OUTPUTS;
+            for (uint8_t index = 0; is_valid && index < point_count; index++)
+            {
+                if (offset >= request->payload_size)
+                {
+                    is_valid = false;
+                    break;
+                }
+                const uint8_t point_size = request->payload[offset++];
+                if (point_size == 0U || point_size > FLOW_EXECUTABLE_MAX_ID_BYTES ||
+                    offset + point_size > request->payload_size)
+                {
+                    is_valid = false;
+                    break;
+                }
+                (void)memcpy(point_ids[index], &request->payload[offset], point_size);
+                point_ids[index][point_size] = '\0';
+                confirmed_points[index]      = point_ids[index];
+                offset += point_size;
+            }
+            if (!is_valid || offset != request->payload_size)
+            {
+                send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
+                return;
+            }
+            const flow_debug_result_t result = flow_debug_enable_live_output(
+                protocol->config.debug, protocol->authenticated_session_id, get_u64(request->payload), confirmed_points,
+                point_count, now_ms);
+            if (!is_debug_result_success(protocol, request, result))
+            {
+                return;
+            }
+            response.payload[0] = FLOW_DEBUG_LIVE_OUTPUT_PRIORITY;
+            put_u32(&response.payload[1], FLOW_DEBUG_LIVE_OUTPUT_HOLD_MS);
+            response.payload_size = 5U;
+            send_response(protocol, &response);
             break;
         }
         default:

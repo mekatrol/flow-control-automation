@@ -147,6 +147,26 @@ controller_point_result_t controller_points_relinquish(controller_points_t *poin
     return result;
 }
 
+/* Reports whether one source currently wins arbitration using the same stable slot-order tie break as output application. */
+bool controller_points_is_source_effective(const controller_points_t *points, uint8_t output, const char *source_id)
+{
+    if (points == NULL || output >= CONTROLLER_POINT_OUTPUT_COUNT || source_id == NULL)
+    {
+        return false;
+    }
+    const controller_point_command_t *winner = NULL;
+    for (size_t index = 0; index < CONTROLLER_POINT_COMMAND_CAPACITY; index++)
+    {
+        const controller_point_command_t *candidate = &points->commands[index];
+        if (candidate->is_used && candidate->output == output &&
+            (winner == NULL || candidate->priority < winner->priority))
+        {
+            winner = candidate;
+        }
+    }
+    return winner != NULL && strcmp(winner->source_id, source_id) == 0;
+}
+
 /* Expires bounded commands and reapplies outputs when effective values change. */
 void controller_points_process(controller_points_t *points, int64_t now_ms)
 {

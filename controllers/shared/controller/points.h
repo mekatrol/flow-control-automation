@@ -79,6 +79,9 @@ controller_point_result_t controller_points_command(controller_points_t *points,
 controller_point_result_t controller_points_relinquish(controller_points_t *points, uint8_t output, const char *source_id,
                                                        int64_t now_ms);
 
+/* Reports whether one source currently wins arbitration for an output without changing point state. */
+bool controller_points_is_source_effective(const controller_points_t *points, uint8_t output, const char *source_id);
+
 /* Expires bounded commands and reapplies outputs when effective values change. */
 void controller_points_process(controller_points_t *points, int64_t now_ms);
 

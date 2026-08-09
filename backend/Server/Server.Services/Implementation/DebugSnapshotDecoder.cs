@@ -12,7 +12,7 @@ public static class DebugSnapshotDecoder
     {
         var reader = new SnapshotReader(envelope.Bytes.Span);
         var schema = reader.ReadUInt16();
-        if (schema is not (1 or 2))
+        if (schema is not (1 or 2 or 3))
         {
             throw Protocol("unsupported snapshot schema");
         }
@@ -34,6 +34,7 @@ public static class DebugSnapshotDecoder
         var reasonPath = reader.ReadString(allowEmpty: true);
         var highWater = schema >= 2 ? reader.ReadUInt32() : duration;
         var missedDeadlines = schema >= 2 ? reader.ReadUInt32() : 0;
+        var arbitrationLossCount = schema >= 3 ? reader.ReadUInt32() : 0;
         if (sessionId != envelope.SessionId || tick != envelope.TickNumber || completedAt < sampledAt
             || sessionId > MaximumSafeJsonInteger || tick > MaximumSafeJsonInteger
             || sampledAt > MaximumSafeJsonInteger || completedAt > MaximumSafeJsonInteger
@@ -110,6 +111,7 @@ public static class DebugSnapshotDecoder
             ProposedOutputs = outputs,
             OverrunCount = overrunCount,
             EvaluationFailureCount = failureCount,
+            ArbitrationLossCount = arbitrationLossCount,
             LastReasonCode = reasonCode,
             LastReason = ReasonName(reasonCode),
             LastReasonPath = reasonPath

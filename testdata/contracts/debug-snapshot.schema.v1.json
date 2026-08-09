@@ -20,6 +20,8 @@
     "sampledAtMs": { "$ref": "#/$defs/u64Json" },
     "completedAtMs": { "$ref": "#/$defs/u64Json" },
     "executionDurationUs": { "$ref": "#/$defs/u32" },
+    "executionHighWaterUs": { "$ref": "#/$defs/u32" },
+    "missedDeadlineCount": { "$ref": "#/$defs/u32" },
     "inputValidity": {
       "type": "array",
       "uniqueItems": true,
@@ -38,6 +40,7 @@
     },
     "overrunCount": { "$ref": "#/$defs/u32" },
     "evaluationFailureCount": { "$ref": "#/$defs/u32" },
+    "arbitrationLossCount": { "$ref": "#/$defs/u32" },
     "lastReasonCode": { "type": "integer", "minimum": 0, "maximum": 65535 },
     "lastReason": { "type": "string", "minLength": 1, "maxLength": 63 },
     "lastReasonPath": { "type": "string", "maxLength": 63 }

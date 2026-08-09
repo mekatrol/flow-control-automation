@@ -23,6 +23,12 @@ public interface IFlowDebugService
 
     Task<FlowDebugSession> PauseAsync(string flowId, string sessionId, CancellationToken cancellationToken);
 
+    Task<FlowDebugSession> EnableLiveOutputAsync(
+        string flowId,
+        string sessionId,
+        IReadOnlyList<string> confirmedPointIds,
+        CancellationToken cancellationToken);
+
     Task StopAsync(
         string flowId,
         string sessionId,

@@ -12,6 +12,8 @@ enum
     FLOW_DEBUG_LEASE_MS             = 30000,
     FLOW_DEBUG_CHUNK_LIMIT          = 180,
     FLOW_DEBUG_SNAPSHOT_CHUNK_LIMIT = 173,
+    FLOW_DEBUG_LIVE_OUTPUT_PRIORITY = 8,
+    FLOW_DEBUG_LIVE_OUTPUT_HOLD_MS  = 1000,
 };
 
 typedef enum
@@ -40,6 +42,9 @@ typedef enum
 
 typedef bool (*flow_debug_get_input_t)(void *context, flow_input_frame_t *frame);
 typedef uint64_t (*flow_debug_get_time_us_t)(void *context);
+typedef bool (*flow_debug_command_output_t)(void *context, const char *point_id, bool value, uint8_t priority,
+                                            uint64_t expires_at_ms, bool *is_effective);
+typedef void (*flow_debug_relinquish_output_t)(void *context, const char *point_id);
 
 typedef struct
 {
@@ -55,6 +60,7 @@ typedef struct
     uint32_t execution_high_water_us;
     uint32_t missed_deadline_count;
     uint32_t overrun_count;
+    uint32_t arbitration_loss_count;
     flow_result_t last_result;
 } flow_debug_status_t;
 
@@ -83,6 +89,7 @@ typedef struct
     uint32_t execution_high_water_us;
     uint32_t missed_deadline_count;
     uint32_t overrun_count;
+    uint32_t arbitration_loss_count;
     uint32_t artifact_length;
     uint32_t covered_bytes;
     uint8_t artifact_digest[FLOW_DEBUG_DIGEST_BYTES];
@@ -99,6 +106,10 @@ typedef struct
     void *input_context;
     flow_debug_get_time_us_t get_time_us;
     void *time_context;
+    flow_debug_command_output_t command_output;
+    flow_debug_relinquish_output_t relinquish_output;
+    void *output_context;
+    bool is_live_output_enabled;
 } flow_debug_t;
 
 /* Initializes an empty volatile debug owner with immutable target and input adapters. */
@@ -106,6 +117,15 @@ bool flow_debug_init(flow_debug_t *debug, const flow_target_t *target, flow_debu
 
 /* Installs an optional monotonic microsecond source used to measure evaluator duration and high-water time. */
 void flow_debug_set_time_source(flow_debug_t *debug, flow_debug_get_time_us_t get_time_us, void *time_context);
+
+/* Installs the optional physical-output arbitration adapter; live mode remains disabled until explicitly enabled. */
+void flow_debug_set_output_adapter(flow_debug_t *debug, flow_debug_command_output_t command_output,
+                                   flow_debug_relinquish_output_t relinquish_output, void *output_context);
+
+/* Enables live output for a prepared paused session after the caller confirms the exact output point set. */
+flow_debug_result_t flow_debug_enable_live_output(flow_debug_t *debug, uint32_t owner_id, uint64_t session_id,
+                                                  const char *const *confirmed_point_ids, size_t point_count,
+                                                  uint64_t now_ms);
 
 /* Starts a bounded load, optionally replacing an existing session owned by any authenticated peer. */
 flow_debug_result_t flow_debug_begin(flow_debug_t *debug, uint32_t owner_id, bool replace_existing, uint32_t artifact_length,

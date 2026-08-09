@@ -25,6 +25,28 @@ static const flow_target_t TARGET                = {.points                 = TA
                                                     .maximum_snapshot_bytes = FLOW_DEBUG_SNAPSHOT_CAPACITY};
 static flow_input_sample_t INPUTS[]              = {{.point_id = "input-01", .quality = FLOW_QUALITY_GOOD},
                                                     {.point_id = "input-08", .quality = FLOW_QUALITY_GOOD}};
+static unsigned live_command_count;
+static unsigned live_relinquish_count;
+static bool live_command_value;
+
+/* Captures expiring live commands so lifecycle tests can prove arbitration integration without hardware. */
+static bool command_output(void *context, const char *point_id, bool value, uint8_t priority, uint64_t expires_at_ms,
+                           bool *is_effective)
+{
+    assert(context == NULL && strcmp(point_id, "output-01") == 0);
+    assert(priority == FLOW_DEBUG_LIVE_OUTPUT_PRIORITY && expires_at_ms > 0U);
+    live_command_value = value;
+    *is_effective      = true;
+    live_command_count++;
+    return true;
+}
+
+/* Captures owner-specific relinquishment on every safe lifecycle transition. */
+static void relinquish_output(void *context, const char *point_id)
+{
+    assert(context == NULL && strcmp(point_id, "output-01") == 0);
+    live_relinquish_count++;
+}
 
 /* Supplies one coherent input image without exposing physical output adapters. */
 static bool get_input(void *context, flow_input_frame_t *frame)
@@ -58,6 +80,7 @@ static void test_complete_lifecycle(void)
     flow_sha256(artifact, artifact_size, digest);
     flow_debug_t debug;
     assert(flow_debug_init(&debug, &TARGET, get_input, NULL));
+    flow_debug_set_output_adapter(&debug, command_output, relinquish_output, NULL);
     uint64_t session_id = 0;
     assert(flow_debug_begin(&debug, TEST_OWNER, false, (uint32_t)artifact_size, digest, 10, &session_id) == FLOW_DEBUG_OK);
     for (size_t offset = 0; offset < artifact_size; offset += FLOW_DEBUG_CHUNK_LIMIT)
@@ -67,9 +90,13 @@ static void test_complete_lifecycle(void)
         assert(flow_debug_write(&debug, TEST_OWNER, session_id, (uint32_t)offset, &artifact[offset], size, 11) == FLOW_DEBUG_OK);
     }
     assert(flow_debug_prepare(&debug, TEST_OWNER, session_id, 12) == FLOW_DEBUG_OK);
+    assert(!debug.is_live_output_enabled);
+    const char *confirmed_outputs[] = {"output-01"};
+    assert(flow_debug_enable_live_output(&debug, TEST_OWNER, session_id, confirmed_outputs, 1, 12) == FLOW_DEBUG_OK);
     INPUTS[0].value = true;
     INPUTS[1].value = true;
     assert(flow_debug_step(&debug, TEST_OWNER, session_id, 13) == FLOW_DEBUG_OK);
+    assert(live_command_count == 1U && live_relinquish_count == 1U && live_command_value);
     flow_debug_snapshot_header_t header;
     assert(flow_debug_get_snapshot_header(&debug, TEST_OWNER, session_id, 1, 14, &header) == FLOW_DEBUG_OK);
     assert(header.total_length > 0 && header.chunk_count > 0);
@@ -94,6 +121,7 @@ static void test_complete_lifecycle(void)
     flow_debug_process(&debug, 40);
     assert(debug.runtime.tick_number == 3);
     assert(flow_debug_pause(&debug, TEST_OWNER, session_id, 41) == FLOW_DEBUG_OK);
+    assert(live_relinquish_count >= 2U);
     INPUTS[0].value = false;
     flow_debug_process(&debug, 100);
     assert(debug.runtime.tick_number == 3);

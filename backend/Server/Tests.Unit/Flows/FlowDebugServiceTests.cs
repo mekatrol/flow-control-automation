@@ -2,6 +2,7 @@ using Server.Services;
 using Server.Services.Contracts;
 using Server.Services.Implementation;
 using System.Text;
+using System.Text.Json;
 
 namespace Tests.Unit.Flows;
 
@@ -49,6 +50,28 @@ public sealed class FlowDebugServiceTests
         Assert.That(transport.Calls, Is.Empty);
     }
 
+    [Test]
+    public async Task RequiresExactOutputConfirmationBeforeEnablingLiveOutput()
+    {
+        var transport = new StubTransport(Snapshot());
+        var service = new FlowDebugService(new StubResolver(), new StubCompiler(), transport, new FlowDebugSessionRegistry());
+        var source = Source();
+        var started = await service.StartAsync(source, false, default);
+
+        Assert.That(
+            async () => await service.EnableLiveOutputAsync(source.Id, started.DebugSessionId, ["output-02"], default),
+            Throws.TypeOf<ControllerGatewayException>());
+        var enabled = await service.EnableLiveOutputAsync(source.Id, started.DebugSessionId, ["output-01"], default);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(enabled.LiveOutputEnabled, Is.True);
+            Assert.That(enabled.LiveOutputPriority, Is.EqualTo(8));
+            Assert.That(enabled.LiveOutputHoldMilliseconds, Is.EqualTo(1000));
+            Assert.That(transport.Calls, Does.Contain("live"));
+        });
+    }
+
     private static ExecutableFlowSource Source() => new()
     {
         Id = "flow-a",
@@ -61,6 +84,15 @@ public sealed class FlowDebugServiceTests
             {
                 Id = "constant",
                 Kind = "digitalConstant"
+            },
+            new ExecutableFlowNode
+            {
+                Id = "output",
+                Kind = "digitalOutput",
+                Configuration = new Dictionary<string, JsonElement>
+                {
+                    ["pointId"] = JsonSerializer.SerializeToElement("output-01")
+                }
             }
         ]
     };
@@ -160,6 +192,13 @@ public sealed class FlowDebugServiceTests
 
         public Task<ControllerDebugWireStatus> PauseAsync(ulong sessionId, CancellationToken cancellationToken) =>
             Task.FromResult(Status(state: 4, tick: 1));
+
+        public Task<ControllerDebugLiveOutputResult> EnableLiveOutputAsync(
+            ulong sessionId, IReadOnlyList<string> confirmedPointIds, CancellationToken cancellationToken)
+        {
+            Calls.Add("live");
+            return Task.FromResult(new ControllerDebugLiveOutputResult(8, 1000));
+        }
 
         public Task<ControllerDebugSnapshotEnvelope> ReadSnapshotAsync(ulong sessionId, ulong tickNumber, CancellationToken cancellationToken) =>
             Task.FromResult(new ControllerDebugSnapshotEnvelope(42, tickNumber, snapshot, new byte[32]));

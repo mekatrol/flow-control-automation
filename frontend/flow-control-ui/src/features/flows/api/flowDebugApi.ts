@@ -46,6 +46,7 @@ export interface DebugRuntimeSnapshot {
   proposedOutputs: DebugProposedOutput[];
   overrunCount: number;
   evaluationFailureCount: number;
+  arbitrationLossCount?: number;
   lastReasonCode: number;
   lastReason: string;
   lastReasonPath: string;
@@ -63,6 +64,10 @@ export interface FlowDebugSession {
   lastReason: string;
   lastReasonPath: string;
   snapshot?: DebugRuntimeSnapshot;
+  affectedOutputPoints: string[];
+  liveOutputEnabled: boolean;
+  liveOutputPriority?: number;
+  liveOutputHoldMilliseconds?: number;
 }
 
 export interface ExecutableFlowSource {
@@ -161,6 +166,7 @@ export const parseDebugSnapshot = (value: unknown): DebugRuntimeSnapshot => {
     }),
     overrunCount: number(value.overrunCount, 'overrunCount'),
     evaluationFailureCount: number(value.evaluationFailureCount, 'evaluationFailureCount'),
+    arbitrationLossCount: number(value.arbitrationLossCount ?? 0, 'arbitrationLossCount'),
     lastReasonCode: number(value.lastReasonCode, 'lastReasonCode'),
     lastReason: string(value.lastReason, 'lastReason'),
     lastReasonPath: string(value.lastReasonPath, 'lastReasonPath')
@@ -169,6 +175,9 @@ export const parseDebugSnapshot = (value: unknown): DebugRuntimeSnapshot => {
 
 const parseSession = (value: unknown): FlowDebugSession => {
   if (!isRecord(value)) throw new TypeError('Debug session must be an object.');
+  const affectedOutputPoints = value.affectedOutputPoints ?? [];
+  if (!Array.isArray(affectedOutputPoints))
+    throw new TypeError('affectedOutputPoints must be an array.');
   return {
     debugSessionId: text(value.debugSessionId, 'debugSessionId'),
     flowId: text(value.flowId, 'flowId'),
@@ -183,6 +192,21 @@ const parseSession = (value: unknown): FlowDebugSession => {
     lastReasonCode: number(value.lastReasonCode, 'lastReasonCode'),
     lastReason: string(value.lastReason, 'lastReason'),
     lastReasonPath: string(value.lastReasonPath, 'lastReasonPath'),
+    affectedOutputPoints: affectedOutputPoints.map((item, index) =>
+      text(item, `affectedOutputPoints[${index}]`)
+    ),
+    liveOutputEnabled: value.liveOutputEnabled === true,
+    ...(value.liveOutputPriority === null || value.liveOutputPriority === undefined
+      ? {}
+      : { liveOutputPriority: number(value.liveOutputPriority, 'liveOutputPriority') }),
+    ...(value.liveOutputHoldMilliseconds === null || value.liveOutputHoldMilliseconds === undefined
+      ? {}
+      : {
+          liveOutputHoldMilliseconds: number(
+            value.liveOutputHoldMilliseconds,
+            'liveOutputHoldMilliseconds'
+          )
+        }),
     ...(value.snapshot === null || value.snapshot === undefined
       ? {}
       : { snapshot: parseDebugSnapshot(value.snapshot) })
@@ -255,6 +279,22 @@ export const flowDebugApi = {
     request(
       `${base(flowId)}/${encodeURIComponent(sessionId)}/pause`,
       { method: 'POST', signal },
+      parseSession
+    ),
+  enableLiveOutput: (
+    flowId: string,
+    sessionId: string,
+    confirmedPointIds: string[],
+    signal?: AbortSignal
+  ) =>
+    request(
+      `${base(flowId)}/${encodeURIComponent(sessionId)}/live-output`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirmedPointIds }),
+        signal
+      },
       parseSession
     ),
   stop: async (flowId: string, sessionId: string, keepalive = false): Promise<void> => {

@@ -18,6 +18,7 @@ public sealed record DebugRuntimeSnapshot
     public IReadOnlyList<DebugProposedOutput> ProposedOutputs { get; init; } = [];
     public uint OverrunCount { get; init; }
     public uint EvaluationFailureCount { get; init; }
+    public uint ArbitrationLossCount { get; init; }
     public ushort LastReasonCode { get; init; }
     public required string LastReason { get; init; }
     public required string LastReasonPath { get; init; }

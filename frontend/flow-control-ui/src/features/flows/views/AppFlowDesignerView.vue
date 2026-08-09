@@ -141,11 +141,16 @@
         :stale="debugSnapshotStale"
         :error="debugError"
         :target-available="debugTargetId !== 'host'"
+        :affected-output-points="debugAffectedOutputPoints"
+        :live-output-enabled="debugLiveOutputEnabled"
+        :live-output-priority="debugLiveOutputPriority"
+        :live-output-hold-milliseconds="debugLiveOutputHoldMilliseconds"
         @load="loadDebugSession"
         @step="stepDebugSession"
         @run="runDebugSession"
         @pause="pauseDebugSession"
         @stop="stopDebugSession"
+        @enable-live-output="enableLiveOutput"
       />
 
       <AppFlowDesignerCanvas
@@ -255,6 +260,10 @@ const debugSessionId = ref<string>();
 const debugSnapshot = ref<DebugRuntimeSnapshot>();
 const debugRevision = ref<number>();
 const debugError = ref<string>();
+const debugAffectedOutputPoints = ref<string[]>([]);
+const debugLiveOutputEnabled = ref(false);
+const debugLiveOutputPriority = ref<number>();
+const debugLiveOutputHoldMilliseconds = ref<number>();
 let debugController: AbortController | undefined;
 let debugPollTimer: ReturnType<typeof window.setInterval> | undefined;
 const stopDebugPolling = (): void => {
@@ -325,9 +334,26 @@ const loadDebugSession = async (): Promise<void> => {
     debugSessionId.value = session.debugSessionId;
     debugRevision.value = session.revision;
     debugSnapshot.value = session.snapshot;
+    debugAffectedOutputPoints.value = session.affectedOutputPoints;
+    debugLiveOutputEnabled.value = session.liveOutputEnabled;
+    debugLiveOutputPriority.value = session.liveOutputPriority;
+    debugLiveOutputHoldMilliseconds.value = session.liveOutputHoldMilliseconds;
     debugLifecycle.value = 'ready';
   } catch (error) {
     debugLifecycle.value = 'fault';
+    debugError.value = debugFailure(error);
+  }
+};
+const enableLiveOutput = async (confirmedPointIds: string[]): Promise<void> => {
+  const sessionId = debugSessionId.value;
+  if (!sessionId || debugSnapshotStale.value) return;
+  debugError.value = undefined;
+  try {
+    const session = await flowDebugApi.enableLiveOutput(props.flowId, sessionId, confirmedPointIds);
+    debugLiveOutputEnabled.value = session.liveOutputEnabled;
+    debugLiveOutputPriority.value = session.liveOutputPriority;
+    debugLiveOutputHoldMilliseconds.value = session.liveOutputHoldMilliseconds;
+  } catch (error) {
     debugError.value = debugFailure(error);
   }
 };
@@ -397,6 +423,10 @@ const stopDebugSession = async (keepalive = false): Promise<void> => {
   debugController?.abort();
   const sessionId = debugSessionId.value;
   debugSessionId.value = undefined;
+  debugAffectedOutputPoints.value = [];
+  debugLiveOutputEnabled.value = false;
+  debugLiveOutputPriority.value = undefined;
+  debugLiveOutputHoldMilliseconds.value = undefined;
   debugLifecycle.value = 'stopped';
   if (!sessionId) return;
   try {

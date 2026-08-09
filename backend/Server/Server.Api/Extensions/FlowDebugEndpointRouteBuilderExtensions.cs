@@ -15,6 +15,7 @@ public static class FlowDebugEndpointRouteBuilderExtensions
         endpoints.MapPost("/api/flows/{flowId}/debug-sessions/{sessionId}/step", Step);
         endpoints.MapPost("/api/flows/{flowId}/debug-sessions/{sessionId}/run", Run);
         endpoints.MapPost("/api/flows/{flowId}/debug-sessions/{sessionId}/pause", Pause);
+        endpoints.MapPost("/api/flows/{flowId}/debug-sessions/{sessionId}/live-output", EnableLiveOutput);
         endpoints.MapPost("/api/flows/{flowId}/debug-sessions/{sessionId}/stop", Stop);
         endpoints.MapGet("/api/flows/{flowId}/debug-sessions/{sessionId}/events", Events);
         return endpoints;
@@ -110,6 +111,27 @@ public static class FlowDebugEndpointRouteBuilderExtensions
         try
         {
             return Results.Json(await debug.PauseAsync(flowId, sessionId, cancellationToken));
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            return MapError(exception);
+        }
+    }
+
+    private static async Task<IResult> EnableLiveOutput(
+        string flowId,
+        string sessionId,
+        EnableLiveOutputRequest request,
+        IFlowDebugService debug,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return Results.Json(await debug.EnableLiveOutputAsync(
+                flowId,
+                sessionId,
+                request.ConfirmedPointIds,
+                cancellationToken));
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {

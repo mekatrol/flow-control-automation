@@ -412,18 +412,33 @@ Exit criteria:
 
 ### Phase 8: Consider live-output debugging
 
+Status: complete. Live output uses the dedicated
+`flow-debug` arbitration owner at priority 8. Continuous ticks refresh commands
+with a 1000 ms expiry; manual Step applies the evaluated command and immediately
+relinquishes it (forced-safe stepping). Enabling requires an authenticated
+operation with the exact canonical output-point list. Pause, stop, lease expiry,
+replacement, evaluator/input/output fault, and reboot relinquish debug-owned
+commands. Arbitration loss is reported in schema-3 snapshots. The backend
+requires the exact compiled output list and returns the bounded controller
+policy; the designer names every point and requires explicit per-session
+confirmation. The authenticated commissioning client and
+[`LIVE_OUTPUT_COMMISSIONING.md`](../controllers/LIVE_OUTPUT_COMMISSIONING.md)
+cover on-target fault injection and emergency recovery. A controller model must
+record a passing commissioning run before operators use live output; shadow
+mode remains the default.
+
 Live output operation is a separate safety milestone and is not implied by
 completion of shadow mode. Before enabling it:
 
-1. Define a dedicated debug output owner, priority, expiry, and arbitration
+1. **Complete:** Define a dedicated debug output owner, priority, expiry, and arbitration
    loss reporting.
-2. Relinquish every debug-owned command on pause, stop, timeout, disconnect
+2. **Complete:** Relinquish every debug-owned command on pause, stop, timeout, disconnect
    lease expiry, fault, replacement, and reboot.
-3. Decide safe behaviour when stepping: short command expiry, explicit output
+3. **Complete:** Decide safe behaviour when stepping: short command expiry, explicit output
    hold, or forced safe state. Do not infer this from shadow semantics.
-4. Require controller capability support and an explicit per-session UI
+4. **Complete:** Require controller capability support and an explicit per-session UI
    confirmation that names the affected output points.
-5. Add on-target fault-injection and emergency-recovery commissioning tests.
+5. **Complete:** Add on-target fault-injection and emergency-recovery commissioning tests.
 
 ## Verification strategy
 

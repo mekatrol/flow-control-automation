@@ -38,6 +38,8 @@ static void test_arbitration_and_relinquish(void)
     controller_point_command_t high_priority = get_command(0, 2, true, "high");
     assert(controller_points_command(&points, &low_priority, 10) == CONTROLLER_POINT_OK);
     assert(controller_points_command(&points, &high_priority, 10) == CONTROLLER_POINT_OK);
+    assert(controller_points_is_source_effective(&points, 0, "high"));
+    assert(!controller_points_is_source_effective(&points, 0, "low"));
     assert(written_outputs == 1);
     assert(controller_points_relinquish(&points, 0, "high", 11) == CONTROLLER_POINT_OK);
     assert(written_outputs == 0);

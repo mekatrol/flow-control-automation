@@ -52,4 +52,23 @@ describe('flow debug panel', () => {
     expect(wrapper.text()).toContain('Stale snapshot');
     expect(wrapper.find('[data-automation="debug-step"]').attributes('disabled')).toBeDefined();
   });
+
+  it('names every physical output and requires explicit confirmation', async () => {
+    const wrapper = mount(AppFlowDebugPanel, {
+      props: {
+        automation: 'debug',
+        lifecycle: 'ready',
+        targetAvailable: true,
+        affectedOutputPoints: ['output-01', 'output-08']
+      }
+    });
+    const enable = wrapper.find('[data-automation="debug-enable-live-output"]');
+    expect(wrapper.text()).toContain('output-01, output-08');
+    expect(enable.attributes('disabled')).toBeDefined();
+
+    await wrapper.find('input[type="checkbox"]').setValue(true);
+    await enable.trigger('click');
+
+    expect(wrapper.emitted('enableLiveOutput')).toEqual([[['output-01', 'output-08']]]);
+  });
 });

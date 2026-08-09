@@ -1,5 +1,6 @@
 using Server.Services;
 using Server.Services.Implementation;
+using Server.Services.Contracts;
 using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text;
@@ -44,6 +45,21 @@ public sealed class FcpControllerDebugTransportTests
         });
     }
 
+    [Test]
+    public async Task EnablesLiveOutputWithExactBoundedPointList()
+    {
+        var client = new RecordingFcpClient();
+        var result = await new FcpControllerDebugTransport(client)
+            .EnableLiveOutputAsync(42, ["output-01", "output-08"], default);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result, Is.EqualTo(new ControllerDebugLiveOutputResult(8, 1000)));
+            Assert.That(client.Operations.Last(), Is.EqualTo(0x5b));
+            Assert.That(client.LiveOutputPoints, Is.EqualTo(new[] { "output-01", "output-08" }));
+        });
+    }
+
     private static byte[] SnapshotBytes()
     {
         using var stream = new MemoryStream();
@@ -75,6 +91,7 @@ public sealed class FcpControllerDebugTransportTests
 
         public IReadOnlyList<byte> Operations { get; } = new List<byte>();
         public IReadOnlyList<byte> Uploaded => _uploaded;
+        public IReadOnlyList<string> LiveOutputPoints { get; private set; } = [];
 
         public Task<ReadOnlyMemory<byte>> ExchangeAuthenticatedAsync(
             byte operation,
@@ -89,8 +106,26 @@ public sealed class FcpControllerDebugTransportTests
                 0x54 => Step(),
                 0x55 => Header(),
                 0x56 => SnapshotChunk(payload),
+                0x5b => EnableLiveOutput(payload),
                 _ => throw new InvalidOperationException()
             });
+        }
+
+        private ReadOnlyMemory<byte> EnableLiveOutput(ReadOnlyMemory<byte> request)
+        {
+            var points = new List<string>();
+            var offset = 9;
+            for (var index = 0; index < request.Span[8]; index++)
+            {
+                var size = request.Span[offset++];
+                points.Add(Encoding.UTF8.GetString(request.Span.Slice(offset, size)));
+                offset += size;
+            }
+            LiveOutputPoints = points;
+            var response = new byte[5];
+            response[0] = 8;
+            BinaryPrimitives.WriteUInt32LittleEndian(response.AsSpan(1), 1000);
+            return response;
         }
 
         private static ReadOnlyMemory<byte> Begin()

@@ -5,9 +5,60 @@
 #include <stdio.h>
 #include <string.h>
 
+/* Tests session identity and ownership without revealing another peer's session. */
+static flow_debug_result_t get_access(const flow_debug_t *debug, uint32_t owner_id, uint64_t session_id);
+
+/* Renews an authenticated owner's lease from the current monotonic time. */
+static void renew_lease(flow_debug_t *debug, uint64_t now_ms);
+
+/* Relinquishes every command owned by this volatile session before any unsafe lifecycle transition. */
+static void relinquish_live_outputs(flow_debug_t *debug)
+{
+    if (!debug->is_live_output_enabled || debug->relinquish_output == NULL)
+    {
+        return;
+    }
+    for (uint16_t index = 0; index < debug->executable.node_count; index++)
+    {
+        const flow_node_t *node = &debug->executable.nodes[index];
+        if (node->kind == FLOW_NODE_PROPOSED_OUTPUT)
+        {
+            debug->relinquish_output(debug->output_context, debug->executable.points[node->point_index].id);
+        }
+    }
+}
+
+/* Applies one complete tick's proposed outputs through bounded, expiring arbitration commands. */
+static bool apply_live_outputs(flow_debug_t *debug, uint64_t now_ms)
+{
+    if (!debug->is_live_output_enabled)
+    {
+        return true;
+    }
+    const flow_tick_snapshot_t *snapshot = get_flow_runtime_snapshot(&debug->runtime);
+    const uint64_t expires_at_ms = now_ms > UINT64_MAX - FLOW_DEBUG_LIVE_OUTPUT_HOLD_MS
+                                       ? UINT64_MAX
+                                       : now_ms + FLOW_DEBUG_LIVE_OUTPUT_HOLD_MS;
+    for (uint16_t index = 0; snapshot != NULL && index < snapshot->output_count; index++)
+    {
+        bool is_effective = false;
+        if (!debug->command_output(debug->output_context, snapshot->outputs[index].point_id, snapshot->outputs[index].value,
+                                   FLOW_DEBUG_LIVE_OUTPUT_PRIORITY, expires_at_ms, &is_effective))
+        {
+            relinquish_live_outputs(debug);
+            return false;
+        }
+        if (!is_effective && debug->arbitration_loss_count < UINT32_MAX)
+        {
+            debug->arbitration_loss_count++;
+        }
+    }
+    return snapshot != NULL;
+}
+
 enum
 {
-    SNAPSHOT_SCHEMA          = 2,
+    SNAPSHOT_SCHEMA          = 3,
     SNAPSHOT_MODE_MANUAL     = 1,
     SNAPSHOT_MODE_FIXED      = 2,
     SNAPSHOT_STATE_EVALUATED = 1,
@@ -100,11 +151,15 @@ static bool append_string(flow_debug_t *debug, size_t *offset, const char *value
 /* Securely clears all session-owned bytes while preserving adapters and session monotonicity. */
 static void clear_session(flow_debug_t *debug)
 {
+    relinquish_live_outputs(debug);
     const flow_target_t *target            = debug->target;
     const flow_debug_get_input_t get_input = debug->get_input;
     void *input_context                    = debug->input_context;
     const flow_debug_get_time_us_t get_time_us = debug->get_time_us;
     void *time_context                         = debug->time_context;
+    const flow_debug_command_output_t command_output       = debug->command_output;
+    const flow_debug_relinquish_output_t relinquish_output = debug->relinquish_output;
+    void *output_context                                    = debug->output_context;
     const uint64_t next_session_id         = debug->next_session_id;
     (void)memset(debug, 0, sizeof(*debug));
     debug->target          = target;
@@ -112,8 +167,66 @@ static void clear_session(flow_debug_t *debug)
     debug->input_context   = input_context;
     debug->get_time_us     = get_time_us;
     debug->time_context    = time_context;
+    debug->command_output  = command_output;
+    debug->relinquish_output = relinquish_output;
+    debug->output_context  = output_context;
     debug->next_session_id = next_session_id;
     debug->state           = FLOW_DEBUG_EMPTY;
+}
+
+/* Installs the optional physical-output arbitration adapter; live mode remains disabled until explicitly enabled. */
+void flow_debug_set_output_adapter(flow_debug_t *debug, flow_debug_command_output_t command_output,
+                                   flow_debug_relinquish_output_t relinquish_output, void *output_context)
+{
+    if (debug != NULL && debug->state == FLOW_DEBUG_EMPTY)
+    {
+        debug->command_output    = command_output;
+        debug->relinquish_output = relinquish_output;
+        debug->output_context    = output_context;
+    }
+}
+
+/* Enables live output only when the authenticated caller confirms every affected point in canonical node order. */
+flow_debug_result_t flow_debug_enable_live_output(flow_debug_t *debug, uint32_t owner_id, uint64_t session_id,
+                                                  const char *const *confirmed_point_ids, size_t point_count,
+                                                  uint64_t now_ms)
+{
+    if (debug == NULL || confirmed_point_ids == NULL || debug->command_output == NULL ||
+        debug->relinquish_output == NULL)
+    {
+        return FLOW_DEBUG_INVALID_ARGUMENT;
+    }
+    flow_debug_process(debug, now_ms);
+    const flow_debug_result_t access = get_access(debug, owner_id, session_id);
+    if (access != FLOW_DEBUG_OK)
+    {
+        return access;
+    }
+    if (debug->state != FLOW_DEBUG_READY && debug->state != FLOW_DEBUG_PAUSED)
+    {
+        return FLOW_DEBUG_WRONG_STATE;
+    }
+    size_t confirmed_index = 0;
+    for (uint16_t index = 0; index < debug->executable.node_count; index++)
+    {
+        const flow_node_t *node = &debug->executable.nodes[index];
+        if (node->kind == FLOW_NODE_PROPOSED_OUTPUT)
+        {
+            if (confirmed_index >= point_count || confirmed_point_ids[confirmed_index] == NULL ||
+                strcmp(debug->executable.points[node->point_index].id, confirmed_point_ids[confirmed_index]) != 0)
+            {
+                return FLOW_DEBUG_FORBIDDEN;
+            }
+            confirmed_index++;
+        }
+    }
+    if (confirmed_index == 0U || confirmed_index != point_count)
+    {
+        return FLOW_DEBUG_FORBIDDEN;
+    }
+    debug->is_live_output_enabled = true;
+    renew_lease(debug, now_ms);
+    return FLOW_DEBUG_OK;
 }
 
 /* Installs an optional monotonic microsecond source used to measure evaluator duration and high-water time. */
@@ -163,7 +276,8 @@ static bool encode_snapshot(flow_debug_t *debug, uint64_t completed_at_ms)
         append_u32(debug, &offset, snapshot->evaluation_failure_count) &&
         append_u16(debug, &offset, (uint16_t)snapshot->last_result.code) && append_u8(debug, &offset, 0) &&
         append_u32(debug, &offset, debug->execution_high_water_us) &&
-        append_u32(debug, &offset, debug->missed_deadline_count);
+        append_u32(debug, &offset, debug->missed_deadline_count) &&
+        append_u32(debug, &offset, debug->arbitration_loss_count);
     if (!header_ok)
     {
         return false;
@@ -339,6 +453,7 @@ flow_debug_result_t flow_debug_step(flow_debug_t *debug, uint32_t owner_id, uint
     {
         debug->last_result = (flow_result_t){.code = FLOW_REASON_INPUT_QUALITY_REJECTED};
         debug->state       = FLOW_DEBUG_FAULT;
+        relinquish_live_outputs(debug);
         return FLOW_DEBUG_VALIDATION_FAILED;
     }
     debug->last_result = flow_runtime_step(&debug->runtime, &input);
@@ -352,16 +467,25 @@ flow_debug_result_t flow_debug_step(flow_debug_t *debug, uint32_t owner_id, uint
     if (debug->last_result.code != FLOW_REASON_OK)
     {
         debug->state = FLOW_DEBUG_FAULT;
+        relinquish_live_outputs(debug);
+        return FLOW_DEBUG_VALIDATION_FAILED;
+    }
+    if (!apply_live_outputs(debug, now_ms))
+    {
+        debug->state = FLOW_DEBUG_FAULT;
         return FLOW_DEBUG_VALIDATION_FAILED;
     }
     debug->state = FLOW_DEBUG_PAUSED;
     if (!encode_snapshot(debug, now_ms))
     {
         debug->state = FLOW_DEBUG_FAULT;
+        relinquish_live_outputs(debug);
         return FLOW_DEBUG_VALIDATION_FAILED;
     }
     debug->published_tick_number    = debug->runtime.tick_number;
     debug->last_snapshot_publish_ms = now_ms;
+    /* Manual stepping uses forced-safe behaviour: the evaluated command is applied and immediately relinquished. */
+    relinquish_live_outputs(debug);
     renew_lease(debug, now_ms);
     return FLOW_DEBUG_OK;
 }
@@ -414,6 +538,7 @@ flow_debug_result_t flow_debug_pause(flow_debug_t *debug, uint32_t owner_id, uin
         return FLOW_DEBUG_WRONG_STATE;
     }
     debug->state = FLOW_DEBUG_PAUSED;
+    relinquish_live_outputs(debug);
     renew_lease(debug, now_ms);
     return FLOW_DEBUG_OK;
 }
@@ -445,6 +570,7 @@ flow_debug_result_t flow_debug_get_status(flow_debug_t *debug, uint32_t owner_id
                                     .execution_high_water_us = debug->execution_high_water_us,
                                     .missed_deadline_count = debug->missed_deadline_count,
                                     .overrun_count       = debug->overrun_count,
+                                    .arbitration_loss_count = debug->arbitration_loss_count,
                                     .last_result        = debug->last_result};
     return FLOW_DEBUG_OK;
 }
@@ -569,10 +695,17 @@ void flow_debug_process(flow_debug_t *debug, uint64_t now_ms)
         {
             debug->last_result = (flow_result_t){.code = FLOW_REASON_INPUT_QUALITY_REJECTED};
             debug->state       = FLOW_DEBUG_FAULT;
+            relinquish_live_outputs(debug);
             return;
         }
         debug->last_result = flow_runtime_step(&debug->runtime, &input);
         if (debug->last_result.code != FLOW_REASON_OK)
+        {
+            debug->state = FLOW_DEBUG_FAULT;
+            relinquish_live_outputs(debug);
+            return;
+        }
+        if (!apply_live_outputs(debug, now_ms))
         {
             debug->state = FLOW_DEBUG_FAULT;
             return;
@@ -591,6 +724,7 @@ void flow_debug_process(flow_debug_t *debug, uint64_t now_ms)
         if (is_publish_due && !encode_snapshot(debug, now_ms))
         {
             debug->state = FLOW_DEBUG_FAULT;
+            relinquish_live_outputs(debug);
             return;
         }
         if (is_publish_due)

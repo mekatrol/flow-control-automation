@@ -108,7 +108,7 @@ reader using the old tick then gets `not_found`, never mixed data.
 The reassembled stream begins:
 
 ```text
-schema:u16 (=1 or 2), session_id:u64, flow_id:string8(63), revision:u32,
+schema:u16 (=1, 2, or 3), session_id:u64, flow_id:string8(63), revision:u32,
 lifecycle_state:u8, mode:u8, tick_number:u64, sampled_at_ms:u64,
 completed_at_ms:u64, execution_duration_us:u32, input_validity:u8,
 node_count:u16, proposed_output_count:u16, overrun_count:u32,
@@ -121,6 +121,9 @@ Schema 2 appends `execution_high_water_us:u32` and
 remains decodable for compatibility. Continuous snapshots use
 `mode=fixed_interval(2)` and lifecycle `running(7)`; manual snapshots use
 `mode=manual(1)`.
+
+Schema 3 additionally appends `arbitration_loss_count:u32`. It increments when
+a live debug command is accepted but another owner wins output arbitration.
 
 It is followed by `node_count` node records, then output records. Input-validity
 bits are bit 0 coherent, bit 1 all present, and bit 2 all good; bits 3-7 are

@@ -25,6 +25,11 @@ public interface IControllerDebugTransport
 
     Task<ControllerDebugWireStatus> PauseAsync(ulong sessionId, CancellationToken cancellationToken);
 
+    Task<ControllerDebugLiveOutputResult> EnableLiveOutputAsync(
+        ulong sessionId,
+        IReadOnlyList<string> confirmedPointIds,
+        CancellationToken cancellationToken);
+
     Task<ControllerDebugSnapshotEnvelope> ReadSnapshotAsync(
         ulong sessionId,
         ulong tickNumber,

@@ -234,8 +234,8 @@ Capabilities use this fixed payload:
 | 1      | 2    | frame limit      | Maximum encoded frame size                   |
 | 3      | 2    | payload limit    | Maximum payload size                         |
 | 5      | 1    | bitmap size      | Number of operation-bitmap bytes             |
-| 6      | 10   | operation bitmap | Bit `opcode % 8` in byte `opcode / 8`        |
-| 16     | 1    | point-type mask  | Bit `type - 1` for each supported point type |
+| 6      | 12   | operation bitmap | Bit `opcode % 8` in byte `opcode / 8`        |
+| 18     | 1    | point-type mask  | Bit `type - 1` for each supported point type |
 
 Health returns eleven consecutive `u32` counters in this order: accepted
 frames, bad magic, bad version, bad flags, bad length, bad CRC, address misses,
@@ -435,7 +435,7 @@ durable operation.
 
 ### 12.1 Volatile debug operations
 
-Opcodes `0x50` through `0x5a` reserve the authenticated volatile debug-session
+Opcodes `0x50` through `0x5b` reserve the authenticated volatile debug-session
 profile. Their lifecycle, lease, chunk, snapshot, and shadow-safety contracts
 are specified in
 [`../docs/controller-debug-contract-v1.md`](../docs/controller-debug-contract-v1.md).
@@ -446,6 +446,14 @@ They never mutate durable upload or committed-generation state.
 pauses the running session with a `session_id:u64` payload. Both return the
 normal debug status payload. Scheduling uses monotonic deadlines, skips rather
 than overlaps late ticks, and preserves memory while paused.
+
+`0x5b` explicitly enables physical live output. Its request is
+`session_id:u64, point_count:u8, point_ids:string8[]`; the ordered point list
+must exactly match every output in the prepared artifact. Its response is
+`priority:u8, expiry_ms:u32`. Schema 1 uses owner `flow-debug`, priority 8, and
+a 1000 ms maximum command expiry. Manual Step immediately relinquishes the
+command; continuous Run refreshes it. Pause, stop, replacement, lease expiry,
+fault, and reboot relinquish every command owned by the debug session.
 
 ## 13. Idempotency
 

@@ -30,8 +30,8 @@ public sealed class FlowDebugService(
                 var status = await transport.PrepareAsync(load.SessionId, cancellationToken);
                 ValidateStatus(status, load.SessionId, source.Revision);
                 var session = ToSession(source.Id, status, snapshot: null);
-                registry.Session = session;
-                return session;
+                registry.Session = session with { AffectedOutputPoints = GetAffectedOutputPoints(source) };
+                return registry.Session;
             }
             catch
             {
@@ -67,7 +67,7 @@ public sealed class FlowDebugService(
         {
             snapshot = DebugSnapshotDecoder.Decode(await transport.ReadSnapshotAsync(id, status.TickNumber, cancellationToken));
         }
-        var updated = ToSession(flowId, status, snapshot);
+        var updated = CopyLiveOutputState(ToSession(flowId, status, snapshot), registry.Session);
         registry.Session = updated;
         return updated;
     }
@@ -132,7 +132,7 @@ public sealed class FlowDebugService(
             var id = ParseAndMatch(flowId, sessionId);
             var status = await transport.RunAsync(id, intervalMilliseconds, cancellationToken);
             ValidateStatus(status, id, registry.Session!.Revision);
-            return registry.Session = ToSession(flowId, status, registry.Session.Snapshot);
+            return registry.Session = CopyLiveOutputState(ToSession(flowId, status, registry.Session.Snapshot), registry.Session);
         }
         finally
         {
@@ -149,13 +149,62 @@ public sealed class FlowDebugService(
             var id = ParseAndMatch(flowId, sessionId);
             var status = await transport.PauseAsync(id, cancellationToken);
             ValidateStatus(status, id, registry.Session!.Revision);
-            return registry.Session = ToSession(flowId, status, registry.Session.Snapshot);
+            return registry.Session = CopyLiveOutputState(ToSession(flowId, status, registry.Session.Snapshot), registry.Session);
         }
         finally
         {
             registry.Gate.Release();
         }
     }
+
+    public async Task<FlowDebugSession> EnableLiveOutputAsync(
+        string flowId,
+        string sessionId,
+        IReadOnlyList<string> confirmedPointIds,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(confirmedPointIds);
+        await registry.Gate.WaitAsync(cancellationToken);
+        try
+        {
+            var id = ParseAndMatch(flowId, sessionId);
+            var session = registry.Session!;
+            if (!confirmedPointIds.SequenceEqual(session.AffectedOutputPoints, StringComparer.Ordinal))
+            {
+                throw new ControllerGatewayException(
+                    "validation",
+                    "Live-output confirmation must exactly match the affected output points.");
+            }
+            var policy = await transport.EnableLiveOutputAsync(id, confirmedPointIds, cancellationToken);
+            return registry.Session = session with
+            {
+                LiveOutputEnabled = true,
+                LiveOutputPriority = policy.Priority,
+                LiveOutputHoldMilliseconds = policy.HoldMilliseconds
+            };
+        }
+        finally
+        {
+            registry.Gate.Release();
+        }
+    }
+
+    private static IReadOnlyList<string> GetAffectedOutputPoints(ExecutableFlowSource source) =>
+        source.Nodes
+            .Where(node => string.Equals(node.Kind, "digitalOutput", StringComparison.Ordinal))
+            .OrderBy(node => node.Id, StringComparer.Ordinal)
+            .Select(node => node.Configuration.TryGetValue("pointId", out var pointId) ? pointId.GetString() : null)
+            .Where(pointId => !string.IsNullOrEmpty(pointId))
+            .Cast<string>()
+            .ToArray();
+
+    private static FlowDebugSession CopyLiveOutputState(FlowDebugSession next, FlowDebugSession current) => next with
+    {
+        AffectedOutputPoints = current.AffectedOutputPoints,
+        LiveOutputEnabled = current.LiveOutputEnabled,
+        LiveOutputPriority = current.LiveOutputPriority,
+        LiveOutputHoldMilliseconds = current.LiveOutputHoldMilliseconds
+    };
 
     private ulong ParseAndMatch(string flowId, string sessionId)
     {

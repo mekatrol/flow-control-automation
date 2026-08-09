@@ -28,8 +28,8 @@ OPERATIONS = {"echo": 0x01, "discover": 0x02, "capabilities": 0x03,
               "list-flows": 0x40, "flow-metadata": 0x41, "upload": 0x42,
               "upload-status": 0x43, "download": 0x48, "activate": 0x4A,
               "deactivate": 0x4B, "remove-flow": 0x4C, "flow-runtime": 0x4D,
-              "debug-step": 0x50}
-PROTECTED_OPERATIONS = set(range(0x40, 0x4E)) | set(range(0x50, 0x59)) | {0x18, 0x19, 0x1A, 0x32}
+              "debug-step": 0x50, "debug-live-step": 0x50}
+PROTECTED_OPERATIONS = set(range(0x40, 0x4E)) | set(range(0x50, 0x5C)) | {0x18, 0x19, 0x1A, 0x32}
 AUTH_CHALLENGE = 0x30
 AUTH_PROVE = 0x31
 UPLOAD_CHUNK = 0x44
@@ -42,6 +42,7 @@ DEBUG_STEP = 0x54
 DEBUG_SNAPSHOT_HEADER = 0x55
 DEBUG_SNAPSHOT_CHUNK = 0x56
 DEBUG_STOP = 0x58
+DEBUG_ENABLE_LIVE_OUTPUT = 0x5B
 AUTHENTICATED_FLAG = 0x04
 RESPONSE_FLAG = 0x01
 ERROR_FLAG = 0x02
@@ -137,6 +138,8 @@ def get_arguments():
     parser.add_argument("--command-class", type=int, default=0, help="bounded application-defined command class")
     parser.add_argument("--correlation", help="command correlation ID; defaults to a random value")
     parser.add_argument("--transfer-id", type=lambda value: int(value, 0), help="active upload transfer ID for status")
+    parser.add_argument("--confirm-output", action="append", default=[],
+                        help="exact affected point ID; repeat in canonical order for debug-live-step")
     parser.add_argument("--timeout", type=float, default=2.0)
     parser.add_argument("--transaction", type=lambda value: int(value, 0),
                         help="explicit 16-bit transaction ID; defaults to a random value")
@@ -249,7 +252,7 @@ def download_flow(file_descriptor, arguments, key, session_id, transaction):
 
 
 # Loads, prepares, steps, verifies, and stops one volatile shadow debug session.
-def debug_step(file_descriptor, arguments, key, auth_session_id, transaction, artifact):
+def debug_step(file_descriptor, arguments, key, auth_session_id, transaction, artifact, live_output=False):
     sequence = 1
     body = struct.pack("<IBI", secrets.randbits(32), 1, len(artifact)) + hashlib.sha256(artifact).digest()
     _, response = transact_authenticated(file_descriptor, arguments, key, auth_session_id, sequence,
@@ -265,6 +268,20 @@ def debug_step(file_descriptor, arguments, key, auth_session_id, transaction, ar
     transaction = (transaction + 1) & 0xFFFF
     transact_authenticated(file_descriptor, arguments, key, auth_session_id, sequence,
                            DEBUG_PREPARE, struct.pack("<Q", debug_session_id), transaction)
+    if live_output:
+        if not arguments.confirm_output:
+            raise ValueError("debug-live-step requires at least one --confirm-output")
+        encoded_points = [point.encode("utf-8") for point in arguments.confirm_output]
+        if any(not point or len(point) > 63 for point in encoded_points):
+            raise ValueError("confirmed output IDs must contain 1-63 UTF-8 bytes")
+        confirmation = struct.pack("<QB", debug_session_id, len(encoded_points)) + b"".join(
+            bytes([len(point)]) + point for point in encoded_points)
+        sequence += 1
+        transaction = (transaction + 1) & 0xFFFF
+        _, policy = transact_authenticated(file_descriptor, arguments, key, auth_session_id, sequence,
+                                            DEBUG_ENABLE_LIVE_OUTPUT, confirmation, transaction)
+        if policy != struct.pack("<BI", 8, 1000):
+            raise ValueError("controller returned an unexpected live-output safety policy")
     sequence += 1
     transaction = (transaction + 1) & 0xFFFF
     _, step = transact_authenticated(file_descriptor, arguments, key, auth_session_id, sequence,
@@ -351,7 +368,7 @@ def main():
     is_protected = operation in PROTECTED_OPERATIONS
     if is_protected and key is None:
         raise ValueError(f"{arguments.command} requires --key")
-    if arguments.command in ("upload", "download", "debug-step") and arguments.file is None:
+    if arguments.command in ("upload", "download", "debug-step", "debug-live-step") and arguments.file is None:
         raise ValueError(f"{arguments.command} requires --file")
     file_descriptor = os.open(arguments.port, os.O_RDWR | os.O_NOCTTY | os.O_NONBLOCK)
     try:
@@ -382,10 +399,11 @@ def main():
                               (transaction + sequence) & 0xFFFF)
                 print(f"downloaded={len(artifact)} path={arguments.file} sequence={sequence}")
                 return
-            if arguments.command == "debug-step":
+            if arguments.command in ("debug-step", "debug-live-step"):
                 artifact = arguments.file.read_bytes()
                 sequence, debug_session_id, tick, snapshot = debug_step(
-                    file_descriptor, arguments, key, session_id, transaction, artifact)
+                    file_descriptor, arguments, key, session_id, transaction, artifact,
+                    arguments.command == "debug-live-step")
                 close_session(file_descriptor, arguments, key, session_id, sequence + 1,
                               (transaction + sequence) & 0xFFFF)
                 print(f"debug_session={debug_session_id} tick={tick} snapshot_bytes={len(snapshot)}")

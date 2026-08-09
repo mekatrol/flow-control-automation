@@ -1,6 +1,7 @@
 using Server.Services.Contracts;
 using System.Buffers.Binary;
 using System.Security.Cryptography;
+using System.Text;
 
 namespace Server.Services.Implementation;
 
@@ -94,6 +95,51 @@ public sealed class FcpControllerDebugTransport(IFcpClient client) : IController
 
     public async Task<ControllerDebugWireStatus> PauseAsync(ulong sessionId, CancellationToken cancellationToken) =>
         ParseStatus(await Exchange(0x5a, SessionBody(sessionId), cancellationToken));
+
+    public async Task<ControllerDebugLiveOutputResult> EnableLiveOutputAsync(
+        ulong sessionId,
+        IReadOnlyList<string> confirmedPointIds,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(confirmedPointIds);
+        if (confirmedPointIds.Count is 0 or > 64)
+        {
+            throw new ArgumentOutOfRangeException(nameof(confirmedPointIds));
+        }
+        var encoded = confirmedPointIds.Select(pointId =>
+        {
+            var bytes = Encoding.UTF8.GetBytes(pointId);
+            if (bytes.Length is 0 or > 63)
+            {
+                throw new ArgumentException("Confirmed output point IDs must contain 1-63 UTF-8 bytes.", nameof(confirmedPointIds));
+            }
+            return bytes;
+        }).ToArray();
+        var bodyLength = 9 + encoded.Sum(bytes => 1 + bytes.Length);
+        if (bodyLength > 241)
+        {
+            throw new ArgumentException("Confirmed output point list exceeds the controller frame limit.", nameof(confirmedPointIds));
+        }
+        var body = new byte[bodyLength];
+        BinaryPrimitives.WriteUInt64LittleEndian(body, sessionId);
+        body[8] = checked((byte)encoded.Length);
+        var offset = 9;
+        foreach (var pointId in encoded)
+        {
+            body[offset++] = checked((byte)pointId.Length);
+            pointId.CopyTo(body, offset);
+            offset += pointId.Length;
+        }
+        var response = await Exchange(0x5b, body, cancellationToken);
+        RequireLength(response, 5, "enable live output response");
+        var priority = response.Span[0];
+        var holdMilliseconds = BinaryPrimitives.ReadUInt32LittleEndian(response.Span[1..]);
+        if (priority is < 1 or > 16 || holdMilliseconds is 0 or > 1000)
+        {
+            throw Protocol("controller returned unsafe live-output policy");
+        }
+        return new(priority, holdMilliseconds);
+    }
 
     public async Task<ControllerDebugSnapshotEnvelope> ReadSnapshotAsync(
         ulong sessionId, ulong tickNumber, CancellationToken cancellationToken) =>

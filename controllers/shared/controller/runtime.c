@@ -190,6 +190,61 @@ static uint64_t get_debug_time_us(void * /* context */)
     return platform_get_monotonic_us();
 }
 
+/* Resolves a configured debug output point to its bounded physical output index. */
+static bool get_debug_output_index(const char *point_id, uint8_t *output)
+{
+    for (size_t index = 0; index < CONTROLLER_IO_OUTPUT_COUNT; index++)
+    {
+        const flow_target_point_t *point = &debug_target_points[CONTROLLER_IO_INPUT_COUNT + index];
+        if (strcmp(point->id, point_id) == 0)
+        {
+            *output = (uint8_t)index;
+            return true;
+        }
+    }
+    return false;
+}
+
+/* Submits one short-lived command under the dedicated volatile debug owner. */
+static bool command_debug_output(void * /* context */, const char *point_id, bool value, uint8_t priority,
+                                 uint64_t expires_at_ms, bool *is_effective)
+{
+    static const char DEBUG_SOURCE_ID[]      = "flow-debug";
+    static const char DEBUG_CORRELATION_ID[] = "live-tick";
+    uint8_t output = 0;
+    if (!is_io_ready || is_effective == NULL || expires_at_ms > INT64_MAX || !get_debug_output_index(point_id, &output))
+    {
+        return false;
+    }
+    controller_point_command_t command = {.is_used       = true,
+                                          .output        = output,
+                                          .command_class = 1,
+                                          .priority      = priority,
+                                          .value         = value,
+                                          .issued_at_ms  = (int64_t)platform_get_monotonic_ms(),
+                                          .expires_at_ms = (int64_t)expires_at_ms};
+    (void)snprintf(command.source_id, sizeof(command.source_id), "%s", DEBUG_SOURCE_ID);
+    (void)snprintf(command.correlation_id, sizeof(command.correlation_id), "%s", DEBUG_CORRELATION_ID);
+    if (controller_points_command(&controller_points, &command, command.issued_at_ms) != CONTROLLER_POINT_OK)
+    {
+        return false;
+    }
+    *is_effective = controller_points_is_source_effective(&controller_points, output, DEBUG_SOURCE_ID);
+    return true;
+}
+
+/* Relinquishes only the dedicated volatile debug owner's command for one physical point. */
+static void relinquish_debug_output(void * /* context */, const char *point_id)
+{
+    static const char DEBUG_SOURCE_ID[] = "flow-debug";
+    uint8_t output = 0;
+    if (is_io_ready && get_debug_output_index(point_id, &output))
+    {
+        (void)controller_points_relinquish(&controller_points, output, DEBUG_SOURCE_ID,
+                                           (int64_t)platform_get_monotonic_ms());
+    }
+}
+
 /* Builds the fixed KC868 digital target table used only for volatile shadow evaluation. */
 static bool initialize_debug(void)
 {
@@ -226,6 +281,7 @@ static bool initialize_debug(void)
     if (is_initialized)
     {
         flow_debug_set_time_source(&controller_debug, get_debug_time_us, NULL);
+        flow_debug_set_output_adapter(&controller_debug, command_debug_output, relinquish_debug_output, NULL);
     }
     return is_initialized;
 }
