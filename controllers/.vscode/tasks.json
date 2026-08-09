@@ -46,6 +46,18 @@
       "problemMatcher": []
     },
     {
+      "label": "Test all",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/controller-task.sh",
+      "args": ["${workspaceFolder}", "test"],
+      "windows": {
+        "command": "powershell.exe",
+        "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}\\scripts\\controller-task.ps1", "${workspaceFolder}", "test"]
+      },
+      "group": {"kind": "test", "isDefault": true},
+      "problemMatcher": "$gcc"
+    },
+    {
       "label": "Build",
       "type": "shell",
       "command": "${workspaceFolder}/scripts/controller-task.sh",

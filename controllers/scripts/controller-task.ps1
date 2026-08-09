@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory = $true)][string]$ControllersDirectory,
-    [Parameter(Mandatory = $true)][ValidateSet('set-board', 'format', 'clean', 'clean-all', 'build', 'flash', 'monitor')][string]$Action,
+    [Parameter(Mandatory = $true)][ValidateSet('set-board', 'format', 'clean', 'clean-all', 'test', 'build', 'flash', 'monitor')][string]$Action,
     [string]$Argument = ''
 )
 
@@ -198,6 +198,22 @@ function Remove-AllGeneratedFiles {
     Write-Host 'Clean all complete. Local board selection and sdkconfig (including any stored master key) were removed.'
 }
 
+# Configures, builds, and runs the complete portable host-test suite with failure details.
+function Invoke-HostTests {
+    & cmake '-S' 'tests' '-B' 'build-host'
+    if ($LASTEXITCODE -ne 0) {
+        throw "Host-test configuration failed with exit code $LASTEXITCODE"
+    }
+    & cmake '--build' 'build-host' '--config' 'Debug'
+    if ($LASTEXITCODE -ne 0) {
+        throw "Host-test build failed with exit code $LASTEXITCODE"
+    }
+    & ctest '--test-dir' 'build-host' '-C' 'Debug' '--output-on-failure'
+    if ($LASTEXITCODE -ne 0) {
+        throw "Host tests failed with exit code $LASTEXITCODE"
+    }
+}
+
 $configuration = Get-BoardConfiguration -Board $board
 Push-Location $ControllersDirectory
 try {
@@ -244,6 +260,7 @@ try {
         }
         'clean' { Remove-ControllerBuildDirectory }
         'clean-all' { Remove-AllGeneratedFiles }
+        'test' { Invoke-HostTests }
         'build' { Invoke-Idf -Arguments @('build') }
         'flash' { Invoke-Idf -Arguments @('-p', (Get-WindowsSerialPort -RequestedPort $Argument), 'flash') }
         'monitor' { Invoke-Idf -Arguments @('-p', (Get-WindowsSerialPort -RequestedPort $Argument), 'monitor') }

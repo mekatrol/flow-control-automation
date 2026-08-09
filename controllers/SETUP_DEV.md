@@ -87,6 +87,17 @@ ctest --test-dir build-host --output-on-failure
 Both host and firmware builds run the repository source-policy check and fail
 when a policy violation is found.
 
+To configure, compile, and execute every host test in one command, run
+**Tasks: Run Test Task** and choose **Test all**, or use:
+
+```sh
+./scripts/controller-task.sh . test
+```
+
+The task uses CTest as the test runner and prints the output of any failing
+test. On Windows, the task automatically selects the Debug configuration used
+by multi-configuration CMake generators.
+
 ## Format before committing
 
 Run the VS Code **Format** task or:

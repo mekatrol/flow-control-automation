@@ -4,7 +4,7 @@ set -euo pipefail
 export KCONFIG_REPORT_VERBOSITY=quiet
 
 if [ "$#" -lt 2 ]; then
-  echo "usage: $0 <controllers-dir> <set-board|format|clean|clean-all|build|flash|monitor> [board-or-port]" >&2
+  echo "usage: $0 <controllers-dir> <set-board|format|clean|clean-all|test|build|flash|monitor> [board-or-port]" >&2
   exit 2
 fi
 
@@ -156,6 +156,13 @@ clean_all() {
   echo 'Clean all complete. Local board selection and sdkconfig (including any stored master key) were removed.'
 }
 
+# Configures, builds, and runs the complete portable host-test suite with failure details.
+run_host_tests() {
+  cmake -S tests -B build-host
+  cmake --build build-host --config Debug
+  ctest --test-dir build-host -C Debug --output-on-failure
+}
+
 case "$action" in
   set-board)
     saved_controller_configuration=
@@ -199,6 +206,7 @@ case "$action" in
     ;;
   clean) run_idf_redacted fullclean ;;
   clean-all) clean_all ;;
+  test) run_host_tests ;;
   build) run_idf_redacted build ;;
   flash) run_idf_redacted -p "${argument:-/dev/ttyACM0}" flash ;;
   monitor) run_idf -p "${argument:-/dev/ttyACM0}" monitor ;;
