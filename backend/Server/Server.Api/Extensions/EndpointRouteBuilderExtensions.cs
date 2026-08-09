@@ -15,6 +15,7 @@ public static class EndpointRouteBuilderExtensions
     public static IEndpointRouteBuilder MapFlowControlEndpoints(this IEndpointRouteBuilder endpoints)
     {
         endpoints.MapGet(HealthRoute, static () => Results.Json(new { status = "ok" }));
+        endpoints.MapFlowDebugEndpoints();
         endpoints.MapGet("/api/flows", ListFlows);
         endpoints.MapPost("/api/flows", CreateFlow);
         endpoints.MapGet("/api/flows/{flowId}", GetFlow);

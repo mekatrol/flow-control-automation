@@ -34,6 +34,10 @@ add_executable(controller_protocol_tests
     ../shared/controller/protocol.c
     ../shared/controller/auth.c
     ../shared/flow/service.c
+    ../shared/flow/debug.c
+    ../shared/flow/executable.c
+    ../shared/flow/runtime.c
+    ../shared/flow/sha256.c
     ../shared/controller/points.c)
 target_include_directories(controller_protocol_tests PRIVATE ../shared)
 target_compile_options(controller_protocol_tests PRIVATE -Wall -Wextra -Werror -pedantic)
@@ -63,6 +67,18 @@ target_compile_definitions(flow_contract_fixture_tests PRIVATE
     FLOW_CONTRACT_FIXTURE_DIRECTORY="${CMAKE_CURRENT_LIST_DIR}/../../testdata/contracts/flow-executable-v1")
 target_compile_options(flow_contract_fixture_tests PRIVATE -Wall -Wextra -Werror -pedantic)
 add_test(NAME flow_contract_fixtures COMMAND flow_contract_fixture_tests)
+
+add_executable(flow_debug_tests
+    test_flow_debug.c
+    ../shared/flow/debug.c
+    ../shared/flow/executable.c
+    ../shared/flow/runtime.c
+    ../shared/flow/sha256.c)
+target_include_directories(flow_debug_tests PRIVATE ../shared)
+target_compile_definitions(flow_debug_tests PRIVATE
+    FLOW_CONTRACT_FIXTURE_DIRECTORY="${CMAKE_CURRENT_LIST_DIR}/../../testdata/contracts/flow-executable-v1")
+target_compile_options(flow_debug_tests PRIVATE -Wall -Wextra -Werror -pedantic)
+add_test(NAME flow_debug COMMAND flow_debug_tests)
 
 add_executable(controller_points_tests
     test_controller_points.c

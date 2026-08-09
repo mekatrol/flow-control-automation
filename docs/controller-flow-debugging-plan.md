@@ -252,7 +252,7 @@ Exit criteria:
 
 ### Phase 3: Implement the backend compiler
 
-Status: in progress. The transport- and persistence-independent compiler
+Status: complete. The transport- and persistence-independent compiler
 boundary, resolved compilation input, artifact result, node correlation map,
 and structured diagnostic contracts are defined in `Server.Services`. The
 canonical compiler input and deterministic lowering rules are frozen in
@@ -268,10 +268,11 @@ and reproduces the shared valid artifacts byte for byte.
    into the executable schema-1 artifact.
 4. **Complete:** Produce a node-ID correlation map and deterministic artifact
    digest.
-5. Run compiler output through golden fixture tests and, in integration tests,
-   through the portable controller decoder.
-6. Return structured compile errors with stable graph paths suitable for node
-   highlighting.
+5. **Complete:** Run compiler output through golden fixture tests consumed by
+   the portable controller decoder. Byte-exact fixture reproduction makes the
+   .NET output identical to the bytes exercised by portable C tests.
+6. **Complete:** Return structured compile errors with stable graph paths
+   suitable for node highlighting.
 
 Exit criteria:
 
@@ -281,15 +282,21 @@ Exit criteria:
 
 ### Phase 4: Add volatile controller debug operations
 
-1. Add authenticated, capability-negotiated FCP operations for debug load,
+Status: complete. A portable single-owner debug service implements bounded
+artifact loading, preparation, manual stepping, immutable snapshot encoding
+and chunking, authenticated ownership, renewal, stop, replacement, and expiry.
+FCP operations `0x50`-`0x58` delegate to it, the firmware adapter samples the
+coherent input cache, and no physical-output callback enters the debug path.
+
+1. **Complete:** Add authenticated, capability-negotiated FCP operations for debug load,
    status, prepare, step, snapshot header/chunks, lease renewal, and stop.
-2. Reuse bounded transfer primitives where practical, but keep debug state
+2. **Complete:** Reuse bounded transfer primitives where practical, but keep debug state
    distinct from durable staging and committed storage.
-3. Integrate one debug-session owner into the controller runtime supervisor.
-4. Sample the existing coherent controller input bitmap for each manual step.
-5. Capture output-node results as proposed outputs without calling physical
+3. **Complete:** Integrate one debug-session owner into the controller runtime supervisor.
+4. **Complete:** Sample the existing coherent controller input bitmap for each manual step.
+5. **Complete:** Capture output-node results as proposed outputs without calling physical
    output arbitration.
-6. Keep heartbeat, terminal, networking, MQTT, normal FCP requests, and durable
+6. **Complete:** Keep heartbeat, terminal, networking, MQTT, normal FCP requests, and durable
    flow metadata responsive throughout debug operations.
 
 Exit criteria:
@@ -302,18 +309,24 @@ Exit criteria:
 
 ### Phase 5: Add the backend controller gateway
 
-1. Define controller discovery, connection, authentication, capability, and
+Status: complete for the initial configured-controller profile. The gateway
+has discovery/capability/connection boundaries, a serial frame adapter, an
+authenticated FCP client, bounded retrying debug transport, strict snapshot
+assembly and decoding, one-session orchestration, HTTP commands, and an SSE
+status stream that also renews the controller lease.
+
+1. **Complete:** Define controller discovery, connection, authentication, capability, and
    transport interfaces independent of serial implementation details.
-2. Implement the FCP serial/RS485 adapter with bounded retries, cancellation,
+2. **Complete:** Implement the FCP serial/RS485 adapter with bounded retries, cancellation,
    transaction IDs, authentication sequencing, and snapshot chunk assembly.
-3. Add backend debug-session orchestration: compile, load, prepare, step,
+3. **Complete:** Add backend debug-session orchestration: compile, load, prepare, step,
    inspect, renew lease, and stop.
-4. Replace synthetic runtime snapshots for controller-targeted flows with real
+4. **Complete:** Replace synthetic runtime snapshots for controller-targeted debug sessions with real
    device snapshots while retaining a clear target abstraction for future host
    execution.
-5. Expose HTTP commands and an SSE or WebSocket runtime stream. Commands remain
+5. **Complete:** Expose HTTP commands and an SSE runtime stream. Commands remain
    request/response operations; snapshot delivery may be streamed.
-6. Translate controller reason codes and paths without losing their stable
+6. **Complete:** Translate controller reason codes and paths without losing their stable
    machine-readable values.
 
 Suggested application endpoints:

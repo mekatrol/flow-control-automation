@@ -27,14 +27,21 @@ OPERATIONS = {"echo": 0x01, "discover": 0x02, "capabilities": 0x03,
               "set-outputs": 0x1A, "close-session": 0x32,
               "list-flows": 0x40, "flow-metadata": 0x41, "upload": 0x42,
               "upload-status": 0x43, "download": 0x48, "activate": 0x4A,
-              "deactivate": 0x4B, "remove-flow": 0x4C, "flow-runtime": 0x4D}
-PROTECTED_OPERATIONS = set(range(0x40, 0x4E)) | {0x18, 0x19, 0x1A, 0x32}
+              "deactivate": 0x4B, "remove-flow": 0x4C, "flow-runtime": 0x4D,
+              "debug-step": 0x50}
+PROTECTED_OPERATIONS = set(range(0x40, 0x4E)) | set(range(0x50, 0x59)) | {0x18, 0x19, 0x1A, 0x32}
 AUTH_CHALLENGE = 0x30
 AUTH_PROVE = 0x31
 UPLOAD_CHUNK = 0x44
 UPLOAD_VALIDATE = 0x45
 UPLOAD_COMMIT = 0x46
 DOWNLOAD_CHUNK = 0x49
+DEBUG_LOAD_CHUNK = 0x51
+DEBUG_PREPARE = 0x52
+DEBUG_STEP = 0x54
+DEBUG_SNAPSHOT_HEADER = 0x55
+DEBUG_SNAPSHOT_CHUNK = 0x56
+DEBUG_STOP = 0x58
 AUTHENTICATED_FLAG = 0x04
 RESPONSE_FLAG = 0x01
 ERROR_FLAG = 0x02
@@ -241,6 +248,56 @@ def download_flow(file_descriptor, arguments, key, session_id, transaction):
     return sequence, bytes(artifact)
 
 
+# Loads, prepares, steps, verifies, and stops one volatile shadow debug session.
+def debug_step(file_descriptor, arguments, key, auth_session_id, transaction, artifact):
+    sequence = 1
+    body = struct.pack("<IBI", secrets.randbits(32), 1, len(artifact)) + hashlib.sha256(artifact).digest()
+    _, response = transact_authenticated(file_descriptor, arguments, key, auth_session_id, sequence,
+                                         OPERATIONS["debug-step"], body, transaction)
+    debug_session_id, chunk_limit, _ = struct.unpack("<QHI", response)
+    for offset in range(0, len(artifact), chunk_limit):
+        sequence += 1
+        transaction = (transaction + 1) & 0xFFFF
+        body = struct.pack("<QI", debug_session_id, offset) + artifact[offset:offset + chunk_limit]
+        transact_authenticated(file_descriptor, arguments, key, auth_session_id, sequence,
+                               DEBUG_LOAD_CHUNK, body, transaction)
+    sequence += 1
+    transaction = (transaction + 1) & 0xFFFF
+    transact_authenticated(file_descriptor, arguments, key, auth_session_id, sequence,
+                           DEBUG_PREPARE, struct.pack("<Q", debug_session_id), transaction)
+    sequence += 1
+    transaction = (transaction + 1) & 0xFFFF
+    _, step = transact_authenticated(file_descriptor, arguments, key, auth_session_id, sequence,
+                                     DEBUG_STEP, struct.pack("<Q", debug_session_id), transaction)
+    tick, snapshot_length, snapshot_digest = struct.unpack("<QI32s", step)
+    sequence += 1
+    transaction = (transaction + 1) & 0xFFFF
+    _, header = transact_authenticated(file_descriptor, arguments, key, auth_session_id, sequence,
+                                       DEBUG_SNAPSHOT_HEADER, struct.pack("<QQ", debug_session_id, tick), transaction)
+    header_session, header_tick, total_length, chunk_count, _, header_digest = struct.unpack("<QQIHH32s", header)
+    if (header_session != debug_session_id or header_tick != tick or total_length != snapshot_length or
+            header_digest != snapshot_digest):
+        raise ValueError("snapshot header does not match step response")
+    snapshot = bytearray()
+    for chunk_index in range(chunk_count):
+        sequence += 1
+        transaction = (transaction + 1) & 0xFFFF
+        request = struct.pack("<QQH", debug_session_id, tick, chunk_index)
+        _, chunk = transact_authenticated(file_descriptor, arguments, key, auth_session_id, sequence,
+                                          DEBUG_SNAPSHOT_CHUNK, request, transaction)
+        chunk_session, chunk_tick, returned_index, returned_count, offset = struct.unpack_from("<QQHHI", chunk)
+        if (chunk_session != debug_session_id or chunk_tick != tick or returned_index != chunk_index or returned_count != chunk_count or offset != len(snapshot):
+            raise ValueError("inconsistent snapshot chunk")
+        snapshot.extend(chunk[24:])
+    if len(snapshot) != snapshot_length or hashlib.sha256(snapshot).digest() != snapshot_digest:
+        raise ValueError("snapshot digest validation failed")
+    sequence += 1
+    transaction = (transaction + 1) & 0xFFFF
+    transact_authenticated(file_descriptor, arguments, key, auth_session_id, sequence,
+                           DEBUG_STOP, struct.pack("<Q", debug_session_id), transaction)
+    return sequence, debug_session_id, tick, bytes(snapshot)
+
+
 # Authenticates the close response and releases one bounded controller session slot.
 def close_session(file_descriptor, arguments, key, session_id, sequence, transaction):
     transact_authenticated(file_descriptor, arguments, key, session_id, sequence, OPERATIONS["close-session"],
@@ -294,7 +351,7 @@ def main():
     is_protected = operation in PROTECTED_OPERATIONS
     if is_protected and key is None:
         raise ValueError(f"{arguments.command} requires --key")
-    if arguments.command in ("upload", "download") and arguments.file is None:
+    if arguments.command in ("upload", "download", "debug-step") and arguments.file is None:
         raise ValueError(f"{arguments.command} requires --file")
     file_descriptor = os.open(arguments.port, os.O_RDWR | os.O_NOCTTY | os.O_NONBLOCK)
     try:
@@ -324,6 +381,15 @@ def main():
                 close_session(file_descriptor, arguments, key, session_id, sequence + 1,
                               (transaction + sequence) & 0xFFFF)
                 print(f"downloaded={len(artifact)} path={arguments.file} sequence={sequence}")
+                return
+            if arguments.command == "debug-step":
+                artifact = arguments.file.read_bytes()
+                sequence, debug_session_id, tick, snapshot = debug_step(
+                    file_descriptor, arguments, key, session_id, transaction, artifact)
+                close_session(file_descriptor, arguments, key, session_id, sequence + 1,
+                              (transaction + sequence) & 0xFFFF)
+                print(f"debug_session={debug_session_id} tick={tick} snapshot_bytes={len(snapshot)}")
+                print(snapshot.hex(" "))
                 return
             header, response_payload = transact_authenticated(file_descriptor, arguments, key, session_id, 1,
                                                               operation, payload, transaction)

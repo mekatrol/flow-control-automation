@@ -105,8 +105,13 @@ static rs485_service_t controller_rs485_service;
 static controller_protocol_t controller_protocol;
 static controller_auth_t controller_auth;
 static controller_flow_t controller_flow;
+static flow_debug_t controller_debug;
+static flow_target_point_t debug_target_points[CONTROLLER_IO_POINT_COUNT];
+static flow_input_sample_t debug_input_samples[CONTROLLER_IO_INPUT_COUNT];
+static flow_target_t debug_target;
 static controller_points_t controller_points;
 static bool is_flow_ready;
+static bool is_debug_ready;
 static controller_io_t controller_io;
 static bool is_io_ready;
 static uint64_t next_io_poll_ms;
@@ -150,6 +155,7 @@ static void initialize_controller_protocol(void)
                                            .io_context       = &controller_io,
                                            .auth             = is_auth_ready ? &controller_auth : NULL};
     config.flow                         = is_flow_ready ? &controller_flow : NULL;
+    config.debug                        = is_debug_ready ? &controller_debug : NULL;
     config.points                       = is_io_ready ? &controller_points : NULL;
     (void)controller_protocol_init(&controller_protocol, &config, send_protocol_frame, &controller_rs485_service);
 }
@@ -160,6 +166,57 @@ static void initialize_flow(void)
     controller_flow_store_t store;
     is_flow_ready = platform_flow_initialize(&store) && controller_flow_init(&controller_flow, platform_flow_get_digest,
                                                                              platform_flow_is_artifact_valid, NULL, &store);
+}
+
+/* Copies the latest coherent physical input bitmap into the portable debug evaluator adapter. */
+static bool get_debug_input(void * /* context */, flow_input_frame_t *frame)
+{
+    const controller_io_snapshot_t snapshot = controller_io_get_snapshot(&controller_io);
+    for (size_t index = 0; index < CONTROLLER_IO_INPUT_COUNT; index++)
+    {
+        debug_input_samples[index].value   = (snapshot.inputs & (uint16_t)(1U << index)) != 0U;
+        debug_input_samples[index].quality = snapshot.are_inputs_valid ? FLOW_QUALITY_GOOD : FLOW_QUALITY_UNAVAILABLE;
+    }
+    *frame = (flow_input_frame_t){.samples       = debug_input_samples,
+                                  .sample_count  = CONTROLLER_IO_INPUT_COUNT,
+                                  .sampled_at_ms = (uint64_t)snapshot.sampled_at_ms,
+                                  .is_coherent   = snapshot.are_inputs_valid};
+    return true;
+}
+
+/* Builds the fixed KC868 digital target table used only for volatile shadow evaluation. */
+static bool initialize_debug(void)
+{
+    for (size_t index = 0; index < CONTROLLER_IO_INPUT_COUNT; index++)
+    {
+        const int input_size =
+            snprintf(debug_target_points[index].id, sizeof(debug_target_points[index].id), "input-%02u", (unsigned)(index + 1U));
+        const int sample_size = snprintf(debug_input_samples[index].point_id, sizeof(debug_input_samples[index].point_id),
+                                         "input-%02u", (unsigned)(index + 1U));
+        if (input_size <= 0 || (size_t)input_size >= sizeof(debug_target_points[index].id) || sample_size <= 0 ||
+            (size_t)sample_size >= sizeof(debug_input_samples[index].point_id))
+        {
+            return false;
+        }
+        debug_target_points[index].direction  = 1;
+        debug_target_points[index].value_type = CONTROLLER_PROTOCOL_POINT_DIGITAL;
+    }
+    for (size_t index = 0; index < CONTROLLER_IO_OUTPUT_COUNT; index++)
+    {
+        flow_target_point_t *point = &debug_target_points[CONTROLLER_IO_INPUT_COUNT + index];
+        const int size             = snprintf(point->id, sizeof(point->id), "output-%02u", (unsigned)(index + 1U));
+        if (size <= 0 || (size_t)size >= sizeof(point->id))
+        {
+            return false;
+        }
+        point->direction  = 2;
+        point->value_type = CONTROLLER_PROTOCOL_POINT_DIGITAL;
+    }
+    debug_target = (flow_target_t){.points                 = debug_target_points,
+                                   .point_count            = CONTROLLER_IO_POINT_COUNT,
+                                   .supported_capabilities = UINT32_C(0x1f),
+                                   .maximum_snapshot_bytes = FLOW_DEBUG_SNAPSHOT_CAPACITY};
+    return flow_debug_init(&controller_debug, &debug_target, get_debug_input, NULL);
 }
 
 /* Initializes field I/O in a safe read-only mode and leaves failed hardware explicitly unavailable. */
@@ -174,6 +231,7 @@ static void initialize_io(void)
         controller_io_set_writer(&controller_io, platform_io_write_outputs);
         (void)controller_points_init(&controller_points, platform_io_write_outputs);
     }
+    is_debug_ready  = initialize_debug();
     next_io_poll_ms = platform_get_monotonic_ms();
 }
 

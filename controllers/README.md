@@ -132,6 +132,7 @@ The Linux client currently supports these operations:
 | `deactivate`    | `0x4b` | Atomically deactivate the committed flow     |
 | `remove-flow`   | `0x4c` | Remove an inactive committed flow            |
 | `flow-runtime`  | `0x4d` | Read current committed/active metadata       |
+| `debug-step`    | `0x50`-`0x58` | Load, prepare, step, inspect, and stop one volatile shadow session |
 
 The client generates a fresh random 16-bit transaction ID for every invocation
 so separate commands cannot be mistaken for retransmissions. Use
@@ -241,6 +242,16 @@ cmp flow.fca downloaded.fca
 ./scripts/fcp-client.py "$FCP_PORT" deactivate --address 0 --key "$FCP_KEY"
 ./scripts/fcp-client.py "$FCP_PORT" remove-flow --address 0 --key "$FCP_KEY"
 ```
+
+Load a schema-1 artifact into volatile memory, take one coherent shadow step,
+verify and print its snapshot, then stop and clear the session:
+
+```bash
+./scripts/fcp-client.py "$FCP_PORT" debug-step --address 0 --key "$FCP_KEY" --file flow.fca
+```
+
+This command never commits or activates the artifact and never commands a
+physical output.
 
 Verify a transaction-correlated echo:
 

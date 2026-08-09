@@ -19,7 +19,7 @@ enum
     PROTOCOL_MAXIMUM_SLOTS             = 64,
     PROTOCOL_MAXIMUM_SLOT_TIME_MS      = 1000,
     PROTOCOL_POINT_TYPE_MASK           = 0x1f,
-    PROTOCOL_OPERATION_BITMAP_SIZE     = 10,
+    PROTOCOL_OPERATION_BITMAP_SIZE     = 12,
     PROTOCOL_MAXIMUM_POINT_COUNT       = 1024,
     PROTOCOL_DISCOVERY_NONCE_SIZE      = 4,
     PROTOCOL_DISCOVERY_SEED_CAPACITY   = UINT8_MAX + PROTOCOL_DISCOVERY_NONCE_SIZE,
@@ -306,7 +306,9 @@ static bool is_authentication_required(uint8_t operation)
            operation == CONTROLLER_PROTOCOL_OPERATION_RELINQUISH_COMMAND ||
            operation == CONTROLLER_PROTOCOL_OPERATION_COMMAND_OUTPUT_BLOCK ||
            operation == CONTROLLER_PROTOCOL_OPERATION_CLOSE_SESSION ||
-           (operation >= CONTROLLER_PROTOCOL_OPERATION_LIST_FLOWS && operation <= CONTROLLER_PROTOCOL_OPERATION_GET_FLOW_RUNTIME);
+           (operation >= CONTROLLER_PROTOCOL_OPERATION_LIST_FLOWS &&
+            operation <= CONTROLLER_PROTOCOL_OPERATION_GET_FLOW_RUNTIME) ||
+           (operation >= CONTROLLER_PROTOCOL_OPERATION_DEBUG_LOAD_BEGIN && operation <= CONTROLLER_PROTOCOL_OPERATION_DEBUG_STOP);
 }
 
 /* Verifies and removes one authenticated envelope before semantic dispatch. */
@@ -831,6 +833,71 @@ static bool is_flow_result_success(controller_protocol_t *protocol, const contro
     return false;
 }
 
+/* Maps volatile debug service outcomes into stable protocol errors. */
+static controller_protocol_error_t get_debug_error(flow_debug_result_t result)
+{
+    switch (result)
+    {
+        case FLOW_DEBUG_INVALID_ARGUMENT:
+            return CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT;
+        case FLOW_DEBUG_WRONG_STATE:
+            return CONTROLLER_PROTOCOL_ERROR_WRONG_STATE;
+        case FLOW_DEBUG_NOT_FOUND:
+            return CONTROLLER_PROTOCOL_ERROR_NOT_FOUND;
+        case FLOW_DEBUG_FORBIDDEN:
+            return CONTROLLER_PROTOCOL_ERROR_UNAUTHORIZED;
+        case FLOW_DEBUG_CONFLICT:
+            return CONTROLLER_PROTOCOL_ERROR_BUSY;
+        case FLOW_DEBUG_DIGEST_MISMATCH:
+            return CONTROLLER_PROTOCOL_ERROR_DIGEST_MISMATCH;
+        case FLOW_DEBUG_VALIDATION_FAILED:
+            return CONTROLLER_PROTOCOL_ERROR_VALIDATION_FAILED;
+        case FLOW_DEBUG_OK:
+            return CONTROLLER_PROTOCOL_ERROR_INTERNAL;
+    }
+    return CONTROLLER_PROTOCOL_ERROR_INTERNAL;
+}
+
+/* Sends a mapped debug failure or permits success encoding to continue. */
+static bool is_debug_result_success(controller_protocol_t *protocol, const controller_protocol_message_t *request,
+                                    flow_debug_result_t result)
+{
+    if (result == FLOW_DEBUG_OK)
+    {
+        return true;
+    }
+    send_error(protocol, request, get_debug_error(result));
+    return false;
+}
+
+/* Encodes the shared bounded debug status response. */
+static bool set_debug_status_payload(controller_protocol_message_t *response, const flow_debug_status_t *status)
+{
+    size_t offset = 0;
+    put_u64(&response->payload[offset], status->session_id);
+    offset += sizeof(uint64_t);
+    response->payload[offset++] = (uint8_t)status->state;
+    put_u32(&response->payload[offset], status->covered_bytes);
+    offset += sizeof(uint32_t);
+    put_u32(&response->payload[offset], status->artifact_length);
+    offset += sizeof(uint32_t);
+    put_u32(&response->payload[offset], status->flow_revision);
+    offset += sizeof(uint32_t);
+    put_u64(&response->payload[offset], status->tick_number);
+    offset += sizeof(uint64_t);
+    put_u32(&response->payload[offset], status->lease_remaining_ms);
+    offset += sizeof(uint32_t);
+    put_u16(&response->payload[offset], (uint16_t)status->last_result.code);
+    offset += sizeof(uint16_t);
+    if (!append_string8(response->payload, PROTOCOL_AUTH_BODY_CAPACITY, &offset, status->last_result.path,
+                        sizeof(status->last_result.path)))
+    {
+        return false;
+    }
+    response->payload_size = offset;
+    return true;
+}
+
 /* Dispatches one trusted non-discovery request synchronously into the response queue. */
 static void dispatch_request(controller_protocol_t *protocol, const controller_protocol_message_t *request, uint64_t now_ms)
 {
@@ -848,7 +915,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                 send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
                 break;
             }
-            response.payload_size = 17;
+            response.payload_size = 19;
             response.payload[0]   = PROTOCOL_CAPABILITY_MINOR;
             put_u16(&response.payload[1], CONTROLLER_PROTOCOL_FRAME_CAPACITY);
             put_u16(&response.payload[3], CONTROLLER_PROTOCOL_PAYLOAD_CAPACITY);
@@ -863,7 +930,9 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
             response.payload[13] = 0;
             response.payload[14] = UINT8_MAX;
             response.payload[15] = UINT8_C(0x3f);
-            response.payload[16] = PROTOCOL_POINT_TYPE_MASK;
+            response.payload[16] = UINT8_MAX;
+            response.payload[17] = UINT8_C(0x01);
+            response.payload[18] = PROTOCOL_POINT_TYPE_MASK;
             send_response(protocol, &response);
             break;
         case CONTROLLER_PROTOCOL_OPERATION_GET_DEVICE_INFO:
@@ -1339,6 +1408,218 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
             send_response(protocol, &response);
             break;
         }
+        case CONTROLLER_PROTOCOL_OPERATION_DEBUG_LOAD_BEGIN: {
+            const size_t expected_size = sizeof(uint32_t) + 1U + sizeof(uint32_t) + FLOW_DEBUG_DIGEST_BYTES;
+            if (protocol->config.debug == NULL || request->payload_size != expected_size || request->payload[4] > 1U)
+            {
+                send_error(protocol, request,
+                           protocol->config.debug == NULL ? CONTROLLER_PROTOCOL_ERROR_NOT_READY
+                                                          : CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
+                break;
+            }
+            uint64_t session_id = 0;
+            const flow_debug_result_t result =
+                flow_debug_begin(protocol->config.debug, protocol->authenticated_session_id, request->payload[4] != 0U,
+                                 get_u32(&request->payload[5]), &request->payload[9], now_ms, &session_id);
+            if (!is_debug_result_success(protocol, request, result))
+            {
+                break;
+            }
+            put_u64(response.payload, session_id);
+            put_u16(&response.payload[8], FLOW_DEBUG_CHUNK_LIMIT);
+            put_u32(&response.payload[10], FLOW_DEBUG_LEASE_MS);
+            response.payload_size = 14;
+            send_response(protocol, &response);
+            break;
+        }
+        case CONTROLLER_PROTOCOL_OPERATION_DEBUG_LOAD_CHUNK: {
+            const size_t prefix_size = sizeof(uint64_t) + sizeof(uint32_t);
+            if (protocol->config.debug == NULL || request->payload_size <= prefix_size ||
+                request->payload_size - prefix_size > FLOW_DEBUG_CHUNK_LIMIT)
+            {
+                send_error(protocol, request,
+                           protocol->config.debug == NULL ? CONTROLLER_PROTOCOL_ERROR_NOT_READY
+                                                          : CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
+                break;
+            }
+            const size_t data_size = request->payload_size - prefix_size;
+            const uint32_t offset  = get_u32(&request->payload[sizeof(uint64_t)]);
+            const flow_debug_result_t result =
+                flow_debug_write(protocol->config.debug, protocol->authenticated_session_id, get_u64(request->payload), offset,
+                                 &request->payload[prefix_size], data_size, now_ms);
+            if (!is_debug_result_success(protocol, request, result))
+            {
+                break;
+            }
+            put_u32(response.payload, offset);
+            put_u16(&response.payload[4], (uint16_t)data_size);
+            response.payload_size = 6;
+            send_response(protocol, &response);
+            break;
+        }
+        case CONTROLLER_PROTOCOL_OPERATION_DEBUG_PREPARE:
+        case CONTROLLER_PROTOCOL_OPERATION_DEBUG_STATUS: {
+            if (protocol->config.debug == NULL || request->payload_size != sizeof(uint64_t))
+            {
+                send_error(protocol, request,
+                           protocol->config.debug == NULL ? CONTROLLER_PROTOCOL_ERROR_NOT_READY
+                                                          : CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
+                break;
+            }
+            const uint64_t session_id  = get_u64(request->payload);
+            flow_debug_result_t result = FLOW_DEBUG_OK;
+            if (request->operation == CONTROLLER_PROTOCOL_OPERATION_DEBUG_PREPARE)
+            {
+                result = flow_debug_prepare(protocol->config.debug, protocol->authenticated_session_id, session_id, now_ms);
+            }
+            flow_debug_status_t status;
+            if (result == FLOW_DEBUG_OK)
+            {
+                result = flow_debug_get_status(protocol->config.debug, protocol->authenticated_session_id, session_id, now_ms,
+                                               &status);
+            }
+            if (!is_debug_result_success(protocol, request, result))
+            {
+                break;
+            }
+            if (!set_debug_status_payload(&response, &status))
+            {
+                send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_INTERNAL);
+                break;
+            }
+            send_response(protocol, &response);
+            break;
+        }
+        case CONTROLLER_PROTOCOL_OPERATION_DEBUG_STEP: {
+            if (protocol->config.debug == NULL || request->payload_size != sizeof(uint64_t))
+            {
+                send_error(protocol, request,
+                           protocol->config.debug == NULL ? CONTROLLER_PROTOCOL_ERROR_NOT_READY
+                                                          : CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
+                break;
+            }
+            const uint64_t session_id = get_u64(request->payload);
+            flow_debug_result_t result =
+                flow_debug_step(protocol->config.debug, protocol->authenticated_session_id, session_id, now_ms);
+            flow_debug_snapshot_header_t header;
+            if (result == FLOW_DEBUG_OK)
+            {
+                result = flow_debug_get_snapshot_header(protocol->config.debug, protocol->authenticated_session_id, session_id,
+                                                        protocol->config.debug->runtime.tick_number, now_ms, &header);
+            }
+            if (!is_debug_result_success(protocol, request, result))
+            {
+                break;
+            }
+            put_u64(response.payload, header.tick_number);
+            put_u32(&response.payload[8], header.total_length);
+            (void)memcpy(&response.payload[12], header.digest, sizeof(header.digest));
+            response.payload_size = 12U + sizeof(header.digest);
+            send_response(protocol, &response);
+            break;
+        }
+        case CONTROLLER_PROTOCOL_OPERATION_DEBUG_SNAPSHOT_HEADER: {
+            if (protocol->config.debug == NULL || request->payload_size != 2U * sizeof(uint64_t))
+            {
+                send_error(protocol, request,
+                           protocol->config.debug == NULL ? CONTROLLER_PROTOCOL_ERROR_NOT_READY
+                                                          : CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
+                break;
+            }
+            flow_debug_snapshot_header_t header;
+            const flow_debug_result_t result = flow_debug_get_snapshot_header(
+                protocol->config.debug, protocol->authenticated_session_id, get_u64(request->payload),
+                get_u64(&request->payload[sizeof(uint64_t)]), now_ms, &header);
+            if (!is_debug_result_success(protocol, request, result))
+            {
+                break;
+            }
+            put_u64(response.payload, header.session_id);
+            put_u64(&response.payload[8], header.tick_number);
+            put_u32(&response.payload[16], header.total_length);
+            put_u16(&response.payload[20], header.chunk_count);
+            put_u16(&response.payload[22], header.chunk_data_limit);
+            (void)memcpy(&response.payload[24], header.digest, sizeof(header.digest));
+            response.payload_size = 24U + sizeof(header.digest);
+            send_response(protocol, &response);
+            break;
+        }
+        case CONTROLLER_PROTOCOL_OPERATION_DEBUG_SNAPSHOT_CHUNK: {
+            const size_t expected_size = 2U * sizeof(uint64_t) + sizeof(uint16_t);
+            if (protocol->config.debug == NULL || request->payload_size != expected_size)
+            {
+                send_error(protocol, request,
+                           protocol->config.debug == NULL ? CONTROLLER_PROTOCOL_ERROR_NOT_READY
+                                                          : CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
+                break;
+            }
+            const uint64_t session_id        = get_u64(request->payload);
+            const uint64_t tick_number       = get_u64(&request->payload[8]);
+            const uint16_t chunk_index       = get_u16(&request->payload[16]);
+            uint32_t offset                  = 0;
+            size_t chunk_size                = 0;
+            const flow_debug_result_t result = flow_debug_read_snapshot_chunk(
+                protocol->config.debug, protocol->authenticated_session_id, session_id, tick_number, chunk_index, now_ms,
+                &response.payload[24], PROTOCOL_AUTH_BODY_CAPACITY - 24U, &offset, &chunk_size);
+            if (!is_debug_result_success(protocol, request, result))
+            {
+                break;
+            }
+            flow_debug_snapshot_header_t header;
+            if (!is_debug_result_success(protocol, request,
+                                         flow_debug_get_snapshot_header(protocol->config.debug,
+                                                                        protocol->authenticated_session_id, session_id,
+                                                                        tick_number, now_ms, &header)))
+            {
+                break;
+            }
+            put_u64(response.payload, session_id);
+            put_u64(&response.payload[8], tick_number);
+            put_u16(&response.payload[16], chunk_index);
+            put_u16(&response.payload[18], header.chunk_count);
+            put_u32(&response.payload[20], offset);
+            response.payload_size = 24U + chunk_size;
+            send_response(protocol, &response);
+            break;
+        }
+        case CONTROLLER_PROTOCOL_OPERATION_DEBUG_RENEW: {
+            if (protocol->config.debug == NULL || request->payload_size != sizeof(uint64_t))
+            {
+                send_error(protocol, request,
+                           protocol->config.debug == NULL ? CONTROLLER_PROTOCOL_ERROR_NOT_READY
+                                                          : CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
+                break;
+            }
+            if (!is_debug_result_success(protocol, request,
+                                         flow_debug_renew(protocol->config.debug, protocol->authenticated_session_id,
+                                                          get_u64(request->payload), now_ms)))
+            {
+                break;
+            }
+            put_u32(response.payload, FLOW_DEBUG_LEASE_MS);
+            response.payload_size = sizeof(uint32_t);
+            send_response(protocol, &response);
+            break;
+        }
+        case CONTROLLER_PROTOCOL_OPERATION_DEBUG_STOP: {
+            if (protocol->config.debug == NULL || request->payload_size != sizeof(uint64_t))
+            {
+                send_error(protocol, request,
+                           protocol->config.debug == NULL ? CONTROLLER_PROTOCOL_ERROR_NOT_READY
+                                                          : CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
+                break;
+            }
+            const uint64_t session_id = get_u64(request->payload);
+            if (!is_debug_result_success(protocol, request,
+                                         flow_debug_stop(protocol->config.debug, protocol->authenticated_session_id, session_id)))
+            {
+                break;
+            }
+            put_u64(response.payload, session_id);
+            response.payload_size = sizeof(uint64_t);
+            send_response(protocol, &response);
+            break;
+        }
         default:
             protocol->health.unsupported_operation_count++;
             send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_UNSUPPORTED_OPERATION);
@@ -1466,7 +1747,15 @@ void controller_protocol_receive(controller_protocol_t *protocol, const uint8_t 
 /* Sends a pending collision-delayed discovery response when its bounded slot expires. */
 void controller_protocol_process(controller_protocol_t *protocol, uint64_t now_ms)
 {
-    if (protocol == NULL || !protocol->is_discovery_pending || now_ms < protocol->discovery_deadline_ms)
+    if (protocol == NULL)
+    {
+        return;
+    }
+    if (protocol->config.debug != NULL)
+    {
+        flow_debug_process(protocol->config.debug, now_ms);
+    }
+    if (!protocol->is_discovery_pending || now_ms < protocol->discovery_deadline_ms)
     {
         return;
     }
