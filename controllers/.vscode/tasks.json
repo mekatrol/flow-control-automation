@@ -24,6 +24,17 @@
       "problemMatcher": []
     },
     {
+      "label": "Clean all generated files",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/controller-task.sh",
+      "args": ["${workspaceFolder}", "clean-all"],
+      "windows": {
+        "command": "powershell.exe",
+        "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}\\scripts\\controller-task.ps1", "${workspaceFolder}", "clean-all"]
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "Format",
       "type": "shell",
       "command": "${workspaceFolder}/scripts/controller-task.sh",

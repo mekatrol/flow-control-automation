@@ -122,6 +122,18 @@ The following are regenerated locally and should remain uncommitted:
 - `build/`, `build-host/`, and `build-<board>/`
 - `managed_components/`
 
+To return the workspace to its never-configured, never-built state, run
+**Tasks: Run Task**, choose **Clean all generated files**, or use:
+
+```sh
+./scripts/controller-task.sh . clean-all
+```
+
+This removes all generated build directories, managed components, Python test
+caches and coverage output, `.controller-board`, and `sdkconfig*`. Because
+`sdkconfig` contains the local settings-storage master key, save that value
+elsewhere first if it will be needed again.
+
 ## Troubleshooting
 
 If VS Code reports that `/tools/cmake/project.cmake` cannot be found, reload the

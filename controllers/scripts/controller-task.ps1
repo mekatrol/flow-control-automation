@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory = $true)][string]$ControllersDirectory,
-    [Parameter(Mandatory = $true)][ValidateSet('set-board', 'format', 'clean', 'build', 'flash', 'monitor')][string]$Action,
+    [Parameter(Mandatory = $true)][ValidateSet('set-board', 'format', 'clean', 'clean-all', 'build', 'flash', 'monitor')][string]$Action,
     [string]$Argument = ''
 )
 
@@ -157,6 +157,47 @@ function Remove-ControllerBuildDirectory {
     Write-Host "Removed generated build directory '$buildPath'."
 }
 
+# Removes only allowlisted generated files and directories to restore the controller workspace to a never-built state.
+function Remove-AllGeneratedFiles {
+    $controllersPath = [IO.Path]::GetFullPath($ControllersDirectory).TrimEnd('\', '/')
+    if (-not (Test-Path -LiteralPath (Join-Path $controllersPath 'CMakeLists.txt')) -or
+        -not (Test-Path -LiteralPath (Join-Path $controllersPath 'SETUP_DEV.md'))) {
+        throw "Refusing to clean unexpected controller workspace: $controllersPath"
+    }
+
+    $rootNames = @('.controller-board', '.coverage', '.pytest_cache', 'htmlcov', 'managed_components')
+    $rootNames += @(Get-ChildItem -LiteralPath $controllersPath -Force | Where-Object {
+            $_.Name -eq 'build' -or $_.Name -like 'build-*' -or $_.Name -like 'sdkconfig*'
+        } | Select-Object -ExpandProperty Name)
+    $rootTargets = @($rootNames | Sort-Object -Unique | ForEach-Object { Join-Path $controllersPath $_ })
+
+    # Remove large root build trees before recursive cache discovery so stale tool outputs are not needlessly traversed.
+    foreach ($target in $rootTargets) {
+        $resolvedTarget = [IO.Path]::GetFullPath($target)
+        if (-not $resolvedTarget.StartsWith($controllersPath + [IO.Path]::DirectorySeparatorChar,
+                [StringComparison]::OrdinalIgnoreCase)) {
+            throw "Refusing to clean generated path outside the controller workspace: $resolvedTarget"
+        }
+        if (Test-Path -LiteralPath $resolvedTarget) {
+            Remove-Item -LiteralPath $resolvedTarget -Recurse -Force
+            Write-Host "Removed generated path '$resolvedTarget'."
+        }
+    }
+
+    $cacheTargets = @(Get-ChildItem -LiteralPath $controllersPath -Recurse -Force -Directory -Filter '__pycache__' |
+            Select-Object -ExpandProperty FullName)
+    $cacheTargets += @(Get-ChildItem -LiteralPath $controllersPath -Recurse -Force -File |
+            Where-Object { $_.Extension -in @('.pyc', '.pyo', '.pyd') } | Select-Object -ExpandProperty FullName)
+    foreach ($target in ($cacheTargets | Sort-Object -Unique -Descending)) {
+        if (Test-Path -LiteralPath $target) {
+            Remove-Item -LiteralPath $target -Recurse -Force
+            Write-Host "Removed generated path '$target'."
+        }
+    }
+
+    Write-Host 'Clean all complete. Local board selection and sdkconfig (including any stored master key) were removed.'
+}
+
 $configuration = Get-BoardConfiguration -Board $board
 Push-Location $ControllersDirectory
 try {
@@ -202,6 +243,7 @@ try {
             }
         }
         'clean' { Remove-ControllerBuildDirectory }
+        'clean-all' { Remove-AllGeneratedFiles }
         'build' { Invoke-Idf -Arguments @('build') }
         'flash' { Invoke-Idf -Arguments @('-p', (Get-WindowsSerialPort -RequestedPort $Argument), 'flash') }
         'monitor' { Invoke-Idf -Arguments @('-p', (Get-WindowsSerialPort -RequestedPort $Argument), 'monitor') }

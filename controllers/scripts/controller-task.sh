@@ -4,7 +4,7 @@ set -euo pipefail
 export KCONFIG_REPORT_VERBOSITY=quiet
 
 if [ "$#" -lt 2 ]; then
-  echo "usage: $0 <controllers-dir> <set-board|format|clean|build|flash|monitor> [board-or-port]" >&2
+  echo "usage: $0 <controllers-dir> <set-board|format|clean|clean-all|build|flash|monitor> [board-or-port]" >&2
   exit 2
 fi
 
@@ -137,6 +137,25 @@ restore_controller_configuration() {
 configure_board
 cd "$controllers_dir"
 
+# Removes allowlisted generated paths only after verifying the expected controller workspace markers.
+clean_all() {
+  if [ ! -f "$controllers_dir/CMakeLists.txt" ] || [ ! -f "$controllers_dir/SETUP_DEV.md" ]; then
+    echo "refusing to clean unexpected controller workspace: $controllers_dir" >&2
+    exit 2
+  fi
+
+  # Remove large build trees first so recursive cache discovery does not traverse stale tool outputs.
+  find "$controllers_dir" -mindepth 1 -maxdepth 1 \
+    \( -name build -o -name 'build-*' -o -name managed_components -o -name .controller-board \
+    -o -name 'sdkconfig*' -o -name .coverage \) \
+    -print -exec rm -rf -- {} +
+  find "$controllers_dir" -depth \
+    \( -type d \( -name __pycache__ -o -name .pytest_cache -o -name htmlcov \) \
+    -o -type f \( -name '*.pyc' -o -name '*.pyo' -o -name '*.pyd' \) \) \
+    -print -exec rm -rf -- {} +
+  echo 'Clean all complete. Local board selection and sdkconfig (including any stored master key) were removed.'
+}
+
 case "$action" in
   set-board)
     saved_controller_configuration=
@@ -179,6 +198,7 @@ case "$action" in
     done < <(git ls-files -z --cached --others --exclude-standard -- '*.c' '*.h')
     ;;
   clean) run_idf_redacted fullclean ;;
+  clean-all) clean_all ;;
   build) run_idf_redacted build ;;
   flash) run_idf_redacted -p "${argument:-/dev/ttyACM0}" flash ;;
   monitor) run_idf -p "${argument:-/dev/ttyACM0}" monitor ;;
