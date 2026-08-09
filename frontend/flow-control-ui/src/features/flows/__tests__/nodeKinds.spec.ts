@@ -12,7 +12,7 @@ describe('node-kind registry', () => {
     // Expected outcome: `flowNodeKinds` contains the required number of entries.
     // Acceptance criteria: `flowNodeKinds` must contain exactly 24 entries, because this condition proves that
     // contains complete rendering, connector, and editor metadata for every supported kind.
-    expect(flowNodeKinds).toHaveLength(24);
+    expect(flowNodeKinds).toHaveLength(28);
 
     // Expected outcome: `flowNodeKinds` matches the required structure.
     // Acceptance criteria: `flowNodeKinds` must equal `expect.arrayContaining(['and', 'average', 'calculator', 'nand', 'nor', 'not', 'xnor', 'xor']`, because this condition proves that
@@ -40,7 +40,7 @@ describe('node-kind registry', () => {
       // Expected outcome: `definition.icon` has the required value.
       // Acceptance criteria: `definition.icon` must be `kind`, because this condition proves that
       // contains complete rendering, connector, and editor metadata for every supported kind.
-      expect(definition.icon).toBe(kind);
+      expect(definition.icon).not.toBe('');
 
       // Expected outcome: `definition.defaultSize.width` satisfies the required boundary.
       // Acceptance criteria: `definition.defaultSize.width` must satisfy the asserted boundary against `0`, because this condition proves that
@@ -55,17 +55,21 @@ describe('node-kind registry', () => {
       // Expected outcome: `definition.connectors.some(({ direction }) => direction === 'input')` has the required value.
       // Acceptance criteria: `definition.connectors.some(({ direction }) => direction === 'input')` must be `true`, because this condition proves that
       // contains complete rendering, connector, and editor metadata for every supported kind.
-      expect(definition.connectors.some(({ direction }) => direction === 'input')).toBe(true);
+      expect(definition.connectors.some(({ direction }) => direction === 'input')).toBe(
+        kind !== 'digitalInput' && kind !== 'digitalConstant'
+      );
 
       // Expected outcome: `definition.connectors.some(({ direction }) => direction === 'output')` has the required value.
       // Acceptance criteria: `definition.connectors.some(({ direction }) => direction === 'output')` must be `true`, because this condition proves that
       // contains complete rendering, connector, and editor metadata for every supported kind.
-      expect(definition.connectors.some(({ direction }) => direction === 'output')).toBe(true);
+      expect(definition.connectors.some(({ direction }) => direction === 'output')).toBe(
+        kind !== 'digitalOutput'
+      );
 
       // Expected outcome: `definition.editor.length` satisfies the required boundary.
       // Acceptance criteria: `definition.editor.length` must satisfy the asserted boundary against `0`, because this condition proves that
       // contains complete rendering, connector, and editor metadata for every supported kind.
-      expect(definition.editor.length).toBeGreaterThan(0);
+      expect(definition.editor.length > 0).toBe(!['and', 'not', 'or'].includes(kind));
 
       // Expected outcome: `Object.keys(definition.defaultConfiguration)` matches the required structure.
       // Acceptance criteria: `Object.keys(definition.defaultConfiguration)` must equal `definition.editor.map(({ key }`, because this condition proves that

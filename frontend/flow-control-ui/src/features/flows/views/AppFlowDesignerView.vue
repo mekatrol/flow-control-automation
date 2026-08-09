@@ -196,6 +196,7 @@ import {
   type DebugRuntimeSnapshot,
   type ExecutableFlowSource
 } from '@/features/flows/api/flowDebugApi';
+import { createExecutableFlowSource, graphRevision } from '@/features/flows/flowDebugSource';
 import { useControllerTemplatesCatalogueStore } from '@/features/catalogues/stores/catalogues';
 import { useFlowsStore } from '@/features/flows/stores/flows';
 import type { ZOrderCommand } from '@/features/flows/graph/zOrder';
@@ -269,17 +270,7 @@ watch(debugTargetId, () => {
   if (debugSessionId.value) void stopDebugSession();
 });
 
-const flowRevision = computed(() => {
-  const current = flow.value;
-  if (!current) return 1;
-  const graph = JSON.stringify({ nodes: current.nodes, connections: current.connections });
-  let hash = 2166136261;
-  for (let index = 0; index < graph.length; index += 1) {
-    hash ^= graph.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return hash >>> 0 || 1;
-});
+const flowRevision = computed(() => (flow.value ? graphRevision(flow.value) : 1));
 const debugSnapshotStale = computed(() =>
   Boolean(debugSnapshot.value && debugRevision.value !== flowRevision.value)
 );
@@ -310,24 +301,8 @@ const selectedDebugTarget = computed(() =>
 const executableSource = (): ExecutableFlowSource | undefined => {
   const current = flow.value;
   const target = selectedDebugTarget.value;
-  if (!current || !target?.controllerTemplateId || !target.controllerTemplateRevision) return;
-  return {
-    schemaVersion: 1,
-    id: current.id,
-    revision: flowRevision.value,
-    controllerTemplateId: target.controllerTemplateId,
-    controllerTemplateRevision: target.controllerTemplateRevision,
-    execution: { mode: 'manual', intervalMs: 0, inputQualityPolicy: 'require_good' },
-    nodes: current.nodes.map((node) => ({
-      id: node.id,
-      kind: node.kind,
-      configuration: node.configuration
-    })),
-    connections: current.connections.map((connection) => ({
-      source: { nodeId: connection.start.nodeId, portId: connection.start.connectorId },
-      target: { nodeId: connection.end.nodeId, portId: connection.end.connectorId }
-    }))
-  };
+  if (!current || !target) return;
+  return createExecutableFlowSource(current, target);
 };
 const debugFailure = (error: unknown): string =>
   error instanceof Error ? error.message : 'Debug operation failed.';
@@ -336,14 +311,14 @@ const clearRunTimer = (): void => {
   runTimer = undefined;
 };
 const loadDebugSession = async (): Promise<void> => {
-  const source = executableSource();
-  if (!source) return;
   debugController?.abort();
   debugController = new AbortController();
   debugLifecycle.value = 'loading';
   debugError.value = undefined;
   debugSnapshot.value = undefined;
   try {
+    const source = executableSource();
+    if (!source) throw new Error('The flow is not available.');
     const session = await flowDebugApi.load(source, debugController.signal);
     if (session.flowId !== props.flowId || session.revision !== source.revision)
       throw new Error('Loaded debug session does not match this flow revision.');

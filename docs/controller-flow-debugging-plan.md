@@ -354,7 +354,10 @@ the schema-1 digital debugging capability set, drives the manual session API,
 renders typed shadow snapshots over stable node IDs, and cleans up sessions on
 explicit Stop, navigation, refresh, and disconnect. Run uses a no-overlap
 fixed-interval Step loop; Pause freezes evaluator state until the next fresh
-input sample.
+input sample. The palette exposes the schema-1 digital input, constant, memory,
+logic, and proposed-output nodes, and a tested adapter emits the compiler's
+exact node configuration and port identifiers rather than the legacy generic
+designer connector shape.
 
 1. **Complete:** Add a debug target selector with host and compatible
    hardware-controller targets; initial discovery uses configured templates.

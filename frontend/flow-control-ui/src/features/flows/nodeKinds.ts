@@ -3,7 +3,7 @@ import { FlowNodeFunctionType, type FlowNodeConnector, type FlowNodeKind } from 
 export interface NodeEditorField {
   key: string;
   label: string;
-  input: 'checkbox' | 'number' | 'select';
+  input: 'checkbox' | 'number' | 'select' | 'text';
   options?: string[];
 }
 
@@ -31,6 +31,36 @@ const anyConnectors = (): FlowNodeConnector[] => [
   { id: 'input', label: 'Input', direction: 'input', dataType: 'any', side: 'left' },
   { id: 'output', label: 'Output', direction: 'output', dataType: 'any', side: 'right' }
 ];
+const booleanPort = (
+  id: string,
+  label: string,
+  direction: FlowNodeConnector['direction'],
+  side: FlowNodeConnector['side']
+): FlowNodeConnector => ({ id, label, direction, dataType: 'boolean', side });
+const executableDefinition = (
+  kind: FlowNodeFunctionType,
+  connectors: FlowNodeConnector[],
+  editor: NodeEditorField[] = [],
+  defaultConfiguration: NodeKindDefinition['defaultConfiguration'] = {}
+): NodeKindDefinition => ({
+  kind,
+  label: kind.replace(/([A-Z])/g, ' $1').replace(/^./, (letter) => letter.toUpperCase()),
+  category: 'logic',
+  icon:
+    kind === FlowNodeFunctionType.Memory
+      ? 'delay'
+      : kind === FlowNodeFunctionType.DigitalInput
+        ? 'trigger'
+        : kind === FlowNodeFunctionType.DigitalOutput
+          ? 'override'
+          : kind === FlowNodeFunctionType.DigitalConstant
+            ? 'line'
+            : kind.toLowerCase(),
+  defaultSize: defaultNodeSize(),
+  connectors,
+  editor,
+  defaultConfiguration
+});
 const definition = (
   kind: FlowNodeFunctionType,
   category: NodeKindDefinition['category'],
@@ -48,7 +78,11 @@ const definition = (
 });
 
 export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
-  [FlowNodeFunctionType.And]: definition(FlowNodeFunctionType.And, 'logic', 'and'),
+  [FlowNodeFunctionType.And]: executableDefinition(FlowNodeFunctionType.And, [
+    booleanPort('a', 'A', 'input', 'left'),
+    booleanPort('b', 'B', 'input', 'left'),
+    booleanPort('value', 'Value', 'output', 'right')
+  ]),
   [FlowNodeFunctionType.Average]: definition(
     FlowNodeFunctionType.Average,
     'maths',
@@ -110,6 +144,24 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     numberConnectors()
   ),
   [FlowNodeFunctionType.Delay]: definition(FlowNodeFunctionType.Delay, 'timing', 'delay'),
+  [FlowNodeFunctionType.DigitalConstant]: executableDefinition(
+    FlowNodeFunctionType.DigitalConstant,
+    [booleanPort('value', 'Value', 'output', 'right')],
+    [{ key: 'value', label: 'Value', input: 'checkbox' }],
+    { value: false }
+  ),
+  [FlowNodeFunctionType.DigitalInput]: executableDefinition(
+    FlowNodeFunctionType.DigitalInput,
+    [booleanPort('value', 'Value', 'output', 'right')],
+    [{ key: 'pointId', label: 'Input point ID', input: 'text' }],
+    { pointId: 'input-point' }
+  ),
+  [FlowNodeFunctionType.DigitalOutput]: executableDefinition(
+    FlowNodeFunctionType.DigitalOutput,
+    [booleanPort('in', 'Input', 'input', 'left')],
+    [{ key: 'pointId', label: 'Output point ID', input: 'text' }],
+    { pointId: 'output-point' }
+  ),
   [FlowNodeFunctionType.If]: definition(FlowNodeFunctionType.If, 'logic', 'if'),
   [FlowNodeFunctionType.Line]: definition(
     FlowNodeFunctionType.Line,
@@ -129,10 +181,26 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     'min',
     numberConnectors()
   ),
+  [FlowNodeFunctionType.Memory]: executableDefinition(
+    FlowNodeFunctionType.Memory,
+    [
+      booleanPort('in', 'Input', 'input', 'left'),
+      booleanPort('value', 'Previous value', 'output', 'right')
+    ],
+    [{ key: 'value', label: 'Initial value', input: 'checkbox' }],
+    { value: false }
+  ),
   [FlowNodeFunctionType.Nand]: definition(FlowNodeFunctionType.Nand, 'logic', 'nand'),
   [FlowNodeFunctionType.Nor]: definition(FlowNodeFunctionType.Nor, 'logic', 'nor'),
-  [FlowNodeFunctionType.Not]: definition(FlowNodeFunctionType.Not, 'logic', 'not'),
-  [FlowNodeFunctionType.Or]: definition(FlowNodeFunctionType.Or, 'logic', 'or'),
+  [FlowNodeFunctionType.Not]: executableDefinition(FlowNodeFunctionType.Not, [
+    booleanPort('in', 'Input', 'input', 'left'),
+    booleanPort('value', 'Value', 'output', 'right')
+  ]),
+  [FlowNodeFunctionType.Or]: executableDefinition(FlowNodeFunctionType.Or, [
+    booleanPort('a', 'A', 'input', 'left'),
+    booleanPort('b', 'B', 'input', 'left'),
+    booleanPort('value', 'Value', 'output', 'right')
+  ]),
   [FlowNodeFunctionType.Override]: {
     kind: FlowNodeFunctionType.Override,
     label: 'Override',

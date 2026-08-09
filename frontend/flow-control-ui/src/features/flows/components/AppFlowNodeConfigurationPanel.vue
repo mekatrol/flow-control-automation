@@ -35,6 +35,13 @@
           :aria-invalid="Boolean(errors[field.key])"
           @input="updateField(field, $event)"
         />
+        <input
+          v-else-if="field.input === 'text'"
+          type="text"
+          :value="node.configuration[field.key]"
+          :aria-invalid="Boolean(errors[field.key])"
+          @input="updateField(field, $event)"
+        />
         <select
           v-else
           :value="node.configuration[field.key]"

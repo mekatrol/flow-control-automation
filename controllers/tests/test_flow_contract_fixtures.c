@@ -11,10 +11,10 @@
 
 enum
 {
-    TEST_POINT_READ = 1,
-    TEST_POINT_PROPOSED_WRITE = 2,
-    TEST_DIGITAL_TYPE = 2,
-    TEST_ALL_CAPABILITIES = 0x1f,
+    TEST_POINT_READ             = 1,
+    TEST_POINT_PROPOSED_WRITE   = 2,
+    TEST_DIGITAL_TYPE           = 2,
+    TEST_ALL_CAPABILITIES       = 0x1f,
     TEST_MAXIMUM_SNAPSHOT_BYTES = 16384,
 };
 
@@ -22,8 +22,8 @@ static const flow_target_point_t TARGET_POINTS[] = {
     {.id = "input-01", .direction = TEST_POINT_READ, .value_type = TEST_DIGITAL_TYPE},
     {.id = "input-08", .direction = TEST_POINT_READ, .value_type = TEST_DIGITAL_TYPE},
     {.id = "output-01", .direction = TEST_POINT_PROPOSED_WRITE, .value_type = TEST_DIGITAL_TYPE}};
-static const flow_target_t TARGET = {.points = TARGET_POINTS,
-                                     .point_count = sizeof(TARGET_POINTS) / sizeof(TARGET_POINTS[0]),
+static const flow_target_t TARGET = {.points                 = TARGET_POINTS,
+                                     .point_count            = sizeof(TARGET_POINTS) / sizeof(TARGET_POINTS[0]),
                                      .supported_capabilities = TEST_ALL_CAPABILITIES,
                                      .maximum_snapshot_bytes = TEST_MAXIMUM_SNAPSHOT_BYTES};
 
@@ -101,15 +101,15 @@ static void test_two_button_ticks(void)
     assert(flow_runtime_init(&runtime, &flow));
     flow_input_sample_t samples[] = {{.point_id = "input-01", .quality = FLOW_QUALITY_GOOD},
                                      {.point_id = "input-08", .quality = FLOW_QUALITY_GOOD}};
-    const bool frames[][2] = {{false, false}, {true, false}, {true, true}};
+    const bool frames[][2]        = {{false, false}, {true, false}, {true, true}};
     for (size_t tick = 0; tick < sizeof(frames) / sizeof(frames[0]); tick++)
     {
-        samples[0].value = frames[tick][0];
-        samples[1].value = frames[tick][1];
-        const flow_input_frame_t input = {.samples = samples,
-                                          .sample_count = sizeof(samples) / sizeof(samples[0]),
+        samples[0].value               = frames[tick][0];
+        samples[1].value               = frames[tick][1];
+        const flow_input_frame_t input = {.samples       = samples,
+                                          .sample_count  = sizeof(samples) / sizeof(samples[0]),
                                           .sampled_at_ms = 1000U + tick * 100U,
-                                          .is_coherent = true};
+                                          .is_coherent   = true};
         assert(flow_runtime_step(&runtime, &input).code == FLOW_REASON_OK);
         const flow_tick_snapshot_t *snapshot = get_flow_runtime_snapshot(&runtime);
         assert(snapshot != NULL && snapshot->tick_number == tick + 1U);
@@ -144,10 +144,10 @@ static void test_failed_tick_is_atomic(void)
     assert(flow_runtime_init(&runtime, &flow));
     flow_input_sample_t samples[] = {{.point_id = "input-01", .value = true, .quality = FLOW_QUALITY_GOOD},
                                      {.point_id = "input-08", .value = true, .quality = FLOW_QUALITY_GOOD}};
-    flow_input_frame_t input = {.samples = samples, .sample_count = 2U, .sampled_at_ms = 1U, .is_coherent = true};
+    flow_input_frame_t input      = {.samples = samples, .sample_count = 2U, .sampled_at_ms = 1U, .is_coherent = true};
     assert(flow_runtime_step(&runtime, &input).code == FLOW_REASON_OK);
     const flow_tick_snapshot_t before = *get_flow_runtime_snapshot(&runtime);
-    samples[1].quality = FLOW_QUALITY_BAD;
+    samples[1].quality                = FLOW_QUALITY_BAD;
     assert(flow_runtime_step(&runtime, &input).code == FLOW_REASON_INPUT_QUALITY_REJECTED);
     assert(runtime.tick_number == 1U);
     assert(memcmp(&before, get_flow_runtime_snapshot(&runtime), sizeof(before)) == 0);

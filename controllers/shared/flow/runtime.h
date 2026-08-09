@@ -5,9 +5,9 @@
 
 typedef enum
 {
-    FLOW_QUALITY_GOOD = 0,
-    FLOW_QUALITY_UNCERTAIN = 1,
-    FLOW_QUALITY_BAD = 2,
+    FLOW_QUALITY_GOOD        = 0,
+    FLOW_QUALITY_UNCERTAIN   = 1,
+    FLOW_QUALITY_BAD         = 2,
     FLOW_QUALITY_UNAVAILABLE = 3,
 } flow_quality_t;
 

@@ -32,15 +32,15 @@ static void transform(uint32_t state[SHA256_DIGEST_WORDS], const uint8_t block[S
     for (size_t index = 0; index < 16U; index++)
     {
         const size_t offset = index * 4U;
-        words[index] = ((uint32_t)block[offset] << 24U) | ((uint32_t)block[offset + 1U] << 16U) |
+        words[index]        = ((uint32_t)block[offset] << 24U) | ((uint32_t)block[offset + 1U] << 16U) |
                        ((uint32_t)block[offset + 2U] << 8U) | block[offset + 3U];
     }
     for (size_t index = 16U; index < SHA256_ROUNDS; index++)
     {
-        const uint32_t low = rotate_right(words[index - 15U], 7U) ^ rotate_right(words[index - 15U], 18U) ^
-                             (words[index - 15U] >> 3U);
-        const uint32_t high = rotate_right(words[index - 2U], 17U) ^ rotate_right(words[index - 2U], 19U) ^
-                              (words[index - 2U] >> 10U);
+        const uint32_t low =
+            rotate_right(words[index - 15U], 7U) ^ rotate_right(words[index - 15U], 18U) ^ (words[index - 15U] >> 3U);
+        const uint32_t high =
+            rotate_right(words[index - 2U], 17U) ^ rotate_right(words[index - 2U], 19U) ^ (words[index - 2U] >> 10U);
         words[index] = words[index - 16U] + low + words[index - 7U] + high;
     }
     uint32_t a = state[0];
@@ -53,20 +53,20 @@ static void transform(uint32_t state[SHA256_DIGEST_WORDS], const uint8_t block[S
     uint32_t h = state[7];
     for (size_t index = 0; index < SHA256_ROUNDS; index++)
     {
-        const uint32_t sum1 = rotate_right(e, 6U) ^ rotate_right(e, 11U) ^ rotate_right(e, 25U);
-        const uint32_t choice = (e & f) ^ ((~e) & g);
-        const uint32_t first = h + sum1 + choice + ROUND_CONSTANTS[index] + words[index];
-        const uint32_t sum0 = rotate_right(a, 2U) ^ rotate_right(a, 13U) ^ rotate_right(a, 22U);
+        const uint32_t sum1     = rotate_right(e, 6U) ^ rotate_right(e, 11U) ^ rotate_right(e, 25U);
+        const uint32_t choice   = (e & f) ^ ((~e) & g);
+        const uint32_t first    = h + sum1 + choice + ROUND_CONSTANTS[index] + words[index];
+        const uint32_t sum0     = rotate_right(a, 2U) ^ rotate_right(a, 13U) ^ rotate_right(a, 22U);
         const uint32_t majority = (a & b) ^ (a & c) ^ (b & c);
-        const uint32_t second = sum0 + majority;
-        h = g;
-        g = f;
-        f = e;
-        e = d + first;
-        d = c;
-        c = b;
-        b = a;
-        a = first + second;
+        const uint32_t second   = sum0 + majority;
+        h                       = g;
+        g                       = f;
+        f                       = e;
+        e                       = d + first;
+        d                       = c;
+        c                       = b;
+        b                       = a;
+        a                       = first + second;
     }
     state[0] += a;
     state[1] += b;
@@ -83,14 +83,14 @@ void flow_sha256(const uint8_t *data, size_t size, uint8_t digest[32])
 {
     uint32_t state[SHA256_DIGEST_WORDS] = {0x6a09e667U, 0xbb67ae85U, 0x3c6ef372U, 0xa54ff53aU,
                                            0x510e527fU, 0x9b05688cU, 0x1f83d9abU, 0x5be0cd19U};
-    size_t offset = 0;
+    size_t offset                       = 0;
     while (size - offset >= SHA256_BLOCK_BYTES)
     {
         transform(state, &data[offset]);
         offset += SHA256_BLOCK_BYTES;
     }
     uint8_t final_blocks[SHA256_BLOCK_BYTES * 2U] = {0};
-    const size_t remainder = size - offset;
+    const size_t remainder                        = size - offset;
     if (remainder > 0U)
     {
         (void)memcpy(final_blocks, &data[offset], remainder);
@@ -109,7 +109,7 @@ void flow_sha256(const uint8_t *data, size_t size, uint8_t digest[32])
     }
     for (size_t index = 0; index < SHA256_DIGEST_WORDS; index++)
     {
-        digest[index * 4U] = (uint8_t)(state[index] >> 24U);
+        digest[index * 4U]      = (uint8_t)(state[index] >> 24U);
         digest[index * 4U + 1U] = (uint8_t)(state[index] >> 16U);
         digest[index * 4U + 2U] = (uint8_t)(state[index] >> 8U);
         digest[index * 4U + 3U] = (uint8_t)state[index];

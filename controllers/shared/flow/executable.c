@@ -7,18 +7,18 @@
 
 enum
 {
-    ENVELOPE_BYTES = 192,
-    DIRECTORY_BYTES = 24,
-    FLOW_SCHEMA = 1,
-    FLOW_MANUAL_MODE = 1,
-    FLOW_DIGITAL_TYPE = 2,
-    FLOW_INPUT_DIRECTION = 1,
-    FLOW_OUTPUT_DIRECTION = 2,
+    ENVELOPE_BYTES                  = 192,
+    DIRECTORY_BYTES                 = 24,
+    FLOW_SCHEMA                     = 1,
+    FLOW_MANUAL_MODE                = 1,
+    FLOW_DIGITAL_TYPE               = 2,
+    FLOW_INPUT_DIRECTION            = 1,
+    FLOW_OUTPUT_DIRECTION           = 2,
     FLOW_REQUIRED_BASE_CAPABILITIES = 0x13,
-    FLOW_KNOWN_CAPABILITIES = 0x1f,
-    FLOW_MEMORY_CAPABILITY = 0x04,
+    FLOW_KNOWN_CAPABILITIES         = 0x1f,
+    FLOW_MEMORY_CAPABILITY          = 0x04,
     FLOW_PROPOSED_OUTPUT_CAPABILITY = 0x08,
-    FLOW_MAXIMUM_SNAPSHOT_BYTES = 16384,
+    FLOW_MAXIMUM_SNAPSHOT_BYTES     = 16384,
 };
 
 typedef struct
@@ -42,9 +42,9 @@ static flow_result_t get_result(flow_reason_code_t code, const char *path)
 /* Creates a bounded validation path from a fixed table prefix and an artifact identifier. */
 static flow_result_t get_identifier_result(flow_reason_code_t code, const char *prefix, const char *identifier)
 {
-    flow_result_t result = {.code = code};
-    const size_t prefix_size = strlen(prefix);
-    const size_t available = sizeof(result.path) - prefix_size - 1U;
+    flow_result_t result         = {.code = code};
+    const size_t prefix_size     = strlen(prefix);
+    const size_t available       = sizeof(result.path) - prefix_size - 1U;
     const size_t identifier_size = strlen(identifier) < available ? strlen(identifier) : available;
     (void)memcpy(result.path, prefix, prefix_size);
     (void)memcpy(&result.path[prefix_size], identifier, identifier_size);
@@ -99,8 +99,8 @@ static bool is_identifier(const uint8_t *bytes, size_t size)
     for (size_t index = 0; index < size; index++)
     {
         const uint8_t value = bytes[index];
-        const bool is_alphanumeric = (value >= 'A' && value <= 'Z') || (value >= 'a' && value <= 'z') ||
-                                     (value >= '0' && value <= '9');
+        const bool is_alphanumeric =
+            (value >= 'A' && value <= 'Z') || (value >= 'a' && value <= 'z') || (value >= '0' && value <= '9');
         if (!is_alphanumeric && (index == 0U || (value != '.' && value != '_' && value != ':' && value != '-')))
         {
             return false;
@@ -155,10 +155,9 @@ static flow_result_t get_nodes(reader_t *reader, flow_executable_t *flow)
         {
             return get_result(FLOW_REASON_UNKNOWN_NODE_KIND, "/nodes");
         }
-        node->kind = (flow_node_kind_t)kind;
+        node->kind                = (flow_node_kind_t)kind;
         const size_t config_start = reader->offset;
-        if ((kind == FLOW_NODE_DIGITAL_INPUT && config_size == 2U) ||
-            (kind == FLOW_NODE_PROPOSED_OUTPUT && config_size == 8U))
+        if ((kind == FLOW_NODE_DIGITAL_INPUT && config_size == 2U) || (kind == FLOW_NODE_PROPOSED_OUTPUT && config_size == 8U))
         {
             (void)get_u16(reader, &node->point_index);
             if (kind == FLOW_NODE_PROPOSED_OUTPUT)
@@ -217,9 +216,9 @@ static flow_result_t get_ports(reader_t *reader, flow_executable_t *flow)
         {
             return get_result(FLOW_REASON_MALFORMED, "/ports");
         }
-        if (port->node_index >= flow->node_count || (port->direction != FLOW_INPUT_DIRECTION &&
-                                                     port->direction != FLOW_OUTPUT_DIRECTION) ||
-            arity != 1U || reserved != 0U)
+        if (port->node_index >= flow->node_count ||
+            (port->direction != FLOW_INPUT_DIRECTION && port->direction != FLOW_OUTPUT_DIRECTION) || arity != 1U ||
+            reserved != 0U)
         {
             return get_result(FLOW_REASON_INVALID_PORT_SHAPE, "/ports");
         }
@@ -330,13 +329,13 @@ static flow_result_t get_points(reader_t *reader, flow_executable_t *flow, const
 /* Validates opcode port shapes and that every input has exactly one driver. */
 static flow_result_t is_shape_valid(const flow_executable_t *flow)
 {
-    static const uint8_t INPUT_COUNTS[] = {0, 0, 0, 1, 2, 2, 1, 1};
+    static const uint8_t INPUT_COUNTS[]  = {0, 0, 0, 1, 2, 2, 1, 1};
     static const uint8_t OUTPUT_COUNTS[] = {0, 1, 1, 1, 1, 1, 1, 0};
     for (uint16_t node_index = 0; node_index < flow->node_count; node_index++)
     {
         const flow_node_t *node = &flow->nodes[node_index];
-        uint8_t inputs = 0;
-        uint8_t outputs = 0;
+        uint8_t inputs          = 0;
+        uint8_t outputs         = 0;
         for (uint16_t port_index = 0; port_index < flow->port_count; port_index++)
         {
             const flow_port_t *port = &flow->ports[port_index];
@@ -357,8 +356,7 @@ static flow_result_t is_shape_valid(const flow_executable_t *flow)
         }
         for (uint16_t port_index = 0; port_index < flow->port_count; port_index++)
         {
-            if (flow->ports[port_index].node_index == node_index &&
-                flow->ports[port_index].direction == FLOW_INPUT_DIRECTION)
+            if (flow->ports[port_index].node_index == node_index && flow->ports[port_index].direction == FLOW_INPUT_DIRECTION)
             {
                 bool is_driven = false;
                 for (uint16_t connection_index = 0; connection_index < flow->connection_count; connection_index++)
@@ -379,7 +377,7 @@ static flow_result_t is_shape_valid(const flow_executable_t *flow)
 static flow_result_t get_schedule(flow_executable_t *flow)
 {
     uint16_t degrees[FLOW_EXECUTABLE_MAX_NODES] = {0};
-    bool selected[FLOW_EXECUTABLE_MAX_NODES] = {false};
+    bool selected[FLOW_EXECUTABLE_MAX_NODES]    = {false};
     for (uint16_t index = 0; index < flow->connection_count; index++)
     {
         const flow_connection_t *connection = &flow->connections[index];
@@ -409,7 +407,7 @@ static flow_result_t get_schedule(flow_executable_t *flow)
                 }
             }
         }
-        selected[candidate] = true;
+        selected[candidate]      = true;
         flow->schedule[position] = candidate;
         for (uint16_t edge = 0; edge < flow->connection_count; edge++)
         {
@@ -433,9 +431,9 @@ flow_result_t flow_executable_prepare(const uint8_t *artifact, size_t artifact_s
     {
         return get_result(FLOW_REASON_MALFORMED, "/artifact");
     }
-    *flow = (flow_executable_t){0};
+    *flow             = (flow_executable_t){0};
     reader_t envelope = {.bytes = artifact, .size = ENVELOPE_BYTES};
-    envelope.offset = 4U;
+    envelope.offset   = 4U;
     uint16_t envelope_schema;
     uint16_t body_schema;
     uint16_t envelope_size;
@@ -478,9 +476,9 @@ flow_result_t flow_executable_prepare(const uint8_t *artifact, size_t artifact_s
     (void)get_u16(&envelope, &flow->point_count);
     (void)get_u32(&envelope, &capabilities);
     (void)get_u32(&envelope, &snapshot_bytes);
-    if (flow->node_count == 0U || flow->node_count > FLOW_EXECUTABLE_MAX_NODES ||
-        flow->port_count == 0U || flow->port_count > FLOW_EXECUTABLE_MAX_PORTS ||
-        flow->connection_count > FLOW_EXECUTABLE_MAX_CONNECTIONS || flow->point_count > FLOW_EXECUTABLE_MAX_POINTS)
+    if (flow->node_count == 0U || flow->node_count > FLOW_EXECUTABLE_MAX_NODES || flow->port_count == 0U ||
+        flow->port_count > FLOW_EXECUTABLE_MAX_PORTS || flow->connection_count > FLOW_EXECUTABLE_MAX_CONNECTIONS ||
+        flow->point_count > FLOW_EXECUTABLE_MAX_POINTS)
     {
         return get_result(FLOW_REASON_LIMIT_EXCEEDED, "/nodeCount");
     }
@@ -492,13 +490,13 @@ flow_result_t flow_executable_prepare(const uint8_t *artifact, size_t artifact_s
     {
         return get_result(FLOW_REASON_MALFORMED, "/inputQualityPolicy");
     }
-    if ((capabilities & ~FLOW_KNOWN_CAPABILITIES) != 0U || (capabilities & FLOW_REQUIRED_BASE_CAPABILITIES) != FLOW_REQUIRED_BASE_CAPABILITIES ||
+    if ((capabilities & ~FLOW_KNOWN_CAPABILITIES) != 0U ||
+        (capabilities & FLOW_REQUIRED_BASE_CAPABILITIES) != FLOW_REQUIRED_BASE_CAPABILITIES ||
         (capabilities & ~target->supported_capabilities) != 0U)
     {
         return get_result(FLOW_REASON_UNSUPPORTED_CAPABILITY, "/requiredCapabilities");
     }
-    if (snapshot_bytes == 0U || snapshot_bytes > FLOW_MAXIMUM_SNAPSHOT_BYTES ||
-        snapshot_bytes > target->maximum_snapshot_bytes)
+    if (snapshot_bytes == 0U || snapshot_bytes > FLOW_MAXIMUM_SNAPSHOT_BYTES || snapshot_bytes > target->maximum_snapshot_bytes)
     {
         return get_result(FLOW_REASON_SNAPSHOT_TOO_LARGE, "/maximumSnapshotBytes");
     }
@@ -526,13 +524,25 @@ flow_result_t flow_executable_prepare(const uint8_t *artifact, size_t artifact_s
     }
     flow_result_t result;
     reader_t table = {.bytes = directory.bytes, .size = offsets[1], .offset = offsets[0]};
-    if ((result = get_nodes(&table, flow)).code != FLOW_REASON_OK || table.offset != offsets[1]) return result.code == FLOW_REASON_OK ? get_result(FLOW_REASON_LENGTH_MISMATCH, "/nodes") : result;
+    if ((result = get_nodes(&table, flow)).code != FLOW_REASON_OK || table.offset != offsets[1])
+    {
+        return result.code == FLOW_REASON_OK ? get_result(FLOW_REASON_LENGTH_MISMATCH, "/nodes") : result;
+    }
     table = (reader_t){.bytes = directory.bytes, .size = offsets[2], .offset = offsets[1]};
-    if ((result = get_ports(&table, flow)).code != FLOW_REASON_OK || table.offset != offsets[2]) return result.code == FLOW_REASON_OK ? get_result(FLOW_REASON_LENGTH_MISMATCH, "/ports") : result;
+    if ((result = get_ports(&table, flow)).code != FLOW_REASON_OK || table.offset != offsets[2])
+    {
+        return result.code == FLOW_REASON_OK ? get_result(FLOW_REASON_LENGTH_MISMATCH, "/ports") : result;
+    }
     table = (reader_t){.bytes = directory.bytes, .size = offsets[3], .offset = offsets[2]};
-    if ((result = get_connections(&table, flow)).code != FLOW_REASON_OK || table.offset != offsets[3]) return result.code == FLOW_REASON_OK ? get_result(FLOW_REASON_LENGTH_MISMATCH, "/connections") : result;
+    if ((result = get_connections(&table, flow)).code != FLOW_REASON_OK || table.offset != offsets[3])
+    {
+        return result.code == FLOW_REASON_OK ? get_result(FLOW_REASON_LENGTH_MISMATCH, "/connections") : result;
+    }
     table = (reader_t){.bytes = directory.bytes, .size = body_size, .offset = offsets[3]};
-    if ((result = get_points(&table, flow, target)).code != FLOW_REASON_OK || table.offset != body_size) return result.code == FLOW_REASON_OK ? get_result(FLOW_REASON_LENGTH_MISMATCH, "/points") : result;
+    if ((result = get_points(&table, flow, target)).code != FLOW_REASON_OK || table.offset != body_size)
+    {
+        return result.code == FLOW_REASON_OK ? get_result(FLOW_REASON_LENGTH_MISMATCH, "/points") : result;
+    }
     if (flow->output_count > FLOW_EXECUTABLE_MAX_OUTPUTS)
     {
         return get_result(FLOW_REASON_LIMIT_EXCEEDED, "/nodes");
