@@ -21,7 +21,9 @@
 
 #include <string.h>
 
-/* What: Validates one durable flow ID as non-empty and terminated within capacity. Why: Persistence and protocol code must never scan untrusted metadata beyond its fixed field. How: It searches only the declared array and accepts a terminator after at least one byte. */
+/* What: Validates one durable flow ID as non-empty and terminated within capacity. Why: Persistence and protocol code must never
+ * scan untrusted metadata beyond its fixed field. How: It searches only the declared array and accepts a terminator after at
+ * least one byte. */
 static bool is_id_valid(const char *id)
 {
     for (size_t index = 0; index < CONTROLLER_FLOW_ID_CAPACITY; index++)
@@ -41,14 +43,17 @@ static bool is_covered(const controller_flow_t *flow, size_t offset)
     return (flow->coverage[offset / 8U] & (uint8_t)(1U << (offset % 8U))) != 0U;
 }
 
-/* What: Records one newly accepted staging byte. Why: Validation requires exact complete coverage despite chunk retries and overlap. How: It sets the corresponding bit and increments the unique-byte count once. */
+/* What: Records one newly accepted staging byte. Why: Validation requires exact complete coverage despite chunk retries and
+ * overlap. How: It sets the corresponding bit and increments the unique-byte count once. */
 static void set_covered(controller_flow_t *flow, size_t offset)
 {
     flow->coverage[offset / 8U] |= (uint8_t)(1U << (offset % 8U));
     flow->covered_bytes++;
 }
 
-/* What: Erases the in-progress candidate and transfer bookkeeping. Why: Abort, commit, or a new upload must not leak stale candidate bytes, while production remains available. How: It clears only staging fields and deliberately leaves committed storage untouched. */
+/* What: Erases the in-progress candidate and transfer bookkeeping. Why: Abort, commit, or a new upload must not leak stale
+ * candidate bytes, while production remains available. How: It clears only staging fields and deliberately leaves committed
+ * storage untouched. */
 static void clear_staging(controller_flow_t *flow)
 {
     /* Candidate bytes are disposable; committed bytes are intentionally outside this reset boundary. */
@@ -247,7 +252,8 @@ controller_flow_result_t controller_flow_commit(controller_flow_t *flow, uint32_
     return CONTROLLER_FLOW_OK;
 }
 
-/* What: Aborts the matching open upload. Why: Clients need recoverable cancellation that cannot remove the last production generation. How: It validates transfer identity and clears only staging state. */
+/* What: Aborts the matching open upload. Why: Clients need recoverable cancellation that cannot remove the last production
+ * generation. How: It validates transfer identity and clears only staging state. */
 controller_flow_result_t controller_flow_abort(controller_flow_t *flow, uint32_t transfer_id)
 {
     if (flow == NULL || !flow->is_transfer_open || flow->transfer_id != transfer_id)
@@ -259,7 +265,8 @@ controller_flow_result_t controller_flow_abort(controller_flow_t *flow, uint32_t
     return CONTROLLER_FLOW_OK;
 }
 
-/* What: Changes activation state for the committed generation. Why: Activation must survive reboot and must never refer to staging bytes. How: It persists a copied metadata record first and updates the RAM mirror only after success. */
+/* What: Changes activation state for the committed generation. Why: Activation must survive reboot and must never refer to
+ * staging bytes. How: It persists a copied metadata record first and updates the RAM mirror only after success. */
 controller_flow_result_t controller_flow_set_active(controller_flow_t *flow, bool is_active)
 {
     if (flow == NULL || !flow->has_committed)
@@ -278,7 +285,8 @@ controller_flow_result_t controller_flow_set_active(controller_flow_t *flow, boo
     return CONTROLLER_FLOW_OK;
 }
 
-/* What: Removes the durable generation only when it is inactive. Why: Deleting active production behavior would violate the deployment safety boundary. How: It asks the atomic store to remove first, then clears the committed RAM mirror. */
+/* What: Removes the durable generation only when it is inactive. Why: Deleting active production behavior would violate the
+ * deployment safety boundary. How: It asks the atomic store to remove first, then clears the committed RAM mirror. */
 controller_flow_result_t controller_flow_remove(controller_flow_t *flow)
 {
     if (flow == NULL || !flow->has_committed)
@@ -302,7 +310,8 @@ controller_flow_result_t controller_flow_remove(controller_flow_t *flow)
     return CONTROLLER_FLOW_OK;
 }
 
-/* What: Copies metadata for the complete committed generation. Why: Protocol inspection must not observe a partial upload as deployable state. How: It rejects absent storage and returns only the committed record. */
+/* What: Copies metadata for the complete committed generation. Why: Protocol inspection must not observe a partial upload as
+ * deployable state. How: It rejects absent storage and returns only the committed record. */
 controller_flow_result_t controller_flow_get_metadata(const controller_flow_t *flow, controller_flow_metadata_t *metadata)
 {
     if (flow == NULL || metadata == NULL)
@@ -319,7 +328,9 @@ controller_flow_result_t controller_flow_get_metadata(const controller_flow_t *f
     return CONTROLLER_FLOW_OK;
 }
 
-/* What: Reads a bounded chunk of the committed artifact. Why: Transport callers need chunking without access to staging or out-of-range memory. How: It validates the offset and capacity, copies at most the remaining bytes, and reports the exact count. */
+/* What: Reads a bounded chunk of the committed artifact. Why: Transport callers need chunking without access to staging or
+ * out-of-range memory. How: It validates the offset and capacity, copies at most the remaining bytes, and reports the exact
+ * count. */
 controller_flow_result_t controller_flow_read(const controller_flow_t *flow, size_t offset, uint8_t *output, size_t capacity,
                                               size_t *size)
 {

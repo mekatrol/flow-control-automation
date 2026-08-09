@@ -30,7 +30,8 @@ enum
     INPUT_VALID_ALL_GOOD    = 4,
 };
 
-/* What: Creates a stable evaluation result with an optional node path. Why: Runtime faults must correlate to the source graph across FCP and UI layers. How: It prefixes the bounded stable node ID and truncates safely to the frozen path capacity. */
+/* What: Creates a stable evaluation result with an optional node path. Why: Runtime faults must correlate to the source graph
+ * across FCP and UI layers. How: It prefixes the bounded stable node ID and truncates safely to the frozen path capacity. */
 static flow_result_t get_runtime_result(flow_reason_code_t code, const char *node_id)
 {
     flow_result_t result = {.code = code};
@@ -172,7 +173,7 @@ flow_result_t flow_runtime_step(flow_runtime_t *runtime, const flow_input_frame_
     {
         return get_runtime_result(FLOW_REASON_EVALUATION_FAILED, NULL);
     }
-    const flow_executable_t *flow                  = runtime->executable;
+    const flow_executable_t *flow = runtime->executable;
     /* Working images isolate partial computation from memory and snapshots visible to callers. */
     bool working_values[FLOW_EXECUTABLE_MAX_NODES] = {false};
     bool working_memory[FLOW_EXECUTABLE_MAX_NODES];
@@ -303,7 +304,8 @@ evaluation_failed:
     return get_runtime_result(FLOW_REASON_EVALUATION_FAILED, NULL);
 }
 
-/* What: Returns the last successfully committed tick snapshot. Why: Callers must never treat reset or failed working state as published data. How: It exposes runtime-owned storage only after the tick counter proves a successful commit. */
+/* What: Returns the last successfully committed tick snapshot. Why: Callers must never treat reset or failed working state as
+ * published data. How: It exposes runtime-owned storage only after the tick counter proves a successful commit. */
 const flow_tick_snapshot_t *get_flow_runtime_snapshot(const flow_runtime_t *runtime)
 {
     return runtime != NULL && runtime->tick_number > 0U ? &runtime->snapshot : NULL;

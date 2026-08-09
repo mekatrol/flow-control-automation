@@ -88,7 +88,8 @@ static flow_result_t get_identifier_result(flow_reason_code_t code, const char *
 /*
  * What: Reads one byte from the current bounded-reader position.
  * Why: Every decoder operation must reject truncated artifacts before touching memory outside the declared table.
- * How: It checks offset against size, copies the byte, advances exactly once on success, and leaves the reader unchanged on failure.
+ * How: It checks offset against size, copies the byte, advances exactly once on success, and leaves the reader unchanged on
+ * failure.
  */
 static bool get_u8(reader_t *reader, uint8_t *value)
 {
@@ -141,8 +142,9 @@ static bool get_u32(reader_t *reader, uint32_t *value)
 
 /*
  * What: Validates one length-delimited identifier against the schema-1 ASCII grammar and capacity.
- * Why: Stable restricted IDs must round-trip through artifacts, diagnostics, snapshots, and UI correlation without ambiguous encoding.
- * How: It checks length, permits alphanumerics everywhere, and permits the documented punctuation only after the first byte.
+ * Why: Stable restricted IDs must round-trip through artifacts, diagnostics, snapshots, and UI correlation without ambiguous
+ * encoding. How: It checks length, permits alphanumerics everywhere, and permits the documented punctuation only after the first
+ * byte.
  */
 static bool is_identifier(const uint8_t *bytes, size_t size)
 {
@@ -169,7 +171,8 @@ static bool is_identifier(const uint8_t *bytes, size_t size)
 /*
  * What: Decodes one schema string8 identifier into a C string owned by the prepared executable.
  * Why: Runtime and diagnostic code need safe stable IDs without retaining pointers into untrusted artifact bytes.
- * How: It validates the length and grammar, copies the exact payload, appends a terminator, and advances the reader only on success.
+ * How: It validates the length and grammar, copies the exact payload, appends a terminator, and advances the reader only on
+ * success.
  */
 static bool get_id(reader_t *reader, char destination[FLOW_EXECUTABLE_MAX_ID_BYTES + 1])
 {
@@ -391,8 +394,9 @@ static flow_result_t get_connections(reader_t *reader, flow_executable_t *flow)
 
 /*
  * What: Decodes artifact point references and proves each one matches the selected controller target.
- * Why: A flow compiled for missing, differently directed, or differently typed hardware must fail before any physical sampling or output.
- * How: It validates the point policy and searches the bounded target description, retaining only normalized portable point data.
+ * Why: A flow compiled for missing, differently directed, or differently typed hardware must fail before any physical sampling or
+ * output. How: It validates the point policy and searches the bounded target description, retaining only normalized portable
+ * point data.
  */
 static flow_result_t get_points(reader_t *reader, flow_executable_t *flow, const flow_target_t *target)
 {
@@ -449,7 +453,8 @@ static flow_result_t get_points(reader_t *reader, flow_executable_t *flow, const
 /*
  * What: Validates each node kind's complete digital port shape and required input connectivity.
  * Why: The evaluator uses named inputs and cannot safely infer missing ports or values while executing an atomic tick.
- * How: It compares observed port counts with the schema table, verifies digital types, and proves every input has a decoded driver.
+ * How: It compares observed port counts with the schema table, verifies digital types, and proves every input has a decoded
+ * driver.
  */
 static flow_result_t is_shape_valid(const flow_executable_t *flow)
 {
@@ -509,8 +514,9 @@ static flow_result_t is_shape_valid(const flow_executable_t *flow)
 
 /*
  * What: Builds the deterministic node schedule and rejects combinational cycles.
- * Why: Every tick needs a fixed dependency order independent of artifact record order, while explicit memory must permit feedback across ticks.
- * How: A bounded Kahn sort ignores edges entering memory, selects ready nodes by lexical stable ID, and reports the first unscheduled node on a cycle.
+ * Why: Every tick needs a fixed dependency order independent of artifact record order, while explicit memory must permit feedback
+ * across ticks. How: A bounded Kahn sort ignores edges entering memory, selects ready nodes by lexical stable ID, and reports the
+ * first unscheduled node on a cycle.
  */
 static flow_result_t get_schedule(flow_executable_t *flow)
 {
@@ -572,7 +578,8 @@ static flow_result_t get_schedule(flow_executable_t *flow)
 /*
  * What: Converts one complete canonical artifact and target description into a prepared executable.
  * Why: This is the single trust boundary between transferred compiler output and deterministic controller evaluation.
- * How: It verifies envelope/body integrity and limits, decodes all tables, runs semantic and scheduling passes, and returns stable failure detail.
+ * How: It verifies envelope/body integrity and limits, decodes all tables, runs semantic and scheduling passes, and returns
+ * stable failure detail.
  */
 flow_result_t flow_executable_prepare(const uint8_t *artifact, size_t artifact_size, const flow_target_t *target,
                                       flow_executable_t *flow)

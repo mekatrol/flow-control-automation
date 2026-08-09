@@ -148,7 +148,8 @@ typedef struct
     uint16_t schedule[FLOW_EXECUTABLE_MAX_NODES];
 } flow_executable_t;
 
-/* What: Prepares one schema-1 executable. Why: Runtime may trust only canonical, compatible, acyclic artifacts. How: Decodes and validates against target limits, then builds a stable schedule in caller storage. */
+/* What: Prepares one schema-1 executable. Why: Runtime may trust only canonical, compatible, acyclic artifacts. How: Decodes and
+ * validates against target limits, then builds a stable schedule in caller storage. */
 flow_result_t flow_executable_prepare(const uint8_t *artifact, size_t artifact_size, const flow_target_t *target,
                                       flow_executable_t *executable);
 

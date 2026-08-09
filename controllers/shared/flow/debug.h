@@ -139,61 +139,77 @@ typedef struct
     bool is_live_output_enabled;
 } flow_debug_t;
 
-/* What: Initializes an empty service. Why: Platform contracts must precede all sessions. How: Stores the immutable target/input adapter and clears volatile ownership. */
+/* What: Initializes an empty service. Why: Platform contracts must precede all sessions. How: Stores the immutable target/input
+ * adapter and clears volatile ownership. */
 bool flow_debug_init(flow_debug_t *debug, const flow_target_t *target, flow_debug_get_input_t get_input, void *input_context);
 
-/* What: Installs tick timing. Why: Duration must be observable without a platform clock dependency. How: Stores an optional monotonic callback and context. */
+/* What: Installs tick timing. Why: Duration must be observable without a platform clock dependency. How: Stores an optional
+ * monotonic callback and context. */
 void flow_debug_set_time_source(flow_debug_t *debug, flow_debug_get_time_us_t get_time_us, void *time_context);
 
-/* What: Installs physical-output arbitration callbacks. Why: Portable debug code cannot own hardware policy. How: Records command/relinquish adapters while live mode remains disabled. */
+/* What: Installs physical-output arbitration callbacks. Why: Portable debug code cannot own hardware policy. How: Records
+ * command/relinquish adapters while live mode remains disabled. */
 void flow_debug_set_output_adapter(flow_debug_t *debug, flow_debug_command_output_t command_output,
                                    flow_debug_relinquish_output_t relinquish_output, void *output_context);
 
-/* What: Enables live commands for one prepared session. Why: Shadow results must never imply physical authority. How: Requires owner access and exact canonical affected-point confirmation. */
+/* What: Enables live commands for one prepared session. Why: Shadow results must never imply physical authority. How: Requires
+ * owner access and exact canonical affected-point confirmation. */
 flow_debug_result_t flow_debug_enable_live_output(flow_debug_t *debug, uint32_t owner_id, uint64_t session_id,
                                                   const char *const *confirmed_point_ids, size_t point_count, uint64_t now_ms);
 
-/* What: Opens a volatile artifact upload. Why: Debug bytes must remain separate from deployment and replacement must be explicit. How: Clears authorized prior state and allocates a monotonic session ID. */
+/* What: Opens a volatile artifact upload. Why: Debug bytes must remain separate from deployment and replacement must be explicit.
+ * How: Clears authorized prior state and allocates a monotonic session ID. */
 flow_debug_result_t flow_debug_begin(flow_debug_t *debug, uint32_t owner_id, bool replace_existing, uint32_t artifact_length,
                                      const uint8_t digest[FLOW_DEBUG_DIGEST_BYTES], uint64_t now_ms, uint64_t *session_id);
 
-/* What: Merges one upload chunk. Why: Transport retries must be safe while conflicting bytes are rejected. How: Tracks byte coverage and renews the authenticated owner's lease. */
+/* What: Merges one upload chunk. Why: Transport retries must be safe while conflicting bytes are rejected. How: Tracks byte
+ * coverage and renews the authenticated owner's lease. */
 flow_debug_result_t flow_debug_write(flow_debug_t *debug, uint32_t owner_id, uint64_t session_id, uint32_t offset,
                                      const uint8_t *data, size_t size, uint64_t now_ms);
 
-/* What: Prepares the uploaded executable. Why: Ticks may consume only complete, compatible controller semantics. How: Verifies coverage/digest, delegates schema validation, and initializes runtime state. */
+/* What: Prepares the uploaded executable. Why: Ticks may consume only complete, compatible controller semantics. How: Verifies
+ * coverage/digest, delegates schema validation, and initializes runtime state. */
 flow_debug_result_t flow_debug_prepare(flow_debug_t *debug, uint32_t owner_id, uint64_t session_id, uint64_t now_ms);
 
-/* What: Performs one complete manual tick. Why: Node-level visibility would violate atomic memory/snapshot semantics. How: Captures one coherent frame, evaluates, publishes, and forces live commands safe. */
+/* What: Performs one complete manual tick. Why: Node-level visibility would violate atomic memory/snapshot semantics. How:
+ * Captures one coherent frame, evaluates, publishes, and forces live commands safe. */
 flow_debug_result_t flow_debug_step(flow_debug_t *debug, uint32_t owner_id, uint64_t session_id, uint64_t now_ms);
 
-/* What: Arms continuous execution. Why: Controller-owned scheduling avoids client latency and overlapping ticks. How: Records a bounded interval and monotonic next deadline. */
+/* What: Arms continuous execution. Why: Controller-owned scheduling avoids client latency and overlapping ticks. How: Records a
+ * bounded interval and monotonic next deadline. */
 flow_debug_result_t flow_debug_run(flow_debug_t *debug, uint32_t owner_id, uint64_t session_id, uint32_t interval_ms,
                                    uint64_t now_ms);
 
-/* What: Pauses run mode. Why: Paused memory must remain inspectable while physical commands become safe. How: Stops scheduling, preserves committed evaluator state, and relinquishes outputs. */
+/* What: Pauses run mode. Why: Paused memory must remain inspectable while physical commands become safe. How: Stops scheduling,
+ * preserves committed evaluator state, and relinquishes outputs. */
 flow_debug_result_t flow_debug_pause(flow_debug_t *debug, uint32_t owner_id, uint64_t session_id, uint64_t now_ms);
 
-/* What: Retrieves bounded lifecycle and diagnostic status. Why: Control-plane inspection should not require bulk snapshot transfer. How: Verifies ownership, copies coherent counters, and renews the lease. */
+/* What: Retrieves bounded lifecycle and diagnostic status. Why: Control-plane inspection should not require bulk snapshot
+ * transfer. How: Verifies ownership, copies coherent counters, and renews the lease. */
 flow_debug_result_t flow_debug_get_status(flow_debug_t *debug, uint32_t owner_id, uint64_t session_id, uint64_t now_ms,
                                           flow_debug_status_t *status);
 
-/* What: Retrieves the latest snapshot transfer header. Why: Chunk consumers must bind data to one session and tick. How: Requires exact identity and returns length, chunk contract, and digest. */
+/* What: Retrieves the latest snapshot transfer header. Why: Chunk consumers must bind data to one session and tick. How: Requires
+ * exact identity and returns length, chunk contract, and digest. */
 flow_debug_result_t flow_debug_get_snapshot_header(flow_debug_t *debug, uint32_t owner_id, uint64_t session_id,
                                                    uint64_t tick_number, uint64_t now_ms, flow_debug_snapshot_header_t *header);
 
-/* What: Reads one snapshot chunk. Why: Large immutable snapshots exceed one bounded FCP frame. How: Validates session/tick/index/capacity and returns the exact absolute byte range. */
+/* What: Reads one snapshot chunk. Why: Large immutable snapshots exceed one bounded FCP frame. How: Validates
+ * session/tick/index/capacity and returns the exact absolute byte range. */
 flow_debug_result_t flow_debug_read_snapshot_chunk(flow_debug_t *debug, uint32_t owner_id, uint64_t session_id,
                                                    uint64_t tick_number, uint16_t chunk_index, uint64_t now_ms, uint8_t *output,
                                                    size_t capacity, uint32_t *absolute_offset, size_t *size);
 
-/* What: Sends a session keepalive. Why: Lost owners must expire even when transport connection state is ambiguous. How: Authenticates identity and moves the fixed dead-man deadline. */
+/* What: Sends a session keepalive. Why: Lost owners must expire even when transport connection state is ambiguous. How:
+ * Authenticates identity and moves the fixed dead-man deadline. */
 flow_debug_result_t flow_debug_renew(flow_debug_t *debug, uint32_t owner_id, uint64_t session_id, uint64_t now_ms);
 
-/* What: Stops the session. Why: Explicit termination must release all debug state and commands without deployment effects. How: Verifies ownership, relinquishes outputs, and clears volatile storage. */
+/* What: Stops the session. Why: Explicit termination must release all debug state and commands without deployment effects. How:
+ * Verifies ownership, relinquishes outputs, and clears volatile storage. */
 flow_debug_result_t flow_debug_stop(flow_debug_t *debug, uint32_t owner_id, uint64_t session_id);
 
-/* What: Advances supervisor-owned expiry and run scheduling. Why: Safety cleanup and ticks cannot depend on client polling. How: Clears expired state or executes at most one due tick while skipping missed deadlines. */
+/* What: Advances supervisor-owned expiry and run scheduling. Why: Safety cleanup and ticks cannot depend on client polling. How:
+ * Clears expired state or executes at most one due tick while skipping missed deadlines. */
 void flow_debug_process(flow_debug_t *debug, uint64_t now_ms);
 
 #endif

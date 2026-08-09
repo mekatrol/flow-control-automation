@@ -87,16 +87,20 @@ typedef struct
     uint32_t evaluation_failure_count;
 } flow_runtime_t;
 
-/* What: Initializes evaluator state. Why: Every session starts from artifact-defined memory. How: Retains the prepared executable and restores bounded current/next images. */
+/* What: Initializes evaluator state. Why: Every session starts from artifact-defined memory. How: Retains the prepared executable
+ * and restores bounded current/next images. */
 bool flow_runtime_init(flow_runtime_t *runtime, const flow_executable_t *executable);
 
-/* What: Evaluates one complete tick. Why: Partial node or memory results must never escape. How: Uses private working images and commits values, memory, and snapshot only on total success. */
+/* What: Evaluates one complete tick. Why: Partial node or memory results must never escape. How: Uses private working images and
+ * commits values, memory, and snapshot only on total success. */
 flow_result_t flow_runtime_step(flow_runtime_t *runtime, const flow_input_frame_t *input);
 
-/* What: Resets evaluator history. Why: Reuse must not expose prior session values. How: Clears counters/snapshot and reapplies every encoded memory initial value. */
+/* What: Resets evaluator history. Why: Reuse must not expose prior session values. How: Clears counters/snapshot and reapplies
+ * every encoded memory initial value. */
 void flow_runtime_reset(flow_runtime_t *runtime);
 
-/* What: Retrieves the committed snapshot. Why: Failed or absent ticks must not appear publishable. How: Returns runtime-owned storage only after a successful tick number exists. */
+/* What: Retrieves the committed snapshot. Why: Failed or absent ticks must not appear publishable. How: Returns runtime-owned
+ * storage only after a successful tick number exists. */
 const flow_tick_snapshot_t *get_flow_runtime_snapshot(const flow_runtime_t *runtime);
 
 #endif
