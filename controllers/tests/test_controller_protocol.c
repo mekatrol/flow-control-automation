@@ -25,6 +25,7 @@ static uint8_t auth_random_seed = 1;
 static bool get_auth_random(void *context, uint8_t *output, size_t size)
 {
     assert(context == NULL);
+
     for (size_t index = 0; index < size; index++)
     {
         output[index] = auth_random_seed++;
@@ -37,10 +38,12 @@ static bool get_auth_hmac(void *context, const uint8_t *message, size_t message_
 {
     assert(context == NULL);
     uint8_t state = 0x5a;
+
     for (size_t index = 0; index < message_size; index++)
     {
         state = (uint8_t)((state * 33U) ^ message[index]);
     }
+
     for (size_t index = 0; index < CONTROLLER_AUTH_TAG_SIZE; index++)
     {
         tag[index] = (uint8_t)(state + index);
@@ -78,7 +81,7 @@ static bool capture_send(void *context, const uint8_t *data, size_t size)
 {
     assert(context == NULL);
     assert(size <= sizeof(sent_frame));
-    (void)memcpy(sent_frame, data, size);
+    memcpy(sent_frame, data, size);
     sent_size = size;
     return true;
 }
@@ -107,9 +110,10 @@ static size_t encode_request(uint16_t destination, uint8_t operation, const uint
                                              .transaction  = TRANSACTION_ID,
                                              .operation    = operation,
                                              .payload_size = payload_size};
+
     if (payload_size > 0)
     {
-        (void)memcpy(request.payload, payload, payload_size);
+        memcpy(request.payload, payload, payload_size);
     }
     size_t frame_size = 0;
     assert(controller_protocol_encode(&request, frame, CONTROLLER_PROTOCOL_FRAME_CAPACITY, &frame_size));
@@ -125,6 +129,7 @@ static size_t encode_transaction_request(uint16_t destination, uint16_t transact
                                              .transaction  = transaction,
                                              .operation    = operation,
                                              .payload_size = payload_size};
+
     if (payload_size > 0)
     {
         memcpy(request.payload, payload, payload_size);
@@ -197,6 +202,7 @@ static void test_maximum_round_trip(void)
                                              .transaction  = TRANSACTION_ID,
                                              .operation    = CONTROLLER_PROTOCOL_OPERATION_ECHO,
                                              .payload_size = CONTROLLER_PROTOCOL_PAYLOAD_CAPACITY};
+
     for (size_t index = 0; index < message.payload_size; index++)
     {
         message.payload[index] = (uint8_t)index;
@@ -259,7 +265,7 @@ static void test_duplicate_transaction(void)
     controller_protocol_receive(&protocol, frame, size, 0);
     uint8_t first_response[CONTROLLER_PROTOCOL_FRAME_CAPACITY];
     const size_t first_size = sent_size;
-    (void)memcpy(first_response, sent_frame, sent_size);
+    memcpy(first_response, sent_frame, sent_size);
     sent_size = 0;
     controller_protocol_receive(&protocol, frame, size, 1);
     assert(sent_size == first_size && memcmp(sent_frame, first_response, sent_size) == 0);

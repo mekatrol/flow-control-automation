@@ -54,17 +54,20 @@ bool wifi_link_init(wifi_link_t *wifi_link, network_manager_t *network_manager, 
     wifi_link->event_rate_limiter     = (diagnostic_rate_limiter_t){0};
     wifi_link->is_waiting_for_address = false;
     wifi_link->address_deadline_ms    = 0;
+
     if (!is_wifi_link_config_valid(config))
     {
         diagnostics_emit(DIAGNOSTIC_ERROR, COMPONENT_WIFI, EVENT_CONFIG_INVALID, MESSAGE_CONFIG_INVALID);
         return false;
     }
+
     if (!is_wifi_link_config_enabled(config))
     {
         return true;
     }
     /* Platform initialization is bounded and deliberately does not associate yet. */
     wifi_link->platform_initialized = platform_wifi_initialize(config);
+
     if (!wifi_link->platform_initialized)
     {
         diagnostics_emit(DIAGNOSTIC_ERROR, COMPONENT_WIFI, EVENT_PLATFORM_INIT_FAILED, MESSAGE_PLATFORM_INIT_FAILED);
@@ -82,7 +85,7 @@ static void enqueue_start_failure(wifi_link_t *wifi_link)
         .interface_name = INTERFACE_WIFI,
         .reason         = REASON_DRIVER_FAILED,
     };
-    (void)network_manager_enqueue_event(wifi_link->network_manager, &event);
+    network_manager_enqueue_event(wifi_link->network_manager, &event);
     diagnostics_emit(DIAGNOSTIC_ERROR, COMPONENT_WIFI, EVENT_CONNECTION_ATTEMPT_FAILED, MESSAGE_CONNECTION_ATTEMPT_FAILED);
 }
 
@@ -108,12 +111,14 @@ void wifi_link_stop(wifi_link_t *wifi_link)
 void wifi_link_process(wifi_link_t *wifi_link, uint64_t now_ms)
 {
     wifi_platform_event_t platform_event;
+
     for (size_t processed = 0; processed < MAXIMUM_EVENTS_PER_TICK; processed++)
     {
         if (!platform_wifi_get_event(&platform_event))
         {
             break;
         }
+
         if (platform_event.type == WIFI_PLATFORM_EVENT_DRIVER_STARTED && !platform_wifi_connect())
         {
             /* Association runs here, never in the ESP-IDF callback task. */
@@ -130,6 +135,7 @@ void wifi_link_process(wifi_link_t *wifi_link, uint64_t now_ms)
             .dns_ready      = platform_event.dns_ready,
             .reason         = get_event_reason(platform_event.type),
         };
+
         if (platform_event.type == WIFI_PLATFORM_EVENT_ASSOCIATED)
         {
             /* DHCP receives a bounded window after association before supervision retries. */
@@ -144,6 +150,7 @@ void wifi_link_process(wifi_link_t *wifi_link, uint64_t now_ms)
         const diagnostic_severity_t severity = event.type == NETWORK_EVENT_FAILED || event.type == NETWORK_EVENT_CONNECTION_LOST
                                                    ? DIAGNOSTIC_WARNING
                                                    : DIAGNOSTIC_INFO;
+
         /* Address diagnostics expose interface allocation without logging credentials. */
         if (platform_event.type == WIFI_PLATFORM_EVENT_ADDRESS_READY)
         {
@@ -167,8 +174,9 @@ void wifi_link_process(wifi_link_t *wifi_link, uint64_t now_ms)
                                      get_event_reason(platform_event.type));
         }
         /* The neutral queue owns copied strings, so this stack event is safe. */
-        (void)network_manager_enqueue_event(wifi_link->network_manager, &event);
+        network_manager_enqueue_event(wifi_link->network_manager, &event);
     }
+
     if (wifi_link->is_waiting_for_address && now_ms >= wifi_link->address_deadline_ms)
     {
         const network_event_t timeout = {
@@ -179,7 +187,7 @@ void wifi_link_process(wifi_link_t *wifi_link, uint64_t now_ms)
             .reason         = REASON_DHCP_TIMEOUT,
         };
         wifi_link->is_waiting_for_address = false;
-        (void)network_manager_enqueue_event(wifi_link->network_manager, &timeout);
+        network_manager_enqueue_event(wifi_link->network_manager, &timeout);
         diagnostics_emit(DIAGNOSTIC_WARNING, COMPONENT_WIFI, REASON_DHCP_TIMEOUT, FORMAT_EVENT_STATE, REASON_DHCP_TIMEOUT);
     }
 }

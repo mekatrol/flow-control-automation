@@ -135,6 +135,7 @@ static void initialize_controller_protocol(void)
     platform_auth_deinitialize();
     const bool is_auth_ready = controller_settings_snapshot.protocol_key.is_set &&
                                platform_auth_initialize(controller_settings_snapshot.protocol_key.value);
+
     if (is_auth_ready)
     {
         const controller_auth_config_t auth_config = {.get_hmac              = platform_auth_get_hmac,
@@ -142,7 +143,7 @@ static void initialize_controller_protocol(void)
                                                       .challenge_lifetime_ms = AUTH_CHALLENGE_LIFETIME_MS,
                                                       .session_lifetime_ms   = AUTH_SESSION_LIFETIME_MS,
                                                       .maximum_attempts      = AUTH_MAXIMUM_ATTEMPTS};
-        (void)controller_auth_init(&controller_auth, &auth_config);
+        controller_auth_init(&controller_auth, &auth_config);
     }
     controller_protocol_config_t config = {.address          = controller_settings_snapshot.rs485.address,
                                            .device_id        = protocol_device_id,
@@ -157,7 +158,7 @@ static void initialize_controller_protocol(void)
     config.flow                         = is_flow_ready ? &controller_flow : NULL;
     config.debug                        = is_debug_ready ? &controller_debug : NULL;
     config.points                       = is_io_ready ? &controller_points : NULL;
-    (void)controller_protocol_init(&controller_protocol, &config, send_protocol_frame, &controller_rs485_service);
+    controller_protocol_init(&controller_protocol, &config, send_protocol_frame, &controller_rs485_service);
 }
 
 /* Recovers one complete durable flow generation after NVS initialization. */
@@ -172,6 +173,7 @@ static void initialize_flow(void)
 static bool get_debug_input(void * /* context */, flow_input_frame_t *frame)
 {
     const controller_io_snapshot_t snapshot = controller_io_get_snapshot(&controller_io);
+
     for (size_t index = 0; index < CONTROLLER_IO_INPUT_COUNT; index++)
     {
         debug_input_samples[index].value   = (snapshot.inputs & (uint16_t)(1U << index)) != 0U;
@@ -196,6 +198,7 @@ static bool get_debug_output_index(const char *point_id, uint8_t *output)
     for (size_t index = 0; index < CONTROLLER_IO_OUTPUT_COUNT; index++)
     {
         const flow_target_point_t *point = &debug_target_points[CONTROLLER_IO_INPUT_COUNT + index];
+
         if (strcmp(point->id, point_id) == 0)
         {
             *output = (uint8_t)index;
@@ -206,12 +209,13 @@ static bool get_debug_output_index(const char *point_id, uint8_t *output)
 }
 
 /* Submits one short-lived command under the dedicated volatile debug owner. */
-static bool command_debug_output(void * /* context */, const char *point_id, bool value, uint8_t priority,
-                                 uint64_t expires_at_ms, bool *is_effective)
+static bool command_debug_output(void * /* context */, const char *point_id, bool value, uint8_t priority, uint64_t expires_at_ms,
+                                 bool *is_effective)
 {
     static const char DEBUG_SOURCE_ID[]      = "flow-debug";
     static const char DEBUG_CORRELATION_ID[] = "live-tick";
-    uint8_t output = 0;
+    uint8_t output                           = 0;
+
     if (!is_io_ready || is_effective == NULL || expires_at_ms > INT64_MAX || !get_debug_output_index(point_id, &output))
     {
         return false;
@@ -223,8 +227,9 @@ static bool command_debug_output(void * /* context */, const char *point_id, boo
                                           .value         = value,
                                           .issued_at_ms  = (int64_t)platform_get_monotonic_ms(),
                                           .expires_at_ms = (int64_t)expires_at_ms};
-    (void)snprintf(command.source_id, sizeof(command.source_id), "%s", DEBUG_SOURCE_ID);
-    (void)snprintf(command.correlation_id, sizeof(command.correlation_id), "%s", DEBUG_CORRELATION_ID);
+    snprintf(command.source_id, sizeof(command.source_id), "%s", DEBUG_SOURCE_ID);
+    snprintf(command.correlation_id, sizeof(command.correlation_id), "%s", DEBUG_CORRELATION_ID);
+
     if (controller_points_command(&controller_points, &command, command.issued_at_ms) != CONTROLLER_POINT_OK)
     {
         return false;
@@ -237,11 +242,11 @@ static bool command_debug_output(void * /* context */, const char *point_id, boo
 static void relinquish_debug_output(void * /* context */, const char *point_id)
 {
     static const char DEBUG_SOURCE_ID[] = "flow-debug";
-    uint8_t output = 0;
+    uint8_t output                      = 0;
+
     if (is_io_ready && get_debug_output_index(point_id, &output))
     {
-        (void)controller_points_relinquish(&controller_points, output, DEBUG_SOURCE_ID,
-                                           (int64_t)platform_get_monotonic_ms());
+        controller_points_relinquish(&controller_points, output, DEBUG_SOURCE_ID, (int64_t)platform_get_monotonic_ms());
     }
 }
 
@@ -254,6 +259,7 @@ static bool initialize_debug(void)
             snprintf(debug_target_points[index].id, sizeof(debug_target_points[index].id), "input-%02u", (unsigned)(index + 1U));
         const int sample_size = snprintf(debug_input_samples[index].point_id, sizeof(debug_input_samples[index].point_id),
                                          "input-%02u", (unsigned)(index + 1U));
+
         if (input_size <= 0 || (size_t)input_size >= sizeof(debug_target_points[index].id) || sample_size <= 0 ||
             (size_t)sample_size >= sizeof(debug_input_samples[index].point_id))
         {
@@ -262,10 +268,12 @@ static bool initialize_debug(void)
         debug_target_points[index].direction  = 1;
         debug_target_points[index].value_type = CONTROLLER_PROTOCOL_POINT_DIGITAL;
     }
+
     for (size_t index = 0; index < CONTROLLER_IO_OUTPUT_COUNT; index++)
     {
         flow_target_point_t *point = &debug_target_points[CONTROLLER_IO_INPUT_COUNT + index];
         const int size             = snprintf(point->id, sizeof(point->id), "output-%02u", (unsigned)(index + 1U));
+
         if (size <= 0 || (size_t)size >= sizeof(point->id))
         {
             return false;
@@ -273,11 +281,12 @@ static bool initialize_debug(void)
         point->direction  = 2;
         point->value_type = CONTROLLER_PROTOCOL_POINT_DIGITAL;
     }
-    debug_target = (flow_target_t){.points                 = debug_target_points,
-                                   .point_count            = CONTROLLER_IO_POINT_COUNT,
-                                   .supported_capabilities = UINT32_C(0x1f),
-                                   .maximum_snapshot_bytes = FLOW_DEBUG_SNAPSHOT_CAPACITY};
+    debug_target              = (flow_target_t){.points                 = debug_target_points,
+                                                .point_count            = CONTROLLER_IO_POINT_COUNT,
+                                                .supported_capabilities = UINT32_C(0x1f),
+                                                .maximum_snapshot_bytes = FLOW_DEBUG_SNAPSHOT_CAPACITY};
     const bool is_initialized = flow_debug_init(&controller_debug, &debug_target, get_debug_input, NULL);
+
     if (is_initialized)
     {
         flow_debug_set_time_source(&controller_debug, get_debug_time_us, NULL);
@@ -293,10 +302,11 @@ static void initialize_io(void)
     platform_io_config_t config;
     controller_board_get_io_config(&config);
     is_io_ready = platform_io_initialize(&config);
+
     if (is_io_ready)
     {
         controller_io_set_writer(&controller_io, platform_io_write_outputs);
-        (void)controller_points_init(&controller_points, platform_io_write_outputs);
+        controller_points_init(&controller_points, platform_io_write_outputs);
     }
     is_debug_ready  = initialize_debug();
     next_io_poll_ms = platform_get_monotonic_ms();
@@ -315,6 +325,7 @@ static void process_io(uint64_t now_ms)
     bool are_outputs_valid = false;
     platform_io_read(&inputs, &are_inputs_valid, &outputs, &are_outputs_valid);
     controller_io_update(&controller_io, inputs, are_inputs_valid, outputs, are_outputs_valid, (int64_t)now_ms);
+
     if (are_outputs_valid)
     {
         controller_points_observe(&controller_points, outputs);
@@ -353,6 +364,7 @@ static void configure_mqtt_status_topics(mqtt_broker_config_t *config)
     const int availability_size =
         snprintf(mqtt_availability_topic, sizeof(mqtt_availability_topic), MQTT_AVAILABILITY_TOPIC_FORMAT, hostname);
     const int health_size = snprintf(mqtt_health_topic, sizeof(mqtt_health_topic), MQTT_HEALTH_TOPIC_FORMAT, hostname);
+
     if (availability_size <= 0 || (size_t)availability_size >= sizeof(mqtt_availability_topic) || health_size <= 0 ||
         (size_t)health_size >= sizeof(mqtt_health_topic))
     {
@@ -384,17 +396,16 @@ static void get_terminal_system_info(void * /* context */, char *output, size_t 
     const char *hostname = controller_settings_snapshot.hostname.is_set ? controller_settings_snapshot.hostname.value
                                                                         : get_controller_default_hostname();
     /* Render one field per line so interactive users can scan the snapshot without horizontal wrapping. */
-    (void)snprintf(
-        output, capacity, FORMAT_SYSTEM_INFO, get_controller_board_name(), startup.firmware_name, startup.firmware_version,
-        get_controller_board_name(), startup.processor, hostname, health.uptime_ms, health.free_heap_bytes, health.wifi_state,
-        wifi.ipv4_address[0] != '\0' ? wifi.ipv4_address : ADDRESS_UNAVAILABLE,
-        wifi.ipv6_address[0] != '\0' ? wifi.ipv6_address : ADDRESS_UNAVAILABLE, health.ethernet_state,
-        ethernet.ipv4_address[0] != '\0' ? ethernet.ipv4_address : ADDRESS_UNAVAILABLE,
-        ethernet.ipv6_address[0] != '\0' ? ethernet.ipv6_address : ADDRESS_UNAVAILABLE, health.mqtt_state, health.mqtt_transport,
-        health.mqtt_error, health.mqtt_reconnect_count, health.mqtt_queue_depth, health.rs485_state,
-        (unsigned)controller_settings_snapshot.rs485.address, get_rs485_baud_rate(), health.rs485_errors,
-        health.rs485_queue_drops, health.protocol_errors, health.protocol_response_drops, health.terminal_state,
-        health.terminal_authenticated_sessions, health.terminal_failed_logins, health.terminal_output_drops);
+    snprintf(output, capacity, FORMAT_SYSTEM_INFO, get_controller_board_name(), startup.firmware_name, startup.firmware_version,
+             get_controller_board_name(), startup.processor, hostname, health.uptime_ms, health.free_heap_bytes,
+             health.wifi_state, wifi.ipv4_address[0] != '\0' ? wifi.ipv4_address : ADDRESS_UNAVAILABLE,
+             wifi.ipv6_address[0] != '\0' ? wifi.ipv6_address : ADDRESS_UNAVAILABLE, health.ethernet_state,
+             ethernet.ipv4_address[0] != '\0' ? ethernet.ipv4_address : ADDRESS_UNAVAILABLE,
+             ethernet.ipv6_address[0] != '\0' ? ethernet.ipv6_address : ADDRESS_UNAVAILABLE, health.mqtt_state,
+             health.mqtt_transport, health.mqtt_error, health.mqtt_reconnect_count, health.mqtt_queue_depth, health.rs485_state,
+             (unsigned)controller_settings_snapshot.rs485.address, get_rs485_baud_rate(), health.rs485_errors,
+             health.rs485_queue_drops, health.protocol_errors, health.protocol_response_drops, health.terminal_state,
+             health.terminal_authenticated_sessions, health.terminal_failed_logins, health.terminal_output_drops);
 }
 
 /* Dispatches the portable reboot request after terminal confirmation. */
@@ -417,11 +428,11 @@ static void get_terminal_mqtt_status(void * /* context */, char *output, size_t 
 {
     const mqtt_session_health_t session = mqtt_service_get_health(&controller_mqtt_service);
     const mqtt_api_health_t api         = mqtt_api_get_health(&controller_mqtt_api);
-    (void)snprintf(output, capacity, FORMAT_MQTT_TERMINAL_STATUS, mqtt_get_session_state_name(session.state),
-                   session.is_transport_selected ? session.selected_transport.name : TRANSPORT_NONE,
-                   mqtt_get_error_category_name(session.last_error_category), (unsigned)session.reconnect_count,
-                   (unsigned)api.publish_queue_depth, (unsigned)api.receive_queue_depth, (unsigned)api.publish_rejection_count,
-                   (unsigned)api.receive_rejection_count);
+    snprintf(output, capacity, FORMAT_MQTT_TERMINAL_STATUS, mqtt_get_session_state_name(session.state),
+             session.is_transport_selected ? session.selected_transport.name : TRANSPORT_NONE,
+             mqtt_get_error_category_name(session.last_error_category), (unsigned)session.reconnect_count,
+             (unsigned)api.publish_queue_depth, (unsigned)api.receive_queue_depth, (unsigned)api.publish_rejection_count,
+             (unsigned)api.receive_rejection_count);
 }
 
 /* Applies a durable terminal settings generation to MQTT without restarting unrelated services. */
@@ -440,9 +451,10 @@ static void apply_terminal_settings(void * /* context */)
     rs485_config_t rs485_config;
     controller_board_get_rs485_config(&rs485_config);
     rs485_config.baud_rate = get_rs485_baud_rate();
+
     if (platform_rs485_reconfigure(&rs485_config))
     {
-        (void)rs485_service_init(&controller_rs485_service, &rs485_config, platform_rs485_write);
+        rs485_service_init(&controller_rs485_service, &rs485_config, platform_rs485_write);
         initialize_controller_protocol();
     }
 }
@@ -561,6 +573,7 @@ static void initialize_mqtt(void)
                       is_mqtt_platform_ready ? platform_mqtt_connect : NULL, platform_mqtt_disconnect,
                       platform_mqtt_replay_subscriptions, get_communications_random, &controller_network_manager);
     previous_mqtt_state = controller_mqtt_service.state;
+
     if (mqtt_config.enabled && (!is_mqtt_platform_ready || controller_mqtt_service.state == MQTT_SESSION_DISABLED))
     {
         diagnostics_emit(DIAGNOSTIC_ERROR, COMPONENT_MQTT, EVENT_MQTT_CONFIG, MESSAGE_MQTT_CONFIG);
@@ -577,7 +590,7 @@ static void publish_mqtt_availability(void)
                                             .is_retained    = true,
                                             .correlation_id = MQTT_AVAILABILITY_CORRELATION,
                                             .offline_policy = MQTT_OFFLINE_REPLACE_NEWEST};
-    (void)mqtt_api_publish(&controller_mqtt_api, &request);
+    mqtt_api_publish(&controller_mqtt_api, &request);
 }
 
 /* Publishes a coalesced versioned health snapshot whose offline backlog remains one message. */
@@ -589,6 +602,7 @@ static void publish_mqtt_health(void)
     const int size = snprintf(payload, sizeof(payload), FORMAT_MQTT_HEALTH_PAYLOAD, health.uptime_ms, health.free_heap_bytes,
                               health.mqtt_reconnect_count, (unsigned)mqtt_api_health.publish_queue_depth,
                               (unsigned)mqtt_api_health.receive_queue_depth);
+
     if (size <= 0 || (size_t)size >= sizeof(payload))
     {
         return;
@@ -600,7 +614,7 @@ static void publish_mqtt_health(void)
                                             .is_retained    = true,
                                             .correlation_id = MQTT_HEALTH_CORRELATION,
                                             .offline_policy = MQTT_OFFLINE_REPLACE_NEWEST};
-    (void)mqtt_api_publish(&controller_mqtt_api, &request);
+    mqtt_api_publish(&controller_mqtt_api, &request);
 }
 
 /* Publishes through the runtime-owned bounded bidirectional MQTT API. */
@@ -667,6 +681,7 @@ terminal_health_t get_controller_runtime_terminal_health(void)
 static void process_mqtt(uint64_t now_ms)
 {
     mqtt_queued_event_t queued_event;
+
     for (size_t processed = 0; processed < MAXIMUM_MQTT_EVENTS_PER_TICK; processed++)
     {
         if (!platform_mqtt_get_event(&queued_event))
@@ -679,18 +694,20 @@ static void process_mqtt(uint64_t now_ms)
             .error_category = queued_event.error_category,
             .error_detail   = queued_event.error_detail,
         };
-        (void)mqtt_service_enqueue_event(&controller_mqtt_service, &event);
+        mqtt_service_enqueue_event(&controller_mqtt_service, &event);
     }
     mqtt_service_process(&controller_mqtt_service, now_ms);
     const mqtt_session_health_t health = mqtt_service_get_health(&controller_mqtt_service);
     mqtt_api_set_online(&controller_mqtt_api, health.state == MQTT_SESSION_ONLINE);
     mqtt_inbound_message_t inbound;
+
     for (size_t processed = 0; processed < MQTT_RECEIVE_QUEUE_CAPACITY && platform_mqtt_get_inbound(&inbound); processed++)
     {
-        (void)mqtt_api_enqueue_inbound(&controller_mqtt_api, inbound.topic, strlen(inbound.topic), inbound.payload,
-                                       inbound.payload_size, inbound.qos, inbound.is_duplicate);
+        mqtt_api_enqueue_inbound(&controller_mqtt_api, inbound.topic, strlen(inbound.topic), inbound.payload,
+                                 inbound.payload_size, inbound.qos, inbound.is_duplicate);
     }
     mqtt_api_process(&controller_mqtt_api);
+
     if (health.state != previous_mqtt_state)
     {
         if (health.state == MQTT_SESSION_ONLINE)
@@ -714,8 +731,7 @@ static void initialize_rs485(void)
     controller_board_get_rs485_config(&config);
     config.baud_rate             = get_rs485_baud_rate();
     const bool is_platform_ready = !config.enabled || platform_rs485_initialize(&config);
-    (void)rs485_service_init(&controller_rs485_service, &config,
-                             is_platform_ready && config.enabled ? platform_rs485_write : NULL);
+    rs485_service_init(&controller_rs485_service, &config, is_platform_ready && config.enabled ? platform_rs485_write : NULL);
     initialize_controller_protocol();
     const rs485_health_t health = rs485_service_get_health(&controller_rs485_service);
     diagnostics_emit(is_platform_ready ? DIAGNOSTIC_INFO : DIAGNOSTIC_ERROR, COMPONENT_RS485, EVENT_RS485_STATE,
@@ -727,6 +743,7 @@ static void initialize_rs485(void)
 static void process_rs485(uint64_t now_ms)
 {
     platform_rs485_event_t event;
+
     for (size_t processed = 0; processed < MAXIMUM_RS485_EVENTS_PER_TICK && platform_rs485_get_event(&event); processed++)
     {
         switch (event.type)
@@ -751,6 +768,7 @@ static void process_rs485(uint64_t now_ms)
     rs485_service_process(&controller_rs485_service, now_ms);
     /* Complete transport frames enter the validated protocol codec; raw commissioning echo is no longer active. */
     rs485_frame_t frame;
+
     while (rs485_service_get_received(&controller_rs485_service, &frame))
     {
         controller_protocol_receive(&controller_protocol, frame.data, frame.size, now_ms);
@@ -770,6 +788,7 @@ static void controller_task(void * /* context */)
     initialize_mqtt();
     initialize_io();
     initialize_rs485();
+
     for (;;)
     {
         const uint64_t now_ms = platform_get_monotonic_ms();
@@ -781,6 +800,7 @@ static void controller_task(void * /* context */)
         process_mqtt(now_ms);
         /* Field samples are cached before protocol dispatch for coherent non-blocking reads. */
         process_io(now_ms);
+
         if (is_debug_ready)
         {
             /* Continuous shadow evaluation shares the monotonic supervisor loop and never blocks on protocol transfer. */
@@ -792,6 +812,7 @@ static void controller_task(void * /* context */)
         const size_t terminal_input_size = platform_terminal_read(terminal_input, sizeof(terminal_input));
         terminal_service_receive(&controller_terminal_service, terminal_input, terminal_input_size, now_ms);
         terminal_service_process(&controller_terminal_service, now_ms);
+
         if (now_ms >= next_status_ms)
         {
             const controller_health_snapshot_t snapshot = get_controller_health_snapshot();

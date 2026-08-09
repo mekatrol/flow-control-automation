@@ -28,6 +28,7 @@ static nvs_handle_t flow_handle;
 static bool initialize_persistence(void)
 {
     esp_err_t result = nvs_flash_init();
+
     if (result == ESP_ERR_NVS_NO_FREE_PAGES || result == ESP_ERR_NVS_NEW_VERSION_FOUND)
     {
         /* NVS cannot recover either layout error in place, so rebuild its dedicated partition. */
@@ -45,6 +46,7 @@ static bool load_flow(void * /* context */, controller_flow_metadata_t *metadata
 {
     platform_flow_record_t record;
     size_t record_size = sizeof(record);
+
     if (flow_handle == 0 || nvs_get_blob(flow_handle, FLOW_RECORD_KEY, &record, &record_size) != ESP_OK ||
         record_size != sizeof(record) || record.version != FLOW_RECORD_VERSION || record.metadata.size > capacity ||
         record.metadata.size > sizeof(record.artifact))
@@ -52,7 +54,7 @@ static bool load_flow(void * /* context */, controller_flow_metadata_t *metadata
         return false;
     }
     *metadata = record.metadata;
-    (void)memcpy(artifact, record.artifact, metadata->size);
+    memcpy(artifact, record.artifact, metadata->size);
     return true;
 }
 
@@ -64,7 +66,7 @@ static bool commit_flow(void * /* context */, const controller_flow_metadata_t *
         return false;
     }
     platform_flow_record_t record = {.version = FLOW_RECORD_VERSION, .metadata = *metadata};
-    (void)memcpy(record.artifact, artifact, metadata->size);
+    memcpy(record.artifact, artifact, metadata->size);
     return nvs_set_blob(flow_handle, FLOW_RECORD_KEY, &record, sizeof(record)) == ESP_OK && nvs_commit(flow_handle) == ESP_OK;
 }
 

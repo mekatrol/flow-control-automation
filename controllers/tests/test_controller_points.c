@@ -23,8 +23,8 @@ static controller_point_command_t get_command(uint8_t output, uint8_t priority, 
                                           .value         = value,
                                           .issued_at_ms  = 10,
                                           .expires_at_ms = INT64_MIN};
-    (void)snprintf(command.source_id, sizeof(command.source_id), "%s", source);
-    (void)snprintf(command.correlation_id, sizeof(command.correlation_id), "correlation-%u", priority);
+    snprintf(command.source_id, sizeof(command.source_id), "%s", source);
+    snprintf(command.correlation_id, sizeof(command.correlation_id), "correlation-%u", priority);
     return command;
 }
 

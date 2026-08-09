@@ -59,13 +59,14 @@ static void get_fixture_mqtt_status(void *context, char *output, size_t capacity
 {
     terminal_fixture_t *fixture = context;
     assert(fixture != NULL);
-    (void)snprintf(output, capacity, "state=online publish_queue=0");
+    snprintf(output, capacity, "state=online publish_queue=0");
 }
 
 /* Captures transport writes and rejects deterministic overflow. */
 static bool write_fixture(void *context, const char *data, size_t size)
 {
     terminal_fixture_t *fixture = context;
+
     if (fixture->output_size + size >= sizeof(fixture->output))
     {
         return false;
@@ -81,7 +82,7 @@ static void get_fixture_system_info(void *context, char *output, size_t capacity
 {
     terminal_fixture_t *fixture = context;
     assert(fixture != NULL);
-    (void)snprintf(output, capacity, "device=test secrets=redacted");
+    snprintf(output, capacity, "device=test secrets=redacted");
 }
 
 /* Records a portable reboot dispatch for confirmation testing. */
@@ -134,10 +135,8 @@ static terminal_service_t get_authenticated_fixture(terminal_fixture_t *fixture,
     settings->store.commit                      = commit_records;
     settings->store.abort                       = abort_records;
     settings->store.context                     = fixture;
-    (void)snprintf(settings->snapshot.terminal_username.value, sizeof(settings->snapshot.terminal_username.value), "%s",
-                   TEST_USERNAME);
-    (void)snprintf(settings->snapshot.terminal_password.value, sizeof(settings->snapshot.terminal_password.value), "%s",
-                   TEST_PASSWORD);
+    snprintf(settings->snapshot.terminal_username.value, sizeof(settings->snapshot.terminal_username.value), "%s", TEST_USERNAME);
+    snprintf(settings->snapshot.terminal_password.value, sizeof(settings->snapshot.terminal_password.value), "%s", TEST_PASSWORD);
     const terminal_config_t config = {.settings         = settings,
                                       .write            = write_fixture,
                                       .get_system_info  = get_fixture_system_info,
@@ -161,10 +160,10 @@ static void test_mqtt_configuration_and_status(void)
     terminal_service_t service             = get_authenticated_fixture(&fixture, &settings);
     settings.snapshot.mqtt_username.is_set = true;
     settings.snapshot.mqtt_password.is_set = true;
-    (void)snprintf(settings.snapshot.mqtt_username.value, sizeof(settings.snapshot.mqtt_username.value), "broker-user");
-    (void)snprintf(settings.snapshot.mqtt_password.value, sizeof(settings.snapshot.mqtt_password.value), "broker-secret");
-    (void)snprintf(settings.snapshot.mqtt_broker.host, sizeof(settings.snapshot.mqtt_broker.host), "old-broker.example.test");
-    (void)snprintf(settings.snapshot.mqtt_broker.client_id, sizeof(settings.snapshot.mqtt_broker.client_id), "old-client");
+    snprintf(settings.snapshot.mqtt_username.value, sizeof(settings.snapshot.mqtt_username.value), "broker-user");
+    snprintf(settings.snapshot.mqtt_password.value, sizeof(settings.snapshot.mqtt_password.value), "broker-secret");
+    snprintf(settings.snapshot.mqtt_broker.host, sizeof(settings.snapshot.mqtt_broker.host), "old-broker.example.test");
+    snprintf(settings.snapshot.mqtt_broker.client_id, sizeof(settings.snapshot.mqtt_broker.client_id), "old-client");
     settings.snapshot.mqtt_broker.port = 1883;
     send_line(&service, TEST_USERNAME, 1);
     send_line(&service, TEST_PASSWORD, 2);

@@ -79,7 +79,7 @@ static controller_protocol_provider_result_t get_point_definition(void *context,
         (controller_protocol_point_definition_t){.revision      = POINT_REVISION,
                                                  .type          = CONTROLLER_PROTOCOL_POINT_DIGITAL,
                                                  .service_flags = is_input ? INPUT_SERVICE_FLAGS : OUTPUT_SERVICE_FLAGS};
-    (void)snprintf(definition->id, sizeof(definition->id), is_input ? INPUT_ID_FORMAT : OUTPUT_ID_FORMAT, channel);
+    snprintf(definition->id, sizeof(definition->id), is_input ? INPUT_ID_FORMAT : OUTPUT_ID_FORMAT, channel);
     return CONTROLLER_PROTOCOL_PROVIDER_OK;
 }
 
@@ -89,6 +89,7 @@ static bool is_point_id_valid(void *context, const char *point_id, size_t *index
     for (size_t candidate = 0; candidate < CONTROLLER_IO_POINT_COUNT; candidate++)
     {
         controller_protocol_point_definition_t definition;
+
         if (get_point_definition(context, candidate, &definition) == CONTROLLER_PROTOCOL_PROVIDER_OK &&
             strcmp(point_id, definition.id) == 0)
         {
@@ -105,15 +106,18 @@ static controller_protocol_provider_result_t get_point_value(void *context, cons
 {
     controller_io_t *io = context;
     size_t index        = 0;
+
     if (io == NULL || point_id == NULL || value == NULL || !is_point_id_valid(context, point_id, &index))
     {
         return CONTROLLER_PROTOCOL_PROVIDER_NOT_FOUND;
     }
     const bool is_input = index < CONTROLLER_IO_INPUT_COUNT;
+
     if ((is_input && !io->snapshot.are_inputs_valid) || (!is_input && !io->snapshot.are_outputs_valid))
     {
         return CONTROLLER_PROTOCOL_PROVIDER_NOT_READY;
     }
+
     if (get_point_definition(io, index, &value->definition) != CONTROLLER_PROTOCOL_PROVIDER_OK)
     {
         return CONTROLLER_PROTOCOL_PROVIDER_FAILED;
@@ -139,10 +143,12 @@ controller_protocol_point_provider_t controller_io_get_point_provider(controller
 controller_protocol_provider_result_t controller_io_get_protocol_block(void *context, controller_protocol_io_block_t *block)
 {
     const controller_io_t *io = context;
+
     if (io == NULL || block == NULL)
     {
         return CONTROLLER_PROTOCOL_PROVIDER_FAILED;
     }
+
     if (!io->snapshot.are_inputs_valid && !io->snapshot.are_outputs_valid)
     {
         return CONTROLLER_PROTOCOL_PROVIDER_NOT_READY;
@@ -160,10 +166,12 @@ controller_protocol_provider_result_t controller_io_get_protocol_block(void *con
 controller_protocol_provider_result_t controller_io_set_protocol_output_block(void *context, uint16_t outputs)
 {
     controller_io_t *io = context;
+
     if (io == NULL || io->write_outputs == NULL)
     {
         return CONTROLLER_PROTOCOL_PROVIDER_NOT_READY;
     }
+
     if (!io->write_outputs(outputs))
     {
         return CONTROLLER_PROTOCOL_PROVIDER_FAILED;
@@ -180,10 +188,12 @@ controller_protocol_provider_result_t controller_io_set_protocol_output(void *co
 {
     controller_io_t *io = context;
     size_t index        = 0;
+
     if (io == NULL || point_id == NULL || !is_point_id_valid(context, point_id, &index) || index < CONTROLLER_IO_INPUT_COUNT)
     {
         return CONTROLLER_PROTOCOL_PROVIDER_NOT_FOUND;
     }
+
     if (!io->snapshot.are_outputs_valid)
     {
         return CONTROLLER_PROTOCOL_PROVIDER_NOT_READY;

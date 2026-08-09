@@ -37,7 +37,7 @@ static rs485_config_t get_valid_config(void)
 static bool write_transport(const uint8_t *data, size_t size)
 {
     written_size = size;
-    (void)memcpy(written_data, data, size);
+    memcpy(written_data, data, size);
     return true;
 }
 

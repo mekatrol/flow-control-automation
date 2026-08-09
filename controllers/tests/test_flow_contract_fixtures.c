@@ -83,6 +83,7 @@ static void test_validation_fixtures(void)
                  {"missing-point", FLOW_REASON_MISSING_POINT, "/points/input-99"},
                  {"combinational-cycle", FLOW_REASON_COMBINATIONAL_CYCLE, "/nodes/not-a"},
                  {"noncanonical-node-order", FLOW_REASON_NON_CANONICAL_ORDER, "/nodes/1"}};
+
     for (size_t index = 0; index < sizeof(CASES) / sizeof(CASES[0]); index++)
     {
         flow_executable_t flow;
@@ -102,6 +103,7 @@ static void test_two_button_ticks(void)
     flow_input_sample_t samples[] = {{.point_id = "input-01", .quality = FLOW_QUALITY_GOOD},
                                      {.point_id = "input-08", .quality = FLOW_QUALITY_GOOD}};
     const bool frames[][2]        = {{false, false}, {true, false}, {true, true}};
+
     for (size_t tick = 0; tick < sizeof(frames) / sizeof(frames[0]); tick++)
     {
         samples[0].value               = frames[tick][0];

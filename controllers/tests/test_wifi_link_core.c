@@ -15,7 +15,7 @@ static const char TEST_SUCCESS_MESSAGE[] = "Wi-Fi link core tests passed";
 static void fill_oversized_value(char *value, size_t size)
 {
     /* Repeated safe characters isolate length validation from content concerns. */
-    (void)memset(value, 'x', size - 1U);
+    memset(value, 'x', size - 1U);
     value[size - 1U] = '\0';
 }
 

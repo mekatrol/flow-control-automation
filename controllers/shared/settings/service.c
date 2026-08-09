@@ -38,6 +38,7 @@ static uint32_t get_integrity(const void *data, size_t size)
 {
     const uint8_t *bytes = data;
     uint32_t value       = UINT32_C(2166136261);
+
     for (size_t index = 0; index < size; index++)
     {
         value ^= bytes[index];
@@ -91,6 +92,7 @@ static settings_storage_state_t get_read_failure_state(settings_store_result_t r
     {
         return SETTINGS_STORAGE_UNAVAILABLE;
     }
+
     if (result == SETTINGS_STORE_INCOMPATIBLE)
     {
         return SETTINGS_STORAGE_INCOMPATIBLE;
@@ -102,6 +104,7 @@ static settings_storage_state_t get_read_failure_state(settings_store_result_t r
 static settings_storage_state_t initialize_storage(settings_service_t *service, const settings_defaults_t *defaults)
 {
     const settings_bootstrap_record_t initializing = get_bootstrap_record(1, BOOTSTRAP_STATE_INITIALIZING);
+
     if (service->store.stage_bootstrap(service->store.context, &initializing, sizeof(initializing)) != SETTINGS_STORE_OK ||
         service->store.commit(service->store.context) != SETTINGS_STORE_OK)
     {
@@ -111,6 +114,7 @@ static settings_storage_state_t initialize_storage(settings_service_t *service, 
 
     const settings_value_record_t values    = get_value_record(defaults, initializing.generation);
     const settings_bootstrap_record_t ready = get_bootstrap_record(initializing.generation, BOOTSTRAP_STATE_READY);
+
     /* Values and the ready marker share one commit, so partial defaults never become consumable. */
     if (service->store.stage_settings(service->store.context, &values, sizeof(values)) != SETTINGS_STORE_OK ||
         service->store.stage_bootstrap(service->store.context, &ready, sizeof(ready)) != SETTINGS_STORE_OK ||
@@ -131,6 +135,7 @@ settings_storage_state_t settings_service_initialize(settings_service_t *service
 {
     memset(service, 0, sizeof(*service));
     service->state = SETTINGS_STORAGE_UNAVAILABLE;
+
     if (!is_store_valid(store) || defaults == NULL)
     {
         return service->state;
@@ -141,37 +146,44 @@ settings_storage_state_t settings_service_initialize(settings_service_t *service
     size_t bootstrap_size                 = 0;
     const settings_store_result_t bootstrap_result =
         store->get_bootstrap(store->context, &bootstrap, sizeof(bootstrap), &bootstrap_size);
+
     if (bootstrap_result == SETTINGS_STORE_MISSING)
     {
         service->state = initialize_storage(service, defaults);
         return service->state;
     }
+
     if (bootstrap_result != SETTINGS_STORE_OK || bootstrap_size != sizeof(bootstrap))
     {
         service->state = get_read_failure_state(bootstrap_result);
         return service->state;
     }
+
     if (memcmp(bootstrap.magic, BOOTSTRAP_MAGIC, sizeof(bootstrap.magic)) != 0)
     {
         service->state = SETTINGS_STORAGE_FOREIGN;
         return service->state;
     }
+
     if (!is_integrity_valid(&bootstrap, offsetof(settings_bootstrap_record_t, integrity), bootstrap.integrity))
     {
         service->state = SETTINGS_STORAGE_CORRUPT;
         return service->state;
     }
+
     if (bootstrap.format_version != SETTINGS_FORMAT_VERSION || bootstrap.schema_version != SETTINGS_SCHEMA_VERSION)
     {
         service->state = SETTINGS_STORAGE_INCOMPATIBLE;
         return service->state;
     }
+
     if (bootstrap.state == BOOTSTRAP_STATE_INITIALIZING)
     {
         /* Restart seeding from defaults because an initializing generation was never exposed. */
         service->state = initialize_storage(service, defaults);
         return service->state;
     }
+
     if (bootstrap.state != BOOTSTRAP_STATE_READY)
     {
         service->state = SETTINGS_STORAGE_CORRUPT;
@@ -180,6 +192,7 @@ settings_storage_state_t settings_service_initialize(settings_service_t *service
     settings_value_record_t values              = {0};
     size_t values_size                          = 0;
     const settings_store_result_t values_result = store->get_settings(store->context, &values, sizeof(values), &values_size);
+
     if (values_result != SETTINGS_STORE_OK || values_size != sizeof(values) ||
         memcmp(values.magic, SETTINGS_MAGIC, sizeof(values.magic)) != 0 ||
         !is_integrity_valid(&values, offsetof(settings_value_record_t, integrity), values.integrity))
@@ -187,6 +200,7 @@ settings_storage_state_t settings_service_initialize(settings_service_t *service
         service->state = get_read_failure_state(values_result);
         return service->state;
     }
+
     if (values.schema_version != bootstrap.schema_version || values.generation != bootstrap.generation)
     {
         service->state = SETTINGS_STORAGE_CORRUPT;
@@ -215,6 +229,7 @@ settings_store_result_t settings_service_commit(settings_service_t *service, con
     const uint32_t generation               = service->generation + 1;
     const settings_value_record_t values    = get_value_record(settings, generation);
     const settings_bootstrap_record_t ready = get_bootstrap_record(generation, BOOTSTRAP_STATE_READY);
+
     if (service->store.stage_settings(service->store.context, &values, sizeof(values)) != SETTINGS_STORE_OK ||
         service->store.stage_bootstrap(service->store.context, &ready, sizeof(ready)) != SETTINGS_STORE_OK)
     {
@@ -222,6 +237,7 @@ settings_store_result_t settings_service_commit(settings_service_t *service, con
         return SETTINGS_STORE_IO_ERROR;
     }
     const settings_store_result_t result = service->store.commit(service->store.context);
+
     if (result != SETTINGS_STORE_OK)
     {
         service->store.abort(service->store.context);

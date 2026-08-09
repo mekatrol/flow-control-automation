@@ -87,8 +87,8 @@ const char *get_controller_default_hostname(void)
 /* Formats a credential-free board configuration summary into the supplied buffer. */
 void controller_board_format_configuration(char *output, size_t output_size)
 {
-    (void)snprintf(output, output_size, FORMAT_NETWORK_CONFIGURATION,
-                   CONFIG_CONTROLLER_ETHERNET_ENABLED ? FEATURE_ENABLED : FEATURE_DISABLED, FEATURE_PERSISTENT);
+    snprintf(output, output_size, FORMAT_NETWORK_CONFIGURATION,
+             CONFIG_CONTROLLER_ETHERNET_ENABLED ? FEATURE_ENABLED : FEATURE_DISABLED, FEATURE_PERSISTENT);
 }
 
 /* Gets the board-described W5500 wiring and Ethernet configuration. */
@@ -126,5 +126,5 @@ void controller_board_get_settings_defaults(settings_defaults_t *defaults)
     defaults->hostname.is_set = true;
     defaults->rs485.address   = RS485_DEFAULT_ADDRESS;
     defaults->rs485.baud_rate = CONFIG_CONTROLLER_RS485_BAUD_RATE;
-    (void)snprintf(defaults->hostname.value, sizeof(defaults->hostname.value), "%s", DEFAULT_HOSTNAME);
+    snprintf(defaults->hostname.value, sizeof(defaults->hostname.value), "%s", DEFAULT_HOSTNAME);
 }

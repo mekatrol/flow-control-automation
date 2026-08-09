@@ -35,12 +35,14 @@ bool rs485_service_init(rs485_service_t *service, const rs485_config_t *config, 
     {
         return false;
     }
+
     *service = (rs485_service_t){0};
     if (config == NULL || !config->enabled)
     {
         service->state = RS485_STATE_DISABLED;
         return true;
     }
+
     if (!is_rs485_config_valid(config) || transport_write == NULL)
     {
         service->state = RS485_STATE_DEGRADED;
@@ -60,6 +62,7 @@ bool rs485_service_send(rs485_service_t *service, const uint8_t *data, size_t si
     {
         return false;
     }
+
     if (service->transmit_count >= service->config.transmit_queue_depth)
     {
         service->counters.transmit_queue_drop_count++;
@@ -67,7 +70,7 @@ bool rs485_service_send(rs485_service_t *service, const uint8_t *data, size_t si
     }
     const size_t tail = (service->transmit_head + service->transmit_count) % service->config.transmit_queue_depth;
     service->transmit_queue[tail].size = size;
-    (void)memcpy(service->transmit_queue[tail].data, data, size);
+    memcpy(service->transmit_queue[tail].data, data, size);
     service->transmit_count++;
     return true;
 }
@@ -79,6 +82,7 @@ static void complete_receive_frame(rs485_service_t *service)
     {
         return;
     }
+
     if (service->receive_count >= service->config.receive_queue_depth)
     {
         service->counters.receive_queue_drop_count++;
@@ -87,7 +91,7 @@ static void complete_receive_frame(rs485_service_t *service)
     }
     const size_t tail                 = (service->receive_head + service->receive_count) % service->config.receive_queue_depth;
     service->receive_queue[tail].size = service->receive_size;
-    (void)memcpy(service->receive_queue[tail].data, service->receive_buffer, service->receive_size);
+    memcpy(service->receive_queue[tail].data, service->receive_buffer, service->receive_size);
     service->receive_count++;
     service->receive_size = 0;
 }
@@ -99,11 +103,13 @@ void rs485_service_receive_bytes(rs485_service_t *service, const uint8_t *data, 
     {
         return;
     }
+
     /* Flush an expired frame before appending because the byte gap is the raw framing boundary. */
     if (service->receive_size > 0 && now_ms >= service->receive_deadline_ms)
     {
         complete_receive_frame(service);
     }
+
     if (size > service->config.maximum_frame_size - service->receive_size)
     {
         service->counters.overflow_count++;
@@ -111,7 +117,7 @@ void rs485_service_receive_bytes(rs485_service_t *service, const uint8_t *data, 
         service->state        = RS485_STATE_DEGRADED;
         return;
     }
-    (void)memcpy(&service->receive_buffer[service->receive_size], data, size);
+    memcpy(&service->receive_buffer[service->receive_size], data, size);
     service->receive_size += size;
     service->receive_deadline_ms = now_ms + service->config.receive_timeout_ms;
 }
@@ -123,6 +129,7 @@ void rs485_service_report_error(rs485_service_t *service, rs485_transport_error_
     {
         return;
     }
+
     switch (error)
     {
         case RS485_TRANSPORT_ERROR_FRAMING:
@@ -163,14 +170,17 @@ void rs485_service_process(rs485_service_t *service, uint64_t now_ms)
     {
         return;
     }
+
     if (service->receive_size > 0 && now_ms >= service->receive_deadline_ms)
     {
         service->counters.timeout_count++;
         complete_receive_frame(service);
     }
+
     if (service->transmit_count > 0)
     {
         const rs485_frame_t *frame = &service->transmit_queue[service->transmit_head];
+
         if (!service->transport_write(frame->data, frame->size))
         {
             service->state = RS485_STATE_DEGRADED;

@@ -119,6 +119,7 @@ static void test_rejection_limits(void)
     mqtt_api_t api;
     mqtt_api_init(&api, NULL, NULL, NULL);
     assert(!is_mqtt_topic_valid("bad/#/filter", true));
+
     for (size_t index = 0; index < MQTT_RECEIVE_QUEUE_CAPACITY; index++)
     {
         assert(mqtt_api_enqueue_inbound(&api, TEST_COMMAND, strlen(TEST_COMMAND), TEST_PAYLOAD, strlen(TEST_PAYLOAD),

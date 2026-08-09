@@ -74,31 +74,38 @@ static platform_settings_context_t settings_context;
 static platform_settings_result_t get_card_initialization_result(const sdmmc_host_t *host)
 {
     esp_err_t result = ESP_FAIL;
+
     for (uint32_t attempt = 0; attempt < SETTINGS_CARD_INITIALIZATION_ATTEMPTS; attempt++)
     {
         result = sdmmc_card_init(host, &settings_context.card);
+
         if (result == ESP_OK)
         {
             return PLATFORM_SETTINGS_READY;
         }
+
         if (attempt + 1 < SETTINGS_CARD_INITIALIZATION_ATTEMPTS)
         {
             /* Some cards need another complete low-speed idle sequence after an interrupted or noisy response. */
             vTaskDelay(pdMS_TO_TICKS(SETTINGS_CARD_RETRY_DELAY_MS));
         }
     }
+
     if (result == ESP_ERR_TIMEOUT)
     {
         return PLATFORM_SETTINGS_CARD_INITIALIZATION_TIMEOUT;
     }
+
     if (result == ESP_ERR_INVALID_RESPONSE)
     {
         return PLATFORM_SETTINGS_CARD_INITIALIZATION_INVALID_RESPONSE;
     }
+
     if (result == ESP_ERR_INVALID_CRC)
     {
         return PLATFORM_SETTINGS_CARD_INITIALIZATION_CRC_FAILED;
     }
+
     if (result == ESP_ERR_NOT_SUPPORTED)
     {
         return PLATFORM_SETTINGS_CARD_INITIALIZATION_UNSUPPORTED;
@@ -127,11 +134,13 @@ static bool get_hex_nibble(char character, uint8_t *value)
         *value = (uint8_t)(character - '0');
         return true;
     }
+
     if (character >= 'a' && character <= 'f')
     {
         *value = (uint8_t)(character - 'a' + 10);
         return true;
     }
+
     if (character >= 'A' && character <= 'F')
     {
         *value = (uint8_t)(character - 'A' + 10);
@@ -144,15 +153,18 @@ static bool get_hex_nibble(char character, uint8_t *value)
 static bool derive_settings_key(uint8_t key[SETTINGS_KEY_BYTES])
 {
     const char *configured_key = CONFIG_CONTROLLER_SETTINGS_MASTER_KEY_HEX;
+
     if (strlen(configured_key) != SETTINGS_KEY_HEX_CHARACTERS)
     {
         return false;
     }
     uint8_t provisioned_key[SETTINGS_KEY_BYTES];
+
     for (size_t index = 0; index < sizeof(provisioned_key); index++)
     {
         uint8_t high;
         uint8_t low;
+
         if (!get_hex_nibble(configured_key[index * 2], &high) || !get_hex_nibble(configured_key[index * 2 + 1], &low))
         {
             return false;
@@ -160,6 +172,7 @@ static bool derive_settings_key(uint8_t key[SETTINGS_KEY_BYTES])
         provisioned_key[index] = (uint8_t)((high << 4) | low);
     }
     uint8_t factory_mac[6];
+
     if (esp_read_mac(factory_mac, ESP_MAC_WIFI_STA) != ESP_OK)
     {
         memset(provisioned_key, 0, sizeof(provisioned_key));
@@ -190,10 +203,12 @@ static bool read_slot(platform_settings_context_t *context, uint32_t slot, setti
                       bool *is_blank)
 {
     uint8_t storage[SETTINGS_SLOT_BYTES];
+
     if (sdmmc_read_sectors(&context->card, storage, get_slot_sector(context, slot), SETTINGS_SECTORS_PER_SLOT) != ESP_OK)
     {
         return false;
     }
+
     *is_blank = true;
     for (size_t index = 0; index < sizeof(storage); index++)
     {
@@ -204,12 +219,14 @@ static bool read_slot(platform_settings_context_t *context, uint32_t slot, setti
         }
     }
     const settings_slot_header_t *header = (const settings_slot_header_t *)storage;
+
     if (memcmp(header->magic, SLOT_MAGIC, sizeof(header->magic)) != 0 || header->bootstrap_size > SETTINGS_RECORD_CAPACITY ||
         header->settings_size > SETTINGS_RECORD_CAPACITY)
     {
         return false;
     }
     const size_t plaintext_size = header->bootstrap_size + header->settings_size;
+
     if (sizeof(*header) + plaintext_size > sizeof(storage))
     {
         return false;
@@ -226,8 +243,9 @@ static bool read_slot(platform_settings_context_t *context, uint32_t slot, setti
                          offsetof(settings_slot_header_t, tag), ciphertext, plaintext_size + SETTINGS_TAG_BYTES, plaintext,
                          sizeof(plaintext), &decrypted_size) == PSA_SUCCESS &&
         decrypted_size == plaintext_size;
-    (void)psa_destroy_key(key_id);
+    psa_destroy_key(key_id);
     memset(ciphertext, 0, sizeof(ciphertext));
+
     if (!is_decrypted)
     {
         memset(plaintext, 0, sizeof(plaintext));
@@ -265,8 +283,9 @@ static settings_store_result_t write_slot(platform_settings_context_t *context, 
                                                offsetof(settings_slot_header_t, tag), plaintext, plaintext_size, ciphertext,
                                                sizeof(ciphertext), &encrypted_size) == PSA_SUCCESS &&
                               encrypted_size == plaintext_size + SETTINGS_TAG_BYTES;
-    (void)psa_destroy_key(key_id);
+    psa_destroy_key(key_id);
     memset(plaintext, 0, sizeof(plaintext));
+
     if (!is_encrypted)
     {
         return SETTINGS_STORE_IO_ERROR;
@@ -274,6 +293,7 @@ static settings_store_result_t write_slot(platform_settings_context_t *context, 
     memcpy(storage + sizeof(*header), ciphertext, plaintext_size);
     memcpy(header->tag, ciphertext + plaintext_size, sizeof(header->tag));
     memset(ciphertext, 0, sizeof(ciphertext));
+
     if (sdmmc_write_sectors(&context->card, storage, get_slot_sector(context, slot), SETTINGS_SECTORS_PER_SLOT) != ESP_OK)
     {
         return SETTINGS_STORE_IO_ERROR;
@@ -281,6 +301,7 @@ static settings_store_result_t write_slot(platform_settings_context_t *context, 
     settings_slot_payload_t verified = {0};
     uint32_t verified_generation     = 0;
     bool is_blank                    = false;
+
     if (!read_slot(context, slot, &verified, &verified_generation, &is_blank) || verified_generation != generation ||
         verified.bootstrap_size != payload->bootstrap_size || verified.settings_size != payload->settings_size ||
         memcmp(verified.bootstrap, payload->bootstrap, payload->bootstrap_size) != 0 ||
@@ -299,10 +320,12 @@ static settings_store_result_t get_record(const platform_settings_context_t *con
     {
         return SETTINGS_STORE_UNAVAILABLE;
     }
+
     if (source_size == 0)
     {
         return SETTINGS_STORE_MISSING;
     }
+
     if (source_size > capacity)
     {
         return SETTINGS_STORE_CORRUPT;
@@ -334,6 +357,7 @@ static settings_store_result_t stage_record(platform_settings_context_t *context
     {
         return SETTINGS_STORE_UNAVAILABLE;
     }
+
     if (size > SETTINGS_RECORD_CAPACITY)
     {
         return SETTINGS_STORE_FULL;
@@ -362,11 +386,13 @@ static settings_store_result_t commit(void *opaque)
 {
     platform_settings_context_t *context = opaque;
     settings_slot_payload_t next         = context->current;
+
     if (context->staged.bootstrap_size > 0)
     {
         memcpy(next.bootstrap, context->staged.bootstrap, context->staged.bootstrap_size);
         next.bootstrap_size = context->staged.bootstrap_size;
     }
+
     if (context->staged.settings_size > 0)
     {
         memcpy(next.settings, context->staged.settings, context->staged.settings_size);
@@ -375,6 +401,7 @@ static settings_store_result_t commit(void *opaque)
     const uint32_t target_slot           = (context->active_slot + 1) % SETTINGS_SLOT_COUNT;
     const uint32_t generation            = context->generation + 1;
     const settings_store_result_t result = write_slot(context, target_slot, &next, generation);
+
     if (result == SETTINGS_STORE_OK)
     {
         context->current     = next;
@@ -406,18 +433,22 @@ platform_settings_result_t platform_settings_initialize(const settings_storage_c
                                                                 .context         = &settings_context};
     const gpio_config_t detect_config      = {
              .pin_bit_mask = UINT64_C(1) << config->card_detect_gpio, .mode = GPIO_MODE_INPUT, .pull_up_en = GPIO_PULLUP_ENABLE};
+
     if (config->first_reserved_sector == 0)
     {
         return PLATFORM_SETTINGS_DISABLED;
     }
+
     if (gpio_config(&detect_config) != ESP_OK)
     {
         return PLATFORM_SETTINGS_DETECT_CONFIGURATION_FAILED;
     }
+
     if (gpio_get_level(config->card_detect_gpio) != 0)
     {
         return PLATFORM_SETTINGS_CARD_ABSENT;
     }
+
     if (!derive_settings_key(settings_context.key))
     {
         return PLATFORM_SETTINGS_KEY_INVALID;
@@ -428,6 +459,7 @@ platform_settings_result_t platform_settings_initialize(const settings_storage_c
                                   .quadwp_io_num   = -1,
                                   .quadhd_io_num   = -1,
                                   .max_transfer_sz = SETTINGS_SLOT_BYTES};
+
     if (spi_bus_initialize(SETTINGS_SPI_HOST, &bus, SPI_DMA_CH_AUTO) != ESP_OK)
     {
         return PLATFORM_SETTINGS_SPI_INITIALIZATION_FAILED;
@@ -438,6 +470,7 @@ platform_settings_result_t platform_settings_initialize(const settings_storage_c
     sdspi_device_config_t device_config = SDSPI_DEVICE_CONFIG_DEFAULT();
     device_config.host_id               = SETTINGS_SPI_HOST;
     device_config.gpio_cs               = config->chip_select_gpio;
+
     if (sdspi_host_init_device(&device_config, &host.slot) != ESP_OK)
     {
         return PLATFORM_SETTINGS_DEVICE_INITIALIZATION_FAILED;
@@ -446,10 +479,12 @@ platform_settings_result_t platform_settings_initialize(const settings_storage_c
     settings_context.is_device_initialized       = true;
     settings_context.chip_select_gpio            = config->chip_select_gpio;
     const platform_settings_result_t card_result = get_card_initialization_result(&host);
+
     if (card_result != PLATFORM_SETTINGS_READY)
     {
         return card_result;
     }
+
     if (settings_context.card.csd.capacity <
         settings_context.first_reserved_sector + SETTINGS_SLOT_COUNT * SETTINGS_SECTORS_PER_SLOT)
     {
@@ -459,10 +494,12 @@ platform_settings_result_t platform_settings_initialize(const settings_storage_c
     uint32_t generations[SETTINGS_SLOT_COUNT]               = {0};
     bool blank[SETTINGS_SLOT_COUNT]                         = {false};
     bool valid[SETTINGS_SLOT_COUNT];
+
     for (uint32_t slot = 0; slot < SETTINGS_SLOT_COUNT; slot++)
     {
         valid[slot] = read_slot(&settings_context, slot, &candidates[slot], &generations[slot], &blank[slot]);
     }
+
     if (valid[0] || valid[1])
     {
         settings_context.active_slot = valid[1] && (!valid[0] || generations[1] > generations[0]) ? 1 : 0;
@@ -488,9 +525,11 @@ bool platform_settings_initialize_media(void)
     }
     uint8_t cleared_slot[SETTINGS_SLOT_BYTES] = {0};
     uint8_t verified_slot[SETTINGS_SLOT_BYTES];
+
     for (uint32_t slot = 0; slot < SETTINGS_SLOT_COUNT; slot++)
     {
         const size_t first_sector = get_slot_sector(&settings_context, slot);
+
         /* Limit destructive writes to the configured settings range and verify the media accepted them. */
         if (sdmmc_write_sectors(&settings_context.card, cleared_slot, first_sector, SETTINGS_SECTORS_PER_SLOT) != ESP_OK ||
             sdmmc_read_sectors(&settings_context.card, verified_slot, first_sector, SETTINGS_SECTORS_PER_SLOT) != ESP_OK ||
@@ -513,10 +552,10 @@ void platform_settings_prepare_reboot(void)
         return;
     }
     /* Detach the protocol driver before reset so a powered card cannot remain selected across the warm boot. */
-    (void)sdspi_host_remove_device(settings_context.device);
-    (void)spi_bus_free(SETTINGS_SPI_HOST);
-    (void)gpio_set_direction(settings_context.chip_select_gpio, GPIO_MODE_OUTPUT);
-    (void)gpio_set_level(settings_context.chip_select_gpio, 1);
+    sdspi_host_remove_device(settings_context.device);
+    spi_bus_free(SETTINGS_SPI_HOST);
+    gpio_set_direction(settings_context.chip_select_gpio, GPIO_MODE_OUTPUT);
+    gpio_set_level(settings_context.chip_select_gpio, 1);
     settings_context.is_device_initialized = false;
 }
 

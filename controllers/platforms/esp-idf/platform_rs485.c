@@ -47,7 +47,7 @@ static void enqueue_platform_event(const platform_rs485_event_t *event)
     {
         if (xQueueSend(platform_event_queue, event, 0) != pdTRUE)
         {
-            (void)atomic_fetch_add(&platform_event_drop_count, 1U);
+            atomic_fetch_add(&platform_event_drop_count, 1U);
         }
     }
 }
@@ -56,6 +56,7 @@ static void enqueue_platform_event(const platform_rs485_event_t *event)
 static void rs485_uart_event_task(void * /* context */)
 {
     uart_event_t uart_event;
+
     for (;;)
     {
         if (xQueueReceive(uart_event_queue, &uart_event, portMAX_DELAY) != pdTRUE)
@@ -63,11 +64,13 @@ static void rs485_uart_event_task(void * /* context */)
             continue;
         }
         platform_rs485_event_t event = {0};
+
         switch (uart_event.type)
         {
             case UART_DATA:
                 event.type = PLATFORM_RS485_EVENT_DATA;
                 event.size = uart_event.size > sizeof(event.data) ? sizeof(event.data) : uart_event.size;
+
                 if (uart_read_bytes(RS485_UART_NUMBER, event.data, event.size, 0) > 0)
                 {
                     enqueue_platform_event(&event);
@@ -84,8 +87,8 @@ static void rs485_uart_event_task(void * /* context */)
             case UART_FIFO_OVF:
             case UART_BUFFER_FULL:
                 event.type = PLATFORM_RS485_EVENT_OVERFLOW;
-                (void)uart_flush_input(RS485_UART_NUMBER);
-                (void)xQueueReset(uart_event_queue);
+                uart_flush_input(RS485_UART_NUMBER);
+                xQueueReset(uart_event_queue);
                 enqueue_platform_event(&event);
                 break;
             default:
@@ -102,6 +105,7 @@ bool platform_rs485_initialize(const rs485_config_t *config)
         return false;
     }
     platform_event_queue = xQueueCreate(RS485_EVENT_QUEUE_DEPTH, sizeof(platform_rs485_event_t));
+
     if (platform_event_queue == NULL)
     {
         return false;
@@ -112,6 +116,7 @@ bool platform_rs485_initialize(const rs485_config_t *config)
                                        .stop_bits  = get_uart_stop_bits(config->stop_bits),
                                        .flow_ctrl  = UART_HW_FLOWCTRL_DISABLE,
                                        .source_clk = UART_SCLK_DEFAULT};
+
     if (uart_driver_install(RS485_UART_NUMBER, RS485_UART_BUFFER_SIZE, RS485_UART_BUFFER_SIZE, RS485_UART_EVENT_DEPTH,
                             &uart_event_queue, 0) != ESP_OK ||
         uart_param_config(RS485_UART_NUMBER, &uart_config) != ESP_OK ||
@@ -155,6 +160,7 @@ bool platform_rs485_get_event(platform_rs485_event_t *event)
     }
     /* Surface one counter event after congestion clears instead of silently losing callback data. */
     const unsigned drop_count = atomic_exchange(&platform_event_drop_count, 0U);
+
     if (drop_count > 0)
     {
         *event = (platform_rs485_event_t){.type = PLATFORM_RS485_EVENT_QUEUE_DROP, .size = drop_count};

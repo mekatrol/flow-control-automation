@@ -64,6 +64,7 @@ static const char *get_reset_reason_name(esp_reset_reason_t reason)
 void platform_get_device_id(char *output, size_t capacity)
 {
     uint8_t address[6] = {0};
+
     if (esp_read_mac(address, ESP_MAC_WIFI_STA) != ESP_OK)
     {
         if (capacity > 0)
@@ -72,8 +73,8 @@ void platform_get_device_id(char *output, size_t capacity)
         }
         return;
     }
-    (void)snprintf(output, capacity, "esp32s3-%02x%02x%02x%02x%02x%02x", address[0], address[1], address[2], address[3],
-                   address[4], address[5]);
+    snprintf(output, capacity, "esp32s3-%02x%02x%02x%02x%02x%02x", address[0], address[1], address[2], address[3], address[4],
+             address[5]);
 }
 
 /* Gets immutable platform and firmware properties used by the startup banner. */
@@ -82,7 +83,7 @@ void platform_get_startup_info(platform_startup_info_t *info)
     esp_chip_info_t chip;
     uint32_t flash_size = 0;
     esp_chip_info(&chip);
-    (void)esp_flash_get_size(NULL, &flash_size);
+    esp_flash_get_size(NULL, &flash_size);
     const esp_app_desc_t *app = esp_app_get_description();
     *info                     = (platform_startup_info_t){
                             .firmware_name          = app->project_name,

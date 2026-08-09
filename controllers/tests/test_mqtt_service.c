@@ -74,13 +74,14 @@ static void set_route(fixture_t *fixture, uint32_t identifier, uint64_t generati
     fixture->is_route_available = true;
     fixture->route.identifier   = identifier;
     fixture->route.generation   = generation;
-    (void)snprintf(fixture->route.name, sizeof(fixture->route.name), "%s", name);
+    snprintf(fixture->route.name, sizeof(fixture->route.name), "%s", name);
 }
 
 /* Gets the fixture's current route or reports transport unavailability. */
 static bool get_transport_route(mqtt_transport_route_t *route, void *context)
 {
     fixture_t *fixture = context;
+
     if (!fixture->is_route_available)
     {
         return false;
@@ -234,6 +235,7 @@ static void test_event_queue_limit(void)
     fixture_t fixture                 = {.connect_result = true};
     const mqtt_broker_config_t config = get_valid_config();
     mqtt_service_t service            = get_service(&fixture, &config);
+
     for (uint32_t sequence = FIRST_EVENT_SEQUENCE; sequence <= MQTT_EVENT_QUEUE_CAPACITY; sequence++)
     {
         enqueue_event(&service, MQTT_TRANSPORT_CONNECTED, sequence, MQTT_ERROR_NONE);
@@ -253,6 +255,6 @@ int main(void)
     test_bounded_backoff();
     test_route_change_reconnect();
     test_event_queue_limit();
-    (void)puts(TEST_SUCCESS_MESSAGE);
+    puts(TEST_SUCCESS_MESSAGE);
     return 0;
 }

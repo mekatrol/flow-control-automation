@@ -14,6 +14,7 @@ static bool get_digest(void *context, const uint8_t *data, size_t size, uint8_t 
 {
     assert(context == NULL);
     memset(digest, 0, CONTROLLER_FLOW_DIGEST_SIZE);
+
     for (size_t index = 0; index < size; index++)
     {
         digest[index % CONTROLLER_FLOW_DIGEST_SIZE] ^= data[index];
@@ -32,6 +33,7 @@ static bool is_artifact_valid(void *context, const controller_flow_metadata_t *m
 static bool load_flow(void *context, controller_flow_metadata_t *metadata, uint8_t *artifact, size_t capacity)
 {
     assert(context == NULL);
+
     if (!has_durable || durable_metadata.size > capacity)
     {
         return false;

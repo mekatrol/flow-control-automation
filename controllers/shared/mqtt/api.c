@@ -12,10 +12,12 @@ enum
 static size_t get_bounded_length(const char *value, size_t capacity)
 {
     size_t size = 0;
+
     if (value == NULL)
     {
         return capacity;
     }
+
     while (size < capacity && value[size] != '\0')
     {
         size++;
@@ -35,21 +37,26 @@ static void copy_text(char *destination, size_t capacity, const char *source)
 bool is_mqtt_topic_valid(const char *topic, bool is_filter)
 {
     const size_t size = get_bounded_length(topic, MQTT_TOPIC_CAPACITY);
+
     if (size == 0 || size >= MQTT_TOPIC_CAPACITY)
     {
         return false;
     }
+
     for (size_t index = 0; index < size; index++)
     {
         const char character = topic[index];
+
         if (character == '\0' || (!is_filter && (character == '+' || character == '#')))
         {
             return false;
         }
+
         if (character == '#' && (!is_filter || index + 1 != size || (index != 0 && topic[index - 1] != '/')))
         {
             return false;
         }
+
         if (character == '+' &&
             (!is_filter || (index != 0 && topic[index - 1] != '/') || (index + 1 != size && topic[index + 1] != '/')))
         {
@@ -119,6 +126,7 @@ static bool is_publish_coalesced(mqtt_api_t *api, const mqtt_publish_request_t *
     {
         const size_t index            = (api->publish_head + offset) % MQTT_PUBLISH_QUEUE_CAPACITY;
         mqtt_owned_publish_t *publish = &api->publishes[index];
+
         if (publish->offline_policy == MQTT_OFFLINE_REPLACE_NEWEST && strcmp(publish->topic, request->topic) == 0)
         {
             memcpy(publish->payload, request->payload, request->payload_size);
@@ -141,6 +149,7 @@ mqtt_delivery_status_t mqtt_api_publish(mqtt_api_t *api, const mqtt_publish_requ
         request != NULL
             ? get_bounded_length(request->correlation_id != NULL ? request->correlation_id : "", MQTT_CORRELATION_CAPACITY)
             : MQTT_CORRELATION_CAPACITY;
+
     if (api == NULL || request == NULL || !is_mqtt_topic_valid(request->topic, false) || request->payload == NULL ||
         request->payload_size >= MQTT_PAYLOAD_CAPACITY || request->qos > MQTT_QOS_EXACTLY_ONCE ||
         request->offline_policy > MQTT_OFFLINE_QUEUE || correlation_size >= MQTT_CORRELATION_CAPACITY)
@@ -153,17 +162,20 @@ mqtt_delivery_status_t mqtt_api_publish(mqtt_api_t *api, const mqtt_publish_requ
         }
         return MQTT_DELIVERY_REJECTED_INVALID;
     }
+
     if (!api->is_online && request->offline_policy == MQTT_OFFLINE_DISCARD)
     {
         api->health.publish_rejection_count++;
         record_delivery(api, request->correlation_id, MQTT_DELIVERY_REJECTED_OFFLINE, MQTT_TRANSPORT_FAILURE_ID);
         return MQTT_DELIVERY_REJECTED_OFFLINE;
     }
+
     if (request->offline_policy == MQTT_OFFLINE_REPLACE_NEWEST && is_publish_coalesced(api, request))
     {
         record_delivery(api, request->correlation_id, MQTT_DELIVERY_ACCEPTED, 0);
         return MQTT_DELIVERY_ACCEPTED;
     }
+
     if (api->publish_count == MQTT_PUBLISH_QUEUE_CAPACITY)
     {
         api->health.publish_rejection_count++;
@@ -197,14 +209,17 @@ bool mqtt_api_subscribe(mqtt_api_t *api, const mqtt_subscription_t *subscription
     {
         return false;
     }
+
     for (size_t index = 0; index < MQTT_SUBSCRIPTION_CAPACITY; index++)
     {
         mqtt_owned_subscription_t *owned = &api->subscriptions[index];
+
         if (owned->is_used && strcmp(owned->owner_id, subscription->owner_id) == 0 &&
             strcmp(owned->topic_filter, subscription->topic_filter) == 0)
         {
             return false;
         }
+
         if (!owned->is_used)
         {
             copy_text(owned->topic_filter, sizeof(owned->topic_filter), subscription->topic_filter);
@@ -214,6 +229,7 @@ bool mqtt_api_subscribe(mqtt_api_t *api, const mqtt_subscription_t *subscription
             owned->context  = subscription->context;
             owned->is_used  = true;
             api->health.subscription_count++;
+
             if (api->is_online && api->subscribe_transport != NULL)
             {
                 (void)api->subscribe_transport(owned->topic_filter, owned->qos, api->transport_context);
@@ -231,9 +247,11 @@ void mqtt_api_replay_subscriptions(mqtt_api_t *api)
     {
         return;
     }
+
     for (size_t index = 0; index < MQTT_SUBSCRIPTION_CAPACITY; index++)
     {
         const mqtt_owned_subscription_t *subscription = &api->subscriptions[index];
+
         if (subscription->is_used)
         {
             (void)api->subscribe_transport(subscription->topic_filter, subscription->qos, api->transport_context);
@@ -258,6 +276,7 @@ bool mqtt_api_enqueue_inbound(mqtt_api_t *api, const char *topic, size_t topic_s
     mqtt_inbound_message_t *message = &api->receives[tail];
     memcpy(message->topic, topic, topic_size);
     message->topic[topic_size] = '\0';
+
     if (!is_mqtt_topic_valid(message->topic, false))
     {
         api->health.receive_rejection_count++;
@@ -282,6 +301,7 @@ static bool is_topic_match(const char *filter, const char *topic)
         {
             return true;
         }
+
         if (*filter == '+')
         {
             while (*topic != '\0' && *topic != '/')
@@ -305,6 +325,7 @@ void mqtt_api_process(mqtt_api_t *api)
     {
         return;
     }
+
     while (api->is_online && api->publish_count > 0)
     {
         mqtt_owned_publish_t *publish = &api->publishes[api->publish_head];
@@ -314,6 +335,7 @@ void mqtt_api_process(mqtt_api_t *api)
                                             : MQTT_TRANSPORT_FAILURE_ID;
         record_delivery(api, publish->correlation_id, message_id < 0 ? MQTT_DELIVERY_TRANSPORT_FAILED : MQTT_DELIVERY_SENT,
                         message_id);
+
         if (message_id < 0)
         {
             break;
@@ -323,6 +345,7 @@ void mqtt_api_process(mqtt_api_t *api)
         api->health.publish_queue_depth = api->publish_count;
         api->health.published_count++;
     }
+
     while (api->receive_count > 0)
     {
         const mqtt_inbound_message_t message = api->receives[api->receive_head];
@@ -331,15 +354,18 @@ void mqtt_api_process(mqtt_api_t *api)
         api->health.receive_queue_depth = api->receive_count;
         api->health.received_count++;
         bool is_delivered = false;
+
         for (size_t index = 0; index < MQTT_SUBSCRIPTION_CAPACITY; index++)
         {
             const mqtt_owned_subscription_t *subscription = &api->subscriptions[index];
+
             if (subscription->is_used && is_topic_match(subscription->topic_filter, message.topic))
             {
                 subscription->callback(&message, subscription->context);
                 is_delivered = true;
             }
         }
+
         if (!is_delivered)
         {
             api->health.subscriber_drop_count++;

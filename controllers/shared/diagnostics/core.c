@@ -50,6 +50,7 @@ int diagnostic_format_event(char *output, size_t output_size, diagnostic_severit
     }
     char safe_message[SAFE_MESSAGE_SIZE];
     size_t target = 0;
+
     /* Replace line-breaking characters so every event remains one parseable log line. */
     for (size_t source = 0; message[source] != '\0' && target + 1 < sizeof(safe_message); ++source)
     {
@@ -82,10 +83,12 @@ bool is_diagnostic_event_allowed(diagnostic_rate_limiter_t *limiter, uint64_t no
     {
         *previously_suppressed = 0;
     }
+
     if (limiter == NULL || window_ms == 0 || maximum_events == 0)
     {
         return false;
     }
+
     /* Clock rollback or elapsed duration both begin a fresh bounded window. */
     if (!limiter->initialized || now_ms < limiter->window_started_ms || now_ms - limiter->window_started_ms >= window_ms)
     {
@@ -98,6 +101,7 @@ bool is_diagnostic_event_allowed(diagnostic_rate_limiter_t *limiter, uint64_t no
         limiter->suppressed        = 0;
         limiter->initialized       = true;
     }
+
     /* Permit only the configured count and retain the rest as one summary count. */
     if (limiter->emitted < maximum_events)
     {

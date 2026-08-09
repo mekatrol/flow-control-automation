@@ -124,8 +124,7 @@ void flow_debug_set_output_adapter(flow_debug_t *debug, flow_debug_command_outpu
 
 /* Enables live output for a prepared paused session after the caller confirms the exact output point set. */
 flow_debug_result_t flow_debug_enable_live_output(flow_debug_t *debug, uint32_t owner_id, uint64_t session_id,
-                                                  const char *const *confirmed_point_ids, size_t point_count,
-                                                  uint64_t now_ms);
+                                                  const char *const *confirmed_point_ids, size_t point_count, uint64_t now_ms);
 
 /* Starts a bounded load, optionally replacing an existing session owned by any authenticated peer. */
 flow_debug_result_t flow_debug_begin(flow_debug_t *debug, uint32_t owner_id, bool replace_existing, uint32_t artifact_length,

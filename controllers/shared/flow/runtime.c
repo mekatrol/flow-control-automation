@@ -14,14 +14,15 @@ enum
 static flow_result_t get_runtime_result(flow_reason_code_t code, const char *node_id)
 {
     flow_result_t result = {.code = code};
+
     if (node_id != NULL)
     {
         static const char PREFIX[] = "/nodes/";
         const size_t prefix_size   = sizeof(PREFIX) - 1U;
         const size_t available     = sizeof(result.path) - prefix_size - 1U;
         const size_t node_id_size  = strlen(node_id) < available ? strlen(node_id) : available;
-        (void)memcpy(result.path, PREFIX, prefix_size);
-        (void)memcpy(&result.path[prefix_size], node_id, node_id_size);
+        memcpy(result.path, PREFIX, prefix_size);
+        memcpy(&result.path[prefix_size], node_id, node_id_size);
         result.path[prefix_size + node_id_size] = '\0';
     }
     return result;
@@ -47,9 +48,11 @@ static bool get_input_value(const flow_executable_t *flow, const bool values[FLO
     for (uint16_t port_index = 0; port_index < flow->port_count; port_index++)
     {
         const flow_port_t *port = &flow->ports[port_index];
+
         if (port->node_index == node_index && port->direction == 1U && strcmp(port->id, port_id) == 0)
         {
             const flow_connection_t *driver = get_driver(flow, port_index);
+
             if (driver == NULL)
             {
                 return false;
@@ -94,12 +97,13 @@ void flow_runtime_reset(flow_runtime_t *runtime)
         return;
     }
     const flow_executable_t *flow = runtime->executable;
-    (void)memset(runtime->current_memory, 0, sizeof(runtime->current_memory));
-    (void)memset(runtime->next_memory, 0, sizeof(runtime->next_memory));
-    (void)memset(runtime->values, 0, sizeof(runtime->values));
-    (void)memset(&runtime->snapshot, 0, sizeof(runtime->snapshot));
+    memset(runtime->current_memory, 0, sizeof(runtime->current_memory));
+    memset(runtime->next_memory, 0, sizeof(runtime->next_memory));
+    memset(runtime->values, 0, sizeof(runtime->values));
+    memset(&runtime->snapshot, 0, sizeof(runtime->snapshot));
     runtime->tick_number              = 0;
     runtime->evaluation_failure_count = 0;
+
     for (uint16_t index = 0; index < flow->node_count; index++)
     {
         if (flow->nodes[index].kind == FLOW_NODE_MEMORY)
@@ -120,12 +124,14 @@ flow_result_t flow_runtime_step(flow_runtime_t *runtime, const flow_input_frame_
     const flow_executable_t *flow                  = runtime->executable;
     bool working_values[FLOW_EXECUTABLE_MAX_NODES] = {false};
     bool working_memory[FLOW_EXECUTABLE_MAX_NODES];
-    (void)memcpy(working_memory, runtime->current_memory, sizeof(working_memory));
+    memcpy(working_memory, runtime->current_memory, sizeof(working_memory));
+
     if (!input->is_coherent)
     {
         runtime->evaluation_failure_count++;
         return get_runtime_result(FLOW_REASON_INPUT_QUALITY_REJECTED, NULL);
     }
+
     /* Evaluate into local fixed-capacity buffers so a failed tick cannot expose partial values or memory. */
     for (uint16_t position = 0; position < flow->node_count; position++)
     {
@@ -133,10 +139,12 @@ flow_result_t flow_runtime_step(flow_runtime_t *runtime, const flow_input_frame_
         const flow_node_t *node   = &flow->nodes[node_index];
         bool left;
         bool right;
+
         switch (node->kind)
         {
             case FLOW_NODE_DIGITAL_INPUT: {
                 const flow_input_sample_t *sample = get_sample(input, flow->points[node->point_index].id);
+
                 if (sample == NULL || sample->quality != FLOW_QUALITY_GOOD)
                 {
                     runtime->evaluation_failure_count++;
@@ -152,6 +160,7 @@ flow_result_t flow_runtime_step(flow_runtime_t *runtime, const flow_input_frame_
                 working_values[node_index] = runtime->current_memory[node_index];
                 break;
             case FLOW_NODE_NOT:
+
                 if (!get_input_value(flow, working_values, node_index, "in", &left))
                 {
                     goto evaluation_failed;
@@ -159,6 +168,7 @@ flow_result_t flow_runtime_step(flow_runtime_t *runtime, const flow_input_frame_
                 working_values[node_index] = !left;
                 break;
             case FLOW_NODE_AND:
+
                 if (!get_input_value(flow, working_values, node_index, "a", &left) ||
                     !get_input_value(flow, working_values, node_index, "b", &right))
                 {
@@ -167,6 +177,7 @@ flow_result_t flow_runtime_step(flow_runtime_t *runtime, const flow_input_frame_
                 working_values[node_index] = left && right;
                 break;
             case FLOW_NODE_OR:
+
                 if (!get_input_value(flow, working_values, node_index, "a", &left) ||
                     !get_input_value(flow, working_values, node_index, "b", &right))
                 {
@@ -175,6 +186,7 @@ flow_result_t flow_runtime_step(flow_runtime_t *runtime, const flow_input_frame_
                 working_values[node_index] = left || right;
                 break;
             case FLOW_NODE_PROPOSED_OUTPUT:
+
                 if (!get_input_value(flow, working_values, node_index, "in", &left))
                 {
                     goto evaluation_failed;
@@ -185,6 +197,7 @@ flow_result_t flow_runtime_step(flow_runtime_t *runtime, const flow_input_frame_
                 goto evaluation_failed;
         }
     }
+
     for (uint16_t node_index = 0; node_index < flow->node_count; node_index++)
     {
         if (flow->nodes[node_index].kind == FLOW_NODE_MEMORY)
@@ -203,23 +216,24 @@ flow_result_t flow_runtime_step(flow_runtime_t *runtime, const flow_input_frame_
                                  .evaluation_failure_count = runtime->evaluation_failure_count,
                                  .last_result              = {.code = FLOW_REASON_OK}};
     uint16_t output_index     = 0;
+
     for (uint16_t node_index = 0; node_index < flow->node_count; node_index++)
     {
-        (void)snprintf(next.nodes[node_index].node_id, sizeof(next.nodes[node_index].node_id), "%s", flow->nodes[node_index].id);
+        snprintf(next.nodes[node_index].node_id, sizeof(next.nodes[node_index].node_id), "%s", flow->nodes[node_index].id);
         next.nodes[node_index].value   = working_values[node_index];
         next.nodes[node_index].quality = FLOW_QUALITY_GOOD;
+
         if (flow->nodes[node_index].kind == FLOW_NODE_PROPOSED_OUTPUT)
         {
             flow_output_snapshot_t *output = &next.outputs[output_index++];
-            (void)snprintf(output->point_id, sizeof(output->point_id), "%s",
-                           flow->points[flow->nodes[node_index].point_index].id);
+            snprintf(output->point_id, sizeof(output->point_id), "%s", flow->points[flow->nodes[node_index].point_index].id);
             output->value   = working_values[node_index];
             output->quality = FLOW_QUALITY_GOOD;
         }
     }
-    (void)memcpy(runtime->values, working_values, sizeof(runtime->values));
-    (void)memcpy(runtime->current_memory, working_memory, sizeof(runtime->current_memory));
-    (void)memcpy(runtime->next_memory, working_memory, sizeof(runtime->next_memory));
+    memcpy(runtime->values, working_values, sizeof(runtime->values));
+    memcpy(runtime->current_memory, working_memory, sizeof(runtime->current_memory));
+    memcpy(runtime->next_memory, working_memory, sizeof(runtime->next_memory));
     runtime->snapshot    = next;
     runtime->tick_number = next.tick_number;
     return get_runtime_result(FLOW_REASON_OK, NULL);

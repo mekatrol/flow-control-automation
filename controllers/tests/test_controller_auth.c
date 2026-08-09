@@ -11,6 +11,7 @@ static const char TEST_SUCCESS_MESSAGE[] = "Controller authentication tests pass
 static bool get_random(void *context, uint8_t *output, size_t size)
 {
     assert(context == NULL);
+
     for (size_t index = 0; index < size; index++)
     {
         output[index] = random_seed++;
@@ -23,10 +24,12 @@ static bool get_hmac(void *context, const uint8_t *message, size_t message_size,
 {
     assert(context == NULL);
     uint32_t state = UINT32_C(2166136261);
+
     for (size_t index = 0; index < message_size; index++)
     {
         state = (state ^ message[index]) * UINT32_C(16777619);
     }
+
     for (size_t index = 0; index < CONTROLLER_AUTH_TAG_SIZE; index++)
     {
         state      = (state ^ (uint32_t)index) * UINT32_C(16777619);
@@ -60,10 +63,12 @@ static void get_request_tag(uint16_t peer, uint32_t session_id, uint64_t sequenc
     offset += sizeof(domain);
     message[offset++] = (uint8_t)peer;
     message[offset++] = (uint8_t)(peer >> 8U);
+
     for (size_t index = 0; index < sizeof(session_id); index++)
     {
         message[offset++] = (uint8_t)(session_id >> (index * 8U));
     }
+
     for (size_t index = 0; index < sizeof(sequence); index++)
     {
         message[offset++] = (uint8_t)(sequence >> (index * 8U));
@@ -120,6 +125,7 @@ static void test_capacity(void)
     const uint8_t nonce[CONTROLLER_AUTH_NONCE_SIZE] = {3};
     uint8_t device_nonce[CONTROLLER_AUTH_NONCE_SIZE];
     uint32_t session_id = 0;
+
     for (uint16_t peer = 1; peer <= CONTROLLER_AUTH_SESSION_CAPACITY; peer++)
     {
         assert(controller_auth_create_challenge(&auth, peer, nonce, 0, &session_id, device_nonce));

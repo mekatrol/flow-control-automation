@@ -44,6 +44,7 @@ static void emit_message(diagnostic_severity_t severity, const char *component, 
     char event[DIAGNOSTIC_EVENT_SIZE];
     diagnostic_format_event(event, sizeof(event), severity, component, event_code, platform_get_monotonic_ms(), message);
     platform_log(get_platform_level(severity), component, event);
+
     if (live_sink != NULL)
     {
         live_sink(live_sink_context, event);
@@ -74,11 +75,13 @@ void diagnostics_emit_limited(diagnostic_rate_limiter_t *limiter, uint32_t windo
                               ...)
 {
     uint32_t suppressed = 0;
+
     /* Rate limiting preserves logging capacity during repeated subsystem failures. */
     if (!is_diagnostic_event_allowed(limiter, platform_get_monotonic_ms(), window_ms, maximum_events, &suppressed))
     {
         return;
     }
+
     if (suppressed > 0)
     {
         diagnostics_emit(DIAGNOSTIC_WARNING, component, EVENT_MESSAGES_SUPPRESSED, FORMAT_MESSAGES_SUPPRESSED, suppressed,

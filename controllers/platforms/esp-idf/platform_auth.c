@@ -21,11 +21,13 @@ static bool get_hex_nibble(char character, uint8_t *value)
         *value = (uint8_t)(character - '0');
         return true;
     }
+
     if (character >= 'a' && character <= 'f')
     {
         *value = (uint8_t)(character - 'a' + 10);
         return true;
     }
+
     if (character >= 'A' && character <= 'F')
     {
         *value = (uint8_t)(character - 'A' + 10);
@@ -38,15 +40,18 @@ static bool get_hex_nibble(char character, uint8_t *value)
 bool platform_auth_initialize(const char *provisioned_key_hex)
 {
     platform_auth_deinitialize();
+
     if (provisioned_key_hex == NULL || strlen(provisioned_key_hex) != PROVISIONED_HEX_CHARACTERS)
     {
         return false;
     }
     uint8_t provisioned_key[PROVISIONED_KEY_SIZE];
+
     for (size_t index = 0; index < sizeof(provisioned_key); index++)
     {
         uint8_t high = 0;
         uint8_t low  = 0;
+
         if (!get_hex_nibble(provisioned_key_hex[index * 2], &high) || !get_hex_nibble(provisioned_key_hex[index * 2 + 1], &low))
         {
             memset(provisioned_key, 0, sizeof(provisioned_key));
@@ -54,6 +59,7 @@ bool platform_auth_initialize(const char *provisioned_key_hex)
         }
         provisioned_key[index] = (uint8_t)((high << 4U) | low);
     }
+
     if (psa_crypto_init() != PSA_SUCCESS)
     {
         memset(provisioned_key, 0, sizeof(provisioned_key));
@@ -93,7 +99,7 @@ void platform_auth_deinitialize(void)
 {
     if (protocol_key_id != 0)
     {
-        (void)psa_destroy_key(protocol_key_id);
+        psa_destroy_key(protocol_key_id);
         protocol_key_id = 0;
     }
 }

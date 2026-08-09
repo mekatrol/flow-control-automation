@@ -160,6 +160,14 @@ case "$action" in
       echo "clang-format was not found; install it or configure the ESP-IDF toolchain." >&2
       exit 127
     fi
+    formatter_python=${idf_python:-}
+    if [ -z "$formatter_python" ]; then
+      formatter_python=$(command -v python3 || command -v python || true)
+    fi
+    if [ -z "$formatter_python" ]; then
+      echo "Python was not found; install it or configure the ESP-IDF toolchain." >&2
+      exit 127
+    fi
     # Include tracked and new non-ignored sources so formatting works before files are staged or committed.
     while IFS= read -r -d '' source_file; do
       # A refactor can leave a tracked path deleted while its replacement is still unstaged.
@@ -167,6 +175,7 @@ case "$action" in
         continue
       fi
       clang-format -i "$source_file"
+      "$formatter_python" "$controllers_dir/scripts/format-source.py" "$source_file"
     done < <(git ls-files -z --cached --others --exclude-standard -- '*.c' '*.h')
     ;;
   clean) run_idf_redacted fullclean ;;

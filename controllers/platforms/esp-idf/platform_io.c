@@ -38,12 +38,14 @@ bool platform_io_initialize(const platform_io_config_t *config)
                                                 .clk_source                   = I2C_CLK_SRC_DEFAULT,
                                                 .glitch_ignore_cnt            = 7,
                                                 .flags.enable_internal_pullup = true};
+
     if (i2c_new_master_bus(&bus_config, &io_bus) != ESP_OK)
     {
         return false;
     }
     inputs_active_low  = config->are_inputs_active_low;
     outputs_active_low = config->are_outputs_active_low;
+
     for (size_t bank = 0; bank < IO_BANK_COUNT; bank++)
     {
         if (!add_device(config->input_addresses[bank], config->clock_hz, &input_devices[bank]) ||
@@ -52,6 +54,7 @@ bool platform_io_initialize(const platform_io_config_t *config)
             return false;
         }
         const uint8_t released_inputs = UINT8_MAX;
+
         /* PCF8574 input pins must be released high so external optocouplers can pull them low. */
         if (i2c_master_transmit(input_devices[bank], &released_inputs, sizeof(released_inputs), IO_TIMEOUT_MS) != ESP_OK)
         {
@@ -65,6 +68,7 @@ bool platform_io_initialize(const platform_io_config_t *config)
 static bool read_banks(i2c_master_dev_handle_t *devices, uint16_t *value)
 {
     uint8_t banks[IO_BANK_COUNT];
+
     for (size_t bank = 0; bank < IO_BANK_COUNT; bank++)
     {
         if (i2c_master_receive(devices[bank], &banks[bank], 1, IO_TIMEOUT_MS) != ESP_OK)
@@ -83,12 +87,14 @@ void platform_io_read(uint16_t *inputs, bool *are_inputs_valid, uint16_t *output
     {
         return;
     }
+
     *are_inputs_valid  = read_banks(input_devices, inputs);
     *are_outputs_valid = read_banks(output_devices, outputs);
     if (*are_inputs_valid && inputs_active_low)
     {
         *inputs = (uint16_t)~*inputs;
     }
+
     if (*are_outputs_valid && outputs_active_low)
     {
         *outputs = (uint16_t)~*outputs;
@@ -99,9 +105,11 @@ void platform_io_read(uint16_t *inputs, bool *are_inputs_valid, uint16_t *output
 bool platform_io_write_outputs(uint16_t outputs)
 {
     const uint16_t electrical_outputs = outputs_active_low ? (uint16_t)~outputs : outputs;
+
     for (size_t bank = 0; bank < IO_BANK_COUNT; bank++)
     {
         const uint8_t value = (uint8_t)(electrical_outputs >> (bank * 8U));
+
         if (i2c_master_transmit(output_devices[bank], &value, sizeof(value), IO_TIMEOUT_MS) != ESP_OK)
         {
             return false;

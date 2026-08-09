@@ -32,9 +32,10 @@ typedef struct
 static flow_result_t get_result(flow_reason_code_t code, const char *path)
 {
     flow_result_t result = {.code = code};
+
     if (path != NULL)
     {
-        (void)snprintf(result.path, sizeof(result.path), "%s", path);
+        snprintf(result.path, sizeof(result.path), "%s", path);
     }
     return result;
 }
@@ -46,8 +47,8 @@ static flow_result_t get_identifier_result(flow_reason_code_t code, const char *
     const size_t prefix_size     = strlen(prefix);
     const size_t available       = sizeof(result.path) - prefix_size - 1U;
     const size_t identifier_size = strlen(identifier) < available ? strlen(identifier) : available;
-    (void)memcpy(result.path, prefix, prefix_size);
-    (void)memcpy(&result.path[prefix_size], identifier, identifier_size);
+    memcpy(result.path, prefix, prefix_size);
+    memcpy(&result.path[prefix_size], identifier, identifier_size);
     result.path[prefix_size + identifier_size] = '\0';
     return result;
 }
@@ -68,6 +69,7 @@ static bool get_u16(reader_t *reader, uint16_t *value)
 {
     uint8_t low;
     uint8_t high;
+
     if (!get_u8(reader, &low) || !get_u8(reader, &high))
     {
         return false;
@@ -81,6 +83,7 @@ static bool get_u32(reader_t *reader, uint32_t *value)
 {
     uint16_t low;
     uint16_t high;
+
     if (!get_u16(reader, &low) || !get_u16(reader, &high))
     {
         return false;
@@ -96,11 +99,13 @@ static bool is_identifier(const uint8_t *bytes, size_t size)
     {
         return false;
     }
+
     for (size_t index = 0; index < size; index++)
     {
         const uint8_t value = bytes[index];
         const bool is_alphanumeric =
             (value >= 'A' && value <= 'Z') || (value >= 'a' && value <= 'z') || (value >= '0' && value <= '9');
+
         if (!is_alphanumeric && (index == 0U || (value != '.' && value != '_' && value != ':' && value != '-')))
         {
             return false;
@@ -113,12 +118,13 @@ static bool is_identifier(const uint8_t *bytes, size_t size)
 static bool get_id(reader_t *reader, char destination[FLOW_EXECUTABLE_MAX_ID_BYTES + 1])
 {
     uint8_t length;
+
     if (!get_u8(reader, &length) || reader->size - reader->offset < length ||
         !is_identifier(&reader->bytes[reader->offset], length))
     {
         return false;
     }
-    (void)memcpy(destination, &reader->bytes[reader->offset], length);
+    memcpy(destination, &reader->bytes[reader->offset], length);
     destination[length] = '\0';
     reader->offset += length;
     return true;
@@ -128,46 +134,55 @@ static bool get_id(reader_t *reader, char destination[FLOW_EXECUTABLE_MAX_ID_BYT
 static flow_result_t get_nodes(reader_t *reader, flow_executable_t *flow)
 {
     uint16_t count;
+
     if (!get_u16(reader, &count) || count != flow->node_count)
     {
         return get_result(FLOW_REASON_LENGTH_MISMATCH, "/nodes");
     }
+
     for (uint16_t index = 0; index < count; index++)
     {
         flow_node_t *node = &flow->nodes[index];
         uint8_t kind;
         uint16_t config_size;
+
         if (!get_id(reader, node->id))
         {
             return get_result(FLOW_REASON_INVALID_IDENTIFIER, "/nodes");
         }
+
         if (index > 0U && strcmp(flow->nodes[index - 1U].id, node->id) >= 0)
         {
             char path[FLOW_EXECUTABLE_MAX_PATH_BYTES + 1];
-            (void)snprintf(path, sizeof(path), "/nodes/%u", index);
+            snprintf(path, sizeof(path), "/nodes/%u", index);
             return get_result(FLOW_REASON_NON_CANONICAL_ORDER, path);
         }
+
         if (!get_u8(reader, &kind) || !get_u16(reader, &config_size) || reader->size - reader->offset < config_size)
         {
             return get_result(FLOW_REASON_MALFORMED, "/nodes");
         }
+
         if (kind < FLOW_NODE_DIGITAL_INPUT || kind > FLOW_NODE_PROPOSED_OUTPUT)
         {
             return get_result(FLOW_REASON_UNKNOWN_NODE_KIND, "/nodes");
         }
         node->kind                = (flow_node_kind_t)kind;
         const size_t config_start = reader->offset;
+
         if ((kind == FLOW_NODE_DIGITAL_INPUT && config_size == 2U) || (kind == FLOW_NODE_PROPOSED_OUTPUT && config_size == 8U))
         {
-            (void)get_u16(reader, &node->point_index);
+            get_u16(reader, &node->point_index);
+
             if (kind == FLOW_NODE_PROPOSED_OUTPUT)
             {
                 uint8_t source;
                 uint8_t priority;
                 uint32_t expiry;
-                (void)get_u8(reader, &source);
-                (void)get_u8(reader, &priority);
-                (void)get_u32(reader, &expiry);
+                get_u8(reader, &source);
+                get_u8(reader, &priority);
+                get_u32(reader, &expiry);
+
                 if (source != 1U || priority != 8U || expiry != 0U)
                 {
                     return get_result(FLOW_REASON_INVALID_CONFIGURATION, "/nodes");
@@ -178,7 +193,8 @@ static flow_result_t get_nodes(reader_t *reader, flow_executable_t *flow)
         else if ((kind == FLOW_NODE_DIGITAL_CONSTANT || kind == FLOW_NODE_MEMORY) && config_size == 1U)
         {
             uint8_t initial;
-            (void)get_u8(reader, &initial);
+            get_u8(reader, &initial);
+
             if (initial > 1U)
             {
                 return get_result(FLOW_REASON_INVALID_CONFIGURATION, "/nodes");
@@ -202,29 +218,35 @@ static flow_result_t get_nodes(reader_t *reader, flow_executable_t *flow)
 static flow_result_t get_ports(reader_t *reader, flow_executable_t *flow)
 {
     uint16_t count;
+
     if (!get_u16(reader, &count) || count != flow->port_count)
     {
         return get_result(FLOW_REASON_LENGTH_MISMATCH, "/ports");
     }
+
     for (uint16_t index = 0; index < count; index++)
     {
         flow_port_t *port = &flow->ports[index];
         uint8_t arity;
         uint8_t reserved;
+
         if (!get_u16(reader, &port->node_index) || !get_id(reader, port->id) || !get_u8(reader, &port->direction) ||
             !get_u8(reader, &port->value_type) || !get_u8(reader, &arity) || !get_u8(reader, &reserved))
         {
             return get_result(FLOW_REASON_MALFORMED, "/ports");
         }
+
         if (port->node_index >= flow->node_count ||
             (port->direction != FLOW_INPUT_DIRECTION && port->direction != FLOW_OUTPUT_DIRECTION) || arity != 1U ||
             reserved != 0U)
         {
             return get_result(FLOW_REASON_INVALID_PORT_SHAPE, "/ports");
         }
+
         if (index > 0U)
         {
             const flow_port_t *previous = &flow->ports[index - 1U];
+
             if (previous->node_index > port->node_index ||
                 (previous->node_index == port->node_index &&
                  (previous->direction > port->direction ||
@@ -241,18 +263,22 @@ static flow_result_t get_ports(reader_t *reader, flow_executable_t *flow)
 static flow_result_t get_connections(reader_t *reader, flow_executable_t *flow)
 {
     uint16_t count;
+
     if (!get_u16(reader, &count) || count != flow->connection_count)
     {
         return get_result(FLOW_REASON_LENGTH_MISMATCH, "/connections");
     }
+
     for (uint16_t index = 0; index < count; index++)
     {
         flow_connection_t *connection = &flow->connections[index];
+
         if (!get_u16(reader, &connection->source_node_index) || !get_u16(reader, &connection->source_port_index) ||
             !get_u16(reader, &connection->target_node_index) || !get_u16(reader, &connection->target_port_index))
         {
             return get_result(FLOW_REASON_MALFORMED, "/connections");
         }
+
         if (connection->source_node_index >= flow->node_count || connection->target_node_index >= flow->node_count ||
             connection->source_port_index >= flow->port_count || connection->target_port_index >= flow->port_count)
         {
@@ -260,17 +286,20 @@ static flow_result_t get_connections(reader_t *reader, flow_executable_t *flow)
         }
         const flow_port_t *source = &flow->ports[connection->source_port_index];
         const flow_port_t *target = &flow->ports[connection->target_port_index];
+
         if (source->node_index != connection->source_node_index || target->node_index != connection->target_node_index ||
             source->direction != FLOW_OUTPUT_DIRECTION || target->direction != FLOW_INPUT_DIRECTION)
         {
             return get_result(FLOW_REASON_INVALID_PORT_SHAPE, "/connections");
         }
+
         if (source->value_type != target->value_type || source->value_type != FLOW_DIGITAL_TYPE)
         {
             char path[FLOW_EXECUTABLE_MAX_PATH_BYTES + 1];
-            (void)snprintf(path, sizeof(path), "/connections/%u", index);
+            snprintf(path, sizeof(path), "/connections/%u", index);
             return get_result(FLOW_REASON_INCOMPATIBLE_TYPE, path);
         }
+
         for (uint16_t earlier = 0; earlier < index; earlier++)
         {
             if (flow->connections[earlier].target_port_index == connection->target_port_index)
@@ -286,30 +315,36 @@ static flow_result_t get_connections(reader_t *reader, flow_executable_t *flow)
 static flow_result_t get_points(reader_t *reader, flow_executable_t *flow, const flow_target_t *target)
 {
     uint16_t count;
+
     if (!get_u16(reader, &count) || count != flow->point_count)
     {
         return get_result(FLOW_REASON_LENGTH_MISMATCH, "/points");
     }
+
     for (uint16_t index = 0; index < count; index++)
     {
         flow_point_t *point = &flow->points[index];
         uint8_t policy;
         uint8_t reserved;
+
         if (!get_id(reader, point->id) || !get_u8(reader, &point->direction) || !get_u8(reader, &point->value_type) ||
             !get_u8(reader, &policy) || !get_u8(reader, &reserved))
         {
             return get_result(FLOW_REASON_MALFORMED, "/points");
         }
+
         if (point->value_type != FLOW_DIGITAL_TYPE || policy != 1U || reserved != 0U)
         {
             return get_result(FLOW_REASON_INCOMPATIBLE_TYPE, "/points");
         }
         bool is_found = false;
+
         for (size_t target_index = 0; target_index < target->point_count; target_index++)
         {
             if (strcmp(target->points[target_index].id, point->id) == 0)
             {
                 is_found = true;
+
                 if (target->points[target_index].direction != point->direction ||
                     target->points[target_index].value_type != point->value_type)
                 {
@@ -318,6 +353,7 @@ static flow_result_t get_points(reader_t *reader, flow_executable_t *flow, const
                 break;
             }
         }
+
         if (!is_found)
         {
             return get_identifier_result(FLOW_REASON_MISSING_POINT, "/points/", point->id);
@@ -331,38 +367,46 @@ static flow_result_t is_shape_valid(const flow_executable_t *flow)
 {
     static const uint8_t INPUT_COUNTS[]  = {0, 0, 0, 1, 2, 2, 1, 1};
     static const uint8_t OUTPUT_COUNTS[] = {0, 1, 1, 1, 1, 1, 1, 0};
+
     for (uint16_t node_index = 0; node_index < flow->node_count; node_index++)
     {
         const flow_node_t *node = &flow->nodes[node_index];
         uint8_t inputs          = 0;
         uint8_t outputs         = 0;
+
         for (uint16_t port_index = 0; port_index < flow->port_count; port_index++)
         {
             const flow_port_t *port = &flow->ports[port_index];
+
             if (port->node_index != node_index)
             {
                 continue;
             }
             inputs += port->direction == FLOW_INPUT_DIRECTION ? 1U : 0U;
             outputs += port->direction == FLOW_OUTPUT_DIRECTION ? 1U : 0U;
+
             if (port->value_type != FLOW_DIGITAL_TYPE)
             {
                 return get_result(FLOW_REASON_INCOMPATIBLE_TYPE, "/ports");
             }
         }
+
         if (inputs != INPUT_COUNTS[node->kind] || outputs != OUTPUT_COUNTS[node->kind])
         {
             return get_result(FLOW_REASON_INVALID_PORT_SHAPE, "/nodes");
         }
+
         for (uint16_t port_index = 0; port_index < flow->port_count; port_index++)
         {
             if (flow->ports[port_index].node_index == node_index && flow->ports[port_index].direction == FLOW_INPUT_DIRECTION)
             {
                 bool is_driven = false;
+
                 for (uint16_t connection_index = 0; connection_index < flow->connection_count; connection_index++)
                 {
                     is_driven = is_driven || flow->connections[connection_index].target_port_index == port_index;
                 }
+
                 if (!is_driven)
                 {
                     return get_result(FLOW_REASON_MISSING_CONNECTION, "/ports");
@@ -378,17 +422,21 @@ static flow_result_t get_schedule(flow_executable_t *flow)
 {
     uint16_t degrees[FLOW_EXECUTABLE_MAX_NODES] = {0};
     bool selected[FLOW_EXECUTABLE_MAX_NODES]    = {false};
+
     for (uint16_t index = 0; index < flow->connection_count; index++)
     {
         const flow_connection_t *connection = &flow->connections[index];
+
         if (flow->nodes[connection->target_node_index].kind != FLOW_NODE_MEMORY)
         {
             degrees[connection->target_node_index]++;
         }
     }
+
     for (uint16_t position = 0; position < flow->node_count; position++)
     {
         uint16_t candidate = flow->node_count;
+
         for (uint16_t index = 0; index < flow->node_count; index++)
         {
             if (!selected[index] && degrees[index] == 0U &&
@@ -397,6 +445,7 @@ static flow_result_t get_schedule(flow_executable_t *flow)
                 candidate = index;
             }
         }
+
         if (candidate == flow->node_count)
         {
             for (uint16_t index = 0; index < flow->node_count; index++)
@@ -409,9 +458,11 @@ static flow_result_t get_schedule(flow_executable_t *flow)
         }
         selected[candidate]      = true;
         flow->schedule[position] = candidate;
+
         for (uint16_t edge = 0; edge < flow->connection_count; edge++)
         {
             const flow_connection_t *connection = &flow->connections[edge];
+
             if (connection->source_node_index == candidate && flow->nodes[connection->target_node_index].kind != FLOW_NODE_MEMORY)
             {
                 degrees[connection->target_node_index]--;
@@ -426,6 +477,7 @@ flow_result_t flow_executable_prepare(const uint8_t *artifact, size_t artifact_s
                                       flow_executable_t *flow)
 {
     static const uint8_t MAGIC[] = {'F', 'C', 'E', 'X'};
+
     if (artifact == NULL || target == NULL || flow == NULL || artifact_size < ENVELOPE_BYTES ||
         artifact_size > FLOW_EXECUTABLE_MAX_ARTIFACT_BYTES)
     {
@@ -439,20 +491,24 @@ flow_result_t flow_executable_prepare(const uint8_t *artifact, size_t artifact_s
     uint16_t envelope_size;
     uint16_t flags;
     uint32_t declared_size;
+
     if (memcmp(artifact, MAGIC, sizeof(MAGIC)) != 0 || !get_u16(&envelope, &envelope_schema) ||
         !get_u16(&envelope, &body_schema) || !get_u16(&envelope, &envelope_size) || !get_u16(&envelope, &flags) ||
         !get_u32(&envelope, &declared_size))
     {
         return get_result(FLOW_REASON_MALFORMED, "/magic");
     }
+
     if (declared_size != artifact_size)
     {
         return get_result(FLOW_REASON_LENGTH_MISMATCH, "/artifactLength");
     }
+
     if (envelope_schema != FLOW_SCHEMA || body_schema != FLOW_SCHEMA)
     {
         return get_result(FLOW_REASON_UNSUPPORTED_SCHEMA, "/envelopeSchema");
     }
+
     if (envelope_size != ENVELOPE_BYTES || flags != 0U)
     {
         return get_result(FLOW_REASON_MALFORMED, "/envelopeLength");
@@ -464,49 +520,56 @@ flow_result_t flow_executable_prepare(const uint8_t *artifact, size_t artifact_s
     uint32_t interval;
     uint32_t capabilities;
     uint32_t snapshot_bytes;
-    (void)get_u32(&envelope, &flow->revision);
-    (void)get_u32(&envelope, &template_revision);
-    (void)get_u8(&envelope, &mode);
-    (void)get_u8(&envelope, &quality_policy);
-    (void)get_u16(&envelope, &reserved);
-    (void)get_u32(&envelope, &interval);
-    (void)get_u16(&envelope, &flow->node_count);
-    (void)get_u16(&envelope, &flow->port_count);
-    (void)get_u16(&envelope, &flow->connection_count);
-    (void)get_u16(&envelope, &flow->point_count);
-    (void)get_u32(&envelope, &capabilities);
-    (void)get_u32(&envelope, &snapshot_bytes);
+    get_u32(&envelope, &flow->revision);
+    get_u32(&envelope, &template_revision);
+    get_u8(&envelope, &mode);
+    get_u8(&envelope, &quality_policy);
+    get_u16(&envelope, &reserved);
+    get_u32(&envelope, &interval);
+    get_u16(&envelope, &flow->node_count);
+    get_u16(&envelope, &flow->port_count);
+    get_u16(&envelope, &flow->connection_count);
+    get_u16(&envelope, &flow->point_count);
+    get_u32(&envelope, &capabilities);
+    get_u32(&envelope, &snapshot_bytes);
+
     if (flow->node_count == 0U || flow->node_count > FLOW_EXECUTABLE_MAX_NODES || flow->port_count == 0U ||
         flow->port_count > FLOW_EXECUTABLE_MAX_PORTS || flow->connection_count > FLOW_EXECUTABLE_MAX_CONNECTIONS ||
         flow->point_count > FLOW_EXECUTABLE_MAX_POINTS)
     {
         return get_result(FLOW_REASON_LIMIT_EXCEEDED, "/nodeCount");
     }
+
     if (mode != FLOW_MANUAL_MODE || interval != 0U)
     {
         return get_result(FLOW_REASON_UNSUPPORTED_MODE, "/executionMode");
     }
+
     if (quality_policy != 1U || reserved != 0U || flow->revision == 0U || template_revision == 0U)
     {
         return get_result(FLOW_REASON_MALFORMED, "/inputQualityPolicy");
     }
+
     if ((capabilities & ~FLOW_KNOWN_CAPABILITIES) != 0U ||
         (capabilities & FLOW_REQUIRED_BASE_CAPABILITIES) != FLOW_REQUIRED_BASE_CAPABILITIES ||
         (capabilities & ~target->supported_capabilities) != 0U)
     {
         return get_result(FLOW_REASON_UNSUPPORTED_CAPABILITY, "/requiredCapabilities");
     }
+
     if (snapshot_bytes == 0U || snapshot_bytes > FLOW_MAXIMUM_SNAPSHOT_BYTES || snapshot_bytes > target->maximum_snapshot_bytes)
     {
         return get_result(FLOW_REASON_SNAPSHOT_TOO_LARGE, "/maximumSnapshotBytes");
     }
     envelope.offset = 48U;
+
     if (!get_id(&envelope, flow->flow_id))
     {
         return get_result(FLOW_REASON_INVALID_IDENTIFIER, "/flowId");
     }
     uint8_t digest[32];
     flow_sha256(&artifact[ENVELOPE_BYTES], artifact_size - ENVELOPE_BYTES, digest);
+
     if (memcmp(digest, &artifact[160], sizeof(digest)) != 0)
     {
         return get_result(FLOW_REASON_DIGEST_MISMATCH, "/bodySha256");
@@ -515,6 +578,7 @@ flow_result_t flow_executable_prepare(const uint8_t *artifact, size_t artifact_s
     uint32_t body_size;
     uint32_t offsets[4];
     uint32_t directory_reserved;
+
     if (!get_u32(&directory, &body_size) || !get_u32(&directory, &offsets[0]) || !get_u32(&directory, &offsets[1]) ||
         !get_u32(&directory, &offsets[2]) || !get_u32(&directory, &offsets[3]) || !get_u32(&directory, &directory_reserved) ||
         body_size != directory.size || directory_reserved != 0U || offsets[0] < DIRECTORY_BYTES || offsets[0] >= offsets[1] ||
@@ -524,37 +588,45 @@ flow_result_t flow_executable_prepare(const uint8_t *artifact, size_t artifact_s
     }
     flow_result_t result;
     reader_t table = {.bytes = directory.bytes, .size = offsets[1], .offset = offsets[0]};
+
     if ((result = get_nodes(&table, flow)).code != FLOW_REASON_OK || table.offset != offsets[1])
     {
         return result.code == FLOW_REASON_OK ? get_result(FLOW_REASON_LENGTH_MISMATCH, "/nodes") : result;
     }
     table = (reader_t){.bytes = directory.bytes, .size = offsets[2], .offset = offsets[1]};
+
     if ((result = get_ports(&table, flow)).code != FLOW_REASON_OK || table.offset != offsets[2])
     {
         return result.code == FLOW_REASON_OK ? get_result(FLOW_REASON_LENGTH_MISMATCH, "/ports") : result;
     }
     table = (reader_t){.bytes = directory.bytes, .size = offsets[3], .offset = offsets[2]};
+
     if ((result = get_connections(&table, flow)).code != FLOW_REASON_OK || table.offset != offsets[3])
     {
         return result.code == FLOW_REASON_OK ? get_result(FLOW_REASON_LENGTH_MISMATCH, "/connections") : result;
     }
     table = (reader_t){.bytes = directory.bytes, .size = body_size, .offset = offsets[3]};
+
     if ((result = get_points(&table, flow, target)).code != FLOW_REASON_OK || table.offset != body_size)
     {
         return result.code == FLOW_REASON_OK ? get_result(FLOW_REASON_LENGTH_MISMATCH, "/points") : result;
     }
+
     if (flow->output_count > FLOW_EXECUTABLE_MAX_OUTPUTS)
     {
         return get_result(FLOW_REASON_LIMIT_EXCEEDED, "/nodes");
     }
+
     for (uint16_t index = 0; index < flow->node_count; index++)
     {
         const flow_node_t *node = &flow->nodes[index];
+
         if ((node->kind == FLOW_NODE_MEMORY && (capabilities & FLOW_MEMORY_CAPABILITY) == 0U) ||
             (node->kind == FLOW_NODE_PROPOSED_OUTPUT && (capabilities & FLOW_PROPOSED_OUTPUT_CAPABILITY) == 0U))
         {
             return get_result(FLOW_REASON_UNSUPPORTED_CAPABILITY, "/requiredCapabilities");
         }
+
         if ((node->kind == FLOW_NODE_DIGITAL_INPUT || node->kind == FLOW_NODE_PROPOSED_OUTPUT) &&
             (node->point_index >= flow->point_count ||
              flow->points[node->point_index].direction !=
@@ -563,6 +635,7 @@ flow_result_t flow_executable_prepare(const uint8_t *artifact, size_t artifact_s
             return get_result(FLOW_REASON_POINT_DIRECTION_MISMATCH, "/nodes");
         }
     }
+
     if ((result = is_shape_valid(flow)).code != FLOW_REASON_OK)
     {
         return result;

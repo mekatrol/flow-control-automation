@@ -38,11 +38,12 @@ static void copy_text(char *destination, size_t size, const char *source)
     {
         return;
     }
+
     if (source == NULL)
     {
         source = "";
     }
-    (void)strncpy(destination, source, size - 1);
+    strncpy(destination, source, size - 1);
     destination[size - 1] = '\0';
 }
 
@@ -62,6 +63,7 @@ bool is_mqtt_broker_config_valid(const mqtt_broker_config_t *config)
     {
         return false;
     }
+
     if (config->tls_policy > MQTT_TLS_PINNED_CA || config->session_policy > MQTT_SESSION_PERSISTENT || config->last_will_qos > 2)
     {
         return false;
@@ -84,6 +86,7 @@ void mqtt_service_init(mqtt_service_t *service, const mqtt_broker_config_t *conf
     service->replay_subscriptions = replay_subscriptions;
     service->random               = random;
     service->callback_context     = callback_context;
+
     if (config != NULL)
     {
         service->config = *config;
@@ -100,6 +103,7 @@ bool mqtt_service_enqueue_event(mqtt_service_t *service, const mqtt_transport_ev
     {
         return false;
     }
+
     if (service->event_count == MQTT_EVENT_QUEUE_CAPACITY)
     {
         service->dropped_events++;
@@ -120,19 +124,23 @@ static uint32_t get_backoff_delay(mqtt_service_t *service)
 {
     uint64_t delay = service->config.initial_backoff_ms;
     uint32_t shift = service->consecutive_failure_count;
+
     if (shift > 0)
     {
         shift--;
     }
+
     while (shift-- > 0 && delay < service->config.maximum_backoff_ms)
     {
         delay *= EXPONENTIAL_BACKOFF_MULTIPLIER;
+
         if (delay > service->config.maximum_backoff_ms)
         {
             delay = service->config.maximum_backoff_ms;
         }
     }
     const uint64_t range = delay * service->config.jitter_percent / PERCENT_SCALE;
+
     if (range != 0 && service->random != NULL)
     {
         const uint64_t width = range * EXPONENTIAL_BACKOFF_MULTIPLIER + 1U;
@@ -149,6 +157,7 @@ static void enter_backoff(mqtt_service_t *service, uint64_t now_ms, mqtt_error_c
     {
         service->reconnect_count++;
     }
+
     if (service->consecutive_failure_count != UINT32_MAX)
     {
         service->consecutive_failure_count++;
@@ -158,6 +167,7 @@ static void enter_backoff(mqtt_service_t *service, uint64_t now_ms, mqtt_error_c
     service->last_error_category   = category;
     service->is_transport_selected = false;
     copy_text(service->last_error_detail, sizeof(service->last_error_detail), detail);
+
     if (service->disconnect_transport != NULL)
     {
         service->disconnect_transport(service->callback_context);
@@ -173,9 +183,11 @@ static void apply_event(mqtt_service_t *service, const mqtt_queued_event_t *even
         return;
     }
     service->last_event_sequence = event->sequence;
+
     switch (event->type)
     {
         case MQTT_TRANSPORT_CONNECTED:
+
             if (service->state == MQTT_SESSION_CONNECTING)
             {
                 service->state                     = MQTT_SESSION_ONLINE;
@@ -183,6 +195,7 @@ static void apply_event(mqtt_service_t *service, const mqtt_queued_event_t *even
                 service->last_error_detail[0]      = '\0';
                 service->consecutive_failure_count = 0;
                 service->subscription_replay_count++;
+
                 if (service->replay_subscriptions != NULL)
                 {
                     service->replay_subscriptions(service->callback_context);
@@ -196,6 +209,7 @@ static void apply_event(mqtt_service_t *service, const mqtt_queued_event_t *even
                           event->error_detail);
             break;
         case MQTT_TRANSPORT_STOPPED:
+
             if (service->state != MQTT_SESSION_BACKOFF)
             {
                 service->state = MQTT_SESSION_WAITING_FOR_TRANSPORT;
@@ -221,6 +235,7 @@ static bool is_selected_transport_eligible(const mqtt_service_t *service)
 static void try_connect(mqtt_service_t *service, uint64_t now_ms)
 {
     mqtt_transport_route_t route;
+
     if (!service->get_transport_route(&route, service->callback_context))
     {
         service->state                 = MQTT_SESSION_WAITING_FOR_TRANSPORT;
@@ -230,6 +245,7 @@ static void try_connect(mqtt_service_t *service, uint64_t now_ms)
     service->selected_transport    = route;
     service->is_transport_selected = true;
     service->state                 = MQTT_SESSION_CONNECTING;
+
     if (service->connect_transport == NULL || !service->connect_transport(&service->config, &route, service->callback_context))
     {
         enter_backoff(service, now_ms, MQTT_ERROR_TRANSPORT, ERROR_TRANSPORT_START);
@@ -243,6 +259,7 @@ void mqtt_service_process(mqtt_service_t *service, uint64_t now_ms)
     {
         return;
     }
+
     while (service->event_count > 0)
     {
         const mqtt_queued_event_t event = service->events[service->event_head];
@@ -250,11 +267,13 @@ void mqtt_service_process(mqtt_service_t *service, uint64_t now_ms)
         service->event_count--;
         apply_event(service, &event, now_ms);
     }
+
     if ((service->state == MQTT_SESSION_CONNECTING || service->state == MQTT_SESSION_ONLINE) &&
         !is_selected_transport_eligible(service))
     {
         enter_backoff(service, now_ms, MQTT_ERROR_ROUTE, ERROR_ROUTE_LOST);
     }
+
     if (service->state == MQTT_SESSION_WAITING_FOR_TRANSPORT ||
         (service->state == MQTT_SESSION_BACKOFF && now_ms >= service->retry_at_ms))
     {
@@ -272,6 +291,7 @@ void mqtt_service_stop(mqtt_service_t *service)
     service->state                 = MQTT_SESSION_STOPPING;
     service->is_transport_selected = false;
     service->event_count           = 0;
+
     if (service->disconnect_transport != NULL)
     {
         service->disconnect_transport(service->callback_context);
@@ -282,6 +302,7 @@ void mqtt_service_stop(mqtt_service_t *service)
 mqtt_session_health_t mqtt_service_get_health(const mqtt_service_t *service)
 {
     mqtt_session_health_t health = {0};
+
     if (service == NULL)
     {
         return health;

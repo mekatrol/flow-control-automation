@@ -191,6 +191,13 @@ try {
             foreach ($source in $sources) {
                 if (Test-Path -LiteralPath $source) {
                     & $formatter.Source '-i' $source
+                    if ($LASTEXITCODE -ne 0) {
+                        throw "clang-format failed for '$source' with exit code $LASTEXITCODE"
+                    }
+                    & $installation.Python (Join-Path $ControllersDirectory 'scripts\format-source.py') $source
+                    if ($LASTEXITCODE -ne 0) {
+                        throw "Custom source formatting failed for '$source' with exit code $LASTEXITCODE"
+                    }
                 }
             }
         }

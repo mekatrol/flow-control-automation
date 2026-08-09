@@ -19,17 +19,21 @@ static bool is_string_valid(const char *value, size_t capacity)
 static uint16_t get_effective_outputs(const controller_points_t *points)
 {
     uint16_t outputs = points->base_outputs;
+
     for (uint8_t output = 0; output < CONTROLLER_POINT_OUTPUT_COUNT; output++)
     {
         const controller_point_command_t *winner = NULL;
+
         for (size_t index = 0; index < CONTROLLER_POINT_COMMAND_CAPACITY; index++)
         {
             const controller_point_command_t *candidate = &points->commands[index];
+
             if (candidate->is_used && candidate->output == output && (winner == NULL || candidate->priority < winner->priority))
             {
                 winner = candidate;
             }
         }
+
         if (winner != NULL)
         {
             const uint16_t mask = (uint16_t)(1U << output);
@@ -43,10 +47,12 @@ static uint16_t get_effective_outputs(const controller_points_t *points)
 static controller_point_result_t apply_outputs(controller_points_t *points)
 {
     const uint16_t outputs = get_effective_outputs(points);
+
     if (points->are_outputs_valid && outputs == points->commanded_outputs)
     {
         return CONTROLLER_POINT_OK;
     }
+
     if (!points->write_outputs(outputs))
     {
         return CONTROLLER_POINT_FAILED;
@@ -84,20 +90,24 @@ controller_point_result_t controller_points_command(controller_points_t *points,
         return CONTROLLER_POINT_INVALID_ARGUMENT;
     }
     controller_point_command_t *slot = NULL;
+
     for (size_t index = 0; index < CONTROLLER_POINT_COMMAND_CAPACITY; index++)
     {
         controller_point_command_t *candidate = &points->commands[index];
+
         if (candidate->is_used && candidate->output == command->output && candidate->priority == command->priority &&
             strcmp(candidate->source_id, command->source_id) == 0)
         {
             slot = candidate;
             break;
         }
+
         if (!candidate->is_used && slot == NULL)
         {
             slot = candidate;
         }
     }
+
     if (slot == NULL)
     {
         points->health.command_rejection_count++;
@@ -107,6 +117,7 @@ controller_point_result_t controller_points_command(controller_points_t *points,
     *slot                                     = *command;
     slot->is_used                             = true;
     const controller_point_result_t result    = apply_outputs(points);
+
     if (result != CONTROLLER_POINT_OK)
     {
         *slot = previous;
@@ -126,20 +137,24 @@ controller_point_result_t controller_points_relinquish(controller_points_t *poin
         return CONTROLLER_POINT_INVALID_ARGUMENT;
     }
     bool is_removed = false;
+
     for (size_t index = 0; index < CONTROLLER_POINT_COMMAND_CAPACITY; index++)
     {
         controller_point_command_t *command = &points->commands[index];
+
         if (command->is_used && command->output == output && strcmp(command->source_id, source_id) == 0)
         {
             *command   = (controller_point_command_t){0};
             is_removed = true;
         }
     }
+
     if (!is_removed)
     {
         return CONTROLLER_POINT_NOT_FOUND;
     }
     const controller_point_result_t result = apply_outputs(points);
+
     if (result == CONTROLLER_POINT_OK)
     {
         points->health.relinquished_command_count++;
@@ -155,11 +170,12 @@ bool controller_points_is_source_effective(const controller_points_t *points, ui
         return false;
     }
     const controller_point_command_t *winner = NULL;
+
     for (size_t index = 0; index < CONTROLLER_POINT_COMMAND_CAPACITY; index++)
     {
         const controller_point_command_t *candidate = &points->commands[index];
-        if (candidate->is_used && candidate->output == output &&
-            (winner == NULL || candidate->priority < winner->priority))
+
+        if (candidate->is_used && candidate->output == output && (winner == NULL || candidate->priority < winner->priority))
         {
             winner = candidate;
         }
@@ -175,9 +191,11 @@ void controller_points_process(controller_points_t *points, int64_t now_ms)
         return;
     }
     bool has_expired = false;
+
     for (size_t index = 0; index < CONTROLLER_POINT_COMMAND_CAPACITY; index++)
     {
         controller_point_command_t *command = &points->commands[index];
+
         if (command->is_used && command->expires_at_ms != INT64_MIN && now_ms >= command->expires_at_ms)
         {
             *command = (controller_point_command_t){0};
@@ -185,6 +203,7 @@ void controller_points_process(controller_points_t *points, int64_t now_ms)
             has_expired = true;
         }
     }
+
     if (has_expired && apply_outputs(points) != CONTROLLER_POINT_OK)
     {
         points->health.command_rejection_count++;
@@ -199,6 +218,7 @@ controller_point_result_t controller_points_subscribe(controller_points_t *point
         return CONTROLLER_POINT_INVALID_ARGUMENT;
     }
     controller_point_subscription_t *slot = NULL;
+
     for (size_t index = 0; index < CONTROLLER_POINT_SUBSCRIPTION_CAPACITY; index++)
     {
         if (points->subscriptions[index].is_used && points->subscriptions[index].peer == peer)
@@ -206,11 +226,13 @@ controller_point_result_t controller_points_subscribe(controller_points_t *point
             slot = &points->subscriptions[index];
             break;
         }
+
         if (!points->subscriptions[index].is_used && slot == NULL)
         {
             slot = &points->subscriptions[index];
         }
     }
+
     if (slot == NULL)
     {
         points->health.subscription_drop_count++;
@@ -227,6 +249,7 @@ void controller_points_observe(controller_points_t *points, uint16_t outputs)
     {
         return;
     }
+
     if (!points->are_outputs_valid)
     {
         points->commanded_outputs = outputs;
@@ -237,14 +260,17 @@ void controller_points_observe(controller_points_t *points, uint16_t outputs)
     }
     const uint16_t changed  = points->observed_points ^ outputs;
     points->observed_points = outputs;
+
     /* Direct physical changes become the relinquish baseline only where arbitration has no active command. */
     for (uint8_t output = 0; output < CONTROLLER_POINT_OUTPUT_COUNT; output++)
     {
         bool is_commanded = false;
+
         for (size_t command_index = 0; command_index < CONTROLLER_POINT_COMMAND_CAPACITY; command_index++)
         {
             is_commanded |= points->commands[command_index].is_used && points->commands[command_index].output == output;
         }
+
         if (!is_commanded)
         {
             const uint16_t mask = (uint16_t)(1U << output);
@@ -252,10 +278,12 @@ void controller_points_observe(controller_points_t *points, uint16_t outputs)
                 (outputs & mask) != 0U ? (uint16_t)(points->base_outputs | mask) : (uint16_t)(points->base_outputs & ~mask);
         }
     }
+
     for (size_t index = 0; index < CONTROLLER_POINT_SUBSCRIPTION_CAPACITY; index++)
     {
         controller_point_subscription_t *subscription = &points->subscriptions[index];
         const uint16_t relevant                       = changed & subscription->point_mask;
+
         if (subscription->is_used && relevant != 0)
         {
             if (subscription->pending_mask != 0)
@@ -277,9 +305,11 @@ controller_point_result_t controller_points_get_event(controller_points_t *point
     {
         return CONTROLLER_POINT_INVALID_ARGUMENT;
     }
+
     for (size_t index = 0; index < CONTROLLER_POINT_SUBSCRIPTION_CAPACITY; index++)
     {
         controller_point_subscription_t *subscription = &points->subscriptions[index];
+
         if (subscription->is_used && subscription->peer == peer)
         {
             if (subscription->pending_mask == 0)

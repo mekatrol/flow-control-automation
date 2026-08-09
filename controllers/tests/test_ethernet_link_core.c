@@ -66,6 +66,6 @@ int main(void)
 {
     test_configuration_validation();
     test_event_mapping();
-    (void)puts(TEST_SUCCESS_MESSAGE);
+    puts(TEST_SUCCESS_MESSAGE);
     return 0;
 }

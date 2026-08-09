@@ -205,6 +205,7 @@ static void test_queue_bounds_and_enable_disable(void)
     assert(fixture.starts[NETWORK_LINK_WIFI] == SECOND_SEQUENCE);
     network_manager_set_enabled(&manager, NETWORK_LINK_WIFI, false, SECOND_PROCESS_TIME_MS);
     assert(manager.links[NETWORK_LINK_WIFI].state == NETWORK_LINK_DISABLED);
+
     for (uint32_t i = 1; i <= NETWORK_EVENT_QUEUE_CAPACITY; i++)
     {
         enqueue_event(&manager, NETWORK_LINK_ETHERNET, NETWORK_EVENT_STARTED, i, false, REASON_QUEUED);
@@ -223,8 +224,8 @@ static void test_event_queue_owns_callback_data(void)
     char address[sizeof(OWNED_IPV4_ADDRESS)];
     char reason[sizeof(REASON_DHCP_READY)];
     /* Mutable copies simulate callback-owned storage that changes after enqueueing. */
-    (void)strcpy(address, OWNED_IPV4_ADDRESS);
-    (void)strcpy(reason, REASON_DHCP_READY);
+    strcpy(address, OWNED_IPV4_ADDRESS);
+    strcpy(reason, REASON_DHCP_READY);
     const network_event_t value = {
         .link_id        = NETWORK_LINK_WIFI,
         .type           = NETWORK_EVENT_ONLINE,

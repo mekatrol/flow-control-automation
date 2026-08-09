@@ -117,8 +117,8 @@ static void enqueue_transport_event(mqtt_transport_event_type_t type, mqtt_error
         .error_category = category,
     };
     mqtt_queued_event_t owned_event = event;
-    (void)snprintf(owned_event.error_detail, sizeof(owned_event.error_detail), "%s", detail);
-    (void)xQueueSend(mqtt_event_queue, &owned_event, 0);
+    snprintf(owned_event.error_detail, sizeof(owned_event.error_detail), "%s", detail);
+    xQueueSend(mqtt_event_queue, &owned_event, 0);
 }
 
 /* Gets a redacted portable category from ESP-MQTT connection error details. */
@@ -128,6 +128,7 @@ static mqtt_error_category_t get_error_category(const esp_mqtt_error_codes_t *er
     {
         return MQTT_ERROR_TRANSPORT;
     }
+
     if (error->error_type == MQTT_ERROR_TYPE_CONNECTION_REFUSED)
     {
         return error->connect_return_code == MQTT_CONNECTION_REFUSE_BAD_USERNAME ||
@@ -135,10 +136,12 @@ static mqtt_error_category_t get_error_category(const esp_mqtt_error_codes_t *er
                    ? MQTT_ERROR_AUTHENTICATION
                    : MQTT_ERROR_BROKER;
     }
+
     if (error->esp_tls_last_esp_err == ESP_ERR_ESP_TLS_CANNOT_RESOLVE_HOSTNAME)
     {
         return MQTT_ERROR_DNS;
     }
+
     if (error->esp_tls_stack_err != 0 || error->esp_tls_cert_verify_flags != 0)
     {
         return MQTT_ERROR_TLS;
@@ -168,6 +171,7 @@ static const char *get_error_code(mqtt_error_category_t category)
 static void handle_mqtt_event(void * /* context */, esp_event_base_t /* event_base */, int32_t event_id, void *event_data)
 {
     const esp_mqtt_event_t *event = event_data;
+
     if (event_id == MQTT_EVENT_CONNECTED)
     {
         atomic_store(&is_failure_reported, false);
@@ -194,7 +198,7 @@ static void handle_mqtt_event(void * /* context */, esp_event_base_t /* event_ba
         message.topic[event->topic_len] = '\0';
         memcpy(message.payload, event->data, message.payload_size);
         message.payload[message.payload_size] = '\0';
-        (void)xQueueSend(mqtt_inbound_queue, &message, 0);
+        xQueueSend(mqtt_inbound_queue, &message, 0);
     }
 }
 
@@ -207,8 +211,8 @@ static void stop_mqtt_client(void)
     }
     /* Suppress the expected callback because the supervisor already owns this transition. */
     atomic_store(&is_failure_reported, true);
-    (void)esp_mqtt_client_stop(mqtt_client);
-    (void)esp_mqtt_client_destroy(mqtt_client);
+    esp_mqtt_client_stop(mqtt_client);
+    esp_mqtt_client_destroy(mqtt_client);
     mqtt_client = NULL;
 }
 
@@ -217,6 +221,7 @@ static bool start_mqtt_client(const mqtt_broker_config_t *config, network_link_i
 {
     struct ifreq interface         = {0};
     esp_netif_t *network_interface = get_network_interface(selected_link);
+
     if (network_interface == NULL || esp_netif_get_netif_impl_name(network_interface, interface.ifr_name) != ESP_OK)
     {
         return false;
@@ -239,6 +244,7 @@ static bool start_mqtt_client(const mqtt_broker_config_t *config, network_link_i
         .network.if_name                       = &interface,
     };
     mqtt_client = esp_mqtt_client_init(&mqtt_config);
+
     if (mqtt_client == NULL || esp_mqtt_client_register_event(mqtt_client, MQTT_EVENT_ANY, handle_mqtt_event, NULL) != ESP_OK ||
         esp_mqtt_client_start(mqtt_client) != ESP_OK)
     {
@@ -252,12 +258,14 @@ static bool start_mqtt_client(const mqtt_broker_config_t *config, network_link_i
 static void mqtt_transport_task(void * /* context */)
 {
     mqtt_command_t command;
+
     for (;;)
     {
         if (xQueueReceive(mqtt_command_queue, &command, portMAX_DELAY) != pdTRUE)
         {
             continue;
         }
+
         if (command.type == MQTT_COMMAND_DISCONNECT)
         {
             stop_mqtt_client();
@@ -266,16 +274,16 @@ static void mqtt_transport_task(void * /* context */)
         {
             if (mqtt_client != NULL)
             {
-                (void)esp_mqtt_client_enqueue(mqtt_client, command.publish.topic, (const char *)command.publish.payload,
-                                              (int)command.publish.payload_size, (int)command.publish.qos,
-                                              command.publish.is_retained, true);
+                esp_mqtt_client_enqueue(mqtt_client, command.publish.topic, (const char *)command.publish.payload,
+                                        (int)command.publish.payload_size, (int)command.publish.qos, command.publish.is_retained,
+                                        true);
             }
         }
         else if (command.type == MQTT_COMMAND_SUBSCRIBE)
         {
             if (mqtt_client != NULL)
             {
-                (void)esp_mqtt_client_subscribe(mqtt_client, command.topic_filter, (int)command.subscription_qos);
+                esp_mqtt_client_subscribe(mqtt_client, command.topic_filter, (int)command.subscription_qos);
             }
         }
         else if (!start_mqtt_client(&command.config, command.selected_link))
@@ -305,6 +313,7 @@ bool platform_mqtt_get_transport_route(mqtt_transport_route_t *route, void *cont
 {
     const network_manager_t *network_manager = context;
     network_link_id_t selected_link;
+
     if (route == NULL || network_manager == NULL ||
         !network_manager_get_selected_link(network_manager, get_mqtt_link_policy(), true, &selected_link))
     {
@@ -315,7 +324,7 @@ bool platform_mqtt_get_transport_route(mqtt_transport_route_t *route, void *cont
                                         .identifier = (uint32_t)selected_link,
                                         .generation = snapshot.transitioned_at_ms,
     };
-    (void)snprintf(route->name, sizeof(route->name), "%s", network_get_link_id_name(selected_link));
+    snprintf(route->name, sizeof(route->name), "%s", network_get_link_id_name(selected_link));
     return true;
 }
 
@@ -323,9 +332,10 @@ bool platform_mqtt_get_transport_route(mqtt_transport_route_t *route, void *cont
 void platform_mqtt_disconnect(void * /* context */)
 {
     const mqtt_command_t command = {.type = MQTT_COMMAND_DISCONNECT};
+
     if (mqtt_command_queue != NULL)
     {
-        (void)xQueueSend(mqtt_command_queue, &command, 0);
+        xQueueSend(mqtt_command_queue, &command, 0);
     }
 }
 
@@ -365,7 +375,7 @@ int32_t platform_mqtt_publish(const char *topic, const void *payload, size_t pay
         return -1;
     }
     mqtt_command_t command = {.type = MQTT_COMMAND_PUBLISH};
-    (void)snprintf(command.publish.topic, sizeof(command.publish.topic), "%s", topic);
+    snprintf(command.publish.topic, sizeof(command.publish.topic), "%s", topic);
     memcpy(command.publish.payload, payload, payload_size);
     command.publish.payload_size = payload_size;
     command.publish.qos          = qos;
@@ -381,7 +391,7 @@ bool platform_mqtt_subscribe(const char *topic_filter, mqtt_qos_t qos, void * /*
         return false;
     }
     mqtt_command_t command = {.type = MQTT_COMMAND_SUBSCRIBE, .subscription_qos = qos};
-    (void)snprintf(command.topic_filter, sizeof(command.topic_filter), "%s", topic_filter);
+    snprintf(command.topic_filter, sizeof(command.topic_filter), "%s", topic_filter);
     return xQueueSend(mqtt_command_queue, &command, 0) == pdTRUE;
 }
 
@@ -412,6 +422,7 @@ void platform_mqtt_get_config(mqtt_broker_config_t *config, const controller_set
     const uint16_t port                              = broker->port != 0 ? broker->port : MQTT_DEFAULT_PORT;
     const char *scheme                               = is_tls_enabled ? MQTT_SCHEME_TLS : MQTT_SCHEME_PLAIN;
     const int result = snprintf(mqtt_broker_uri, sizeof(mqtt_broker_uri), MQTT_URI_FORMAT, scheme, broker->host, port);
+
     /* An invalid or truncated URI disables the service through normal configuration validation. */
     if (result < 0 || (size_t)result >= sizeof(mqtt_broker_uri))
     {

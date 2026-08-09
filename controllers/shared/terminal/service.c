@@ -95,9 +95,11 @@ static bool is_protocol_key_valid(const char *value)
     {
         return false;
     }
+
     for (size_t index = 0; index < PROTOCOL_KEY_CHARACTERS; index++)
     {
         const char character = value[index];
+
         if (!((character >= '0' && character <= '9') || (character >= 'a' && character <= 'f') ||
               (character >= 'A' && character <= 'F')))
         {
@@ -111,6 +113,7 @@ static bool is_protocol_key_valid(const char *value)
 static void write_output(terminal_service_t *service, const char *output)
 {
     const size_t size = strlen(output);
+
     if (service->config.write == NULL || !service->config.write(service->config.context, output, size))
     {
         service->output_drop_count++;
@@ -122,25 +125,30 @@ static void clear_sensitive(terminal_service_t *service)
 {
     volatile char *line    = service->line;
     volatile char *pending = service->pending_username;
+
     for (size_t index = 0; index < sizeof(service->line); index++)
     {
         line[index] = '\0';
     }
+
     for (size_t index = 0; index < sizeof(service->pending_username); index++)
     {
         pending[index] = '\0';
     }
     volatile char *login = service->login_username;
+
     for (size_t index = 0; index < sizeof(service->login_username); index++)
     {
         login[index] = '\0';
     }
     volatile char *secret = service->pending_secret;
+
     for (size_t index = 0; index < sizeof(service->pending_secret); index++)
     {
         secret[index] = '\0';
     }
     volatile char *hostname = service->pending_hostname;
+
     for (size_t index = 0; index < sizeof(service->pending_hostname); index++)
     {
         hostname[index] = '\0';
@@ -152,6 +160,7 @@ static void clear_sensitive(terminal_service_t *service)
 static size_t get_bounded_length(const char *value, size_t capacity)
 {
     size_t size = 0;
+
     while (size < capacity && value[size] != '\0')
     {
         size++;
@@ -177,6 +186,7 @@ static bool is_credential_equal(const settings_nullable_string_t *expected, cons
     size_t actual_size   = get_bounded_length(actual, SETTINGS_PASSWORD_CAPACITY);
     size_t expected_size = get_bounded_length(expected->value, SETTINGS_PASSWORD_CAPACITY);
     unsigned difference  = (unsigned)(actual_size ^ expected_size) | (expected->is_set ? 0U : 1U);
+
     for (size_t index = 0; index < SETTINGS_PASSWORD_CAPACITY; index++)
     {
         const unsigned left  = index < expected_size ? (unsigned char)expected->value[index] : 0U;
@@ -190,13 +200,16 @@ static bool is_credential_equal(const settings_nullable_string_t *expected, cons
 static bool is_hostname_valid(const char *hostname)
 {
     const size_t size = get_bounded_length(hostname, SETTINGS_HOSTNAME_CAPACITY);
+
     if (size == 0 || size >= SETTINGS_HOSTNAME_CAPACITY || hostname[0] == '-' || hostname[size - 1] == '-')
     {
         return false;
     }
+
     for (size_t index = 0; index < size; index++)
     {
         const char character = hostname[index];
+
         if (!((character >= 'a' && character <= 'z') || (character >= 'A' && character <= 'Z') ||
               (character >= '0' && character <= '9') || character == '-'))
         {
@@ -225,8 +238,8 @@ static void show_mqtt_menu(terminal_service_t *service)
     const char *host                     = broker->host[0] != '\0' ? broker->host : VALUE_UNSET;
     const char *client_id                = broker->client_id[0] != '\0' ? broker->client_id : VALUE_UNSET;
     const unsigned port                  = broker->port != 0 ? (unsigned)broker->port : MQTT_DEFAULT_PORT;
-    (void)snprintf(menu, sizeof(menu), MQTT_MENU_FORMAT, username, password, host, port, client_id,
-                   broker->is_tls_enabled ? VALUE_ENABLED : VALUE_DISABLED, broker->enabled ? VALUE_ENABLED : VALUE_DISABLED);
+    snprintf(menu, sizeof(menu), MQTT_MENU_FORMAT, username, password, host, port, client_id,
+             broker->is_tls_enabled ? VALUE_ENABLED : VALUE_DISABLED, broker->enabled ? VALUE_ENABLED : VALUE_DISABLED);
     service->state = TERMINAL_STATE_MQTT_MENU;
     write_output(service, menu);
 }
@@ -236,7 +249,7 @@ static void show_rs485_menu(terminal_service_t *service)
 {
     char menu[TERMINAL_OUTPUT_CAPACITY];
     const settings_rs485_t rs485 = settings_service_get_snapshot(service->config.settings).rs485;
-    (void)snprintf(menu, sizeof(menu), RS485_MENU_FORMAT, (unsigned)rs485.address, (unsigned)rs485.baud_rate);
+    snprintf(menu, sizeof(menu), RS485_MENU_FORMAT, (unsigned)rs485.address, (unsigned)rs485.baud_rate);
     service->state = TERMINAL_STATE_RS485_MENU;
     write_output(service, menu);
 }
@@ -245,7 +258,7 @@ static void show_rs485_menu(terminal_service_t *service)
 static void show_mqtt_text_prompt(terminal_service_t *service, const char *format, const char *current_value)
 {
     char prompt[TERMINAL_OUTPUT_CAPACITY];
-    (void)snprintf(prompt, sizeof(prompt), format, current_value[0] != '\0' ? current_value : VALUE_UNSET);
+    snprintf(prompt, sizeof(prompt), format, current_value[0] != '\0' ? current_value : VALUE_UNSET);
     write_output(service, prompt);
 }
 
@@ -271,6 +284,7 @@ static void cancel_editor(terminal_service_t *service)
     clear_sensitive(service);
     service->credential_target = TERMINAL_CREDENTIAL_NONE;
     write_output(service, CANCELLED);
+
     if (is_mqtt_editor)
     {
         show_mqtt_menu(service);
@@ -290,6 +304,7 @@ static void cancel_editor(terminal_service_t *service)
 static bool is_settings_update_successful(terminal_service_t *service, const controller_settings_t *settings)
 {
     const bool is_success = settings_service_commit(service->config.settings, settings) == SETTINGS_STORE_OK;
+
     if (is_success && service->config.settings_changed != NULL)
     {
         service->config.settings_changed(service->config.context);
@@ -316,6 +331,7 @@ static void show_recovery_menu(terminal_service_t *service)
 static void show_system_info(terminal_service_t *service)
 {
     char information[TERMINAL_OUTPUT_CAPACITY];
+
     if (service->config.get_system_info != NULL)
     {
         service->config.get_system_info(service->config.context, information, sizeof(information));
@@ -358,6 +374,7 @@ static void start_credential_edit(terminal_service_t *service, terminal_credenti
 {
     const controller_settings_t settings      = settings_service_get_snapshot(service->config.settings);
     const settings_nullable_string_t *current = NULL;
+
     if (target == TERMINAL_CREDENTIAL_WIFI)
     {
         current = &settings.wifi_ssid;
@@ -383,6 +400,7 @@ static bool is_current_password_configured(const terminal_service_t *service, co
     {
         return settings->wifi_password.is_set;
     }
+
     if (service->credential_target == TERMINAL_CREDENTIAL_TERMINAL)
     {
         return settings->terminal_password.is_set;
@@ -396,6 +414,7 @@ static bool is_credential_commit_successful(terminal_service_t *service)
     controller_settings_t settings     = settings_service_get_snapshot(service->config.settings);
     settings_nullable_string_t *name   = NULL;
     settings_nullable_string_t *secret = NULL;
+
     if (service->credential_target == TERMINAL_CREDENTIAL_WIFI)
     {
         name   = &settings.wifi_ssid;
@@ -411,6 +430,7 @@ static bool is_credential_commit_successful(terminal_service_t *service)
         name   = &settings.mqtt_username;
         secret = &settings.mqtt_password;
     }
+
     if (name == NULL || secret == NULL)
     {
         return false;
@@ -430,10 +450,11 @@ static void start_authentication(terminal_service_t *service)
     if (service->config.settings == NULL || service->config.settings->state != SETTINGS_STORAGE_READY)
     {
         service->state = TERMINAL_STATE_UNAVAILABLE;
+
         if (service->config.settings_unavailable_reason != NULL)
         {
             char message[TERMINAL_OUTPUT_CAPACITY];
-            (void)snprintf(message, sizeof(message), STORAGE_UNAVAILABLE_FORMAT, service->config.settings_unavailable_reason);
+            snprintf(message, sizeof(message), STORAGE_UNAVAILABLE_FORMAT, service->config.settings_unavailable_reason);
             write_output(service, message);
         }
         else
@@ -444,6 +465,7 @@ static void start_authentication(terminal_service_t *service)
         return;
     }
     const controller_settings_t settings = settings_service_get_snapshot(service->config.settings);
+
     if (!settings.terminal_username.is_set)
     {
         service->state = TERMINAL_STATE_SETUP_USERNAME;
@@ -469,8 +491,9 @@ static void commit_setup(terminal_service_t *service, const char *password)
     controller_settings_t settings    = settings_service_get_snapshot(service->config.settings);
     settings.terminal_username.is_set = true;
     settings.terminal_password.is_set = true;
-    (void)snprintf(settings.terminal_username.value, sizeof(settings.terminal_username.value), "%s", service->pending_username);
-    (void)snprintf(settings.terminal_password.value, sizeof(settings.terminal_password.value), "%s", password);
+    snprintf(settings.terminal_username.value, sizeof(settings.terminal_username.value), "%s", service->pending_username);
+    snprintf(settings.terminal_password.value, sizeof(settings.terminal_password.value), "%s", password);
+
     if (settings_service_commit(service->config.settings, &settings) == SETTINGS_STORE_OK)
     {
         service->authenticated_session_count = 1;
@@ -489,6 +512,7 @@ static void commit_setup(terminal_service_t *service, const char *password)
 static void handle_line(terminal_service_t *service, uint64_t now_ms)
 {
     controller_settings_t settings = settings_service_get_snapshot(service->config.settings);
+
     if (is_cancelable_editor(service->state) && strcmp(service->line, CANCEL_INPUT) == 0)
     {
         cancel_editor(service);
@@ -517,6 +541,7 @@ static void handle_line(terminal_service_t *service, uint64_t now_ms)
                                       is_credential_equal(&settings.terminal_username, service->login_username) &&
                                       is_credential_equal(&settings.terminal_password, service->line);
         clear_sensitive(service);
+
         if (is_authenticated)
         {
             service->authenticated_session_count = 1;
@@ -610,14 +635,14 @@ static void handle_line(terminal_service_t *service, uint64_t now_ms)
     else if (service->state == TERMINAL_STATE_RS485_MENU && strcmp(service->line, "1") == 0)
     {
         char prompt[TERMINAL_OUTPUT_CAPACITY];
-        (void)snprintf(prompt, sizeof(prompt), RS485_ADDRESS_PROMPT_FORMAT, (unsigned)settings.rs485.address);
+        snprintf(prompt, sizeof(prompt), RS485_ADDRESS_PROMPT_FORMAT, (unsigned)settings.rs485.address);
         service->state = TERMINAL_STATE_EDIT_RS485_ADDRESS;
         write_output(service, prompt);
     }
     else if (service->state == TERMINAL_STATE_RS485_MENU && strcmp(service->line, "2") == 0)
     {
         char prompt[TERMINAL_OUTPUT_CAPACITY];
-        (void)snprintf(prompt, sizeof(prompt), RS485_BAUD_PROMPT_FORMAT, (unsigned)settings.rs485.baud_rate);
+        snprintf(prompt, sizeof(prompt), RS485_BAUD_PROMPT_FORMAT, (unsigned)settings.rs485.baud_rate);
         service->state = TERMINAL_STATE_EDIT_RS485_BAUD_RATE;
         write_output(service, prompt);
     }
@@ -629,6 +654,7 @@ static void handle_line(terminal_service_t *service, uint64_t now_ms)
     else if (service->state == TERMINAL_STATE_EDIT_PROTOCOL_KEY)
     {
         service->is_password_input = false;
+
         if (!is_protocol_key_valid(service->line))
         {
             write_output(service, PROTOCOL_KEY_INVALID);
@@ -651,11 +677,12 @@ static void handle_line(terminal_service_t *service, uint64_t now_ms)
     {
         unsigned address = 0;
         char trailing    = '\0';
+
         if (sscanf(service->line, "%u%c", &address, &trailing) != 1 || address > RS485_MAXIMUM_ADDRESS)
         {
             write_output(service, RS485_INVALID_ADDRESS);
             char prompt[TERMINAL_OUTPUT_CAPACITY];
-            (void)snprintf(prompt, sizeof(prompt), RS485_ADDRESS_PROMPT_FORMAT, (unsigned)settings.rs485.address);
+            snprintf(prompt, sizeof(prompt), RS485_ADDRESS_PROMPT_FORMAT, (unsigned)settings.rs485.address);
             write_output(service, prompt);
         }
         else
@@ -671,12 +698,13 @@ static void handle_line(terminal_service_t *service, uint64_t now_ms)
     {
         unsigned baud_rate = 0;
         char trailing      = '\0';
+
         if (sscanf(service->line, "%u%c", &baud_rate, &trailing) != 1 || baud_rate < RS485_MINIMUM_BAUD_RATE ||
             baud_rate > RS485_MAXIMUM_BAUD_RATE)
         {
             write_output(service, RS485_INVALID_BAUD);
             char prompt[TERMINAL_OUTPUT_CAPACITY];
-            (void)snprintf(prompt, sizeof(prompt), RS485_BAUD_PROMPT_FORMAT, (unsigned)settings.rs485.baud_rate);
+            snprintf(prompt, sizeof(prompt), RS485_BAUD_PROMPT_FORMAT, (unsigned)settings.rs485.baud_rate);
             write_output(service, prompt);
         }
         else
@@ -698,7 +726,7 @@ static void handle_line(terminal_service_t *service, uint64_t now_ms)
         service->state = TERMINAL_STATE_EDIT_MQTT_PORT;
         char prompt[TERMINAL_OUTPUT_CAPACITY];
         const unsigned port = settings.mqtt_broker.port != 0 ? (unsigned)settings.mqtt_broker.port : MQTT_DEFAULT_PORT;
-        (void)snprintf(prompt, sizeof(prompt), MQTT_PORT_PROMPT_FORMAT, port);
+        snprintf(prompt, sizeof(prompt), MQTT_PORT_PROMPT_FORMAT, port);
         write_output(service, prompt);
     }
     else if (service->state == TERMINAL_STATE_MQTT_MENU && strcmp(service->line, "4") == 0)
@@ -709,6 +737,7 @@ static void handle_line(terminal_service_t *service, uint64_t now_ms)
     else if (service->state == TERMINAL_STATE_MQTT_MENU && (strcmp(service->line, "5") == 0 || strcmp(service->line, "6") == 0))
     {
         controller_settings_t updated = settings_service_get_snapshot(service->config.settings);
+
         if (strcmp(service->line, "5") == 0)
         {
             updated.mqtt_broker.is_tls_enabled = !updated.mqtt_broker.is_tls_enabled;
@@ -744,6 +773,7 @@ static void handle_line(terminal_service_t *service, uint64_t now_ms)
     {
         controller_settings_t updated = settings_service_get_snapshot(service->config.settings);
         copy_bounded(updated.mqtt_broker.host, sizeof(updated.mqtt_broker.host), service->line);
+
         if (service->line[0] == '\0')
         {
             updated.mqtt_broker.enabled = false;
@@ -762,12 +792,13 @@ static void handle_line(terminal_service_t *service, uint64_t now_ms)
     {
         unsigned port = 0;
         char trailing = '\0';
+
         if (sscanf(service->line, "%u%c", &port, &trailing) != 1 || port < MQTT_MINIMUM_PORT || port > MQTT_MAXIMUM_PORT)
         {
             write_output(service, MQTT_INVALID_PORT);
             char prompt[TERMINAL_OUTPUT_CAPACITY];
             const unsigned port = settings.mqtt_broker.port != 0 ? (unsigned)settings.mqtt_broker.port : MQTT_DEFAULT_PORT;
-            (void)snprintf(prompt, sizeof(prompt), MQTT_PORT_PROMPT_FORMAT, port);
+            snprintf(prompt, sizeof(prompt), MQTT_PORT_PROMPT_FORMAT, port);
             write_output(service, prompt);
         }
         else
@@ -799,10 +830,12 @@ static void handle_line(terminal_service_t *service, uint64_t now_ms)
         const terminal_credential_target_t target = service->credential_target;
         const bool is_committed                   = is_confirmed && is_credential_commit_successful(service);
         clear_sensitive(service);
+
         if (is_confirmed && !is_committed)
         {
             write_output(service, CREDENTIAL_COMMIT_FAILED);
         }
+
         if (is_committed && target == TERMINAL_CREDENTIAL_TERMINAL)
         {
             terminal_service_disconnect(service, TERMINAL_DISCONNECT_CREDENTIAL_CHANGE);
@@ -836,6 +869,7 @@ static void handle_line(terminal_service_t *service, uint64_t now_ms)
             controller_settings_t updated = settings_service_get_snapshot(service->config.settings);
             updated.hostname.is_set       = true;
             copy_bounded(updated.hostname.value, sizeof(updated.hostname.value), service->pending_hostname);
+
             if (is_settings_update_successful(service, &updated))
             {
                 write_output(service, HOSTNAME_COMMIT_COMPLETE);
@@ -886,6 +920,7 @@ static void handle_line(terminal_service_t *service, uint64_t now_ms)
             service->config.initialize_storage(service->config.context))
         {
             write_output(service, INITIALIZE_COMPLETE);
+
             if (service->config.reboot == NULL || !service->config.reboot(service->config.context))
             {
                 write_output(service, REBOOT_UNSUPPORTED);
@@ -949,9 +984,11 @@ void terminal_service_receive(terminal_service_t *service, const uint8_t *data, 
         return;
     }
     service->last_activity_ms = now_ms;
+
     for (size_t index = 0; index < size; index++)
     {
         const uint8_t character = data[index];
+
         if (character == '\n' && service->is_carriage_return_pending)
         {
             /* Treat a CRLF pair as one submission even when transport reads split the two bytes. */
@@ -959,6 +996,7 @@ void terminal_service_receive(terminal_service_t *service, const uint8_t *data, 
             continue;
         }
         service->is_carriage_return_pending = character == '\r';
+
         if (character == '\r' || character == '\n')
         {
             if (service->is_line_rejected)
@@ -971,6 +1009,7 @@ void terminal_service_receive(terminal_service_t *service, const uint8_t *data, 
                      service->state == TERMINAL_STATE_EDIT_CREDENTIAL_SECRET)
             {
                 service->line[service->line_size] = '\0';
+
                 if (!service->is_password_input)
                 {
                     write_output(service, LINE_ENDING);
@@ -989,6 +1028,7 @@ void terminal_service_receive(terminal_service_t *service, const uint8_t *data, 
             if (service->line_size > 0)
             {
                 service->line_size--;
+
                 if (!service->is_password_input)
                 {
                     /* Keep the visible terminal line synchronized with the edited bounded input buffer. */
@@ -1003,6 +1043,7 @@ void terminal_service_receive(terminal_service_t *service, const uint8_t *data, 
         else if (!service->is_line_rejected)
         {
             service->line[service->line_size++] = (char)character;
+
             if (!service->is_password_input)
             {
                 char echo[2] = {(char)character, '\0'};

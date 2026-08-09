@@ -29,12 +29,14 @@ static uint32_t rotate_right(uint32_t value, uint8_t bits)
 static void transform(uint32_t state[SHA256_DIGEST_WORDS], const uint8_t block[SHA256_BLOCK_BYTES])
 {
     uint32_t words[SHA256_ROUNDS];
+
     for (size_t index = 0; index < 16U; index++)
     {
         const size_t offset = index * 4U;
         words[index]        = ((uint32_t)block[offset] << 24U) | ((uint32_t)block[offset + 1U] << 16U) |
                        ((uint32_t)block[offset + 2U] << 8U) | block[offset + 3U];
     }
+
     for (size_t index = 16U; index < SHA256_ROUNDS; index++)
     {
         const uint32_t low =
@@ -51,6 +53,7 @@ static void transform(uint32_t state[SHA256_DIGEST_WORDS], const uint8_t block[S
     uint32_t f = state[5];
     uint32_t g = state[6];
     uint32_t h = state[7];
+
     for (size_t index = 0; index < SHA256_ROUNDS; index++)
     {
         const uint32_t sum1     = rotate_right(e, 6U) ^ rotate_right(e, 11U) ^ rotate_right(e, 25U);
@@ -84,6 +87,7 @@ void flow_sha256(const uint8_t *data, size_t size, uint8_t digest[32])
     uint32_t state[SHA256_DIGEST_WORDS] = {0x6a09e667U, 0xbb67ae85U, 0x3c6ef372U, 0xa54ff53aU,
                                            0x510e527fU, 0x9b05688cU, 0x1f83d9abU, 0x5be0cd19U};
     size_t offset                       = 0;
+
     while (size - offset >= SHA256_BLOCK_BYTES)
     {
         transform(state, &data[offset]);
@@ -91,22 +95,26 @@ void flow_sha256(const uint8_t *data, size_t size, uint8_t digest[32])
     }
     uint8_t final_blocks[SHA256_BLOCK_BYTES * 2U] = {0};
     const size_t remainder                        = size - offset;
+
     if (remainder > 0U)
     {
-        (void)memcpy(final_blocks, &data[offset], remainder);
+        memcpy(final_blocks, &data[offset], remainder);
     }
     final_blocks[remainder] = 0x80U;
     const size_t final_size = remainder < 56U ? SHA256_BLOCK_BYTES : SHA256_BLOCK_BYTES * 2U;
     const uint64_t bit_size = (uint64_t)size * 8U;
+
     for (size_t index = 0; index < 8U; index++)
     {
         final_blocks[final_size - 1U - index] = (uint8_t)(bit_size >> (index * 8U));
     }
     transform(state, final_blocks);
+
     if (final_size > SHA256_BLOCK_BYTES)
     {
         transform(state, &final_blocks[SHA256_BLOCK_BYTES]);
     }
+
     for (size_t index = 0; index < SHA256_DIGEST_WORDS; index++)
     {
         digest[index * 4U]      = (uint8_t)(state[index] >> 24U);

@@ -47,6 +47,7 @@ bool ethernet_link_init(ethernet_link_t *ethernet_link, network_manager_t *netwo
         return false;
     }
     ethernet_link->platform_initialized = platform_ethernet_initialize(config);
+
     if (!ethernet_link->platform_initialized)
     {
         diagnostics_emit(DIAGNOSTIC_ERROR, COMPONENT_ETHERNET, EVENT_INIT_FAILED, MESSAGE_INIT_FAILED);
@@ -64,7 +65,7 @@ static void enqueue_driver_failure(ethernet_link_t *ethernet_link)
         .interface_name = INTERFACE_ETHERNET,
         .reason         = REASON_DRIVER_FAILED,
     };
-    (void)network_manager_enqueue_event(ethernet_link->network_manager, &event);
+    network_manager_enqueue_event(ethernet_link->network_manager, &event);
 }
 
 /* Requests one non-blocking W5500 driver start attempt. */
@@ -90,6 +91,7 @@ void ethernet_link_stop(ethernet_link_t *ethernet_link)
 void ethernet_link_process(ethernet_link_t *ethernet_link)
 {
     ethernet_platform_event_t platform_event;
+
     for (size_t processed = 0; processed < MAXIMUM_EVENTS_PER_TICK; processed++)
     {
         if (!platform_ethernet_get_event(&platform_event))
@@ -106,6 +108,7 @@ void ethernet_link_process(ethernet_link_t *ethernet_link)
             .dns_ready      = platform_event.dns_ready,
             .reason         = get_event_reason(platform_event.type),
         };
+
         if (platform_event.type == ETHERNET_PLATFORM_EVENT_ADDRESS_READY)
         {
             diagnostics_emit_limited(&ethernet_link->event_rate_limiter, EVENT_RATE_WINDOW_MS, MAXIMUM_EVENTS_PER_WINDOW,
@@ -122,6 +125,6 @@ void ethernet_link_process(ethernet_link_t *ethernet_link)
                                      severity, COMPONENT_ETHERNET, get_event_reason(platform_event.type), FORMAT_STATE,
                                      get_event_reason(platform_event.type));
         }
-        (void)network_manager_enqueue_event(ethernet_link->network_manager, &event);
+        network_manager_enqueue_event(ethernet_link->network_manager, &event);
     }
 }

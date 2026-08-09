@@ -32,10 +32,12 @@ static settings_store_result_t get_fake_record(const uint8_t *source, size_t sou
     {
         return SETTINGS_STORE_UNAVAILABLE;
     }
+
     if (source_size == 0)
     {
         return SETTINGS_STORE_MISSING;
     }
+
     if (source_size > capacity)
     {
         return SETTINGS_STORE_CORRUPT;
@@ -63,6 +65,7 @@ static settings_store_result_t get_fake_settings(void *context, void *record, si
 static settings_store_result_t stage_fake_bootstrap(void *context, const void *record, size_t size)
 {
     fake_store_t *fake = context;
+
     if (!fake->is_available || size > sizeof(fake->staged_bootstrap))
     {
         return SETTINGS_STORE_UNAVAILABLE;
@@ -76,6 +79,7 @@ static settings_store_result_t stage_fake_bootstrap(void *context, const void *r
 static settings_store_result_t stage_fake_settings(void *context, const void *record, size_t size)
 {
     fake_store_t *fake = context;
+
     if (!fake->is_available || size > sizeof(fake->staged_settings))
     {
         return SETTINGS_STORE_UNAVAILABLE;
@@ -89,15 +93,18 @@ static settings_store_result_t stage_fake_settings(void *context, const void *re
 static settings_store_result_t commit_fake(void *context)
 {
     fake_store_t *fake = context;
+
     if (fake->is_commit_failing)
     {
         return SETTINGS_STORE_IO_ERROR;
     }
+
     if (fake->staged_bootstrap_size > 0)
     {
         memcpy(fake->bootstrap, fake->staged_bootstrap, fake->staged_bootstrap_size);
         fake->bootstrap_size = fake->staged_bootstrap_size;
     }
+
     if (fake->staged_settings_size > 0)
     {
         memcpy(fake->settings, fake->staged_settings, fake->staged_settings_size);
@@ -132,9 +139,10 @@ static settings_store_t get_fake_store(fake_store_t *fake)
 static settings_nullable_string_t get_nullable(bool is_set, const char *value)
 {
     settings_nullable_string_t result = {.is_set = is_set};
+
     if (value != NULL)
     {
-        (void)snprintf(result.value, sizeof(result.value), "%s", value);
+        snprintf(result.value, sizeof(result.value), "%s", value);
     }
     return result;
 }

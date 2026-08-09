@@ -83,6 +83,7 @@ static void test_complete_lifecycle(void)
     flow_debug_set_output_adapter(&debug, command_output, relinquish_output, NULL);
     uint64_t session_id = 0;
     assert(flow_debug_begin(&debug, TEST_OWNER, false, (uint32_t)artifact_size, digest, 10, &session_id) == FLOW_DEBUG_OK);
+
     for (size_t offset = 0; offset < artifact_size; offset += FLOW_DEBUG_CHUNK_LIMIT)
     {
         const size_t remaining = artifact_size - offset;
@@ -102,6 +103,7 @@ static void test_complete_lifecycle(void)
     assert(header.total_length > 0 && header.chunk_count > 0);
     uint8_t assembled[FLOW_DEBUG_SNAPSHOT_CAPACITY];
     size_t assembled_size = 0;
+
     for (uint16_t index = 0; index < header.chunk_count; index++)
     {
         uint32_t offset = 0;
@@ -129,6 +131,7 @@ static void test_complete_lifecycle(void)
     assert(debug.runtime.tick_number == 4);
     /* Repeated delayed supervisor calls skip deadlines without overlapping or starving status work. */
     assert(flow_debug_run(&debug, TEST_OWNER, session_id, 10, 110) == FLOW_DEBUG_OK);
+
     for (uint64_t now_ms = 110; now_ms < 10110; now_ms += 25)
     {
         flow_debug_process(&debug, now_ms);

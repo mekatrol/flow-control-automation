@@ -39,12 +39,13 @@ static void copy_text(char *destination, size_t size, const char *source)
     {
         return;
     }
+
     /* Treat absent callback fields as empty because all queued fields are owned strings. */
     if (source == NULL)
     {
         source = "";
     }
-    (void)strncpy(destination, source, size - 1);
+    strncpy(destination, source, size - 1);
     /* Force termination because strncpy does not terminate truncated input. */
     destination[size - 1] = '\0';
 }
@@ -69,20 +70,24 @@ static uint32_t get_backoff_delay(network_manager_t *manager, network_link_id_t 
     const network_link_config_t *config = &manager->config[link_id];
     uint64_t delay                      = config->initial_backoff_ms;
     uint32_t shift                      = manager->links[link_id].retry_count;
+
     if (shift > 0)
     {
         shift--;
     }
+
     while (shift-- > 0 && delay < config->maximum_backoff_ms)
     {
         /* Exponential growth spaces repeated failures without allowing an unbounded delay. */
         delay *= EXPONENTIAL_BACKOFF_MULTIPLIER;
+
         if (delay > config->maximum_backoff_ms)
         {
             delay = config->maximum_backoff_ms;
         }
     }
     const uint64_t range = delay * config->jitter_percent / PERCENT_SCALE;
+
     if (range != 0 && manager->random != NULL)
     {
         /* A symmetric inclusive range permits both the minimum and maximum jitter. */
@@ -90,6 +95,7 @@ static uint32_t get_backoff_delay(network_manager_t *manager, network_link_id_t 
         const int64_t offset = (int64_t)(manager->random(manager->callback_context) % width) - (int64_t)range;
         delay                = (uint64_t)((int64_t)delay + offset);
     }
+
     if (delay > config->maximum_backoff_ms)
     {
         delay = config->maximum_backoff_ms;
@@ -101,6 +107,7 @@ static uint32_t get_backoff_delay(network_manager_t *manager, network_link_id_t 
 static void enter_backoff(network_manager_t *manager, network_link_id_t link_id, uint64_t now_ms, const char *reason)
 {
     network_link_snapshot_t *link = &manager->links[link_id];
+
     if (link->retry_count != UINT32_MAX)
     {
         link->retry_count++;
@@ -110,6 +117,7 @@ static void enter_backoff(network_manager_t *manager, network_link_id_t link_id,
     link->dns_ready       = false;
     link->ipv4_address[0] = '\0';
     link->ipv6_address[0] = '\0';
+
     /* Reset the adapter outside its callback so the next retry starts cleanly. */
     if (manager->stop_link != NULL)
     {
@@ -122,6 +130,7 @@ static void begin_start(network_manager_t *manager, network_link_id_t link_id, u
 {
     set_link_state(&manager->links[link_id], NETWORK_LINK_STARTING, now_ms, reason);
     manager->links[link_id].retry_at_ms = 0;
+
     if (manager->start_link != NULL)
     {
         manager->start_link(link_id, manager->callback_context);
@@ -138,14 +147,17 @@ void network_manager_init(network_manager_t *manager, const network_link_config_
     manager->stop_link        = stop_link;
     manager->random           = random;
     manager->callback_context = callback_context;
+
     for (network_link_id_t id = NETWORK_LINK_WIFI; id < NETWORK_LINK_COUNT; id++)
     {
         manager->config[id] = configs[id];
+
         /* Clamp invalid limits so exponential growth can never exceed its configured bound. */
         if (manager->config[id].maximum_backoff_ms < manager->config[id].initial_backoff_ms)
         {
             manager->config[id].maximum_backoff_ms = manager->config[id].initial_backoff_ms;
         }
+
         /* A percentage above the full delay would permit a negative retry duration. */
         if (manager->config[id].jitter_percent > PERCENT_SCALE)
         {
@@ -154,6 +166,7 @@ void network_manager_init(network_manager_t *manager, const network_link_config_
         manager->links[id].link_id = id;
         set_link_state(&manager->links[id], configs[id].enabled ? NETWORK_LINK_STARTING : NETWORK_LINK_DISABLED, now_ms,
                        configs[id].enabled ? REASON_ENABLED : REASON_NOT_CONFIGURED);
+
         if (configs[id].enabled && start_link != NULL)
         {
             start_link(id, callback_context);
@@ -168,6 +181,7 @@ bool network_manager_enqueue_event(network_manager_t *manager, const network_eve
     {
         return false;
     }
+
     /* Reject overload deterministically so callbacks never allocate or block. */
     if (manager->event_count == NETWORK_EVENT_QUEUE_CAPACITY)
     {
@@ -193,33 +207,39 @@ bool network_manager_enqueue_event(network_manager_t *manager, const network_eve
 static void apply_event(network_manager_t *manager, const network_queued_event_t *event, uint64_t now_ms)
 {
     network_link_snapshot_t *link = &manager->links[event->link_id];
+
     /* Ignore disabled, duplicate, and stale events so late callbacks cannot regress state. */
     if (!manager->config[event->link_id].enabled || event->sequence <= link->last_event_sequence)
     {
         return;
     }
     link->last_event_sequence = event->sequence;
+
     if (event->interface_name[0] != '\0')
     {
         copy_text(link->interface_name, sizeof(link->interface_name), event->interface_name);
     }
+
     switch (event->type)
     {
         case NETWORK_EVENT_STARTED:
             set_link_state(link, NETWORK_LINK_CONNECTING, now_ms, event->reason);
             break;
         case NETWORK_EVENT_CONNECTING:
+
             if (link->state != NETWORK_LINK_ONLINE)
             {
                 set_link_state(link, NETWORK_LINK_CONNECTING, now_ms, event->reason);
             }
             break;
         case NETWORK_EVENT_ONLINE:
+
             /* Address families arrive independently, so an empty field preserves its peer. */
             if (event->ipv4_address[0] != '\0')
             {
                 copy_text(link->ipv4_address, sizeof(link->ipv4_address), event->ipv4_address);
             }
+
             if (event->ipv6_address[0] != '\0')
             {
                 copy_text(link->ipv6_address, sizeof(link->ipv6_address), event->ipv6_address);
@@ -236,11 +256,13 @@ static void apply_event(network_manager_t *manager, const network_queued_event_t
             enter_backoff(manager, event->link_id, now_ms, event->reason);
             break;
         case NETWORK_EVENT_STOPPED:
+
             /* An expected stop during backoff must not replace its scheduled retry. */
             if (link->state == NETWORK_LINK_BACKOFF)
             {
                 break;
             }
+
             if (link->retry_count != UINT32_MAX)
             {
                 link->retry_count++;
@@ -265,13 +287,16 @@ void network_manager_process(network_manager_t *manager, uint64_t now_ms)
         manager->event_count--;
         apply_event(manager, &event, now_ms);
     }
+
     for (network_link_id_t id = NETWORK_LINK_WIFI; id < NETWORK_LINK_COUNT; id++)
     {
         network_link_snapshot_t *link = &manager->links[id];
+
         if (link->state == NETWORK_LINK_BACKOFF && now_ms >= link->retry_at_ms)
         {
             begin_start(manager, id, now_ms, REASON_RETRY_DUE);
         }
+
         /* A stable connection proves old failures are no longer useful health information. */
         if (link->state == NETWORK_LINK_ONLINE && link->retry_count > 0 &&
             now_ms - link->transitioned_at_ms >= manager->config[id].stable_online_ms)
@@ -289,6 +314,7 @@ void network_manager_set_enabled(network_manager_t *manager, network_link_id_t l
         return;
     }
     manager->config[link_id].enabled = enabled;
+
     if (enabled)
     {
         begin_start(manager, link_id, now_ms, REASON_MANUALLY_ENABLED);
@@ -298,6 +324,7 @@ void network_manager_set_enabled(network_manager_t *manager, network_link_id_t l
         set_link_state(&manager->links[link_id], NETWORK_LINK_DISABLED, now_ms, REASON_MANUALLY_DISABLED);
         manager->links[link_id].dns_ready   = false;
         manager->links[link_id].retry_at_ms = 0;
+
         if (manager->stop_link != NULL)
         {
             manager->stop_link(link_id, manager->callback_context);
@@ -315,6 +342,7 @@ void network_manager_reconnect(network_manager_t *manager, network_link_id_t lin
     /* Backoff ownership prevents the asynchronous stop event from cancelling restart. */
     set_link_state(&manager->links[link_id], NETWORK_LINK_BACKOFF, now_ms, REASON_MANUALLY_ENABLED);
     manager->links[link_id].retry_at_ms = now_ms;
+
     /* Stop first so an address and association cannot survive a manual reconnect. */
     if (manager->stop_link != NULL)
     {
@@ -358,6 +386,7 @@ bool network_manager_get_selected_link(const network_manager_t *manager, network
     {
         return false;
     }
+
     if (policy != NETWORK_ROUTE_AUTOMATIC)
     {
         if (policy != NETWORK_ROUTE_WIFI && policy != NETWORK_ROUTE_ETHERNET)
@@ -365,6 +394,7 @@ bool network_manager_get_selected_link(const network_manager_t *manager, network
             return false;
         }
         const network_link_id_t id = policy == NETWORK_ROUTE_WIFI ? NETWORK_LINK_WIFI : NETWORK_LINK_ETHERNET;
+
         if (!is_link_eligible(manager, id, require_dns))
         {
             return false;
@@ -375,6 +405,7 @@ bool network_manager_get_selected_link(const network_manager_t *manager, network
     /* Automatic selection chooses the lowest configured priority value. */
     bool found             = false;
     network_link_id_t best = NETWORK_LINK_WIFI;
+
     for (network_link_id_t id = NETWORK_LINK_WIFI; id < NETWORK_LINK_COUNT; id++)
     {
         if (is_link_eligible(manager, id, require_dns) &&
@@ -384,6 +415,7 @@ bool network_manager_get_selected_link(const network_manager_t *manager, network
             found = true;
         }
     }
+
     if (found)
     {
         *selected_link = best;
@@ -398,6 +430,7 @@ const char *network_get_link_id_name(network_link_id_t link_id)
     {
         return LINK_NAME_WIFI;
     }
+
     if (link_id == NETWORK_LINK_ETHERNET)
     {
         return LINK_NAME_ETHERNET;
