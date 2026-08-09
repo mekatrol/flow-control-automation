@@ -1,16 +1,36 @@
 #include "flow/runtime.h"
 
+/*
+ * Purpose: Implement deterministic evaluation of one prepared executable over
+ * one coherent physical-input frame and publish the resulting runtime snapshot.
+ * This file owns node evaluation, explicit one-tick memory behavior, input
+ * quality enforcement, tick numbering, and the evaluator's atomic commit.
+ *
+ * Why this file exists: Manual Step and continuous Run must use exactly the same
+ * controller semantics, and one step must represent a complete tick rather than
+ * a sequence of externally visible node operations. A failed input or node must
+ * not partially advance memory or replace only part of the visible snapshot.
+ *
+ * How it works: The prepared fixed schedule is evaluated into local value and
+ * next-memory images using only the supplied coherent frame. A complete next
+ * snapshot is assembled separately. Values, memory, snapshot, and tick number
+ * are copied into runtime-owned state only after every operation succeeds;
+ * otherwise the previous committed tick remains intact and a stable error is
+ * returned to the debug-session layer.
+ */
+
 #include <stdio.h>
 #include <string.h>
 
 enum
 {
+    /* Validity is a bit image so downstream contracts retain which input guarantees were proven for this tick. */
     INPUT_VALID_COHERENT    = 1,
     INPUT_VALID_ALL_PRESENT = 2,
     INPUT_VALID_ALL_GOOD    = 4,
 };
 
-/* Creates one stable runtime result with an optional bounded node path. */
+/* What: Creates a stable evaluation result with an optional node path. Why: Runtime faults must correlate to the source graph across FCP and UI layers. How: It prefixes the bounded stable node ID and truncates safely to the frozen path capacity. */
 static flow_result_t get_runtime_result(flow_reason_code_t code, const char *node_id)
 {
     flow_result_t result = {.code = code};
@@ -29,7 +49,11 @@ static flow_result_t get_runtime_result(flow_reason_code_t code, const char *nod
     return result;
 }
 
-/* Gets the connection driving one validated input port. */
+/*
+ * Gets the sole connection driving one validated input port. Preparation has
+ * already rejected ambiguity, so this bounded lookup cannot choose between
+ * competing graph semantics during a tick.
+ */
 static const flow_connection_t *get_driver(const flow_executable_t *flow, uint16_t port_index)
 {
     for (uint16_t index = 0; index < flow->connection_count; index++)
@@ -43,7 +67,11 @@ static const flow_connection_t *get_driver(const flow_executable_t *flow, uint16
     return NULL;
 }
 
-/* Gets a node's named input value through the prepared connection table. */
+/*
+ * Resolves a named input through prepared port and connection indices, then
+ * reads its source from the working tick image. The deterministic schedule is
+ * why the source value is available before its consumer executes.
+ */
 static bool get_input_value(const flow_executable_t *flow, const bool values[FLOW_EXECUTABLE_MAX_NODES], uint16_t node_index,
                             const char *port_id, bool *value)
 {
@@ -68,7 +96,11 @@ static bool get_input_value(const flow_executable_t *flow, const bool values[FLO
     return false;
 }
 
-/* Gets one coherent, present, good input sample by stable point ID. */
+/*
+ * Gets one coherent, present, good sample by stable point ID. Evaluation reads
+ * only this captured image—never a field bus—so input nodes share one sampling
+ * boundary and blocking I/O cannot make tick timing unpredictable.
+ */
 static const flow_input_sample_t *get_sample(const flow_input_frame_t *input, const char *point_id)
 {
     for (size_t index = 0; index < input->sample_count; index++)
@@ -82,7 +114,11 @@ static const flow_input_sample_t *get_sample(const flow_input_frame_t *input, co
     return NULL;
 }
 
-/* Initializes a prepared runtime and restores every memory node's encoded initial value. */
+/*
+ * Initializes from a fully prepared executable and restores encoded memory
+ * initial values. The executable must outlive the runtime; retaining a pointer
+ * avoids allocation and keeps the evaluator footprint fixed.
+ */
 bool flow_runtime_init(flow_runtime_t *runtime, const flow_executable_t *executable)
 {
     if (runtime == NULL || executable == NULL || executable->node_count == 0U)
@@ -95,7 +131,11 @@ bool flow_runtime_init(flow_runtime_t *runtime, const flow_executable_t *executa
     return true;
 }
 
-/* Restores initial memory and clears all tick, snapshot, and fault counters. */
+/*
+ * Restores initial memory and removes all published history. Reset is a
+ * lifecycle boundary rather than a tick, so no initial-value image can be
+ * mistaken for a physical-input evaluation.
+ */
 void flow_runtime_reset(flow_runtime_t *runtime)
 {
     if (runtime == NULL || runtime->executable == NULL)
@@ -120,7 +160,12 @@ void flow_runtime_reset(flow_runtime_t *runtime)
     }
 }
 
-/* Evaluates one all-or-nothing tick without allocation and atomically publishes snapshot and memory state on success. */
+/*
+ * Evaluates one complete schedule against a coherent frame. Values, next
+ * memory, and the snapshot are constructed privately; only total success
+ * advances runtime state, while any quality or graph-contract failure preserves
+ * the previously committed tick.
+ */
 flow_result_t flow_runtime_step(flow_runtime_t *runtime, const flow_input_frame_t *input)
 {
     if (runtime == NULL || runtime->executable == NULL || input == NULL || (input->sample_count > 0U && input->samples == NULL))
@@ -128,6 +173,7 @@ flow_result_t flow_runtime_step(flow_runtime_t *runtime, const flow_input_frame_
         return get_runtime_result(FLOW_REASON_EVALUATION_FAILED, NULL);
     }
     const flow_executable_t *flow                  = runtime->executable;
+    /* Working images isolate partial computation from memory and snapshots visible to callers. */
     bool working_values[FLOW_EXECUTABLE_MAX_NODES] = {false};
     bool working_memory[FLOW_EXECUTABLE_MAX_NODES];
     memcpy(working_memory, runtime->current_memory, sizeof(working_memory));
@@ -140,6 +186,7 @@ flow_result_t flow_runtime_step(flow_runtime_t *runtime, const flow_input_frame_
     }
 
     /* Evaluate into local fixed-capacity buffers so a failed tick cannot expose partial values or memory. */
+    /* Prepared order places same-tick dependencies first; memory nodes read only the prior committed image. */
     for (uint16_t position = 0; position < flow->node_count; position++)
     {
         const uint16_t node_index = flow->schedule[position];
@@ -206,6 +253,7 @@ flow_result_t flow_runtime_step(flow_runtime_t *runtime, const flow_input_frame_
         }
     }
 
+    /* Derive every memory write after visible values exist, implementing an explicit one-tick feedback delay. */
     for (uint16_t node_index = 0; node_index < flow->node_count; node_index++)
     {
         if (flow->nodes[node_index].kind == FLOW_NODE_MEMORY)
@@ -216,6 +264,7 @@ flow_result_t flow_runtime_step(flow_runtime_t *runtime, const flow_input_frame_
             }
         }
     }
+    /* Build a complete replacement snapshot locally so readers cannot observe nodes from different ticks. */
     flow_tick_snapshot_t next = {.tick_number    = runtime->tick_number + 1U,
                                  .sampled_at_ms  = input->sampled_at_ms,
                                  .input_validity = INPUT_VALID_COHERENT | INPUT_VALID_ALL_PRESENT | INPUT_VALID_ALL_GOOD,
@@ -239,6 +288,7 @@ flow_result_t flow_runtime_step(flow_runtime_t *runtime, const flow_input_frame_
             output->quality = FLOW_QUALITY_GOOD;
         }
     }
+    /* This final group is the publication boundary for values, memory, snapshot identity, and tick number. */
     memcpy(runtime->values, working_values, sizeof(runtime->values));
     memcpy(runtime->current_memory, working_memory, sizeof(runtime->current_memory));
     memcpy(runtime->next_memory, working_memory, sizeof(runtime->next_memory));
@@ -253,7 +303,7 @@ evaluation_failed:
     return get_runtime_result(FLOW_REASON_EVALUATION_FAILED, NULL);
 }
 
-/* Returns the latest immutable runtime-owned snapshot, or NULL before the first successful tick. */
+/* What: Returns the last successfully committed tick snapshot. Why: Callers must never treat reset or failed working state as published data. How: It exposes runtime-owned storage only after the tick counter proves a successful commit. */
 const flow_tick_snapshot_t *get_flow_runtime_snapshot(const flow_runtime_t *runtime)
 {
     return runtime != NULL && runtime->tick_number > 0U ? &runtime->snapshot : NULL;

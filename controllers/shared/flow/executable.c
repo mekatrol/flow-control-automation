@@ -1,5 +1,25 @@
 #include "flow/executable.h"
 
+/*
+ * Purpose: Implement the controller's portable decoder, validator, target
+ * resolver, and deterministic scheduler for schema-1 executable artifacts.
+ * This file accepts the canonical binary artifact produced by the backend and
+ * turns it into the normalized flow_executable_t consumed by runtime.c.
+ *
+ * Why this file exists: The architecture defines the controller implementation
+ * as the authority for executable semantics. Untrusted transfer bytes must not
+ * reach tick evaluation until their structure, meaning, hardware compatibility,
+ * and execution order have all been proven. Keeping that work in one portable
+ * module also lets host fixture tests exercise the same behavior as firmware.
+ *
+ * How it works: Bounded readers decode the versioned envelope and tables;
+ * semantic passes verify identifiers, canonical ordering, port shapes,
+ * connections, point bindings, capabilities, and limits; a stable Kahn sort
+ * then builds the fixed schedule. Failures return protocol-stable reason codes
+ * and source-correlatable paths. Success leaves a caller-owned, allocation-free
+ * execution plan that requires no parsing or hardware discovery during a tick.
+ */
+
 #include "flow/sha256.h"
 
 #include <stdio.h>
@@ -7,6 +27,7 @@
 
 enum
 {
+    /* Frozen wire values and capability masks are named here because changing any of them changes cross-stack compatibility. */
     ENVELOPE_BYTES                  = 192,
     DIRECTORY_BYTES                 = 24,
     FLOW_SCHEMA                     = 1,
@@ -23,12 +44,17 @@ enum
 
 typedef struct
 {
+    /* Offset advances only through checked helpers, preventing malformed lengths from producing out-of-bounds reads. */
     const uint8_t *bytes;
     size_t size;
     size_t offset;
 } reader_t;
 
-/* Creates a stable validation result and truncates no diagnostic paths. */
+/*
+ * What: Creates a validation result from a stable reason code and optional artifact path.
+ * Why: The backend and designer need machine-readable failures that still identify the relevant source-graph location.
+ * How: It copies the already bounded path into zero-initialized result storage and leaves the path empty when none applies.
+ */
 static flow_result_t get_result(flow_reason_code_t code, const char *path)
 {
     flow_result_t result = {.code = code};
@@ -41,7 +67,11 @@ static flow_result_t get_result(flow_reason_code_t code, const char *path)
     return result;
 }
 
-/* Creates a bounded validation path from a fixed table prefix and an artifact identifier. */
+/*
+ * What: Builds a validation result whose path joins a table prefix to a stable artifact identifier.
+ * Why: Identifier-based paths remain meaningful even when canonical table positions change between graph revisions.
+ * How: It copies only the bytes that fit the frozen path capacity and always appends a terminator.
+ */
 static flow_result_t get_identifier_result(flow_reason_code_t code, const char *prefix, const char *identifier)
 {
     flow_result_t result         = {.code = code};
@@ -55,7 +85,11 @@ static flow_result_t get_identifier_result(flow_reason_code_t code, const char *
     return result;
 }
 
-/* Reads one byte when it remains inside the bounded reader. */
+/*
+ * What: Reads one byte from the current bounded-reader position.
+ * Why: Every decoder operation must reject truncated artifacts before touching memory outside the declared table.
+ * How: It checks offset against size, copies the byte, advances exactly once on success, and leaves the reader unchanged on failure.
+ */
 static bool get_u8(reader_t *reader, uint8_t *value)
 {
     if (reader->offset >= reader->size)
@@ -67,7 +101,11 @@ static bool get_u8(reader_t *reader, uint8_t *value)
     return true;
 }
 
-/* Reads a little-endian u16 without alignment assumptions. */
+/*
+ * What: Decodes one little-endian 16-bit wire value from two checked bytes.
+ * Why: Canonical artifacts must decode identically on hosts and controllers regardless of alignment or native byte order.
+ * How: It delegates bounds checking to get_u8() and combines the bytes explicitly.
+ */
 static bool get_u16(reader_t *reader, uint16_t *value)
 {
     uint8_t low;
@@ -82,7 +120,11 @@ static bool get_u16(reader_t *reader, uint16_t *value)
     return true;
 }
 
-/* Reads a little-endian u32 without alignment assumptions. */
+/*
+ * What: Decodes one little-endian 32-bit wire value from two checked 16-bit halves.
+ * Why: Explicit decoding prevents platform layout from becoming part of the cross-stack artifact contract.
+ * How: It reuses get_u16(), fails without advancing past unavailable bytes, and shifts the high half into place.
+ */
 static bool get_u32(reader_t *reader, uint32_t *value)
 {
     uint16_t low;
@@ -97,7 +139,11 @@ static bool get_u32(reader_t *reader, uint32_t *value)
     return true;
 }
 
-/* Checks the frozen ASCII identifier grammar used by schema 1. */
+/*
+ * What: Validates one length-delimited identifier against the schema-1 ASCII grammar and capacity.
+ * Why: Stable restricted IDs must round-trip through artifacts, diagnostics, snapshots, and UI correlation without ambiguous encoding.
+ * How: It checks length, permits alphanumerics everywhere, and permits the documented punctuation only after the first byte.
+ */
 static bool is_identifier(const uint8_t *bytes, size_t size)
 {
     if (size == 0U || size > FLOW_EXECUTABLE_MAX_ID_BYTES)
@@ -120,7 +166,11 @@ static bool is_identifier(const uint8_t *bytes, size_t size)
     return true;
 }
 
-/* Reads a canonical string8 identifier into a zero-terminated bounded destination. */
+/*
+ * What: Decodes one schema string8 identifier into a C string owned by the prepared executable.
+ * Why: Runtime and diagnostic code need safe stable IDs without retaining pointers into untrusted artifact bytes.
+ * How: It validates the length and grammar, copies the exact payload, appends a terminator, and advances the reader only on success.
+ */
 static bool get_id(reader_t *reader, char destination[FLOW_EXECUTABLE_MAX_ID_BYTES + 1])
 {
     uint8_t length;
@@ -137,7 +187,11 @@ static bool get_id(reader_t *reader, char destination[FLOW_EXECUTABLE_MAX_ID_BYT
     return true;
 }
 
-/* Parses the exact node table and rejects non-canonical node ordering and configuration. */
+/*
+ * What: Decodes every node record into normalized execution configuration and counts proposed outputs.
+ * Why: Runtime must receive a canonical, supported node set rather than interpreting versioned payload bytes during a tick.
+ * How: It verifies the declared count and lexical order, then validates each kind's exact payload shape and frozen policy fields.
+ */
 static flow_result_t get_nodes(reader_t *reader, flow_executable_t *flow)
 {
     uint16_t count;
@@ -147,6 +201,7 @@ static flow_result_t get_nodes(reader_t *reader, flow_executable_t *flow)
         return get_result(FLOW_REASON_LENGTH_MISMATCH, "/nodes");
     }
 
+    /* Canonical ID order removes source-encoding order as an input to scheduling and diagnostics. */
     for (uint16_t index = 0; index < count; index++)
     {
         flow_node_t *node = &flow->nodes[index];
@@ -178,6 +233,7 @@ static flow_result_t get_nodes(reader_t *reader, flow_executable_t *flow)
         node->kind                = (flow_node_kind_t)kind;
         const size_t config_start = reader->offset;
 
+        /* Decode each kind's frozen payload shape here so runtime sees normalized fields rather than schema bytes. */
         if ((kind == FLOW_NODE_DIGITAL_INPUT && config_size == 2U) || (kind == FLOW_NODE_PROPOSED_OUTPUT && config_size == 8U))
         {
             get_u16(reader, &node->point_index);
@@ -223,7 +279,11 @@ static flow_result_t get_nodes(reader_t *reader, flow_executable_t *flow)
     return get_result(FLOW_REASON_OK, "");
 }
 
-/* Parses canonical ports and preserves their complete table indices for connection resolution. */
+/*
+ * What: Decodes the canonical port table while preserving artifact indices used by connections.
+ * Why: Port identity and shape support diagnostics, but runtime connection lookup requires unambiguous validated indices.
+ * How: It checks node bounds, direction, type, arity, reserved bytes, and canonical node/direction/ID ordering.
+ */
 static flow_result_t get_ports(reader_t *reader, flow_executable_t *flow)
 {
     uint16_t count;
@@ -233,6 +293,7 @@ static flow_result_t get_ports(reader_t *reader, flow_executable_t *flow)
         return get_result(FLOW_REASON_LENGTH_MISMATCH, "/ports");
     }
 
+    /* Preserve complete table indices because connections use indices, while canonical ordering keeps artifacts reproducible. */
     for (uint16_t index = 0; index < count; index++)
     {
         flow_port_t *port = &flow->ports[index];
@@ -269,7 +330,11 @@ static flow_result_t get_ports(reader_t *reader, flow_executable_t *flow)
     return get_result(FLOW_REASON_OK, "");
 }
 
-/* Parses connection indices and reports type errors before later graph checks. */
+/*
+ * What: Decodes graph edges and validates that they connect one output port to one compatible input port.
+ * Why: Prepared evaluation assumes index consistency, digital type safety, and a single driver for every input.
+ * How: It bounds all indices, cross-checks port ownership and direction, compares types, and scans earlier edges for duplicates.
+ */
 static flow_result_t get_connections(reader_t *reader, flow_executable_t *flow)
 {
     uint16_t count;
@@ -311,6 +376,7 @@ static flow_result_t get_connections(reader_t *reader, flow_executable_t *flow)
             return get_result(FLOW_REASON_INCOMPATIBLE_TYPE, path);
         }
 
+        /* Single-driver enforcement makes every runtime input lookup unambiguous and bounded. */
         for (uint16_t earlier = 0; earlier < index; earlier++)
         {
             if (flow->connections[earlier].target_port_index == connection->target_port_index)
@@ -323,7 +389,11 @@ static flow_result_t get_connections(reader_t *reader, flow_executable_t *flow)
     return get_result(FLOW_REASON_OK, "");
 }
 
-/* Resolves decoded point records against the target template without retaining platform pointers. */
+/*
+ * What: Decodes artifact point references and proves each one matches the selected controller target.
+ * Why: A flow compiled for missing, differently directed, or differently typed hardware must fail before any physical sampling or output.
+ * How: It validates the point policy and searches the bounded target description, retaining only normalized portable point data.
+ */
 static flow_result_t get_points(reader_t *reader, flow_executable_t *flow, const flow_target_t *target)
 {
     uint16_t count;
@@ -351,6 +421,7 @@ static flow_result_t get_points(reader_t *reader, flow_executable_t *flow, const
         }
         bool is_found = false;
 
+        /* Resolve against the target now; ticks must not search hardware metadata or accept stale point bindings. */
         for (size_t target_index = 0; target_index < target->point_count; target_index++)
         {
             if (strcmp(target->points[target_index].id, point->id) == 0)
@@ -375,9 +446,14 @@ static flow_result_t get_points(reader_t *reader, flow_executable_t *flow, const
     return get_result(FLOW_REASON_OK, "");
 }
 
-/* Validates opcode port shapes and that every input has exactly one driver. */
+/*
+ * What: Validates each node kind's complete digital port shape and required input connectivity.
+ * Why: The evaluator uses named inputs and cannot safely infer missing ports or values while executing an atomic tick.
+ * How: It compares observed port counts with the schema table, verifies digital types, and proves every input has a decoded driver.
+ */
 static flow_result_t is_shape_valid(const flow_executable_t *flow)
 {
+    /* Array positions are schema node kinds, making the supported port contract explicit and exhaustive. */
     static const uint8_t INPUT_COUNTS[]  = {0, 0, 0, 1, 2, 2, 1, 1};
     static const uint8_t OUTPUT_COUNTS[] = {0, 1, 1, 1, 1, 1, 1, 0};
 
@@ -431,12 +507,17 @@ static flow_result_t is_shape_valid(const flow_executable_t *flow)
     return get_result(FLOW_REASON_OK, "");
 }
 
-/* Builds the fixed Kahn schedule, treating memory inputs as cycle-breaking edges. */
+/*
+ * What: Builds the deterministic node schedule and rejects combinational cycles.
+ * Why: Every tick needs a fixed dependency order independent of artifact record order, while explicit memory must permit feedback across ticks.
+ * How: A bounded Kahn sort ignores edges entering memory, selects ready nodes by lexical stable ID, and reports the first unscheduled node on a cycle.
+ */
 static flow_result_t get_schedule(flow_executable_t *flow)
 {
     uint16_t degrees[FLOW_EXECUTABLE_MAX_NODES] = {0};
     bool selected[FLOW_EXECUTABLE_MAX_NODES]    = {false};
 
+    /* Memory reads expose the previous tick, so edges into memory cannot form same-tick dependency cycles. */
     for (uint16_t index = 0; index < flow->connection_count; index++)
     {
         const flow_connection_t *connection = &flow->connections[index];
@@ -451,6 +532,7 @@ static flow_result_t get_schedule(flow_executable_t *flow)
     {
         uint16_t candidate = flow->node_count;
 
+        /* Lexical stable-ID tie breaking makes the schedule independent of otherwise valid table permutations. */
         for (uint16_t index = 0; index < flow->node_count; index++)
         {
             if (!selected[index] && degrees[index] == 0U &&
@@ -487,7 +569,11 @@ static flow_result_t get_schedule(flow_executable_t *flow)
     return get_result(FLOW_REASON_OK, "");
 }
 
-/* Decodes, validates, and deterministically prepares one schema-1 artifact into caller-owned bounded storage. */
+/*
+ * What: Converts one complete canonical artifact and target description into a prepared executable.
+ * Why: This is the single trust boundary between transferred compiler output and deterministic controller evaluation.
+ * How: It verifies envelope/body integrity and limits, decodes all tables, runs semantic and scheduling passes, and returns stable failure detail.
+ */
 flow_result_t flow_executable_prepare(const uint8_t *artifact, size_t artifact_size, const flow_target_t *target,
                                       flow_executable_t *flow)
 {
@@ -498,6 +584,7 @@ flow_result_t flow_executable_prepare(const uint8_t *artifact, size_t artifact_s
     {
         return get_result(FLOW_REASON_MALFORMED, "/artifact");
     }
+    /* Clear the destination before parsing so every failure leaves no partially reusable prepared state. */
     *flow             = (flow_executable_t){0};
     reader_t envelope = {.bytes = artifact, .size = ENVELOPE_BYTES};
     envelope.offset   = 4U;

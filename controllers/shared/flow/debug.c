@@ -1,17 +1,41 @@
 #include "flow/debug.h"
 
+/*
+ * Purpose: Implement the controller's single volatile flow-debug session. This
+ * file owns artifact upload, session identity and ownership, preparation,
+ * leases, manual and continuous execution, immutable snapshot encoding, and
+ * explicitly confirmed live-output control.
+ *
+ * Why this file exists: Debug execution must be isolated from durable deployed
+ * flows while still using the controller's real decoder, evaluator, coherent
+ * inputs, and output arbitrator. It must also remain safe when transports fail,
+ * clients retry, snapshot consumers are slow, or an owner disappears.
+ *
+ * How it works: Authenticated control operations move one fixed-capacity state
+ * machine through loading, ready, stepping/running, paused, fault, and cleanup.
+ * The service delegates artifact semantics to executable.c and atomic ticks to
+ * runtime.c, retains only the latest complete digest-protected snapshot, and
+ * uses a renewable dead-man lease. Shadow mode never commands hardware; live
+ * mode requires the exact affected-point list and relinquishes debug-owned
+ * commands on pause, stop, replacement, expiry, fault, or manual-step safety.
+ */
+
 #include "flow/sha256.h"
 
 #include <stdio.h>
 #include <string.h>
 
-/* Tests session identity and ownership without revealing another peer's session. */
+/* What: Checks session identity and owner authority. Why: Foreign callers must not learn or control another volatile session. How: Identity mismatch maps to not-found, while a matching session with another owner maps to forbidden. */
 static flow_debug_result_t get_access(const flow_debug_t *debug, uint32_t owner_id, uint64_t session_id);
 
-/* Renews an authenticated owner's lease from the current monotonic time. */
+/* What: Extends the session's dead-man deadline. Why: Lost owners must trigger bounded cleanup without treating brief transport loss as immediate stop. How: It adds the fixed lease with saturation. */
 static void renew_lease(flow_debug_t *debug, uint64_t now_ms);
 
-/* Relinquishes every command owned by this volatile session before any unsafe lifecycle transition. */
+/*
+ * Relinquishes every command owned by this volatile session before an unsafe
+ * lifecycle transition. Removal is scoped to the debug owner, allowing normal
+ * arbitration to reveal another owner or the baseline output image.
+ */
 static void relinquish_live_outputs(flow_debug_t *debug)
 {
     if (!debug->is_live_output_enabled || debug->relinquish_output == NULL)
@@ -30,7 +54,12 @@ static void relinquish_live_outputs(flow_debug_t *debug)
     }
 }
 
-/* Applies one complete tick's proposed outputs through bounded, expiring arbitration commands. */
+/*
+ * Applies one complete tick's proposals through short-lived arbitration
+ * commands. Acceptance and effectiveness are separate: a higher-priority owner
+ * is diagnostic arbitration loss, while adapter failure faults the session and
+ * relinquishes all debug commands.
+ */
 static bool apply_live_outputs(flow_debug_t *debug, uint64_t now_ms)
 {
     if (!debug->is_live_output_enabled)
@@ -64,6 +93,7 @@ static bool apply_live_outputs(flow_debug_t *debug, uint64_t now_ms)
 
 enum
 {
+    /* Snapshot schema fields are frozen wire values; publication cadence is independent of evaluation cadence. */
     SNAPSHOT_SCHEMA              = 3,
     SNAPSHOT_MODE_MANUAL         = 1,
     SNAPSHOT_MODE_FIXED          = 2,
@@ -72,20 +102,20 @@ enum
     SNAPSHOT_PUBLISH_INTERVAL_MS = 500,
 };
 
-/* Tests whether one artifact byte was already supplied by a prior chunk. */
+/* What: Tests byte-level upload coverage. Why: Chunk retries must be idempotent and partial artifacts must never prepare. How: It reads the byte's fixed coverage bit. */
 static bool is_covered(const flow_debug_t *debug, size_t offset)
 {
     return (debug->coverage[offset / 8U] & (uint8_t)(1U << (offset % 8U))) != 0U;
 }
 
-/* Records first-time byte coverage so prepare can reject partial artifacts. */
+/* What: Marks one newly accepted artifact byte as present. Why: Exact coverage is required before digest and schema validation. How: It sets one bit and increments the unique-byte count once. */
 static void set_covered(flow_debug_t *debug, size_t offset)
 {
     debug->coverage[offset / 8U] |= (uint8_t)(1U << (offset % 8U));
     debug->covered_bytes++;
 }
 
-/* Writes one little-endian unsigned 16-bit field into bounded snapshot storage. */
+/* What: Appends one little-endian u16 snapshot field. Why: Snapshot bytes must be canonical across platforms and never overflow fixed RAM. How: It preflights capacity before writing both bytes and advancing the offset. */
 static bool append_u16(flow_debug_t *debug, size_t *offset, uint16_t value)
 {
     if (*offset + sizeof(value) > sizeof(debug->snapshot))
@@ -98,7 +128,7 @@ static bool append_u16(flow_debug_t *debug, size_t *offset, uint16_t value)
     return true;
 }
 
-/* Writes one little-endian unsigned 32-bit field into bounded snapshot storage. */
+/* What: Appends one little-endian u32 snapshot field. Why: Wire encoding cannot depend on controller alignment or endianness. How: It preflights capacity and emits each byte from least to most significant. */
 static bool append_u32(flow_debug_t *debug, size_t *offset, uint32_t value)
 {
     if (*offset + sizeof(value) > sizeof(debug->snapshot))
@@ -114,7 +144,7 @@ static bool append_u32(flow_debug_t *debug, size_t *offset, uint32_t value)
     return true;
 }
 
-/* Writes one little-endian unsigned 64-bit field into bounded snapshot storage. */
+/* What: Appends one little-endian u64 snapshot field. Why: Session, tick, and timestamp identity must round-trip canonically. How: It preflights capacity and emits eight shifted bytes. */
 static bool append_u64(flow_debug_t *debug, size_t *offset, uint64_t value)
 {
     if (*offset + sizeof(value) > sizeof(debug->snapshot))
@@ -130,7 +160,7 @@ static bool append_u64(flow_debug_t *debug, size_t *offset, uint64_t value)
     return true;
 }
 
-/* Writes one byte into bounded snapshot storage. */
+/* What: Appends one byte to encoded snapshot storage. Why: Every encoder path must fail explicitly rather than truncate immutable data. How: It checks the fixed capacity before storing and advancing. */
 static bool append_u8(flow_debug_t *debug, size_t *offset, uint8_t value)
 {
     if (*offset >= sizeof(debug->snapshot))
@@ -142,7 +172,7 @@ static bool append_u8(flow_debug_t *debug, size_t *offset, uint8_t value)
     return true;
 }
 
-/* Writes one contract-bounded string8 into snapshot storage. */
+/* What: Appends one length-prefixed stable ID. Why: Consumers need bounded graph correlation without relying on C termination. How: It validates schema length, writes the byte length, and copies the exact characters. */
 static bool append_string(flow_debug_t *debug, size_t *offset, const char *value)
 {
     size_t size = 0;
@@ -163,7 +193,12 @@ static bool append_string(flow_debug_t *debug, size_t *offset, const char *value
     return true;
 }
 
-/* Securely clears all session-owned bytes while preserving adapters and session monotonicity. */
+/*
+ * Clears every session-owned byte after relinquishing outputs, while preserving
+ * installed platform adapters and the monotonic session counter. Preserving
+ * the counter prevents delayed responses from a cleared session correlating
+ * with its replacement.
+ */
 static void clear_session(flow_debug_t *debug)
 {
     relinquish_live_outputs(debug);
@@ -189,7 +224,7 @@ static void clear_session(flow_debug_t *debug)
     debug->state             = FLOW_DEBUG_EMPTY;
 }
 
-/* Installs the optional physical-output arbitration adapter; live mode remains disabled until explicitly enabled. */
+/* What: Installs platform command and relinquish callbacks while no session exists. Why: The portable service must not own hardware arbitration or swap adapters mid-session. How: It records callbacks only in empty state; live mode still requires explicit confirmation. */
 void flow_debug_set_output_adapter(flow_debug_t *debug, flow_debug_command_output_t command_output,
                                    flow_debug_relinquish_output_t relinquish_output, void *output_context)
 {
@@ -201,7 +236,11 @@ void flow_debug_set_output_adapter(flow_debug_t *debug, flow_debug_command_outpu
     }
 }
 
-/* Enables live output only when the authenticated caller confirms every affected point in canonical node order. */
+/*
+ * Enables live output only after the authenticated owner repeats the exact
+ * canonical affected-point list. This is the controller's final defence against
+ * a stale or incomplete UI confirmation; shadow evaluation remains unchanged.
+ */
 flow_debug_result_t flow_debug_enable_live_output(flow_debug_t *debug, uint32_t owner_id, uint64_t session_id,
                                                   const char *const *confirmed_point_ids, size_t point_count, uint64_t now_ms)
 {
@@ -248,7 +287,7 @@ flow_debug_result_t flow_debug_enable_live_output(flow_debug_t *debug, uint32_t 
     return FLOW_DEBUG_OK;
 }
 
-/* Installs an optional monotonic microsecond source used to measure evaluator duration and high-water time. */
+/* What: Installs the optional monotonic timing adapter. Why: Timing diagnostics must observe controller execution without coupling portable code to a clock API. How: It stores the callback and context used around complete ticks. */
 void flow_debug_set_time_source(flow_debug_t *debug, flow_debug_get_time_us_t get_time_us, void *time_context)
 {
     if (debug != NULL)
@@ -258,7 +297,7 @@ void flow_debug_set_time_source(flow_debug_t *debug, flow_debug_get_time_us_t ge
     }
 }
 
-/* Tests session identity and ownership without revealing another peer's session. */
+/* What: Resolves access to the current session. Why: Stale and foreign requests must not mutate or disclose a replacement session. How: It checks non-empty identity first, then distinguishes the authenticated owner. */
 static flow_debug_result_t get_access(const flow_debug_t *debug, uint32_t owner_id, uint64_t session_id)
 {
     if (debug->state == FLOW_DEBUG_EMPTY || debug->session_id != session_id || session_id == 0U)
@@ -269,13 +308,18 @@ static flow_debug_result_t get_access(const flow_debug_t *debug, uint32_t owner_
     return debug->owner_id == owner_id ? FLOW_DEBUG_OK : FLOW_DEBUG_FORBIDDEN;
 }
 
-/* Renews an authenticated owner's lease from the current monotonic time. */
+/* What: Recomputes the absolute lease deadline. Why: Authenticated activity renews the dead-man cleanup guarantee. How: It performs a saturating addition to avoid timestamp wraparound. */
 static void renew_lease(flow_debug_t *debug, uint64_t now_ms)
 {
     debug->lease_deadline_ms = now_ms > UINT64_MAX - FLOW_DEBUG_LEASE_MS ? UINT64_MAX : now_ms + FLOW_DEBUG_LEASE_MS;
 }
 
-/* Encodes the latest complete runtime snapshot into one immutable byte stream. */
+/*
+ * Encodes the latest complete runtime snapshot into a bounded immutable byte
+ * stream. Identity, tick, counts, timing, diagnostics, and every value are
+ * finalized before the digest is published, allowing backend chunk assembly to
+ * reject mixed or incomplete data rather than silently truncating it.
+ */
 static bool encode_snapshot(flow_debug_t *debug, uint64_t completed_at_ms)
 {
     const flow_tick_snapshot_t *snapshot = get_flow_runtime_snapshot(&debug->runtime);
@@ -285,6 +329,7 @@ static bool encode_snapshot(flow_debug_t *debug, uint64_t completed_at_ms)
         return false;
     }
     size_t offset = 0;
+    /* Serialize explicitly in little-endian contract order; structure layout and host alignment never enter the wire format. */
     const bool header_ok =
         append_u16(debug, &offset, SNAPSHOT_SCHEMA) && append_u64(debug, &offset, debug->session_id) &&
         append_string(debug, &offset, debug->executable.flow_id) && append_u32(debug, &offset, debug->executable.revision) &&
@@ -326,13 +371,14 @@ static bool encode_snapshot(flow_debug_t *debug, uint64_t completed_at_ms)
             return false;
         }
     }
+    /* Length and digest are assigned only after the entire replacement image succeeds. */
     debug->snapshot_length = (uint32_t)offset;
     flow_sha256(debug->snapshot, offset, debug->snapshot_digest);
 
     return true;
 }
 
-/* Initializes an empty volatile debug owner with immutable target and input adapters. */
+/* What: Initializes the fixed-capacity service with its target and coherent-input adapter. Why: Preparation and ticking require immutable platform contracts before any owner session begins. How: It clears all state, stores adapters, and starts non-zero monotonic session IDs. */
 bool flow_debug_init(flow_debug_t *debug, const flow_target_t *target, flow_debug_get_input_t get_input, void *input_context)
 {
     if (debug == NULL || target == NULL || get_input == NULL)
@@ -348,7 +394,11 @@ bool flow_debug_init(flow_debug_t *debug, const flow_target_t *target, flow_debu
     return true;
 }
 
-/* Starts a bounded load, optionally replacing an existing session owned by any authenticated peer. */
+/*
+ * Starts a volatile bounded upload, explicitly replacing the current session
+ * only when authorized by the caller. Replacement first performs full cleanup;
+ * it never stages into or modifies the durable deployment service.
+ */
 flow_debug_result_t flow_debug_begin(flow_debug_t *debug, uint32_t owner_id, bool replace_existing, uint32_t artifact_length,
                                      const uint8_t digest[FLOW_DEBUG_DIGEST_BYTES], uint64_t now_ms, uint64_t *session_id)
 {
@@ -384,7 +434,11 @@ flow_debug_result_t flow_debug_begin(flow_debug_t *debug, uint32_t owner_id, boo
     return FLOW_DEBUG_OK;
 }
 
-/* Writes an idempotent artifact chunk and renews the owning session lease. */
+/*
+ * Merges one bounded artifact chunk using byte coverage. Identical retries are
+ * accepted because a transport timeout does not prove failure; conflicting
+ * overlap is rejected so artifact content cannot depend on arrival order.
+ */
 flow_debug_result_t flow_debug_write(flow_debug_t *debug, uint32_t owner_id, uint64_t session_id, uint32_t offset,
                                      const uint8_t *data, size_t size, uint64_t now_ms)
 {
@@ -431,7 +485,11 @@ flow_debug_result_t flow_debug_write(flow_debug_t *debug, uint32_t owner_id, uin
     return FLOW_DEBUG_OK;
 }
 
-/* Validates and prepares one fully covered artifact without touching durable flow state. */
+/*
+ * Verifies complete upload integrity, invokes the portable schema authority,
+ * and initializes evaluator memory. All validation precedes ready state so a
+ * tick cannot discover malformed graph data or resolve target points.
+ */
 flow_debug_result_t flow_debug_prepare(flow_debug_t *debug, uint32_t owner_id, uint64_t session_id, uint64_t now_ms)
 {
     if (debug == NULL)
@@ -473,7 +531,11 @@ flow_debug_result_t flow_debug_prepare(flow_debug_t *debug, uint32_t owner_id, u
     return FLOW_DEBUG_OK;
 }
 
-/* Samples physical inputs and atomically evaluates one complete shadow tick. */
+/*
+ * Samples one coherent physical input image and evaluates one complete tick.
+ * Manual step is never node-level: runtime commits memory and snapshot together,
+ * then live mode (if confirmed) uses forced-safe apply-and-relinquish behavior.
+ */
 flow_debug_result_t flow_debug_step(flow_debug_t *debug, uint32_t owner_id, uint64_t session_id, uint64_t now_ms)
 {
     if (debug == NULL)
@@ -492,6 +554,7 @@ flow_debug_result_t flow_debug_step(flow_debug_t *debug, uint32_t owner_id, uint
     {
         return FLOW_DEBUG_WRONG_STATE;
     }
+    /* The transient state prevents overlapping control operations while the complete tick is in progress. */
     debug->state              = FLOW_DEBUG_STEPPING;
     const uint64_t started_us = debug->get_time_us == NULL ? 0U : debug->get_time_us(debug->time_context);
     flow_input_frame_t input  = {0};
@@ -546,7 +609,11 @@ flow_debug_result_t flow_debug_step(flow_debug_t *debug, uint32_t owner_id, uint
     return FLOW_DEBUG_OK;
 }
 
-/* Starts fixed-interval shadow execution from ready or paused state without overlapping evaluator ticks. */
+/*
+ * Arms monotonic fixed-interval execution without performing a catch-up tick in
+ * this control call. Supervisor processing owns tick execution and skips missed
+ * deadlines, preventing bursts of stale evaluations after controller delay.
+ */
 flow_debug_result_t flow_debug_run(flow_debug_t *debug, uint32_t owner_id, uint64_t session_id, uint32_t interval_ms,
                                    uint64_t now_ms)
 {
@@ -580,7 +647,11 @@ flow_debug_result_t flow_debug_run(flow_debug_t *debug, uint32_t owner_id, uint6
     return FLOW_DEBUG_OK;
 }
 
-/* Pauses continuous execution while preserving memory and samples fresh inputs on the next step or run tick. */
+/*
+ * Pauses scheduling while preserving committed evaluator memory. Live commands
+ * are relinquished immediately, and a later step/run obtains a fresh coherent
+ * frame rather than replaying inputs captured before the pause.
+ */
 flow_debug_result_t flow_debug_pause(flow_debug_t *debug, uint32_t owner_id, uint64_t session_id, uint64_t now_ms)
 {
     if (debug == NULL)
@@ -606,7 +677,7 @@ flow_debug_result_t flow_debug_pause(flow_debug_t *debug, uint32_t owner_id, uin
     return FLOW_DEBUG_OK;
 }
 
-/* Gets status for the owning session and renews its fixed lease. */
+/* What: Returns bounded control-plane status and diagnostics for the current owner. Why: Clients need lifecycle visibility without transferring the bulk snapshot. How: It expires stale state first, verifies access, renews the lease, and copies a coherent status image. */
 flow_debug_result_t flow_debug_get_status(flow_debug_t *debug, uint32_t owner_id, uint64_t session_id, uint64_t now_ms,
                                           flow_debug_status_t *status)
 {
@@ -640,7 +711,11 @@ flow_debug_result_t flow_debug_get_status(flow_debug_t *debug, uint32_t owner_id
     return FLOW_DEBUG_OK;
 }
 
-/* Gets metadata for the latest immutable snapshot for one exact tick. */
+/*
+ * Returns the transfer contract for exactly the latest published session/tick.
+ * Refusing any other tick prevents a client from combining a stale header with
+ * chunks replaced by a newer latest-only publication.
+ */
 flow_debug_result_t flow_debug_get_snapshot_header(flow_debug_t *debug, uint32_t owner_id, uint64_t session_id,
                                                    uint64_t tick_number, uint64_t now_ms, flow_debug_snapshot_header_t *header)
 {
@@ -672,7 +747,7 @@ flow_debug_result_t flow_debug_get_snapshot_header(flow_debug_t *debug, uint32_t
     return FLOW_DEBUG_OK;
 }
 
-/* Copies one indexed immutable snapshot chunk and returns its absolute offset and size. */
+/* What: Copies one requested chunk from the exact published session and tick. Why: Bounded FCP frames cannot carry large snapshots and must not mix publications. How: It validates the immutable header, derives the absolute range, checks caller capacity, and copies without mutation. */
 flow_debug_result_t flow_debug_read_snapshot_chunk(flow_debug_t *debug, uint32_t owner_id, uint64_t session_id,
                                                    uint64_t tick_number, uint16_t chunk_index, uint64_t now_ms, uint8_t *output,
                                                    size_t capacity, uint32_t *absolute_offset, size_t *size)
@@ -704,7 +779,7 @@ flow_debug_result_t flow_debug_read_snapshot_chunk(flow_debug_t *debug, uint32_t
     return FLOW_DEBUG_OK;
 }
 
-/* Renews the fixed lease for an owned non-empty session. */
+/* What: Renews an owned session without changing execution state. Why: Long-lived clients need a dedicated authenticated keepalive when no other control request is sent. How: It processes expiry, verifies identity and ownership, then extends the fixed deadline. */
 flow_debug_result_t flow_debug_renew(flow_debug_t *debug, uint32_t owner_id, uint64_t session_id, uint64_t now_ms)
 {
     if (debug == NULL)
@@ -722,7 +797,7 @@ flow_debug_result_t flow_debug_renew(flow_debug_t *debug, uint32_t owner_id, uin
     return access;
 }
 
-/* Stops and securely clears one owned volatile session. */
+/* What: Terminates the identified session and releases every volatile resource and live command. Why: Explicit stop must restore the safe baseline without touching durable deployment. How: It verifies ownership, marks the terminal transition, and delegates complete cleanup to clear_session(). */
 flow_debug_result_t flow_debug_stop(flow_debug_t *debug, uint32_t owner_id, uint64_t session_id)
 {
     if (debug == NULL)
@@ -741,7 +816,11 @@ flow_debug_result_t flow_debug_stop(flow_debug_t *debug, uint32_t owner_id, uint
     return FLOW_DEBUG_OK;
 }
 
-/* Expires and clears a session whose authenticated lease deadline has elapsed. */
+/*
+ * Performs lease cleanup and at most one due continuous tick. The lease is a
+ * dead-man boundary rather than connection state: temporary transport loss is
+ * tolerated, but absent authenticated renewal guarantees bounded cleanup.
+ */
 void flow_debug_process(flow_debug_t *debug, uint64_t now_ms)
 {
     if (debug == NULL)
@@ -761,6 +840,7 @@ void flow_debug_process(flow_debug_t *debug, uint64_t now_ms)
     {
         const uint64_t scheduled_ms = debug->next_tick_ms;
 
+        /* Count and skip elapsed intervals; executing a burst would evaluate stale time points and monopolize the supervisor. */
         if (now_ms > scheduled_ms)
         {
             const uint64_t late_intervals = (now_ms - scheduled_ms) / debug->interval_ms;

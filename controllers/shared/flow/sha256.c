@@ -1,9 +1,27 @@
 #include "flow/sha256.h"
 
+/*
+ * Purpose: Implement the platform-independent SHA-256 primitive used to verify
+ * executable artifacts and immutable encoded debug snapshots.
+ *
+ * Why this file exists: Chunked transfer integrity must have identical semantics
+ * in firmware and host contract tests without depending on an RTOS, a hardware
+ * crypto peripheral, or a provider-specific API. This digest proves content
+ * integrity only; authentication and debug-session ownership are separate
+ * protocol responsibilities.
+ *
+ * How it works: Input is processed in fixed 64-byte blocks through the standard
+ * SHA-256 message schedule and compression rounds. At most two stack blocks are
+ * used for final padding and length encoding. Explicit byte-order conversion,
+ * caller-owned output, and no allocation keep results and resource use stable
+ * across supported hosts and embedded targets.
+ */
+
 #include <string.h>
 
 enum
 {
+    /* These sizes are fixed by SHA-256 and bound stack storage and compression work. */
     SHA256_BLOCK_BYTES  = 64,
     SHA256_DIGEST_WORDS = 8,
     SHA256_ROUNDS       = 64,
@@ -19,17 +37,22 @@ static const uint32_t ROUND_CONSTANTS[SHA256_ROUNDS] = {
     0x19a4c116U, 0x1e376c08U, 0x2748774cU, 0x34b0bcb5U, 0x391c0cb3U, 0x4ed8aa4aU, 0x5b9cca4fU, 0x682e6ff3U,
     0x748f82eeU, 0x78a5636fU, 0x84c87814U, 0x8cc70208U, 0x90befffaU, 0xa4506cebU, 0xbef9a3f7U, 0xc67178f2U};
 
-/* Rotates one SHA-256 word right by the specified bounded bit count. */
+/* Rotates a word for SHA-256 mixing; callers use only standard non-zero counts below the 32-bit word width. */
 static uint32_t rotate_right(uint32_t value, uint8_t bits)
 {
     return (value >> bits) | (value << (32U - bits));
 }
 
-/* Expands and compresses one complete SHA-256 block into the running state. */
+/*
+ * Expands one big-endian block and compresses it into the running SHA-256
+ * state. Fixed local storage keeps behavior and memory use identical in host
+ * tests and firmware.
+ */
 static void transform(uint32_t state[SHA256_DIGEST_WORDS], const uint8_t block[SHA256_BLOCK_BYTES])
 {
     uint32_t words[SHA256_ROUNDS];
 
+    /* Explicit decoding prevents host alignment or endianness from changing a cross-platform integrity digest. */
     for (size_t index = 0; index < 16U; index++)
     {
         const size_t offset = index * 4U;
@@ -81,13 +104,18 @@ static void transform(uint32_t state[SHA256_DIGEST_WORDS], const uint8_t block[S
     state[7] += h;
 }
 
-/* Computes the SHA-256 digest of one bounded byte sequence into the caller's 32-byte buffer. */
+/*
+ * Computes standard SHA-256 for one caller-owned byte range. Full blocks stream
+ * from input and at most two local blocks hold padding, so memory consumption
+ * does not grow with an artifact or snapshot.
+ */
 void flow_sha256(const uint8_t *data, size_t size, uint8_t digest[32])
 {
     uint32_t state[SHA256_DIGEST_WORDS] = {0x6a09e667U, 0xbb67ae85U, 0x3c6ef372U, 0xa54ff53aU,
                                            0x510e527fU, 0x9b05688cU, 0x1f83d9abU, 0x5be0cd19U};
     size_t offset                       = 0;
 
+    /* Process complete blocks directly so only the final partial block needs temporary storage. */
     while (size - offset >= SHA256_BLOCK_BYTES)
     {
         transform(state, &data[offset]);
@@ -100,6 +128,7 @@ void flow_sha256(const uint8_t *data, size_t size, uint8_t digest[32])
     {
         memcpy(final_blocks, &data[offset], remainder);
     }
+    /* Padding may need a second block when the final bit-length field no longer fits in the first. */
     final_blocks[remainder] = 0x80U;
     const size_t final_size = remainder < 56U ? SHA256_BLOCK_BYTES : SHA256_BLOCK_BYTES * 2U;
     const uint64_t bit_size = (uint64_t)size * 8U;
