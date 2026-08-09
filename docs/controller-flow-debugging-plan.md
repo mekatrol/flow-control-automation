@@ -349,18 +349,25 @@ Exit criteria:
 
 ### Phase 6: Integrate the flow designer
 
-1. Add a debug target selector with host and compatible hardware-controller
-   targets; controller discovery UI may initially use configured targets.
-2. Add Load, Step, Run, Pause, and Stop controls, enabling only operations
+Status: complete. The designer filters configured controller templates against
+the schema-1 digital debugging capability set, drives the manual session API,
+renders typed shadow snapshots over stable node IDs, and cleans up sessions on
+explicit Stop, navigation, refresh, and disconnect. Run uses a no-overlap
+fixed-interval Step loop; Pause freezes evaluator state until the next fresh
+input sample.
+
+1. **Complete:** Add a debug target selector with host and compatible
+   hardware-controller targets; initial discovery uses configured templates.
+2. **Complete:** Add Load, Step, Run, Pause, and Stop controls, enabling only operations
    supported by the current lifecycle state. Implement Load, Step, and Stop
    first; Run and Pause follow fixed-interval execution.
-3. Extend frontend runtime contracts with session ID, revision, tick number,
+3. **Complete:** Extend frontend runtime contracts with session ID, revision, tick number,
    quality, typed node values, proposed outputs, timing, and structured faults.
-4. Highlight node values and errors using stable node IDs. Clearly label
+4. **Complete:** Highlight node values and errors using stable node IDs. Clearly label
    snapshots as shadow mode and proposed outputs as non-physical.
-5. Detect stale snapshots and mismatched flow revisions instead of displaying
+5. **Complete:** Detect stale snapshots and mismatched flow revisions instead of displaying
    them over a changed graph.
-6. Ensure navigation, refresh, browser disconnect, and explicit Stop have clear
+6. **Complete:** Ensure navigation, refresh, browser disconnect, and explicit Stop have clear
    session behaviour; the backend lease remains the final cleanup guarantee.
 
 Exit criteria:

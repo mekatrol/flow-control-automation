@@ -88,6 +88,13 @@
           <p>{{ flow.description }}</p>
         </div>
         <div class="heading-actions">
+          <AppFlowDebugTargetSelector
+            v-model="debugTargetId"
+            automation="flow-debug-target"
+            :targets="debugTargets"
+            :loading="controllerTemplates.loading"
+            :error="controllerTemplates.error"
+          />
           <AppButton
             automation="flow-save"
             :text="saving ? 'Saving…' : 'Save flow'"
@@ -127,10 +134,24 @@
         </div>
       </div>
 
+      <AppFlowDebugPanel
+        automation="flow-debug"
+        :lifecycle="debugLifecycle"
+        :snapshot="debugSnapshot"
+        :stale="debugSnapshotStale"
+        :error="debugError"
+        :target-available="debugTargetId !== 'host'"
+        @load="loadDebugSession"
+        @step="stepDebugSession"
+        @run="runDebugSession"
+        @pause="pauseDebugSession"
+        @stop="stopDebugSession"
+      />
+
       <AppFlowDesignerCanvas
         v-bind="automation('canvas')"
         :flow="flow"
-        :runtime="runtime"
+        :runtime="debugNodeRuntime ?? runtime"
         @[EVENTS.MOVE_NODE]="moveNode"
         @[EVENTS.REORDER_NODE]="reorderNode"
         @[EVENTS.DELETE_NODE]="deleteNode"
@@ -167,6 +188,15 @@ import saveIcon from '@/assets/icons/save-icon.svg';
 import AppButton from '@/components/AppButton.vue';
 import AppErrorNotice from '@/components/AppErrorNotice.vue';
 import AppFlowDesignerCanvas from '@/features/flows/components/AppFlowDesignerCanvas.vue';
+import AppFlowDebugTargetSelector from '@/features/flows/components/AppFlowDebugTargetSelector.vue';
+import AppFlowDebugPanel from '@/features/flows/components/AppFlowDebugPanel.vue';
+import { getFlowDebugTargets } from '@/features/flows/debugTargets';
+import {
+  flowDebugApi,
+  type DebugRuntimeSnapshot,
+  type ExecutableFlowSource
+} from '@/features/flows/api/flowDebugApi';
+import { useControllerTemplatesCatalogueStore } from '@/features/catalogues/stores/catalogues';
 import { useFlowsStore } from '@/features/flows/stores/flows';
 import type { ZOrderCommand } from '@/features/flows/graph/zOrder';
 import { FlowApiError, flowApi } from '@/features/flows/api/flowApi';
@@ -187,6 +217,7 @@ const automation = useAutomation('flow-designer');
 
 const flowStore = useFlowsStore();
 const runtimeStore = useFlowRuntimeStore();
+const controllerTemplates = useControllerTemplatesCatalogueStore();
 const router = useRouter();
 const flow = computed(() => flowStore.findFlow(props.flowId));
 const dirty = computed(() => flowStore.isFlowDirty(props.flowId));
@@ -207,11 +238,177 @@ const showDeployConfirmation = ref(false);
 const deployDialog = ref<HTMLElement>();
 const discardDialog = ref<HTMLElement>();
 const runtime = computed(() => runtimeStore.snapshotFor(props.flowId));
+const debugTargets = computed(() => getFlowDebugTargets(controllerTemplates.allItems));
+const debugTargetId = ref('host');
+type DesignerDebugLifecycle =
+  | 'idle'
+  | 'loading'
+  | 'ready'
+  | 'stepping'
+  | 'running'
+  | 'paused'
+  | 'fault'
+  | 'stopped';
+const debugLifecycle = ref<DesignerDebugLifecycle>('idle');
+const debugSessionId = ref<string>();
+const debugSnapshot = ref<DebugRuntimeSnapshot>();
+const debugRevision = ref<number>();
+const debugError = ref<string>();
+let debugController: AbortController | undefined;
+let runTimer: ReturnType<typeof window.setTimeout> | undefined;
 const deploying = computed(() => runtimeStore.isDeploying(props.flowId));
 let loadController: AbortController | undefined;
 const loadGuard = createLatestRequestGuard();
 const pendingRoute = ref<string>();
 let allowNavigation = false;
+
+watch(debugTargets, (targets) => {
+  if (!targets.some((target) => target.id === debugTargetId.value)) debugTargetId.value = 'host';
+});
+watch(debugTargetId, () => {
+  if (debugSessionId.value) void stopDebugSession();
+});
+
+const flowRevision = computed(() => {
+  const current = flow.value;
+  if (!current) return 1;
+  const graph = JSON.stringify({ nodes: current.nodes, connections: current.connections });
+  let hash = 2166136261;
+  for (let index = 0; index < graph.length; index += 1) {
+    hash ^= graph.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0 || 1;
+});
+const debugSnapshotStale = computed(() =>
+  Boolean(debugSnapshot.value && debugRevision.value !== flowRevision.value)
+);
+const debugNodeRuntime = computed(() => {
+  const snapshot = debugSnapshot.value;
+  if (!snapshot || debugSnapshotStale.value) return undefined;
+  return {
+    flowId: snapshot.flowId,
+    state: snapshot.lifecycleState === 'fault' ? ('error' as const) : ('stopped' as const),
+    updatedAt: new Date(snapshot.completedAtMs).toISOString(),
+    nodes: Object.fromEntries(
+      snapshot.nodes.map((node) => [
+        node.nodeId,
+        {
+          state: (node.state === 'fault' || snapshot.lastReasonPath.includes(node.nodeId)
+            ? 'error'
+            : 'stopped') as 'error' | 'stopped',
+          value: node.typedValue ? `${node.typedValue.value} · ${node.quality}` : node.quality,
+          updatedAt: new Date(snapshot.completedAtMs).toISOString()
+        }
+      ])
+    )
+  };
+});
+const selectedDebugTarget = computed(() =>
+  debugTargets.value.find((target) => target.id === debugTargetId.value)
+);
+const executableSource = (): ExecutableFlowSource | undefined => {
+  const current = flow.value;
+  const target = selectedDebugTarget.value;
+  if (!current || !target?.controllerTemplateId || !target.controllerTemplateRevision) return;
+  return {
+    schemaVersion: 1,
+    id: current.id,
+    revision: flowRevision.value,
+    controllerTemplateId: target.controllerTemplateId,
+    controllerTemplateRevision: target.controllerTemplateRevision,
+    execution: { mode: 'manual', intervalMs: 0, inputQualityPolicy: 'require_good' },
+    nodes: current.nodes.map((node) => ({
+      id: node.id,
+      kind: node.kind,
+      configuration: node.configuration
+    })),
+    connections: current.connections.map((connection) => ({
+      source: { nodeId: connection.start.nodeId, portId: connection.start.connectorId },
+      target: { nodeId: connection.end.nodeId, portId: connection.end.connectorId }
+    }))
+  };
+};
+const debugFailure = (error: unknown): string =>
+  error instanceof Error ? error.message : 'Debug operation failed.';
+const clearRunTimer = (): void => {
+  if (runTimer !== undefined) window.clearTimeout(runTimer);
+  runTimer = undefined;
+};
+const loadDebugSession = async (): Promise<void> => {
+  const source = executableSource();
+  if (!source) return;
+  debugController?.abort();
+  debugController = new AbortController();
+  debugLifecycle.value = 'loading';
+  debugError.value = undefined;
+  debugSnapshot.value = undefined;
+  try {
+    const session = await flowDebugApi.load(source, debugController.signal);
+    if (session.flowId !== props.flowId || session.revision !== source.revision)
+      throw new Error('Loaded debug session does not match this flow revision.');
+    debugSessionId.value = session.debugSessionId;
+    debugRevision.value = session.revision;
+    debugSnapshot.value = session.snapshot;
+    debugLifecycle.value = 'ready';
+  } catch (error) {
+    debugLifecycle.value = 'fault';
+    debugError.value = debugFailure(error);
+  }
+};
+const stepDebugSession = async (): Promise<void> => {
+  const sessionId = debugSessionId.value;
+  if (!sessionId || debugSnapshotStale.value) return;
+  debugLifecycle.value = 'stepping';
+  debugError.value = undefined;
+  try {
+    const snapshot = await flowDebugApi.step(props.flowId, sessionId);
+    if (
+      snapshot.flowId !== props.flowId ||
+      snapshot.revision !== debugRevision.value ||
+      snapshot.debugSessionId !== sessionId
+    )
+      throw new Error('The debug service returned a stale or mismatched snapshot.');
+    debugSnapshot.value = snapshot;
+    debugLifecycle.value = 'ready';
+  } catch (error) {
+    clearRunTimer();
+    debugLifecycle.value = 'fault';
+    debugError.value = debugFailure(error);
+  }
+};
+const scheduleDebugStep = (): void => {
+  clearRunTimer();
+  runTimer = window.setTimeout(async () => {
+    if (debugLifecycle.value !== 'running') return;
+    await stepDebugSession();
+    if ((['ready'] as DesignerDebugLifecycle[]).includes(debugLifecycle.value)) {
+      debugLifecycle.value = 'running';
+      scheduleDebugStep();
+    }
+  }, 500);
+};
+const runDebugSession = (): void => {
+  debugLifecycle.value = 'running';
+  scheduleDebugStep();
+};
+const pauseDebugSession = (): void => {
+  clearRunTimer();
+  debugLifecycle.value = 'paused';
+};
+const stopDebugSession = async (keepalive = false): Promise<void> => {
+  clearRunTimer();
+  debugController?.abort();
+  const sessionId = debugSessionId.value;
+  debugSessionId.value = undefined;
+  debugLifecycle.value = 'stopped';
+  if (!sessionId) return;
+  try {
+    await flowDebugApi.stop(props.flowId, sessionId, keepalive);
+  } catch (error) {
+    if (!keepalive) debugError.value = debugFailure(error);
+  }
+};
 
 const closeDeployConfirmation = (): void => {
   showDeployConfirmation.value = false;
@@ -362,9 +559,12 @@ watch(
 onBeforeUnmount(() => {
   loadGuard.invalidate();
   loadController?.abort();
+  controllerTemplates.cancel();
+  void stopDebugSession(true);
 });
 
 const handleBeforeUnload = (event: BeforeUnloadEvent): void => {
+  if (debugSessionId.value) void stopDebugSession(true);
   if (!dirty.value) return;
   // Browsers show their own confirmation wording for tab close and page refresh.
   // Setting returnValue is still required by browsers that support this prompt.
@@ -396,11 +596,17 @@ const discardChanges = async (): Promise<void> => {
 onBeforeRouteLeave((to) => {
   // Client-side routing does not trigger beforeunload, so it needs a separate
   // guard and an application-owned dialog that can keep or discard the draft.
-  if (allowNavigation || !dirty.value) return true;
+  if (allowNavigation || !dirty.value) {
+    if (debugSessionId.value) void stopDebugSession(true);
+    return true;
+  }
   pendingRoute.value = to.fullPath;
   return false;
 });
-onMounted(() => window.addEventListener('beforeunload', handleBeforeUnload));
+onMounted(() => {
+  window.addEventListener('beforeunload', handleBeforeUnload);
+  void controllerTemplates.load();
+});
 onBeforeUnmount(() => window.removeEventListener('beforeunload', handleBeforeUnload));
 </script>
 
