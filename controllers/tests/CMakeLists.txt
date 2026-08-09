@@ -35,8 +35,15 @@ add_executable(controller_health_format_tests
 target_include_directories(controller_health_format_tests PRIVATE ../shared)
 add_test(NAME controller_health_format COMMAND controller_health_format_tests)
 
+add_executable(kahn_sort_tests
+    test_kahn_sort.c
+    ../shared/algorithm/kahn_sort.c)
+target_include_directories(kahn_sort_tests PRIVATE ../shared)
+add_test(NAME kahn_sort COMMAND kahn_sort_tests)
+
 add_executable(controller_protocol_tests
     test_controller_protocol.c
+    ../shared/algorithm/kahn_sort.c
     ../shared/controller/protocol.c
     ../shared/controller/auth.c
     ../shared/flow/service.c
@@ -62,6 +69,7 @@ add_test(NAME controller_flow COMMAND controller_flow_tests)
 
 add_executable(flow_contract_fixture_tests
     test_flow_contract_fixtures.c
+    ../shared/algorithm/kahn_sort.c
     ../shared/flow/executable.c
     ../shared/flow/runtime.c
     ../shared/flow/sha256.c)
@@ -72,6 +80,7 @@ add_test(NAME flow_contract_fixtures COMMAND flow_contract_fixture_tests)
 
 add_executable(flow_debug_tests
     test_flow_debug.c
+    ../shared/algorithm/kahn_sort.c
     ../shared/flow/debug.c
     ../shared/flow/executable.c
     ../shared/flow/runtime.c

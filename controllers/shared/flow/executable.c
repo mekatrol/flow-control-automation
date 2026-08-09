@@ -20,6 +20,7 @@
  * execution plan that requires no parsing or hardware discovery during a tick.
  */
 
+#include "algorithm/kahn_sort.h"
 #include "flow/sha256.h"
 
 #include <stdio.h>
@@ -525,15 +526,28 @@ static flow_result_t is_shape_valid(const flow_executable_t *flow)
 }
 
 /*
- * What: Builds the deterministic node schedule and rejects combinational cycles.
- * Why: Every tick needs a fixed dependency order independent of artifact record order, while explicit memory must permit feedback
- * across ticks. How: A bounded Kahn sort ignores edges entering memory, selects ready nodes by lexical stable ID, and reports the
- * first unscheduled node on a cycle.
+ * What: Compares two node indices by their stable identifiers.
+ * Why: Lexical tie breaking makes schedules independent of otherwise valid artifact table permutations.
+ * How: Uses the prepared flow supplied as context and returns whether the left identifier sorts before the right identifier.
+ */
+static bool is_node_before(uint16_t left, uint16_t right, const void *context)
+{
+    const flow_executable_t *flow = context;
+
+    return strcmp(flow->nodes[left].id, flow->nodes[right].id) < 0;
+}
+
+/*
+ * What: Builds the flow-specific same-tick graph and requests its deterministic topological order.
+ * Why: Memory inputs are next-state sinks rather than same-tick dependencies, while all other edges constrain evaluation order.
+ * How: Filters flow connections into bounded indexed edges, delegates sorting, and translates cycle results to artifact diagnostics.
  */
 static flow_result_t get_schedule(flow_executable_t *flow)
 {
-    uint16_t degrees[FLOW_EXECUTABLE_MAX_NODES] = {0};
-    bool selected[FLOW_EXECUTABLE_MAX_NODES]    = {false};
+    kahn_edge_t edges[FLOW_EXECUTABLE_MAX_CONNECTIONS];
+    size_t edge_count = 0U;
+    uint16_t degrees[FLOW_EXECUTABLE_MAX_NODES];
+    bool selected[FLOW_EXECUTABLE_MAX_NODES];
 
     /* Memory reads expose the previous tick, so edges into memory cannot form same-tick dependency cycles. */
     for (uint16_t index = 0; index < flow->connection_count; index++)
@@ -542,47 +556,24 @@ static flow_result_t get_schedule(flow_executable_t *flow)
 
         if (flow->nodes[connection->target_node_index].kind != FLOW_NODE_MEMORY)
         {
-            degrees[connection->target_node_index]++;
+            edges[edge_count++] = (kahn_edge_t){.source = connection->source_node_index,
+                                                .target = connection->target_node_index};
         }
     }
 
-    for (uint16_t position = 0; position < flow->node_count; position++)
+    uint16_t cycle_node;
+    const kahn_sort_result_t result =
+        kahn_sort(flow->node_count, edges, edge_count, is_node_before, flow, flow->schedule,
+                  (kahn_sort_workspace_t){.degrees = degrees, .selected = selected}, &cycle_node);
+
+    if (result == KAHN_SORT_CYCLE)
     {
-        uint16_t candidate = flow->node_count;
+        return get_identifier_result(FLOW_REASON_COMBINATIONAL_CYCLE, "/nodes/", flow->nodes[cycle_node].id);
+    }
 
-        /* Lexical stable-ID tie breaking makes the schedule independent of otherwise valid table permutations. */
-        for (uint16_t index = 0; index < flow->node_count; index++)
-        {
-            if (!selected[index] && degrees[index] == 0U &&
-                (candidate == flow->node_count || strcmp(flow->nodes[index].id, flow->nodes[candidate].id) < 0))
-            {
-                candidate = index;
-            }
-        }
-
-        if (candidate == flow->node_count)
-        {
-            for (uint16_t index = 0; index < flow->node_count; index++)
-            {
-                if (!selected[index])
-                {
-                    return get_identifier_result(FLOW_REASON_COMBINATIONAL_CYCLE, "/nodes/", flow->nodes[index].id);
-                }
-            }
-        }
-
-        selected[candidate]      = true;
-        flow->schedule[position] = candidate;
-
-        for (uint16_t edge = 0; edge < flow->connection_count; edge++)
-        {
-            const flow_connection_t *connection = &flow->connections[edge];
-
-            if (connection->source_node_index == candidate && flow->nodes[connection->target_node_index].kind != FLOW_NODE_MEMORY)
-            {
-                degrees[connection->target_node_index]--;
-            }
-        }
+    if (result != KAHN_SORT_OK)
+    {
+        return get_result(FLOW_REASON_MALFORMED, "/connections");
     }
 
     return get_result(FLOW_REASON_OK, "");
