@@ -80,6 +80,7 @@ bool controller_flow_init(controller_flow_t *flow, controller_flow_digest_t get_
     {
         return false;
     }
+
     *flow                   = (controller_flow_t){0};
     flow->get_digest        = get_digest;
     flow->is_artifact_valid = is_artifact_valid;
@@ -97,6 +98,7 @@ bool controller_flow_init(controller_flow_t *flow, controller_flow_digest_t get_
 
             return false;
         }
+
         uint8_t digest[CONTROLLER_FLOW_DIGEST_SIZE];
 
         if (!get_digest(digest_context, flow->committed_artifact, flow->committed.size, digest) ||
@@ -107,6 +109,7 @@ bool controller_flow_init(controller_flow_t *flow, controller_flow_digest_t get_
 
             return false;
         }
+
         flow->has_committed = true;
     }
 
@@ -143,6 +146,7 @@ controller_flow_result_t controller_flow_begin(controller_flow_t *flow, const co
     {
         return CONTROLLER_FLOW_STORAGE_FULL;
     }
+
     clear_staging(flow);
     flow->staging           = *metadata;
     flow->staging.is_active = false;
@@ -186,6 +190,7 @@ controller_flow_result_t controller_flow_write(controller_flow_t *flow, uint32_t
             set_covered(flow, offset + index);
         }
     }
+
     flow->is_validated = false;
 
     return CONTROLLER_FLOW_OK;
@@ -207,6 +212,7 @@ controller_flow_result_t controller_flow_validate(controller_flow_t *flow, uint3
     {
         return CONTROLLER_FLOW_WRONG_STATE;
     }
+
     uint8_t digest[CONTROLLER_FLOW_DIGEST_SIZE];
 
     if (!flow->get_digest(flow->digest_context, flow->staging_artifact, flow->staging.size, digest))
@@ -223,6 +229,7 @@ controller_flow_result_t controller_flow_validate(controller_flow_t *flow, uint3
     {
         return CONTROLLER_FLOW_VALIDATION_FAILED;
     }
+
     flow->is_validated = true;
 
     return CONTROLLER_FLOW_OK;
@@ -244,6 +251,7 @@ controller_flow_result_t controller_flow_commit(controller_flow_t *flow, uint32_
     {
         return CONTROLLER_FLOW_STORAGE_UNAVAILABLE;
     }
+
     flow->committed = flow->staging;
     memcpy(flow->committed_artifact, flow->staging_artifact, flow->staging.size);
     flow->has_committed = true;
@@ -260,6 +268,7 @@ controller_flow_result_t controller_flow_abort(controller_flow_t *flow, uint32_t
     {
         return CONTROLLER_FLOW_WRONG_STATE;
     }
+
     clear_staging(flow);
 
     return CONTROLLER_FLOW_OK;
@@ -273,6 +282,7 @@ controller_flow_result_t controller_flow_set_active(controller_flow_t *flow, boo
     {
         return CONTROLLER_FLOW_NOT_FOUND;
     }
+
     controller_flow_metadata_t updated = flow->committed;
     updated.is_active                  = is_active;
 
@@ -280,6 +290,7 @@ controller_flow_result_t controller_flow_set_active(controller_flow_t *flow, boo
     {
         return CONTROLLER_FLOW_STORAGE_UNAVAILABLE;
     }
+
     flow->committed = updated;
 
     return CONTROLLER_FLOW_OK;
@@ -303,6 +314,7 @@ controller_flow_result_t controller_flow_remove(controller_flow_t *flow)
     {
         return CONTROLLER_FLOW_STORAGE_UNAVAILABLE;
     }
+
     memset(&flow->committed, 0, sizeof(flow->committed));
     memset(flow->committed_artifact, 0, sizeof(flow->committed_artifact));
     flow->has_committed = false;
@@ -348,7 +360,9 @@ controller_flow_result_t controller_flow_read(const controller_flow_t *flow, siz
     {
         return CONTROLLER_FLOW_INVALID_ARGUMENT;
     }
+
     const size_t remaining = flow->committed.size - offset;
+
     *size                  = remaining < capacity ? remaining : capacity;
     memcpy(output, &flow->committed_artifact[offset], *size);
 

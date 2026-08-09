@@ -129,6 +129,7 @@ static settings_storage_state_t initialize_storage(settings_service_t *service, 
 
         return SETTINGS_STORAGE_INITIALIZATION_INTERRUPTED;
     }
+
     service->snapshot       = *defaults;
     service->generation     = ready.generation;
     service->schema_version = ready.schema_version;
@@ -147,6 +148,7 @@ settings_storage_state_t settings_service_initialize(settings_service_t *service
     {
         return service->state;
     }
+
     service->store                        = *store;
     service->defaults                     = *defaults;
     settings_bootstrap_record_t bootstrap = {0};
@@ -203,6 +205,7 @@ settings_storage_state_t settings_service_initialize(settings_service_t *service
 
         return service->state;
     }
+
     settings_value_record_t values              = {0};
     size_t values_size                          = 0;
     const settings_store_result_t values_result = store->get_settings(store->context, &values, sizeof(values), &values_size);
@@ -222,6 +225,7 @@ settings_storage_state_t settings_service_initialize(settings_service_t *service
 
         return service->state;
     }
+
     service->snapshot       = values.settings;
     service->generation     = values.generation;
     service->schema_version = values.schema_version;
@@ -243,6 +247,7 @@ settings_store_result_t settings_service_commit(settings_service_t *service, con
     {
         return SETTINGS_STORE_UNAVAILABLE;
     }
+
     const uint32_t generation               = service->generation + 1;
     const settings_value_record_t values    = get_value_record(settings, generation);
     const settings_bootstrap_record_t ready = get_bootstrap_record(generation, BOOTSTRAP_STATE_READY);
@@ -254,6 +259,7 @@ settings_store_result_t settings_service_commit(settings_service_t *service, con
 
         return SETTINGS_STORE_IO_ERROR;
     }
+
     const settings_store_result_t result = service->store.commit(service->store.context);
 
     if (result != SETTINGS_STORE_OK)
@@ -262,6 +268,7 @@ settings_store_result_t settings_service_commit(settings_service_t *service, con
 
         return result;
     }
+
     service->snapshot   = *settings;
     service->generation = generation;
 

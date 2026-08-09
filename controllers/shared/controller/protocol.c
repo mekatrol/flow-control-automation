@@ -102,6 +102,7 @@ static bool append_string8(uint8_t *payload, size_t capacity, size_t *offset, co
     {
         return false;
     }
+
     payload[(*offset)++] = (uint8_t)size;
     memcpy(&payload[*offset], value, size);
 
@@ -118,7 +119,9 @@ static bool append_string16(uint8_t *payload, size_t capacity, size_t *offset, c
     {
         return false;
     }
+
     put_u16(&payload[*offset], (uint16_t)size);
+
     *offset += 2;
     memcpy(&payload[*offset], value, size);
 
@@ -159,12 +162,14 @@ bool controller_protocol_encode(const controller_protocol_message_t *message, ui
     {
         return false;
     }
+
     const size_t frame_size = CONTROLLER_PROTOCOL_HEADER_SIZE + message->payload_size + CONTROLLER_PROTOCOL_CRC_SIZE;
 
     if (frame_size > capacity)
     {
         return false;
     }
+
     output[0] = PROTOCOL_MAGIC_FIRST;
     output[1] = PROTOCOL_MAGIC_SECOND;
     output[2] = PROTOCOL_VERSION;
@@ -207,6 +212,7 @@ controller_protocol_decode_result_t controller_protocol_decode(const uint8_t *fr
     {
         return CONTROLLER_PROTOCOL_DECODE_BAD_FLAGS;
     }
+
     const size_t payload_size = get_u16(&frame[11]);
 
     if (payload_size > CONTROLLER_PROTOCOL_PAYLOAD_CAPACITY ||
@@ -220,6 +226,7 @@ controller_protocol_decode_result_t controller_protocol_decode(const uint8_t *fr
     {
         return CONTROLLER_PROTOCOL_DECODE_BAD_CRC;
     }
+
     *message = (controller_protocol_message_t){.flags        = frame[3],
                                                .destination  = get_u16(&frame[4]),
                                                .source       = get_u16(&frame[6]),
@@ -251,6 +258,7 @@ bool controller_protocol_init(controller_protocol_t *protocol, const controller_
     {
         return false;
     }
+
     *protocol              = (controller_protocol_t){0};
     protocol->config       = *config;
     protocol->send         = send;
@@ -272,6 +280,7 @@ static void send_response(controller_protocol_t *protocol, const controller_prot
 
             return;
         }
+
         authenticated_response = *response;
         memmove(&authenticated_response.payload[PROTOCOL_AUTH_ENVELOPE_PREFIX_SIZE], response->payload, response->payload_size);
         put_u32(authenticated_response.payload, protocol->authenticated_session_id);
@@ -286,12 +295,14 @@ static void send_response(controller_protocol_t *protocol, const controller_prot
 
             return;
         }
+
         put_u64(&authenticated_response.payload[sizeof(uint32_t)], sequence);
         memcpy(&authenticated_response.payload[PROTOCOL_AUTH_ENVELOPE_PREFIX_SIZE + response->payload_size], tag, sizeof(tag));
         authenticated_response.payload_size = response->payload_size + PROTOCOL_AUTH_ENVELOPE_SIZE;
         authenticated_response.flags |= PROTOCOL_FLAG_AUTHENTICATED;
         response = &authenticated_response;
     }
+
     uint8_t frame[CONTROLLER_PROTOCOL_FRAME_CAPACITY];
     size_t frame_size = 0;
 
@@ -347,6 +358,7 @@ static bool unwrap_authenticated_request(controller_protocol_t *protocol, contro
     {
         return false;
     }
+
     const uint32_t session_id = get_u32(request->payload);
     uint64_t sequence         = 0;
 
@@ -354,6 +366,7 @@ static bool unwrap_authenticated_request(controller_protocol_t *protocol, contro
     {
         sequence |= (uint64_t)request->payload[sizeof(session_id) + index] << (index * 8U);
     }
+
     const size_t body_size = request->payload_size - PROTOCOL_AUTH_ENVELOPE_SIZE;
     const uint8_t *body    = &request->payload[PROTOCOL_AUTH_ENVELOPE_PREFIX_SIZE];
     const uint8_t *tag     = &body[body_size];
@@ -363,6 +376,7 @@ static bool unwrap_authenticated_request(controller_protocol_t *protocol, contro
     {
         return false;
     }
+
     memmove(request->payload, body, body_size);
     request->payload_size               = body_size;
     request->flags                      = 0;
@@ -432,7 +446,9 @@ static bool append_point_definition(uint8_t *payload, size_t capacity, size_t *o
     {
         return false;
     }
+
     put_u32(&payload[*offset], definition->revision);
+
     *offset += 4;
     payload[(*offset)++] = (uint8_t)definition->type;
     payload[(*offset)++] = definition->service_flags;
@@ -451,6 +467,7 @@ static void handle_list_points(controller_protocol_t *protocol, const controller
 
         return;
     }
+
     size_t count = 0;
     controller_protocol_provider_result_t result =
         protocol->config.point_provider.get_count(protocol->config.point_provider.context, &count);
@@ -462,6 +479,7 @@ static void handle_list_points(controller_protocol_t *protocol, const controller
 
         return;
     }
+
     const size_t start   = get_u16(request->payload);
     const size_t maximum = request->payload[2];
 
@@ -471,6 +489,7 @@ static void handle_list_points(controller_protocol_t *protocol, const controller
 
         return;
     }
+
     controller_protocol_message_t response = get_response(protocol, request);
     put_u16(response.payload, (uint16_t)count);
     response.payload[2] = 0;
@@ -496,11 +515,14 @@ static void handle_list_points(controller_protocol_t *protocol, const controller
 
                 return;
             }
+
             response.flags |= PROTOCOL_FLAG_MORE;
             break;
         }
+
         response.payload[2]++;
     }
+
     response.payload_size = offset;
     send_response(protocol, &response);
 }
@@ -512,12 +534,14 @@ static bool get_requested_point_id(const controller_protocol_message_t *request,
     {
         return false;
     }
+
     const size_t size = request->payload[0];
 
     if (size == 0 || size + 1U != request->payload_size || size >= capacity)
     {
         return false;
     }
+
     memcpy(point_id, &request->payload[1], size);
     point_id[size] = '\0';
 
@@ -531,12 +555,14 @@ static bool get_output_command(const controller_protocol_message_t *request, cha
     {
         return false;
     }
+
     const size_t id_size = request->payload[0];
 
     if (id_size == 0 || id_size >= capacity || request->payload_size != id_size + 2U || request->payload[id_size + 1U] > 1U)
     {
         return false;
     }
+
     memcpy(point_id, &request->payload[1], id_size);
     point_id[id_size] = '\0';
 
@@ -551,6 +577,7 @@ static bool get_arbitrated_command(const controller_protocol_message_t *request,
     {
         return false;
     }
+
     size_t offset   = 0;
     command->output = request->payload[offset++];
 
@@ -558,6 +585,7 @@ static bool get_arbitrated_command(const controller_protocol_message_t *request,
     {
         return false;
     }
+
     command->value           = request->payload[offset++] != 0U;
     const size_t source_size = request->payload[offset++];
 
@@ -565,6 +593,7 @@ static bool get_arbitrated_command(const controller_protocol_message_t *request,
     {
         return false;
     }
+
     memcpy(command->source_id, &request->payload[offset], source_size);
     command->source_id[source_size] = '\0';
     offset += source_size;
@@ -577,6 +606,7 @@ static bool get_arbitrated_command(const controller_protocol_message_t *request,
     {
         return false;
     }
+
     memcpy(command->correlation_id, &request->payload[offset], correlation_size);
     command->correlation_id[correlation_size] = '\0';
     offset += correlation_size;
@@ -624,6 +654,7 @@ static controller_protocol_provider_result_t get_definition_by_id(const controll
     {
         return CONTROLLER_PROTOCOL_PROVIDER_NOT_READY;
     }
+
     size_t count                                 = 0;
     controller_protocol_provider_result_t result = provider->get_count(provider->context, &count);
 
@@ -656,6 +687,7 @@ static void handle_get_point_definition(controller_protocol_t *protocol, const c
 
         return;
     }
+
     controller_protocol_point_definition_t definition = {0};
     const controller_protocol_provider_result_t result =
         get_definition_by_id(&protocol->config.point_provider, point_id, &definition);
@@ -667,6 +699,7 @@ static void handle_get_point_definition(controller_protocol_t *protocol, const c
 
         return;
     }
+
     controller_protocol_message_t response = get_response(protocol, request);
     size_t offset                          = 0;
 
@@ -677,6 +710,7 @@ static void handle_get_point_definition(controller_protocol_t *protocol, const c
 
         return;
     }
+
     response.payload_size = offset;
     send_response(protocol, &response);
 }
@@ -693,6 +727,7 @@ static bool append_point_value(controller_protocol_message_t *response, const co
     {
         return false;
     }
+
     put_u32(&response->payload[offset], value->definition.revision);
     offset += 4;
     response->payload[offset++] = (uint8_t)value->definition.type;
@@ -705,6 +740,7 @@ static bool append_point_value(controller_protocol_message_t *response, const co
             {
                 return false;
             }
+
             uint64_t analog_bits;
             memcpy(&analog_bits, &value->value.analog, sizeof(analog_bits));
             put_u64(&response->payload[offset], analog_bits);
@@ -716,6 +752,7 @@ static bool append_point_value(controller_protocol_message_t *response, const co
             {
                 return false;
             }
+
             response->payload[offset++] = value->value.digital ? 1U : 0U;
             break;
         case CONTROLLER_PROTOCOL_POINT_INTEGER:
@@ -724,6 +761,7 @@ static bool append_point_value(controller_protocol_message_t *response, const co
             {
                 return false;
             }
+
             put_u64(&response->payload[offset], (uint64_t)value->value.integer);
             offset += sizeof(int64_t);
             break;
@@ -734,6 +772,7 @@ static bool append_point_value(controller_protocol_message_t *response, const co
             {
                 return false;
             }
+
             break;
         case CONTROLLER_PROTOCOL_POINT_TEXT:
 
@@ -742,6 +781,7 @@ static bool append_point_value(controller_protocol_message_t *response, const co
             {
                 return false;
             }
+
             break;
     }
 
@@ -751,6 +791,7 @@ static bool append_point_value(controller_protocol_message_t *response, const co
     {
         return false;
     }
+
     response->payload[offset++] = (uint8_t)value->quality;
     put_u16(&response->payload[offset], value->reliability);
     offset += 2;
@@ -784,6 +825,7 @@ static void handle_get_point_value(controller_protocol_t *protocol, const contro
 
         return;
     }
+
     controller_protocol_point_value_t value = {0};
     const controller_protocol_provider_result_t result =
         protocol->config.point_provider.get_value(protocol->config.point_provider.context, point_id, &value);
@@ -795,6 +837,7 @@ static void handle_get_point_value(controller_protocol_t *protocol, const contro
 
         return;
     }
+
     controller_protocol_message_t response = get_response(protocol, request);
 
     if (!append_point_value(&response, &value))
@@ -804,6 +847,7 @@ static void handle_get_point_value(controller_protocol_t *protocol, const contro
 
         return;
     }
+
     send_response(protocol, &response);
 }
 
@@ -816,6 +860,7 @@ static bool set_device_info_payload(const controller_protocol_t *protocol, contr
     {
         return false;
     }
+
     put_u16(response->payload, protocol->config.address);
     offset = 2;
 
@@ -825,6 +870,7 @@ static bool set_device_info_payload(const controller_protocol_t *protocol, contr
     {
         return false;
     }
+
     response->payload_size = offset;
 
     return true;
@@ -877,6 +923,7 @@ static bool append_flow_metadata(controller_protocol_message_t *response, const 
     {
         return false;
     }
+
     put_u32(&response->payload[offset], metadata->revision);
     offset += 4;
     put_u32(&response->payload[offset], metadata->artifact_schema);
@@ -899,6 +946,7 @@ static bool get_upload_metadata(const controller_protocol_message_t *request, co
     {
         return false;
     }
+
     const size_t id_size    = request->payload[0];
     const size_t fixed_size = 1U + id_size + 4U + 4U + 4U + CONTROLLER_FLOW_DIGEST_SIZE + 1U + 4U;
 
@@ -906,6 +954,7 @@ static bool get_upload_metadata(const controller_protocol_message_t *request, co
     {
         return false;
     }
+
     size_t offset = 1;
     memcpy(metadata->id, &request->payload[offset], id_size);
     metadata->id[id_size] = '\0';
@@ -937,6 +986,7 @@ static bool is_flow_result_success(controller_protocol_t *protocol, const contro
     {
         return true;
     }
+
     send_error(protocol, request, get_flow_error(result));
 
     return false;
@@ -984,6 +1034,7 @@ static bool is_debug_result_success(controller_protocol_t *protocol, const contr
     {
         return true;
     }
+
     send_error(protocol, request, get_debug_error(result));
 
     return false;
@@ -1014,6 +1065,7 @@ static bool set_debug_status_payload(controller_protocol_message_t *response, co
     {
         return false;
     }
+
     response->payload_size = offset;
 
     return true;
@@ -1038,6 +1090,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                 send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
                 break;
             }
+
             response.payload_size = 19;
             response.payload[0]   = PROTOCOL_CAPABILITY_MINOR;
             put_u16(&response.payload[1], CONTROLLER_PROTOCOL_FRAME_CAPACITY);
@@ -1066,10 +1119,12 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                            request->payload_size == 0 ? CONTROLLER_PROTOCOL_ERROR_INTERNAL
                                                       : CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
             }
+
             else
             {
                 send_response(protocol, &response);
             }
+
             break;
         case CONTROLLER_PROTOCOL_OPERATION_GET_HEALTH:
 
@@ -1078,6 +1133,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                 send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
                 break;
             }
+
             const uint32_t counters[] = {
                 protocol->health.accepted_frame_count,       protocol->health.magic_error_count,
                 protocol->health.version_error_count,        protocol->health.flag_error_count,
@@ -1091,6 +1147,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
             {
                 put_u32(&response.payload[index * sizeof(uint32_t)], counters[index]);
             }
+
             send_response(protocol, &response);
             break;
         case CONTROLLER_PROTOCOL_OPERATION_LIST_POINTS:
@@ -1115,6 +1172,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                 send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_NOT_READY);
                 break;
             }
+
             controller_protocol_io_block_t block;
             const controller_protocol_provider_result_t block_result =
                 protocol->config.get_io_block(protocol->config.io_context, &block);
@@ -1125,6 +1183,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                 send_error(protocol, request, get_provider_error(block_result));
                 break;
             }
+
             put_u16(&response.payload[0], block.inputs);
             put_u16(&response.payload[2], block.outputs);
             response.payload[4] = block.validity_flags;
@@ -1145,6 +1204,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                                                                : CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
                     break;
                 }
+
                 const controller_point_result_t result =
                     controller_points_command(protocol->config.points, &command, (int64_t)now_ms);
 
@@ -1153,11 +1213,13 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                     send_error(protocol, request, get_point_error(result));
                     break;
                 }
+
                 response.payload_size = request->payload_size;
                 memcpy(response.payload, request->payload, request->payload_size);
                 send_response(protocol, &response);
                 break;
             }
+
             char output_id[CONTROLLER_PROTOCOL_POINT_ID_CAPACITY];
             bool output_value = false;
 
@@ -1172,6 +1234,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                 send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_NOT_READY);
                 break;
             }
+
             const controller_protocol_provider_result_t output_result =
                 protocol->config.set_output(protocol->config.io_context, output_id, output_value);
 
@@ -1181,17 +1244,20 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                 send_error(protocol, request, get_provider_error(output_result));
                 break;
             }
+
             response.payload_size = request->payload_size;
             memcpy(response.payload, request->payload, request->payload_size);
             send_response(protocol, &response);
             break;
         }
+
         case CONTROLLER_PROTOCOL_OPERATION_RELINQUISH_COMMAND: {
             if (protocol->config.points == NULL || request->payload_size < 3)
             {
                 send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
                 break;
             }
+
             const uint8_t output     = request->payload[0];
             const size_t source_size = request->payload[1];
 
@@ -1201,6 +1267,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                 send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
                 break;
             }
+
             char source_id[CONTROLLER_POINT_SOURCE_ID_CAPACITY];
             memcpy(source_id, &request->payload[2], source_size);
             source_id[source_size] = '\0';
@@ -1212,17 +1279,20 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                 send_error(protocol, request, get_point_error(result));
                 break;
             }
+
             response.payload_size = request->payload_size;
             memcpy(response.payload, request->payload, request->payload_size);
             send_response(protocol, &response);
             break;
         }
+
         case CONTROLLER_PROTOCOL_OPERATION_SUBSCRIBE_CHANGES: {
             if (protocol->config.points == NULL || request->payload_size != sizeof(uint16_t))
             {
                 send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
                 break;
             }
+
             const controller_point_result_t result =
                 controller_points_subscribe(protocol->config.points, request->source, get_u16(request->payload));
 
@@ -1231,17 +1301,20 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                 send_error(protocol, request, get_point_error(result));
                 break;
             }
+
             response.payload_size = request->payload_size;
             memcpy(response.payload, request->payload, request->payload_size);
             send_response(protocol, &response);
             break;
         }
+
         case CONTROLLER_PROTOCOL_OPERATION_POINT_CHANGE_EVENT: {
             if (protocol->config.points == NULL || request->payload_size != 0)
             {
                 send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
                 break;
             }
+
             uint16_t changed  = 0;
             uint16_t values   = 0;
             uint32_t sequence = 0;
@@ -1254,6 +1327,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                 send_error(protocol, request, get_point_error(result));
                 break;
             }
+
             put_u16(response.payload, changed);
             put_u16(&response.payload[2], values);
             put_u32(&response.payload[4], sequence);
@@ -1262,6 +1336,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
             send_response(protocol, &response);
             break;
         }
+
         case CONTROLLER_PROTOCOL_OPERATION_COMMAND_OUTPUT_BLOCK: {
             if (request->payload_size != sizeof(uint16_t))
             {
@@ -1274,6 +1349,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                 send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_NOT_READY);
                 break;
             }
+
             const uint16_t requested_outputs = get_u16(request->payload);
             const controller_protocol_provider_result_t output_block_result =
                 protocol->config.set_output_block(protocol->config.io_context, requested_outputs);
@@ -1284,11 +1360,13 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                 send_error(protocol, request, get_provider_error(output_block_result));
                 break;
             }
+
             put_u16(response.payload, requested_outputs);
             response.payload_size = sizeof(uint16_t);
             send_response(protocol, &response);
             break;
         }
+
         case CONTROLLER_PROTOCOL_OPERATION_AUTH_CHALLENGE: {
             if (request->payload_size != CONTROLLER_AUTH_NONCE_SIZE || protocol->config.auth == NULL)
             {
@@ -1297,6 +1375,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                                                                                : CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
                 break;
             }
+
             uint32_t session_id = 0;
             uint8_t device_nonce[CONTROLLER_AUTH_NONCE_SIZE];
 
@@ -1306,12 +1385,14 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                 send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_BUSY);
                 break;
             }
+
             put_u32(response.payload, session_id);
             memcpy(&response.payload[sizeof(session_id)], device_nonce, sizeof(device_nonce));
             response.payload_size = sizeof(session_id) + sizeof(device_nonce);
             send_response(protocol, &response);
             break;
         }
+
         case CONTROLLER_PROTOCOL_OPERATION_AUTH_PROVE: {
             const size_t proof_payload_size = sizeof(uint32_t) + CONTROLLER_AUTH_TAG_SIZE;
 
@@ -1322,6 +1403,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                                                                        : CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
                 break;
             }
+
             const uint32_t session_id = get_u32(request->payload);
 
             if (!controller_auth_verify_proof(protocol->config.auth, request->source, session_id,
@@ -1330,11 +1412,13 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                 send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_UNAUTHORIZED);
                 break;
             }
+
             put_u32(response.payload, session_id);
             response.payload_size = sizeof(session_id);
             send_response(protocol, &response);
             break;
         }
+
         case CONTROLLER_PROTOCOL_OPERATION_CLOSE_SESSION: {
             if (request->payload_size != sizeof(uint32_t) || protocol->config.auth == NULL)
             {
@@ -1347,12 +1431,14 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                 send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
                 break;
             }
+
             /* Defer invalidation until send_response has signed the final authenticated response. */
             protocol->is_session_close_pending = true;
             response.payload_size              = 0;
             send_response(protocol, &response);
             break;
         }
+
         case CONTROLLER_PROTOCOL_OPERATION_LIST_FLOWS: {
             if (request->payload_size != 0 || protocol->config.flow == NULL)
             {
@@ -1361,6 +1447,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                                                          : CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
                 break;
             }
+
             controller_flow_metadata_t metadata;
             const controller_flow_result_t result = controller_flow_get_metadata(protocol->config.flow, &metadata);
             response.payload[0]                   = result == CONTROLLER_FLOW_OK ? 1U : 0U;
@@ -1375,12 +1462,15 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                     send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_INTERNAL);
                     break;
                 }
+
                 memmove(&response.payload[1], encoded.payload, encoded.payload_size);
                 response.payload_size = encoded.payload_size + 1U;
             }
+
             send_response(protocol, &response);
             break;
         }
+
         case CONTROLLER_PROTOCOL_OPERATION_GET_FLOW_METADATA:
         case CONTROLLER_PROTOCOL_OPERATION_DOWNLOAD_BEGIN:
         case CONTROLLER_PROTOCOL_OPERATION_GET_FLOW_RUNTIME: {
@@ -1391,6 +1481,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                                                          : CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
                 break;
             }
+
             controller_flow_metadata_t metadata;
 
             if (!is_flow_result_success(protocol, request, controller_flow_get_metadata(protocol->config.flow, &metadata)))
@@ -1403,15 +1494,18 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                 send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_INTERNAL);
                 break;
             }
+
             send_response(protocol, &response);
             break;
         }
+
         case CONTROLLER_PROTOCOL_OPERATION_UPLOAD_BEGIN: {
             if (protocol->config.flow == NULL)
             {
                 send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_NOT_READY);
                 break;
             }
+
             controller_flow_metadata_t metadata = {0};
             bool has_expected_revision          = false;
             uint32_t expected_revision          = 0;
@@ -1421,6 +1515,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                 send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
                 break;
             }
+
             uint32_t transfer_id = ((uint32_t)request->source << 16U) | request->transaction;
 
             if (transfer_id == 0)
@@ -1434,12 +1529,14 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
             {
                 break;
             }
+
             put_u32(response.payload, transfer_id);
             put_u16(&response.payload[4], (uint16_t)(PROTOCOL_AUTH_BODY_CAPACITY - 8U));
             response.payload_size = 6;
             send_response(protocol, &response);
             break;
         }
+
         case CONTROLLER_PROTOCOL_OPERATION_UPLOAD_STATUS: {
             if (request->payload_size != sizeof(uint32_t) || protocol->config.flow == NULL ||
                 !protocol->config.flow->is_transfer_open || protocol->config.flow->transfer_id != get_u32(request->payload))
@@ -1447,6 +1544,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                 send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_WRONG_STATE);
                 break;
             }
+
             put_u32(response.payload, protocol->config.flow->transfer_id);
             put_u32(&response.payload[4], (uint32_t)protocol->config.flow->covered_bytes);
             put_u32(&response.payload[8], (uint32_t)protocol->config.flow->staging.size);
@@ -1455,12 +1553,14 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
             send_response(protocol, &response);
             break;
         }
+
         case CONTROLLER_PROTOCOL_OPERATION_UPLOAD_CHUNK: {
             if (request->payload_size <= 8 || protocol->config.flow == NULL)
             {
                 send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
                 break;
             }
+
             const uint32_t transfer_id = get_u32(request->payload);
             const uint32_t offset      = get_u32(&request->payload[4]);
 
@@ -1470,12 +1570,14 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
             {
                 break;
             }
+
             put_u32(response.payload, transfer_id);
             put_u32(&response.payload[4], (uint32_t)protocol->config.flow->covered_bytes);
             response.payload_size = 8;
             send_response(protocol, &response);
             break;
         }
+
         case CONTROLLER_PROTOCOL_OPERATION_UPLOAD_VALIDATE:
         case CONTROLLER_PROTOCOL_OPERATION_UPLOAD_COMMIT:
         case CONTROLLER_PROTOCOL_OPERATION_UPLOAD_ABORT: {
@@ -1484,6 +1586,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                 send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
                 break;
             }
+
             const uint32_t transfer_id      = get_u32(request->payload);
             controller_flow_result_t result = CONTROLLER_FLOW_WRONG_STATE;
 
@@ -1491,10 +1594,12 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
             {
                 result = controller_flow_validate(protocol->config.flow, transfer_id);
             }
+
             else if (request->operation == CONTROLLER_PROTOCOL_OPERATION_UPLOAD_COMMIT)
             {
                 result = controller_flow_commit(protocol->config.flow, transfer_id);
             }
+
             else
             {
                 result = controller_flow_abort(protocol->config.flow, transfer_id);
@@ -1504,17 +1609,20 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
             {
                 break;
             }
+
             put_u32(response.payload, transfer_id);
             response.payload_size = sizeof(transfer_id);
             send_response(protocol, &response);
             break;
         }
+
         case CONTROLLER_PROTOCOL_OPERATION_DOWNLOAD_CHUNK: {
             if (request->payload_size != 5 || protocol->config.flow == NULL || request->payload[4] == 0)
             {
                 send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
                 break;
             }
+
             const uint32_t offset = get_u32(request->payload);
             const size_t maximum =
                 request->payload[4] < PROTOCOL_AUTH_BODY_CAPACITY - 4U ? request->payload[4] : PROTOCOL_AUTH_BODY_CAPACITY - 4U;
@@ -1526,11 +1634,13 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
             {
                 break;
             }
+
             put_u32(response.payload, offset);
             response.payload_size = 4U + downloaded_size;
             send_response(protocol, &response);
             break;
         }
+
         case CONTROLLER_PROTOCOL_OPERATION_ACTIVATE_FLOW:
         case CONTROLLER_PROTOCOL_OPERATION_DEACTIVATE_FLOW: {
             if (request->payload_size != 0 || protocol->config.flow == NULL)
@@ -1546,10 +1656,12 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
             {
                 break;
             }
+
             response.payload_size = 0;
             send_response(protocol, &response);
             break;
         }
+
         case CONTROLLER_PROTOCOL_OPERATION_REMOVE_FLOW: {
             if (request->payload_size != 0 || protocol->config.flow == NULL)
             {
@@ -1561,10 +1673,12 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
             {
                 break;
             }
+
             response.payload_size = 0;
             send_response(protocol, &response);
             break;
         }
+
         case CONTROLLER_PROTOCOL_OPERATION_DEBUG_LOAD_BEGIN: {
             const size_t expected_size = sizeof(uint32_t) + 1U + sizeof(uint32_t) + FLOW_DEBUG_DIGEST_BYTES;
 
@@ -1575,6 +1689,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                                                           : CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
                 break;
             }
+
             uint64_t session_id = 0;
             const flow_debug_result_t result =
                 flow_debug_begin(protocol->config.debug, protocol->authenticated_session_id, request->payload[4] != 0U,
@@ -1584,6 +1699,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
             {
                 break;
             }
+
             put_u64(response.payload, session_id);
             put_u16(&response.payload[8], FLOW_DEBUG_CHUNK_LIMIT);
             put_u32(&response.payload[10], FLOW_DEBUG_LEASE_MS);
@@ -1591,6 +1707,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
             send_response(protocol, &response);
             break;
         }
+
         case CONTROLLER_PROTOCOL_OPERATION_DEBUG_LOAD_CHUNK: {
             const size_t prefix_size = sizeof(uint64_t) + sizeof(uint32_t);
 
@@ -1602,6 +1719,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                                                           : CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
                 break;
             }
+
             const size_t data_size = request->payload_size - prefix_size;
             const uint32_t offset  = get_u32(&request->payload[sizeof(uint64_t)]);
             const flow_debug_result_t result =
@@ -1612,12 +1730,14 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
             {
                 break;
             }
+
             put_u32(response.payload, offset);
             put_u16(&response.payload[4], (uint16_t)data_size);
             response.payload_size = 6;
             send_response(protocol, &response);
             break;
         }
+
         case CONTROLLER_PROTOCOL_OPERATION_DEBUG_PREPARE:
         case CONTROLLER_PROTOCOL_OPERATION_DEBUG_STATUS: {
             if (protocol->config.debug == NULL || request->payload_size != sizeof(uint64_t))
@@ -1627,6 +1747,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                                                           : CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
                 break;
             }
+
             const uint64_t session_id  = get_u64(request->payload);
             flow_debug_result_t result = FLOW_DEBUG_OK;
 
@@ -1634,6 +1755,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
             {
                 result = flow_debug_prepare(protocol->config.debug, protocol->authenticated_session_id, session_id, now_ms);
             }
+
             flow_debug_status_t status;
 
             if (result == FLOW_DEBUG_OK)
@@ -1652,9 +1774,11 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                 send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_INTERNAL);
                 break;
             }
+
             send_response(protocol, &response);
             break;
         }
+
         case CONTROLLER_PROTOCOL_OPERATION_DEBUG_STEP: {
             if (protocol->config.debug == NULL || request->payload_size != sizeof(uint64_t))
             {
@@ -1663,6 +1787,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                                                           : CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
                 break;
             }
+
             const uint64_t session_id = get_u64(request->payload);
             flow_debug_result_t result =
                 flow_debug_step(protocol->config.debug, protocol->authenticated_session_id, session_id, now_ms);
@@ -1678,6 +1803,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
             {
                 break;
             }
+
             put_u64(response.payload, header.tick_number);
             put_u32(&response.payload[8], header.total_length);
             memcpy(&response.payload[12], header.digest, sizeof(header.digest));
@@ -1685,6 +1811,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
             send_response(protocol, &response);
             break;
         }
+
         case CONTROLLER_PROTOCOL_OPERATION_DEBUG_SNAPSHOT_HEADER: {
             if (protocol->config.debug == NULL || request->payload_size != 2U * sizeof(uint64_t))
             {
@@ -1693,6 +1820,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                                                           : CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
                 break;
             }
+
             flow_debug_snapshot_header_t header;
             const flow_debug_result_t result = flow_debug_get_snapshot_header(
                 protocol->config.debug, protocol->authenticated_session_id, get_u64(request->payload),
@@ -1702,6 +1830,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
             {
                 break;
             }
+
             put_u64(response.payload, header.session_id);
             put_u64(&response.payload[8], header.tick_number);
             put_u32(&response.payload[16], header.total_length);
@@ -1712,6 +1841,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
             send_response(protocol, &response);
             break;
         }
+
         case CONTROLLER_PROTOCOL_OPERATION_DEBUG_SNAPSHOT_CHUNK: {
             const size_t expected_size = 2U * sizeof(uint64_t) + sizeof(uint16_t);
 
@@ -1722,6 +1852,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                                                           : CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
                 break;
             }
+
             const uint64_t session_id        = get_u64(request->payload);
             const uint64_t tick_number       = get_u64(&request->payload[8]);
             const uint16_t chunk_index       = get_u16(&request->payload[16]);
@@ -1735,6 +1866,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
             {
                 break;
             }
+
             flow_debug_snapshot_header_t header;
 
             if (!is_debug_result_success(protocol, request,
@@ -1744,6 +1876,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
             {
                 break;
             }
+
             put_u64(response.payload, session_id);
             put_u64(&response.payload[8], tick_number);
             put_u16(&response.payload[16], chunk_index);
@@ -1753,6 +1886,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
             send_response(protocol, &response);
             break;
         }
+
         case CONTROLLER_PROTOCOL_OPERATION_DEBUG_RENEW: {
             if (protocol->config.debug == NULL || request->payload_size != sizeof(uint64_t))
             {
@@ -1768,11 +1902,13 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
             {
                 break;
             }
+
             put_u32(response.payload, FLOW_DEBUG_LEASE_MS);
             response.payload_size = sizeof(uint32_t);
             send_response(protocol, &response);
             break;
         }
+
         case CONTROLLER_PROTOCOL_OPERATION_DEBUG_STOP: {
             if (protocol->config.debug == NULL || request->payload_size != sizeof(uint64_t))
             {
@@ -1781,6 +1917,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                                                           : CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
                 break;
             }
+
             const uint64_t session_id = get_u64(request->payload);
 
             if (!is_debug_result_success(protocol, request,
@@ -1788,11 +1925,13 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
             {
                 break;
             }
+
             put_u64(response.payload, session_id);
             response.payload_size = sizeof(uint64_t);
             send_response(protocol, &response);
             break;
         }
+
         case CONTROLLER_PROTOCOL_OPERATION_DEBUG_RUN: {
             if (protocol->config.debug == NULL || request->payload_size != sizeof(uint64_t) + sizeof(uint32_t))
             {
@@ -1801,6 +1940,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                                                           : CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
                 break;
             }
+
             const uint64_t session_id  = get_u64(request->payload);
             flow_debug_result_t result = flow_debug_run(protocol->config.debug, protocol->authenticated_session_id, session_id,
                                                         get_u32(&request->payload[sizeof(uint64_t)]), now_ms);
@@ -1816,8 +1956,10 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
             {
                 send_response(protocol, &response);
             }
+
             break;
         }
+
         case CONTROLLER_PROTOCOL_OPERATION_DEBUG_PAUSE: {
             if (protocol->config.debug == NULL || request->payload_size != sizeof(uint64_t))
             {
@@ -1826,6 +1968,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                                                           : CONTROLLER_PROTOCOL_ERROR_INVALID_ARGUMENT);
                 break;
             }
+
             const uint64_t session_id = get_u64(request->payload);
             flow_debug_result_t result =
                 flow_debug_pause(protocol->config.debug, protocol->authenticated_session_id, session_id, now_ms);
@@ -1841,8 +1984,10 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
             {
                 send_response(protocol, &response);
             }
+
             break;
         }
+
         case CONTROLLER_PROTOCOL_OPERATION_DEBUG_ENABLE_LIVE_OUTPUT: {
             const size_t prefix_size = sizeof(uint64_t) + 1U;
 
@@ -1854,6 +1999,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
 
                 return;
             }
+
             const uint8_t point_count = request->payload[sizeof(uint64_t)];
             char point_ids[FLOW_EXECUTABLE_MAX_OUTPUTS][FLOW_EXECUTABLE_MAX_ID_BYTES + 1U];
             const char *confirmed_points[FLOW_EXECUTABLE_MAX_OUTPUTS];
@@ -1867,6 +2013,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                     is_valid = false;
                     break;
                 }
+
                 const uint8_t point_size = request->payload[offset++];
 
                 if (point_size == 0U || point_size > FLOW_EXECUTABLE_MAX_ID_BYTES || offset + point_size > request->payload_size)
@@ -1874,6 +2021,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                     is_valid = false;
                     break;
                 }
+
                 memcpy(point_ids[index], &request->payload[offset], point_size);
                 point_ids[index][point_size] = '\0';
                 confirmed_points[index]      = point_ids[index];
@@ -1886,6 +2034,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
 
                 return;
             }
+
             const flow_debug_result_t result =
                 flow_debug_enable_live_output(protocol->config.debug, protocol->authenticated_session_id,
                                               get_u64(request->payload), confirmed_points, point_count, now_ms);
@@ -1894,12 +2043,14 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
             {
                 return;
             }
+
             response.payload[0] = FLOW_DEBUG_LIVE_OUTPUT_PRIORITY;
             put_u32(&response.payload[1], FLOW_DEBUG_LIVE_OUTPUT_HOLD_MS);
             response.payload_size = 5U;
             send_response(protocol, &response);
             break;
         }
+
         default:
             protocol->health.unsupported_operation_count++;
             send_error(protocol, request, CONTROLLER_PROTOCOL_ERROR_UNSUPPORTED_OPERATION);
@@ -1939,6 +2090,7 @@ void controller_protocol_receive(controller_protocol_t *protocol, const uint8_t 
     {
         return;
     }
+
     controller_protocol_message_t request;
     const controller_protocol_decode_result_t result = controller_protocol_decode(frame, size, &request);
 
@@ -1962,6 +2114,7 @@ void controller_protocol_receive(controller_protocol_t *protocol, const uint8_t 
 
         return;
     }
+
     protocol->health.accepted_frame_count++;
 
     if (request.destination == PROTOCOL_BROADCAST_ADDRESS)
@@ -1970,6 +2123,7 @@ void controller_protocol_receive(controller_protocol_t *protocol, const uint8_t 
         {
             return;
         }
+
         const unsigned slot_count   = request.payload[4];
         const uint16_t slot_time_ms = get_u16(&request.payload[5]);
 
@@ -1978,8 +2132,10 @@ void controller_protocol_receive(controller_protocol_t *protocol, const uint8_t 
         {
             return;
         }
+
         uint8_t discovery_seed[PROTOCOL_DISCOVERY_SEED_CAPACITY];
         const size_t identity_size = strlen(protocol->config.device_id);
+
         /* Hash identity and nonce as one byte sequence exactly as the wire contract requires. */
         memcpy(discovery_seed, protocol->config.device_id, identity_size);
         memcpy(&discovery_seed[identity_size], request.payload, PROTOCOL_DISCOVERY_NONCE_SIZE);
@@ -2004,6 +2160,7 @@ void controller_protocol_receive(controller_protocol_t *protocol, const uint8_t 
                 protocol->health.response_drop_count++;
             }
         }
+
         else
         {
             /* Reusing a live transaction for different content is ambiguous and invalid. */
@@ -2012,6 +2169,7 @@ void controller_protocol_receive(controller_protocol_t *protocol, const uint8_t 
 
         return;
     }
+
     protocol->is_request_active   = true;
     protocol->active_request_size = size;
     memcpy(protocol->active_request, frame, size);
@@ -2026,6 +2184,7 @@ void controller_protocol_receive(controller_protocol_t *protocol, const uint8_t 
             return;
         }
     }
+
     else if (is_authentication_required(request.operation))
     {
         send_error(protocol, &request, CONTROLLER_PROTOCOL_ERROR_UNAUTHORIZED);
@@ -2033,6 +2192,7 @@ void controller_protocol_receive(controller_protocol_t *protocol, const uint8_t 
 
         return;
     }
+
     dispatch_request(protocol, &request, now_ms);
     protocol->is_authenticated_dispatch = false;
     protocol->is_session_close_pending  = false;
@@ -2056,16 +2216,19 @@ void controller_protocol_process(controller_protocol_t *protocol, uint64_t now_m
     {
         return;
     }
+
     controller_protocol_message_t response = get_response(protocol, &protocol->discovery_request);
 
     if (set_device_info_payload(protocol, &response))
     {
         send_response(protocol, &response);
     }
+
     else
     {
         protocol->health.response_drop_count++;
     }
+
     protocol->is_discovery_pending = false;
 }
 

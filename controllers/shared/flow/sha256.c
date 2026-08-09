@@ -68,6 +68,7 @@ static void transform(uint32_t state[SHA256_DIGEST_WORDS], const uint8_t block[S
             rotate_right(words[index - 2U], 17U) ^ rotate_right(words[index - 2U], 19U) ^ (words[index - 2U] >> 10U);
         words[index] = words[index - 16U] + low + words[index - 7U] + high;
     }
+
     uint32_t a = state[0];
     uint32_t b = state[1];
     uint32_t c = state[2];
@@ -94,6 +95,7 @@ static void transform(uint32_t state[SHA256_DIGEST_WORDS], const uint8_t block[S
         b                       = a;
         a                       = first + second;
     }
+
     state[0] += a;
     state[1] += b;
     state[2] += c;
@@ -121,6 +123,7 @@ void flow_sha256(const uint8_t *data, size_t size, uint8_t digest[32])
         transform(state, &data[offset]);
         offset += SHA256_BLOCK_BYTES;
     }
+
     uint8_t final_blocks[SHA256_BLOCK_BYTES * 2U] = {0};
     const size_t remainder                        = size - offset;
 
@@ -128,6 +131,7 @@ void flow_sha256(const uint8_t *data, size_t size, uint8_t digest[32])
     {
         memcpy(final_blocks, &data[offset], remainder);
     }
+
     /* Padding may need a second block when the final bit-length field no longer fits in the first. */
     final_blocks[remainder] = 0x80U;
     const size_t final_size = remainder < 56U ? SHA256_BLOCK_BYTES : SHA256_BLOCK_BYTES * 2U;
@@ -137,6 +141,7 @@ void flow_sha256(const uint8_t *data, size_t size, uint8_t digest[32])
     {
         final_blocks[final_size - 1U - index] = (uint8_t)(bit_size >> (index * 8U));
     }
+
     transform(state, final_blocks);
 
     if (final_size > SHA256_BLOCK_BYTES)

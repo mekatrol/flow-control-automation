@@ -77,6 +77,7 @@ static void record_delivery(mqtt_api_t *api, const char *correlation_id, mqtt_de
         api->delivery_head = (api->delivery_head + 1) % MQTT_DELIVERY_QUEUE_CAPACITY;
         api->delivery_count--;
     }
+
     const size_t tail              = (api->delivery_head + api->delivery_count) % MQTT_DELIVERY_QUEUE_CAPACITY;
     mqtt_delivery_result_t *result = &api->deliveries[tail];
     copy_text(result->correlation_id, sizeof(result->correlation_id), correlation_id != NULL ? correlation_id : "");
@@ -190,6 +191,7 @@ mqtt_delivery_status_t mqtt_api_publish(mqtt_api_t *api, const mqtt_publish_requ
 
         return MQTT_DELIVERY_REJECTED_QUEUE_FULL;
     }
+
     enqueue_publish(api, request);
     record_delivery(api, request->correlation_id, MQTT_DELIVERY_ACCEPTED, 0);
 
@@ -203,6 +205,7 @@ bool mqtt_api_get_delivery_result(mqtt_api_t *api, mqtt_delivery_result_t *resul
     {
         return false;
     }
+
     *result            = api->deliveries[api->delivery_head];
     api->delivery_head = (api->delivery_head + 1) % MQTT_DELIVERY_QUEUE_CAPACITY;
     api->delivery_count--;
@@ -285,6 +288,7 @@ bool mqtt_api_enqueue_inbound(mqtt_api_t *api, const char *topic, size_t topic_s
 
         return false;
     }
+
     const size_t tail               = (api->receive_head + api->receive_count) % MQTT_RECEIVE_QUEUE_CAPACITY;
     mqtt_inbound_message_t *message = &api->receives[tail];
     memcpy(message->topic, topic, topic_size);
@@ -296,6 +300,7 @@ bool mqtt_api_enqueue_inbound(mqtt_api_t *api, const char *topic, size_t topic_s
 
         return false;
     }
+
     memcpy(message->payload, payload, payload_size);
     message->payload[payload_size] = '\0';
     message->payload_size          = payload_size;
@@ -323,8 +328,10 @@ static bool is_topic_match(const char *filter, const char *topic)
             {
                 topic++;
             }
+
             filter++;
         }
+
         else if (*filter++ != *topic++)
         {
             return false;
@@ -356,6 +363,7 @@ void mqtt_api_process(mqtt_api_t *api)
         {
             break;
         }
+
         api->publish_head = (api->publish_head + 1) % MQTT_PUBLISH_QUEUE_CAPACITY;
         api->publish_count--;
         api->health.publish_queue_depth = api->publish_count;

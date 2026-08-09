@@ -42,6 +42,7 @@ static settings_store_result_t get_fake_record(const uint8_t *source, size_t sou
     {
         return SETTINGS_STORE_CORRUPT;
     }
+
     memcpy(record, source, source_size);
 
     *size = source_size;
@@ -73,6 +74,7 @@ static settings_store_result_t stage_fake_bootstrap(void *context, const void *r
     {
         return SETTINGS_STORE_UNAVAILABLE;
     }
+
     memcpy(fake->staged_bootstrap, record, size);
     fake->staged_bootstrap_size = size;
 
@@ -88,6 +90,7 @@ static settings_store_result_t stage_fake_settings(void *context, const void *re
     {
         return SETTINGS_STORE_UNAVAILABLE;
     }
+
     memcpy(fake->staged_settings, record, size);
     fake->staged_settings_size = size;
 
@@ -115,6 +118,7 @@ static settings_store_result_t commit_fake(void *context)
         memcpy(fake->settings, fake->staged_settings, fake->staged_settings_size);
         fake->settings_size = fake->staged_settings_size;
     }
+
     fake->staged_bootstrap_size = 0;
     fake->staged_settings_size  = 0;
 

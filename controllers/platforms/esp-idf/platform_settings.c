@@ -161,6 +161,7 @@ static bool derive_settings_key(uint8_t key[SETTINGS_KEY_BYTES])
     {
         return false;
     }
+
     uint8_t provisioned_key[SETTINGS_KEY_BYTES];
 
     for (size_t index = 0; index < sizeof(provisioned_key); index++)
@@ -172,8 +173,10 @@ static bool derive_settings_key(uint8_t key[SETTINGS_KEY_BYTES])
         {
             return false;
         }
+
         provisioned_key[index] = (uint8_t)((high << 4) | low);
     }
+
     uint8_t factory_mac[6];
 
     if (esp_read_mac(factory_mac, ESP_MAC_WIFI_STA) != ESP_OK)
@@ -182,6 +185,7 @@ static bool derive_settings_key(uint8_t key[SETTINGS_KEY_BYTES])
 
         return false;
     }
+
     uint8_t derivation_input[SETTINGS_KEY_BYTES + sizeof(factory_mac) + sizeof(KEY_CONTEXT)];
     memcpy(derivation_input, provisioned_key, sizeof(provisioned_key));
     memcpy(derivation_input + sizeof(provisioned_key), factory_mac, sizeof(factory_mac));
@@ -223,6 +227,7 @@ static bool read_slot(platform_settings_context_t *context, uint32_t slot, setti
             break;
         }
     }
+
     const settings_slot_header_t *header = (const settings_slot_header_t *)storage;
 
     if (memcmp(header->magic, SLOT_MAGIC, sizeof(header->magic)) != 0 || header->bootstrap_size > SETTINGS_RECORD_CAPACITY ||
@@ -230,12 +235,14 @@ static bool read_slot(platform_settings_context_t *context, uint32_t slot, setti
     {
         return false;
     }
+
     const size_t plaintext_size = header->bootstrap_size + header->settings_size;
 
     if (sizeof(*header) + plaintext_size > sizeof(storage))
     {
         return false;
     }
+
     uint8_t ciphertext[SETTINGS_RECORD_CAPACITY * 2 + SETTINGS_TAG_BYTES];
     memcpy(ciphertext, storage + sizeof(*header), plaintext_size);
     memcpy(ciphertext + plaintext_size, header->tag, sizeof(header->tag));
@@ -257,10 +264,12 @@ static bool read_slot(platform_settings_context_t *context, uint32_t slot, setti
 
         return false;
     }
+
     memcpy(payload->bootstrap, plaintext, header->bootstrap_size);
     payload->bootstrap_size = header->bootstrap_size;
     memcpy(payload->settings, plaintext + header->bootstrap_size, header->settings_size);
     payload->settings_size = header->settings_size;
+
     *generation            = header->generation;
     memset(plaintext, 0, sizeof(plaintext));
 
@@ -297,6 +306,7 @@ static settings_store_result_t write_slot(platform_settings_context_t *context, 
     {
         return SETTINGS_STORE_IO_ERROR;
     }
+
     memcpy(storage + sizeof(*header), ciphertext, plaintext_size);
     memcpy(header->tag, ciphertext + plaintext_size, sizeof(header->tag));
     memset(ciphertext, 0, sizeof(ciphertext));
@@ -305,6 +315,7 @@ static settings_store_result_t write_slot(platform_settings_context_t *context, 
     {
         return SETTINGS_STORE_IO_ERROR;
     }
+
     settings_slot_payload_t verified = {0};
     uint32_t verified_generation     = 0;
     bool is_blank                    = false;
@@ -338,6 +349,7 @@ static settings_store_result_t get_record(const platform_settings_context_t *con
     {
         return SETTINGS_STORE_CORRUPT;
     }
+
     memcpy(record, source, source_size);
 
     *size = source_size;
@@ -373,6 +385,7 @@ static settings_store_result_t stage_record(platform_settings_context_t *context
     {
         return SETTINGS_STORE_FULL;
     }
+
     memcpy(destination, record, size);
 
     *destination_size = size;
@@ -412,6 +425,7 @@ static settings_store_result_t commit(void *opaque)
         memcpy(next.settings, context->staged.settings, context->staged.settings_size);
         next.settings_size = context->staged.settings_size;
     }
+
     const uint32_t target_slot           = (context->active_slot + 1) % SETTINGS_SLOT_COUNT;
     const uint32_t generation            = context->generation + 1;
     const settings_store_result_t result = write_slot(context, target_slot, &next, generation);
@@ -439,6 +453,7 @@ platform_settings_result_t platform_settings_initialize(const settings_storage_c
 {
     memset(&settings_context, 0, sizeof(settings_context));
     settings_context.first_reserved_sector = config->first_reserved_sector;
+
     *store                                 = (settings_store_t){.get_bootstrap   = get_bootstrap,
                                                                 .stage_bootstrap = stage_bootstrap,
                                                                 .get_settings    = get_settings,
@@ -468,6 +483,7 @@ platform_settings_result_t platform_settings_initialize(const settings_storage_c
     {
         return PLATFORM_SETTINGS_KEY_INVALID;
     }
+
     const spi_bus_config_t bus = {.mosi_io_num     = config->mosi_gpio,
                                   .miso_io_num     = config->miso_gpio,
                                   .sclk_io_num     = config->clock_gpio,
@@ -479,6 +495,7 @@ platform_settings_result_t platform_settings_initialize(const settings_storage_c
     {
         return PLATFORM_SETTINGS_SPI_INITIALIZATION_FAILED;
     }
+
     sdmmc_host_t host                   = SDSPI_HOST_DEFAULT();
     host.slot                           = SETTINGS_SPI_HOST;
     host.max_freq_khz                   = config->spi_clock_hz / 1000;
@@ -490,6 +507,7 @@ platform_settings_result_t platform_settings_initialize(const settings_storage_c
     {
         return PLATFORM_SETTINGS_DEVICE_INITIALIZATION_FAILED;
     }
+
     settings_context.device                      = host.slot;
     settings_context.is_device_initialized       = true;
     settings_context.chip_select_gpio            = config->chip_select_gpio;
@@ -505,6 +523,7 @@ platform_settings_result_t platform_settings_initialize(const settings_storage_c
     {
         return PLATFORM_SETTINGS_CARD_TOO_SMALL;
     }
+
     settings_slot_payload_t candidates[SETTINGS_SLOT_COUNT] = {0};
     uint32_t generations[SETTINGS_SLOT_COUNT]               = {0};
     bool blank[SETTINGS_SLOT_COUNT]                         = {false};
@@ -521,6 +540,7 @@ platform_settings_result_t platform_settings_initialize(const settings_storage_c
         settings_context.current     = candidates[settings_context.active_slot];
         settings_context.generation  = generations[settings_context.active_slot];
     }
+
     else if (!blank[0] || !blank[1])
     {
         /* Nonblank unauthenticated data is foreign or corrupt and must not be overwritten. */
@@ -528,6 +548,7 @@ platform_settings_result_t platform_settings_initialize(const settings_storage_c
 
         return PLATFORM_SETTINGS_MEDIA_INVALID;
     }
+
     settings_context.is_ready = true;
 
     return PLATFORM_SETTINGS_READY;
@@ -540,6 +561,7 @@ bool platform_settings_initialize_media(void)
     {
         return false;
     }
+
     uint8_t cleared_slot[SETTINGS_SLOT_BYTES] = {0};
     uint8_t verified_slot[SETTINGS_SLOT_BYTES];
 
@@ -557,6 +579,7 @@ bool platform_settings_initialize_media(void)
             return false;
         }
     }
+
     memset(verified_slot, 0, sizeof(verified_slot));
     settings_context.is_media_initializable = false;
 
@@ -570,6 +593,7 @@ void platform_settings_prepare_reboot(void)
     {
         return;
     }
+
     /* Detach the protocol driver before reset so a powered card cannot remain selected across the warm boot. */
     sdspi_host_remove_device(settings_context.device);
     spi_bus_free(SETTINGS_SPI_HOST);

@@ -127,6 +127,7 @@ static void test_rejection_limits(void)
         assert(mqtt_api_enqueue_inbound(&api, TEST_COMMAND, strlen(TEST_COMMAND), TEST_PAYLOAD, strlen(TEST_PAYLOAD),
                                         MQTT_QOS_AT_MOST_ONCE, false));
     }
+
     assert(!mqtt_api_enqueue_inbound(&api, TEST_COMMAND, strlen(TEST_COMMAND), TEST_PAYLOAD, strlen(TEST_PAYLOAD),
                                      MQTT_QOS_AT_MOST_ONCE, false));
     assert(mqtt_api_get_health(&api).receive_rejection_count == 1);

@@ -76,6 +76,7 @@ static void get_request_tag(uint16_t peer, uint32_t session_id, uint64_t sequenc
     {
         message[offset++] = (uint8_t)(sequence >> (index * 8U));
     }
+
     message[offset++] = operation;
     memcpy(&message[offset], body, body_size);
     assert(get_hmac(NULL, message, offset + body_size, tag));
@@ -133,6 +134,7 @@ static void test_capacity(void)
     {
         assert(controller_auth_create_challenge(&auth, peer, nonce, 0, &session_id, device_nonce));
     }
+
     assert(!controller_auth_create_challenge(&auth, 9, nonce, 0, &session_id, device_nonce));
     assert(controller_auth_create_challenge(&auth, 9, nonce, 101, &session_id, device_nonce));
 }

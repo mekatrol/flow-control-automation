@@ -38,6 +38,41 @@ class FormatSourceTests(unittest.TestCase):
         source = "int get_value(void)\n{\n    return VALUE;\n}\n"
         self.assertEqual(FORMATTER.format_source(source), source)
 
+    # Ensures ordinary statements are separated from a preceding completed block.
+    def test_adds_blank_line_after_closing_brace(self) -> None:
+        source = "    if (ready)\n    {\n        act();\n    }\n    const uint64_t completed_us = get_time_us();\n"
+        expected = "    if (ready)\n    {\n        act();\n    }\n\n    const uint64_t completed_us = get_time_us();\n"
+        self.assertEqual(FORMATTER.format_source(source), expected)
+
+    # Ensures nested blocks may close on adjacent lines without added whitespace.
+    def test_does_not_separate_consecutive_closing_braces(self) -> None:
+        source = "        act();\n    }\n}\n"
+        self.assertEqual(FORMATTER.format_source(source), source)
+
+    # Ensures an existing separator remains stable across repeated formatting.
+    def test_closing_brace_spacing_is_idempotent(self) -> None:
+        source = "    }\n\n    continue_work();\n"
+        formatted = FORMATTER.format_source(source)
+        self.assertEqual(formatted, source)
+        self.assertEqual(FORMATTER.format_source(formatted), formatted)
+
+    # Ensures documentation for a following statement is separated from prior work.
+    def test_adds_blank_line_before_comment_after_statement(self) -> None:
+        source = "    update_schedule();\n    /* Explain why publication is bounded. */\n    const bool is_publish_due = is_due();\n"
+        expected = "    update_schedule();\n\n    /* Explain why publication is bounded. */\n    const bool is_publish_due = is_due();\n"
+        self.assertEqual(FORMATTER.format_source(source), expected)
+
+    # Ensures a comment at the start of a block remains next to its opening brace.
+    def test_does_not_separate_first_comment_after_opening_brace(self) -> None:
+        source = "void run(void)\n{\n    /* Explain the initial operation. */\n    initialize();\n}\n"
+        self.assertEqual(FORMATTER.format_source(source), source)
+
+    # Ensures lines belonging to one comment block are not separated.
+    def test_does_not_separate_contiguous_comment_lines(self) -> None:
+        source = "    work();\n    /* Explain the next operation.\n     * Preserve this continuation line.\n     */\n    continue_work();\n"
+        expected = "    work();\n\n    /* Explain the next operation.\n     * Preserve this continuation line.\n     */\n    continue_work();\n"
+        self.assertEqual(FORMATTER.format_source(source), expected)
+
     # Ensures ignored call results use ordinary expression statements.
     def test_removes_discarded_function_call_cast(self) -> None:
         source = "    (void)get_u32(&reader, &value);\n"

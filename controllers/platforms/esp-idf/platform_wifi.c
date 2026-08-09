@@ -74,6 +74,7 @@ static void handle_wifi_event(void * /* context */, esp_event_base_t event_base,
     {
         return;
     }
+
     wifi_platform_event_t event = {0};
 
     switch (event_id)
@@ -93,6 +94,7 @@ static void handle_wifi_event(void * /* context */, esp_event_base_t event_base,
                                                                          : WIFI_PLATFORM_EVENT_ASSOCIATION_FAILED;
             break;
         }
+
         case WIFI_EVENT_STA_STOP:
             is_driver_started = false;
             event.type        = WIFI_PLATFORM_EVENT_STOPPED;
@@ -101,6 +103,7 @@ static void handle_wifi_event(void * /* context */, esp_event_base_t event_base,
 
             return;
     }
+
     enqueue_platform_event(&event);
 }
 
@@ -111,6 +114,7 @@ static void handle_ip_event(void * /* context */, esp_event_base_t event_base, i
     {
         return;
     }
+
     wifi_platform_event_t event = {0};
 
     if (event_id == IP_EVENT_STA_GOT_IP)
@@ -121,10 +125,12 @@ static void handle_ip_event(void * /* context */, esp_event_base_t event_base, i
         {
             return;
         }
+
         event.type      = WIFI_PLATFORM_EVENT_ADDRESS_READY;
         event.dns_ready = is_dns_ready();
         snprintf(event.ipv4_address, sizeof(event.ipv4_address), IPSTR, IP2STR(&got_ip->ip_info.ip));
     }
+
     else if (event_id == IP_EVENT_GOT_IP6)
     {
         const ip_event_got_ip6_t *got_ip6 = event_data;
@@ -133,18 +139,22 @@ static void handle_ip_event(void * /* context */, esp_event_base_t event_base, i
         {
             return;
         }
+
         event.type      = WIFI_PLATFORM_EVENT_ADDRESS_READY;
         event.dns_ready = is_dns_ready();
         snprintf(event.ipv6_address, sizeof(event.ipv6_address), IPV6STR, IPV62STR(got_ip6->ip6_info.ip));
     }
+
     else if (event_id == IP_EVENT_STA_LOST_IP)
     {
         event.type = WIFI_PLATFORM_EVENT_ADDRESS_LOST;
     }
+
     else
     {
         return;
     }
+
     enqueue_platform_event(&event);
 }
 
@@ -160,6 +170,7 @@ static bool initialize_persistence(void)
         {
             return false;
         }
+
         result = nvs_flash_init();
     }
 
@@ -184,24 +195,28 @@ bool platform_wifi_initialize(const wifi_link_config_t *config)
     {
         return false;
     }
+
     esp_err_t result = esp_netif_init();
 
     if (result != ESP_OK && result != ESP_ERR_INVALID_STATE)
     {
         return false;
     }
+
     result = esp_event_loop_create_default();
 
     if (result != ESP_OK && result != ESP_ERR_INVALID_STATE)
     {
         return false;
     }
+
     wifi_event_queue = xQueueCreate(WIFI_EVENT_QUEUE_DEPTH, sizeof(wifi_platform_event_t));
 
     if (wifi_event_queue == NULL)
     {
         return false;
     }
+
     wifi_network_interface = esp_netif_create_default_wifi_sta();
 
     if (wifi_network_interface == NULL)
@@ -232,9 +247,11 @@ bool platform_wifi_initialize(const wifi_link_config_t *config)
     }
 
     wifi_config_t station = {0};
+
     /* Length validation permits a full 32-byte SSID, which need not be terminated. */
     memcpy(station.sta.ssid, config->ssid, strlen(config->ssid));
     memcpy(station.sta.password, config->password, strlen(config->password));
+
     /* Match ESP-IDF station guidance: protected credentials require WPA2 or better. */
     station.sta.threshold.authmode = config->password[0] != '\0' ? WIFI_AUTH_WPA2_PSK : WIFI_AUTH_OPEN;
 
@@ -243,6 +260,7 @@ bool platform_wifi_initialize(const wifi_link_config_t *config)
     {
         return false;
     }
+
     const wifi_ps_type_t power_save = config->power_save == WIFI_POWER_SAVE_MINIMUM_MODEM ? WIFI_PS_MIN_MODEM : WIFI_PS_NONE;
 
     return esp_wifi_set_ps(power_save) == ESP_OK;
@@ -266,6 +284,7 @@ bool platform_wifi_connect(void)
     {
         return false;
     }
+
     wifi_platform_event_t event = {.type = WIFI_PLATFORM_EVENT_ASSOCIATING};
     enqueue_platform_event(&event);
 

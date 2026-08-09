@@ -75,6 +75,7 @@ static controller_protocol_provider_result_t set_output_block(void *context, uin
 static controller_protocol_provider_result_t get_io_block(void *context, controller_protocol_io_block_t *block)
 {
     assert(context == NULL && block != NULL);
+
     *block = (controller_protocol_io_block_t){
         .inputs = UINT16_C(0x8001), .outputs = UINT16_C(0x4002), .validity_flags = 3, .sampled_at_ms = 1234, .sequence = 9};
 
@@ -122,6 +123,7 @@ static size_t encode_request(uint16_t destination, uint8_t operation, const uint
     {
         memcpy(request.payload, payload, payload_size);
     }
+
     size_t frame_size = 0;
     assert(controller_protocol_encode(&request, frame, CONTROLLER_PROTOCOL_FRAME_CAPACITY, &frame_size));
 
@@ -142,6 +144,7 @@ static size_t encode_transaction_request(uint16_t destination, uint16_t transact
     {
         memcpy(request.payload, payload, payload_size);
     }
+
     size_t frame_size = 0;
     assert(controller_protocol_encode(&request, frame, CONTROLLER_PROTOCOL_FRAME_CAPACITY, &frame_size));
 
@@ -216,6 +219,7 @@ static void test_maximum_round_trip(void)
     {
         message.payload[index] = (uint8_t)index;
     }
+
     uint8_t frame[CONTROLLER_PROTOCOL_FRAME_CAPACITY];
     size_t frame_size = 0;
     assert(controller_protocol_encode(&message, frame, sizeof(frame), &frame_size));

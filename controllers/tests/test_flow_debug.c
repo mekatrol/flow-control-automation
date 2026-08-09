@@ -36,6 +36,7 @@ static bool command_output(void *context, const char *point_id, bool value, uint
     assert(context == NULL && strcmp(point_id, "output-01") == 0);
     assert(priority == FLOW_DEBUG_LIVE_OUTPUT_PRIORITY && expires_at_ms > 0U);
     live_command_value = value;
+
     *is_effective      = true;
     live_command_count++;
 
@@ -53,6 +54,7 @@ static void relinquish_output(void *context, const char *point_id)
 static bool get_input(void *context, flow_input_frame_t *frame)
 {
     assert(context == NULL);
+
     *frame = (flow_input_frame_t){
         .samples = INPUTS, .sample_count = sizeof(INPUTS) / sizeof(INPUTS[0]), .sampled_at_ms = 1000, .is_coherent = true};
 
@@ -93,6 +95,7 @@ static void test_complete_lifecycle(void)
         const size_t size      = remaining < FLOW_DEBUG_CHUNK_LIMIT ? remaining : FLOW_DEBUG_CHUNK_LIMIT;
         assert(flow_debug_write(&debug, TEST_OWNER, session_id, (uint32_t)offset, &artifact[offset], size, 11) == FLOW_DEBUG_OK);
     }
+
     assert(flow_debug_prepare(&debug, TEST_OWNER, session_id, 12) == FLOW_DEBUG_OK);
     assert(!debug.is_live_output_enabled);
     const char *confirmed_outputs[] = {"output-01"};
@@ -116,6 +119,7 @@ static void test_complete_lifecycle(void)
         assert(offset == assembled_size);
         assembled_size += size;
     }
+
     uint8_t assembled_digest[FLOW_DEBUG_DIGEST_BYTES];
     flow_sha256(assembled, assembled_size, assembled_digest);
     assert(assembled_size == header.total_length);
@@ -132,6 +136,7 @@ static void test_complete_lifecycle(void)
     assert(debug.runtime.tick_number == 3);
     assert(flow_debug_step(&debug, TEST_OWNER, session_id, 101) == FLOW_DEBUG_OK);
     assert(debug.runtime.tick_number == 4);
+
     /* Repeated delayed supervisor calls skip deadlines without overlapping or starving status work. */
     assert(flow_debug_run(&debug, TEST_OWNER, session_id, 10, 110) == FLOW_DEBUG_OK);
 
@@ -141,6 +146,7 @@ static void test_complete_lifecycle(void)
         flow_debug_status_t status;
         assert(flow_debug_get_status(&debug, TEST_OWNER, session_id, now_ms, &status) == FLOW_DEBUG_OK);
     }
+
     assert(debug.runtime.tick_number == 404);
     assert(debug.missed_deadline_count > 0 && debug.overrun_count > 0);
     assert(flow_debug_pause(&debug, TEST_OWNER, session_id, 10110) == FLOW_DEBUG_OK);

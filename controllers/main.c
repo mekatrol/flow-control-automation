@@ -51,5 +51,6 @@ void controller_main(void)
 
         return;
     }
+
     diagnostics_emit(DIAGNOSTIC_INFO, COMPONENT_RUNTIME, EVENT_STARTED, MESSAGE_STARTED);
 }

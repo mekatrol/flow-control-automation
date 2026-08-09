@@ -72,6 +72,7 @@ static void handle_ethernet_event(void * /* context */, esp_event_base_t event_b
     {
         return;
     }
+
     ethernet_platform_event_t event = {0};
 
     switch (event_id)
@@ -94,6 +95,7 @@ static void handle_ethernet_event(void * /* context */, esp_event_base_t event_b
 
             return;
     }
+
     enqueue_platform_event(&event);
 }
 
@@ -104,6 +106,7 @@ static void handle_ip_event(void * /* context */, esp_event_base_t event_base, i
     {
         return;
     }
+
     ethernet_platform_event_t event = {0};
 
     if (event_id == IP_EVENT_ETH_GOT_IP)
@@ -114,10 +117,12 @@ static void handle_ip_event(void * /* context */, esp_event_base_t event_base, i
         {
             return;
         }
+
         event.type      = ETHERNET_PLATFORM_EVENT_ADDRESS_READY;
         event.dns_ready = is_dns_ready();
         snprintf(event.ipv4_address, sizeof(event.ipv4_address), IPSTR, IP2STR(&got_ip->ip_info.ip));
     }
+
     else if (event_id == IP_EVENT_GOT_IP6)
     {
         const ip_event_got_ip6_t *got_ip6 = event_data;
@@ -126,18 +131,22 @@ static void handle_ip_event(void * /* context */, esp_event_base_t event_base, i
         {
             return;
         }
+
         event.type      = ETHERNET_PLATFORM_EVENT_ADDRESS_READY;
         event.dns_ready = is_dns_ready();
         snprintf(event.ipv6_address, sizeof(event.ipv6_address), IPV6STR, IPV62STR(got_ip6->ip6_info.ip));
     }
+
     else if (event_id == IP_EVENT_ETH_LOST_IP)
     {
         event.type = ETHERNET_PLATFORM_EVENT_ADDRESS_LOST;
     }
+
     else
     {
         return;
     }
+
     enqueue_platform_event(&event);
 }
 
@@ -150,6 +159,7 @@ bool platform_ethernet_initialize(const ethernet_link_config_t *config)
     {
         return false;
     }
+
     result = esp_event_loop_create_default();
 
     if (result != ESP_OK && result != ESP_ERR_INVALID_STATE)
@@ -211,6 +221,7 @@ bool platform_ethernet_initialize(const ethernet_link_config_t *config)
     {
         return false;
     }
+
     uint8_t mac_address[ETH_ADDR_LEN];
 
     /* Use the ESP32's factory Ethernet identity because W5500 has no stored MAC. */
@@ -227,6 +238,7 @@ bool platform_ethernet_initialize(const ethernet_link_config_t *config)
     {
         return false;
     }
+
     ethernet_netif_glue = esp_eth_new_netif_glue(ethernet_driver);
 
     if (ethernet_netif_glue == NULL || esp_netif_attach(ethernet_network_interface, ethernet_netif_glue) != ESP_OK)

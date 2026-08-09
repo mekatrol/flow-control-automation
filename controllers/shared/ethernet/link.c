@@ -47,6 +47,7 @@ bool ethernet_link_init(ethernet_link_t *ethernet_link, network_manager_t *netwo
     {
         return false;
     }
+
     ethernet_link->platform_initialized = platform_ethernet_initialize(config);
 
     if (!ethernet_link->platform_initialized)
@@ -100,6 +101,7 @@ void ethernet_link_process(ethernet_link_t *ethernet_link)
         {
             return;
         }
+
         const network_event_t event = {
             .link_id        = NETWORK_LINK_ETHERNET,
             .type           = ethernet_link_get_network_event_type(platform_event.type),
@@ -118,6 +120,7 @@ void ethernet_link_process(ethernet_link_t *ethernet_link)
                                      platform_event.ipv4_address, platform_event.ipv6_address,
                                      platform_event.dns_ready ? 1U : 0U);
         }
+
         else
         {
             const diagnostic_severity_t severity =
@@ -127,6 +130,7 @@ void ethernet_link_process(ethernet_link_t *ethernet_link)
                                      severity, COMPONENT_ETHERNET, get_event_reason(platform_event.type), FORMAT_STATE,
                                      get_event_reason(platform_event.type));
         }
+
         network_manager_enqueue_event(ethernet_link->network_manager, &event);
     }
 }

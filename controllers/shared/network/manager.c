@@ -45,7 +45,9 @@ static void copy_text(char *destination, size_t size, const char *source)
     {
         source = "";
     }
+
     strncpy(destination, source, size - 1);
+
     /* Force termination because strncpy does not terminate truncated input. */
     destination[size - 1] = '\0';
 }
@@ -86,6 +88,7 @@ static uint32_t get_backoff_delay(network_manager_t *manager, network_link_id_t 
             delay = config->maximum_backoff_ms;
         }
     }
+
     const uint64_t range = delay * config->jitter_percent / PERCENT_SCALE;
 
     if (range != 0 && manager->random != NULL)
@@ -113,6 +116,7 @@ static void enter_backoff(network_manager_t *manager, network_link_id_t link_id,
     {
         link->retry_count++;
     }
+
     set_link_state(link, NETWORK_LINK_BACKOFF, now_ms, reason);
     link->retry_at_ms     = now_ms + get_backoff_delay(manager, link_id);
     link->dns_ready       = false;
@@ -164,6 +168,7 @@ void network_manager_init(network_manager_t *manager, const network_link_config_
         {
             manager->config[id].jitter_percent = PERCENT_SCALE;
         }
+
         manager->links[id].link_id = id;
         set_link_state(&manager->links[id], configs[id].enabled ? NETWORK_LINK_STARTING : NETWORK_LINK_DISABLED, now_ms,
                        configs[id].enabled ? REASON_ENABLED : REASON_NOT_CONFIGURED);
@@ -190,7 +195,9 @@ bool network_manager_enqueue_event(network_manager_t *manager, const network_eve
 
         return false;
     }
+
     const size_t tail = (manager->event_head + manager->event_count) % NETWORK_EVENT_QUEUE_CAPACITY;
+
     /* Copy every field because adapter-owned callback storage may expire on return. */
     network_queued_event_t *queued = &manager->events[tail];
     queued->link_id                = event->link_id;
@@ -216,6 +223,7 @@ static void apply_event(network_manager_t *manager, const network_queued_event_t
     {
         return;
     }
+
     link->last_event_sequence = event->sequence;
 
     if (event->interface_name[0] != '\0')
@@ -234,6 +242,7 @@ static void apply_event(network_manager_t *manager, const network_queued_event_t
             {
                 set_link_state(link, NETWORK_LINK_CONNECTING, now_ms, event->reason);
             }
+
             break;
         case NETWORK_EVENT_ONLINE:
 
@@ -247,6 +256,7 @@ static void apply_event(network_manager_t *manager, const network_queued_event_t
             {
                 copy_text(link->ipv6_address, sizeof(link->ipv6_address), event->ipv6_address);
             }
+
             link->dns_ready = event->dns_ready;
             set_link_state(link, NETWORK_LINK_ONLINE, now_ms, event->reason);
             break;
@@ -270,6 +280,7 @@ static void apply_event(network_manager_t *manager, const network_queued_event_t
             {
                 link->retry_count++;
             }
+
             set_link_state(link, NETWORK_LINK_BACKOFF, now_ms, event->reason);
             link->retry_at_ms     = now_ms + get_backoff_delay(manager, event->link_id);
             link->dns_ready       = false;
@@ -316,12 +327,14 @@ void network_manager_set_enabled(network_manager_t *manager, network_link_id_t l
     {
         return;
     }
+
     manager->config[link_id].enabled = enabled;
 
     if (enabled)
     {
         begin_start(manager, link_id, now_ms, REASON_MANUALLY_ENABLED);
     }
+
     else
     {
         set_link_state(&manager->links[link_id], NETWORK_LINK_DISABLED, now_ms, REASON_MANUALLY_DISABLED);
@@ -342,6 +355,7 @@ void network_manager_reconnect(network_manager_t *manager, network_link_id_t lin
     {
         return;
     }
+
     /* Backoff ownership prevents the asynchronous stop event from cancelling restart. */
     set_link_state(&manager->links[link_id], NETWORK_LINK_BACKOFF, now_ms, REASON_MANUALLY_ENABLED);
     manager->links[link_id].retry_at_ms = now_ms;
@@ -362,9 +376,11 @@ void network_manager_shutdown(network_manager_t *manager, uint64_t now_ms)
         {
             manager->stop_link(id, manager->callback_context);
         }
+
         manager->config[id].enabled = false;
         set_link_state(&manager->links[id], NETWORK_LINK_STOPPED, now_ms, REASON_SHUTDOWN);
     }
+
     manager->event_count = 0;
 }
 
@@ -397,6 +413,7 @@ bool network_manager_get_selected_link(const network_manager_t *manager, network
         {
             return false;
         }
+
         const network_link_id_t id = policy == NETWORK_ROUTE_WIFI ? NETWORK_LINK_WIFI : NETWORK_LINK_ETHERNET;
 
         if (!is_link_eligible(manager, id, require_dns))
@@ -407,6 +424,7 @@ bool network_manager_get_selected_link(const network_manager_t *manager, network
         *selected_link = id;
         return true;
     }
+
     /* Automatic selection chooses the lowest configured priority value. */
     bool found             = false;
     network_link_id_t best = NETWORK_LINK_WIFI;

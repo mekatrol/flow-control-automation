@@ -85,6 +85,7 @@ typedef struct
     mqtt_transport_event_type_t type;
     uint32_t sequence;
     mqtt_error_category_t error_category;
+
     /* Detail must be a stable non-sensitive code rather than transport prose or credentials. */
     const char *error_detail;
 } mqtt_transport_event_t;

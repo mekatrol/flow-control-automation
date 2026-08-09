@@ -40,6 +40,7 @@ void controller_io_update(controller_io_t *io, uint16_t inputs, bool are_inputs_
     {
         return;
     }
+
     io->snapshot.inputs            = inputs;
     io->snapshot.outputs           = outputs;
     io->snapshot.are_inputs_valid  = are_inputs_valid;
@@ -74,8 +75,10 @@ static controller_protocol_provider_result_t get_point_definition(void *context,
     {
         return CONTROLLER_PROTOCOL_PROVIDER_NOT_FOUND;
     }
+
     const bool is_input    = index < CONTROLLER_IO_INPUT_COUNT;
     const unsigned channel = (unsigned)(is_input ? index : index - CONTROLLER_IO_INPUT_COUNT) + 1U;
+
     *definition =
         (controller_protocol_point_definition_t){.revision      = POINT_REVISION,
                                                  .type          = CONTROLLER_PROTOCOL_POINT_DIGITAL,
@@ -114,6 +117,7 @@ static controller_protocol_provider_result_t get_point_value(void *context, cons
     {
         return CONTROLLER_PROTOCOL_PROVIDER_NOT_FOUND;
     }
+
     const bool is_input = index < CONTROLLER_IO_INPUT_COUNT;
 
     if ((is_input && !io->snapshot.are_inputs_valid) || (!is_input && !io->snapshot.are_outputs_valid))
@@ -125,9 +129,11 @@ static controller_protocol_provider_result_t get_point_value(void *context, cons
     {
         return CONTROLLER_PROTOCOL_PROVIDER_FAILED;
     }
+
     const size_t bit     = is_input ? index : index - CONTROLLER_IO_INPUT_COUNT;
     value->value.digital = (((is_input ? io->snapshot.inputs : io->snapshot.outputs) >> bit) & 1U) != 0U;
     value->quality       = CONTROLLER_PROTOCOL_QUALITY_GOOD;
+
     /* The platform currently has no trusted wall clock, so normative timestamps remain explicitly absent. */
     value->source_timestamp_ms = INT64_MIN;
     value->updated_at_ms       = INT64_MIN;
@@ -157,6 +163,7 @@ controller_protocol_provider_result_t controller_io_get_protocol_block(void *con
     {
         return CONTROLLER_PROTOCOL_PROVIDER_NOT_READY;
     }
+
     *block = (controller_protocol_io_block_t){.inputs         = io->snapshot.inputs,
                                               .outputs        = io->snapshot.outputs,
                                               .validity_flags = (io->snapshot.are_inputs_valid ? 1U : 0U) |
@@ -181,6 +188,7 @@ controller_protocol_provider_result_t controller_io_set_protocol_output_block(vo
     {
         return CONTROLLER_PROTOCOL_PROVIDER_FAILED;
     }
+
     /* Publish an acknowledged command immediately rather than waiting for the next field poll. */
     io->snapshot.outputs           = outputs;
     io->snapshot.are_outputs_valid = true;
@@ -204,6 +212,7 @@ controller_protocol_provider_result_t controller_io_set_protocol_output(void *co
     {
         return CONTROLLER_PROTOCOL_PROVIDER_NOT_READY;
     }
+
     const uint16_t mask    = (uint16_t)(1U << (index - CONTROLLER_IO_INPUT_COUNT));
     const uint16_t outputs = value ? (uint16_t)(io->snapshot.outputs | mask) : (uint16_t)(io->snapshot.outputs & ~mask);
 

@@ -21,6 +21,10 @@ The current bespoke rules are:
 2. Change a discarded function call such as ``(void)read_value();`` to the
    ordinary expression statement ``read_value();``.  Other uses of ``void``,
    including pointer casts and unused-variable suppressions, are untouched.
+3. Put a blank line after a closing brace unless the next source line is
+   another closing brace. Existing blank lines do not gain more whitespace.
+4. Put a blank line before a comment block that follows another statement,
+   except when the comment is the first item after an opening brace.
 
 Design boundary
 ===============
@@ -139,6 +143,31 @@ def is_blank_line_required(lines: list[str], anchor: int) -> bool:
     return not lines[anchor - 1].rstrip().endswith("{")
 
 
+# Tests whether the current line needs separation from a preceding closing
+# brace. ``lines`` contains the output accumulated before ``line``. The result
+# is true only when the preceding output line ends a block and the current line
+# is neither blank nor another closing brace. Restricting the test to
+# line-ending braces matches clang-format's block layout and avoids treating
+# aggregate initializers ending in ``};`` as control blocks.
+def is_blank_line_required_after_closing_brace(lines: list[str], line: str) -> bool:
+    if not lines or not lines[-1].rstrip().endswith("}"):
+        return False
+
+    return bool(line.strip()) and not line.lstrip().startswith("}")
+
+
+# Tests whether a new comment block needs separation from preceding code.
+# ``lines`` contains output accumulated before ``line``. The result is false
+# for continued comment lines, existing whitespace, and comments that are the
+# first item in a block. These exceptions preserve each comment block as one
+# unit and avoid adding vertical space at the start of a scope.
+def is_blank_line_required_before_comment(lines: list[str], line: str) -> bool:
+    if not is_comment_line(line) or not lines or not lines[-1].strip():
+        return False
+
+    return not is_comment_line(lines[-1]) and not lines[-1].rstrip().endswith("{")
+
+
 # Applies all bespoke rules to one complete C source string.  Input is expected
 # to be the output of ``clang-format``.  Transformations run in their declared
 # order for every line, and the result preserves whether the input had a final
@@ -157,6 +186,18 @@ def format_source(source: str) -> str:
         # rule changes no line count, so subsequent insertion indexes remain
         # local to the ``formatted`` output list.
         line = DISCARDED_CALL_CAST.sub(r"\g<indent>", line)
+
+        # Visually separate a completed block from the next item. Perform this
+        # before statement-specific spacing so both rules observe the inserted
+        # separator and cannot add duplicate blank lines.
+        if is_blank_line_required_after_closing_brace(formatted, line):
+            formatted.append("")
+
+        # Separate documentation for the next statement from preceding work.
+        # Keeping this before statement spacing lets that rule see the same
+        # separator and avoids inserting a second blank line before the block.
+        if is_blank_line_required_before_comment(formatted, line):
+            formatted.append("")
 
         # Resolve spacing against output accumulated so far.  Doing this during
         # construction avoids index drift when multiple blank lines are added

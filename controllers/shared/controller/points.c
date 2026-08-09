@@ -59,6 +59,7 @@ static controller_point_result_t apply_outputs(controller_points_t *points)
     {
         return CONTROLLER_POINT_FAILED;
     }
+
     points->commanded_outputs = outputs;
     points->are_outputs_valid = true;
 
@@ -72,6 +73,7 @@ bool controller_points_init(controller_points_t *points, bool (*write_outputs)(u
     {
         return false;
     }
+
     *points               = (controller_points_t){0};
     points->write_outputs = write_outputs;
 
@@ -94,6 +96,7 @@ controller_point_result_t controller_points_command(controller_points_t *points,
 
         return CONTROLLER_POINT_INVALID_ARGUMENT;
     }
+
     controller_point_command_t *slot = NULL;
 
     for (size_t index = 0; index < CONTROLLER_POINT_COMMAND_CAPACITY; index++)
@@ -119,7 +122,9 @@ controller_point_result_t controller_points_command(controller_points_t *points,
 
         return CONTROLLER_POINT_QUEUE_FULL;
     }
+
     const controller_point_command_t previous = *slot;
+
     *slot                                     = *command;
     slot->is_used                             = true;
     const controller_point_result_t result    = apply_outputs(points);
@@ -131,6 +136,7 @@ controller_point_result_t controller_points_command(controller_points_t *points,
 
         return result;
     }
+
     points->health.accepted_command_count++;
 
     return CONTROLLER_POINT_OK;
@@ -144,6 +150,7 @@ controller_point_result_t controller_points_relinquish(controller_points_t *poin
     {
         return CONTROLLER_POINT_INVALID_ARGUMENT;
     }
+
     bool is_removed = false;
 
     for (size_t index = 0; index < CONTROLLER_POINT_COMMAND_CAPACITY; index++)
@@ -161,6 +168,7 @@ controller_point_result_t controller_points_relinquish(controller_points_t *poin
     {
         return CONTROLLER_POINT_NOT_FOUND;
     }
+
     const controller_point_result_t result = apply_outputs(points);
 
     if (result == CONTROLLER_POINT_OK)
@@ -178,6 +186,7 @@ bool controller_points_is_source_effective(const controller_points_t *points, ui
     {
         return false;
     }
+
     const controller_point_command_t *winner = NULL;
 
     for (size_t index = 0; index < CONTROLLER_POINT_COMMAND_CAPACITY; index++)
@@ -200,6 +209,7 @@ void controller_points_process(controller_points_t *points, int64_t now_ms)
     {
         return;
     }
+
     bool has_expired = false;
 
     for (size_t index = 0; index < CONTROLLER_POINT_COMMAND_CAPACITY; index++)
@@ -227,6 +237,7 @@ controller_point_result_t controller_points_subscribe(controller_points_t *point
     {
         return CONTROLLER_POINT_INVALID_ARGUMENT;
     }
+
     controller_point_subscription_t *slot = NULL;
 
     for (size_t index = 0; index < CONTROLLER_POINT_SUBSCRIPTION_CAPACITY; index++)
@@ -271,6 +282,7 @@ void controller_points_observe(controller_points_t *points, uint16_t outputs)
 
         return;
     }
+
     const uint16_t changed  = points->observed_points ^ outputs;
     points->observed_points = outputs;
 
@@ -304,6 +316,7 @@ void controller_points_observe(controller_points_t *points, uint16_t outputs)
                 subscription->has_gap = true;
                 points->health.subscription_drop_count++;
             }
+
             subscription->pending_mask |= relevant;
             subscription->sequence++;
         }
@@ -329,6 +342,7 @@ controller_point_result_t controller_points_get_event(controller_points_t *point
             {
                 return CONTROLLER_POINT_NOT_READY;
             }
+
             *changed_mask              = subscription->pending_mask;
             *values                    = points->observed_points;
             *sequence                  = subscription->sequence;

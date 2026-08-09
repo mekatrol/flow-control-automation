@@ -126,6 +126,7 @@ bool flow_runtime_init(flow_runtime_t *runtime, const flow_executable_t *executa
     {
         return false;
     }
+
     *runtime = (flow_runtime_t){.executable = executable};
     flow_runtime_reset(runtime);
 
@@ -143,6 +144,7 @@ void flow_runtime_reset(flow_runtime_t *runtime)
     {
         return;
     }
+
     const flow_executable_t *flow = runtime->executable;
     memset(runtime->current_memory, 0, sizeof(runtime->current_memory));
     memset(runtime->next_memory, 0, sizeof(runtime->next_memory));
@@ -173,7 +175,9 @@ flow_result_t flow_runtime_step(flow_runtime_t *runtime, const flow_input_frame_
     {
         return get_runtime_result(FLOW_REASON_EVALUATION_FAILED, NULL);
     }
+
     const flow_executable_t *flow = runtime->executable;
+
     /* Working images isolate partial computation from memory and snapshots visible to callers. */
     bool working_values[FLOW_EXECUTABLE_MAX_NODES] = {false};
     bool working_memory[FLOW_EXECUTABLE_MAX_NODES];
@@ -206,9 +210,11 @@ flow_result_t flow_runtime_step(flow_runtime_t *runtime, const flow_input_frame_
 
                     return get_runtime_result(FLOW_REASON_INPUT_QUALITY_REJECTED, node->id);
                 }
+
                 working_values[node_index] = sample->value;
                 break;
             }
+
             case FLOW_NODE_DIGITAL_CONSTANT:
                 working_values[node_index] = node->initial_value;
                 break;
@@ -221,6 +227,7 @@ flow_result_t flow_runtime_step(flow_runtime_t *runtime, const flow_input_frame_
                 {
                     goto evaluation_failed;
                 }
+
                 working_values[node_index] = !left;
                 break;
             case FLOW_NODE_AND:
@@ -230,6 +237,7 @@ flow_result_t flow_runtime_step(flow_runtime_t *runtime, const flow_input_frame_
                 {
                     goto evaluation_failed;
                 }
+
                 working_values[node_index] = left && right;
                 break;
             case FLOW_NODE_OR:
@@ -239,6 +247,7 @@ flow_result_t flow_runtime_step(flow_runtime_t *runtime, const flow_input_frame_
                 {
                     goto evaluation_failed;
                 }
+
                 working_values[node_index] = left || right;
                 break;
             case FLOW_NODE_PROPOSED_OUTPUT:
@@ -247,6 +256,7 @@ flow_result_t flow_runtime_step(flow_runtime_t *runtime, const flow_input_frame_
                 {
                     goto evaluation_failed;
                 }
+
                 working_values[node_index] = left;
                 break;
             default:
@@ -265,6 +275,7 @@ flow_result_t flow_runtime_step(flow_runtime_t *runtime, const flow_input_frame_
             }
         }
     }
+
     /* Build a complete replacement snapshot locally so readers cannot observe nodes from different ticks. */
     flow_tick_snapshot_t next = {.tick_number    = runtime->tick_number + 1U,
                                  .sampled_at_ms  = input->sampled_at_ms,
@@ -289,6 +300,7 @@ flow_result_t flow_runtime_step(flow_runtime_t *runtime, const flow_input_frame_
             output->quality = FLOW_QUALITY_GOOD;
         }
     }
+
     /* This final group is the publication boundary for values, memory, snapshot identity, and tick number. */
     memcpy(runtime->values, working_values, sizeof(runtime->values));
     memcpy(runtime->current_memory, working_memory, sizeof(runtime->current_memory));

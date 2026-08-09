@@ -46,6 +46,7 @@ bool platform_auth_initialize(const char *provisioned_key_hex)
     {
         return false;
     }
+
     uint8_t provisioned_key[PROVISIONED_KEY_SIZE];
 
     for (size_t index = 0; index < sizeof(provisioned_key); index++)
@@ -59,6 +60,7 @@ bool platform_auth_initialize(const char *provisioned_key_hex)
 
             return false;
         }
+
         provisioned_key[index] = (uint8_t)((high << 4U) | low);
     }
 
@@ -68,6 +70,7 @@ bool platform_auth_initialize(const char *provisioned_key_hex)
 
         return false;
     }
+
     psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
     psa_set_key_type(&attributes, PSA_KEY_TYPE_HMAC);
     psa_set_key_bits(&attributes, sizeof(provisioned_key) * 8U);
@@ -75,6 +78,7 @@ bool platform_auth_initialize(const char *provisioned_key_hex)
     psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_SIGN_MESSAGE);
     const psa_status_t result = psa_import_key(&attributes, provisioned_key, sizeof(provisioned_key), &protocol_key_id);
     psa_reset_key_attributes(&attributes);
+
     /* Erase the decoded copy after PSA has imported it into opaque volatile storage. */
     memset(provisioned_key, 0, sizeof(provisioned_key));
 

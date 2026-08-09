@@ -68,6 +68,7 @@ static bool apply_live_outputs(flow_debug_t *debug, uint64_t now_ms)
     {
         return true;
     }
+
     const flow_tick_snapshot_t *snapshot = get_flow_runtime_snapshot(&debug->runtime);
     const uint64_t expires_at_ms =
         now_ms > UINT64_MAX - FLOW_DEBUG_LIVE_OUTPUT_HOLD_MS ? UINT64_MAX : now_ms + FLOW_DEBUG_LIVE_OUTPUT_HOLD_MS;
@@ -127,6 +128,7 @@ static bool append_u16(flow_debug_t *debug, size_t *offset, uint16_t value)
     {
         return false;
     }
+
     debug->snapshot[(*offset)++] = (uint8_t)value;
     debug->snapshot[(*offset)++] = (uint8_t)(value >> 8U);
 
@@ -175,6 +177,7 @@ static bool append_u8(flow_debug_t *debug, size_t *offset, uint8_t value)
     {
         return false;
     }
+
     debug->snapshot[(*offset)++] = value;
 
     return true;
@@ -195,6 +198,7 @@ static bool append_string(flow_debug_t *debug, size_t *offset, const char *value
     {
         return false;
     }
+
     debug->snapshot[(*offset)++] = (uint8_t)size;
     memcpy(&debug->snapshot[*offset], value, size);
 
@@ -259,6 +263,7 @@ flow_debug_result_t flow_debug_enable_live_output(flow_debug_t *debug, uint32_t 
     {
         return FLOW_DEBUG_INVALID_ARGUMENT;
     }
+
     flow_debug_process(debug, now_ms);
     const flow_debug_result_t access = get_access(debug, owner_id, session_id);
 
@@ -271,6 +276,7 @@ flow_debug_result_t flow_debug_enable_live_output(flow_debug_t *debug, uint32_t 
     {
         return FLOW_DEBUG_WRONG_STATE;
     }
+
     size_t confirmed_index = 0;
 
     for (uint16_t index = 0; index < debug->executable.node_count; index++)
@@ -284,6 +290,7 @@ flow_debug_result_t flow_debug_enable_live_output(flow_debug_t *debug, uint32_t 
             {
                 return FLOW_DEBUG_FORBIDDEN;
             }
+
             confirmed_index++;
         }
     }
@@ -292,6 +299,7 @@ flow_debug_result_t flow_debug_enable_live_output(flow_debug_t *debug, uint32_t 
     {
         return FLOW_DEBUG_FORBIDDEN;
     }
+
     debug->is_live_output_enabled = true;
     renew_lease(debug, now_ms);
 
@@ -342,7 +350,9 @@ static bool encode_snapshot(flow_debug_t *debug, uint64_t completed_at_ms)
     {
         return false;
     }
+
     size_t offset = 0;
+
     /* Serialize explicitly in little-endian contract order; structure layout and host alignment never enter the wire format. */
     const bool header_ok =
         append_u16(debug, &offset, SNAPSHOT_SCHEMA) && append_u64(debug, &offset, debug->session_id) &&
@@ -385,6 +395,7 @@ static bool encode_snapshot(flow_debug_t *debug, uint64_t completed_at_ms)
             return false;
         }
     }
+
     /* Length and digest are assigned only after the entire replacement image succeeds. */
     debug->snapshot_length = (uint32_t)offset;
     flow_sha256(debug->snapshot, offset, debug->snapshot_digest);
@@ -401,6 +412,7 @@ bool flow_debug_init(flow_debug_t *debug, const flow_target_t *target, flow_debu
     {
         return false;
     }
+
     memset(debug, 0, sizeof(*debug));
     debug->target          = target;
     debug->get_input       = get_input;
@@ -423,6 +435,7 @@ flow_debug_result_t flow_debug_begin(flow_debug_t *debug, uint32_t owner_id, boo
     {
         return FLOW_DEBUG_INVALID_ARGUMENT;
     }
+
     flow_debug_process(debug, now_ms);
 
     if (debug->state != FLOW_DEBUG_EMPTY && !replace_existing)
@@ -434,12 +447,14 @@ flow_debug_result_t flow_debug_begin(flow_debug_t *debug, uint32_t owner_id, boo
     {
         clear_session(debug);
     }
+
     debug->session_id = debug->next_session_id++;
 
     if (debug->session_id == 0U)
     {
         debug->session_id = debug->next_session_id++;
     }
+
     debug->owner_id        = owner_id;
     debug->artifact_length = artifact_length;
     memcpy(debug->artifact_digest, digest, FLOW_DEBUG_DIGEST_BYTES);
@@ -462,6 +477,7 @@ flow_debug_result_t flow_debug_write(flow_debug_t *debug, uint32_t owner_id, uin
     {
         return FLOW_DEBUG_INVALID_ARGUMENT;
     }
+
     flow_debug_process(debug, now_ms);
     const flow_debug_result_t access = get_access(debug, owner_id, session_id);
 
@@ -496,6 +512,7 @@ flow_debug_result_t flow_debug_write(flow_debug_t *debug, uint32_t owner_id, uin
             set_covered(debug, offset + index);
         }
     }
+
     renew_lease(debug, now_ms);
 
     return FLOW_DEBUG_OK;
@@ -512,6 +529,7 @@ flow_debug_result_t flow_debug_prepare(flow_debug_t *debug, uint32_t owner_id, u
     {
         return FLOW_DEBUG_INVALID_ARGUMENT;
     }
+
     flow_debug_process(debug, now_ms);
     const flow_debug_result_t access = get_access(debug, owner_id, session_id);
 
@@ -524,6 +542,7 @@ flow_debug_result_t flow_debug_prepare(flow_debug_t *debug, uint32_t owner_id, u
     {
         return FLOW_DEBUG_WRONG_STATE;
     }
+
     uint8_t digest[FLOW_DEBUG_DIGEST_BYTES];
     flow_sha256(debug->artifact, debug->artifact_length, digest);
 
@@ -533,6 +552,7 @@ flow_debug_result_t flow_debug_prepare(flow_debug_t *debug, uint32_t owner_id, u
 
         return FLOW_DEBUG_DIGEST_MISMATCH;
     }
+
     debug->last_result = flow_executable_prepare(debug->artifact, debug->artifact_length, debug->target, &debug->executable);
 
     if (debug->last_result.code != FLOW_REASON_OK || !flow_runtime_init(&debug->runtime, &debug->executable))
@@ -541,6 +561,7 @@ flow_debug_result_t flow_debug_prepare(flow_debug_t *debug, uint32_t owner_id, u
 
         return FLOW_DEBUG_VALIDATION_FAILED;
     }
+
     debug->state = FLOW_DEBUG_READY;
     renew_lease(debug, now_ms);
 
@@ -558,6 +579,7 @@ flow_debug_result_t flow_debug_step(flow_debug_t *debug, uint32_t owner_id, uint
     {
         return FLOW_DEBUG_INVALID_ARGUMENT;
     }
+
     flow_debug_process(debug, now_ms);
     const flow_debug_result_t access = get_access(debug, owner_id, session_id);
 
@@ -570,6 +592,7 @@ flow_debug_result_t flow_debug_step(flow_debug_t *debug, uint32_t owner_id, uint
     {
         return FLOW_DEBUG_WRONG_STATE;
     }
+
     /* The transient state prevents overlapping control operations while the complete tick is in progress. */
     debug->state              = FLOW_DEBUG_STEPPING;
     const uint64_t started_us = debug->get_time_us == NULL ? 0U : debug->get_time_us(debug->time_context);
@@ -583,6 +606,7 @@ flow_debug_result_t flow_debug_step(flow_debug_t *debug, uint32_t owner_id, uint
 
         return FLOW_DEBUG_VALIDATION_FAILED;
     }
+
     debug->last_result           = flow_runtime_step(&debug->runtime, &input);
     const uint64_t completed_us  = debug->get_time_us == NULL ? started_us : debug->get_time_us(debug->time_context);
     const uint64_t duration_us   = completed_us >= started_us ? completed_us - started_us : 0U;
@@ -607,6 +631,7 @@ flow_debug_result_t flow_debug_step(flow_debug_t *debug, uint32_t owner_id, uint
 
         return FLOW_DEBUG_VALIDATION_FAILED;
     }
+
     debug->state = FLOW_DEBUG_PAUSED;
 
     if (!encode_snapshot(debug, now_ms))
@@ -616,8 +641,10 @@ flow_debug_result_t flow_debug_step(flow_debug_t *debug, uint32_t owner_id, uint
 
         return FLOW_DEBUG_VALIDATION_FAILED;
     }
+
     debug->published_tick_number    = debug->runtime.tick_number;
     debug->last_snapshot_publish_ms = now_ms;
+
     /* Manual stepping uses forced-safe behaviour: the evaluated command is applied and immediately relinquished. */
     relinquish_live_outputs(debug);
     renew_lease(debug, now_ms);
@@ -643,6 +670,7 @@ flow_debug_result_t flow_debug_run(flow_debug_t *debug, uint32_t owner_id, uint6
     {
         return FLOW_DEBUG_INVALID_ARGUMENT;
     }
+
     flow_debug_process(debug, now_ms);
     const flow_debug_result_t access = get_access(debug, owner_id, session_id);
 
@@ -655,6 +683,7 @@ flow_debug_result_t flow_debug_run(flow_debug_t *debug, uint32_t owner_id, uint6
     {
         return FLOW_DEBUG_WRONG_STATE;
     }
+
     debug->interval_ms  = interval_ms;
     debug->next_tick_ms = now_ms;
     debug->state        = FLOW_DEBUG_RUNNING;
@@ -674,6 +703,7 @@ flow_debug_result_t flow_debug_pause(flow_debug_t *debug, uint32_t owner_id, uin
     {
         return FLOW_DEBUG_INVALID_ARGUMENT;
     }
+
     flow_debug_process(debug, now_ms);
     const flow_debug_result_t access = get_access(debug, owner_id, session_id);
 
@@ -686,6 +716,7 @@ flow_debug_result_t flow_debug_pause(flow_debug_t *debug, uint32_t owner_id, uin
     {
         return FLOW_DEBUG_WRONG_STATE;
     }
+
     debug->state = FLOW_DEBUG_PAUSED;
     relinquish_live_outputs(debug);
     renew_lease(debug, now_ms);
@@ -703,6 +734,7 @@ flow_debug_result_t flow_debug_get_status(flow_debug_t *debug, uint32_t owner_id
     {
         return FLOW_DEBUG_INVALID_ARGUMENT;
     }
+
     flow_debug_process(debug, now_ms);
     const flow_debug_result_t access = get_access(debug, owner_id, session_id);
 
@@ -710,7 +742,9 @@ flow_debug_result_t flow_debug_get_status(flow_debug_t *debug, uint32_t owner_id
     {
         return access;
     }
+
     renew_lease(debug, now_ms);
+
     *status = (flow_debug_status_t){.session_id              = debug->session_id,
                                     .state                   = debug->state,
                                     .covered_bytes           = debug->covered_bytes,
@@ -741,6 +775,7 @@ flow_debug_result_t flow_debug_get_snapshot_header(flow_debug_t *debug, uint32_t
     {
         return FLOW_DEBUG_INVALID_ARGUMENT;
     }
+
     const flow_debug_result_t access = get_access(debug, owner_id, session_id);
 
     if (access != FLOW_DEBUG_OK)
@@ -752,7 +787,9 @@ flow_debug_result_t flow_debug_get_snapshot_header(flow_debug_t *debug, uint32_t
     {
         return FLOW_DEBUG_NOT_FOUND;
     }
+
     renew_lease(debug, now_ms);
+
     *header =
         (flow_debug_snapshot_header_t){.session_id   = session_id,
                                        .tick_number  = tick_number,
@@ -784,6 +821,7 @@ flow_debug_result_t flow_debug_read_snapshot_chunk(flow_debug_t *debug, uint32_t
     {
         return FLOW_DEBUG_INVALID_ARGUMENT;
     }
+
     const uint32_t offset   = (uint32_t)chunk_index * FLOW_DEBUG_SNAPSHOT_CHUNK_LIMIT;
     const size_t remaining  = debug->snapshot_length - offset;
     const size_t chunk_size = remaining < FLOW_DEBUG_SNAPSHOT_CHUNK_LIMIT ? remaining : FLOW_DEBUG_SNAPSHOT_CHUNK_LIMIT;
@@ -792,6 +830,7 @@ flow_debug_result_t flow_debug_read_snapshot_chunk(flow_debug_t *debug, uint32_t
     {
         return FLOW_DEBUG_INVALID_ARGUMENT;
     }
+
     memcpy(output, &debug->snapshot[offset], chunk_size);
 
     *absolute_offset = offset;
@@ -808,6 +847,7 @@ flow_debug_result_t flow_debug_renew(flow_debug_t *debug, uint32_t owner_id, uin
     {
         return FLOW_DEBUG_INVALID_ARGUMENT;
     }
+
     flow_debug_process(debug, now_ms);
     const flow_debug_result_t access = get_access(debug, owner_id, session_id);
 
@@ -828,12 +868,14 @@ flow_debug_result_t flow_debug_stop(flow_debug_t *debug, uint32_t owner_id, uint
     {
         return FLOW_DEBUG_INVALID_ARGUMENT;
     }
+
     const flow_debug_result_t access = get_access(debug, owner_id, session_id);
 
     if (access != FLOW_DEBUG_OK)
     {
         return access;
     }
+
     debug->state = FLOW_DEBUG_STOPPED;
     clear_session(debug);
 
@@ -873,6 +915,7 @@ void flow_debug_process(flow_debug_t *debug, uint64_t now_ms)
                                                 : (uint32_t)late_intervals;
             debug->overrun_count += late_intervals > 0U && debug->overrun_count < UINT32_MAX ? 1U : 0U;
         }
+
         const uint64_t started_us = debug->get_time_us == NULL ? 0U : debug->get_time_us(debug->time_context);
         flow_input_frame_t input  = {0};
 
@@ -884,6 +927,7 @@ void flow_debug_process(flow_debug_t *debug, uint64_t now_ms)
 
             return;
         }
+
         debug->last_result = flow_runtime_step(&debug->runtime, &input);
 
         if (debug->last_result.code != FLOW_REASON_OK)
@@ -900,6 +944,7 @@ void flow_debug_process(flow_debug_t *debug, uint64_t now_ms)
 
             return;
         }
+
         const uint64_t completed_us  = debug->get_time_us == NULL ? started_us : debug->get_time_us(debug->time_context);
         const uint64_t duration_us   = completed_us >= started_us ? completed_us - started_us : 0U;
         debug->execution_duration_us = duration_us > UINT32_MAX ? UINT32_MAX : (uint32_t)duration_us;
@@ -908,7 +953,9 @@ void flow_debug_process(flow_debug_t *debug, uint64_t now_ms)
         {
             debug->execution_high_water_us = debug->execution_duration_us;
         }
+
         debug->next_tick_ms = scheduled_ms + ((now_ms - scheduled_ms) / debug->interval_ms + 1U) * debug->interval_ms;
+
         /* Encoding only the latest state bounds publication work; evaluation never waits for snapshot transfer. */
         const bool is_publish_due =
             debug->last_snapshot_publish_ms == 0U || now_ms - debug->last_snapshot_publish_ms >= SNAPSHOT_PUBLISH_INTERVAL_MS;

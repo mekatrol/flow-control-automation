@@ -65,6 +65,7 @@ static bool get_node_value(const flow_tick_snapshot_t *snapshot, const char *nod
             return snapshot->nodes[index].value;
         }
     }
+
     assert(false);
 
     return false;

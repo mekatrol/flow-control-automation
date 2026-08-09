@@ -117,6 +117,7 @@ static void enqueue_transport_event(mqtt_transport_event_type_t type, mqtt_error
     {
         return;
     }
+
     const mqtt_queued_event_t event = {
         .type           = type,
         .sequence       = atomic_fetch_add(&mqtt_event_sequence, 1) + 1,
@@ -189,16 +190,19 @@ static void handle_mqtt_event(void * /* context */, esp_event_base_t /* event_ba
         atomic_store(&is_failure_reported, false);
         enqueue_transport_event(MQTT_TRANSPORT_CONNECTED, MQTT_ERROR_NONE, MQTT_EVENT_CONNECTED_CODE);
     }
+
     else if (event_id == MQTT_EVENT_ERROR)
     {
         const mqtt_error_category_t category = get_error_category(event->error_handle);
         atomic_store(&is_failure_reported, true);
         enqueue_transport_event(MQTT_TRANSPORT_FAILED, category, get_error_code(category));
     }
+
     else if (event_id == MQTT_EVENT_DISCONNECTED && !atomic_load(&is_failure_reported))
     {
         enqueue_transport_event(MQTT_TRANSPORT_DISCONNECTED, MQTT_ERROR_TRANSPORT, MQTT_EVENT_DISCONNECTED_CODE);
     }
+
     else if (event_id == MQTT_EVENT_DATA && event->current_data_offset == 0 && event->data_len == event->total_data_len &&
              event->topic_len > 0 && event->topic_len < MQTT_TOPIC_CAPACITY && event->data_len >= 0 &&
              event->data_len < MQTT_PAYLOAD_CAPACITY && mqtt_inbound_queue != NULL)
@@ -221,6 +225,7 @@ static void stop_mqtt_client(void)
     {
         return;
     }
+
     /* Suppress the expected callback because the supervisor already owns this transition. */
     atomic_store(&is_failure_reported, true);
     esp_mqtt_client_stop(mqtt_client);
@@ -238,6 +243,7 @@ static bool start_mqtt_client(const mqtt_broker_config_t *config, network_link_i
     {
         return false;
     }
+
     stop_mqtt_client();
     atomic_store(&is_failure_reported, false);
     const esp_mqtt_client_config_t mqtt_config = {
@@ -284,6 +290,7 @@ static void mqtt_transport_task(void * /* context */)
         {
             stop_mqtt_client();
         }
+
         else if (command.type == MQTT_COMMAND_PUBLISH)
         {
             if (mqtt_client != NULL)
@@ -293,6 +300,7 @@ static void mqtt_transport_task(void * /* context */)
                                         true);
             }
         }
+
         else if (command.type == MQTT_COMMAND_SUBSCRIBE)
         {
             if (mqtt_client != NULL)
@@ -300,6 +308,7 @@ static void mqtt_transport_task(void * /* context */)
                 esp_mqtt_client_subscribe(mqtt_client, command.topic_filter, (int)command.subscription_qos);
             }
         }
+
         else if (!start_mqtt_client(&command.config, command.selected_link))
         {
             enqueue_transport_event(MQTT_TRANSPORT_FAILED, MQTT_ERROR_TRANSPORT, MQTT_ERROR_TRANSPORT_CODE);
@@ -314,6 +323,7 @@ bool platform_mqtt_initialize(void)
     {
         return true;
     }
+
     mqtt_event_queue   = xQueueCreate(MQTT_EVENT_QUEUE_DEPTH, sizeof(mqtt_queued_event_t));
     mqtt_command_queue = xQueueCreate(MQTT_COMMAND_QUEUE_DEPTH, sizeof(mqtt_command_t));
     mqtt_inbound_queue = xQueueCreate(MQTT_INBOUND_QUEUE_DEPTH, sizeof(mqtt_inbound_message_t));
@@ -334,7 +344,9 @@ bool platform_mqtt_get_transport_route(mqtt_transport_route_t *route, void *cont
     {
         return false;
     }
+
     const network_link_snapshot_t snapshot = network_manager_get_link_snapshot(network_manager, selected_link);
+
     *route                                 = (mqtt_transport_route_t){
                                         .identifier = (uint32_t)selected_link,
                                         .generation = snapshot.transitioned_at_ms,
@@ -362,6 +374,7 @@ bool platform_mqtt_connect(const mqtt_broker_config_t *config, const mqtt_transp
     {
         return false;
     }
+
     const mqtt_command_t command = {
         .type          = MQTT_COMMAND_CONNECT,
         .config        = *config,
@@ -391,6 +404,7 @@ int32_t platform_mqtt_publish(const char *topic, const void *payload, size_t pay
     {
         return -1;
     }
+
     mqtt_command_t command = {.type = MQTT_COMMAND_PUBLISH};
     snprintf(command.publish.topic, sizeof(command.publish.topic), "%s", topic);
     memcpy(command.publish.payload, payload, payload_size);
@@ -408,6 +422,7 @@ bool platform_mqtt_subscribe(const char *topic_filter, mqtt_qos_t qos, void * /*
     {
         return false;
     }
+
     mqtt_command_t command = {.type = MQTT_COMMAND_SUBSCRIBE, .subscription_qos = qos};
     snprintf(command.topic_filter, sizeof(command.topic_filter), "%s", topic_filter);
 
@@ -447,6 +462,7 @@ void platform_mqtt_get_config(mqtt_broker_config_t *config, const controller_set
     {
         mqtt_broker_uri[0] = '\0';
     }
+
     *config = (mqtt_broker_config_t){
         .enabled                       = broker->enabled && broker->host[0] != '\0',
         .uri                           = mqtt_broker_uri,

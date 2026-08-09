@@ -244,6 +244,7 @@ static void test_event_queue_limit(void)
     {
         enqueue_event(&service, MQTT_TRANSPORT_CONNECTED, sequence, MQTT_ERROR_NONE);
     }
+
     const mqtt_transport_event_t overflow = {
         .type = MQTT_TRANSPORT_CONNECTED, .sequence = MQTT_EVENT_QUEUE_CAPACITY + 1, .error_category = MQTT_ERROR_NONE};
     assert(!mqtt_service_enqueue_event(&service, &overflow));

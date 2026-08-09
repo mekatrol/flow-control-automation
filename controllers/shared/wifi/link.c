@@ -67,6 +67,7 @@ bool wifi_link_init(wifi_link_t *wifi_link, network_manager_t *network_manager, 
     {
         return true;
     }
+
     /* Platform initialization is bounded and deliberately does not associate yet. */
     wifi_link->platform_initialized = platform_wifi_initialize(config);
 
@@ -128,6 +129,7 @@ void wifi_link_process(wifi_link_t *wifi_link, uint64_t now_ms)
             enqueue_start_failure(wifi_link);
             continue;
         }
+
         const network_event_t event = {
             .link_id        = NETWORK_LINK_WIFI,
             .type           = wifi_link_get_network_event_type(platform_event.type),
@@ -145,11 +147,13 @@ void wifi_link_process(wifi_link_t *wifi_link, uint64_t now_ms)
             wifi_link->is_waiting_for_address = true;
             wifi_link->address_deadline_ms    = now_ms + DHCP_TIMEOUT_MS;
         }
+
         else if (platform_event.type == WIFI_PLATFORM_EVENT_ADDRESS_READY ||
                  platform_event.type == WIFI_PLATFORM_EVENT_ADDRESS_LOST || event.type == NETWORK_EVENT_FAILED)
         {
             wifi_link->is_waiting_for_address = false;
         }
+
         const diagnostic_severity_t severity = event.type == NETWORK_EVENT_FAILED || event.type == NETWORK_EVENT_CONNECTION_LOST
                                                    ? DIAGNOSTIC_WARNING
                                                    : DIAGNOSTIC_INFO;
@@ -162,6 +166,7 @@ void wifi_link_process(wifi_link_t *wifi_link, uint64_t now_ms)
                                      platform_event.ipv4_address, platform_event.ipv6_address,
                                      platform_event.dns_ready ? 1U : 0U);
         }
+
         else if (event.type == NETWORK_EVENT_FAILED)
         {
             diagnostics_emit_limited(&wifi_link->event_rate_limiter, EVENT_RATE_WINDOW_MS, MAXIMUM_EVENTS_PER_WINDOW, severity,
@@ -169,6 +174,7 @@ void wifi_link_process(wifi_link_t *wifi_link, uint64_t now_ms)
                                      get_event_reason(platform_event.type), (unsigned)platform_event.reason_code,
                                      (int)platform_event.rssi_dbm);
         }
+
         else
         {
             /* Each failure category remains distinct while limiting a noisy link. */
@@ -176,6 +182,7 @@ void wifi_link_process(wifi_link_t *wifi_link, uint64_t now_ms)
                                      COMPONENT_WIFI, get_event_reason(platform_event.type), FORMAT_EVENT_STATE,
                                      get_event_reason(platform_event.type));
         }
+
         /* The neutral queue owns copied strings, so this stack event is safe. */
         network_manager_enqueue_event(wifi_link->network_manager, &event);
     }

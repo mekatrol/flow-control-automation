@@ -162,6 +162,7 @@ static void test_backoff_jitter_stability_and_shutdown(void)
     network_manager_shutdown(&manager, SHUTDOWN_TIME_MS);
     assert(manager.links[NETWORK_LINK_WIFI].state == NETWORK_LINK_STOPPED);
     assert(manager.links[NETWORK_LINK_ETHERNET].state == NETWORK_LINK_STOPPED);
+
     /* Each failed attempt resets Wi-Fi before the final global shutdown. */
     assert(fixture.stops[NETWORK_LINK_WIFI] == THIRD_SEQUENCE);
     assert(fixture.stops[NETWORK_LINK_ETHERNET] == 1);
@@ -201,6 +202,7 @@ static void test_queue_bounds_and_enable_disable(void)
     assert(manager.links[NETWORK_LINK_WIFI].state == NETWORK_LINK_STARTING);
     network_manager_reconnect(&manager, NETWORK_LINK_WIFI, SECOND_PROCESS_TIME_MS);
     network_manager_process(&manager, SECOND_PROCESS_TIME_MS);
+
     /* Reconnect owns both stop and start so callers never invoke adapters directly. */
     assert(fixture.stops[NETWORK_LINK_WIFI] == FIRST_SEQUENCE);
     assert(fixture.starts[NETWORK_LINK_WIFI] == SECOND_SEQUENCE);
@@ -211,6 +213,7 @@ static void test_queue_bounds_and_enable_disable(void)
     {
         enqueue_event(&manager, NETWORK_LINK_ETHERNET, NETWORK_EVENT_STARTED, i, false, REASON_QUEUED);
     }
+
     const network_event_t overflow = {
         .link_id = NETWORK_LINK_ETHERNET, .type = NETWORK_EVENT_STARTED, .sequence = OVERFLOW_SEQUENCE};
     assert(!network_manager_enqueue_event(&manager, &overflow));
@@ -224,6 +227,7 @@ static void test_event_queue_owns_callback_data(void)
     network_manager_t manager = get_test_manager(&fixture, true, false);
     char address[sizeof(OWNED_IPV4_ADDRESS)];
     char reason[sizeof(REASON_DHCP_READY)];
+
     /* Mutable copies simulate callback-owned storage that changes after enqueueing. */
     strcpy(address, OWNED_IPV4_ADDRESS);
     strcpy(reason, REASON_DHCP_READY);

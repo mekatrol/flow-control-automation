@@ -123,6 +123,7 @@ typedef struct
 void network_manager_init(network_manager_t *manager, const network_link_config_t configs[NETWORK_LINK_COUNT],
                           network_link_action_t start_link, network_link_action_t stop_link, network_random_t random,
                           void *callback_context, uint64_t now_ms);
+
 /* Copies a short-lived adapter event into the bounded owned event queue. */
 bool network_manager_enqueue_event(network_manager_t *manager, const network_event_t *event);
 

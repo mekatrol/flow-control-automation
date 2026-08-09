@@ -73,6 +73,7 @@ static bool write_fixture(void *context, const char *data, size_t size)
     {
         return false;
     }
+
     memcpy(fixture->output + fixture->output_size, data, size);
     fixture->output_size += size;
     fixture->output[fixture->output_size] = '\0';

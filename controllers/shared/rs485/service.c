@@ -50,6 +50,7 @@ bool rs485_service_init(rs485_service_t *service, const rs485_config_t *config, 
 
         return false;
     }
+
     service->config          = *config;
     service->transport_write = transport_write;
     service->state           = RS485_STATE_ONLINE;
@@ -72,6 +73,7 @@ bool rs485_service_send(rs485_service_t *service, const uint8_t *data, size_t si
 
         return false;
     }
+
     const size_t tail = (service->transmit_head + service->transmit_count) % service->config.transmit_queue_depth;
     service->transmit_queue[tail].size = size;
     memcpy(service->transmit_queue[tail].data, data, size);
@@ -95,6 +97,7 @@ static void complete_receive_frame(rs485_service_t *service)
 
         return;
     }
+
     const size_t tail                 = (service->receive_head + service->receive_count) % service->config.receive_queue_depth;
     service->receive_queue[tail].size = service->receive_size;
     memcpy(service->receive_queue[tail].data, service->receive_buffer, service->receive_size);
@@ -124,6 +127,7 @@ void rs485_service_receive_bytes(rs485_service_t *service, const uint8_t *data, 
 
         return;
     }
+
     memcpy(&service->receive_buffer[service->receive_size], data, size);
     service->receive_size += size;
     service->receive_deadline_ms = now_ms + service->config.receive_timeout_ms;
@@ -155,6 +159,7 @@ void rs485_service_report_error(rs485_service_t *service, rs485_transport_error_
             service->counters.protocol_error_count++;
             break;
     }
+
     /* UART errors invalidate the pending byte sequence, preventing corrupt frames reaching consumers. */
     service->receive_size = 0;
     service->state        = RS485_STATE_DEGRADED;
@@ -194,9 +199,11 @@ void rs485_service_process(rs485_service_t *service, uint64_t now_ms)
 
             return;
         }
+
         service->transmit_head = (service->transmit_head + 1) % service->config.transmit_queue_depth;
         service->transmit_count--;
     }
+
     /* Successful bounded processing proves the local UART path remains serviceable after an error. */
     service->state = RS485_STATE_ONLINE;
 }
@@ -208,6 +215,7 @@ bool rs485_service_get_received(rs485_service_t *service, rs485_frame_t *frame)
     {
         return false;
     }
+
     *frame                = service->receive_queue[service->receive_head];
     service->receive_head = (service->receive_head + 1) % service->config.receive_queue_depth;
     service->receive_count--;
@@ -222,6 +230,7 @@ rs485_health_t rs485_service_get_health(const rs485_service_t *service)
     {
         return (rs485_health_t){.state = RS485_STATE_DISABLED};
     }
+
     rs485_health_t health       = service->counters;
     health.state                = service->state;
     health.transmit_queue_depth = service->transmit_count;

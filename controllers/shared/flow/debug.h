@@ -64,6 +64,7 @@ typedef enum
 } flow_debug_result_t;
 
 typedef bool (*flow_debug_get_input_t)(void *context, flow_input_frame_t *frame);
+
 /* Platform adapters isolate coherent sampling, monotonic timing, and arbitration from the portable session state machine. */
 typedef uint64_t (*flow_debug_get_time_us_t)(void *context);
 typedef bool (*flow_debug_command_output_t)(void *context, const char *point_id, bool value, uint8_t priority,

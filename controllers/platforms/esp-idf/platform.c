@@ -84,6 +84,7 @@ void platform_get_device_id(char *output, size_t capacity)
 
         return;
     }
+
     snprintf(output, capacity, "esp32s3-%02x%02x%02x%02x%02x%02x", address[0], address[1], address[2], address[3], address[4],
              address[5]);
 }
@@ -96,6 +97,7 @@ void platform_get_startup_info(platform_startup_info_t *info)
     esp_chip_info(&chip);
     esp_flash_get_size(NULL, &flash_size);
     const esp_app_desc_t *app = esp_app_get_description();
+
     *info                     = (platform_startup_info_t){
                             .firmware_name          = app->project_name,
                             .firmware_version       = app->version,

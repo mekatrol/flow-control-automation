@@ -53,6 +53,7 @@ int diagnostic_format_event(char *output, size_t output_size, diagnostic_severit
     {
         return -1;
     }
+
     char safe_message[SAFE_MESSAGE_SIZE];
     size_t target = 0;
 
@@ -62,6 +63,7 @@ int diagnostic_format_event(char *output, size_t output_size, diagnostic_severit
         const char character   = message[source];
         safe_message[target++] = (character == '\n' || character == '\r' || character == '"') ? ' ' : character;
     }
+
     safe_message[target] = '\0';
 
     return snprintf(output, output_size, EVENT_FORMAT, timestamp_ms, get_diagnostic_severity_name(severity), component,
@@ -75,6 +77,7 @@ int diagnostic_format_redacted_network_config(char *output, size_t output_size, 
     {
         return -1;
     }
+
     const bool wifi_enabled          = wifi_ssid != NULL && wifi_ssid[0] != '\0';
     const bool credential_configured = wifi_password != NULL && wifi_password[0] != '\0';
 
@@ -103,6 +106,7 @@ bool is_diagnostic_event_allowed(diagnostic_rate_limiter_t *limiter, uint64_t no
         {
             *previously_suppressed = limiter->suppressed;
         }
+
         limiter->window_started_ms = now_ms;
         limiter->emitted           = 0;
         limiter->suppressed        = 0;
@@ -116,6 +120,7 @@ bool is_diagnostic_event_allowed(diagnostic_rate_limiter_t *limiter, uint64_t no
 
         return true;
     }
+
     ++limiter->suppressed;
 
     return false;

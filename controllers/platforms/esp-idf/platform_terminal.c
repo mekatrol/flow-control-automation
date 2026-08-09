@@ -27,6 +27,7 @@ size_t platform_terminal_read(uint8_t *data, size_t capacity)
     {
         return 0;
     }
+
     const int size = usb_serial_jtag_read_bytes(data, capacity, 0);
 
     return size > 0 ? (size_t)size : 0;

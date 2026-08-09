@@ -33,6 +33,7 @@ bool platform_io_initialize(const platform_io_config_t *config)
     {
         return false;
     }
+
     const i2c_master_bus_config_t bus_config = {.i2c_port                     = I2C_NUM_0,
                                                 .sda_io_num                   = config->sda_gpio,
                                                 .scl_io_num                   = config->scl_gpio,
@@ -44,6 +45,7 @@ bool platform_io_initialize(const platform_io_config_t *config)
     {
         return false;
     }
+
     inputs_active_low  = config->are_inputs_active_low;
     outputs_active_low = config->are_outputs_active_low;
 
@@ -54,6 +56,7 @@ bool platform_io_initialize(const platform_io_config_t *config)
         {
             return false;
         }
+
         const uint8_t released_inputs = UINT8_MAX;
 
         /* PCF8574 input pins must be released high so external optocouplers can pull them low. */

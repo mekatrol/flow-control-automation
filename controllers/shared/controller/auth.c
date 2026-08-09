@@ -91,6 +91,7 @@ bool controller_auth_init(controller_auth_t *auth, const controller_auth_config_
     {
         return false;
     }
+
     *auth        = (controller_auth_t){0};
     auth->config = *config;
 
@@ -106,6 +107,7 @@ bool controller_auth_create_challenge(controller_auth_t *auth, uint16_t peer,
     {
         return false;
     }
+
     expire_sessions(auth, now_ms);
     controller_auth_session_t *session = NULL;
 
@@ -117,6 +119,7 @@ bool controller_auth_create_challenge(controller_auth_t *auth, uint16_t peer,
             break;
         }
     }
+
     uint8_t random_data[sizeof(uint32_t) + CONTROLLER_AUTH_NONCE_SIZE];
 
     if (session == NULL || !auth->config.get_random(auth->config.context, random_data, sizeof(random_data)))
@@ -125,6 +128,7 @@ bool controller_auth_create_challenge(controller_auth_t *auth, uint16_t peer,
 
         return false;
     }
+
     uint32_t id = 0;
 
     for (size_t index = 0; index < sizeof(id); index++)
@@ -138,10 +142,12 @@ bool controller_auth_create_challenge(controller_auth_t *auth, uint16_t peer,
 
         return false;
     }
+
     *session = (controller_auth_session_t){
         .is_allocated = true, .peer = peer, .id = id, .expires_at_ms = now_ms + auth->config.challenge_lifetime_ms};
     memcpy(session->client_nonce, client_nonce, CONTROLLER_AUTH_NONCE_SIZE);
     memcpy(session->device_nonce, &random_data[sizeof(uint32_t)], CONTROLLER_AUTH_NONCE_SIZE);
+
     *session_id = id;
     memcpy(device_nonce, session->device_nonce, CONTROLLER_AUTH_NONCE_SIZE);
     auth->health.challenge_count++;
@@ -157,12 +163,14 @@ bool controller_auth_get_proof(controller_auth_t *auth, uint16_t peer, uint32_t 
     {
         return false;
     }
+
     const controller_auth_session_t *session = get_session(auth, peer, session_id);
 
     if (session == NULL || session->is_authenticated)
     {
         return false;
     }
+
     uint8_t message[AUTH_PROOF_MESSAGE_SIZE];
     memcpy(message, PROOF_DOMAIN, sizeof(PROOF_DOMAIN));
     put_u16(&message[AUTH_DOMAIN_SIZE], peer);
@@ -181,6 +189,7 @@ bool controller_auth_verify_proof(controller_auth_t *auth, uint16_t peer, uint32
     {
         return false;
     }
+
     expire_sessions(auth, now_ms);
     controller_auth_session_t *session = get_session(auth, peer, session_id);
     uint8_t expected[CONTROLLER_AUTH_TAG_SIZE];
@@ -197,6 +206,7 @@ bool controller_auth_verify_proof(controller_auth_t *auth, uint16_t peer, uint32
 
         return false;
     }
+
     session->is_authenticated = true;
     session->expires_at_ms    = now_ms + auth->config.session_lifetime_ms;
     auth->health.authenticated_count++;
@@ -213,6 +223,7 @@ static bool get_envelope_tag(controller_auth_t *auth, const uint8_t *domain, uin
     {
         return false;
     }
+
     uint8_t message[AUTH_MAXIMUM_MESSAGE_SIZE];
     memcpy(message, domain, AUTH_DOMAIN_SIZE);
     put_u16(&message[AUTH_DOMAIN_SIZE], peer);
@@ -233,6 +244,7 @@ bool controller_auth_verify_request(controller_auth_t *auth, uint16_t peer, uint
     {
         return false;
     }
+
     expire_sessions(auth, now_ms);
     controller_auth_session_t *session = get_session(auth, peer, session_id);
     uint8_t expected[CONTROLLER_AUTH_TAG_SIZE];
@@ -245,6 +257,7 @@ bool controller_auth_verify_request(controller_auth_t *auth, uint16_t peer, uint
 
         return false;
     }
+
     session->receive_sequence = sequence;
 
     return true;
@@ -259,6 +272,7 @@ bool controller_auth_sign_response(controller_auth_t *auth, uint16_t peer, uint3
     {
         return false;
     }
+
     expire_sessions(auth, now_ms);
     controller_auth_session_t *session = get_session(auth, peer, session_id);
 
@@ -266,12 +280,14 @@ bool controller_auth_sign_response(controller_auth_t *auth, uint16_t peer, uint3
     {
         return false;
     }
+
     const uint64_t next_sequence = session->transmit_sequence + 1U;
 
     if (!get_envelope_tag(auth, RESPONSE_DOMAIN, peer, session_id, next_sequence, operation, body, body_size, tag))
     {
         return false;
     }
+
     session->transmit_sequence = next_sequence;
 
     *sequence = next_sequence;
@@ -285,6 +301,7 @@ void controller_auth_close(controller_auth_t *auth, uint16_t peer, uint32_t sess
     {
         return;
     }
+
     controller_auth_session_t *session = get_session(auth, peer, session_id);
 
     if (session != NULL)

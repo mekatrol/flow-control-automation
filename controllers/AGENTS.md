@@ -43,7 +43,10 @@ formatting setup.
    before each `return` statement, unless it is the first statement after an
    opening brace. When a comment immediately documents the statement, put the
    blank line before the comment instead. The repository format task enforces
-   this rule.
+   this rule. Put a blank line after each closing brace unless it is followed
+   by another closing brace. Put a blank line before a comment block that
+   follows another statement, unless it is the first item after an opening
+   brace.
 
 9. Do not cast a discarded function-call result to `(void)`. Call the function
    directly when its result is intentionally ignored. The repository format

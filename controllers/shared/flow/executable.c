@@ -183,6 +183,7 @@ static bool get_id(reader_t *reader, char destination[FLOW_EXECUTABLE_MAX_ID_BYT
     {
         return false;
     }
+
     memcpy(destination, &reader->bytes[reader->offset], length);
     destination[length] = '\0';
     reader->offset += length;
@@ -233,6 +234,7 @@ static flow_result_t get_nodes(reader_t *reader, flow_executable_t *flow)
         {
             return get_result(FLOW_REASON_UNKNOWN_NODE_KIND, "/nodes");
         }
+
         node->kind                = (flow_node_kind_t)kind;
         const size_t config_start = reader->offset;
 
@@ -254,9 +256,11 @@ static flow_result_t get_nodes(reader_t *reader, flow_executable_t *flow)
                 {
                     return get_result(FLOW_REASON_INVALID_CONFIGURATION, "/nodes");
                 }
+
                 flow->output_count++;
             }
         }
+
         else if ((kind == FLOW_NODE_DIGITAL_CONSTANT || kind == FLOW_NODE_MEMORY) && config_size == 1U)
         {
             uint8_t initial;
@@ -266,16 +270,20 @@ static flow_result_t get_nodes(reader_t *reader, flow_executable_t *flow)
             {
                 return get_result(FLOW_REASON_INVALID_CONFIGURATION, "/nodes");
             }
+
             node->initial_value = initial != 0U;
         }
+
         else if ((kind == FLOW_NODE_NOT || kind == FLOW_NODE_AND || kind == FLOW_NODE_OR) && config_size == 0U)
         {
             /* These operators have no configuration in schema 1. */
         }
+
         else
         {
             return get_result(FLOW_REASON_INVALID_CONFIGURATION, "/nodes");
         }
+
         reader->offset = config_start + config_size;
     }
 
@@ -362,6 +370,7 @@ static flow_result_t get_connections(reader_t *reader, flow_executable_t *flow)
         {
             return get_result(FLOW_REASON_MALFORMED, "/connections");
         }
+
         const flow_port_t *source = &flow->ports[connection->source_port_index];
         const flow_port_t *target = &flow->ports[connection->target_port_index];
 
@@ -423,6 +432,7 @@ static flow_result_t get_points(reader_t *reader, flow_executable_t *flow, const
         {
             return get_result(FLOW_REASON_INCOMPATIBLE_TYPE, "/points");
         }
+
         bool is_found = false;
 
         /* Resolve against the target now; ticks must not search hardware metadata or accept stale point bindings. */
@@ -437,6 +447,7 @@ static flow_result_t get_points(reader_t *reader, flow_executable_t *flow, const
                 {
                     return get_result(FLOW_REASON_POINT_DIRECTION_MISMATCH, "/points");
                 }
+
                 break;
             }
         }
@@ -476,6 +487,7 @@ static flow_result_t is_shape_valid(const flow_executable_t *flow)
             {
                 continue;
             }
+
             inputs += port->direction == FLOW_INPUT_DIRECTION ? 1U : 0U;
             outputs += port->direction == FLOW_OUTPUT_DIRECTION ? 1U : 0U;
 
@@ -558,6 +570,7 @@ static flow_result_t get_schedule(flow_executable_t *flow)
                 }
             }
         }
+
         selected[candidate]      = true;
         flow->schedule[position] = candidate;
 
@@ -591,6 +604,7 @@ flow_result_t flow_executable_prepare(const uint8_t *artifact, size_t artifact_s
     {
         return get_result(FLOW_REASON_MALFORMED, "/artifact");
     }
+
     /* Clear the destination before parsing so every failure leaves no partially reusable prepared state. */
     *flow             = (flow_executable_t){0};
     reader_t envelope = {.bytes = artifact, .size = ENVELOPE_BYTES};
@@ -622,6 +636,7 @@ flow_result_t flow_executable_prepare(const uint8_t *artifact, size_t artifact_s
     {
         return get_result(FLOW_REASON_MALFORMED, "/envelopeLength");
     }
+
     uint32_t template_revision;
     uint8_t mode;
     uint8_t quality_policy;
@@ -670,12 +685,14 @@ flow_result_t flow_executable_prepare(const uint8_t *artifact, size_t artifact_s
     {
         return get_result(FLOW_REASON_SNAPSHOT_TOO_LARGE, "/maximumSnapshotBytes");
     }
+
     envelope.offset = 48U;
 
     if (!get_id(&envelope, flow->flow_id))
     {
         return get_result(FLOW_REASON_INVALID_IDENTIFIER, "/flowId");
     }
+
     uint8_t digest[32];
     flow_sha256(&artifact[ENVELOPE_BYTES], artifact_size - ENVELOPE_BYTES, digest);
 
@@ -683,6 +700,7 @@ flow_result_t flow_executable_prepare(const uint8_t *artifact, size_t artifact_s
     {
         return get_result(FLOW_REASON_DIGEST_MISMATCH, "/bodySha256");
     }
+
     reader_t directory = {.bytes = &artifact[ENVELOPE_BYTES], .size = artifact_size - ENVELOPE_BYTES};
     uint32_t body_size;
     uint32_t offsets[4];
@@ -695,6 +713,7 @@ flow_result_t flow_executable_prepare(const uint8_t *artifact, size_t artifact_s
     {
         return get_result(FLOW_REASON_LENGTH_MISMATCH, "/bodyLength");
     }
+
     flow_result_t result;
     reader_t table = {.bytes = directory.bytes, .size = offsets[1], .offset = offsets[0]};
 
@@ -702,18 +721,21 @@ flow_result_t flow_executable_prepare(const uint8_t *artifact, size_t artifact_s
     {
         return result.code == FLOW_REASON_OK ? get_result(FLOW_REASON_LENGTH_MISMATCH, "/nodes") : result;
     }
+
     table = (reader_t){.bytes = directory.bytes, .size = offsets[2], .offset = offsets[1]};
 
     if ((result = get_ports(&table, flow)).code != FLOW_REASON_OK || table.offset != offsets[2])
     {
         return result.code == FLOW_REASON_OK ? get_result(FLOW_REASON_LENGTH_MISMATCH, "/ports") : result;
     }
+
     table = (reader_t){.bytes = directory.bytes, .size = offsets[3], .offset = offsets[2]};
 
     if ((result = get_connections(&table, flow)).code != FLOW_REASON_OK || table.offset != offsets[3])
     {
         return result.code == FLOW_REASON_OK ? get_result(FLOW_REASON_LENGTH_MISMATCH, "/connections") : result;
     }
+
     table = (reader_t){.bytes = directory.bytes, .size = body_size, .offset = offsets[3]};
 
     if ((result = get_points(&table, flow, target)).code != FLOW_REASON_OK || table.offset != body_size)

@@ -10,6 +10,7 @@
 
 /* Identifies limiter summaries without coupling callers to the diagnostic schema. */
 static const char EVENT_MESSAGES_SUPPRESSED[] = "messages_suppressed";
+
 /* Describes the limiter summary fields in the structured diagnostic payload. */
 static const char FORMAT_MESSAGES_SUPPRESSED[] = "suppressed=%u previous_event=%s";
 static diagnostics_sink_function_t live_sink;
@@ -91,6 +92,7 @@ void diagnostics_emit_limited(diagnostic_rate_limiter_t *limiter, uint32_t windo
         diagnostics_emit(DIAGNOSTIC_WARNING, component, EVENT_MESSAGES_SUPPRESSED, FORMAT_MESSAGES_SUPPRESSED, suppressed,
                          event_code);
     }
+
     va_list args;
     va_start(args, format);
     format_and_emit(severity, component, event_code, format, args);

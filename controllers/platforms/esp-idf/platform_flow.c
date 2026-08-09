@@ -36,6 +36,7 @@ static bool initialize_persistence(void)
         {
             return false;
         }
+
         result = nvs_flash_init();
     }
 
@@ -54,6 +55,7 @@ static bool load_flow(void * /* context */, controller_flow_metadata_t *metadata
     {
         return false;
     }
+
     *metadata = record.metadata;
     memcpy(artifact, record.artifact, metadata->size);
 
@@ -67,6 +69,7 @@ static bool commit_flow(void * /* context */, const controller_flow_metadata_t *
     {
         return false;
     }
+
     platform_flow_record_t record = {.version = FLOW_RECORD_VERSION, .metadata = *metadata};
     memcpy(record.artifact, artifact, metadata->size);
 

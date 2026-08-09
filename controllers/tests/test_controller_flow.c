@@ -40,6 +40,7 @@ static bool load_flow(void *context, controller_flow_metadata_t *metadata, uint8
     {
         return false;
     }
+
     *metadata = durable_metadata;
     memcpy(artifact, durable_artifact, metadata->size);
 

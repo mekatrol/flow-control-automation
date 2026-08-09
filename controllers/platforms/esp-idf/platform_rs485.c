@@ -11,6 +11,7 @@ enum
 {
     RS485_UART_NUMBER      = UART_NUM_1,
     RS485_UART_BUFFER_SIZE = 1024,
+
     /* The event task needs room for one owned maximum-size frame plus ESP-IDF UART and queue call frames. */
     RS485_UART_TASK_STACK_SIZE = 4096,
     RS485_UART_EVENT_DEPTH     = 16,
@@ -64,6 +65,7 @@ static void rs485_uart_event_task(void * /* context */)
         {
             continue;
         }
+
         platform_rs485_event_t event = {0};
 
         switch (uart_event.type)
@@ -76,6 +78,7 @@ static void rs485_uart_event_task(void * /* context */)
                 {
                     enqueue_platform_event(&event);
                 }
+
                 break;
             case UART_FRAME_ERR:
                 event.type = PLATFORM_RS485_EVENT_FRAMING_ERROR;
@@ -105,12 +108,14 @@ bool platform_rs485_initialize(const rs485_config_t *config)
     {
         return false;
     }
+
     platform_event_queue = xQueueCreate(RS485_EVENT_QUEUE_DEPTH, sizeof(platform_rs485_event_t));
 
     if (platform_event_queue == NULL)
     {
         return false;
     }
+
     const uart_config_t uart_config = {.baud_rate  = (int)config->baud_rate,
                                        .data_bits  = get_uart_data_bits(config->data_bits),
                                        .parity     = get_uart_parity(config->parity),
@@ -121,6 +126,7 @@ bool platform_rs485_initialize(const rs485_config_t *config)
     if (uart_driver_install(RS485_UART_NUMBER, RS485_UART_BUFFER_SIZE, RS485_UART_BUFFER_SIZE, RS485_UART_EVENT_DEPTH,
                             &uart_event_queue, 0) != ESP_OK ||
         uart_param_config(RS485_UART_NUMBER, &uart_config) != ESP_OK ||
+
         /* MAX13487 automatic direction needs only TX/RX; RTS must remain disconnected. */
         uart_set_pin(RS485_UART_NUMBER, config->transmit_gpio, config->receive_gpio, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE) !=
             ESP_OK)
@@ -138,6 +144,7 @@ bool platform_rs485_reconfigure(const rs485_config_t *config)
     {
         return false;
     }
+
     const uart_config_t uart_config = {.baud_rate  = (int)config->baud_rate,
                                        .data_bits  = get_uart_data_bits(config->data_bits),
                                        .parity     = get_uart_parity(config->parity),
@@ -161,6 +168,7 @@ bool platform_rs485_get_event(platform_rs485_event_t *event)
     {
         return true;
     }
+
     /* Surface one counter event after congestion clears instead of silently losing callback data. */
     const unsigned drop_count = atomic_exchange(&platform_event_drop_count, 0U);
 

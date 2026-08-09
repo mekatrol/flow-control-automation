@@ -15,6 +15,7 @@ static const char FORMAT_NETWORK_CONFIGURATION[] = "wifi=runtime_disabled ethern
 static const char FEATURE_ENABLED[]              = "enabled";
 static const char FEATURE_DISABLED[]             = "disabled";
 static const char FEATURE_PERSISTENT[]           = "persistent";
+
 /* KC868-A16v3 W5500 wiring is fixed by the board schematic. */
 enum
 {
