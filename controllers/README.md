@@ -193,7 +193,7 @@ Both output commands require `--key` and are unicast-only. Authentication does
 not prevent observation or denial of service by someone with physical bus
 access, so secure the cabinet and physical bus wiring.
 
-Provision a unique 32-byte protocol credential through the authenticated
+Provision a unique 32-byte protocol key credential through the authenticated
 terminal's **Settings > Protocol key** option. The value is write-only and is
 entered as 64 hexadecimal characters. Generate one with OpenSSL:
 
