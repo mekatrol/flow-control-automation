@@ -1,0 +1,22 @@
+{
+  "flowId": "two-button-and",
+  "flowRevision": 7,
+  "sectionCount": 8,
+  "instructionCount": 5,
+  "slotCount": 4,
+  "pointCount": 3,
+  "stateCount": 0,
+  "schedule": [
+    "input-01-node",
+    "input-08-node",
+    "and-main",
+    "output-01-node"
+  ],
+  "slots": {
+    "input-01-node": 0,
+    "input-08-node": 1,
+    "and-main": 2,
+    "output-01-node": 3
+  },
+  "artifactLength": 811
+}

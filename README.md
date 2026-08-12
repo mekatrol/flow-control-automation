@@ -11,6 +11,10 @@ documents the schema-1 foundation and current hardware-debug path.
 The frozen schema-1 compatibility and resource baseline is recorded in
 [`docs/schema-1-resource-baseline.md`](docs/schema-1-resource-baseline.md), and
 accepted execution decisions are under [`docs/decisions/`](docs/decisions/).
+The normative production bytecode and native-host boundaries are defined by the
+[`Flow IL v2 contract`](docs/flow-il-v2-contract.md),
+[`VM host ABI`](docs/flow-vm-host-abi-v1.md), and
+[`debugger contract`](docs/flow-il-v2-debug-contract.md).
 
 ## What the Application Does
 

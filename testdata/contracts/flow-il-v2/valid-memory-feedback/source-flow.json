@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "id": "memory-feedback",
+  "revision": 2,
+  "controllerTemplateId": "kincony-kc868-a16",
+  "controllerTemplateRevision": 3,
+  "nodes": [
+    {
+      "id": "constant-true",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "memory-1",
+      "kind": "memory",
+      "value": false
+    },
+    {
+      "id": "or-1",
+      "kind": "or"
+    },
+    {
+      "id": "output-01-node",
+      "kind": "output",
+      "pointId": "output-01"
+    }
+  ],
+  "connections": [
+    {
+      "source": "constant-true",
+      "target": "or-1",
+      "port": "a"
+    },
+    {
+      "source": "memory-1",
+      "target": "or-1",
+      "port": "b"
+    },
+    {
+      "source": "or-1",
+      "target": "memory-1",
+      "port": "in"
+    },
+    {
+      "source": "memory-1",
+      "target": "output-01-node",
+      "port": "in"
+    }
+  ]
+}

@@ -1,0 +1,650 @@
+{
+  "schemaVersion": 1,
+  "id": "maximum-boolean",
+  "revision": 1,
+  "controllerTemplateId": "kincony-kc868-a16",
+  "controllerTemplateRevision": 3,
+  "nodes": [
+    {
+      "id": "constant-000",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-001",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-002",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-003",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-004",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-005",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-006",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-007",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-008",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-009",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-010",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-011",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-012",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-013",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-014",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-015",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-016",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-017",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-018",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-019",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-020",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-021",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-022",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-023",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-024",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-025",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-026",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-027",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-028",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-029",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-030",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-031",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-032",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-033",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-034",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-035",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-036",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-037",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-038",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-039",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-040",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-041",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-042",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-043",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-044",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-045",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-046",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-047",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-048",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-049",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-050",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-051",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-052",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-053",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-054",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-055",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-056",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-057",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-058",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-059",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-060",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-061",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-062",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-063",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-064",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-065",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-066",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-067",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-068",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-069",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-070",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-071",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-072",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-073",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-074",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-075",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-076",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-077",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-078",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-079",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-080",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-081",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-082",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-083",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-084",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-085",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-086",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-087",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-088",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-089",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-090",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-091",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-092",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-093",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-094",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-095",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-096",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-097",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-098",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-099",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-100",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-101",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-102",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-103",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-104",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-105",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-106",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-107",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-108",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-109",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-110",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-111",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-112",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-113",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-114",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-115",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-116",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-117",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-118",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-119",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-120",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-121",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-122",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-123",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-124",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-125",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-126",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "constant-127",
+      "kind": "constant",
+      "value": false
+    }
+  ],
+  "connections": []
+}

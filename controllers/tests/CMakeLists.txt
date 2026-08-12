@@ -95,6 +95,14 @@ add_executable(flow_resource_baseline_tests
 target_include_directories(flow_resource_baseline_tests PRIVATE ../shared)
 add_test(NAME flow_resource_baseline COMMAND flow_resource_baseline_tests)
 
+add_executable(flow_il_v2_contract_tests
+    test_flow_il_v2_contract.c
+    ../shared/flow/sha256.c)
+target_include_directories(flow_il_v2_contract_tests PRIVATE ../shared)
+target_compile_definitions(flow_il_v2_contract_tests PRIVATE
+    FLOW_IL_V2_FIXTURE_DIRECTORY="${CMAKE_CURRENT_LIST_DIR}/../../testdata/contracts/flow-il-v2")
+add_test(NAME flow_il_v2_contract COMMAND flow_il_v2_contract_tests)
+
 add_executable(controller_points_tests
     test_controller_points.c
     ../shared/controller/points.c)

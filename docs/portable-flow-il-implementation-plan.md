@@ -260,7 +260,12 @@ Exit: the v1 contract is unchanged and v2 design choices have reviewed ADRs.
 
 ### Phase 1 - Specify Flow IL v2 and host ABI
 
-Status: next.
+Status: complete on 12 August 2026. The normative contracts are
+`flow-il-v2-contract.md`, `flow-vm-host-abi-v1.md`, and
+`flow-il-v2-debug-contract.md`. The deterministic reference compiler and shared
+golden fixtures are in `tools/generate-flow-il-v2-fixtures.mjs` and
+`testdata/contracts/flow-il-v2/`; independent C and .NET metadata tests consume
+the same artifacts.
 
 - Write the normative binary/semantic contract before implementation.
 - Define initial Boolean opcodes equivalent to schema 1, typed slots, commit
@@ -274,6 +279,8 @@ Exit: C and .NET can independently decode fixture metadata and agree on every
 stable result; source permutations produce byte-identical IL.
 
 ### Phase 2 - Refactor the portable VM
+
+Status: next.
 
 - Separate schema-1 compatibility loading from the VM execution core.
 - Add the v2 loader, typed slot storage, instruction evaluator, and host ABI.

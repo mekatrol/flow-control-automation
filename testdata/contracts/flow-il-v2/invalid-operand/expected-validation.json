@@ -1,0 +1,5 @@
+{
+  "valid": false,
+  "reason": "invalid_operand",
+  "path": "/instructions/0/resultSlot"
+}

@@ -1,0 +1,22 @@
+{
+  "flowId": "memory-feedback",
+  "flowRevision": 2,
+  "sectionCount": 8,
+  "instructionCount": 6,
+  "slotCount": 5,
+  "pointCount": 1,
+  "stateCount": 1,
+  "schedule": [
+    "constant-true",
+    "memory-1",
+    "or-1",
+    "output-01-node"
+  ],
+  "slots": {
+    "constant-true": 0,
+    "memory-1": 1,
+    "or-1": 2,
+    "output-01-node": 3
+  },
+  "artifactLength": 828
+}

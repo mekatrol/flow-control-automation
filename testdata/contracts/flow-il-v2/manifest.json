@@ -1,0 +1,85 @@
+{
+  "contract": "flow-il-v2",
+  "fixtures": [
+    {
+      "id": "valid-two-button-and",
+      "artifactLength": 811,
+      "artifactSha256": "f0dd92b5585a62703197bbcc9a16b6cf7d820a077155c07afd418acfe2f9a1b5",
+      "expected": {
+        "valid": true,
+        "reason": "ok",
+        "path": ""
+      }
+    },
+    {
+      "id": "valid-memory-feedback",
+      "artifactLength": 828,
+      "artifactSha256": "b92e1c8905973ab7dc88b22d775dbd5fa84764efbbad1705fbfb7305f8fbb017",
+      "expected": {
+        "valid": true,
+        "reason": "ok",
+        "path": ""
+      }
+    },
+    {
+      "id": "valid-source-order-permutation",
+      "artifactLength": 811,
+      "artifactSha256": "f0dd92b5585a62703197bbcc9a16b6cf7d820a077155c07afd418acfe2f9a1b5",
+      "expected": {
+        "valid": true,
+        "reason": "ok",
+        "path": ""
+      }
+    },
+    {
+      "id": "maximum-boolean",
+      "artifactLength": 7343,
+      "artifactSha256": "5b36e2373122c96f660e15ff36288b22c1e48801d278370a1bfe3fd0bd648163",
+      "expected": {
+        "valid": true,
+        "reason": "ok",
+        "path": ""
+      }
+    },
+    {
+      "id": "malformed-truncated",
+      "artifactLength": 810,
+      "artifactSha256": "29adae2c58f4c33540f58892cefc59d93b7e29d4932cec185cbbfe86b8255721",
+      "expected": {
+        "valid": false,
+        "reason": "length_mismatch",
+        "path": "/artifactLength"
+      }
+    },
+    {
+      "id": "invalid-operand",
+      "artifactLength": 811,
+      "artifactSha256": "aaf6d597cd505beabffa052015f0cfaea8daf85f95d1d00d18bfae0a42191c11",
+      "expected": {
+        "valid": false,
+        "reason": "invalid_operand",
+        "path": "/instructions/0/resultSlot"
+      }
+    },
+    {
+      "id": "unknown-section",
+      "artifactLength": 811,
+      "artifactSha256": "12f39ff2cbb7701f9ed5f004d2aa01281ffa8bdf8d7f46aa4ded0d10b92bd6a4",
+      "expected": {
+        "valid": false,
+        "reason": "unknown_section",
+        "path": "/sections/0/id"
+      }
+    },
+    {
+      "id": "noncanonical-section-order",
+      "artifactLength": 811,
+      "artifactSha256": "0c8e6cedb130339a9138c74ceb08b50c35fa62d3636b9f03008c27c70d4cee18",
+      "expected": {
+        "valid": false,
+        "reason": "non_canonical_order",
+        "path": "/sections/0/id"
+      }
+    }
+  ]
+}
