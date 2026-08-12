@@ -8,6 +8,9 @@ Flows compile on the backend into deterministic bytecode and execute through the
 same portable VM on the server or a hardware controller. The existing
 [`controller flow debugging architecture reference`](docs/controller-flow-debugging-architecture.md)
 documents the schema-1 foundation and current hardware-debug path.
+The frozen schema-1 compatibility and resource baseline is recorded in
+[`docs/schema-1-resource-baseline.md`](docs/schema-1-resource-baseline.md), and
+accepted execution decisions are under [`docs/decisions/`](docs/decisions/).
 
 ## What the Application Does
 

@@ -24,3 +24,9 @@ CI and reviewers can detect stale generated files without changing them:
 ```text
 node tools/generate-flow-contract-fixtures.mjs --check
 ```
+
+The artifact lengths and SHA-256 digests in `manifest.json` are the frozen
+schema-1 byte baseline. Changing one is a compatibility event, not routine
+fixture maintenance. The check command recompiles every source fixture in
+memory and fails rather than rewriting any differing artifact or companion
+file.

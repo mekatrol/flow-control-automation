@@ -244,7 +244,11 @@ than a separate compiler pipeline.
 
 ### Phase 0 - Freeze baseline and architecture decisions
 
-Status: next.
+Status: complete on 12 August 2026. The frozen hashes and resource measurements
+are recorded in `schema-1-resource-baseline.md`; accepted decisions are in
+`decisions/0001-portable-c-normative-flow-vm.md` through
+`decisions/0004-flow-il-v2-scheduled-instructions.md`; native and artifact
+threat boundaries are in `flow-il-security-boundaries.md`.
 
 - Record schema-1 fixture hashes and keep all v1 decoder/compiler tests green.
 - Add architecture decision records for portable-C VM reuse, server native
@@ -255,6 +259,8 @@ Status: next.
 Exit: the v1 contract is unchanged and v2 design choices have reviewed ADRs.
 
 ### Phase 1 - Specify Flow IL v2 and host ABI
+
+Status: next.
 
 - Write the normative binary/semantic contract before implementation.
 - Define initial Boolean opcodes equivalent to schema 1, typed slots, commit

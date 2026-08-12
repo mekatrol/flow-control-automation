@@ -90,6 +90,11 @@ target_compile_definitions(flow_debug_tests PRIVATE
     FLOW_CONTRACT_FIXTURE_DIRECTORY="${CMAKE_CURRENT_LIST_DIR}/../../testdata/contracts/flow-executable-v1")
 add_test(NAME flow_debug COMMAND flow_debug_tests)
 
+add_executable(flow_resource_baseline_tests
+    test_flow_resource_baseline.c)
+target_include_directories(flow_resource_baseline_tests PRIVATE ../shared)
+add_test(NAME flow_resource_baseline COMMAND flow_resource_baseline_tests)
+
 add_executable(controller_points_tests
     test_controller_points.c
     ../shared/controller/points.c)

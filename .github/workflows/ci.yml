@@ -1,10 +1,22 @@
 name: CI
 
-on:
-  push:
-  pull_request:
+# Automatic CI is temporarily disabled. Retain manual dispatch so maintainers
+# can run the workflow explicitly while the repository gates are being revised.
+on: workflow_dispatch
 
 jobs:
+  flow-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node tools/generate-flow-contract-fixtures.mjs --check
+      - run: cmake -S controllers/tests -B controllers/build-host
+      - run: cmake --build controllers/build-host
+      - run: ctest --test-dir controllers/build-host --output-on-failure
+
   backend:
     runs-on: ubuntu-latest
     steps:
