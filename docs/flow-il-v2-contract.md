@@ -1,11 +1,10 @@
 # Flow IL v2 binary and semantic contract
 
-> Designer recovery: supported artifacts are decompiled by a backend tooling
-> service, never by the VM or firmware. The portable implementation plan defines
-> lossless recovery when compatible authoring metadata is present and
-> deterministic normalized semantic recovery when it has been stripped. Until
-> that bounded metadata section is versioned, current v2 artifacts promise only
-> normalized recovery from executable sections, symbols, and debug mappings.
+> Designer recovery: supported artifacts are decompiled by the backend
+> `FlowDecompiler`, never by the VM or firmware. Frozen v2 artifacts provide
+> deterministic normalized semantic recovery from executable sections, symbols,
+> and debug mappings. Exact labels, groups, and canvas layout require a future
+> versioned authoring-metadata contract and are reported as recovery warnings.
 
 ## 1. Status, compatibility, and canonical encoding
 

@@ -34,6 +34,46 @@
       </form>
     </div>
 
+    <section class="il-import" aria-labelledby="il-import-title">
+      <div>
+        <h2 id="il-import-title">Import compiled Flow IL</h2>
+        <p>Preview a validated artifact before saving it as a new editable draft.</p>
+      </div>
+      <div class="il-import-controls">
+        <label for="flow-il-file">Flow IL artifact</label>
+        <input
+          id="flow-il-file"
+          type="file"
+          accept=".bin,.fil,application/octet-stream"
+          @change="selectIlArtifact"
+        />
+        <label for="flow-il-name">Recovered flow name</label>
+        <input
+          id="flow-il-name"
+          v-model="importName"
+          type="text"
+          placeholder="Use artifact flow ID"
+        />
+        <button type="button" :disabled="!importArtifact || importing" @click="previewIl">
+          {{ importing ? 'Validating…' : 'Preview recovery' }}
+        </button>
+      </div>
+      <div v-if="importPreview" class="il-import-preview" role="status">
+        <p>
+          <strong>{{ importPreview.flow.name }}</strong> —
+          {{ importPreview.flow.nodes.length }} nodes,
+          {{ importPreview.flow.connections.length }} connections ({{ importPreview.recoveryLevel }}
+          recovery)
+        </p>
+        <ul v-if="importPreview.warnings.length">
+          <li v-for="warning in importPreview.warnings" :key="warning">{{ warning }}</li>
+        </ul>
+        <button type="button" :disabled="importing" @click="saveIlImport">
+          Save as new editable flow
+        </button>
+      </div>
+    </section>
+
     <p v-if="loading" class="request-status" role="status">Loading flows…</p>
     <div v-if="!error" class="flow-results">
       <AppFilter
@@ -117,7 +157,11 @@ import AppTablePagination from '@/components/AppTablePagination.vue';
 import { useServerPagination } from '@/composables/useServerPagination';
 import { useAutomation } from '@/composables/useAutomation';
 import { EVENTS } from '@/constants/events';
-import { flowApi, type FlowListParameters } from '@/features/flows/api/flowApi';
+import {
+  flowApi,
+  type FlowIlImportResult,
+  type FlowListParameters
+} from '@/features/flows/api/flowApi';
 import AppFlowTable from '@/features/flows/components/AppFlowTable.vue';
 import { useFlowsStore } from '@/features/flows/stores/flows';
 
@@ -131,6 +175,10 @@ const error = ref<string>();
 const errorRetry = ref(false);
 const newFlowName = ref('');
 const creating = ref(false);
+const importArtifact = ref('');
+const importName = ref('');
+const importPreview = ref<FlowIlImportResult>();
+const importing = ref(false);
 const editingFlowId = ref<string>();
 const renameValue = ref('');
 const renaming = ref(false);
@@ -283,6 +331,55 @@ const createFlow = async (): Promise<void> => {
   }
 };
 
+const selectIlArtifact = async (event: Event): Promise<void> => {
+  const file = (event.target as HTMLInputElement).files?.[0];
+  importPreview.value = undefined;
+  importArtifact.value = '';
+  if (!file) return;
+  if (file.size > 8192) {
+    error.value = 'Flow IL artifacts must not exceed 8192 bytes.';
+    return;
+  }
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  importArtifact.value = btoa(String.fromCharCode(...bytes));
+};
+
+const previewIl = async (): Promise<void> => {
+  if (!importArtifact.value) return;
+  importing.value = true;
+  error.value = undefined;
+  try {
+    importPreview.value = await flowApi.importFlowIl(
+      importArtifact.value,
+      importName.value.trim() || undefined,
+      false
+    );
+  } catch (caught) {
+    error.value =
+      caught instanceof Error ? caught.message : 'Unable to preview the Flow IL artifact.';
+  } finally {
+    importing.value = false;
+  }
+};
+
+const saveIlImport = async (): Promise<void> => {
+  if (!importArtifact.value || !importPreview.value) return;
+  importing.value = true;
+  error.value = undefined;
+  try {
+    const result = await flowApi.importFlowIl(
+      importArtifact.value,
+      importName.value.trim() || importPreview.value.flow.name,
+      true
+    );
+    await router.push({ name: 'flow-designer', params: { flowId: result.flow.id } });
+  } catch (caught) {
+    error.value = caught instanceof Error ? caught.message : 'Unable to save the recovered flow.';
+  } finally {
+    importing.value = false;
+  }
+};
+
 const beginRename = (flowId: string, name: string): void => {
   editingFlowId.value = flowId;
   renameValue.value = name;
@@ -415,6 +512,42 @@ h1 {
   background: var(--color-surface-raised);
   border: var(--border-width-default) solid var(--color-border-default);
   border-radius: var(--radius-md);
+}
+
+.il-import {
+  display: grid;
+  gap: var(--space-6);
+  margin-bottom: var(--space-11);
+  padding: var(--space-8);
+  background: var(--color-surface-raised);
+  border: var(--border-width-default) solid var(--color-border-default);
+  border-radius: var(--radius-xl);
+}
+
+.il-import h2,
+.il-import p {
+  margin: 0;
+}
+
+.il-import-controls {
+  display: flex;
+  gap: var(--space-3-5);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.il-import-controls label {
+  font-weight: var(--font-weight-bold);
+}
+
+.il-import-controls input,
+.il-import button {
+  min-height: var(--control-min-height);
+}
+
+.il-import-preview {
+  padding-top: var(--space-5);
+  border-top: var(--border-width-default) solid var(--color-border-default);
 }
 
 .create-flow input {

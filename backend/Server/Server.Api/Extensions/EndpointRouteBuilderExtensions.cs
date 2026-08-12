@@ -18,6 +18,7 @@ public static class EndpointRouteBuilderExtensions
         endpoints.MapFlowDebugEndpoints();
         endpoints.MapGet("/api/flows", ListFlows);
         endpoints.MapPost("/api/flows", CreateFlow);
+        endpoints.MapPost("/api/flows/import-il", ImportFlowIl);
         endpoints.MapGet("/api/flows/{flowId}", GetFlow);
         endpoints.MapPut("/api/flows/{flowId}", SaveFlow);
         endpoints.MapDelete("/api/flows/{flowId}", DeleteFlow);
@@ -108,6 +109,68 @@ public static class EndpointRouteBuilderExtensions
         return await MapFlowResult(
             () => flows.CreateAsync(decoded.Value.Name, cancellationToken),
             StatusCodes.Status201Created);
+    }
+
+    private static async Task<IResult> ImportFlowIl(
+        HttpRequest request,
+        IFlowDecompiler decompiler,
+        IFlowService flows,
+        IOptions<JsonOptions> jsonOptions,
+        CancellationToken cancellationToken)
+    {
+        var decoded = await DecodeAsync<ImportFlowIlRequest>(
+            request,
+            jsonOptions.Value.SerializerOptions,
+            cancellationToken);
+        if (decoded.Error is not null)
+        {
+            return decoded.Error;
+        }
+
+        byte[] artifact;
+        try
+        {
+            artifact = Convert.FromBase64String(decoded.Value!.ArtifactBase64);
+        }
+        catch (FormatException)
+        {
+            return Error(StatusCodes.Status400BadRequest, "artifactBase64 must be valid Base64");
+        }
+
+        try
+        {
+            var recovered = decompiler.Decompile(artifact, decoded.Value.Name);
+            var flow = recovered.Flow;
+            if (decoded.Value.Save)
+            {
+                var created = await flows.CreateAsync(flow.Name, cancellationToken);
+                flow = await flows.SaveAsync(created.Id, flow with { Id = created.Id }, cancellationToken);
+            }
+
+            return Results.Json(new ImportFlowIlResponse(
+                flow,
+                recovered.RecoveryLevel,
+                recovered.Warnings,
+                recovered.Provenance,
+                decoded.Value.Save),
+                statusCode: decoded.Value.Save ? StatusCodes.Status201Created : StatusCodes.Status200OK);
+        }
+        catch (FlowDecompilationException exception)
+        {
+            return Results.Json(exception.Diagnostic, statusCode: StatusCodes.Status422UnprocessableEntity);
+        }
+        catch (FlowValidationException exception)
+        {
+            return Error(StatusCodes.Status400BadRequest, exception.Message);
+        }
+        catch (FlowConcurrencyException)
+        {
+            return Error(StatusCodes.Status409Conflict, "flow was changed by another request");
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            return Error(StatusCodes.Status500InternalServerError, "unable to import Flow IL");
+        }
     }
 
     private static async Task<IResult> GetFlow(

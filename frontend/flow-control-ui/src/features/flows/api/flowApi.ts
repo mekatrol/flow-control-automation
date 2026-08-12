@@ -86,6 +86,44 @@ export interface FlowPage {
   pageCount: number;
 }
 
+export interface FlowIlImportResult {
+  flow: FlowDto;
+  recoveryLevel: 'lossless' | 'normalized';
+  warnings: string[];
+  provenance: {
+    artifactVersion: number;
+    artifactSha256: string;
+    flowRevision: number;
+    controllerTemplateId: string;
+    controllerTemplateRevision: number;
+  };
+  saved: boolean;
+}
+
+const parseFlowIlImport = (payload: unknown): FlowIlImportResult => {
+  if (typeof payload !== 'object' || payload === null) {
+    throw new FlowApiError('validation', 'The server returned an invalid Flow IL import result.');
+  }
+  const value = payload as Record<string, unknown>;
+  if (
+    (value.recoveryLevel !== 'lossless' && value.recoveryLevel !== 'normalized') ||
+    !Array.isArray(value.warnings) ||
+    !value.warnings.every((warning) => typeof warning === 'string') ||
+    typeof value.saved !== 'boolean' ||
+    typeof value.provenance !== 'object' ||
+    value.provenance === null
+  ) {
+    throw new FlowApiError('validation', 'The server returned an invalid Flow IL import result.');
+  }
+  return {
+    flow: parseFlowDto(value.flow),
+    recoveryLevel: value.recoveryLevel,
+    warnings: value.warnings,
+    provenance: value.provenance as FlowIlImportResult['provenance'],
+    saved: value.saved
+  };
+};
+
 const positiveIntegerField = (payload: Record<string, unknown>, key: string): number => {
   const value = payload[key];
   if (!Number.isInteger(value) || (value as number) < 1) {
@@ -162,6 +200,12 @@ export interface FlowApiClient {
   saveFlow(flow: FlowDto, signal?: AbortSignal): Promise<FlowDto>;
   setFlowDisabled(flowId: string, disabled: boolean, signal?: AbortSignal): Promise<FlowDto>;
   deleteFlow(flowId: string, signal?: AbortSignal): Promise<void>;
+  importFlowIl(
+    artifactBase64: string,
+    name: string | undefined,
+    save: boolean,
+    signal?: AbortSignal
+  ): Promise<FlowIlImportResult>;
 }
 
 export const flowApi: FlowApiClient = {
@@ -197,5 +241,26 @@ export const flowApi: FlowApiClient = {
       signal
     }),
   deleteFlow: (flowId, signal) =>
-    requestEmpty(`/api/flows/${encodeURIComponent(flowId)}`, { method: 'DELETE', signal })
+    requestEmpty(`/api/flows/${encodeURIComponent(flowId)}`, { method: 'DELETE', signal }),
+  importFlowIl: async (artifactBase64, name, save, signal) => {
+    try {
+      const response = await fetch('/api/flows/import-il', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ artifactBase64, name, save }),
+        signal
+      });
+      if (!response.ok) throw await httpError(response);
+      return parseFlowIlImport(await response.json());
+    } catch (error) {
+      if (error instanceof FlowApiError) throw error;
+      if (error instanceof FlowDtoValidationError) {
+        throw new FlowApiError('validation', `The recovered flow is invalid: ${error.message}`);
+      }
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        throw new FlowApiError('cancelled', 'The Flow IL import was cancelled.');
+      }
+      throw new FlowApiError('network', 'Unable to import the Flow IL artifact.');
+    }
+  }
 };

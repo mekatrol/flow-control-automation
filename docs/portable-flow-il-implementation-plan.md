@@ -114,12 +114,13 @@ and a digest.
    slots to source node, connector, and state identities. Debug-capable targets
    advertise bounds for debug-map bytes, breakpoints, paused-frame storage, and
    inspectable slots.
-10. **Authoring metadata:** an optional, bounded section containing information
-   that execution does not need but exact designer recovery does, including
-   original stable node/connector IDs, node configuration, labels, groups, and
-   layout. Production stripping may remove this section only when the artifact
-   is explicitly marked as supporting normalized rather than lossless
-   decompilation.
+
+Flow IL v2 has exactly these eight sections. Exact recovery of non-runtime
+designer details such as labels, groups, and canvas layout requires a bounded
+authoring-metadata section in a future IL envelope version (or a separately
+versioned, digest-bound companion artifact); it must not be added silently to
+the frozen v2 directory. V2 retains the stable IDs and executable configuration
+needed for normalized semantic recovery.
 
 The compiler performs structural graph validation, connector and unit checking,
 point/template resolution, combinational-cycle rejection, deterministic Kahn
@@ -139,7 +140,7 @@ DTO without executing the artifact.
 
 Two explicit recovery levels prevent a misleading promise of source identity:
 
-- **Lossless authoring recovery** applies when the artifact contains compatible
+- **Lossless authoring recovery** applies to a future artifact version when it contains compatible
   authoring metadata. Stable IDs, supported node configuration, labels, groups,
   connector identities, and layout are restored exactly.
 - **Normalized semantic recovery** applies to a valid supported artifact whose
@@ -153,10 +154,11 @@ Unknown required sections, unsupported opcodes or types, corrupt artifacts, and
 constructs that cannot be represented by the current designer schema fail with
 structured diagnostics. The decompiler must not silently drop instructions,
 state, point bindings, or behavior. A normalized graph is required to pass
-designer validation and recompilation. For canonical artifacts produced with
-lossless metadata, `compile(decompile(artifact))` must reproduce the original
-canonical executable sections byte-for-byte; metadata/envelope differences are
-allowed only where the contract explicitly defines them.
+designer validation and recompilation. For canonical v2 artifacts,
+`compile(decompile(artifact))` must reproduce the original artifact
+byte-for-byte. Future artifacts produced with lossless metadata must reproduce
+their canonical executable sections byte-for-byte; metadata/envelope
+differences are allowed only where that later contract explicitly defines them.
 
 ## Runtime and host ABI
 
@@ -382,12 +384,20 @@ and the target performs no graph scheduling.
 
 ### Phase 3A - Add the Flow IL decompiler and designer import contract
 
-Status: next, before Phase 4.
+Status: complete on 12 August 2026. The backend `FlowDecompiler` validates
+untrusted v2 framing, section digests, bounds, records, symbols, dependencies,
+and supported opcodes without executing the artifact. It deterministically
+recovers a server-validated designer graph, stable node IDs, executable
+configuration, point bindings, state feedback, connectors, and connections.
+The flow library previews provenance and recovery warnings before explicitly
+saving a new draft. Shared fixtures prove deterministic output and byte-exact
+compile/decompile/compile round trips.
 
 - Define the versioned backend decompiler API, import result, recovery level,
   provenance, warnings, and structured failure diagnostics.
-- Version the bounded authoring-metadata section needed for lossless recovery;
-  define deterministic synthetic IDs and layout for normalized recovery.
+- Reserve a later envelope/companion contract for bounded lossless authoring
+  metadata without changing frozen v2; define deterministic IDs and layout for
+  v2 normalized recovery.
 - Implement validated v2 IL-to-designer lowering for every currently supported
   opcode, typed slot/state shape, point binding, and commit-plan record.
 - Validate the emitted designer DTO through the normal server-side designer
@@ -395,18 +405,17 @@ Status: next, before Phase 4.
 - Add API/UI import plumbing so a user can upload or select compiled IL, preview
   recovery warnings, and save the result as a new editable flow without
   overwriting an existing flow implicitly.
-- Add golden lossless and stripped-artifact fixtures, malformed/unrepresentable
+- Add golden normalized and stripped-artifact fixtures, malformed/unrepresentable
   rejection tests, deterministic decompilation tests, and compile/decompile/
   compile round-trip tests shared across supported IL versions.
 
 Exit: a user can import supported compiled IL as a valid editable designer flow;
-lossless artifacts preserve authoring details, stripped artifacts produce a
-deterministic semantically equivalent graph with explicit warnings, and
-unsupported behavior is rejected rather than omitted.
+v2 artifacts produce a deterministic semantically equivalent graph with
+explicit warnings, and unsupported behavior is rejected rather than omitted.
 
 ### Phase 4 - Add the production server VM host
 
-Status: pending Phase 3A.
+Status: next.
 
 - Wrap the portable library behind `IFlowVirtualMachine` and safe managed
   handles; validate all lengths and copy ownership at the native boundary.
@@ -480,6 +489,8 @@ inputs, and firmware contains no v2 graph scheduler/compiler.
 - For every opcode define types, units, quality propagation, state bytes,
   determinism, overflow behavior, worst-case work, and snapshot representation.
 - Extend compiler, VM, target capabilities, fixtures, and UI together.
+- Version bounded authoring metadata for lossless labels/groups/layout recovery
+  without weakening v2 normalized decompilation or loader compatibility.
 - Add optional AOT/native target backends only after the interpreter contract is
   stable; generated firmware must pass the same semantic fixtures.
 

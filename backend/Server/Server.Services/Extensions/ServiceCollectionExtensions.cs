@@ -55,6 +55,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPointDefinitionStore, PointDefinitionDatabaseStore>();
         services.AddScoped<IFlowCompilationTargetResolver, FlowCompilationTargetResolver>();
         services.AddSingleton<IFlowCompiler, FlowCompiler>();
+        services.AddSingleton<IFlowDecompiler, FlowDecompiler>();
         services.AddSingleton<IFcpClient, UnavailableFcpClient>();
         services.AddSingleton<IControllerDebugTransport, FcpControllerDebugTransport>();
         services.AddSingleton<FlowDebugSessionRegistry>();

@@ -25,11 +25,11 @@ The normative production bytecode and native-host boundaries are defined by the
 The backend compiler is authoritative: production compilation emits scheduled
 Flow IL v2, while schema 1 is available only to the controller-debug
 compatibility path.
-The planned backend decompiler performs the reverse tooling operation: users
+The backend decompiler performs the reverse tooling operation: users
 can import supported compiled IL as a valid editable designer flow. Artifacts
-with authoring metadata recover IDs, configuration, labels, groups, and layout;
-stripped artifacts recover a deterministic semantically equivalent graph with
-explicit warnings rather than pretending to reproduce the original source.
+recover a deterministic semantically equivalent graph with stable executable
+IDs and configuration plus explicit warnings for labels and canvas layout that
+the frozen v2 runtime artifact does not contain.
 
 ## What the Application Does
 
