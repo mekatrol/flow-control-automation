@@ -8,10 +8,9 @@ the same portable virtual machine on every target. The ASP.NET Core server is
 the first production host. Hardware controllers load and validate Flow IL; they
 do not parse designer graphs, discover graph topology, or run a graph compiler.
 
-The existing executable-flow schema 1 and portable C evaluator prove the core
-approach, but schema 1 is a graph-shaped debug artifact: the controller still
-validates ports and connections and constructs a Kahn schedule. It remains
-frozen for compatibility. Flow IL v2 is the production contract and encodes an
+The earlier executable-flow schema 1 and portable C evaluator proved the core
+approach, but they are not supported migration inputs. Flow IL v2 is the sole
+current production contract and encodes an
 already scheduled instruction stream, typed storage layout, point bindings,
 state layout, and resource manifest.
 
@@ -43,8 +42,9 @@ state layout, and resource manifest.
   interpret prepared IL directly. An optional target backend may later lower
   the same IL to native code or a firmware image without changing flow source.
 - The browser does not compile IL, and targets do not accept designer JSON.
-- Schema 1 is not rewritten in place. Incompatible semantics require a new IL
-  version and explicit capability negotiation.
+- Version fields remain explicit and unsupported versions are rejected. Before
+  the first production release, format changes update all producers, consumers,
+  and fixtures together and remove the superseded implementation.
 
 ## Layered model
 
@@ -115,11 +115,11 @@ and a digest.
    advertise bounds for debug-map bytes, breakpoints, paused-frame storage, and
    inspectable slots.
 
-Flow IL v2 has exactly these eight sections. Exact recovery of non-runtime
+Flow IL v2 currently has exactly these eight sections. Exact recovery of non-runtime
 designer details such as labels, groups, and canvas layout requires a bounded
 authoring-metadata section in a future IL envelope version (or a separately
-versioned, digest-bound companion artifact); it must not be added silently to
-the frozen v2 directory. V2 retains the stable IDs and executable configuration
+versioned, digest-bound companion artifact). Until the first production release,
+that change may replace v2 outright rather than add a compatibility decoder. V2 retains the stable IDs and executable configuration
 needed for normalized semantic recovery.
 
 The compiler performs structural graph validation, connector and unit checking,
@@ -140,7 +140,7 @@ DTO without executing the artifact.
 
 Two explicit recovery levels prevent a misleading promise of source identity:
 
-- **Lossless authoring recovery** applies to a future artifact version when it contains compatible
+- **Lossless authoring recovery** applies when the current artifact contract contains
   authoring metadata. Stable IDs, supported node configuration, labels, groups,
   connector identities, and layout are restored exactly.
 - **Normalized semantic recovery** applies to a valid supported artifact whose
@@ -298,21 +298,21 @@ than a separate compiler pipeline.
 
 ## Phased implementation
 
-### Phase 0 - Freeze baseline and architecture decisions
+### Phase 0 - Record baseline and architecture decisions
 
-Status: complete on 12 August 2026. The frozen hashes and resource measurements
+Status: complete on 12 August 2026. The historical hashes and resource measurements
 are recorded in `schema-1-resource-baseline.md`; accepted decisions are in
 `decisions/0001-portable-c-normative-flow-vm.md` through
 `decisions/0004-flow-il-v2-scheduled-instructions.md`; native and artifact
 threat boundaries are in `flow-il-security-boundaries.md`.
 
-- Record schema-1 fixture hashes and keep all v1 decoder/compiler tests green.
+- Record schema-1 fixture hashes as a development baseline, not a supported format.
 - Add architecture decision records for portable-C VM reuse, server native
-  loading, v1 compatibility, and v2 scheduled instruction format.
+  loading and the v2 scheduled instruction format.
 - Measure current v1 artifact, prepare, tick, and snapshot resource usage.
 - Define threat boundaries for untrusted IL and native-library failure.
 
-Exit: the v1 contract is unchanged and v2 design choices have reviewed ADRs.
+Exit: v2 design choices have reviewed ADRs and an evidence baseline.
 
 ### Phase 1 - Specify Flow IL v2 and host ABI
 
@@ -340,31 +340,28 @@ Status: complete on 12 August 2026. `controllers/shared/flow/vm.c` and `vm.h`
 implement the Flow IL v2 loader, version-1 host ABI, typed Boolean slots/state,
 explicit PLC Scan Cycle, atomic commit, resumable instruction frame, abort/reset,
 retained-state export, and bounded snapshots/commands. Host CMake builds static
-firmware and shared server-library variants; fixture-driven tests preserve the
-separate schema-1 compatibility path.
+firmware and shared server-library variants.
 
-- Separate schema-1 compatibility loading from the VM execution core.
+- Replace graph-shaped target execution with the v2 VM execution core.
 - Add the v2 loader, typed slot storage, instruction evaluator, and host ABI.
 - Add the bounded debugger ABI and resumable pre-commit execution frame without
   weakening normal atomic tick execution.
 - Remove topology and Kahn scheduling from the v2 target preparation path.
 - Retain fixed-capacity/no-tick-allocation behavior and atomic commits.
 - Make the three PLC Scan Cycle phases explicit in the VM/host boundary and
-  diagnostics; preserve `tick` names only where compatibility requires them.
+  diagnostics.
 - Build static firmware and shared server-library variants from the same source.
 
-Exit: the portable host suite executes v2 fixtures and proves v1 behavior did
-not regress.
+Exit: the portable host suite executes v2 fixtures.
 
 ### Phase 3 - Make the server compiler authoritative
 
 Status: complete on 12 August 2026. The backend-owned `FlowCompiler` now adapts
-resolved schema-1 authoring graphs into canonical Flow IL v2 by default,
+resolved authoring graphs into canonical Flow IL v2,
 performs deterministic Kahn scheduling and typed slot/state allocation, emits
 requirements, instructions, commit plans, symbols, debug maps, and immutable
 template/point revision dependencies, and reports structured diagnostics and
-scan resource estimates. Schema 1 remains available only through an explicit
-controller-debug compatibility request. Shared golden artifacts are decoded and
+scan resource estimates. Shared golden artifacts are decoded and
 executed by the portable C v2 loader/VM tests.
 
 - Move editable-graph adaptation from the browser into a backend-owned adapter;
@@ -376,7 +373,7 @@ executed by the portable C v2 loader/VM tests.
   value is read in one PLC scan and whose staged replacement becomes visible in
   the next; reject every remaining combinational cycle.
 - Keep `IFlowCompiler` free of persistence and transport, but support explicit
-  source/IL versions rather than a debug-only schema.
+  explicit source/IL version fields while supporting only the current version.
 - Cross-test every compiler artifact with the portable v2 loader and VM.
 
 Exit: identical resolved deployment inputs compile byte-for-byte identically,
@@ -396,7 +393,7 @@ compile/decompile/compile round trips.
 - Define the versioned backend decompiler API, import result, recovery level,
   provenance, warnings, and structured failure diagnostics.
 - Reserve a later envelope/companion contract for bounded lossless authoring
-  metadata without changing frozen v2; define deterministic IDs and layout for
+  metadata in the current pre-release envelope; define deterministic IDs and layout for
   v2 normalized recovery.
 - Implement validated v2 IL-to-designer lowering for every currently supported
   opcode, typed slot/state shape, point binding, and commit-plan record.
@@ -467,12 +464,14 @@ breakpoint/step/run-to workflow entirely on the server.
 
 Exit: the complete flow UI execution loop works against the backend server alone.
 
-### Phase 7 - Migrate controller debugging and deployment to v2
+### Phase 7 - Complete controller debugging and deployment on current IL
 
 - Advertise supported IL envelope/body and VM ABI versions through FCP.
 - Transfer the same artifact produced for the server when target capabilities
   permit it; validate requirements before mutation.
-- Retain schema-1 debug loading during a documented compatibility window.
+- Remove the superseded schema-1 controller loader, evaluator, fixtures, and
+  protocol operations when the current IL path replaces them; do not retain a
+  compatibility window before production release.
 - Update durable activation to prepare v2 IL transactionally and execute it
   through the same VM core and controller adapters.
 - Preserve shadow/live-output commissioning and lease safety behavior.
@@ -489,8 +488,8 @@ inputs, and firmware contains no v2 graph scheduler/compiler.
 - For every opcode define types, units, quality propagation, state bytes,
   determinism, overflow behavior, worst-case work, and snapshot representation.
 - Extend compiler, VM, target capabilities, fixtures, and UI together.
-- Version bounded authoring metadata for lossless labels/groups/layout recovery
-  without weakening v2 normalized decompilation or loader compatibility.
+- Version bounded authoring metadata for lossless labels/groups/layout recovery;
+  update the single supported pre-release compiler, loader, decompiler, and fixtures together.
 - Add optional AOT/native target backends only after the interpreter contract is
   stable; generated firmware must pass the same semantic fixtures.
 
@@ -517,17 +516,21 @@ semantic implementation across all hosts.
   cancellation, and snapshot backpressure.
 - Redeploy, shutdown, VM fault, input-quality fault, output failure, and device
   loss prove command relinquish and prior-runtime preservation.
-- The existing repository format, build, unit, E2E, controller host, source
+- The repository format, build, unit, E2E, controller host, source
   policy, firmware build, and commissioning gates remain required.
 
-## Migration rules
+## Pre-release version rules
 
-- Never reinterpret schema-1 bytes as v2 or change v1 reason-code meanings.
+- Support only the current source, IL, protocol, and ABI versions. Reject every
+  other version explicitly; do not migrate, translate, or fall back.
 - Store source and compiled artifacts separately; source remains the authority
-  for recompilation and migration.
+  for recompilation.
 - Never send an artifact to a target before version/capability/limit negotiation.
 - Do not claim cross-target equivalence until shared fixture snapshots match.
 - Do not add a C# evaluator as a production fallback. If the native server VM
   cannot load, deployment fails visibly while the previous runtime remains.
-- A compiler upgrade does not silently replace running artifacts. Adoption is
+- There are no deployed flows to preserve before the production milestone. A
+  pre-release compiler/format change updates or removes all fixtures and
+  consumers in the same change.
+- After the production milestone, a compiler upgrade does not silently replace running artifacts. Adoption is
   explicit redeployment with a recorded compiler and IL version.

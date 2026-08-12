@@ -6,7 +6,7 @@ public static class FlowNodeRegistry
         new SortedSet<string>(
             [
                 "and", "average", "calculator", "calendar", "clamp", "comparator",
-                "delay", "if", "invert", "level-shifter", "line", "max", "min",
+                "delay", "if", "level-shifter", "line", "max", "min",
                 "nand", "nor", "not", "or", "override", "point-changed", "pulse",
                 "read-point", "release-point-command", "schedule", "selector",
                 "sequence", "split", "timer", "write-point", "xnor", "xor",

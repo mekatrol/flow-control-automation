@@ -12,24 +12,20 @@ so cyclic behavior is predictable without recursive graph evaluation.
 The primary execution roadmap is the
 [`portable Flow IL architecture and implementation plan`](docs/portable-flow-il-implementation-plan.md).
 Flows compile on the backend into deterministic bytecode and execute through the
-same portable VM on the server or a hardware controller. The existing
-[`controller flow debugging architecture reference`](docs/controller-flow-debugging-architecture.md)
-documents the schema-1 foundation and current hardware-debug path.
-The frozen schema-1 compatibility and resource baseline is recorded in
-[`docs/schema-1-resource-baseline.md`](docs/schema-1-resource-baseline.md), and
-accepted execution decisions are under [`docs/decisions/`](docs/decisions/).
+same portable VM on the server or a hardware controller. Earlier design records
+remain under [`docs/decisions/`](docs/decisions/), but pre-release runtime paths
+support only the current format.
 The normative production bytecode and native-host boundaries are defined by the
 [`Flow IL v2 contract`](docs/flow-il-v2-contract.md),
 [`VM host ABI`](docs/flow-vm-host-abi-v1.md), and
 [`debugger contract`](docs/flow-il-v2-debug-contract.md).
-The backend compiler is authoritative: production compilation emits scheduled
-Flow IL v2, while schema 1 is available only to the controller-debug
-compatibility path.
+The backend compiler is authoritative and emits only the current scheduled Flow
+IL version. Non-current versions are rejected rather than migrated or executed.
 The backend decompiler performs the reverse tooling operation: users
 can import supported compiled IL as a valid editable designer flow. Artifacts
 recover a deterministic semantically equivalent graph with stable executable
 IDs and configuration plus explicit warnings for labels and canvas layout that
-the frozen v2 runtime artifact does not contain.
+the current runtime artifact does not contain.
 
 ## What the Application Does
 

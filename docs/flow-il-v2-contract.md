@@ -1,17 +1,17 @@
 # Flow IL v2 binary and semantic contract
 
 > Designer recovery: supported artifacts are decompiled by the backend
-> `FlowDecompiler`, never by the VM or firmware. Frozen v2 artifacts provide
+> `FlowDecompiler`, never by the VM or firmware. Current v2 artifacts provide
 > deterministic normalized semantic recovery from executable sections, symbols,
 > and debug mappings. Exact labels, groups, and canvas layout require a future
 > versioned authoring-metadata contract and are reported as recovery warnings.
 
-## 1. Status, compatibility, and canonical encoding
+## 1. Status, version handling, and canonical encoding
 
 This document is normative for Flow IL version 2. Version 2 is a scheduled,
-target-neutral instruction format and is not compatible with executable-flow
-schema 1. Loaders select a decoder from the explicit magic/version and never
-reinterpret, migrate, or probe malformed bytes.
+target-neutral instruction format and is the only supported IL version. Loaders
+validate the explicit magic/version and reject every other value; they do not
+contain fallback decoders or migration logic.
 
 All integers are unsigned little-endian. Records are packed without implicit
 alignment. Reserved bytes and fields are zero. Booleans are exactly zero or

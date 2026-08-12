@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import legacyFlows from '@contracts/flows/legacy.json';
 
 import { sampleFlows } from '@/features/flows/__tests__/fixtures/sampleFlows';
 import {
@@ -12,20 +11,6 @@ const validFlow = (): unknown => structuredClone(sampleFlows[0]);
 
 describe('flow DTO validation', () => {
   /**
-   * Purpose: Protects the behavioral contract that loads legacy contract fixtures without changing their graph semantics.
-   * Description: Exercises loads legacy contract fixtures without changing their graph semantics from its arranged starting state and
-   * verifies the observable results required by the scenario.
-   */
-  it('loads legacy contract fixtures without changing their graph semantics', () => {
-    const parsed = legacyFlows.map((flow) => parseFlowDto(flow));
-
-    // Expected outcome: `parsed` matches the required structure.
-    // Acceptance criteria: `parsed` must equal `legacyFlows`, because this condition proves that
-    // loads legacy contract fixtures without changing their graph semantics.
-    expect(parsed).toEqual(legacyFlows);
-  });
-
-  /**
    * Purpose: Protects the behavioral contract that accepts a valid graph payload.
    * Description: Exercises accepts a valid graph payload from its arranged starting state and
    * verifies the observable results required by the scenario.
@@ -37,19 +22,10 @@ describe('flow DTO validation', () => {
     expect(parseFlowDto(validFlow())).toEqual(sampleFlows[0]);
   });
 
-  /**
-   * Purpose: Protects the behavioral contract that migrates the legacy invert node kind to not.
-   * Description: Exercises migrates the legacy invert node kind to not from its arranged starting state and
-   * verifies the observable results required by the scenario.
-   */
-  it('migrates the legacy invert node kind to not', () => {
+  it('rejects obsolete node aliases instead of migrating them', () => {
     const payload = validFlow() as (typeof sampleFlows)[number];
     (payload.nodes[0] as unknown as { kind: string }).kind = 'invert';
-
-    // Expected outcome: `parseFlowDto(payload` has the required value.
-    // Acceptance criteria: `parseFlowDto(payload` must be `'not'`, because this condition proves that
-    // migrates the legacy invert node kind to not.
-    expect(parseFlowDto(payload).nodes[0]?.kind).toBe('not');
+    expect(() => parseFlowDto(payload)).toThrow(/unsupported value “invert”/);
   });
 
   /**

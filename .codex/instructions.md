@@ -2,6 +2,21 @@
 
 This project is a home automation flow engine with a graphical flow designer.
 
+## Pre-release version policy
+
+The product has no deployed user flows and is not yet used in the wild. Keep
+explicit schema, IL, protocol, and ABI version fields so unsupported input is
+rejected clearly, but implement only the current version. Do not add migration
+adapters, fallback decoders, old aliases, dual-write behavior, compatibility
+windows, or decompiler support for superseded formats during pre-release
+development. When a format is replaced, update fixtures and all producers and
+consumers together, then remove the superseded implementation and tests.
+
+Backward compatibility begins only after a separately recorded production
+release milestone establishes real persisted/deployed data. At that point it
+must be introduced deliberately with a documented support window and removal
+plan; do not infer that obligation from pre-release version numbers.
+
 It must support these deployment modes:
 
 - A Docker container running as a Home Assistant add-on.
@@ -18,7 +33,7 @@ Read it before starting Vue migration work and resume from the first unchecked
 slice whose prerequisites are complete. Update its checklist and handoff log as
 part of every completed slice.
 
-Do not copy legacy Vue architecture merely to preserve its shape. Preserve useful
+Do not copy legacy Vue architecture or retain old wire aliases. Preserve useful
 behaviour while implementing it with the current UI project's Vue, Vue Router,
 Pinia, TypeScript, accessibility, and testing patterns.
 

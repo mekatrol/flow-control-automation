@@ -77,22 +77,6 @@ public sealed class FlowCompilerTests
     }
 
     [Test]
-    public void SchemaOneMustBeRequestedExplicitlyForControllerCompatibility()
-    {
-        var source = ReadSource("valid-two-button-and");
-        var request = Request(source) with { ArtifactVersion = 1 };
-
-        var result = new FlowCompiler().Compile(request);
-        var expected = File.ReadAllBytes(Path.Combine(SourceFixtureRoot, "valid-two-button-and", "artifact.bin"));
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(result.ArtifactVersion, Is.EqualTo(1));
-            Assert.That(result.Artifact.ToArray(), Is.EqualTo(expected));
-        });
-    }
-
-    [Test]
     public void ReportsScheduledResourceRequirementsForThePlcScan()
     {
         var result = new FlowCompiler().Compile(Request(ReadSource("valid-memory-feedback")));
@@ -112,10 +96,11 @@ public sealed class FlowCompilerTests
         });
     }
 
-    [Test]
-    public void RejectsUnknownArtifactVersionsWithAStablePath()
+    [TestCase(1)]
+    [TestCase(99)]
+    public void RejectsEveryNonCurrentArtifactVersionWithAStablePath(int artifactVersion)
     {
-        var request = Request(ReadSource("valid-two-button-and")) with { ArtifactVersion = 99 };
+        var request = Request(ReadSource("valid-two-button-and")) with { ArtifactVersion = artifactVersion };
 
         AssertDiagnostic(
             () => new FlowCompiler().Compile(request),

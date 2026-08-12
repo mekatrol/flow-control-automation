@@ -60,7 +60,7 @@ behaviour. Users must be able to:
 The work is divided into independently buildable and committable phases. Every
 phase includes its own tests and leaves the application deployable. Backend
 contract work precedes frontend consumers, and persisted flow changes remain
-backward compatible.
+internally consistent with the single current pre-release schema.
 
 ## 2. Scope and delivery boundaries
 
@@ -704,7 +704,7 @@ layers depend on it.
 - Start the server with an absent point file; health and existing flow APIs
   remain available. Restart and confirm saved point fixtures reload.
 
-**Commit gate:** Server startup remains backward compatible and no point
+**Commit gate:** Server startup remains healthy and no point
 endpoint is public yet.
 
 **Suggested commit:** `feat(points): persist point and group definitions`
@@ -1151,20 +1151,18 @@ combined `state` enum.
 
 **Suggested commit:** `feat(points): add quality and commissioning services`
 
-## 6. Migration and compatibility strategy
+## 6. Pre-release schema strategy
 
 - Absence of `data/points.json` means an empty version-1 catalogue.
 - Absence of `data/point-sources.json` means an empty source catalogue.
-- Absence of `controllerTemplateId` means the embedded `default`; absence of
+- New flows explicitly record `controllerTemplateId`; absence of
   `data/controllers.json` means only the default is available.
 - Never persist or overwrite the embedded default. Template schema changes
-  require fixture-tested YAML contract and normalized JSON migrations.
-- Never rewrite `flows.json` merely because the server starts.
-- Old flow node kinds and connector contracts remain accepted.
-- New fields added to point documents require a schema-version migration with
-  fixture tests from every previous version.
-- Migrations write a backup and use atomic replacement; failure keeps the
-  original readable file and prevents startup with a clear error.
+  require fixture-tested YAML contracts and normalized JSON updates.
+- Old flow node kinds, aliases, connector contracts, and superseded schema
+  versions are rejected rather than migrated.
+- Before the first production release, schema changes update current fixtures,
+  producers, and consumers together and remove superseded code.
 - A point rename is safe because flows reference stable IDs.
 - A point type, unit, direction, or capability change increments its revision
   and may invalidate drafts; it cannot silently alter a deployed flow.
@@ -1172,7 +1170,8 @@ combined `state` enum.
   requires explicit confirmation/revision. The runtime continues using the
   last deployed validated snapshot until a corrected flow is redeployed.
 - Feature flags may hide runtime-only palette nodes before their backend phase,
-  but persisted kinds must never be conditionally rejected after release.
+  but persisted kinds must never be conditionally rejected after the production
+  compatibility milestone.
 
 ## 7. Test inventory
 

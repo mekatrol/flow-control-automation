@@ -99,10 +99,6 @@ const asEnum = <Value extends string>(value: unknown, allowed: Set<Value>, path:
 };
 
 const asNodeKind = (value: unknown, path: string): FlowNodeKind => {
-  // `invert` was the original persisted name for the NOT gate. Normalize it at
-  // the API boundary so existing flows open as NOT nodes and are upgraded the
-  // next time they are saved.
-  if (value === 'invert') return 'not' as FlowNodeKind;
   return asEnum(value, nodeKinds, path);
 };
 

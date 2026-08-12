@@ -10,86 +10,33 @@ namespace Server.Services.Implementation;
 
 public sealed partial class FlowCompiler : IFlowCompiler
 {
-    private const int EnvelopeLength = 192;
     private const int MaximumArtifactBytes = 8192;
-    private const uint MaximumSnapshotBytes = 4096;
 
     private static readonly IReadOnlyDictionary<string, NodeShape> Shapes =
         new Dictionary<string, NodeShape>(StringComparer.Ordinal)
         {
-            ["digitalInput"] = new(1, [new("value", 2)]),
-            ["digitalConstant"] = new(2, [new("value", 2)]),
-            ["not"] = new(3, [new("in", 1), new("value", 2)]),
-            ["and"] = new(4, [new("a", 1), new("b", 1), new("value", 2)]),
-            ["or"] = new(5, [new("a", 1), new("b", 1), new("value", 2)]),
-            ["memory"] = new(6, [new("in", 1), new("value", 2)]),
-            ["digitalOutput"] = new(7, [new("in", 1)])
+            ["digitalInput"] = new([new("value", 2)]),
+            ["digitalConstant"] = new([new("value", 2)]),
+            ["not"] = new([new("in", 1), new("value", 2)]),
+            ["and"] = new([new("a", 1), new("b", 1), new("value", 2)]),
+            ["or"] = new([new("a", 1), new("b", 1), new("value", 2)]),
+            ["memory"] = new([new("in", 1), new("value", 2)]),
+            ["digitalOutput"] = new([new("in", 1)])
         };
 
     public FlowCompilationResult Compile(FlowCompilationRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
-        Validate(request);
-
-        return request.ArtifactVersion switch
+        if (request.ArtifactVersion != 2)
         {
-            1 => CompileSchema1(request),
-            2 => CompileFlowIlV2(request),
-            _ => throw Failure(
+            throw Failure(
                 "unsupported_artifact_version",
                 "/artifactVersion",
-                "Only schema-1 compatibility and Flow IL v2 artifacts are supported.")
-        };
-    }
-
-    private static FlowCompilationResult CompileSchema1(FlowCompilationRequest request)
-    {
-
-        var source = request.Source;
-        var nodes = source.Nodes.OrderBy(node => node.Id, StringComparer.Ordinal).ToArray();
-        var nodeIndices = nodes
-            .Select((node, index) => new { node.Id, Index = checked((ushort)index) })
-            .ToDictionary(item => item.Id, item => item.Index, StringComparer.Ordinal);
-        var points = BuildPoints(nodes);
-        var ports = BuildPorts(nodes);
-        var portIndices = ports
-            .Select((port, index) => new { port.Key, Index = checked((ushort)index) })
-            .ToDictionary(item => item.Key, item => item.Index);
-        var connections = source.Connections
-            .OrderBy(connection => connection.Target.NodeId, StringComparer.Ordinal)
-            .ThenBy(connection => connection.Target.PortId, StringComparer.Ordinal)
-            .ThenBy(connection => connection.Source.NodeId, StringComparer.Ordinal)
-            .ThenBy(connection => connection.Source.PortId, StringComparer.Ordinal)
-            .ToArray();
-
-        var nodeTable = Table(nodes.Select(node => EncodeNode(node, points)));
-        var portTable = Table(ports.Select(EncodePort));
-        var connectionTable = Table(connections.Select(connection => EncodeConnection(
-            connection,
-            nodeIndices,
-            portIndices)));
-        var pointTable = Table(points.Select(EncodePoint));
-        var body = EncodeBody(nodeTable, portTable, connectionTable, pointTable);
-        var artifact = EncodeEnvelope(source, nodes, ports, connections, points, body);
-        if (artifact.Length > MaximumArtifactBytes)
-        {
-            throw Failure("limit_exceeded", "/artifactLength", "Encoded artifact exceeds 8192 bytes.");
+                "Only the current Flow IL version 2 is supported during pre-release development.");
         }
 
-        return new FlowCompilationResult
-        {
-            ArtifactVersion = 1,
-            Artifact = artifact,
-            ArtifactSha256 = Convert.ToHexStringLower(SHA256.HashData(artifact)),
-            FlowRevision = source.Revision,
-            ControllerTemplateId = source.ControllerTemplateId,
-            ControllerTemplateRevision = checked((int)source.ControllerTemplateRevision),
-            NodeIndices = nodeIndices,
-            Schedule = GetSchedule(source),
-            MaximumWorkPerScan = checked((uint)nodes.Length),
-            WorkingBytes = checked((uint)(nodes.Length * 2)),
-            MaximumSnapshotBytes = MaximumSnapshotBytes
-        };
+        Validate(request);
+        return CompileFlowIlV2(request);
     }
 
     private static void Validate(FlowCompilationRequest request)
@@ -577,131 +524,6 @@ public sealed partial class FlowCompiler : IFlowCompiler
         .OrderBy(point => point.Id, StringComparer.Ordinal)
         .ThenBy(point => point.Direction)];
 
-    private static PortRecord[] BuildPorts(IReadOnlyList<ExecutableFlowNode> nodes) => [.. nodes
-        .SelectMany((node, nodeIndex) => Shapes[node.Kind].Ports.Select(port => new PortRecord(
-            checked((ushort)nodeIndex),
-            node.Id,
-            port.Id,
-            port.Direction)))];
-
-    private static byte[] EncodeNode(ExecutableFlowNode node, IReadOnlyList<PointRecord> points)
-    {
-        var configuration = node.Kind switch
-        {
-            "digitalInput" => U16(PointIndex(points, node, 1)),
-            "digitalConstant" or "memory" =>
-                new byte[] { node.Configuration["value"].GetBoolean() ? (byte)1 : (byte)0 },
-            "digitalOutput" => Concat(
-                U16(PointIndex(points, node, 2)),
-                new byte[] { 1, 8 },
-                U32(0)),
-            _ => Array.Empty<byte>()
-        };
-        return Concat(
-            String8(node.Id),
-            new byte[] { Shapes[node.Kind].Opcode },
-            U16(configuration.Length),
-            configuration);
-    }
-
-    private static ushort PointIndex(
-        IReadOnlyList<PointRecord> points,
-        ExecutableFlowNode node,
-        byte direction)
-    {
-        var pointId = node.Configuration["pointId"].GetString();
-        return checked((ushort)points.Select((point, index) => new { point, index })
-            .Single(item => item.point.Id == pointId && item.point.Direction == direction).index);
-    }
-
-    private static byte[] EncodePort(PortRecord port) => Concat(
-        U16(port.NodeIndex),
-        String8(port.PortId),
-        new byte[] { port.Direction, 2, 1, 0 });
-
-    private static byte[] EncodeConnection(
-        ExecutableFlowConnection connection,
-        IReadOnlyDictionary<string, ushort> nodeIndices,
-        IReadOnlyDictionary<PortKey, ushort> portIndices) => Concat(
-            U16(nodeIndices[connection.Source.NodeId]),
-            U16(portIndices[new(connection.Source.NodeId, connection.Source.PortId)]),
-            U16(nodeIndices[connection.Target.NodeId]),
-            U16(portIndices[new(connection.Target.NodeId, connection.Target.PortId)]));
-
-    private static byte[] EncodePoint(PointRecord point) =>
-        Concat(String8(point.Id), new byte[] { point.Direction, 2, 1, 0 });
-
-    private static byte[] EncodeBody(params byte[][] tables)
-    {
-        var offsets = new uint[tables.Length];
-        var offset = 24u;
-        for (var index = 0; index < tables.Length; index++)
-        {
-            offsets[index] = offset;
-            offset += checked((uint)tables[index].Length);
-        }
-
-        byte[][] parts =
-        [
-            U32(offset),
-            U32(offsets[0]),
-            U32(offsets[1]),
-            U32(offsets[2]),
-            U32(offsets[3]),
-            U32(0),
-            .. tables
-        ];
-        return Concat(parts);
-    }
-
-    private static byte[] EncodeEnvelope(
-        ExecutableFlowSource source,
-        IReadOnlyList<ExecutableFlowNode> nodes,
-        IReadOnlyList<PortRecord> ports,
-        IReadOnlyList<ExecutableFlowConnection> connections,
-        IReadOnlyList<PointRecord> points,
-        byte[] body)
-    {
-        var envelope = new byte[EnvelopeLength];
-        "FCEX"u8.CopyTo(envelope);
-        WriteU16(envelope, 4, 1);
-        WriteU16(envelope, 6, 1);
-        WriteU16(envelope, 8, EnvelopeLength);
-        WriteU32(envelope, 12, checked((uint)(EnvelopeLength + body.Length)));
-        WriteU32(envelope, 16, source.Revision);
-        WriteU32(envelope, 20, source.ControllerTemplateRevision);
-        envelope[24] = 1;
-        envelope[25] = 1;
-        WriteU16(envelope, 32, nodes.Count);
-        WriteU16(envelope, 34, ports.Count);
-        WriteU16(envelope, 36, connections.Count);
-        WriteU16(envelope, 38, points.Count);
-        var capabilities = 1u | 2u | 16u;
-        if (nodes.Any(node => node.Kind == "memory"))
-        {
-            capabilities |= 4;
-        }
-
-        if (nodes.Any(node => node.Kind == "digitalOutput"))
-        {
-            capabilities |= 8;
-        }
-
-        WriteU32(envelope, 40, capabilities);
-        WriteU32(envelope, 44, MaximumSnapshotBytes);
-        WritePaddedIdentifier(envelope, 48, source.Id);
-        WritePaddedIdentifier(envelope, 112, source.ControllerTemplateId);
-        SHA256.HashData(body).CopyTo(envelope, 160);
-        return Concat(envelope, body);
-    }
-
-    private static byte[] Table(IEnumerable<byte[]> records)
-    {
-        var materialized = records.ToArray();
-        byte[][] parts = [U16(materialized.Length), .. materialized];
-        return Concat(parts);
-    }
-
     private static byte[] String8(string value)
     {
         var bytes = Encoding.UTF8.GetBytes(value);
@@ -771,14 +593,9 @@ public sealed partial class FlowCompiler : IFlowCompiler
     [GeneratedRegex("^[A-Za-z0-9][A-Za-z0-9._:-]*$", RegexOptions.CultureInvariant)]
     private static partial Regex IdentifierRegex();
 
-    private sealed record NodeShape(byte Opcode, IReadOnlyList<PortShape> Ports);
+    private sealed record NodeShape(IReadOnlyList<PortShape> Ports);
     private sealed record PortShape(string Id, byte Direction);
     private sealed record PortKey(string NodeId, string PortId);
-    private sealed record PortRecord(ushort NodeIndex, string NodeId, string PortId, byte Direction)
-    {
-        public PortKey Key => new(NodeId, PortId);
-    }
-
     private sealed record PointRecord(string Id, byte Direction);
     private sealed record V2Instruction(
         byte Opcode,

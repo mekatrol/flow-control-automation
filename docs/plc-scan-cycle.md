@@ -47,9 +47,9 @@ outputs remain authoritative, subject to the host's safe-output policy.
 
 ## Observable consequences
 
-- A scan is the same unit previously called an atomic tick. Public APIs retain
-  `tick` and `tickNumber` for compatibility, but documentation and new APIs
-  should describe it as a PLC scan/tick.
+- A scan is the same unit also called an atomic tick. Current APIs may use
+  `tick` and `tickNumber`, while documentation should describe the complete
+  operation as a PLC scan/tick.
 - Logic never reads live I/O during Execute Logic.
 - State staged during scan N is observed as current state during scan N+1.
 - Debug instruction stepping pauses inside Execute Logic and cannot commit.

@@ -15,8 +15,8 @@ in `.codex/ui-flow-schema.md`.
 ## Current and intended lifecycle
 
 1. The user creates a draft flow with a stable ID and display metadata.
-2. The user chooses a controller template. Legacy flows and new flows default
-   to the built-in `default` target.
+2. The user chooses a controller template. New flows default to the built-in
+   `default` target.
 3. The designer offers functions, connectors, and points supported by that
    target. Unsupported saved content remains visible with diagnostics so it can
    be repaired; it is never silently deleted.
@@ -37,10 +37,10 @@ in `.codex/ui-flow-schema.md`.
    flow and releases non-retained point commands belonging to its stable source
    ID.
 
-The backend persists flow definitions and now compiles resolved Boolean graphs
-to canonical scheduled Flow IL v2. Its production runtime remains a
-lifecycle/status placeholder until portable-IL Phase 4. The controller-debug
-path explicitly retains schema-1 compatibility until its later v2 migration.
+The backend persists flow definitions and compiles resolved Boolean graphs to
+the single current scheduled Flow IL version. Its production runtime remains a
+lifecycle/status placeholder until portable-IL Phase 4. Pre-release code rejects
+non-current versions and does not translate or execute them.
 
 ## Persisted graph
 
@@ -223,8 +223,8 @@ limits:
   minimumIntervalMilliseconds: null
 ```
 
-`invert` is retained only as a legacy persisted alias for `not`; new authoring
-uses `not`. A production default should be generated or checked against the
+`not` is the sole canonical NOT-gate name; obsolete aliases are rejected. A
+production default should be generated or checked against the
 canonical registries so documentation cannot make an unsupported function
 deployable.
 
@@ -298,8 +298,7 @@ feature to make deployment succeed.
 ## Compilation and execution model
 
 All hosts use the strict PLC Scan Cycle defined in
-`docs/plc-scan-cycle.md`: Read Inputs, Execute Logic, and Write Outputs. `tick`
-remains a compatibility name for one complete scan. The input image and current
+`docs/plc-scan-cycle.md`: Read Inputs, Execute Logic, and Write Outputs. The input image and current
 state are immutable during Execute Logic; state and proposed commands remain
 private until the atomic Write Outputs boundary.
 
@@ -311,21 +310,19 @@ stable symbols. Browser validation is advisory and targets never accept the
 designer DTO.
 
 The backend also owns Flow IL decompilation for artifact recovery and designer
-import; targets and the VM do not decompile. The decompiler validates untrusted
-IL without executing it and emits a current, valid designer DTO. Frozen v2
-artifacts recover stable executable IDs/configuration and a deterministic
+import; targets and the VM do not decompile. The decompiler accepts only the
+single current IL version, validates it without executing it, and emits a
+current, valid designer DTO. Artifacts recover stable executable IDs/configuration and a deterministic
 semantically equivalent graph, layout, provenance, and explicit warnings for
 non-runtime authoring details. Lossless labels/groups/layout recovery requires
-a future versioned metadata contract and must not change the eight-section v2
-envelope. Unsupported or unrepresentable behavior fails with structured
+a future versioned metadata contract. Unsupported versions and unrepresentable behavior fail with structured
 diagnostics and is never silently dropped.
 
 Flow IL is a project-specific automation bytecode, not CLR IL. The normative
 portable VM implementation is shared by the ASP.NET Core server host, portable
 host tests, and controller firmware. The server must not grow an independent
-C# evaluator with different node or state semantics. Schema-1 executable
-artifacts remain frozen for controller-debug compatibility; production Flow IL
-v2 encodes an already scheduled instruction stream so targets do not run Kahn
+C# evaluator with different node or state semantics. Current Flow IL encodes an
+already scheduled instruction stream so targets do not run Kahn
 or reconstruct graph topology.
 
 Flow IL also carries an optional bounded debug map. The portable VM debugger can

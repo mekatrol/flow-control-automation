@@ -10,7 +10,7 @@ internal static partial class FlowValidator
     private static readonly HashSet<string> ValidKinds =
     [
         "and", "average", "calculator", "calendar", "clamp", "comparator",
-        "delay", "digitalConstant", "digitalInput", "digitalOutput", "if", "invert",
+        "delay", "digitalConstant", "digitalInput", "digitalOutput", "if",
         "line", "max", "memory", "min", "nand", "nor", "not", "or", "override",
         "pulse", "schedule", "selector", "sequence", "split",
         "timer", "xnor", "xor",
