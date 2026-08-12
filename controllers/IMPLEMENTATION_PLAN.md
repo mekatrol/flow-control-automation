@@ -48,6 +48,11 @@ moving editable graph, Kahn scheduling, or backend concerns onto the controller.
 
 ## Feedback, initialization, and cycle policy
 
+Controller execution follows the PLC Scan Cycle defined in
+`../docs/plc-scan-cycle.md`: Read Inputs captures one frozen image, Execute
+Logic evaluates without live I/O, and Write Outputs atomically commits next
+state and proposed commands. The term `tick` below means one complete PLC scan.
+
 Feedback is stateful, not an instantaneous recursive evaluation. A flow that
 needs feedback must contain an explicit one-tick `memory` node (also presented
 to users as a delay or feedback node) with a compiler-supplied initial value.
@@ -137,9 +142,9 @@ schedule. Do not couple this code to ESP-IDF or durable activation.
   storage types. Its adapters provide coherent input snapshots, monotonic time,
   and batched flow-owned output commands.
 - Allocate separate current and next buffers for values and memory state.
-  Execute each tick as: sample inputs, read current memory, evaluate the fixed
-  schedule, stage outputs and next memory, validate completion, then atomically
-  commit next memory and the output batch.
+  Execute each scan as: Read Inputs and current memory, Execute Logic using the
+  fixed schedule, then Write Outputs by validating and atomically committing
+  next memory and the output batch.
 - Make tick failure all-or-nothing. Do not publish partially evaluated outputs
   or state; retain bounded failure counters and apply the documented safe-output
   policy after repeated or fatal faults.

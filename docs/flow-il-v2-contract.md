@@ -147,13 +147,20 @@ parsing; a compiler estimate never authorizes an out-of-bounds allocation.
 
 ## 5. Tick and state semantics
 
-A tick captures one coherent typed input frame and committed current state.
-Instructions execute in encoded order into private working slots. State writes
-and output commands remain staged. The final commit atomically publishes next
-state, proposed commands, and one immutable completed snapshot. Missing/bad
-required input, invalid adapter response, cancellation, fault, or abort before
-commit publishes nothing. State initialization uses its typed constant; reset
-and cold activation restore it. Hosts never overlap ticks for one runtime.
+Flow IL uses the normative PLC Scan Cycle from `plc-scan-cycle.md`. One `tick`
+in this binary/API contract means one complete scan:
+
+1. **Read Inputs:** capture one coherent typed input frame and committed current
+   state and freeze them for the scan.
+2. **Execute Logic:** run instructions in encoded order into private working
+   slots while state writes and output commands remain staged.
+3. **Write Outputs:** the final commit atomically publishes next state, proposed
+   commands, and one immutable completed-scan snapshot.
+
+Missing/bad required input, invalid adapter response, cancellation, fault, or
+abort before commit publishes nothing. State initialization uses its typed
+constant; reset and cold activation restore it. Hosts never overlap scans for
+one runtime. Inputs that change during Execute Logic are visible in a later scan.
 
 Boolean operations use ordinary truth tables. There is no implicit coercion or
 default for unavailable values. Arithmetic, strings, timers, and events require

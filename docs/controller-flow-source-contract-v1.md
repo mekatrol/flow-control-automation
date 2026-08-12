@@ -80,7 +80,9 @@ fan-in are rejected.
 
 Source order is insignificant. Connections are sorted by target node ID,
 target port ID, source node ID, then source port ID using UTF-8 byte order.
-Memory inputs break scheduling cycles; all remaining cycles are rejected.
+Memory inputs break scheduling cycles under the PLC Scan Cycle: memory reads
+the prior committed scan value and stages its replacement for the next scan.
+All remaining combinational cycles are rejected.
 
 ## 6. Canonical lowering
 

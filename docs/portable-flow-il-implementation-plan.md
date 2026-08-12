@@ -29,6 +29,8 @@ state layout, and resource manifest.
 - Allow constrained controllers to reject unsupported opcodes, types, limits,
   or execution profiles before activation.
 - Preserve stable flow/node/point IDs for diagnostics and UI correlation.
+- Use the strict PLC Scan Cycle—Read Inputs, Execute Logic, Write Outputs—as
+  the identical execution model on the server, emulator, and every controller.
 
 ## Non-goals
 
@@ -113,6 +115,12 @@ order.
 
 ## Runtime and host ABI
 
+The normative runtime model is the
+[`PLC Scan Cycle`](plc-scan-cycle.md). Each host triggers a scan, captures a
+frozen input/current-state image, executes scheduled instructions into private
+working storage, and atomically publishes only at Write Outputs. The existing
+word `tick` means one complete PLC scan and remains in APIs for compatibility.
+
 Keep the normative VM in portable C under `controllers/shared/flow/`, but split
 it from controller-specific lifecycle code. Build the same sources as:
 
@@ -129,10 +137,11 @@ initialize, tick, reset, snapshot, and dispose/clear operations. Hosts provide:
 - retained-state loading/saving when a profile permits it; and
 - bounded diagnostic and snapshot publication.
 
-One tick remains atomic: capture inputs, evaluate instructions into private
-working storage, stage state and commands, validate completion, then publish
-state, commands, and one immutable snapshot together. Missing or bad required
-input never becomes a default scalar. Hosts never overlap ticks for one runtime.
+One scan remains atomic: Read Inputs captures inputs and committed state;
+Execute Logic evaluates instructions into private working storage and stages
+state/commands; Write Outputs validates and publishes state, commands, and one
+immutable snapshot together. Missing or bad required input never becomes a
+default scalar. Hosts never overlap scans for one runtime.
 
 ## Portable debugger
 
@@ -288,6 +297,8 @@ Status: next.
   weakening normal atomic tick execution.
 - Remove topology and Kahn scheduling from the v2 target preparation path.
 - Retain fixed-capacity/no-tick-allocation behavior and atomic commits.
+- Make the three PLC Scan Cycle phases explicit in the VM/host boundary and
+  diagnostics; preserve `tick` names only where compatibility requires them.
 - Build static firmware and shared server-library variants from the same source.
 
 Exit: the portable host suite executes v2 fixtures and proves v1 behavior did
@@ -300,6 +311,9 @@ not regress.
 - Resolve flow, points, target, and revisions transactionally.
 - Implement deterministic Kahn scheduling, typed slot allocation, resource
   calculation, v2 emission, symbols, and structured diagnostics.
+- Lower intentional feedback only through explicit stateful nodes whose current
+  value is read in one PLC scan and whose staged replacement becomes visible in
+  the next; reject every remaining combinational cycle.
 - Keep `IFlowCompiler` free of persistence and transport, but support explicit
   source/IL versions rather than a debug-only schema.
 - Cross-test every compiler artifact with the portable v2 loader and VM.
@@ -315,6 +329,8 @@ and the target performs no graph scheduling.
   instances managed by a hosted service.
 - Add coherent server point adapters, interval/manual scheduling, cancellation,
   bounded shutdown, all-or-nothing redeployment, and latest immutable snapshots.
+- Schedule non-overlapping PLC scans and expose separate Read Inputs, Execute
+  Logic, and Write Outputs timing and failure diagnostics.
 - Contain native/VM errors to the affected flow and expose structured status.
 - Host local debug sessions with breakpoints, node/instruction stepping, run-to,
   inspection, and safe discard of partial ticks.
@@ -327,6 +343,8 @@ using only `Server.Api`, with no configured controller.
 - Define emulator instances from controller templates and explicit point maps.
 - Add deterministic virtual time, manual/scripted/replayed inputs, captured
   outputs, quality and lifecycle fault injection, reset, and scenario fixtures.
+- Apply simulated input changes only at Read Inputs boundaries; changes made
+  while Execute Logic is paused become visible in the next scan.
 - Introduce one backend debugger coordinator for server, emulator, and controller
   hosts with capability negotiation and common session/command/snapshot models.
 - Add APIs for breakpoint replacement, continue, pause, step tick, step node,

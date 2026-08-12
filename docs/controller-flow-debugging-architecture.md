@@ -26,8 +26,8 @@ cleanup on every terminal lifecycle path.
   portable controller decoder validates and prepares for execution.
 - **Debug session:** volatile controller-owned execution state identified by a
   session ID and protected by authenticated ownership and a renewable lease.
-- **Tick:** one atomic evaluation of the complete prepared schedule using one
-  coherent input image.
+- **PLC scan/tick:** one atomic Read Inputs, Execute Logic, and Write Outputs
+  cycle using one coherent input image. `tick` remains the wire-compatible name.
 - **Snapshot:** the immutable, bounded observation published after a complete
   successful tick.
 - **Shadow output:** an evaluated output value reported in a snapshot without
@@ -93,10 +93,11 @@ session by confirming the exact affected point list. Commands use a dedicated
 owner, fixed priority, bounded expiry, arbitration-loss reporting, and cleanup
 on pause, stop, replacement, lease expiry, fault, and reboot.
 
-### A step is one complete tick
+### A step is one complete PLC scan/tick
 
-Manual step samples one coherent input image, evaluates the entire fixed
-schedule, and atomically commits next memory state and the debug snapshot. It
+Manual step follows `plc-scan-cycle.md`: Read Inputs samples one coherent image,
+Execute Logic evaluates the entire fixed schedule, and Write Outputs atomically
+commits next memory state and the debug snapshot. It
 does not step through individual nodes. Node-level breakpoints and partial-tick
 state would violate the normal two-buffer execution model and are deferred.
 

@@ -92,6 +92,12 @@ alarms, trends, and audit history. These features are separate because point
 definitions, live state, commands, and history have different persistence and
 safety requirements.
 
+All runtime phases must preserve the PLC Scan Cycle in
+`docs/plc-scan-cycle.md`: Read Inputs freezes values and committed state,
+Execute Logic stages changes without live I/O, and Write Outputs atomically
+publishes successful state, commands, and telemetry. Driver expansion must not
+introduce mid-scan reads/writes or overlapping scans.
+
 ### Explicitly deferred
 
 The following should not be smuggled into an earlier phase:

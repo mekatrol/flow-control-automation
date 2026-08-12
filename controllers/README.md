@@ -12,6 +12,11 @@ The production flow-runtime direction is documented in
 The backend compiles and schedules Flow IL v2; controllers validate and execute
 it through the shared portable VM rather than compiling designer graphs.
 
+Execution uses the strict [`PLC Scan Cycle`](../docs/plc-scan-cycle.md): Read
+Inputs into a frozen image, Execute Logic without live I/O, then Write Outputs
+by atomically committing successful next state and proposed commands. Feedback
+must use explicit memory/delay state and cannot be an implicit recursive cycle.
+
 For a clean machine or newly cloned repository, follow
 [`SETUP_DEV.md`](SETUP_DEV.md) before building.
 

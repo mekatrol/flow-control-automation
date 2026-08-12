@@ -39,6 +39,12 @@ serialized into host-owned buffers.
 
 ## Lifecycle
 
+The ABI operations expose the three phases of the PLC Scan Cycle from
+`plc-scan-cycle.md`. `begin_tick` performs Read Inputs by capturing the supplied
+immutable frame; instruction stepping performs Execute Logic; `commit_tick`
+performs Write Outputs. Compatibility retains `tick` in ABI names, where one
+tick always means one complete PLC scan.
+
 Storage progresses `empty -> prepared -> initialized -> executing ->
 initialized`; reset returns to initialized and clear returns to empty. Prepare
 validates the complete artifact before constructing state. Begin captures the

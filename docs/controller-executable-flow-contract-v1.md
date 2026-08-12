@@ -147,19 +147,21 @@ memory input, then apply Kahn topological sorting with node-ID byte order as the
 only ready-queue tie breaker. A remaining strongly connected component is a
 `combinational_cycle`.
 
-One tick is all-or-nothing:
+Schema-1 compatibility execution follows the PLC Scan Cycle defined in
+[`plc-scan-cycle.md`](plc-scan-cycle.md). One tick is one all-or-nothing scan:
 
-1. Capture one coherent input image and its timestamp.
-2. Publish every memory node's current value and encoded initial value on tick
-   1.
-3. Evaluate the fixed schedule into a next-value buffer. Boolean operators use
+1. **Read Inputs:** capture one coherent input image, timestamp, and current
+   memory state.
+2. **Execute Logic:** publish every memory node's current value (using its
+   encoded initial value on scan 1) and evaluate the fixed schedule into a
+   next-value buffer. Boolean operators use
    ordinary truth tables. Proposed-output nodes record a value but never call
    physical output arbitration.
-4. After scheduled evaluation, capture each memory input into a next-memory
+3. Still within Execute Logic, capture each memory input into a next-memory
    buffer. Missing or bad required input faults the whole tick.
-5. Construct one immutable snapshot from evaluated node values.
-6. Atomically publish the snapshot and next memory state, then increment the
-   tick number. On failure neither snapshot nor memory state changes.
+4. Construct one immutable completed-scan snapshot from evaluated node values.
+5. **Write Outputs:** atomically publish the snapshot and next memory state,
+   then increment the tick number. On failure neither changes.
 
 Thus a memory node snapshot shows the value used during that tick; the value
 captured at the end of tick N first appears in tick N+1. Preparation and stop

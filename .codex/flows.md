@@ -298,6 +298,12 @@ feature to make deployment succeed.
 
 ## Compilation and execution model
 
+All hosts use the strict PLC Scan Cycle defined in
+`docs/plc-scan-cycle.md`: Read Inputs, Execute Logic, and Write Outputs. `tick`
+remains a compatibility name for one complete scan. The input image and current
+state are immutable during Execute Logic; state and proposed commands remain
+private until the atomic Write Outputs boundary.
+
 Editable graph topology is a compiler input, not a target runtime format. The
 backend resolves one immutable flow/point/template snapshot, validates types,
 units and capabilities, rejects combinational cycles, applies deterministic

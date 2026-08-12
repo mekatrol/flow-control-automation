@@ -16,6 +16,10 @@ dependencies, validates graph and target contracts, rejects combinational
 cycles, applies deterministic Kahn ordering, allocates typed slots/state, and
 emits canonical Flow IL v2.
 
+Every host executes that schedule through the PLC Scan Cycle defined in
+`../plc-scan-cycle.md`: freeze inputs/current state, execute without live I/O,
+then atomically commit next state, proposed commands, and the scan snapshot.
+
 V2 targets load an ordered instruction stream, explicit operands, slot and
 state layouts, point bindings, commit plan, requirements, symbols, and optional
 debug map. A loader checks framing, canonical representation, capabilities,

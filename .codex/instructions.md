@@ -88,6 +88,12 @@ Flows may communicate with home automation controllers through their supported p
 ## Execution Architecture
 
 The backend must manage multiple independent flows concurrently.
+Each flow independently uses the normative PLC Scan Cycle from
+`docs/plc-scan-cycle.md`: Read Inputs, Execute Logic, then Write Outputs. Inputs
+and current state are frozen for a scan; logic stages changes privately; only a
+successful final phase publishes next state, proposed commands, and a snapshot.
+Do not introduce mid-scan I/O, overlapping scans, recursive graph evaluation,
+or implicit cycle breaking in any host or future runtime phase.
 
 ```mermaid
 flowchart LR

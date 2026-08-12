@@ -24,8 +24,9 @@ earlier layer.
   ranges, and output capacities before access.
 - Prepare replacement state privately and publish it only after complete
   validation and initialization; failure leaves the active runtime unchanged.
-- Execute one tick atomically from a coherent input frame. Fault, cancellation,
-  abort, or debugger stop discards staged state and proposed commands.
+- Execute one PLC scan atomically using Read Inputs, Execute Logic, and Write
+  Outputs as defined in `plc-scan-cycle.md`. Fault, cancellation, abort, or a
+  debugger stop before Write Outputs discards staged state and commands.
 - Keep credentials, driver addresses, and direct hardware handles in host
   adapters. Point bindings contain stable logical identity only.
 - Bound diagnostic strings, snapshots, debugger frames, work per tick, command

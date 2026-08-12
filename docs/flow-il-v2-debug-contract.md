@@ -15,13 +15,14 @@ does not emulate controller instruction stepping on a different host.
 
 ## Paused frame and commands
 
-At tick start the VM freezes one coherent input frame and current state. A
-paused frame contains artifact identity, tick identity, instruction pointer,
+At PLC scan start, the Read Inputs phase freezes one coherent input frame and
+current state. A paused frame contains artifact identity, tick identity, instruction pointer,
 working typed slots, current state, staged next state, proposed commands, and
 the last completed snapshot. Inputs do not change while paused.
 
-`step tick` runs through commit. `step instruction` executes exactly one encoded
-instruction. `step node` runs through the final discriminator for that source
+`step scan` and the compatibility command `step tick` run through Write Outputs
+and commit. `step instruction` executes exactly one encoded instruction. `step
+node` runs through the final discriminator for that source
 node. Continue stops before/after a configured breakpoint, on pause request, on
 fault, or at the tick boundary. Run-to installs a bounded temporary breakpoint.
 
@@ -30,8 +31,8 @@ Conditional and data breakpoints are not part of capability version 1.
 
 ## Commit safety
 
-Pausing never publishes a runtime snapshot, advances committed state, or sends
-a command. Only successful execution of opcode 255 followed by the host commit
+Pausing within Execute Logic never publishes a runtime snapshot, advances
+committed state, or sends a command. Only successful execution of opcode 255 followed by the host commit
 call publishes state, commands, and a completed snapshot atomically. Abort,
 stop, replacement, lease expiry, disconnect policy, debugger fault, host
 shutdown, or controller reboot discards the uncommitted frame and relinquishes

@@ -2,6 +2,13 @@
 
 Flow Control Automation is a home automation flow engine with a graphical editor for creating, deploying, and managing automation logic.
 
+Every running flow follows a strict
+[`PLC Scan Cycle`](docs/plc-scan-cycle.md): **Read Inputs** into a frozen
+snapshot, **Execute Logic** against that snapshot and committed state, then
+**Write Outputs** by atomically committing next state, proposed commands, and a
+completed-scan snapshot. Intentional feedback uses explicit memory/delay state,
+so cyclic behavior is predictable without recursive graph evaluation.
+
 The primary execution roadmap is the
 [`portable Flow IL architecture and implementation plan`](docs/portable-flow-il-implementation-plan.md).
 Flows compile on the backend into deterministic bytecode and execute through the
