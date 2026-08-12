@@ -175,6 +175,9 @@ typedef struct
 /* Returns the exact native ABI version implemented by this library. */
 uint32_t flow_vm_get_abi_version(void);
 
+/* Returns the opaque instance-storage size required by this exact ABI. */
+size_t flow_vm_get_instance_size(void);
+
 /* Validates v2 metadata and reports bounded storage/work requirements. */
 flow_vm_result_t flow_vm_get_requirements(const uint8_t *artifact, size_t artifact_size, flow_vm_requirements_t *requirements);
 

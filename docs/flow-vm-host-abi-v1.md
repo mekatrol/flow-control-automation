@@ -18,6 +18,7 @@ rejected before access. `clear` is idempotent.
 
 ```c
 uint32_t flow_vm_get_abi_version(void);
+size_t flow_vm_get_instance_size(void);
 flow_vm_result_t flow_vm_get_requirements(bytes artifact, requirements* out);
 flow_vm_result_t flow_vm_prepare(bytes artifact, target target,
                                  bytes instance_storage, instance* out);

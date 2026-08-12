@@ -75,6 +75,11 @@ static flow_vm_result_t get_result(flow_vm_result_code_t code, const char *path)
     return result;
 }
 
+size_t flow_vm_get_instance_size(void)
+{
+    return sizeof(flow_vm_t);
+}
+
 /* Decodes and validates the canonical envelope, directory, and per-section integrity before any section is trusted. */
 static flow_vm_result_t get_metadata(const uint8_t *artifact, size_t size, metadata_t *metadata)
 {

@@ -112,6 +112,7 @@ add_library(flow_vm_shared SHARED
     ../shared/flow/vm.c
     ../shared/flow/sha256.c)
 target_include_directories(flow_vm_shared PUBLIC ../shared)
+set_target_properties(flow_vm_shared PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 add_executable(flow_vm_tests
     test_flow_vm.c)

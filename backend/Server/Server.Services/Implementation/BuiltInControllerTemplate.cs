@@ -12,6 +12,7 @@ public static class BuiltInControllerTemplate
         Name = "Flow Control Automation",
         Description = "Built-in unrestricted application target",
         ReadOnly = true,
+        Revision = 1,
         Capabilities = new ControllerCapabilities
         {
             PointTypes = ["analog", "digital", "multi_state", "integer", "text"],

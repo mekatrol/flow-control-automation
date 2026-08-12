@@ -1,9 +1,13 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Server.Data;
 using Server.Data.Extensions;
+using Server.Services;
+using Server.Services.Contracts;
 
 namespace Tests.Unit.Api;
 
@@ -51,6 +55,11 @@ internal sealed class FlowControlApplicationFactory(
             services.AddFlowControlData(configuration);
             _configureServices?.Invoke(services);
         });
+        builder.ConfigureTestServices(services =>
+        {
+            services.RemoveAll<IFlowVirtualMachineFactory>();
+            services.AddSingleton<IFlowVirtualMachineFactory>(new TestFlowVirtualMachineFactory());
+        });
     }
 
     protected override void Dispose(bool disposing)
@@ -59,6 +68,25 @@ internal sealed class FlowControlApplicationFactory(
         if (disposing && Directory.Exists(_temporaryDirectory))
         {
             Directory.Delete(_temporaryDirectory, recursive: true);
+        }
+    }
+
+    private sealed class TestFlowVirtualMachineFactory : IFlowVirtualMachineFactory
+    {
+        public IFlowVirtualMachine Create(ReadOnlyMemory<byte> artifact) => new TestFlowVirtualMachine();
+    }
+
+    private sealed class TestFlowVirtualMachine : IFlowVirtualMachine
+    {
+        private ulong _scanNumber;
+
+        public FlowVmScanResult Scan(IReadOnlyList<FlowVmInput> inputs, ulong sampledAtMilliseconds) =>
+            new(++_scanNumber, sampledAtMilliseconds, [true], []);
+
+        public void Reset() => _scanNumber = 0;
+
+        public void Dispose()
+        {
         }
     }
 }

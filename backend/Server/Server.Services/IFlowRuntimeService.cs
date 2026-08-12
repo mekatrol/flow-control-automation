@@ -6,7 +6,14 @@ public interface IFlowRuntimeService
 {
     RuntimeSnapshot Get(Flow flow);
 
-    RuntimeSnapshot Deploy(Flow flow);
+    Task<RuntimeSnapshot> DeployAsync(
+        Flow flow,
+        FlowCompilationResult compilation,
+        IReadOnlyList<string> inputPointIds,
+        TimeSpan interval,
+        CancellationToken cancellationToken);
+
+    Task<RuntimeSnapshot> ScanOnceAsync(Flow flow, CancellationToken cancellationToken);
 
     RuntimeSnapshot Stop(Flow flow);
 

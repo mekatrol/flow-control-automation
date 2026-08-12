@@ -412,24 +412,34 @@ explicit warnings, and unsupported behavior is rejected rather than omitted.
 
 ### Phase 4 - Add the production server VM host
 
-Status: next.
+Status: complete on 12 August 2026. `Server.Api` now compiles and deploys the
+current authoring graph to an isolated native portable-VM instance per flow.
+The managed boundary validates artifact/native bounds and owns opaque native
+storage through a safe handle. Runtime replacement is serialized and prepared
+before cutover; scans are non-overlapping, cancellable PLC cycles with coherent
+point reads, immutable snapshots, phase timings, per-flow faults, bounded stop,
+interval execution, and an explicit single-scan API.
 
 - Wrap the portable library behind `IFlowVirtualMachine` and safe managed
   handles; validate all lengths and copy ownership at the native boundary.
 - Replace the snapshot-only `FlowRuntimeService` with isolated per-flow runtime
-  instances managed by a hosted service.
+  instances whose singleton lifetime is owned and shut down by the host.
 - Add coherent server point adapters, interval/manual scheduling, cancellation,
   bounded shutdown, all-or-nothing redeployment, and latest immutable snapshots.
 - Schedule non-overlapping PLC scans and expose separate Read Inputs, Execute
   Logic, and Write Outputs timing and failure diagnostics.
 - Contain native/VM errors to the affected flow and expose structured status.
-- Host local debug sessions with breakpoints, node/instruction stepping, run-to,
-  inspection, and safe discard of partial ticks.
+- Expose the local VM boundary needed by the unified debugger. Local debug
+  sessions, breakpoints, instruction stepping, run-to, and inspection are
+  completed by the Phase 5 host-neutral debugger coordinator so those commands
+  are not implemented twice.
 
 Exit: a supported flow can compile, deploy, execute, update, stop, and restart
 using only `Server.Api`, with no configured controller.
 
 ### Phase 5 - Add the controller emulator and unified debugger
+
+Status: next.
 
 - Define emulator instances from controller templates and explicit point maps.
 - Add deterministic virtual time, manual/scripted/replayed inputs, captured

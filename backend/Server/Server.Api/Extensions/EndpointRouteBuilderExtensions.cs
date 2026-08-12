@@ -26,6 +26,7 @@ public static class EndpointRouteBuilderExtensions
         endpoints.MapPost("/api/flows/{flowId}/disable", DisableFlow);
         endpoints.MapPost("/api/flows/{flowId}/enable", EnableFlow);
         endpoints.MapGet("/api/flows/{flowId}/runtime", GetRuntime);
+        endpoints.MapPost("/api/flows/{flowId}/runtime/scan", ScanFlowOnce);
         endpoints.MapPointSourceEndpoints();
         endpoints.MapPointDefinitionEndpoints();
         endpoints.MapControllerTemplateEndpoints();
@@ -224,20 +225,54 @@ public static class EndpointRouteBuilderExtensions
     private static async Task<IResult> DeployFlow(
         string flowId,
         IFlowService flows,
-        IFlowRuntimeService runtime,
+        IFlowDeploymentService deployment,
         CancellationToken cancellationToken)
     {
         try
         {
-            return Results.Json(runtime.Deploy(await flows.GetAsync(flowId, cancellationToken)));
+            return Results.Json(await deployment.DeployAsync(
+                await flows.GetAsync(flowId, cancellationToken),
+                cancellationToken));
         }
         catch (FlowNotFoundException)
         {
             return Error(StatusCodes.Status404NotFound, "flow not found");
         }
+        catch (FlowCompilationException exception)
+        {
+            return Results.Json(exception.Diagnostics, statusCode: StatusCodes.Status422UnprocessableEntity);
+        }
+        catch (FlowVirtualMachineException exception)
+        {
+            return Results.Json(
+                new FlowCompilationDiagnostic("vm_prepare_failed", exception.Path, exception.Message),
+                statusCode: StatusCodes.Status422UnprocessableEntity);
+        }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
             return Error(StatusCodes.Status503ServiceUnavailable, "runtime service unavailable");
+        }
+    }
+
+    private static async Task<IResult> ScanFlowOnce(
+        string flowId,
+        IFlowService flows,
+        IFlowRuntimeService runtime,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return Results.Json(await runtime.ScanOnceAsync(
+                await flows.GetAsync(flowId, cancellationToken),
+                cancellationToken));
+        }
+        catch (FlowNotFoundException)
+        {
+            return Error(StatusCodes.Status404NotFound, "flow not found");
+        }
+        catch (InvalidOperationException)
+        {
+            return Error(StatusCodes.Status409Conflict, "flow is not deployed");
         }
     }
 

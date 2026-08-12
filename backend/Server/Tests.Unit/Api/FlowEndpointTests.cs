@@ -329,6 +329,28 @@ internal sealed class FlowEndpointTests
         await using var factory = new FlowControlApplicationFactory();
         using var client = factory.CreateClient();
         var created = await CreateFlow(client, "Runtime flow");
+        created = created with
+        {
+            Nodes =
+            [
+                new FlowNode
+                {
+                    Id = "constant-true",
+                    Kind = "digitalConstant",
+                    Label = "Constant true",
+                    Connectors = [new FlowConnector("value", "Value", "output", "boolean", "right")],
+                    Configuration = new Dictionary<string, JsonElement>
+                    {
+                        ["value"] = JsonSerializer.SerializeToElement(true)
+                    }
+                }
+            ]
+        };
+        using var saveResponse = await client.PutAsJsonAsync(
+            $"/api/flows/{created.Id}",
+            created,
+            FlowControlJson.Options);
+        created = (await saveResponse.Content.ReadFromJsonAsync<Flow>(FlowControlJson.Options))!;
 
         var stopped = await client.GetFromJsonAsync<RuntimeSnapshot>(
             $"/api/flows/{created.Id}/runtime",
@@ -336,7 +358,16 @@ internal sealed class FlowEndpointTests
         using var deployResponse = await client.PostAsync(
             $"/api/flows/{created.Id}/deploy",
             content: null);
+        Assert.That(
+            deployResponse.StatusCode,
+            Is.EqualTo(HttpStatusCode.OK),
+            await deployResponse.Content.ReadAsStringAsync());
         var running = await deployResponse.Content.ReadFromJsonAsync<RuntimeSnapshot>(
+            FlowControlJson.Options);
+        using var scanResponse = await client.PostAsync(
+            $"/api/flows/{created.Id}/runtime/scan",
+            content: null);
+        var scanned = await scanResponse.Content.ReadFromJsonAsync<RuntimeSnapshot>(
             FlowControlJson.Options);
         using var disableResponse = await client.PostAsync(
             $"/api/flows/{created.Id}/disable",
@@ -370,6 +401,8 @@ internal sealed class FlowEndpointTests
             // Acceptance criteria: `stopped.Nodes` must not be null, because this condition proves that
             // runtime starts stopped deploys and honors disable enable.
             Assert.That(stopped.Nodes, Is.Not.Null);
+            Assert.That(scanResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(scanned!.ScanNumber, Is.GreaterThan(0));
 
             // Expected outcome: `running!.State` has the required value.
             // Acceptance criteria: `running!.State` must equal `"running"`, because this condition proves that

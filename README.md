@@ -29,10 +29,12 @@ the current runtime artifact does not contain.
 
 ## What the Application Does
 
-The application allows users to build automation flows by connecting visual nodes in a web interface. Each deployed flow runs independently in the backend and can be triggered in two ways:
-
-- By events, such as messages received from an MQTT broker.
-- At configured intervals using a timed loop.
+The application allows users to build automation flows by connecting visual
+nodes in a web interface. Each server deployment owns an isolated portable-VM
+instance. It scans on its configured interval and can also perform one explicit,
+non-overlapping scan through `POST /api/flows/{flowId}/runtime/scan`. Runtime
+snapshots report the scan number, node values, proposed outputs, diagnostics,
+and separate Read Inputs, Execute Logic, and Write Outputs timings.
 
 Flows can exchange data and commands with Home Assistant or other home automation controllers through their supported protocols.
 

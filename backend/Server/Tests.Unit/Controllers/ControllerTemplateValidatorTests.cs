@@ -157,7 +157,10 @@ internal sealed class ControllerTemplateValidatorTests
         // Expected outcome: `JsonNode.DeepEquals(builtInJson` confirms the required condition.
         // Acceptance criteria: `JsonNode.DeepEquals(builtInJson` must be true, because this condition proves that
         // default matches embedded contract fixture.
-        Assert.That(JsonNode.DeepEquals(builtInJson, fixtureJson), Is.True);
+        Assert.That(
+            JsonNode.DeepEquals(builtInJson, fixtureJson),
+            Is.True,
+            $"Built-in: {builtInJson}{Environment.NewLine}Fixture: {fixtureJson}");
     }
 
     /// <summary>

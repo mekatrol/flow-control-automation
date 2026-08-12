@@ -37,7 +37,12 @@ public sealed class FlowCompilationTargetResolver(
                     + $"but resolved revision {template.Revision}.");
         }
 
-        var validated = controllerTemplateValidator.Validate(template);
+        var validated = controllerTemplateValidator.Validate(
+            template,
+            allowBuiltInDefault: string.Equals(
+                template.Id,
+                BuiltInControllerTemplate.Id,
+                StringComparison.Ordinal));
         ValidateCapabilities(source, validated);
         ValidateLimits(source, template.Limits);
 

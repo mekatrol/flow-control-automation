@@ -42,7 +42,11 @@ public static class ServiceCollectionExtensions
 
         services.AddFlowControlData(configuration);
         services.AddSingleton(TimeProvider.System);
-        services.AddSingleton<IFlowRuntimeService, FlowRuntimeService>();
+        services.AddSingleton<IFlowVirtualMachineFactory, NativeFlowVirtualMachineFactory>();
+        services.AddSingleton<IFlowPointAdapter, ServerFlowPointAdapter>();
+        services.AddSingleton<FlowRuntimeService>();
+        services.AddSingleton<IFlowRuntimeService>(provider => provider.GetRequiredService<FlowRuntimeService>());
+        services.AddScoped<IFlowDeploymentService, FlowDeploymentService>();
         services.AddScoped<FlowDatabaseService>();
         services.AddScoped<IFlowService>(
             static provider => provider.GetRequiredService<FlowDatabaseService>());
