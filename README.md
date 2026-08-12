@@ -2,9 +2,12 @@
 
 Flow Control Automation is a home automation flow engine with a graphical editor for creating, deploying, and managing automation logic.
 
-The cross-stack roadmap for compiling, loading, stepping, and inspecting flows
-on hardware controllers is documented in the
-[`controller flow debugging architecture reference`](docs/controller-flow-debugging-architecture.md).
+The primary execution roadmap is the
+[`portable Flow IL architecture and implementation plan`](docs/portable-flow-il-implementation-plan.md).
+Flows compile on the backend into deterministic bytecode and execute through the
+same portable VM on the server or a hardware controller. The existing
+[`controller flow debugging architecture reference`](docs/controller-flow-debugging-architecture.md)
+documents the schema-1 foundation and current hardware-debug path.
 
 ## What the Application Does
 
@@ -30,7 +33,8 @@ fallback are documented in [`frontend/flow-control-ui/README.md`](frontend/flow-
 
 ## Technology
 
-- ASP.NET Core on .NET 10 for the API server and automation execution engine.
+- ASP.NET Core on .NET 10 for the API server, authoritative flow compiler, and
+  host for the portable flow VM.
 - Vue.js and SVG for the graphical flow designer.
 
 ## Project Structure

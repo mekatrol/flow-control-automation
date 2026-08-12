@@ -1,5 +1,12 @@
 # Controller debug lifecycle and snapshot contract v1
 
+> Compatibility scope: v1 supports whole-tick Step, Run, and Pause only. It does
+> not provide node/instruction breakpoints, run-to, or partial-frame inspection.
+> Those are Flow IL v2 debugger capabilities defined by
+> [`portable-flow-il-implementation-plan.md`](portable-flow-il-implementation-plan.md).
+> They must be added through negotiated new protocol/schema versions rather than
+> changing these v1 operation meanings.
+
 ## 1. Safety and ownership
 
 A debug session is volatile, authenticated, single-owner, and distinct from

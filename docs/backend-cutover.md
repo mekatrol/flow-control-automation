@@ -75,7 +75,9 @@ history, logs, screenshots, or captured responses.
 
 1. `GET /api/health` returns `{"status":"ok"}`.
 2. List flows, create/save a canary flow, deploy it, and verify its runtime is
-   `running`.
+   `running`. Until portable Flow IL server-host Phase 4 is complete, this checks
+   lifecycle/API wiring only; production cutover of automation execution also
+   requires a compiled flow to produce the expected VM tick snapshot.
 3. List point sources and create/read a canary source.
 4. Create a canary credential and verify create/get/list return metadata only.
 5. Verify referenced-credential deletion is rejected.

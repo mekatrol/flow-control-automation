@@ -66,7 +66,14 @@ For every change under `frontend/flow-control-ui`:
 - Prefer role- and label-based locators. Keep direct CSS/SVG selectors limited to
   graph details that do not expose an accessible locator.
 
-The backend executes deployed flows in one of two ways:
+The backend is the authoritative compiler and the first production execution
+host. It compiles an immutable resolved flow snapshot into versioned Flow IL;
+the same portable VM executes that IL on the server and supported hardware
+controllers. Target devices must not compile designer graphs or independently
+define node semantics. The detailed roadmap is in
+`docs/portable-flow-il-implementation-plan.md`.
+
+Deployed flows execute in one of two ways:
 
 1. In response to events, such as MQTT messages.
 2. On a timed loop at a configured interval.
@@ -91,7 +98,9 @@ flowchart LR
     Engine --> TimedFlow[Timed flow]
 ```
 
-When a flow is deployed, the backend starts an isolated runtime for it. Each runtime must support execution, updates, and graceful shutdown without affecting other flows.
+When a flow is deployed to the built-in target, the backend compiles and starts
+an isolated portable-VM runtime for it. Each runtime must support execution,
+transactional replacement, and graceful shutdown without affecting other flows.
 
 ## .NET Design Rationale
 

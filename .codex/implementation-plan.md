@@ -1,11 +1,18 @@
 # Points, flows, and controller templates implementation plan
 
+> Execution architecture update (12 August 2026): the portable Flow IL plan in
+> `docs/portable-flow-il-implementation-plan.md` is authoritative for compiler,
+> server runtime, and controller runtime work. Any phase below that implies a
+> separate backend graph evaluator must instead compile to Flow IL and use the
+> shared portable VM. Point/source authoring phases and their ordering remain
+> valid.
+
 > Current backend implementation paths and commands target .NET under
 > `backend/Server`.
 
 ## Implementation status
 
-Last updated: 25 July 2026.
+Last updated: 12 August 2026.
 
 | Phase | Status | Notes |
 | --- | --- | --- |
@@ -76,12 +83,14 @@ blocks are valid graph endpoints, but deployment must report any runtime
 limitation explicitly; it must never pretend that an unreadable or disconnected
 bound point is live.
 
-### Runtime release (phases 10-13)
+### Runtime release (portable-IL phases followed by phases 10-13)
 
-The subsequent release adds runtime values, drivers, command arbitration,
-quality propagation, commissioning, alarms, trends, and audit history. These
-features are separate because point definitions, live state, commands, and
-history have different persistence and safety requirements.
+First complete portable-IL phases 0-5 so `Server.Api` can compile and execute
+flows without a controller. The subsequent point-runtime phases add runtime
+values, drivers, command arbitration, quality propagation, commissioning,
+alarms, trends, and audit history. These features are separate because point
+definitions, live state, commands, and history have different persistence and
+safety requirements.
 
 ### Explicitly deferred
 
@@ -1007,7 +1016,8 @@ execute virtual-point reads/writes safely.
 - Add a runtime store separate from definitions, with typed value, quality,
   reliability reason, timestamps, sequence/revision, and last-good value.
 - Restore retained virtual values; reset volatile ones to defaults.
-- Implement read/write point execution and the level-shifter evaluator.
+- Add Flow IL opcodes and portable-VM semantics for read/write points and the
+  level shifter; do not implement a separate backend evaluator.
 - Add point snapshot/change APIs; use polling first if subscriptions are not yet
   available, while preserving sequence semantics for a future stream.
 - Reuse the Phase 1 source adapters and Phase 6 point-detail envelopes rather

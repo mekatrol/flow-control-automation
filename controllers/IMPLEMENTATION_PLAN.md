@@ -1,5 +1,12 @@
 # Flow execution implementation plan
 
+> Architecture update (12 August 2026): this document remains the schema-1
+> controller execution history and compatibility plan. New production execution
+> follows `../docs/portable-flow-il-implementation-plan.md`: the backend compiler
+> performs graph validation and Kahn scheduling, emits scheduled Flow IL v2, and
+> the controller only validates, prepares, and executes that IL through the
+> shared portable VM.
+
 ## Purpose
 
 This plan tracks the unfinished work required to execute compiled flows on the
@@ -9,11 +16,11 @@ documented in [`FEATURES.md`](FEATURES.md), the FCP wire contract is defined in
 [`README.md`](README.md).
 
 The existing flow service transfers, validates, commits, activates, and
-recovers one schema-1 artifact, but activation does not yet execute it. The
-artifact representation is now frozen by
+recovers one schema-1 artifact. Schema 1 is frozen by
 [`../docs/controller-executable-flow-contract-v1.md`](../docs/controller-executable-flow-contract-v1.md)
-and shared golden fixtures. The remaining work adds a deterministic, bounded
-evaluator without moving editable graph or backend concerns onto the controller.
+and shared golden fixtures. The portable debugger now evaluates schema 1; the
+remaining durable-production path must adopt scheduled Flow IL v2 without
+moving editable graph, Kahn scheduling, or backend concerns onto the controller.
 
 ## Architectural rules
 
@@ -102,7 +109,8 @@ same fixture set.
 
 ### Phase 2: Decode and validate before activation
 
-Status: next implementation step. Start with bounded decoding and semantic
+Status: complete for schema 1. Start future production work with Flow IL v2 in
+the portable IL plan. Schema-1 work used bounded decoding and semantic
 validation against every shared fixture, then construct the deterministic
 schedule. Do not couple this code to ESP-IDF or durable activation.
 
@@ -112,11 +120,13 @@ schedule. Do not couple this code to ESP-IDF or durable activation.
 - Validate unique stable node and port identifiers, connection endpoints,
   point references, capability and limit declarations, compatible types,
   exactly-one-driver rules, required inputs, and legal initial values.
-- Build the same-tick dependency graph, treating memory outputs as tick-start
-  sources and memory inputs as next-state sinks. Produce a deterministic
+- Schema 1 builds the same-tick dependency graph, treating memory outputs as
+  tick-start sources and memory inputs as next-state sinks. Produce a deterministic
   topological schedule and reject every remaining combinational cycle. Use a
   bounded Kahn implementation for scheduling; optionally use a bounded
-  strongly-connected-component pass only to improve cycle diagnostics.
+  strongly-connected-component pass only to improve cycle diagnostics. Flow IL
+  v2 instead encodes the compiler-produced schedule and the target verifies
+  operands/order without running a graph algorithm.
 - Return bounded stable field/node/connection paths and reason codes through
   existing validation diagnostics. Validation failure must leave the currently
   committed and running generation untouched.

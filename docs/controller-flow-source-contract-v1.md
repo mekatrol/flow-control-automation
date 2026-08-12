@@ -7,6 +7,11 @@ bounded, target-independent graph accepted by the backend compiler. The
 compiler lowers it to executable envelope/body schema 1 as specified by
 [`controller-executable-flow-contract-v1.md`](controller-executable-flow-contract-v1.md).
 
+It remains a frozen debug/compiler fixture contract. The production source
+adapter and scheduled Flow IL v2 will be backend-owned as described in
+[`portable-flow-il-implementation-plan.md`](portable-flow-il-implementation-plan.md);
+controllers will not receive this source graph or run its scheduling algorithm.
+
 This contract is distinct from persisted flow-designer JSON. The designer has
 a larger legacy catalogue and presentation fields. An adapter must translate a
 supported editable graph into this source contract. Unsupported nodes must

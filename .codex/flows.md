@@ -29,15 +29,19 @@ in `.codex/ui-flow-schema.md`.
 6. A successful deployment captures the validated flow plus point and template
    revisions. Later edits do not mutate a running deployment; redeployment is
    explicit.
-7. The backend runs each deployed flow independently. A flow may be triggered
-   by events or by a configured interval, subject to its target capabilities.
+7. The backend compiles the resolved snapshot to canonical Flow IL. The built-in
+   target runs it on the server; hardware targets load the same IL through their
+   portable VM host. A flow may be triggered by events or by a configured
+   interval, subject to its target capabilities.
 8. Disabling, stopping, undeploying, or deleting a flow shuts down only that
    flow and releases non-retained point commands belonging to its stable source
    ID.
 
 The current backend persists flow definitions and exposes deployment/runtime
-snapshots, but its runtime is still a lifecycle/status implementation rather
-than the complete graph evaluator described here.
+snapshots, but its production runtime is still a lifecycle/status placeholder.
+The controller-debug path already compiles and executes the schema-1 Boolean
+subset. The migration to production server execution and scheduled Flow IL v2
+is specified in `docs/portable-flow-il-implementation-plan.md`.
 
 ## Persisted graph
 
@@ -292,17 +296,44 @@ merely because the default target does. It must never silently coerce a graph,
 drop a node, substitute a point, lower an interval, or ignore an unsupported
 feature to make deployment succeed.
 
-## Execution model
+## Compilation and execution model
+
+Editable graph topology is a compiler input, not a target runtime format. The
+backend resolves one immutable flow/point/template snapshot, validates types,
+units and capabilities, rejects combinational cycles, applies deterministic
+Kahn scheduling, allocates typed slots/state, and emits canonical Flow IL plus
+stable symbols. Browser validation is advisory and targets never accept the
+designer DTO.
+
+Flow IL is a project-specific automation bytecode, not CLR IL. The normative
+portable VM implementation is shared by the ASP.NET Core server host, portable
+host tests, and controller firmware. The server must not grow an independent
+C# evaluator with different node or state semantics. Schema-1 executable
+artifacts remain frozen for controller-debug compatibility; production Flow IL
+v2 encodes an already scheduled instruction stream so targets do not run Kahn
+or reconstruct graph topology.
+
+Flow IL also carries an optional bounded debug map. The portable VM debugger can
+run on the server, on a controller, or in a server-side controller emulator. It
+supports tick, node, and instruction stepping, breakpoints, continue, pause,
+run-to, and typed frame inspection subject to negotiated target limits. Pausing
+inside a tick exposes only a private debug frame; state and output commands are
+published only if execution reaches the atomic tick commit.
+
+The controller emulator uses the same VM and a selected hardware template, but
+replaces physical point adapters with deterministic simulated inputs, captured
+outputs, virtual time, scripted traces, and fault injection. It is not a second
+evaluator and does not replace physical commissioning.
 
 Each deployed flow has an isolated lifecycle and cancellation context. Event
 flows wait for subscribed events; interval flows use a validated ticker and do
 not overlap executions unless the function contract explicitly supports it.
 Stopping is graceful, bounded, and independent of other flows.
 
-Graph execution uses validated topology and typed value/quality envelopes.
-Cycles require an explicitly supported stateful/delay construct; accidental
-combinational cycles are deployment errors. Evaluators should be pure where
-possible. Stateful nodes define initialization, update, persistence, and
+VM execution uses typed slots and value/quality envelopes prepared by the
+compiler. Cycles require an explicitly supported stateful/delay construct;
+accidental combinational cycles are compile errors. Opcodes should be pure where
+possible. Stateful opcodes define initialization, next-state, persistence, and
 shutdown behaviour. Output commands carry flow source and correlation IDs for
 arbitration and audit.
 

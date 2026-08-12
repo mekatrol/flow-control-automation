@@ -2,6 +2,13 @@
 
 ## 1. Status and compatibility
 
+This schema is frozen as the graph-shaped controller-debug compatibility
+format. It proves deterministic compilation and portable evaluation, but its
+preparation step still constructs a Kahn schedule on the receiver. Production
+cross-target execution will use scheduled Flow IL v2 as planned in
+[`portable-flow-il-implementation-plan.md`](portable-flow-il-implementation-plan.md).
+Schema 1 must not be changed or reinterpreted to obtain v2 behavior.
+
 This document is the normative contract for executable flow envelope schema 1
 and body schema 1. The controller decoder is the reference implementation.
 All multi-byte integers are unsigned little-endian. Receivers decode fields

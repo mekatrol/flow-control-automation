@@ -7,6 +7,11 @@ in `boards/`. The shared [`main.c`](main.c) is the controller entry point on
 every platform. A thin platform entry (for example ESP-IDF's `app_main`) calls
 it.
 
+The production flow-runtime direction is documented in
+[`../docs/portable-flow-il-implementation-plan.md`](../docs/portable-flow-il-implementation-plan.md).
+The backend compiles and schedules Flow IL v2; controllers validate and execute
+it through the shared portable VM rather than compiling designer graphs.
+
 For a clean machine or newly cloned repository, follow
 [`SETUP_DEV.md`](SETUP_DEV.md) before building.
 

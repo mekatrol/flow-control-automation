@@ -95,6 +95,8 @@ remain rooted at `/api` and should be routed to `Server.Api` by the deployment.
 
 ## Architecture references
 
+- [Portable Flow IL architecture and implementation
+  plan](../../docs/portable-flow-il-implementation-plan.md)
 - [Flow DTO schema](../../.codex/ui-flow-schema.md)
 - [Runtime API contract](../../.codex/ui-runtime-api.md)
 - [Legacy retirement record](../../.codex/ui-legacy-retirement.md)

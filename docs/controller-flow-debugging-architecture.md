@@ -39,6 +39,11 @@ This reference complements
 [`controllers/IMPLEMENTATION_PLAN.md`](../controllers/IMPLEMENTATION_PLAN.md),
 which remains the detailed authority for deterministic controller execution,
 artifact validation, lifecycle integration, and production commissioning.
+The next-generation production architecture is defined by
+[`portable-flow-il-implementation-plan.md`](portable-flow-il-implementation-plan.md).
+It reuses this portable evaluator foundation on the server and controller, but
+moves Kahn scheduling entirely into the backend compiler and introduces a
+scheduled Flow IL v2 rather than extending graph-shaped schema 1.
 
 ## Implemented system
 
@@ -65,6 +70,13 @@ backend compiler may be implemented in .NET, but it must be verified against
 shared golden artifact fixtures and expected tick results. Do not create an
 independent C# evaluator with subtly different semantics.
 
+For the production path, the same portable C VM is also hosted by the ASP.NET
+Core server. The current `FlowRuntimeService` lifecycle snapshots are a
+placeholder, not a second execution engine. Schema 1 continues to construct a
+schedule during controller preparation for compatibility; Flow IL v2 targets
+receive the compiler-produced instruction order and do not compile graph
+topology.
+
 ### Debugging is separate from deployment
 
 A debug session is volatile and must not commit, replace, activate, deactivate,
@@ -87,6 +99,13 @@ Manual step samples one coherent input image, evaluates the entire fixed
 schedule, and atomically commits next memory state and the debug snapshot. It
 does not step through individual nodes. Node-level breakpoints and partial-tick
 state would violate the normal two-buffer execution model and are deferred.
+
+This remains the schema-1 compatibility behavior. Flow IL v2 adds a bounded
+pre-commit debug frame so server, emulator, and capable controller hosts can
+pause at node/instruction boundaries, inspect staged values, and run-to without
+publishing partial state or outputs. Aborting that frame discards it completely;
+only reaching the tick commit changes runtime state. The v2 design is specified
+in the portable Flow IL plan linked above.
 
 ### The backend owns device connectivity
 
@@ -111,6 +130,10 @@ Fixed-interval run mode and deliberately confirmed live digital output are also
 implemented. Analog values, timers, event-driven flows, user-defined functions,
 multiple concurrent flows, persistent live state, and node-level breakpoints
 remain outside the scope.
+
+Those exclusions describe the completed schema-1 debugger, not the Flow IL v2
+roadmap. The v2 roadmap includes node/instruction debugging and a server-side
+controller emulator that uses the same VM with simulated I/O.
 
 ## Cross-stack contracts
 

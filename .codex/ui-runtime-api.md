@@ -1,13 +1,18 @@
 # Deploy and runtime-status API contract
 
-Phase 7 uses snapshot endpoints so the browser can deploy a saved flow and refresh
-runtime state without adding execution data to the persisted graph DTO.
+The snapshot endpoints let the browser deploy a saved flow and refresh runtime
+state without adding execution data to the persisted graph DTO. During the
+portable-IL migration, deployment to the built-in target means compile, prepare,
+and transactionally start the server VM. A successful status response must not
+be synthesized merely from the saved graph.
 
 ## Endpoints
 
-- `POST /api/flows/{flowId}/deploy` deploys the latest saved definition. A successful
-  response is `200` with a runtime snapshot. Validation or startup failures use a
-  non-2xx status and do not imply that a previous runtime stopped.
+- `POST /api/flows/{flowId}/deploy` resolves and compiles the latest saved
+  definition, prepares the selected target runtime, and atomically replaces the
+  prior deployment. A successful response is `200` with a runtime snapshot.
+  Compile, validation, or startup failures use a non-2xx status and leave a
+  previous runtime unchanged.
 - `GET /api/flows/{flowId}/runtime` returns the current runtime snapshot. A missing
   flow uses `404`; a temporarily unavailable runtime service uses `503`.
 
