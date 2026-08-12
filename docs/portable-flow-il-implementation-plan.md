@@ -311,7 +311,14 @@ not regress.
 
 ### Phase 3 - Make the server compiler authoritative
 
-Status: next.
+Status: complete on 12 August 2026. The backend-owned `FlowCompiler` now adapts
+resolved schema-1 authoring graphs into canonical Flow IL v2 by default,
+performs deterministic Kahn scheduling and typed slot/state allocation, emits
+requirements, instructions, commit plans, symbols, debug maps, and immutable
+template/point revision dependencies, and reports structured diagnostics and
+scan resource estimates. Schema 1 remains available only through an explicit
+controller-debug compatibility request. Shared golden artifacts are decoded and
+executed by the portable C v2 loader/VM tests.
 
 - Move editable-graph adaptation from the browser into a backend-owned adapter;
   browser validation remains advisory.
@@ -329,6 +336,8 @@ Exit: identical resolved deployment inputs compile byte-for-byte identically,
 and the target performs no graph scheduling.
 
 ### Phase 4 - Add the production server VM host
+
+Status: next.
 
 - Wrap the portable library behind `IFlowVirtualMachine` and safe managed
   handles; validate all lengths and copy ownership at the native boundary.

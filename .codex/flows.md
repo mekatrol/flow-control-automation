@@ -37,11 +37,10 @@ in `.codex/ui-flow-schema.md`.
    flow and releases non-retained point commands belonging to its stable source
    ID.
 
-The current backend persists flow definitions and exposes deployment/runtime
-snapshots, but its production runtime is still a lifecycle/status placeholder.
-The controller-debug path already compiles and executes the schema-1 Boolean
-subset. The migration to production server execution and scheduled Flow IL v2
-is specified in `docs/portable-flow-il-implementation-plan.md`.
+The backend persists flow definitions and now compiles resolved Boolean graphs
+to canonical scheduled Flow IL v2. Its production runtime remains a
+lifecycle/status placeholder until portable-IL Phase 4. The controller-debug
+path explicitly retains schema-1 compatibility until its later v2 migration.
 
 ## Persisted graph
 

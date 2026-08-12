@@ -23,7 +23,13 @@ public sealed class FlowDebugService(
                 throw new ControllerGatewayException("busy", "A debug session already exists.");
             }
             var target = await targetResolver.ResolveAsync(source, cancellationToken);
-            var compilation = compiler.Compile(new FlowCompilationRequest { Source = source, Target = target });
+            // Controller schema-1 debugging remains an explicit compatibility path until its Phase 7 v2 migration.
+            var compilation = compiler.Compile(new FlowCompilationRequest
+            {
+                ArtifactVersion = 1,
+                Source = source,
+                Target = target
+            });
             var load = await transport.LoadAsync(compilation.Artifact, replaceExisting, cancellationToken);
             try
             {

@@ -22,6 +22,12 @@ The normative production bytecode and native-host boundaries are defined by the
 [`Flow IL v2 contract`](docs/flow-il-v2-contract.md),
 [`VM host ABI`](docs/flow-vm-host-abi-v1.md), and
 [`debugger contract`](docs/flow-il-v2-debug-contract.md).
+The backend compiler is authoritative: production compilation emits scheduled
+Flow IL v2, while schema 1 is available only to the controller-debug
+compatibility path.
+The backend compiler is authoritative: production compilation emits scheduled
+Flow IL v2, while schema 1 is available only to the controller-debug
+compatibility path.
 
 ## What the Application Does
 

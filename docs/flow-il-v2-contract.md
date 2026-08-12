@@ -123,8 +123,9 @@ when envelope flags and negotiated target profile permit it.
 ### 3.8 Source dependencies — section 8
 
 Records are `kind:u8, dependency_id:string8, revision:u32` and sort by kind then
-ID. Kind 1 identifies the controller template. Future point/template/function
-dependencies receive new kinds. Every revision is nonzero and makes artifact
+ID. Kind 1 identifies the controller template and kind 2 identifies a resolved
+point definition. Future function/template dependencies receive new kinds.
+Every revision is nonzero and makes artifact
 reproduction auditable.
 
 ## 4. Capabilities and limits

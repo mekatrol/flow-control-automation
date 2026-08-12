@@ -55,6 +55,11 @@ public sealed class FlowCompilerBoundaryTests
                 Is.Not.Null);
             Assert.That(typeof(FlowCompilationRequest).GetProperty(nameof(FlowCompilationRequest.Source))!
                 .PropertyType, Is.EqualTo(typeof(ExecutableFlowSource)));
+            Assert.That(new FlowCompilationRequest
+            {
+                Source = null!,
+                Target = null!
+            }.ArtifactVersion, Is.EqualTo(2));
         });
     }
 

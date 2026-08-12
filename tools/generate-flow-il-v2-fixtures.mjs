@@ -106,7 +106,10 @@ function compile(source) {
     { id: sectionIds.commit, count: commits.length, bytes: Buffer.concat(commits) },
     { id: sectionIds.symbols, count: symbols.length, bytes: Buffer.concat(symbols) },
     { id: sectionIds.debugMap, count: debugMap.length, bytes: Buffer.concat(debugMap) },
-    { id: sectionIds.dependencies, count: 1, bytes: Buffer.concat([u8(1), string8(source.controllerTemplateId), u32(source.controllerTemplateRevision)]) }
+    { id: sectionIds.dependencies, count: 1 + points.length, bytes: Buffer.concat([
+      u8(1), string8(source.controllerTemplateId), u32(source.controllerTemplateRevision),
+      ...points.map((point) => Buffer.concat([u8(2), string8(point.id), u32(1)]))
+    ]) }
   ];
   let offset = envelopeLength + sections.length * directoryEntryLength;
   const directory = [];
@@ -119,7 +122,11 @@ function compile(source) {
   envelope.writeUInt16LE(2, 4); envelope.writeUInt16LE(envelopeLength, 6); envelope.writeUInt32LE(offset, 8);
   envelope.writeUInt32LE(1, 12); envelope.writeUInt32LE(source.revision, 16); envelope.writeUInt32LE(source.controllerTemplateRevision, 20);
   envelope.writeUInt16LE(1, 24); envelope.writeUInt16LE(sections.length, 26); envelope.writeUInt8(1, 28);
-  envelope.writeUInt32LE(instructions.length, 32); envelope.writeBigUInt64LE(0x1fn, 36);
+  let capabilities = 1n | 16n;
+  if (points.some((point) => point.direction === 1)) capabilities |= 2n;
+  if (points.some((point) => point.direction === 2)) capabilities |= 4n;
+  if (memoryIds.length > 0) capabilities |= 8n;
+  envelope.writeUInt32LE(instructions.length, 32); envelope.writeBigUInt64LE(capabilities, 36);
   envelope.writeUInt32LE((orderedIds.length + memoryIds.length) * 2, 44); envelope.writeUInt32LE(16384, 48);
   envelope.writeUInt8(Buffer.byteLength(source.id), 52); envelope.write(source.id, 53, 'utf8'); envelope.writeUInt32LE(envelopeLength, 116);
   const artifact = Buffer.concat([envelope, ...directory, ...sections.map((section) => section.bytes)]);

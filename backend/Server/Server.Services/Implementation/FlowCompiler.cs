@@ -1,5 +1,6 @@
 using Server.Services.Contracts;
 using System.Buffers.Binary;
+using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -29,6 +30,20 @@ public sealed partial class FlowCompiler : IFlowCompiler
     {
         ArgumentNullException.ThrowIfNull(request);
         Validate(request);
+
+        return request.ArtifactVersion switch
+        {
+            1 => CompileSchema1(request),
+            2 => CompileFlowIlV2(request),
+            _ => throw Failure(
+                "unsupported_artifact_version",
+                "/artifactVersion",
+                "Only schema-1 compatibility and Flow IL v2 artifacts are supported.")
+        };
+    }
+
+    private static FlowCompilationResult CompileSchema1(FlowCompilationRequest request)
+    {
 
         var source = request.Source;
         var nodes = source.Nodes.OrderBy(node => node.Id, StringComparer.Ordinal).ToArray();
@@ -63,12 +78,17 @@ public sealed partial class FlowCompiler : IFlowCompiler
 
         return new FlowCompilationResult
         {
+            ArtifactVersion = 1,
             Artifact = artifact,
             ArtifactSha256 = Convert.ToHexStringLower(SHA256.HashData(artifact)),
             FlowRevision = source.Revision,
             ControllerTemplateId = source.ControllerTemplateId,
             ControllerTemplateRevision = checked((int)source.ControllerTemplateRevision),
-            NodeIndices = nodeIndices
+            NodeIndices = nodeIndices,
+            Schedule = GetSchedule(source),
+            MaximumWorkPerScan = checked((uint)nodes.Length),
+            WorkingBytes = checked((uint)(nodes.Length * 2)),
+            MaximumSnapshotBytes = MaximumSnapshotBytes
         };
     }
 
@@ -128,6 +148,256 @@ public sealed partial class FlowCompiler : IFlowCompiler
 
         ValidateGraph(source);
     }
+
+    private static FlowCompilationResult CompileFlowIlV2(FlowCompilationRequest request)
+    {
+        const int envelopeLength = 128;
+        const int directoryEntryLength = 48;
+        var source = request.Source;
+        var schedule = GetSchedule(source);
+        var nodes = source.Nodes.ToDictionary(node => node.Id, StringComparer.Ordinal);
+        var slots = schedule.Select((id, index) => new { id, index = checked((ushort)index) })
+            .ToDictionary(item => item.id, item => item.index, StringComparer.Ordinal);
+        var memoryIds = schedule.Where(id => nodes[id].Kind == "memory").ToArray();
+        var stateSlots = memoryIds.Select((id, index) => new
+        {
+            id,
+            index = checked((ushort)(schedule.Count + index))
+        })
+            .ToDictionary(item => item.id, item => item.index, StringComparer.Ordinal);
+        var points = BuildPoints([.. schedule.Select(id => nodes[id])]);
+        var pointIndices = points.Select((point, index) => new { point, index = checked((ushort)index) })
+            .ToDictionary(item => item.point, item => item.index);
+        var constants = source.Nodes.Where(node => node.Kind is "digitalConstant" or "memory")
+            .Select(node => node.Configuration["value"].GetBoolean())
+            .Distinct()
+            .Order()
+            .ToArray();
+        var instructions = new List<V2Instruction>();
+
+        foreach (var id in schedule)
+        {
+            var node = nodes[id];
+            var result = slots[id];
+            instructions.Add(node.Kind switch
+            {
+                "digitalInput" => new(1, result, ushort.MaxValue, ushort.MaxValue,
+                    pointIndices[new PointRecord(node.Configuration["pointId"].GetString()!, 1)], id, 0),
+                "digitalConstant" => new(2, result, ushort.MaxValue, ushort.MaxValue,
+                    checked((ushort)Array.IndexOf(constants, node.Configuration["value"].GetBoolean())), id, 0),
+                "not" => new(3, result, InputSlot(source, slots, id, "in"), ushort.MaxValue, ushort.MaxValue, id, 0),
+                "and" => new(4, result, InputSlot(source, slots, id, "a"), InputSlot(source, slots, id, "b"),
+                    ushort.MaxValue, id, 0),
+                "or" => new(5, result, InputSlot(source, slots, id, "a"), InputSlot(source, slots, id, "b"),
+                    ushort.MaxValue, id, 0),
+                "memory" => new(6, result, ushort.MaxValue, ushort.MaxValue, stateSlots[id], id, 0),
+                "digitalOutput" => new(7, result, InputSlot(source, slots, id, "in"), ushort.MaxValue,
+                    pointIndices[new PointRecord(node.Configuration["pointId"].GetString()!, 2)], id, 0),
+                _ => throw new UnreachableException()
+            });
+        }
+
+        foreach (var id in memoryIds)
+        {
+            instructions.Add(new V2Instruction(
+                8,
+                ushort.MaxValue,
+                InputSlot(source, slots, id, "in"),
+                ushort.MaxValue,
+                stateSlots[id],
+                id,
+                1));
+        }
+
+        instructions.Add(new V2Instruction(
+            byte.MaxValue,
+            ushort.MaxValue,
+            ushort.MaxValue,
+            ushort.MaxValue,
+            ushort.MaxValue,
+            string.Empty,
+            0));
+
+        var constantSection = Concat([.. constants.Select(value => new byte[] { 1, value ? (byte)1 : (byte)0, 0, 0 })]);
+        var pointSection = Concat([.. points.Select(point => Concat(
+            new byte[] { point.Direction, 1, 1, 0 },
+            String8(point.Id)))]);
+        var slotRecords = schedule.Select((_, index) => Concat(
+            new byte[] { 2, 1 }, U16(0), U16(index), U16(ushort.MaxValue))).ToList();
+        slotRecords.AddRange(memoryIds.Select(id => Concat(
+            new byte[] { 3, 1 },
+            U16(0),
+            U16(stateSlots[id]),
+            U16(Array.IndexOf(constants, nodes[id].Configuration["value"].GetBoolean())))));
+        var slotSection = Concat([.. slotRecords]);
+        var instructionSection = Concat([.. instructions.Select(EncodeV2Instruction)]);
+        var commitRecords = memoryIds.Select(id => Concat(
+            new byte[] { 1, 0 }, U16(stateSlots[id]), U16(InputSlot(source, slots, id, "in")), U16(0))).ToList();
+        commitRecords.AddRange(schedule.Where(id => nodes[id].Kind == "digitalOutput").Select(id => Concat(
+            new byte[] { 2, 0 },
+            U16(pointIndices[new PointRecord(nodes[id].Configuration["pointId"].GetString()!, 2)]),
+            U16(slots[id]),
+            U16(0))));
+        var symbolSection = Concat([.. instructions.Select((instruction, index) => Concat(
+            U16(index), new byte[] { instruction.Discriminator }, String8AllowEmpty(instruction.NodeId)))]);
+        var debugSection = Concat([.. instructions.Where(instruction => instruction.NodeId.Length > 0).Select((instruction, index) => Concat(U16(index), U16(instruction.Result), String8(instruction.NodeId)))]);
+        var resolvedPoints = request.Target.Points
+            .GroupBy(point => point.Id, StringComparer.Ordinal)
+            .Select(group => group.Single())
+            .OrderBy(point => point.Id, StringComparer.Ordinal)
+            .ToArray();
+        var dependencyRecords = new List<byte[]>
+        {
+            Concat(new byte[] { 1 }, String8(source.ControllerTemplateId), U32(source.ControllerTemplateRevision))
+        };
+        dependencyRecords.AddRange(points.Select(point => point.Id).Distinct(StringComparer.Ordinal).Select(pointId =>
+        {
+            var resolved = resolvedPoints.SingleOrDefault(candidate => candidate.Id == pointId);
+            if (resolved is null)
+            {
+                throw Failure("missing_point", $"/points/{Escape(pointId)}", "Resolved point dependency is missing.");
+            }
+
+            var revision = resolved.Revision;
+            if (revision <= 0)
+            {
+                throw Failure("invalid_dependency", $"/points/{Escape(pointId)}/revision", "Point revision must be positive.");
+            }
+
+            return Concat(new byte[] { 2 }, String8(pointId), U32(checked((uint)revision)));
+        }));
+        var dependencySection = Concat(dependencyRecords.ToArray());
+        V2Section[] sections =
+        [
+            new(1, checked((uint)constants.Length), constantSection),
+            new(2, checked((uint)points.Length), pointSection),
+            new(3, checked((uint)slotRecords.Count), slotSection),
+            new(4, checked((uint)instructions.Count), instructionSection),
+            new(5, checked((uint)commitRecords.Count), Concat([.. commitRecords])),
+            new(6, checked((uint)instructions.Count), symbolSection),
+            new(7, checked((uint)(instructions.Count - 1)), debugSection),
+            new(8, checked((uint)dependencyRecords.Count), dependencySection)
+        ];
+        var offset = checked((uint)(envelopeLength + (sections.Length * directoryEntryLength)));
+        var directory = new List<byte[]>();
+        foreach (var section in sections)
+        {
+            directory.Add(Concat(
+                U16(section.Id),
+                U16(1),
+                U32(offset),
+                U32(checked((uint)section.Bytes.Length)),
+                U32(section.Count),
+                SHA256.HashData(section.Bytes)));
+            offset += checked((uint)section.Bytes.Length);
+        }
+
+        if (offset > MaximumArtifactBytes)
+        {
+            throw Failure("limit_exceeded", "/artifactLength", "Encoded Flow IL exceeds 8192 bytes.");
+        }
+
+        var capabilities = 1UL | 16UL;
+        if (points.Any(point => point.Direction == 1))
+        {
+            capabilities |= 2UL;
+        }
+
+        if (points.Any(point => point.Direction == 2))
+        {
+            capabilities |= 4UL;
+        }
+
+        if (memoryIds.Length > 0)
+        {
+            capabilities |= 8UL;
+        }
+
+        var workingBytes = checked((uint)((schedule.Count + memoryIds.Length) * 2));
+        var envelope = new byte[envelopeLength];
+        "FIL2"u8.CopyTo(envelope);
+        WriteU16(envelope, 4, 2);
+        WriteU16(envelope, 6, envelopeLength);
+        WriteU32(envelope, 8, offset);
+        WriteU32(envelope, 12, 1);
+        WriteU32(envelope, 16, source.Revision);
+        WriteU32(envelope, 20, source.ControllerTemplateRevision);
+        WriteU16(envelope, 24, 1);
+        WriteU16(envelope, 26, sections.Length);
+        envelope[28] = 1;
+        WriteU32(envelope, 32, checked((uint)instructions.Count));
+        BinaryPrimitives.WriteUInt64LittleEndian(envelope.AsSpan(36), capabilities);
+        WriteU32(envelope, 44, workingBytes);
+        WriteU32(envelope, 48, 16384);
+        WritePaddedIdentifier(envelope, 52, source.Id);
+        WriteU32(envelope, 116, envelopeLength);
+        var artifact = Concat(envelope, Concat([.. directory]), Concat([.. sections.Select(section => section.Bytes)]));
+
+        return new FlowCompilationResult
+        {
+            ArtifactVersion = 2,
+            Artifact = artifact,
+            ArtifactSha256 = Convert.ToHexStringLower(SHA256.HashData(artifact)),
+            FlowRevision = source.Revision,
+            ControllerTemplateId = source.ControllerTemplateId,
+            ControllerTemplateRevision = checked((int)source.ControllerTemplateRevision),
+            NodeIndices = slots,
+            Schedule = schedule,
+            MaximumWorkPerScan = checked((uint)instructions.Count),
+            WorkingBytes = workingBytes,
+            MaximumSnapshotBytes = 16384
+        };
+    }
+
+    private static IReadOnlyList<string> GetSchedule(ExecutableFlowSource source)
+    {
+        var nodes = source.Nodes.ToDictionary(node => node.Id, StringComparer.Ordinal);
+        var indegree = nodes.Keys.ToDictionary(id => id, _ => 0, StringComparer.Ordinal);
+        var outgoing = nodes.Keys.ToDictionary(id => id, _ => new List<string>(), StringComparer.Ordinal);
+        foreach (var connection in source.Connections)
+        {
+            if (nodes[connection.Target.NodeId].Kind == "memory")
+            {
+                continue;
+            }
+
+            indegree[connection.Target.NodeId]++;
+            outgoing[connection.Source.NodeId].Add(connection.Target.NodeId);
+        }
+
+        var ready = new SortedSet<string>(indegree.Where(item => item.Value == 0).Select(item => item.Key), StringComparer.Ordinal);
+        var result = new List<string>(nodes.Count);
+        while (ready.Count > 0)
+        {
+            var id = ready.Min!;
+            ready.Remove(id);
+            result.Add(id);
+            foreach (var target in outgoing[id].Order(StringComparer.Ordinal))
+            {
+                if (--indegree[target] == 0)
+                {
+                    ready.Add(target);
+                }
+            }
+        }
+
+        return result;
+    }
+
+    private static ushort InputSlot(
+        ExecutableFlowSource source,
+        IReadOnlyDictionary<string, ushort> slots,
+        string targetId,
+        string portId) => slots[source.Connections.Single(connection =>
+            connection.Target.NodeId == targetId && connection.Target.PortId == portId).Source.NodeId];
+
+    private static byte[] EncodeV2Instruction(V2Instruction instruction) => Concat(
+        new byte[] { instruction.Opcode, 0 },
+        U16(instruction.Result),
+        U16(instruction.Operand0),
+        U16(instruction.Operand1),
+        U16(instruction.Auxiliary),
+        U16(0));
 
     private static void ValidateGraph(ExecutableFlowSource source)
     {
@@ -438,6 +708,12 @@ public sealed partial class FlowCompiler : IFlowCompiler
         return Concat(new byte[] { checked((byte)bytes.Length) }, bytes);
     }
 
+    private static byte[] String8AllowEmpty(string value)
+    {
+        var bytes = Encoding.UTF8.GetBytes(value);
+        return Concat(new byte[] { checked((byte)bytes.Length) }, bytes);
+    }
+
     private static byte[] U16(int value)
     {
         var bytes = new byte[2];
@@ -504,4 +780,13 @@ public sealed partial class FlowCompiler : IFlowCompiler
     }
 
     private sealed record PointRecord(string Id, byte Direction);
+    private sealed record V2Instruction(
+        byte Opcode,
+        ushort Result,
+        ushort Operand0,
+        ushort Operand1,
+        ushort Auxiliary,
+        string NodeId,
+        byte Discriminator);
+    private sealed record V2Section(ushort Id, uint Count, byte[] Bytes);
 }
