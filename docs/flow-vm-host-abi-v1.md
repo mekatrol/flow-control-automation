@@ -2,8 +2,9 @@
 
 ## Boundary
 
-This is the normative language-neutral ABI to be implemented in Phase 2. The C
-header will expose fixed-width arguments and opaque caller-owned storage; it
+This is the normative language-neutral ABI implemented by
+`controllers/shared/flow/vm.h` and `vm.c`. The C
+header exposes fixed-width arguments and bounded caller-owned storage; it
 will not expose compiler graph types or platform handles. ABI version 1 operates
 on Flow IL v2 and uses no callbacks while native VM code is on the stack.
 
@@ -63,7 +64,7 @@ unless requirements explicitly designate caller-owned lifetime storage.
 
 The managed wrapper verifies `flow_vm_get_abi_version() == 1` before any other
 call. Structure sizes, packing, Boolean representation, enum widths, and calling
-convention are fixed in the future public C header and verified by compile-time
+convention are fixed in the public C header and verified by compile-time
 assertions on every supported target. ABI additions use a new version or an
 explicit size/version prefix; fields are never inserted into an existing layout.
 

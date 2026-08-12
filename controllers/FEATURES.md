@@ -99,6 +99,16 @@ Implemented protocol capabilities include:
 
 ## Verification and tools
 
+The shared flow library now includes a portable Flow IL v2 loader and VM core.
+It executes scheduled Boolean instructions through the PLC Scan Cycle, uses
+fixed-capacity typed slots and current/next state, stages commands privately,
+and publishes only at atomic scan commit. Its version-1 host ABI supports
+requirements, prepare, initialize, instruction stepping, commit, abort, reset,
+retained-state export, snapshot retrieval, and clear operations. Static firmware
+and shared native-library targets build the same sources; fixture tests cover
+Boolean scans, one-scan feedback, paused execution, abort safety, invalid
+artifacts, and schema-1 compatibility.
+
 - Portable host suites cover diagnostics, supervisors, MQTT, settings,
   terminal behaviour, protocol framing and dispatch, authentication, point
   arbitration and subscriptions, flow transfer, and direct I/O behaviour.

@@ -289,7 +289,12 @@ stable result; source permutations produce byte-identical IL.
 
 ### Phase 2 - Refactor the portable VM
 
-Status: next.
+Status: complete on 12 August 2026. `controllers/shared/flow/vm.c` and `vm.h`
+implement the Flow IL v2 loader, version-1 host ABI, typed Boolean slots/state,
+explicit PLC Scan Cycle, atomic commit, resumable instruction frame, abort/reset,
+retained-state export, and bounded snapshots/commands. Host CMake builds static
+firmware and shared server-library variants; fixture-driven tests preserve the
+separate schema-1 compatibility path.
 
 - Separate schema-1 compatibility loading from the VM execution core.
 - Add the v2 loader, typed slot storage, instruction evaluator, and host ABI.
@@ -305,6 +310,8 @@ Exit: the portable host suite executes v2 fixtures and proves v1 behavior did
 not regress.
 
 ### Phase 3 - Make the server compiler authoritative
+
+Status: next.
 
 - Move editable-graph adaptation from the browser into a backend-owned adapter;
   browser validation remains advisory.

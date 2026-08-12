@@ -1,0 +1,212 @@
+#ifndef CONTROLLER_FLOW_VM_H
+#define CONTROLLER_FLOW_VM_H
+
+/*
+ * Purpose: Define the version-1 portable host ABI for loading and executing
+ * scheduled Flow IL v2 through an explicit PLC Scan Cycle.
+ *
+ * Why this contract exists: Server, emulator, host tests, and firmware need one
+ * bounded implementation of opcode, state, debug-frame, and atomic-commit
+ * semantics without exposing graph compilation or platform I/O to the VM.
+ *
+ * How callers use it: Prepare caller-owned storage from canonical IL, initialize
+ * state, begin a scan with a coherent input frame, step or run instructions,
+ * commit staged results, and copy bounded commands/snapshots.
+ */
+
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+
+enum
+{
+    FLOW_VM_ABI_VERSION      = 1,
+    FLOW_VM_MAX_ARTIFACT     = 8192,
+    FLOW_VM_MAX_INSTRUCTIONS = 256,
+    FLOW_VM_MAX_SLOTS        = 256,
+    FLOW_VM_MAX_POINTS       = 64,
+    FLOW_VM_MAX_STATES       = 128,
+    FLOW_VM_MAX_OUTPUTS      = 64,
+    FLOW_VM_MAX_ID_BYTES     = 63,
+    FLOW_VM_PATH_BYTES       = 95,
+};
+
+typedef enum
+{
+    FLOW_VM_OK                      = 0,
+    FLOW_VM_MALFORMED               = 1,
+    FLOW_VM_UNSUPPORTED_VERSION     = 2,
+    FLOW_VM_LENGTH_MISMATCH         = 3,
+    FLOW_VM_NON_CANONICAL_ORDER     = 4,
+    FLOW_VM_UNKNOWN_SECTION         = 5,
+    FLOW_VM_LIMIT_EXCEEDED          = 6,
+    FLOW_VM_INVALID_IDENTIFIER      = 7,
+    FLOW_VM_INVALID_CONSTANT        = 8,
+    FLOW_VM_INVALID_BINDING         = 9,
+    FLOW_VM_INVALID_SLOT            = 10,
+    FLOW_VM_UNKNOWN_OPCODE          = 11,
+    FLOW_VM_INVALID_OPERAND         = 12,
+    FLOW_VM_INVALID_COMMIT_PLAN     = 13,
+    FLOW_VM_UNSUPPORTED_REQUIREMENT = 14,
+    FLOW_VM_SNAPSHOT_TOO_LARGE      = 15,
+    FLOW_VM_WRONG_STATE             = 16,
+    FLOW_VM_INPUT_REJECTED          = 17,
+    FLOW_VM_CAPACITY_EXCEEDED       = 18,
+} flow_vm_result_code_t;
+
+typedef enum
+{
+    FLOW_VM_EMPTY,
+    FLOW_VM_PREPARED,
+    FLOW_VM_INITIALIZED,
+    FLOW_VM_EXECUTING,
+} flow_vm_lifecycle_t;
+
+typedef struct
+{
+    flow_vm_result_code_t code;
+    char path[FLOW_VM_PATH_BYTES + 1];
+} flow_vm_result_t;
+
+typedef struct
+{
+    uint64_t capabilities;
+    uint32_t artifact_bytes;
+    uint32_t working_bytes;
+    uint32_t snapshot_bytes;
+    uint32_t instruction_count;
+    uint32_t slot_count;
+    uint32_t point_count;
+    uint32_t state_count;
+} flow_vm_requirements_t;
+
+typedef struct
+{
+    uint32_t abi_version;
+    uint64_t capabilities;
+    uint32_t maximum_artifact_bytes;
+    uint32_t maximum_work_per_scan;
+    uint32_t maximum_snapshot_bytes;
+} flow_vm_target_t;
+
+typedef struct
+{
+    char point_id[FLOW_VM_MAX_ID_BYTES + 1];
+    bool value;
+    uint8_t quality;
+} flow_vm_input_sample_t;
+
+typedef struct
+{
+    const flow_vm_input_sample_t *samples;
+    size_t sample_count;
+    uint64_t sampled_at_ms;
+    bool is_coherent;
+} flow_vm_input_frame_t;
+
+typedef struct
+{
+    char point_id[FLOW_VM_MAX_ID_BYTES + 1];
+    bool value;
+} flow_vm_command_t;
+
+typedef struct
+{
+    char flow_id[FLOW_VM_MAX_ID_BYTES + 1];
+    uint32_t flow_revision;
+    uint64_t scan_number;
+    uint64_t sampled_at_ms;
+    uint16_t slot_count;
+    uint16_t output_count;
+    bool slots[FLOW_VM_MAX_SLOTS];
+    flow_vm_command_t outputs[FLOW_VM_MAX_OUTPUTS];
+} flow_vm_snapshot_t;
+
+typedef struct
+{
+    uint8_t opcode;
+    uint16_t result;
+    uint16_t operand0;
+    uint16_t operand1;
+    uint16_t auxiliary;
+} flow_vm_instruction_t;
+
+typedef struct
+{
+    char id[FLOW_VM_MAX_ID_BYTES + 1];
+    uint8_t direction;
+} flow_vm_point_t;
+
+typedef struct
+{
+    uint16_t instruction_index;
+    uint8_t opcode;
+    bool is_at_commit;
+} flow_vm_execution_view_t;
+
+typedef struct
+{
+    flow_vm_lifecycle_t lifecycle;
+    char flow_id[FLOW_VM_MAX_ID_BYTES + 1];
+    uint32_t flow_revision;
+    uint16_t instruction_count;
+    uint16_t slot_count;
+    uint16_t point_count;
+    uint16_t state_count;
+    uint16_t state_slot_base;
+    uint16_t output_count;
+    uint16_t instruction_pointer;
+    uint64_t scan_number;
+    uint64_t sampled_at_ms;
+    bool constants[2];
+    bool initial_state[FLOW_VM_MAX_STATES];
+    bool current_state[FLOW_VM_MAX_STATES];
+    bool staged_state[FLOW_VM_MAX_STATES];
+    bool working_slots[FLOW_VM_MAX_SLOTS];
+    bool staged_state_valid[FLOW_VM_MAX_STATES];
+    flow_vm_point_t points[FLOW_VM_MAX_POINTS];
+    flow_vm_instruction_t instructions[FLOW_VM_MAX_INSTRUCTIONS];
+    flow_vm_input_sample_t captured_inputs[FLOW_VM_MAX_POINTS];
+    size_t captured_input_count;
+    flow_vm_command_t staged_outputs[FLOW_VM_MAX_OUTPUTS];
+    flow_vm_snapshot_t snapshot;
+} flow_vm_t;
+
+/* Returns the exact native ABI version implemented by this library. */
+uint32_t flow_vm_get_abi_version(void);
+
+/* Validates v2 metadata and reports bounded storage/work requirements. */
+flow_vm_result_t flow_vm_get_requirements(const uint8_t *artifact, size_t artifact_size, flow_vm_requirements_t *requirements);
+
+/* Validates and prepares one VM in caller-owned storage without activating state. */
+flow_vm_result_t flow_vm_prepare(const uint8_t *artifact, size_t artifact_size, const flow_vm_target_t *target, flow_vm_t *vm);
+
+/* Initializes prepared state from artifact defaults; retained state is reserved for a later profile. */
+flow_vm_result_t flow_vm_initialize(flow_vm_t *vm, const uint8_t *retained_state, size_t retained_state_size);
+
+/* Performs Read Inputs and opens a private resumable Execute Logic frame. */
+flow_vm_result_t flow_vm_begin_tick(flow_vm_t *vm, const flow_vm_input_frame_t *input);
+
+/* Executes one scheduled instruction without committing staged state or commands. */
+flow_vm_result_t flow_vm_step_instruction(flow_vm_t *vm, flow_vm_execution_view_t *view);
+
+/* Runs remaining instructions, then performs the atomic Write Outputs phase. */
+flow_vm_result_t flow_vm_commit_tick(flow_vm_t *vm, flow_vm_command_t *commands, size_t command_capacity, size_t *command_count,
+                                     flow_vm_snapshot_t *snapshot);
+
+/* Discards one uncommitted scan frame and restores initialized lifecycle. */
+flow_vm_result_t flow_vm_abort_tick(flow_vm_t *vm);
+
+/* Restores artifact-defined state and clears completed scan history. */
+flow_vm_result_t flow_vm_reset(flow_vm_t *vm);
+
+/* Exports committed Boolean state as canonical bytes for a retained-state host adapter. */
+flow_vm_result_t flow_vm_export_retained_state(const flow_vm_t *vm, uint8_t *output, size_t capacity, size_t *written);
+
+/* Copies the last completed immutable scan snapshot. */
+flow_vm_result_t flow_vm_get_snapshot(const flow_vm_t *vm, flow_vm_snapshot_t *snapshot);
+
+/* Idempotently clears all VM-owned contents from caller storage. */
+flow_vm_result_t flow_vm_clear(flow_vm_t *vm);
+
+#endif

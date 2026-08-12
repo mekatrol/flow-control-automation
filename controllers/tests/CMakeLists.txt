@@ -103,6 +103,23 @@ target_compile_definitions(flow_il_v2_contract_tests PRIVATE
     FLOW_IL_V2_FIXTURE_DIRECTORY="${CMAKE_CURRENT_LIST_DIR}/../../testdata/contracts/flow-il-v2")
 add_test(NAME flow_il_v2_contract COMMAND flow_il_v2_contract_tests)
 
+add_library(flow_vm_static STATIC
+    ../shared/flow/vm.c
+    ../shared/flow/sha256.c)
+target_include_directories(flow_vm_static PUBLIC ../shared)
+
+add_library(flow_vm_shared SHARED
+    ../shared/flow/vm.c
+    ../shared/flow/sha256.c)
+target_include_directories(flow_vm_shared PUBLIC ../shared)
+
+add_executable(flow_vm_tests
+    test_flow_vm.c)
+target_link_libraries(flow_vm_tests PRIVATE flow_vm_static)
+target_compile_definitions(flow_vm_tests PRIVATE
+    FLOW_IL_V2_FIXTURE_DIRECTORY="${CMAKE_CURRENT_LIST_DIR}/../../testdata/contracts/flow-il-v2")
+add_test(NAME flow_vm COMMAND flow_vm_tests)
+
 add_executable(controller_points_tests
     test_controller_points.c
     ../shared/controller/points.c)
