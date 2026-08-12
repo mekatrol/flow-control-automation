@@ -52,6 +52,14 @@ typedef enum
     TERMINAL_CREDENTIAL_MQTT,
 } terminal_credential_target_t;
 
+/* ANSI escape parsing states let interactive paste wrappers be discarded without accepting control bytes as input. */
+typedef enum
+{
+    TERMINAL_ESCAPE_NONE,
+    TERMINAL_ESCAPE_STARTED,
+    TERMINAL_ESCAPE_CSI,
+} terminal_escape_state_t;
+
 /* Disconnect reasons are observable without retaining session credentials. */
 typedef enum
 {
@@ -113,6 +121,7 @@ typedef struct
     bool is_password_input;
     bool is_line_rejected;
     bool is_carriage_return_pending;
+    terminal_escape_state_t escape_state;
     terminal_credential_target_t credential_target;
 } terminal_service_t;
 

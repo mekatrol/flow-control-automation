@@ -79,13 +79,20 @@ static const char ERASE_CHARACTER[]          = "\b \b";
 /* Broker TCP ports are constrained by the protocol field width. */
 enum
 {
-    MQTT_MINIMUM_PORT       = 1,
-    MQTT_MAXIMUM_PORT       = 65535,
-    MQTT_DEFAULT_PORT       = 1883,
-    RS485_MINIMUM_BAUD_RATE = 300,
-    RS485_MAXIMUM_BAUD_RATE = 3000000,
-    RS485_MAXIMUM_ADDRESS   = 65535,
-    PROTOCOL_KEY_CHARACTERS = 64,
+    MQTT_MINIMUM_PORT         = 1,
+    MQTT_MAXIMUM_PORT         = 65535,
+    MQTT_DEFAULT_PORT         = 1883,
+    RS485_MINIMUM_BAUD_RATE   = 300,
+    RS485_MAXIMUM_BAUD_RATE   = 3000000,
+    RS485_MAXIMUM_ADDRESS     = 65535,
+    PROTOCOL_KEY_CHARACTERS   = 64,
+    ASCII_ESCAPE              = 27,
+    ANSI_PARAMETER_MINIMUM    = 0x30,
+    ANSI_PARAMETER_MAXIMUM    = 0x3F,
+    ANSI_INTERMEDIATE_MINIMUM = 0x20,
+    ANSI_INTERMEDIATE_MAXIMUM = 0x2F,
+    ANSI_FINAL_MINIMUM        = 0x40,
+    ANSI_FINAL_MAXIMUM        = 0x7E,
 };
 
 /* Tests whether a write-only protocol key is exactly one 256-bit hexadecimal value. */
@@ -158,7 +165,8 @@ static void clear_sensitive(terminal_service_t *service)
         hostname[index] = '\0';
     }
 
-    service->line_size = 0;
+    service->line_size    = 0;
+    service->escape_state = TERMINAL_ESCAPE_NONE;
 }
 
 /* Gets a bounded string length without relying on non-standard library extensions. */
@@ -1090,6 +1098,47 @@ void terminal_service_receive(terminal_service_t *service, const uint8_t *data, 
     for (size_t index = 0; index < size; index++)
     {
         const uint8_t character = data[index];
+
+        if (service->escape_state == TERMINAL_ESCAPE_STARTED)
+        {
+            /* ANSI control-sequence introducers begin with ESC-[; discard them so paste wrappers do not taint secrets. */
+            service->escape_state = character == '[' ? TERMINAL_ESCAPE_CSI : TERMINAL_ESCAPE_NONE;
+
+            if (service->escape_state == TERMINAL_ESCAPE_NONE)
+            {
+                service->is_line_rejected = true;
+            }
+
+            continue;
+        }
+
+        if (service->escape_state == TERMINAL_ESCAPE_CSI)
+        {
+            const bool is_parameter    = character >= ANSI_PARAMETER_MINIMUM && character <= ANSI_PARAMETER_MAXIMUM;
+            const bool is_intermediate = character >= ANSI_INTERMEDIATE_MINIMUM && character <= ANSI_INTERMEDIATE_MAXIMUM;
+
+            if (is_parameter || is_intermediate)
+            {
+                continue;
+            }
+
+            /* A final byte completes bracketed-paste and other harmless terminal navigation sequences. */
+            service->escape_state = TERMINAL_ESCAPE_NONE;
+
+            if (character < ANSI_FINAL_MINIMUM || character > ANSI_FINAL_MAXIMUM)
+            {
+                service->is_line_rejected = true;
+            }
+
+            continue;
+        }
+
+        if (character == ASCII_ESCAPE)
+        {
+            /* Defer accepting ESC until the next byte proves it starts a bounded ANSI CSI sequence. */
+            service->escape_state = TERMINAL_ESCAPE_STARTED;
+            continue;
+        }
 
         if (character == '\n' && service->is_carriage_return_pending)
         {

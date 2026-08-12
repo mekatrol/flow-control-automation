@@ -10,6 +10,7 @@ enum
     TEST_OUTPUT_CAPACITY  = 16384,
     TEST_IDLE_TIMEOUT_MS  = 1000,
     TEST_LOGIN_BACKOFF_MS = 100,
+    TEST_ASCII_ESCAPE     = 27,
 };
 
 typedef struct
@@ -127,6 +128,17 @@ static void send_crlf_line(terminal_service_t *service, const char *line, uint64
 static void send_byte(terminal_service_t *service, uint8_t value, uint64_t now_ms)
 {
     terminal_service_receive(service, &value, 1, now_ms);
+}
+
+/* Sends one ANSI bracketed paste as emitted by terminals when paste mode remains enabled. */
+static void send_bracketed_paste(terminal_service_t *service, const char *value, uint64_t now_ms)
+{
+    const uint8_t paste_start[] = {TEST_ASCII_ESCAPE, '[', '2', '0', '0', '~'};
+    const uint8_t paste_end[]   = {TEST_ASCII_ESCAPE, '[', '2', '0', '1', '~'};
+    terminal_service_receive(service, paste_start, sizeof(paste_start), now_ms);
+    terminal_service_receive(service, (const uint8_t *)value, strlen(value), now_ms);
+    terminal_service_receive(service, paste_end, sizeof(paste_end), now_ms);
+    send_byte(service, (uint8_t)'\n', now_ms);
 }
 
 /* Creates a ready credential snapshot without involving storage in authentication-only tests. */
@@ -285,10 +297,11 @@ static void test_protocol_key_configuration(void)
     assert(service.state == TERMINAL_STATE_EDIT_PROTOCOL_KEY);
     send_line(&service, "invalid", 5);
     assert(!settings.snapshot.protocol_key.is_set);
-    send_line(&service, key, 6);
+    send_bracketed_paste(&service, key, 6);
     assert(settings.snapshot.protocol_key.is_set);
     assert(strcmp(settings.snapshot.protocol_key.value, key) == 0);
     assert(strstr(fixture.output, key) == NULL);
+    assert(strstr(fixture.output, "Invalid or overlength input") == NULL);
     assert(fixture.settings_change_count == 1);
 }
 
