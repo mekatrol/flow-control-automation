@@ -310,6 +310,16 @@ Kahn scheduling, allocates typed slots/state, and emits canonical Flow IL plus
 stable symbols. Browser validation is advisory and targets never accept the
 designer DTO.
 
+The backend also owns Flow IL decompilation for artifact recovery and designer
+import; targets and the VM do not decompile. A decompiler validates untrusted IL
+without executing it and emits a current, valid designer DTO. Compatible
+authoring metadata permits lossless recovery of stable IDs, configuration,
+labels, groups, connectors, and layout. If that optional metadata was stripped,
+the result is a deterministic semantically equivalent graph with synthetic IDs,
+deterministic layout, provenance, and explicit warnings. Unsupported or
+unrepresentable behavior must fail with structured diagnostics and must never
+be silently dropped.
+
 Flow IL is a project-specific automation bytecode, not CLR IL. The normative
 portable VM implementation is shared by the ASP.NET Core server host, portable
 host tests, and controller firmware. The server must not grow an independent

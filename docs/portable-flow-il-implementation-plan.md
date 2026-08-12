@@ -21,6 +21,8 @@ state layout, and resource manifest.
   controller is required for authoring, compilation, execution, or debugging.
 - Compile each immutable deployment snapshot once on the backend.
 - Produce deterministic, byte-identical IL from identical resolved inputs.
+- Decompile supported Flow IL into a valid, editable designer flow so an
+  existing artifact can be inspected, recovered, modified, and recompiled.
 - Use one normative VM implementation for server, host tests, and firmware.
 - Provide the same debugger semantics when the VM is hosted by the server, a
   controller, or a server-side controller emulator.
@@ -58,6 +60,9 @@ server compiler
   detect cycles and run deterministic Kahn scheduling
   allocate typed slots and state
   emit canonical Flow IL + symbols + resource manifest
+        ^
+        |  validate and decompile IL to a normalized designer graph
+        |  (restore exact authoring details when metadata is present)
         |
         +--------------------------+
         |                          |
@@ -74,6 +79,11 @@ runtime snapshots             runtime snapshots
 Only the compiler understands editable graph topology. The VM understands an
 ordered instruction stream and explicit state transitions. Target hosts own
 lifecycle and I/O, but not opcode meaning.
+
+The backend decompiler is a tooling boundary, not part of the VM or a target.
+It validates an artifact before translating its scheduled instructions, typed
+storage, state, point bindings, symbols, and authoring metadata back into an
+editable graph accepted by the current designer schema.
 
 ## Flow IL v2 contract
 
@@ -104,6 +114,12 @@ and a digest.
    slots to source node, connector, and state identities. Debug-capable targets
    advertise bounds for debug-map bytes, breakpoints, paused-frame storage, and
    inspectable slots.
+10. **Authoring metadata:** an optional, bounded section containing information
+   that execution does not need but exact designer recovery does, including
+   original stable node/connector IDs, node configuration, labels, groups, and
+   layout. Production stripping may remove this section only when the artifact
+   is explicitly marked as supporting normalized rather than lossless
+   decompilation.
 
 The compiler performs structural graph validation, connector and unit checking,
 point/template resolution, combinational-cycle rejection, deterministic Kahn
@@ -112,6 +128,35 @@ The VM loader verifies framing, canonical encoding, supported requirements,
 operand bounds and types, point compatibility, instruction ordering invariants,
 and resource limits. It does not reconstruct a graph or choose an execution
 order.
+
+## Decompiler and designer round trip
+
+The backend owns a versioned `IFlowDecompiler` alongside `IFlowCompiler`.
+Decompilation is never performed by firmware or the portable VM. It must first
+apply the same envelope, digest, bounds, capability, section, operand, and type
+validation used for loading untrusted IL, then produce a current, valid designer
+DTO without executing the artifact.
+
+Two explicit recovery levels prevent a misleading promise of source identity:
+
+- **Lossless authoring recovery** applies when the artifact contains compatible
+  authoring metadata. Stable IDs, supported node configuration, labels, groups,
+  connector identities, and layout are restored exactly.
+- **Normalized semantic recovery** applies to a valid supported artifact whose
+  non-runtime authoring metadata was stripped. The decompiler deterministically
+  reconstructs equivalent nodes and connections from instructions, slots,
+  state, point bindings, symbols, and the commit plan; generates stable synthetic
+  IDs and a deterministic layout where necessary; and records provenance and
+  recovery warnings in the import result.
+
+Unknown required sections, unsupported opcodes or types, corrupt artifacts, and
+constructs that cannot be represented by the current designer schema fail with
+structured diagnostics. The decompiler must not silently drop instructions,
+state, point bindings, or behavior. A normalized graph is required to pass
+designer validation and recompilation. For canonical artifacts produced with
+lossless metadata, `compile(decompile(artifact))` must reproduce the original
+canonical executable sections byte-for-byte; metadata/envelope differences are
+allowed only where the contract explicitly defines them.
 
 ## Runtime and host ABI
 
@@ -335,9 +380,33 @@ executed by the portable C v2 loader/VM tests.
 Exit: identical resolved deployment inputs compile byte-for-byte identically,
 and the target performs no graph scheduling.
 
+### Phase 3A - Add the Flow IL decompiler and designer import contract
+
+Status: next, before Phase 4.
+
+- Define the versioned backend decompiler API, import result, recovery level,
+  provenance, warnings, and structured failure diagnostics.
+- Version the bounded authoring-metadata section needed for lossless recovery;
+  define deterministic synthetic IDs and layout for normalized recovery.
+- Implement validated v2 IL-to-designer lowering for every currently supported
+  opcode, typed slot/state shape, point binding, and commit-plan record.
+- Validate the emitted designer DTO through the normal server-side designer
+  validator; never execute an artifact as part of import.
+- Add API/UI import plumbing so a user can upload or select compiled IL, preview
+  recovery warnings, and save the result as a new editable flow without
+  overwriting an existing flow implicitly.
+- Add golden lossless and stripped-artifact fixtures, malformed/unrepresentable
+  rejection tests, deterministic decompilation tests, and compile/decompile/
+  compile round-trip tests shared across supported IL versions.
+
+Exit: a user can import supported compiled IL as a valid editable designer flow;
+lossless artifacts preserve authoring details, stripped artifacts produce a
+deterministic semantically equivalent graph with explicit warnings, and
+unsupported behavior is rejected rather than omitted.
+
 ### Phase 4 - Add the production server VM host
 
-Status: next.
+Status: pending Phase 3A.
 
 - Wrap the portable library behind `IFlowVirtualMachine` and safe managed
   handles; validate all lengths and copy ownership at the native boundary.
@@ -423,6 +492,10 @@ semantic implementation across all hosts.
 - Portable C, .NET boundary, firmware, and browser suites consume shared fixtures.
 - Differential tests execute identical IL/input/prior-state tuples on server and
   controller hosts and compare snapshots exactly.
+- Decompiler fixtures prove deterministic valid designer output, lossless
+  authoring recovery when metadata is present, explicit normalized-recovery
+  warnings when it is absent, and compile/decompile/compile executable-section
+  equivalence.
 - Debugger conformance tests stop at every legal instruction, resume to the same
   completed snapshot, and prove aborting at every stop point commits nothing.
 - Emulator conformance tests replay identical scenarios across emulator and
