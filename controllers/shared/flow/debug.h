@@ -21,14 +21,13 @@
  * survive that clearing operation.
  */
 
-#include "flow/executable.h"
-#include "flow/runtime.h"
+#include "flow/vm.h"
 
 enum
 {
     /* Protocol-sized limits bound RAM, transfer work, and snapshot chunking independently of transport speed. */
     FLOW_DEBUG_DIGEST_BYTES         = 32,
-    FLOW_DEBUG_COVERAGE_BYTES       = FLOW_EXECUTABLE_MAX_ARTIFACT_BYTES / 8,
+    FLOW_DEBUG_COVERAGE_BYTES       = FLOW_VM_MAX_ARTIFACT / 8,
     FLOW_DEBUG_SNAPSHOT_CAPACITY    = 16384,
     FLOW_DEBUG_LEASE_MS             = 30000,
     FLOW_DEBUG_CHUNK_LIMIT          = 180,
@@ -63,7 +62,8 @@ typedef enum
     FLOW_DEBUG_VALIDATION_FAILED,
 } flow_debug_result_t;
 
-typedef bool (*flow_debug_get_input_t)(void *context, flow_input_frame_t *frame);
+typedef bool (*flow_debug_get_input_t)(void *context, flow_vm_input_sample_t *samples, size_t capacity, size_t *count,
+                                       uint64_t *sampled_at_ms);
 
 /* Platform adapters isolate coherent sampling, monotonic timing, and arbitration from the portable session state machine. */
 typedef uint64_t (*flow_debug_get_time_us_t)(void *context);
@@ -87,7 +87,7 @@ typedef struct
     uint32_t missed_deadline_count;
     uint32_t overrun_count;
     uint32_t arbitration_loss_count;
-    flow_result_t last_result;
+    flow_vm_result_t last_result;
 } flow_debug_status_t;
 
 typedef struct
@@ -121,15 +121,16 @@ typedef struct
     uint32_t artifact_length;
     uint32_t covered_bytes;
     uint8_t artifact_digest[FLOW_DEBUG_DIGEST_BYTES];
-    uint8_t artifact[FLOW_EXECUTABLE_MAX_ARTIFACT_BYTES];
+    uint8_t artifact[FLOW_VM_MAX_ARTIFACT];
     uint8_t coverage[FLOW_DEBUG_COVERAGE_BYTES];
-    flow_executable_t executable;
-    flow_runtime_t runtime;
+    flow_vm_t vm;
+    char debug_node_ids[FLOW_VM_MAX_INSTRUCTIONS][FLOW_VM_MAX_ID_BYTES + 1];
+    uint16_t debug_result_slots[FLOW_VM_MAX_INSTRUCTIONS];
     uint8_t snapshot[FLOW_DEBUG_SNAPSHOT_CAPACITY];
     uint32_t snapshot_length;
     uint8_t snapshot_digest[FLOW_DEBUG_DIGEST_BYTES];
-    flow_result_t last_result;
-    const flow_target_t *target;
+    flow_vm_result_t last_result;
+    const flow_vm_target_t *target;
     flow_debug_get_input_t get_input;
     void *input_context;
     flow_debug_get_time_us_t get_time_us;
@@ -142,7 +143,7 @@ typedef struct
 
 /* What: Initializes an empty service. Why: Platform contracts must precede all sessions. How: Stores the immutable target/input
  * adapter and clears volatile ownership. */
-bool flow_debug_init(flow_debug_t *debug, const flow_target_t *target, flow_debug_get_input_t get_input, void *input_context);
+bool flow_debug_init(flow_debug_t *debug, const flow_vm_target_t *target, flow_debug_get_input_t get_input, void *input_context);
 
 /* What: Installs tick timing. Why: Duration must be observable without a platform clock dependency. How: Stores an optional
  * monotonic callback and context. */

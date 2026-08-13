@@ -10,11 +10,11 @@ public sealed class FlowCompilerTests
     private static readonly string SourceFixtureRoot = Path.Combine(
         AppContext.BaseDirectory,
         "ContractFixtures",
-        "flow-executable-v1");
+        "flow-il-v1");
     private static readonly string ExpectedFixtureRoot = Path.Combine(
         AppContext.BaseDirectory,
         "ContractFixtures",
-        "flow-il-v2");
+        "flow-il-v1");
 
     [TestCase("valid-two-button-and")]
     [TestCase("valid-source-order-permutation")]
@@ -31,7 +31,7 @@ public sealed class FlowCompilerTests
             Assert.That(result.Artifact.ToArray(), Is.EqualTo(expected));
             Assert.That(result.ArtifactSha256,
                 Is.EqualTo(Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(expected))));
-            Assert.That(result.ArtifactVersion, Is.EqualTo(2));
+            Assert.That(result.ArtifactVersion, Is.EqualTo(1));
             Assert.That(result.NodeIndices.Keys, Is.EqualTo(result.Schedule));
         });
     }
@@ -80,7 +80,19 @@ public sealed class FlowCompilerTests
     [Test]
     public void RejectsCombinationalCyclesWithTheLexicallyFirstNodePath()
     {
-        var source = ReadSource("combinational-cycle");
+        var source = ReadSource("valid-two-button-and") with
+        {
+            Nodes =
+            [
+                new ExecutableFlowNode { Id = "not-a", Kind = "not" },
+                new ExecutableFlowNode { Id = "not-b", Kind = "not" }
+            ],
+            Connections =
+            [
+                new ExecutableFlowConnection(new ExecutableFlowEndpoint("not-a", "value"), new ExecutableFlowEndpoint("not-b", "in")),
+                new ExecutableFlowConnection(new ExecutableFlowEndpoint("not-b", "value"), new ExecutableFlowEndpoint("not-a", "in"))
+            ]
+        };
 
         AssertDiagnostic(
             () => new FlowCompiler().Compile(Request(source)),
@@ -119,7 +131,7 @@ public sealed class FlowCompilerTests
         });
     }
 
-    [TestCase(1)]
+    [TestCase(0)]
     [TestCase(99)]
     public void RejectsEveryNonCurrentArtifactVersionWithAStablePath(int artifactVersion)
     {

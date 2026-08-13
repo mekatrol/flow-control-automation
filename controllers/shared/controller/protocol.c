@@ -1091,11 +1091,11 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                 break;
             }
 
-            static const size_t CAPABILITY_PAYLOAD_V2_SIZE = 24;
+            static const size_t CAPABILITY_PAYLOAD_SIZE = 24;
             static const uint8_t ARTIFACT_VERSION_COUNT    = 1;
-            static const uint8_t FLOW_IL_VERSION           = 2;
+            static const uint8_t FLOW_IL_VERSION           = 1;
             static const uint8_t DEBUGGER_FEATURES         = UINT8_C(0x7f);
-            response.payload_size                          = CAPABILITY_PAYLOAD_V2_SIZE;
+            response.payload_size                          = CAPABILITY_PAYLOAD_SIZE;
             response.payload[0]                            = PROTOCOL_CAPABILITY_MINOR;
             put_u16(&response.payload[1], CONTROLLER_PROTOCOL_FRAME_CAPACITY);
             put_u16(&response.payload[3], CONTROLLER_PROTOCOL_PAYLOAD_CAPACITY);
@@ -1805,7 +1805,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
             if (result == FLOW_DEBUG_OK)
             {
                 result = flow_debug_get_snapshot_header(protocol->config.debug, protocol->authenticated_session_id, session_id,
-                                                        protocol->config.debug->runtime.tick_number, now_ms, &header);
+                                                        protocol->config.debug->vm.snapshot.scan_number, now_ms, &header);
             }
 
             if (!is_debug_result_success(protocol, request, result))
@@ -2010,10 +2010,10 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
             }
 
             const uint8_t point_count = request->payload[sizeof(uint64_t)];
-            char point_ids[FLOW_EXECUTABLE_MAX_OUTPUTS][FLOW_EXECUTABLE_MAX_ID_BYTES + 1U];
-            const char *confirmed_points[FLOW_EXECUTABLE_MAX_OUTPUTS];
+            char point_ids[FLOW_VM_MAX_OUTPUTS][FLOW_VM_MAX_ID_BYTES + 1U];
+            const char *confirmed_points[FLOW_VM_MAX_OUTPUTS];
             size_t offset = prefix_size;
-            bool is_valid = point_count > 0U && point_count <= FLOW_EXECUTABLE_MAX_OUTPUTS;
+            bool is_valid = point_count > 0U && point_count <= FLOW_VM_MAX_OUTPUTS;
 
             for (uint8_t index = 0; is_valid && index < point_count; index++)
             {
@@ -2025,7 +2025,7 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
 
                 const uint8_t point_size = request->payload[offset++];
 
-                if (point_size == 0U || point_size > FLOW_EXECUTABLE_MAX_ID_BYTES || offset + point_size > request->payload_size)
+                if (point_size == 0U || point_size > FLOW_VM_MAX_ID_BYTES || offset + point_size > request->payload_size)
                 {
                     is_valid = false;
                     break;

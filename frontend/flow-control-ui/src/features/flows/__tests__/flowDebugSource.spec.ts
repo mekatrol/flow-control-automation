@@ -46,7 +46,7 @@ const debugFlow = (): FlowDefinition => {
 };
 
 describe('designer debug source', () => {
-  it('creates the exact schema-1 compiler contract from designer nodes', () => {
+  it('creates the current compiler source contract from designer nodes', () => {
     const flow = debugFlow();
     const source = createExecutableFlowSource(flow, target);
     expect(source.nodes).toEqual([

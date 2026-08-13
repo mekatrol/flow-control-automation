@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "id": "two-button-and",
+  "revision": 7,
+  "controllerTemplateId": "kincony-kc868-a16",
+  "controllerTemplateRevision": 3,
+  "execution": {
+    "mode": "manual",
+    "intervalMs": 0,
+    "inputQualityPolicy": "require_good"
+  },
+  "nodes": [
+    {
+      "id": "output-01-node",
+      "kind": "digitalOutput",
+      "configuration": {
+        "pointId": "output-01"
+      },
+      "label": "Digital Output",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "and-main",
+      "kind": "and",
+      "configuration": {},
+      "label": "And",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "input-08-node",
+      "kind": "digitalInput",
+      "configuration": {
+        "pointId": "input-08"
+      },
+      "label": "Digital Input",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "input-01-node",
+      "kind": "digitalInput",
+      "configuration": {
+        "pointId": "input-01"
+      },
+      "label": "Digital Input",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    }
+  ],
+  "connections": [
+    {
+      "source": {
+        "nodeId": "and-main",
+        "portId": "value"
+      },
+      "target": {
+        "nodeId": "output-01-node",
+        "portId": "in"
+      }
+    },
+    {
+      "source": {
+        "nodeId": "input-08-node",
+        "portId": "value"
+      },
+      "target": {
+        "nodeId": "and-main",
+        "portId": "b"
+      }
+    },
+    {
+      "source": {
+        "nodeId": "input-01-node",
+        "portId": "value"
+      },
+      "target": {
+        "nodeId": "and-main",
+        "portId": "a"
+      }
+    }
+  ]
+}

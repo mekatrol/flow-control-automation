@@ -129,7 +129,7 @@ static void test_rejections(void)
     assert(controller_flow_validate(&flow, 12) == CONTROLLER_FLOW_DIGEST_MISMATCH);
     assert(controller_flow_abort(&flow, 12) == CONTROLLER_FLOW_OK);
     metadata                 = get_metadata(artifact, sizeof(artifact), 2);
-    metadata.artifact_schema = 2;
+    metadata.artifact_schema = 99;
     assert(controller_flow_begin(&flow, &metadata, false, 0, 13) == CONTROLLER_FLOW_OK);
     assert(controller_flow_write(&flow, 13, 0, artifact, sizeof(artifact)) == CONTROLLER_FLOW_OK);
     assert(controller_flow_validate(&flow, 13) == CONTROLLER_FLOW_VALIDATION_FAILED);

@@ -1,8 +1,7 @@
-schemaVersion: 2
+schemaVersion: 0
 id: future-controller
 name: Unsupported future controller
-description: Must be rejected until schema version 2 exists
+description: Must be rejected because the schema version is unsupported
 readOnly: false
 capabilities: {}
 limits: {}
-

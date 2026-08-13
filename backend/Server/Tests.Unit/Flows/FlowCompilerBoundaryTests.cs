@@ -9,7 +9,7 @@ public sealed class FlowCompilerBoundaryTests
     private static readonly string FixtureRoot = Path.Combine(
         AppContext.BaseDirectory,
         "ContractFixtures",
-        "flow-executable-v1");
+        "flow-il-v1");
 
     [Test]
     public void CompilationFailureRequiresStructuredDiagnostics()
@@ -19,7 +19,7 @@ public sealed class FlowCompilerBoundaryTests
             new FlowCompilationDiagnostic(
                 "unsupported_node",
                 "/nodes/example",
-                "The node is outside executable schema 1.")
+                "The node is outside the current Flow IL language.")
         };
 
         var exception = new FlowCompilationException(diagnostics);
@@ -59,7 +59,7 @@ public sealed class FlowCompilerBoundaryTests
             {
                 Source = null!,
                 Target = null!
-            }.ArtifactVersion, Is.EqualTo(2));
+            }.ArtifactVersion, Is.EqualTo(1));
         });
     }
 

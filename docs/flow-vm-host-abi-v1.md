@@ -1,12 +1,12 @@
-# Portable Flow VM host ABI version 2
+# Portable Flow VM host ABI 1
 
 ## Boundary
 
 This is the normative language-neutral ABI implemented by
 `controllers/shared/flow/vm.h` and `vm.c`. The C
 header exposes fixed-width arguments and bounded caller-owned storage; it
-will not expose compiler graph types or platform handles. ABI version 2 operates
-on Flow IL v2 and uses no callbacks while native VM code is on the stack.
+will not expose compiler graph types or platform handles. ABI version 1 operates
+on Flow IL v1 and uses no callbacks while native VM code is on the stack.
 
 All functions return a `flow_vm_result_t` containing a stable numeric code,
 bounded UTF-8 path length, and caller-provided path buffer. Functions never
@@ -63,7 +63,7 @@ and checked against target limits. The VM owns their contents only between
 prepare and clear. Artifact and input spans need remain valid only for the call
 unless requirements explicitly designate caller-owned lifetime storage.
 
-The managed wrapper verifies `flow_vm_get_abi_version() == 2` before any other
+The managed wrapper verifies `flow_vm_get_abi_version() == 1` before any other
 call. Structure sizes, packing, Boolean representation, enum widths, and calling
 convention are fixed in the public C header and verified by compile-time
 assertions on every supported target. ABI additions use a new version or an

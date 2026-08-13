@@ -12,7 +12,7 @@ public static class DebugSnapshotDecoder
     {
         var reader = new SnapshotReader(envelope.Bytes.Span);
         var schema = reader.ReadUInt16();
-        if (schema is not (1 or 2 or 3))
+        if (schema != 1)
         {
             throw Protocol("unsupported snapshot schema");
         }
@@ -32,9 +32,9 @@ public static class DebugSnapshotDecoder
         var failureCount = reader.ReadUInt32();
         var reasonCode = reader.ReadUInt16();
         var reasonPath = reader.ReadString(allowEmpty: true);
-        var highWater = schema >= 2 ? reader.ReadUInt32() : duration;
-        var missedDeadlines = schema >= 2 ? reader.ReadUInt32() : 0;
-        var arbitrationLossCount = schema >= 3 ? reader.ReadUInt32() : 0;
+        var highWater = reader.ReadUInt32();
+        var missedDeadlines = reader.ReadUInt32();
+        var arbitrationLossCount = reader.ReadUInt32();
         if (sessionId != envelope.SessionId || tick != envelope.TickNumber || completedAt < sampledAt
             || sessionId > MaximumSafeJsonInteger || tick > MaximumSafeJsonInteger
             || sampledAt > MaximumSafeJsonInteger || completedAt > MaximumSafeJsonInteger
@@ -50,12 +50,16 @@ public static class DebugSnapshotDecoder
             var nodeId = reader.ReadString();
             var nodeState = Name(NodeStateNames, reader.ReadByte(), "node state");
             var quality = Name(QualityNames, reader.ReadByte(), "quality");
-            if (reader.ReadByte() != 2)
-            {
-                throw Protocol("unknown snapshot value type");
-            }
+            var valueType = reader.ReadByte();
             var isPresent = reader.ReadBoolean();
-            var typedValue = isPresent ? new DebugTypedValue("digital", reader.ReadBoolean()) : null;
+            var typedValue = isPresent
+                ? valueType switch
+                {
+                    1 => new DebugTypedValue("boolean", reader.ReadBoolean(), Quality: quality),
+                    2 => new DebugTypedValue("number", Number: reader.ReadDouble(), Quality: quality),
+                    _ => throw Protocol("unknown snapshot value type")
+                }
+                : null;
             if (!nodeIds.Add(nodeId) || (nodeState == "evaluated" && quality == "good" && typedValue is null))
             {
                 throw Protocol("node snapshot is duplicated or missing a required value");
@@ -70,12 +74,18 @@ public static class DebugSnapshotDecoder
             var pointId = reader.ReadString();
             var outputState = Name(NodeStateNames, reader.ReadByte(), "output state");
             var quality = Name(QualityNames, reader.ReadByte(), "quality");
-            var value = reader.ReadBoolean();
+            var valueType = reader.ReadByte();
+            var boolean = valueType == 1 && reader.ReadBoolean();
+            var number = valueType == 2 ? reader.ReadDouble() : (double?)null;
+            if (valueType is not (1 or 2)) throw Protocol("unknown proposed-output value type");
             if (!outputIds.Add(pointId))
             {
                 throw Protocol("proposed output is duplicated");
             }
-            outputs.Add(new(pointId, outputState, quality, value));
+            var typedValue = valueType == 2
+                ? FlowVmValue.FromNumber(number!.Value, quality)
+                : FlowVmValue.FromBoolean(boolean, quality);
+            outputs.Add(new(pointId, outputState, quality, boolean, number, typedValue));
         }
         reader.RequireEnd();
 
@@ -124,11 +134,10 @@ public static class DebugSnapshotDecoder
     private static readonly string[] QualityNames = ["good", "uncertain", "bad", "unavailable"];
     private static readonly string[] ReasonNames =
     [
-        "ok", "malformed", "unsupported_schema", "length_mismatch", "digest_mismatch", "limit_exceeded",
-        "invalid_identifier", "non_canonical_order", "unknown_node_kind", "invalid_configuration",
-        "invalid_port_shape", "missing_connection", "duplicate_driver", "incompatible_type", "missing_point",
-        "point_direction_mismatch", "combinational_cycle", "unsupported_mode", "unsupported_capability",
-        "snapshot_too_large", "input_quality_rejected", "evaluation_failed"
+        "ok", "malformed", "unsupported_version", "length_mismatch", "non_canonical_order", "unknown_section",
+        "limit_exceeded", "invalid_identifier", "invalid_constant", "invalid_binding", "invalid_slot",
+        "unknown_opcode", "invalid_operand", "invalid_commit_plan", "unsupported_requirement", "snapshot_too_large",
+        "wrong_state", "input_rejected", "capacity_exceeded"
     ];
 
     private static string Name(IReadOnlyList<string> names, byte value, string field) =>
@@ -159,6 +168,14 @@ public static class DebugSnapshotDecoder
                 1 => true,
                 _ => throw Protocol("invalid Boolean value")
             };
+        }
+
+        public double ReadDouble()
+        {
+            var bits = ReadUInt64();
+            var value = BitConverter.Int64BitsToDouble(unchecked((long)bits));
+            if (!double.IsFinite(value)) throw Protocol("numeric snapshot value is not finite");
+            return value;
         }
 
         public ushort ReadUInt16()

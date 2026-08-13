@@ -1,0 +1,125 @@
+{
+  "contract": "flow-il-v1",
+  "fixtures": [
+    {
+      "id": "valid-two-button-and",
+      "artifactLength": 1030,
+      "artifactSha256": "2a19fa8ee42b3ff83007147b3bd86e857c45bea646b8ab1f7ff93c112b92b568",
+      "expected": {
+        "valid": true,
+        "reason": "ok",
+        "path": ""
+      }
+    },
+    {
+      "id": "valid-memory-feedback",
+      "artifactLength": 1044,
+      "artifactSha256": "a20a573a482f4f3b3b387f373e29326f80bf38161a590366d1d14ff1e5575830",
+      "expected": {
+        "valid": true,
+        "reason": "ok",
+        "path": ""
+      }
+    },
+    {
+      "id": "valid-expanded-boolean",
+      "artifactLength": 1583,
+      "artifactSha256": "e8b34a09582057d529b513b25575a05defb1b37c8205f85b5b11a8e11514eb09",
+      "expected": {
+        "valid": true,
+        "reason": "ok",
+        "path": ""
+      }
+    },
+    {
+      "id": "valid-numeric-language",
+      "artifactLength": 1028,
+      "artifactSha256": "a876f97ec6455ae92603d55d7cf7c63d42d203d9788b6466ac00950a2ff4a5db",
+      "expected": {
+        "valid": true,
+        "reason": "ok",
+        "path": ""
+      }
+    },
+    {
+      "id": "valid-quality-timer-event",
+      "artifactLength": 971,
+      "artifactSha256": "3684148706631ad06740b50ca7c90d0b06ee6e740b95575e51a352e1fd80dcdc",
+      "expected": {
+        "valid": true,
+        "reason": "ok",
+        "path": ""
+      }
+    },
+    {
+      "id": "valid-analog-points",
+      "artifactLength": 940,
+      "artifactSha256": "e8ce30acba9c4bac8d5399275fc81132c78de1d64b8493958b45d334146dd6b0",
+      "expected": {
+        "valid": true,
+        "reason": "ok",
+        "path": ""
+      }
+    },
+    {
+      "id": "valid-source-order-permutation",
+      "artifactLength": 1030,
+      "artifactSha256": "2a19fa8ee42b3ff83007147b3bd86e857c45bea646b8ab1f7ff93c112b92b568",
+      "expected": {
+        "valid": true,
+        "reason": "ok",
+        "path": ""
+      }
+    },
+    {
+      "id": "maximum-boolean",
+      "artifactLength": 12745,
+      "artifactSha256": "924ae45bf9d01229ba8d0833ddba0e2e70206acec69578cf371d4196bfa5d7a5",
+      "expected": {
+        "valid": true,
+        "reason": "ok",
+        "path": ""
+      }
+    },
+    {
+      "id": "malformed-truncated",
+      "artifactLength": 1029,
+      "artifactSha256": "02eb384a0d80509996019ad869444377a9798bcb7a2e7077bc9504481a623f11",
+      "expected": {
+        "valid": false,
+        "reason": "length_mismatch",
+        "path": "/artifactLength"
+      }
+    },
+    {
+      "id": "invalid-operand",
+      "artifactLength": 1030,
+      "artifactSha256": "69ad93b92738eb2afc8d82e987f3391b2f96520a4729490c59aa07969a56994a",
+      "expected": {
+        "valid": false,
+        "reason": "invalid_operand",
+        "path": "/instructions/0/resultSlot"
+      }
+    },
+    {
+      "id": "unknown-section",
+      "artifactLength": 1030,
+      "artifactSha256": "7791129741bc24442cdeecb718f635e2b49ebec1c662d28702b0c07af2d4c576",
+      "expected": {
+        "valid": false,
+        "reason": "unknown_section",
+        "path": "/sections/0/id"
+      }
+    },
+    {
+      "id": "noncanonical-section-order",
+      "artifactLength": 1030,
+      "artifactSha256": "39b6299fd07821860c770ae7abdf3ed3d5bf06369af5672f6fba570dfa7320cf",
+      "expected": {
+        "valid": false,
+        "reason": "non_canonical_order",
+        "path": "/sections/0/id"
+      }
+    }
+  ]
+}

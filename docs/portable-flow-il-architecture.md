@@ -8,9 +8,7 @@ the same portable virtual machine on every target. The ASP.NET Core server is
 the first production host. Hardware controllers load and validate Flow IL; they
 do not parse designer graphs, discover graph topology, or run a graph compiler.
 
-The earlier executable-flow schema 1 and portable C evaluator proved the core
-approach, but they are not supported migration inputs. Flow IL v2 is the sole
-current production contract and encodes an
+Flow IL v1 is the sole current production contract and encodes an
 already scheduled instruction stream, typed storage layout, point bindings,
 state layout, and resource manifest.
 
@@ -61,8 +59,7 @@ server compiler
   allocate typed slots and state
   emit canonical Flow IL + symbols + resource manifest
         ^
-        |  validate and decompile IL to a normalized designer graph
-        |  (restore exact authoring details when metadata is present)
+        |  validate and decompile IL to a lossless designer graph
         |
         +--------------------------+
         |                          |
@@ -85,21 +82,18 @@ It validates an artifact before translating its scheduled instructions, typed
 storage, state, point bindings, symbols, and authoring metadata back into an
 editable graph accepted by the current designer schema.
 
-## Flow IL v2 contract
+## Flow IL v1 contract
 
-The v2 artifact is a canonical, little-endian envelope containing identity,
+The v1 artifact is a canonical, little-endian envelope containing identity,
 revision, execution policy, resource requirements, eight independently
 versioned sections, and a digest for each section. The sections are typed
 constants, point bindings, slot layout, scheduled instructions, commit plan,
 symbols, debug map, and source dependencies. Exact encodings and semantic rules
-are normative in [`flow-il-v2-contract.md`](flow-il-v2-contract.md).
+are normative in [`flow-il-v1-contract.md`](flow-il-v1-contract.md).
 
-Flow IL v2 has exactly these eight sections. Symbol-section version 2 contains
+Flow IL v1 has exactly these eight version-1 sections. The symbol section contains
 bounded, digest-protected labels, group IDs, and finite canvas coordinates for
-lossless recovery. Symbol-section version 1 remains a valid stripping profile;
-the decompiler reports normalized recovery and deterministically regenerates
-the omitted authoring details. Both profiles retain stable IDs and executable
-configuration.
+lossless recovery. It is the only accepted symbol-section format.
 
 The compiler performs structural graph validation, connector and unit checking,
 point/template resolution, combinational-cycle rejection, deterministic Kahn
@@ -117,23 +111,15 @@ apply the same envelope, digest, bounds, capability, section, operand, and type
 validation used for loading untrusted IL, then produce a current, valid designer
 DTO without executing the artifact.
 
-Two explicit recovery levels prevent a misleading promise of source identity:
-
-- **Lossless authoring recovery** applies when the current artifact contract contains
-  authoring metadata. Stable IDs, supported node configuration, labels, groups,
-  connector identities, and layout are restored exactly.
-- **Normalized semantic recovery** applies to a valid supported artifact whose
-  non-runtime authoring metadata was stripped. The decompiler deterministically
-  reconstructs equivalent nodes and connections from instructions, slots,
-  state, point bindings, symbols, and the commit plan; generates stable synthetic
-  IDs and a deterministic layout where necessary; and records provenance and
-  recovery warnings in the import result.
+Decompilation is lossless for supported authoring data. Stable IDs, supported
+node configuration, labels, groups, connector identities, and layout are
+restored exactly.
 
 Unknown required sections, unsupported opcodes or types, corrupt artifacts, and
 constructs that cannot be represented by the current designer schema fail with
 structured diagnostics. The decompiler must not silently drop instructions,
-state, point bindings, or behavior. A normalized graph is required to pass
-designer validation and recompilation. For canonical v2 artifacts,
+state, point bindings, or behavior. A recovered graph is required to pass
+designer validation and recompilation. For canonical v1 artifacts,
 `compile(decompile(artifact))` must reproduce the original artifact
 byte-for-byte. Future artifacts produced with lossless metadata must reproduce
 their canonical executable sections byte-for-byte; metadata/envelope
@@ -145,7 +131,7 @@ The normative runtime model is the
 [`PLC Scan Cycle`](plc-scan-cycle.md). Each host triggers a scan, captures a
 frozen input/current-state image, executes scheduled instructions into private
 working storage, and atomically publishes only at Write Outputs. The existing
-word `tick` means one complete PLC scan and remains in APIs for compatibility.
+word `tick` means one complete PLC scan in existing APIs.
 
 Keep the normative VM in portable C under `controllers/shared/flow/`, but split
 it from controller-specific lifecycle code. Build the same sources as:
@@ -171,7 +157,7 @@ default scalar. Hosts never overlap scans for one runtime.
 
 ## Portable debugger
 
-Flow IL v2 defines debugger behavior as part of the VM contract rather than as
+Flow IL v1 defines debugger behavior as part of the VM contract rather than as
 a controller-specific feature. A debug session may select one of three hosts:
 
 - **server:** the portable VM uses configured server point adapters;
@@ -187,10 +173,10 @@ semantics stay common.
 
 ### Commands and breakpoints
 
-The v2 debugger supports:
+The v1 debugger supports:
 
 - start/load, prepare, stop, restart, and detach;
-- **Step tick**, which preserves schema-1 behavior and commits one complete tick;
+- **Step tick**, which commits one complete scan;
 - **Step instruction/node**, which executes the next scheduled instruction and
   pauses before commit;
 - continue/run and asynchronous pause;
@@ -229,6 +215,29 @@ only a bounded number of breakpoints and inspectable values, and must advertise
 those limits before a session starts. A target that lacks instruction debugging
 may still advertise tick-step debugging; the UI must show the difference rather
 than silently emulate controller stepping on the backend.
+
+### End-to-end debugger boundaries
+
+The browser edits source and presents debugger state; it never resolves byte
+offsets or executes IL. The backend validates revisions, compiles source,
+resolves stable node breakpoints through the debug map, owns server/emulator
+sessions, and translates controller wire snapshots into the common application
+model. Controller sessions receive the same artifact through authenticated FCP,
+prepare a separate volatile VM, sample coherent physical inputs, and publish
+only committed typed snapshots. Durable deployment and volatile debugging use
+separate VM instances and storage.
+
+Session ID, flow revision, scan number, target identity, and artifact digest
+form the correlation boundary. Snapshot transfer is latest-only, chunked,
+bounded, and digest protected; consumers reject mixed sessions or scans.
+Control-plane status remains small while snapshot bytes travel through the data
+plane. Backend and browser retain the latest immutable snapshot rather than
+queuing an unbounded history.
+
+Shadow output is the controller default. Live output requires an authenticated
+session and exact confirmation of every affected point. Commands are issued by
+the dedicated debug arbitration owner only after scan commit and are
+relinquished on pause, stop, replacement, expiry, fault, disconnect, or reboot.
 
 ## Server-side controller emulator
 
@@ -282,8 +291,7 @@ than a separate compiler pipeline.
 - Differential tests execute identical IL/input/prior-state tuples on server and
   controller hosts and compare snapshots exactly.
 - Decompiler fixtures prove deterministic valid designer output, lossless
-  authoring recovery when metadata is present, explicit normalized-recovery
-  warnings when it is absent, and compile/decompile/compile executable-section
+  authoring recovery and compile/decompile/compile executable-section
   equivalence.
 - Debugger conformance tests stop at every legal instruction, resume to the same
   completed snapshot, and prove aborting at every stop point commits nothing.

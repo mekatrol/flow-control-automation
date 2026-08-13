@@ -25,7 +25,6 @@ public sealed class FlowDecompiler : IFlowDecompiler
         var symbols = ReadSymbols(Section(bytes, sections, 6), instructions.Count);
         ValidateDebugMap(Section(bytes, sections, 7));
         var dependencies = ReadDependencies(Section(bytes, sections, 8));
-        var hasAuthoringMetadata = sections[5].Version == 2;
 
         var flowId = ReadFlowId(bytes);
         var nodes = new List<FlowNode>();
@@ -125,10 +124,10 @@ public sealed class FlowDecompiler : IFlowDecompiler
             {
                 Id = symbol.NodeId,
                 Kind = kind,
-                Label = hasAuthoringMetadata ? symbol.Label : Label(kind),
-                X = hasAuthoringMetadata ? symbol.X : depth * 220,
-                Y = hasAuthoringMetadata ? symbol.Y : row * 120,
-                ZOrder = hasAuthoringMetadata ? symbol.ZOrder : nodes.Count,
+                Label = symbol.Label,
+                X = symbol.X,
+                Y = symbol.Y,
+                ZOrder = symbol.ZOrder,
                 GroupId = symbol.GroupId.Length == 0 ? null : symbol.GroupId,
                 Connectors = Connectors(kind),
                 Configuration = configuration
@@ -154,7 +153,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
         {
             Id = flowId,
             Name = string.IsNullOrWhiteSpace(name) ? Label(flowId) : name.Trim(),
-            Description = $"Recovered from Flow IL v2 revision {U32(bytes, 16)}.",
+            Description = $"Recovered from Flow IL v1 revision {U32(bytes, 16)}.",
             UpdatedAt = "1970-01-01T00:00:00Z",
             Nodes = nodes,
             Connections = connections.Select((item, index) => new FlowConnection(
@@ -165,12 +164,10 @@ public sealed class FlowDecompiler : IFlowDecompiler
         return new FlowDecompilationResult
         {
             Flow = flow,
-            RecoveryLevel = hasAuthoringMetadata ? "lossless" : "normalized",
-            Warnings = hasAuthoringMetadata
-                ? []
-                : ["Authoring metadata is absent; deterministic labels and canvas layout were generated."],
+            RecoveryLevel = "lossless",
+            Warnings = [],
             Provenance = new FlowDecompilationProvenance(
-                2,
+                1,
                 Convert.ToHexStringLower(SHA256.HashData(bytes)),
                 U32(bytes, 16),
                 template.Id,
@@ -180,12 +177,12 @@ public sealed class FlowDecompiler : IFlowDecompiler
 
     private static SectionInfo[] ValidateEnvelope(ReadOnlySpan<byte> bytes)
     {
-        if (bytes.Length < EnvelopeBytes || bytes.Length > 16384 || !bytes[..4].SequenceEqual("FIL2"u8))
+        if (bytes.Length < EnvelopeBytes || bytes.Length > 16384 || !bytes[..4].SequenceEqual("FIL1"u8))
         {
-            Fail("malformed_artifact", "/", "The artifact is not a bounded Flow IL v2 envelope.");
+            Fail("malformed_artifact", "/", "The artifact is not a bounded Flow IL v1 envelope.");
         }
 
-        if (U16(bytes, 4) != 2) Fail("unsupported_version", "/version", "Only Flow IL v2 can be decompiled.");
+        if (U16(bytes, 4) != 1) Fail("unsupported_version", "/version", "Only Flow IL v1 can be decompiled.");
         if (U16(bytes, 6) != EnvelopeBytes || U32(bytes, 8) != bytes.Length || U16(bytes, 26) != SectionCount || U32(bytes, 116) != EnvelopeBytes)
         {
             Fail("malformed_artifact", "/envelope", "Envelope lengths or section count are invalid.");
@@ -201,7 +198,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
             var length = checked((int)U32(entry, 8));
             var count = checked((int)U32(entry, 12));
             var version = U16(entry, 2);
-            if (id != index + 1 || (id is 2 or 6 ? version is not (1 or 2) : version != 1)) Fail("invalid_section", $"/sections/{index}", "Sections must use canonical IDs, order, and version.");
+            if (id != index + 1 || version != 1) Fail("invalid_section", $"/sections/{index}", "Sections must use canonical IDs, order, and version.");
             if (offset != expectedOffset || length < 0 || offset > bytes.Length || length > bytes.Length - offset) Fail("invalid_section", $"/sections/{index}", "Section bounds are invalid.");
             if (!SHA256.HashData(bytes.Slice(offset, length)).AsSpan().SequenceEqual(entry.Slice(16, 32))) Fail("invalid_digest", $"/sections/{index}/digest", "Section digest does not match its contents.");
             result[index] = new SectionInfo(offset, length, count, version);
@@ -245,7 +242,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
         {
             var prefix = reader.Fixed(4, $"/points/{i}");
             var id = reader.String8($"/points/{i}/id");
-            var units = reader.Version == 2 ? reader.String8AllowEmpty($"/points/{i}/units") : string.Empty;
+            var units = reader.String8AllowEmpty($"/points/{i}/units");
             if (prefix[0] is not (1 or 2) || prefix[1] is not (1 or 2)) Fail("unsupported_point", $"/points/{i}", "Point binding type is unsupported.");
             values.Add(new PointRecord(prefix[0], prefix[1], id, units));
         }
@@ -288,12 +285,6 @@ public sealed class FlowDecompiler : IFlowDecompiler
             var prefix = reader.Fixed(3, $"/symbols/{i}");
             if (U16(prefix, 0) != i) Fail("invalid_symbols", $"/symbols/{i}", "Symbol indices must be canonical.");
             var nodeId = reader.String8AllowEmpty($"/symbols/{i}/nodeId");
-            if (reader.Version == 1)
-            {
-                values.Add(new SymbolRecord(prefix[2], nodeId, string.Empty, 0D, 0D, 0D, string.Empty));
-                continue;
-            }
-
             var label = reader.String8AllowEmpty($"/symbols/{i}/label");
             var x = reader.F64($"/symbols/{i}/x");
             var y = reader.F64($"/symbols/{i}/y");

@@ -3,7 +3,7 @@
 
 /*
  * Purpose: Define the version-1 portable host ABI for loading and executing
- * scheduled Flow IL v2 through an explicit PLC Scan Cycle.
+ * scheduled Flow IL v1 through an explicit PLC Scan Cycle.
  *
  * Why this contract exists: Server, emulator, host tests, and firmware need one
  * bounded implementation of opcode, state, debug-frame, and atomic-commit
@@ -20,7 +20,7 @@
 
 enum
 {
-    FLOW_VM_ABI_VERSION      = 2,
+    FLOW_VM_ABI_VERSION      = 1,
     FLOW_VM_MAX_ARTIFACT     = 16384,
     FLOW_VM_MAX_INSTRUCTIONS = 256,
     FLOW_VM_MAX_SLOTS        = 256,
@@ -228,7 +228,7 @@ uint32_t flow_vm_get_abi_version(void);
 /* Returns the opaque instance-storage size required by this exact ABI. */
 size_t flow_vm_get_instance_size(void);
 
-/* Validates v2 metadata and reports bounded storage/work requirements. */
+/* Validates Flow IL metadata and reports bounded storage/work requirements. */
 flow_vm_result_t flow_vm_get_requirements(const uint8_t *artifact, size_t artifact_size, flow_vm_requirements_t *requirements);
 
 /* Validates and prepares one VM in caller-owned storage without activating state. */

@@ -107,12 +107,12 @@ size_t flow_vm_get_instance_size(void)
 static flow_vm_result_t get_metadata(const uint8_t *artifact, size_t size, metadata_t *metadata)
 {
     if (artifact == NULL || metadata == NULL || size < ENVELOPE_BYTES || size > FLOW_VM_MAX_ARTIFACT ||
-        memcmp(artifact, "FIL2", 4) != 0)
+        memcmp(artifact, "FIL1", 4) != 0)
     {
         return get_result(FLOW_VM_MALFORMED, "");
     }
 
-    if (get_u16(&artifact[4]) != 2U || get_u16(&artifact[6]) != ENVELOPE_BYTES)
+    if (get_u16(&artifact[4]) != 1U || get_u16(&artifact[6]) != ENVELOPE_BYTES)
     {
         return get_result(FLOW_VM_UNSUPPORTED_VERSION, "/version");
     }
@@ -153,7 +153,7 @@ static flow_vm_result_t get_metadata(const uint8_t *artifact, size_t size, metad
         section->length    = get_u32(&entry[8]);
         section->count     = get_u32(&entry[12]);
 
-        if ((id == 2U || id == 6U ? (version != 1U && version != 2U) : version != 1U) || section->offset != expected_offset || section->offset > size ||
+        if (version != 1U || section->offset != expected_offset || section->offset > size ||
             section->length > size - section->offset)
         {
             return get_result(FLOW_VM_MALFORMED, "/sections");
@@ -371,7 +371,7 @@ flow_vm_result_t flow_vm_prepare(const uint8_t *artifact, size_t artifact_size, 
         memcpy(vm->points[index].id, &artifact[point_offset + 5U], id_length);
         point_offset += 5U + id_length;
 
-        if (points.version == 2U)
+        if (points.version == 1U)
         {
             if (point_offset >= points.offset + points.length)
             {

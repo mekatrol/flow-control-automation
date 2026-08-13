@@ -7,7 +7,7 @@ namespace Server.Services.Implementation;
 
 internal sealed unsafe partial class NativeFlowVirtualMachine : IFlowVirtualMachine
 {
-    private const uint AbiVersion = 2;
+    private const uint AbiVersion = 1;
     private const int MaximumArtifactBytes = 16384;
     private const int MaximumSlots = 256;
     private const int MaximumStates = 128;

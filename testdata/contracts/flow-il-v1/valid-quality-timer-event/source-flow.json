@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "id": "quality-timer-event",
+  "revision": 1,
+  "controllerTemplateId": "kincony-kc868-a16",
+  "controllerTemplateRevision": 3,
+  "execution": {
+    "mode": "manual",
+    "intervalMs": 0,
+    "inputQualityPolicy": "propagate"
+  },
+  "nodes": [
+    {
+      "id": "input-01-node",
+      "kind": "digitalInput",
+      "configuration": {
+        "pointId": "input-01"
+      },
+      "label": "Digital Input",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "quality-1",
+      "kind": "qualityGood",
+      "configuration": {},
+      "label": "Quality Good",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "timer-1",
+      "kind": "onDelay",
+      "configuration": {
+        "durationMs": 100
+      },
+      "label": "On Delay",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "edge-1",
+      "kind": "risingEdge",
+      "configuration": {},
+      "label": "Rising Edge",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    }
+  ],
+  "connections": [
+    {
+      "source": {
+        "nodeId": "input-01-node",
+        "portId": "value"
+      },
+      "target": {
+        "nodeId": "quality-1",
+        "portId": "in"
+      }
+    },
+    {
+      "source": {
+        "nodeId": "input-01-node",
+        "portId": "value"
+      },
+      "target": {
+        "nodeId": "timer-1",
+        "portId": "in"
+      }
+    },
+    {
+      "source": {
+        "nodeId": "input-01-node",
+        "portId": "value"
+      },
+      "target": {
+        "nodeId": "edge-1",
+        "portId": "in"
+      }
+    }
+  ]
+}

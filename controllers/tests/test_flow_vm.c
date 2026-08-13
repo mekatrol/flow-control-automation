@@ -4,8 +4,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#ifndef FLOW_IL_V2_FIXTURE_DIRECTORY
-#define FLOW_IL_V2_FIXTURE_DIRECTORY "testdata/contracts/flow-il-v2"
+#ifndef FLOW_IL_V1_FIXTURE_DIRECTORY
+#define FLOW_IL_V1_FIXTURE_DIRECTORY "testdata/contracts/flow-il-v1"
 #endif
 
 static const flow_vm_target_t TARGET = {.abi_version            = FLOW_VM_ABI_VERSION,
@@ -14,11 +14,11 @@ static const flow_vm_target_t TARGET = {.abi_version            = FLOW_VM_ABI_VE
                                         .maximum_work_per_scan  = FLOW_VM_MAX_INSTRUCTIONS,
                                         .maximum_snapshot_bytes = 16384};
 
-/* Loads one v2 artifact fixture into bounded caller storage. */
+/* Loads one Flow IL artifact fixture into bounded caller storage. */
 static size_t get_artifact(const char *fixture_id, uint8_t *artifact, size_t capacity)
 {
     char path[512];
-    const int length = snprintf(path, sizeof(path), "%s/%s/artifact.bin", FLOW_IL_V2_FIXTURE_DIRECTORY, fixture_id);
+    const int length = snprintf(path, sizeof(path), "%s/%s/artifact.bin", FLOW_IL_V1_FIXTURE_DIRECTORY, fixture_id);
     assert(length > 0 && (size_t)length < sizeof(path));
     FILE *file = fopen(path, "rb");
     assert(file != NULL);
@@ -60,7 +60,7 @@ static bool get_and_output(flow_vm_t *vm, bool left, bool right, uint64_t scan)
     return commands[0].value;
 }
 
-/* Checks the scheduled v2 Boolean fixture produces deterministic PLC scan results. */
+/* Checks the scheduled Flow IL Boolean fixture produces deterministic PLC scan results. */
 static void test_boolean_scans(void)
 {
     flow_vm_t vm;
@@ -255,7 +255,7 @@ static void test_maximum_fixture(void)
     assert(vm.slot_count == 128U);
 }
 
-/* Runs v2 loader, PLC scan, state feedback, debug-frame, abort, and transactional rejection tests. */
+/* Runs the loader, PLC scan, state feedback, debug-frame, abort, and transactional rejection tests. */
 int main(void)
 {
     assert(flow_vm_get_abi_version() == FLOW_VM_ABI_VERSION);

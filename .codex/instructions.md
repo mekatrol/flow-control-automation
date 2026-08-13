@@ -24,16 +24,9 @@ It must support these deployment modes:
 
 ## Flow Designer
 
-The Vue.js interface allows users to create and deploy graphical logic flows. An older version of the Vue.js designer is available in `../HtmlSvg` for reference.
+The Vue.js interface allows users to create and deploy graphical logic flows.
 
-### Frontend migration workflow
-
-The restartable migration plan is maintained in `.codex/ui-migration-plan.md`.
-Read it before starting Vue migration work and resume from the first unchecked
-slice whose prerequisites are complete. Update its checklist and handoff log as
-part of every completed slice.
-
-Do not copy legacy Vue architecture or retain old wire aliases. Preserve useful
+Do not introduce alternate Vue architectures or old wire aliases. Preserve useful
 behaviour while implementing it with the current UI project's Vue, Vue Router,
 Pinia, TypeScript, accessibility, and testing patterns.
 
@@ -86,7 +79,7 @@ host. It compiles an immutable resolved flow snapshot into versioned Flow IL;
 the same portable VM executes that IL on the server and supported hardware
 controllers. Target devices must not compile designer graphs or independently
 define node semantics. The detailed roadmap is in
-`docs/portable-flow-il-implementation-plan.md`.
+`docs/portable-flow-il-architecture.md`.
 
 Deployed flows execute in one of two ways:
 

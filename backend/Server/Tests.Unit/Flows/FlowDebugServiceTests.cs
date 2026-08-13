@@ -119,6 +119,9 @@ public sealed class FlowDebugServiceTests
         writer.Write((uint)0);
         writer.Write((ushort)0);
         writer.Write((byte)0);
+        writer.Write((uint)1);
+        writer.Write((uint)0);
+        writer.Write((uint)0);
         return stream.ToArray();
     }
 

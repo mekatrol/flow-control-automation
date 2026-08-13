@@ -105,7 +105,7 @@ bool platform_flow_get_digest(void * /* context */, const uint8_t *data, size_t 
            digest_size == CONTROLLER_FLOW_DIGEST_SIZE;
 }
 
-/* Validates only current Flow IL v2 by preparing it against the controller VM profile. */
+/* Validates only Flow IL v1 by preparing it against the controller VM profile. */
 bool platform_flow_is_artifact_valid(void * /* context */, const controller_flow_metadata_t *metadata, const uint8_t *artifact)
 {
     static const uint32_t SUPPORTED_SCHEMA = 2;

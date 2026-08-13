@@ -2,7 +2,7 @@
 
 This document describes capabilities currently implemented in the controller
 firmware. Work that is not yet complete remains in
-[`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md).
+[`../docs/portable-flow-il-architecture.md`](../docs/portable-flow-il-architecture.md).
 
 ## Portable runtime and diagnostics
 
@@ -92,14 +92,14 @@ Implemented protocol capabilities include:
   caller-only relinquish;
 - bounded output-change subscriptions with sequence numbers, coalescing, gap
   reporting, and explicit read-based resynchronization; and
-- resumable authenticated Flow IL v2 upload, VM validation, atomic commit, exact
+- resumable authenticated Flow IL v1 upload, VM validation, atomic commit, exact
   download, metadata/list operations, activation, deactivation, removal, and
-  reboot-safe recovery. Active v2 artifacts execute through the portable VM
+  reboot-safe recovery. Active v1 artifacts execute through the portable VM
   production host and controller point adapters.
 
 ## Verification and tools
 
-The shared flow library now includes a portable Flow IL v2 loader and VM core.
+The shared flow library includes a portable Flow IL v1 loader and VM core.
 It executes scheduled Boolean instructions through the PLC Scan Cycle, uses
 fixed-capacity typed slots and current/next state, stages commands privately,
 and publishes only at atomic scan commit. Its version-1 host ABI supports
@@ -107,7 +107,7 @@ requirements, prepare, initialize, instruction stepping, commit, abort, reset,
 retained-state export, snapshot retrieval, and clear operations. Static firmware
 and shared native-library targets build the same sources; fixture tests cover
 Boolean scans, one-scan feedback, paused execution, abort safety, invalid
-artifacts, and Flow IL v2 host equivalence.
+artifacts, and Flow IL v1 host equivalence.
 
 - Portable host suites cover diagnostics, supervisors, MQTT, settings,
   terminal behaviour, protocol framing and dispatch, authentication, point

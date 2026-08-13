@@ -47,16 +47,16 @@ public sealed partial class FlowCompiler : IFlowCompiler
     public FlowCompilationResult Compile(FlowCompilationRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
-        if (request.ArtifactVersion != 2)
+        if (request.ArtifactVersion != 1)
         {
             throw Failure(
                 "unsupported_artifact_version",
                 "/artifactVersion",
-                "Only the current Flow IL version 2 is supported during pre-release development.");
+                "Only Flow IL version 1 is supported.");
         }
 
         Validate(request);
-        return CompileFlowIlV2(request);
+        return CompileFlowIlV1(request);
     }
 
     private static void Validate(FlowCompilationRequest request)
@@ -117,7 +117,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
         ValidateUnits(request);
     }
 
-    private static FlowCompilationResult CompileFlowIlV2(FlowCompilationRequest request)
+    private static FlowCompilationResult CompileFlowIlV1(FlowCompilationRequest request)
     {
         const int envelopeLength = 128;
         const int directoryEntryLength = 48;
@@ -140,7 +140,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
             .OrderBy(constant => constant.Type)
             .ThenBy(constant => constant.Number)
             .ToArray();
-        var instructions = new List<V2Instruction>();
+        var instructions = new List<V1Instruction>();
 
         foreach (var id in schedule)
         {
@@ -192,7 +192,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
 
         foreach (var id in memoryIds)
         {
-            instructions.Add(new V2Instruction(
+            instructions.Add(new V1Instruction(
                 8,
                 ushort.MaxValue,
                 InputSlot(source, slots, id, "in"),
@@ -202,7 +202,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
                 1));
         }
 
-        instructions.Add(new V2Instruction(
+        instructions.Add(new V1Instruction(
             byte.MaxValue,
             ushort.MaxValue,
             ushort.MaxValue,
@@ -229,7 +229,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
             _ => throw new UnreachableException()
         }));
         var slotSection = Concat([.. slotRecords]);
-        var instructionSection = Concat([.. instructions.Select(EncodeV2Instruction)]);
+        var instructionSection = Concat([.. instructions.Select(EncodeV1Instruction)]);
         var commitRecords = memoryIds.Select(id => Concat(
             new byte[] { 1, 0 }, U16(stateSlots[id]), U16(InputSlot(source, slots, id, "in")), U16(0))).ToList();
         commitRecords.AddRange(schedule.Where(id => nodes[id].Kind is "digitalOutput" or "analogOutput").Select(id => Concat(
@@ -279,14 +279,14 @@ public sealed partial class FlowCompiler : IFlowCompiler
             return Concat(new byte[] { 2 }, String8(pointId), U32(checked((uint)revision)));
         }));
         var dependencySection = Concat(dependencyRecords.ToArray());
-        V2Section[] sections =
+        V1Section[] sections =
         [
             new(1, checked((uint)constants.Length), constantSection),
-            new(2, checked((uint)points.Length), pointSection, 2),
+            new(2, checked((uint)points.Length), pointSection),
             new(3, checked((uint)slotRecords.Count), slotSection),
             new(4, checked((uint)instructions.Count), instructionSection),
             new(5, checked((uint)commitRecords.Count), Concat([.. commitRecords])),
-            new(6, checked((uint)instructions.Count), symbolSection, 2),
+            new(6, checked((uint)instructions.Count), symbolSection),
             new(7, checked((uint)(instructions.Count - 1)), debugSection),
             new(8, checked((uint)dependencyRecords.Count), dependencySection)
         ];
@@ -351,14 +351,14 @@ public sealed partial class FlowCompiler : IFlowCompiler
 
         var workingBytes = checked((uint)((schedule.Count + stateIds.Length) * 32));
         var envelope = new byte[envelopeLength];
-        "FIL2"u8.CopyTo(envelope);
-        WriteU16(envelope, 4, 2);
+        "FIL1"u8.CopyTo(envelope);
+        WriteU16(envelope, 4, 1);
         WriteU16(envelope, 6, envelopeLength);
         WriteU32(envelope, 8, offset);
         WriteU32(envelope, 12, 1);
         WriteU32(envelope, 16, source.Revision);
         WriteU32(envelope, 20, source.ControllerTemplateRevision);
-        WriteU16(envelope, 24, 2);
+        WriteU16(envelope, 24, 1);
         WriteU16(envelope, 26, sections.Length);
         envelope[28] = source.Execution.InputQualityPolicy == "require_good" ? (byte)1 : (byte)2;
         WriteU32(envelope, 32, checked((uint)instructions.Count));
@@ -371,7 +371,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
 
         return new FlowCompilationResult
         {
-            ArtifactVersion = 2,
+            ArtifactVersion = 1,
             Artifact = artifact,
             ArtifactSha256 = Convert.ToHexStringLower(SHA256.HashData(artifact)),
             FlowRevision = source.Revision,
@@ -433,7 +433,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
             && item.point.Direction == direction
             && item.point.Type == type).index);
 
-    private static byte[] EncodeV2Instruction(V2Instruction instruction) => Concat(
+    private static byte[] EncodeV1Instruction(V1Instruction instruction) => Concat(
         new byte[] { instruction.Opcode, 0 },
         U16(instruction.Result),
         U16(instruction.Operand0),
@@ -882,7 +882,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
     private sealed record PortKey(string NodeId, string PortId);
     private sealed record PointRecord(string Id, byte Direction, byte Type, string? Units);
     private sealed record ConstantRecord(byte Type, double Number);
-    private sealed record V2Instruction(
+    private sealed record V1Instruction(
         byte Opcode,
         ushort Result,
         ushort Operand0,
@@ -890,5 +890,5 @@ public sealed partial class FlowCompiler : IFlowCompiler
         ushort Auxiliary,
         string NodeId,
         byte Discriminator);
-    private sealed record V2Section(ushort Id, uint Count, byte[] Bytes, ushort Version = 1);
+    private sealed record V1Section(ushort Id, uint Count, byte[] Bytes, ushort Version = 1);
 }

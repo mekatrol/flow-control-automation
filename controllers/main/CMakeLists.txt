@@ -5,14 +5,11 @@ set(BOARD_DIR "${CMAKE_CURRENT_LIST_DIR}/../boards/${CONTROLLER_BOARD_PATH}")
 idf_component_register(
     SRCS
         "../main.c"
-        "${SHARED_DIR}/algorithm/kahn_sort.c"
         "${SHARED_DIR}/controller/runtime.c"
         "${SHARED_DIR}/controller/protocol.c"
         "${SHARED_DIR}/controller/auth.c"
         "${SHARED_DIR}/controller/io.c"
         "${SHARED_DIR}/flow/service.c"
-        "${SHARED_DIR}/flow/executable.c"
-        "${SHARED_DIR}/flow/runtime.c"
         "${SHARED_DIR}/flow/debug.c"
         "${SHARED_DIR}/flow/sha256.c"
         "${SHARED_DIR}/flow/vm.c"

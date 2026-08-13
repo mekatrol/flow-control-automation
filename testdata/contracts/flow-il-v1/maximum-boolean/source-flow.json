@@ -1,0 +1,1423 @@
+{
+  "schemaVersion": 1,
+  "id": "maximum-boolean",
+  "revision": 1,
+  "controllerTemplateId": "kincony-kc868-a16",
+  "controllerTemplateRevision": 3,
+  "execution": {
+    "mode": "manual",
+    "intervalMs": 0,
+    "inputQualityPolicy": "require_good"
+  },
+  "nodes": [
+    {
+      "id": "constant-000",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-001",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-002",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-003",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-004",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-005",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-006",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-007",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-008",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-009",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-010",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-011",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-012",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-013",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-014",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-015",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-016",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-017",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-018",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-019",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-020",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-021",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-022",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-023",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-024",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-025",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-026",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-027",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-028",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-029",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-030",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-031",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-032",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-033",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-034",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-035",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-036",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-037",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-038",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-039",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-040",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-041",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-042",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-043",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-044",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-045",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-046",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-047",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-048",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-049",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-050",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-051",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-052",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-053",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-054",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-055",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-056",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-057",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-058",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-059",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-060",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-061",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-062",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-063",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-064",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-065",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-066",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-067",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-068",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-069",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-070",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-071",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-072",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-073",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-074",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-075",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-076",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-077",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-078",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-079",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-080",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-081",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-082",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-083",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-084",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-085",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-086",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-087",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-088",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-089",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-090",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-091",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-092",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-093",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-094",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-095",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-096",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-097",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-098",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-099",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-100",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-101",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-102",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-103",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-104",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-105",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-106",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-107",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-108",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-109",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-110",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-111",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-112",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-113",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-114",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-115",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-116",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-117",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-118",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-119",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-120",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-121",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-122",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-123",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-124",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-125",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-126",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-127",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    }
+  ],
+  "connections": []
+}

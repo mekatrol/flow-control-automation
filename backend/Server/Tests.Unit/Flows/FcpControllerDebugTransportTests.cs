@@ -82,6 +82,9 @@ public sealed class FcpControllerDebugTransportTests
         writer.Write((uint)0);
         writer.Write((ushort)0);
         writer.Write((byte)0);
+        writer.Write((uint)10);
+        writer.Write((uint)0);
+        writer.Write((uint)0);
         return stream.ToArray();
     }
 

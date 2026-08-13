@@ -16,16 +16,15 @@ same portable VM on the server or a hardware controller. Earlier design records
 remain under [`docs/decisions/`](docs/decisions/), but pre-release runtime paths
 support only the current format.
 The normative production bytecode and native-host boundaries are defined by the
-[`Flow IL v2 contract`](docs/flow-il-v2-contract.md),
+[`Flow IL v1 contract`](docs/flow-il-v1-contract.md),
 [`VM host ABI`](docs/flow-vm-host-abi-v1.md), and
-[`debugger contract`](docs/flow-il-v2-debug-contract.md).
+[`debugger contract`](docs/flow-il-v1-debug-contract.md).
 The backend compiler is authoritative and emits only the current scheduled Flow
 IL version. Non-current versions are rejected rather than migrated or executed.
 The backend decompiler performs the reverse tooling operation: users
 can import supported compiled IL as a valid editable designer flow. Artifacts
 recover a deterministic semantically equivalent graph with stable executable
-IDs and configuration. Current symbol metadata restores labels, groups, and
-canvas layout losslessly; stripped metadata produces explicit recovery warnings.
+IDs, configuration, labels, groups, and canvas layout losslessly.
 
 ## What the Application Does
 
@@ -225,9 +224,6 @@ npm run build
 smoke-tests health, flow save/deploy, credential metadata, and point-source
 persistence against the real backend. It uses only temporary test data and a
 test-only encryption key.
-
-Production cutover, backup, canary, and rollback instructions are in
-[`docs/backend-cutover.md`](docs/backend-cutover.md).
 
 Playwright runs the end-to-end tests headlessly by default, so
 `npm run test:e2e` does not open a browser window. To watch the tests run in a

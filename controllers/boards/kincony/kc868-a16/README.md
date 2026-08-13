@@ -6,7 +6,7 @@ firmware, build project, tests, and workspace tasks are at the
 select `kincony-kc868-a16` with the **Set board** task.
 
 The generic phased communications roadmap is in
-[`IMPLEMENTATION_PLAN.md`](../../../IMPLEMENTATION_PLAN.md).
+[`portable-flow-il-architecture.md`](../../../../docs/portable-flow-il-architecture.md).
 
 ## Hardware target
 
@@ -112,24 +112,6 @@ status uptime_ms=5000 free_heap_bytes=... wifi=disabled ethernet=disabled mqtt=d
 Repeated subsystem errors added in later phases should use
 `diagnostics_emit_limited`; it bounds identical records per time window and
 reports the number suppressed when the next window begins.
-
-### Dormant Wi-Fi smoke test (historical)
-
-This historical smoke test applies when Wi-Fi runtime support is explicitly
-restored. Wi-Fi is dormant in the current Ethernet-only commissioning build.
-
-With local credentials configured, boot while the access point is unavailable.
-The heartbeat must continue while Wi-Fi reports bounded `backoff` retries. Start
-the access point and confirm Wi-Fi reaches `online` without a controller reset.
-Then remove and restore the access point and confirm association and address
-recovery occur automatically.
-
-Repeat with DHCP unavailable and confirm the 30-second DHCP timeout returns the
-link to supervised backoff. During a longer test, cycle connectivity at least
-100 times while sampling `free_heap_bytes` and task count. Authentication,
-association, address acquisition/loss, and driver failures have distinct
-redacted diagnostic event codes; no event contains the configured SSID or
-password.
 
 ### Ethernet smoke test
 

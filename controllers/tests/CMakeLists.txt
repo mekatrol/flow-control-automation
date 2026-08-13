@@ -35,21 +35,13 @@ add_executable(controller_health_format_tests
 target_include_directories(controller_health_format_tests PRIVATE ../shared)
 add_test(NAME controller_health_format COMMAND controller_health_format_tests)
 
-add_executable(kahn_sort_tests
-    test_kahn_sort.c
-    ../shared/algorithm/kahn_sort.c)
-target_include_directories(kahn_sort_tests PRIVATE ../shared)
-add_test(NAME kahn_sort COMMAND kahn_sort_tests)
-
 add_executable(controller_protocol_tests
     test_controller_protocol.c
-    ../shared/algorithm/kahn_sort.c
     ../shared/controller/protocol.c
     ../shared/controller/auth.c
     ../shared/flow/service.c
     ../shared/flow/debug.c
-    ../shared/flow/executable.c
-    ../shared/flow/runtime.c
+    ../shared/flow/vm.c
     ../shared/flow/sha256.c
     ../shared/controller/points.c)
 target_include_directories(controller_protocol_tests PRIVATE ../shared)
@@ -67,41 +59,13 @@ add_executable(controller_flow_tests
 target_include_directories(controller_flow_tests PRIVATE ../shared)
 add_test(NAME controller_flow COMMAND controller_flow_tests)
 
-add_executable(flow_contract_fixture_tests
-    test_flow_contract_fixtures.c
-    ../shared/algorithm/kahn_sort.c
-    ../shared/flow/executable.c
-    ../shared/flow/runtime.c
+add_executable(flow_il_v1_contract_tests
+    test_flow_il_v1_contract.c
     ../shared/flow/sha256.c)
-target_include_directories(flow_contract_fixture_tests PRIVATE ../shared)
-target_compile_definitions(flow_contract_fixture_tests PRIVATE
-    FLOW_CONTRACT_FIXTURE_DIRECTORY="${CMAKE_CURRENT_LIST_DIR}/../../testdata/contracts/flow-executable-v1")
-add_test(NAME flow_contract_fixtures COMMAND flow_contract_fixture_tests)
-
-add_executable(flow_debug_tests
-    test_flow_debug.c
-    ../shared/algorithm/kahn_sort.c
-    ../shared/flow/debug.c
-    ../shared/flow/executable.c
-    ../shared/flow/runtime.c
-    ../shared/flow/sha256.c)
-target_include_directories(flow_debug_tests PRIVATE ../shared)
-target_compile_definitions(flow_debug_tests PRIVATE
-    FLOW_CONTRACT_FIXTURE_DIRECTORY="${CMAKE_CURRENT_LIST_DIR}/../../testdata/contracts/flow-executable-v1")
-add_test(NAME flow_debug COMMAND flow_debug_tests)
-
-add_executable(flow_resource_baseline_tests
-    test_flow_resource_baseline.c)
-target_include_directories(flow_resource_baseline_tests PRIVATE ../shared)
-add_test(NAME flow_resource_baseline COMMAND flow_resource_baseline_tests)
-
-add_executable(flow_il_v2_contract_tests
-    test_flow_il_v2_contract.c
-    ../shared/flow/sha256.c)
-target_include_directories(flow_il_v2_contract_tests PRIVATE ../shared)
-target_compile_definitions(flow_il_v2_contract_tests PRIVATE
-    FLOW_IL_V2_FIXTURE_DIRECTORY="${CMAKE_CURRENT_LIST_DIR}/../../testdata/contracts/flow-il-v2")
-add_test(NAME flow_il_v2_contract COMMAND flow_il_v2_contract_tests)
+target_include_directories(flow_il_v1_contract_tests PRIVATE ../shared)
+target_compile_definitions(flow_il_v1_contract_tests PRIVATE
+    FLOW_IL_V1_FIXTURE_DIRECTORY="${CMAKE_CURRENT_LIST_DIR}/../../testdata/contracts/flow-il-v1")
+add_test(NAME flow_il_v1_contract COMMAND flow_il_v1_contract_tests)
 
 add_library(flow_vm_static STATIC
     ../shared/flow/vm.c
@@ -120,7 +84,7 @@ add_executable(flow_vm_tests
     test_flow_vm.c)
 target_link_libraries(flow_vm_tests PRIVATE flow_vm_static)
 target_compile_definitions(flow_vm_tests PRIVATE
-    FLOW_IL_V2_FIXTURE_DIRECTORY="${CMAKE_CURRENT_LIST_DIR}/../../testdata/contracts/flow-il-v2")
+    FLOW_IL_V1_FIXTURE_DIRECTORY="${CMAKE_CURRENT_LIST_DIR}/../../testdata/contracts/flow-il-v1")
 add_test(NAME flow_vm COMMAND flow_vm_tests)
 
 add_executable(controller_points_tests

@@ -1,0 +1,238 @@
+{
+  "schemaVersion": 1,
+  "id": "expanded-boolean",
+  "revision": 1,
+  "controllerTemplateId": "kincony-kc868-a16",
+  "controllerTemplateRevision": 3,
+  "execution": {
+    "mode": "manual",
+    "intervalMs": 0,
+    "inputQualityPolicy": "require_good"
+  },
+  "nodes": [
+    {
+      "id": "constant-false",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": false
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "constant-true",
+      "kind": "digitalConstant",
+      "configuration": {
+        "value": true
+      },
+      "label": "Digital Constant",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "nand-1",
+      "kind": "nand",
+      "configuration": {},
+      "label": "Nand",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "nor-1",
+      "kind": "nor",
+      "configuration": {},
+      "label": "Nor",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "xor-1",
+      "kind": "xor",
+      "configuration": {},
+      "label": "Xor",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "xnor-1",
+      "kind": "xnor",
+      "configuration": {},
+      "label": "Xnor",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "output-nand",
+      "kind": "digitalOutput",
+      "configuration": {
+        "pointId": "output-nand"
+      },
+      "label": "Digital Output",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "output-nor",
+      "kind": "digitalOutput",
+      "configuration": {
+        "pointId": "output-nor"
+      },
+      "label": "Digital Output",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "output-xor",
+      "kind": "digitalOutput",
+      "configuration": {
+        "pointId": "output-xor"
+      },
+      "label": "Digital Output",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    },
+    {
+      "id": "output-xnor",
+      "kind": "digitalOutput",
+      "configuration": {
+        "pointId": "output-xnor"
+      },
+      "label": "Digital Output",
+      "x": 0,
+      "y": 0,
+      "zOrder": 0
+    }
+  ],
+  "connections": [
+    {
+      "source": {
+        "nodeId": "constant-true",
+        "portId": "value"
+      },
+      "target": {
+        "nodeId": "nand-1",
+        "portId": "a"
+      }
+    },
+    {
+      "source": {
+        "nodeId": "constant-false",
+        "portId": "value"
+      },
+      "target": {
+        "nodeId": "nand-1",
+        "portId": "b"
+      }
+    },
+    {
+      "source": {
+        "nodeId": "nand-1",
+        "portId": "value"
+      },
+      "target": {
+        "nodeId": "output-nand",
+        "portId": "in"
+      }
+    },
+    {
+      "source": {
+        "nodeId": "constant-true",
+        "portId": "value"
+      },
+      "target": {
+        "nodeId": "nor-1",
+        "portId": "a"
+      }
+    },
+    {
+      "source": {
+        "nodeId": "constant-false",
+        "portId": "value"
+      },
+      "target": {
+        "nodeId": "nor-1",
+        "portId": "b"
+      }
+    },
+    {
+      "source": {
+        "nodeId": "nor-1",
+        "portId": "value"
+      },
+      "target": {
+        "nodeId": "output-nor",
+        "portId": "in"
+      }
+    },
+    {
+      "source": {
+        "nodeId": "constant-true",
+        "portId": "value"
+      },
+      "target": {
+        "nodeId": "xor-1",
+        "portId": "a"
+      }
+    },
+    {
+      "source": {
+        "nodeId": "constant-false",
+        "portId": "value"
+      },
+      "target": {
+        "nodeId": "xor-1",
+        "portId": "b"
+      }
+    },
+    {
+      "source": {
+        "nodeId": "xor-1",
+        "portId": "value"
+      },
+      "target": {
+        "nodeId": "output-xor",
+        "portId": "in"
+      }
+    },
+    {
+      "source": {
+        "nodeId": "constant-true",
+        "portId": "value"
+      },
+      "target": {
+        "nodeId": "xnor-1",
+        "portId": "a"
+      }
+    },
+    {
+      "source": {
+        "nodeId": "constant-false",
+        "portId": "value"
+      },
+      "target": {
+        "nodeId": "xnor-1",
+        "portId": "b"
+      }
+    },
+    {
+      "source": {
+        "nodeId": "xnor-1",
+        "portId": "value"
+      },
+      "target": {
+        "nodeId": "output-xnor",
+        "portId": "in"
+      }
+    }
+  ]
+}

@@ -13,8 +13,8 @@
  *
  * How it works: Authenticated control operations move one fixed-capacity state
  * machine through loading, ready, stepping/running, paused, fault, and cleanup.
- * The service delegates artifact semantics to executable.c and atomic ticks to
- * runtime.c, retains only the latest complete digest-protected snapshot, and
+ * The service delegates artifact semantics and atomic scans to the portable
+ * Flow IL VM, retains only the latest complete digest-protected snapshot, and
  * uses a renewable dead-man lease. Shadow mode never commands hardware; live
  * mode requires the exact affected-point list and relinquishes debug-owned
  * commands on pause, stop, replacement, expiry, fault, or manual-step safety.
@@ -33,6 +33,67 @@ static flow_debug_result_t get_access(const flow_debug_t *debug, uint32_t owner_
  * loss as immediate stop. How: It adds the fixed lease with saturation. */
 static void renew_lease(flow_debug_t *debug, uint64_t now_ms);
 
+/* What: Decodes one little-endian u16. Why: Debug-map parsing must not depend on alignment. How: Combines two artifact bytes. */
+static uint16_t get_u16(const uint8_t *bytes)
+{
+    return (uint16_t)bytes[0] | (uint16_t)((uint16_t)bytes[1] << 8U);
+}
+
+/* What: Decodes one little-endian u32. Why: Section offsets and lengths are canonical wire fields. How: Combines four bytes. */
+static uint32_t get_u32(const uint8_t *bytes)
+{
+    return (uint32_t)bytes[0] | ((uint32_t)bytes[1] << 8U) | ((uint32_t)bytes[2] << 16U) |
+           ((uint32_t)bytes[3] << 24U);
+}
+
+/* What: Retains current debug-map correlation. Why: The core VM does not carry authoring strings in every production instance.
+ * How: Reads the already VM-validated section into the volatile debugger's bounded storage. */
+static bool load_debug_map(flow_debug_t *debug)
+{
+    enum
+    {
+        ENVELOPE_BYTES = 128,
+        DIRECTORY_ENTRY_BYTES = 48,
+        DEBUG_DIRECTORY_INDEX = 6,
+    };
+    const uint8_t *entry = &debug->artifact[ENVELOPE_BYTES + DEBUG_DIRECTORY_INDEX * DIRECTORY_ENTRY_BYTES];
+    const uint32_t section_offset = get_u32(&entry[4]);
+    const uint32_t section_length = get_u32(&entry[8]);
+    const uint32_t count          = get_u32(&entry[12]);
+    size_t offset                 = section_offset;
+
+    if (count > debug->vm.instruction_count || section_offset > debug->artifact_length ||
+        section_length > debug->artifact_length - section_offset)
+    {
+        return false;
+    }
+
+    memset(debug->debug_result_slots, 0xff, sizeof(debug->debug_result_slots));
+
+    for (uint32_t index = 0; index < count; index++)
+    {
+        if (offset + 5U > section_offset + section_length || get_u16(&debug->artifact[offset]) != index)
+        {
+            return false;
+        }
+
+        debug->debug_result_slots[index] = get_u16(&debug->artifact[offset + 2U]);
+        const uint8_t id_length          = debug->artifact[offset + 4U];
+        offset += 5U;
+
+        if (id_length > FLOW_VM_MAX_ID_BYTES || offset + id_length > section_offset + section_length ||
+            (debug->debug_result_slots[index] != UINT16_MAX && debug->debug_result_slots[index] >= debug->vm.slot_count))
+        {
+            return false;
+        }
+
+        memcpy(debug->debug_node_ids[index], &debug->artifact[offset], id_length);
+        offset += id_length;
+    }
+
+    return offset == section_offset + section_length;
+}
+
 /*
  * Relinquishes every command owned by this volatile session before an unsafe
  * lifecycle transition. Removal is scoped to the debug owner, allowing normal
@@ -45,13 +106,11 @@ static void relinquish_live_outputs(flow_debug_t *debug)
         return;
     }
 
-    for (uint16_t index = 0; index < debug->executable.node_count; index++)
+    for (uint16_t index = 0; index < debug->vm.point_count; index++)
     {
-        const flow_node_t *node = &debug->executable.nodes[index];
-
-        if (node->kind == FLOW_NODE_PROPOSED_OUTPUT)
+        if (debug->vm.points[index].direction == 2U)
         {
-            debug->relinquish_output(debug->output_context, debug->executable.points[node->point_index].id);
+            debug->relinquish_output(debug->output_context, debug->vm.points[index].id);
         }
     }
 }
@@ -69,11 +128,11 @@ static bool apply_live_outputs(flow_debug_t *debug, uint64_t now_ms)
         return true;
     }
 
-    const flow_tick_snapshot_t *snapshot = get_flow_runtime_snapshot(&debug->runtime);
+    const flow_vm_snapshot_t *snapshot = &debug->vm.snapshot;
     const uint64_t expires_at_ms =
         now_ms > UINT64_MAX - FLOW_DEBUG_LIVE_OUTPUT_HOLD_MS ? UINT64_MAX : now_ms + FLOW_DEBUG_LIVE_OUTPUT_HOLD_MS;
 
-    for (uint16_t index = 0; snapshot != NULL && index < snapshot->output_count; index++)
+    for (uint16_t index = 0; index < snapshot->output_count; index++)
     {
         bool is_effective = false;
 
@@ -91,17 +150,16 @@ static bool apply_live_outputs(flow_debug_t *debug, uint64_t now_ms)
         }
     }
 
-    return snapshot != NULL;
+    return true;
 }
 
 enum
 {
     /* Snapshot schema fields are frozen wire values; publication cadence is independent of evaluation cadence. */
-    SNAPSHOT_SCHEMA              = 3,
+    SNAPSHOT_SCHEMA              = 1,
     SNAPSHOT_MODE_MANUAL         = 1,
     SNAPSHOT_MODE_FIXED          = 2,
     SNAPSHOT_STATE_EVALUATED     = 1,
-    SNAPSHOT_VALUE_DIGITAL       = 2,
     SNAPSHOT_PUBLISH_INTERVAL_MS = 500,
 };
 
@@ -169,6 +227,16 @@ static bool append_u64(flow_debug_t *debug, size_t *offset, uint64_t value)
     return true;
 }
 
+/* What: Appends one finite binary64 value. Why: Typed numeric snapshots must preserve the VM value exactly. How: Copies the
+ * representation into an integer and reuses canonical little-endian encoding. */
+static bool append_f64(flow_debug_t *debug, size_t *offset, double value)
+{
+    uint64_t bits;
+    memcpy(&bits, &value, sizeof(bits));
+
+    return append_u64(debug, offset, bits);
+}
+
 /* What: Appends one byte to encoded snapshot storage. Why: Every encoder path must fail explicitly rather than truncate immutable
  * data. How: It checks the fixed capacity before storing and advancing. */
 static bool append_u8(flow_debug_t *debug, size_t *offset, uint8_t value)
@@ -189,12 +257,12 @@ static bool append_string(flow_debug_t *debug, size_t *offset, const char *value
 {
     size_t size = 0;
 
-    while (size <= FLOW_EXECUTABLE_MAX_ID_BYTES && value[size] != '\0')
+    while (size <= FLOW_VM_MAX_ID_BYTES && value[size] != '\0')
     {
         size++;
     }
 
-    if (size == 0 || size > FLOW_EXECUTABLE_MAX_ID_BYTES || *offset + 1U + size > sizeof(debug->snapshot))
+    if (size == 0 || size > FLOW_VM_MAX_ID_BYTES || *offset + 1U + size > sizeof(debug->snapshot))
     {
         return false;
     }
@@ -215,7 +283,7 @@ static bool append_string(flow_debug_t *debug, size_t *offset, const char *value
 static void clear_session(flow_debug_t *debug)
 {
     relinquish_live_outputs(debug);
-    const flow_target_t *target                            = debug->target;
+    const flow_vm_target_t *target                         = debug->target;
     const flow_debug_get_input_t get_input                 = debug->get_input;
     void *input_context                                    = debug->input_context;
     const flow_debug_get_time_us_t get_time_us             = debug->get_time_us;
@@ -279,14 +347,12 @@ flow_debug_result_t flow_debug_enable_live_output(flow_debug_t *debug, uint32_t 
 
     size_t confirmed_index = 0;
 
-    for (uint16_t index = 0; index < debug->executable.node_count; index++)
+    for (uint16_t index = 0; index < debug->vm.point_count; index++)
     {
-        const flow_node_t *node = &debug->executable.nodes[index];
-
-        if (node->kind == FLOW_NODE_PROPOSED_OUTPUT)
+        if (debug->vm.points[index].direction == 2U)
         {
             if (confirmed_index >= point_count || confirmed_point_ids[confirmed_index] == NULL ||
-                strcmp(debug->executable.points[node->point_index].id, confirmed_point_ids[confirmed_index]) != 0)
+                strcmp(debug->vm.points[index].id, confirmed_point_ids[confirmed_index]) != 0)
             {
                 return FLOW_DEBUG_FORBIDDEN;
             }
@@ -344,11 +410,28 @@ static void renew_lease(flow_debug_t *debug, uint64_t now_ms)
  */
 static bool encode_snapshot(flow_debug_t *debug, uint64_t completed_at_ms)
 {
-    const flow_tick_snapshot_t *snapshot = get_flow_runtime_snapshot(&debug->runtime);
+    const flow_vm_snapshot_t *snapshot = &debug->vm.snapshot;
+    uint16_t node_count                = 0U;
 
-    if (snapshot == NULL)
+    for (uint16_t index = 0; index < debug->vm.instruction_count; index++)
     {
-        return false;
+        if (debug->debug_node_ids[index][0] == '\0')
+        {
+            continue;
+        }
+
+        bool is_first = true;
+
+        for (uint16_t prior = 0; prior < index; prior++)
+        {
+            if (strcmp(debug->debug_node_ids[index], debug->debug_node_ids[prior]) == 0)
+            {
+                is_first = false;
+                break;
+            }
+        }
+
+        node_count += is_first ? 1U : 0U;
     }
 
     size_t offset = 0;
@@ -356,15 +439,16 @@ static bool encode_snapshot(flow_debug_t *debug, uint64_t completed_at_ms)
     /* Serialize explicitly in little-endian contract order; structure layout and host alignment never enter the wire format. */
     const bool header_ok =
         append_u16(debug, &offset, SNAPSHOT_SCHEMA) && append_u64(debug, &offset, debug->session_id) &&
-        append_string(debug, &offset, debug->executable.flow_id) && append_u32(debug, &offset, debug->executable.revision) &&
+        append_string(debug, &offset, debug->vm.flow_id) && append_u32(debug, &offset, debug->vm.flow_revision) &&
         append_u8(debug, &offset, (uint8_t)debug->state) &&
         append_u8(debug, &offset, debug->state == FLOW_DEBUG_RUNNING ? SNAPSHOT_MODE_FIXED : SNAPSHOT_MODE_MANUAL) &&
-        append_u64(debug, &offset, snapshot->tick_number) && append_u64(debug, &offset, snapshot->sampled_at_ms) &&
+        append_u64(debug, &offset, snapshot->scan_number) && append_u64(debug, &offset, snapshot->sampled_at_ms) &&
         append_u64(debug, &offset, completed_at_ms) && append_u32(debug, &offset, debug->execution_duration_us) &&
-        append_u8(debug, &offset, snapshot->input_validity) && append_u16(debug, &offset, snapshot->node_count) &&
+        append_u8(debug, &offset, 7U) && append_u16(debug, &offset, node_count) &&
         append_u16(debug, &offset, snapshot->output_count) && append_u32(debug, &offset, debug->overrun_count) &&
-        append_u32(debug, &offset, snapshot->evaluation_failure_count) &&
-        append_u16(debug, &offset, (uint16_t)snapshot->last_result.code) && append_u8(debug, &offset, 0) &&
+        append_u32(debug, &offset, 0U) && append_u16(debug, &offset, (uint16_t)debug->last_result.code) &&
+        (debug->last_result.path[0] == '\0' ? append_u8(debug, &offset, 0U)
+                                             : append_string(debug, &offset, debug->last_result.path)) &&
         append_u32(debug, &offset, debug->execution_high_water_us) && append_u32(debug, &offset, debug->missed_deadline_count) &&
         append_u32(debug, &offset, debug->arbitration_loss_count);
 
@@ -373,13 +457,49 @@ static bool encode_snapshot(flow_debug_t *debug, uint64_t completed_at_ms)
         return false;
     }
 
-    for (uint16_t index = 0; index < snapshot->node_count; index++)
+    for (uint16_t index = 0; index < debug->vm.instruction_count; index++)
     {
-        const flow_node_snapshot_t *node = &snapshot->nodes[index];
+        const char *node_id = debug->debug_node_ids[index];
 
-        if (!append_string(debug, &offset, node->node_id) || !append_u8(debug, &offset, SNAPSHOT_STATE_EVALUATED) ||
-            !append_u8(debug, &offset, (uint8_t)node->quality) || !append_u8(debug, &offset, SNAPSHOT_VALUE_DIGITAL) ||
-            !append_u8(debug, &offset, 1) || !append_u8(debug, &offset, node->value ? 1U : 0U))
+        if (node_id[0] == '\0')
+        {
+            continue;
+        }
+
+        bool is_first = true;
+
+        for (uint16_t prior = 0; prior < index; prior++)
+        {
+            if (strcmp(node_id, debug->debug_node_ids[prior]) == 0)
+            {
+                is_first = false;
+                break;
+            }
+        }
+
+        if (!is_first)
+        {
+            continue;
+        }
+
+        const uint16_t slot = debug->debug_result_slots[index];
+
+        if (slot == UINT16_MAX)
+        {
+            if (!append_string(debug, &offset, node_id) || !append_u8(debug, &offset, 3U) ||
+                !append_u8(debug, &offset, 3U) || !append_u8(debug, &offset, 1U) || !append_u8(debug, &offset, 0U))
+            {
+                return false;
+            }
+
+            continue;
+        }
+
+        if (!append_string(debug, &offset, node_id) || !append_u8(debug, &offset, SNAPSHOT_STATE_EVALUATED) ||
+            !append_u8(debug, &offset, debug->vm.slot_qualities[slot]) ||
+            !append_u8(debug, &offset, debug->vm.slot_types[slot]) || !append_u8(debug, &offset, 1U) ||
+            (debug->vm.slot_types[slot] == 2U ? !append_f64(debug, &offset, debug->vm.numeric_slots[slot])
+                                               : !append_u8(debug, &offset, debug->vm.working_slots[slot] ? 1U : 0U)))
         {
             return false;
         }
@@ -387,10 +507,12 @@ static bool encode_snapshot(flow_debug_t *debug, uint64_t completed_at_ms)
 
     for (uint16_t index = 0; index < snapshot->output_count; index++)
     {
-        const flow_output_snapshot_t *output = &snapshot->outputs[index];
+        const flow_vm_command_t *output = &snapshot->outputs[index];
 
         if (!append_string(debug, &offset, output->point_id) || !append_u8(debug, &offset, SNAPSHOT_STATE_EVALUATED) ||
-            !append_u8(debug, &offset, (uint8_t)output->quality) || !append_u8(debug, &offset, output->value ? 1U : 0U))
+            !append_u8(debug, &offset, output->quality) || !append_u8(debug, &offset, output->type) ||
+            (output->type == 2U ? !append_f64(debug, &offset, output->number)
+                                : !append_u8(debug, &offset, output->value ? 1U : 0U)))
         {
             return false;
         }
@@ -406,7 +528,7 @@ static bool encode_snapshot(flow_debug_t *debug, uint64_t completed_at_ms)
 /* What: Initializes the fixed-capacity service with its target and coherent-input adapter. Why: Preparation and ticking require
  * immutable platform contracts before any owner session begins. How: It clears all state, stores adapters, and starts non-zero
  * monotonic session IDs. */
-bool flow_debug_init(flow_debug_t *debug, const flow_target_t *target, flow_debug_get_input_t get_input, void *input_context)
+bool flow_debug_init(flow_debug_t *debug, const flow_vm_target_t *target, flow_debug_get_input_t get_input, void *input_context)
 {
     if (debug == NULL || target == NULL || get_input == NULL)
     {
@@ -431,7 +553,7 @@ flow_debug_result_t flow_debug_begin(flow_debug_t *debug, uint32_t owner_id, boo
                                      const uint8_t digest[FLOW_DEBUG_DIGEST_BYTES], uint64_t now_ms, uint64_t *session_id)
 {
     if (debug == NULL || digest == NULL || session_id == NULL || owner_id == 0U || artifact_length == 0U ||
-        artifact_length > FLOW_EXECUTABLE_MAX_ARTIFACT_BYTES)
+        artifact_length > FLOW_VM_MAX_ARTIFACT)
     {
         return FLOW_DEBUG_INVALID_ARGUMENT;
     }
@@ -553,9 +675,10 @@ flow_debug_result_t flow_debug_prepare(flow_debug_t *debug, uint32_t owner_id, u
         return FLOW_DEBUG_DIGEST_MISMATCH;
     }
 
-    debug->last_result = flow_executable_prepare(debug->artifact, debug->artifact_length, debug->target, &debug->executable);
+    debug->last_result = flow_vm_prepare(debug->artifact, debug->artifact_length, debug->target, &debug->vm);
 
-    if (debug->last_result.code != FLOW_REASON_OK || !flow_runtime_init(&debug->runtime, &debug->executable))
+    if (debug->last_result.code != FLOW_VM_OK || !load_debug_map(debug) ||
+        flow_vm_initialize(&debug->vm, NULL, 0U).code != FLOW_VM_OK)
     {
         debug->state = FLOW_DEBUG_FAULT;
 
@@ -596,18 +719,32 @@ flow_debug_result_t flow_debug_step(flow_debug_t *debug, uint32_t owner_id, uint
     /* The transient state prevents overlapping control operations while the complete tick is in progress. */
     debug->state              = FLOW_DEBUG_STEPPING;
     const uint64_t started_us = debug->get_time_us == NULL ? 0U : debug->get_time_us(debug->time_context);
-    flow_input_frame_t input  = {0};
+    flow_vm_input_sample_t samples[FLOW_VM_MAX_POINTS] = {0};
+    size_t sample_count                                  = 0U;
+    uint64_t sampled_at_ms                               = 0U;
 
-    if (!debug->get_input(debug->input_context, &input))
+    if (!debug->get_input(debug->input_context, samples, FLOW_VM_MAX_POINTS, &sample_count, &sampled_at_ms))
     {
-        debug->last_result = (flow_result_t){.code = FLOW_REASON_INPUT_QUALITY_REJECTED};
+        debug->last_result = (flow_vm_result_t){.code = FLOW_VM_INPUT_REJECTED};
         debug->state       = FLOW_DEBUG_FAULT;
         relinquish_live_outputs(debug);
 
         return FLOW_DEBUG_VALIDATION_FAILED;
     }
 
-    debug->last_result           = flow_runtime_step(&debug->runtime, &input);
+    const flow_vm_input_frame_t input = {.samples         = samples,
+                                         .sample_count    = sample_count,
+                                         .sampled_at_ms   = sampled_at_ms,
+                                         .is_coherent     = true};
+    debug->last_result = flow_vm_begin_tick(&debug->vm, &input);
+
+    if (debug->last_result.code == FLOW_VM_OK)
+    {
+        flow_vm_command_t commands[FLOW_VM_MAX_OUTPUTS];
+        size_t command_count;
+        debug->last_result = flow_vm_commit_tick(&debug->vm, commands, FLOW_VM_MAX_OUTPUTS, &command_count,
+                                                 &debug->vm.snapshot);
+    }
     const uint64_t completed_us  = debug->get_time_us == NULL ? started_us : debug->get_time_us(debug->time_context);
     const uint64_t duration_us   = completed_us >= started_us ? completed_us - started_us : 0U;
     debug->execution_duration_us = duration_us > UINT32_MAX ? UINT32_MAX : (uint32_t)duration_us;
@@ -617,7 +754,7 @@ flow_debug_result_t flow_debug_step(flow_debug_t *debug, uint32_t owner_id, uint
         debug->execution_high_water_us = debug->execution_duration_us;
     }
 
-    if (debug->last_result.code != FLOW_REASON_OK)
+    if (debug->last_result.code != FLOW_VM_OK)
     {
         debug->state = FLOW_DEBUG_FAULT;
         relinquish_live_outputs(debug);
@@ -642,7 +779,7 @@ flow_debug_result_t flow_debug_step(flow_debug_t *debug, uint32_t owner_id, uint
         return FLOW_DEBUG_VALIDATION_FAILED;
     }
 
-    debug->published_tick_number    = debug->runtime.tick_number;
+    debug->published_tick_number    = debug->vm.snapshot.scan_number;
     debug->last_snapshot_publish_ms = now_ms;
 
     /* Manual stepping uses forced-safe behaviour: the evaluated command is applied and immediately relinquished. */
@@ -749,7 +886,7 @@ flow_debug_result_t flow_debug_get_status(flow_debug_t *debug, uint32_t owner_id
                                     .state                   = debug->state,
                                     .covered_bytes           = debug->covered_bytes,
                                     .artifact_length         = debug->artifact_length,
-                                    .flow_revision           = debug->executable.revision,
+                                    .flow_revision           = debug->vm.flow_revision,
                                     .tick_number             = debug->published_tick_number,
                                     .lease_remaining_ms      = FLOW_DEBUG_LEASE_MS,
                                     .interval_ms             = debug->interval_ms,
@@ -917,20 +1054,34 @@ void flow_debug_process(flow_debug_t *debug, uint64_t now_ms)
         }
 
         const uint64_t started_us = debug->get_time_us == NULL ? 0U : debug->get_time_us(debug->time_context);
-        flow_input_frame_t input  = {0};
+        flow_vm_input_sample_t samples[FLOW_VM_MAX_POINTS] = {0};
+        size_t sample_count                                  = 0U;
+        uint64_t sampled_at_ms                               = 0U;
 
-        if (!debug->get_input(debug->input_context, &input))
+        if (!debug->get_input(debug->input_context, samples, FLOW_VM_MAX_POINTS, &sample_count, &sampled_at_ms))
         {
-            debug->last_result = (flow_result_t){.code = FLOW_REASON_INPUT_QUALITY_REJECTED};
+            debug->last_result = (flow_vm_result_t){.code = FLOW_VM_INPUT_REJECTED};
             debug->state       = FLOW_DEBUG_FAULT;
             relinquish_live_outputs(debug);
 
             return;
         }
 
-        debug->last_result = flow_runtime_step(&debug->runtime, &input);
+        const flow_vm_input_frame_t input = {.samples         = samples,
+                                             .sample_count    = sample_count,
+                                             .sampled_at_ms   = sampled_at_ms,
+                                             .is_coherent     = true};
+        debug->last_result = flow_vm_begin_tick(&debug->vm, &input);
 
-        if (debug->last_result.code != FLOW_REASON_OK)
+        if (debug->last_result.code == FLOW_VM_OK)
+        {
+            flow_vm_command_t commands[FLOW_VM_MAX_OUTPUTS];
+            size_t command_count;
+            debug->last_result = flow_vm_commit_tick(&debug->vm, commands, FLOW_VM_MAX_OUTPUTS, &command_count,
+                                                     &debug->vm.snapshot);
+        }
+
+        if (debug->last_result.code != FLOW_VM_OK)
         {
             debug->state = FLOW_DEBUG_FAULT;
             relinquish_live_outputs(debug);
@@ -970,7 +1121,7 @@ void flow_debug_process(flow_debug_t *debug, uint64_t now_ms)
 
         if (is_publish_due)
         {
-            debug->published_tick_number    = debug->runtime.tick_number;
+            debug->published_tick_number    = debug->vm.snapshot.scan_number;
             debug->last_snapshot_publish_ms = now_ms;
         }
     }

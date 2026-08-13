@@ -1,7 +1,7 @@
 # Points, flows, and controller templates implementation plan
 
-> Execution architecture update (12 August 2026): the portable Flow IL plan in
-> `docs/portable-flow-il-implementation-plan.md` is authoritative for compiler,
+> The portable Flow IL architecture in
+> `docs/portable-flow-il-architecture.md` is authoritative for compiler,
 > server runtime, and controller runtime work. Any phase below that implies a
 > separate backend graph evaluator must instead compile to Flow IL and use the
 > shared portable VM. Point/source authoring phases and their ordering remain

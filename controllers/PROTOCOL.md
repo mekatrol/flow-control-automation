@@ -6,7 +6,7 @@ This document is the normative design for the bespoke Flow Controller Protocol
 (FCP). It supports discovery and diagnostics, typed point access, authenticated
 commands, and resumable transfer of compiled flow deployments.
 
-FCP version 1 is implemented by Phase 9 of `IMPLEMENTATION_PLAN.md`. The
+FCP version 1 is the sole controller wire protocol. The
 implemented controller profile includes framing, device and point reads,
 authenticated sessions, bounded point arbitration and subscriptions, and
 transactional transfer of one compiled artifact up to 16384 bytes.
@@ -376,8 +376,8 @@ ID/revision, referenced point/source revisions, execution mode/interval,
 node/connection counts, required capabilities/limits, payload length, and
 SHA-256 digest.
 
-Flow IL envelope version 2 is the sole accepted executable artifact and uses the deterministic encoding in
-[`../docs/controller-executable-flow-contract-v1.md`](../docs/controller-executable-flow-contract-v1.md).
+Flow IL envelope version 1 is the sole accepted executable artifact and uses the deterministic encoding in
+[`../docs/flow-il-v1-contract.md`](../docs/flow-il-v1-contract.md).
 FCP transfer still treats the bytes as opaque; the deployment validator owns
 their semantics.
 
@@ -429,13 +429,13 @@ The initial durable profile stores one committed flow in an atomic NVS blob and
 one volatile staging transfer. Upload status permits retransmission and resume
 within the current boot; a reboot discards staging but recovers either the old
 complete generation or the newly committed complete generation. Artifact
-Flow IL v2 is the executable envelope and body contract linked above; digest and
+Flow IL v1 is the executable envelope and body contract linked above; digest and
 schema validation occur before commit, while activation remains a distinct
 durable operation.
 
 The capabilities response appends `artifact_version_count:u8,
 artifact_versions:u8[count], vm_abi_version:u8, debugger_features:u8,
-maximum_debug_outputs:u8`. The current controller advertises artifact version 2,
+maximum_debug_outputs:u8`. The controller advertises artifact version 1,
 VM ABI version 1, and debugger feature bits for tick/node/instruction stepping,
 continue, pause, run-to, and inspection. Hosts reject a target before upload when
 these versions, opcode requirements, or bounded resources do not match.
@@ -443,9 +443,9 @@ these versions, opcode requirements, or bounded resources do not match.
 ### 12.1 Volatile debug operations
 
 Opcodes `0x50` through `0x5b` reserve the authenticated volatile debug-session
-profile. Their lifecycle, lease, chunk, snapshot, and shadow-safety contracts
-are specified in
-[`../docs/controller-debug-contract-v1.md`](../docs/controller-debug-contract-v1.md).
+profile. Their lifecycle, lease, chunk, snapshot, and shadow-safety semantics
+follow [`../docs/flow-il-v1-debug-contract.md`](../docs/flow-il-v1-debug-contract.md)
+and the portable architecture.
 They never mutate durable upload or committed-generation state.
 
 `0x59` starts fixed-interval shadow execution with a `session_id:u64` and
@@ -457,7 +457,7 @@ than overlaps late ticks, and preserves memory while paused.
 `0x5b` explicitly enables physical live output. Its request is
 `session_id:u64, point_count:u8, point_ids:string8[]`; the ordered point list
 must exactly match every output in the prepared artifact. Its response is
-`priority:u8, expiry_ms:u32`. Schema 1 uses owner `flow-debug`, priority 8, and
+`priority:u8, expiry_ms:u32`. The current profile uses owner `flow-debug`, priority 8, and
 a 1000 ms maximum command expiry. Manual Step immediately relinquishes the
 command; continuous Run refreshes it. Pause, stop, replacement, lease expiry,
 fault, and reboot relinquish every command owned by the debug session.

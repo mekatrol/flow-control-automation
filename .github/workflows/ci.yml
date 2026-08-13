@@ -13,7 +13,7 @@ jobs:
         with:
           node-version: 24
       - run: node tools/generate-flow-contract-fixtures.mjs --check
-      - run: node tools/generate-flow-il-v2-fixtures.mjs --check
+      - run: node tools/generate-flow-il-v1-fixtures.mjs --check
       - run: cmake -S controllers/tests -B controllers/build-host
       - run: cmake --build controllers/build-host
       - run: ctest --test-dir controllers/build-host --output-on-failure

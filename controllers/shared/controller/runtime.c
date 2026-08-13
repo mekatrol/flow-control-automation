@@ -109,9 +109,7 @@ static controller_flow_t controller_flow;
 static flow_debug_t controller_debug;
 static flow_host_t controller_flow_host;
 static uint64_t next_flow_scan_ms;
-static flow_target_point_t debug_target_points[CONTROLLER_IO_POINT_COUNT];
-static flow_input_sample_t debug_input_samples[CONTROLLER_IO_INPUT_COUNT];
-static flow_target_t debug_target;
+static flow_vm_target_t debug_target;
 static controller_points_t controller_points;
 static bool is_flow_ready;
 static bool is_debug_ready;
@@ -177,7 +175,7 @@ static void initialize_flow(void)
                                                                              platform_flow_is_artifact_valid, NULL, &store);
 }
 
-/* Captures the physical digital inputs into the v2 VM's coherent input frame. */
+/* Captures the physical digital inputs into the VM's coherent input frame. */
 static bool read_flow_inputs(void * /* context */, flow_vm_input_sample_t *samples, size_t capacity, size_t *count,
                              uint64_t *sampled_at_ms)
 {
@@ -192,7 +190,8 @@ static bool read_flow_inputs(void * /* context */, flow_vm_input_sample_t *sampl
     {
         snprintf(samples[index].point_id, sizeof(samples[index].point_id), "input-%02u", (unsigned)(index + 1U));
         samples[index].value   = (snapshot.inputs & (uint16_t)(1U << index)) != 0U;
-        samples[index].quality = snapshot.are_inputs_valid ? 1U : 0U;
+        samples[index].quality = snapshot.are_inputs_valid ? 0U : 3U;
+        samples[index].type    = 1U;
     }
 
     *count         = CONTROLLER_IO_INPUT_COUNT;
@@ -201,7 +200,7 @@ static bool read_flow_inputs(void * /* context */, flow_vm_input_sample_t *sampl
     return snapshot.are_inputs_valid;
 }
 
-/* Publishes one committed v2 command batch under the durable flow owner. */
+/* Publishes one committed command batch under the durable flow owner. */
 static bool publish_flow_commands(void * /* context */, const flow_vm_command_t *commands, size_t count, uint64_t now_ms)
 {
     static const char SOURCE_ID[]              = "flow-runtime";
@@ -253,25 +252,6 @@ static void process_flow(uint64_t now_ms)
     next_flow_scan_ms = now_ms + CONTROLLER_TICK_MS;
 }
 
-/* Copies the latest coherent physical input bitmap into the portable debug evaluator adapter. */
-static bool get_debug_input(void * /* context */, flow_input_frame_t *frame)
-{
-    const controller_io_snapshot_t snapshot = controller_io_get_snapshot(&controller_io);
-
-    for (size_t index = 0; index < CONTROLLER_IO_INPUT_COUNT; index++)
-    {
-        debug_input_samples[index].value   = (snapshot.inputs & (uint16_t)(1U << index)) != 0U;
-        debug_input_samples[index].quality = snapshot.are_inputs_valid ? FLOW_QUALITY_GOOD : FLOW_QUALITY_UNAVAILABLE;
-    }
-
-    *frame = (flow_input_frame_t){.samples       = debug_input_samples,
-                                  .sample_count  = CONTROLLER_IO_INPUT_COUNT,
-                                  .sampled_at_ms = (uint64_t)snapshot.sampled_at_ms,
-                                  .is_coherent   = snapshot.are_inputs_valid};
-
-    return true;
-}
-
 /* Gets platform monotonic microseconds through the portable debug timing adapter. */
 static uint64_t get_debug_time_us(void * /* context */)
 {
@@ -283,9 +263,10 @@ static bool get_debug_output_index(const char *point_id, uint8_t *output)
 {
     for (size_t index = 0; index < CONTROLLER_IO_OUTPUT_COUNT; index++)
     {
-        const flow_target_point_t *point = &debug_target_points[CONTROLLER_IO_INPUT_COUNT + index];
+        char expected_id[FLOW_VM_MAX_ID_BYTES + 1];
+        const int size = snprintf(expected_id, sizeof(expected_id), "output-%02u", (unsigned)(index + 1U));
 
-        if (strcmp(point->id, point_id) == 0)
+        if (size > 0 && (size_t)size < sizeof(expected_id) && strcmp(expected_id, point_id) == 0)
         {
             *output = (uint8_t)index;
             return true;
@@ -339,45 +320,15 @@ static void relinquish_debug_output(void * /* context */, const char *point_id)
     }
 }
 
-/* Builds the fixed KC868 digital target table used only for volatile shadow evaluation. */
+/* Builds the bounded Flow IL VM target used only for volatile shadow evaluation. */
 static bool initialize_debug(void)
 {
-    for (size_t index = 0; index < CONTROLLER_IO_INPUT_COUNT; index++)
-    {
-        const int input_size =
-            snprintf(debug_target_points[index].id, sizeof(debug_target_points[index].id), "input-%02u", (unsigned)(index + 1U));
-        const int sample_size = snprintf(debug_input_samples[index].point_id, sizeof(debug_input_samples[index].point_id),
-                                         "input-%02u", (unsigned)(index + 1U));
-
-        if (input_size <= 0 || (size_t)input_size >= sizeof(debug_target_points[index].id) || sample_size <= 0 ||
-            (size_t)sample_size >= sizeof(debug_input_samples[index].point_id))
-        {
-            return false;
-        }
-
-        debug_target_points[index].direction  = 1;
-        debug_target_points[index].value_type = CONTROLLER_PROTOCOL_POINT_DIGITAL;
-    }
-
-    for (size_t index = 0; index < CONTROLLER_IO_OUTPUT_COUNT; index++)
-    {
-        flow_target_point_t *point = &debug_target_points[CONTROLLER_IO_INPUT_COUNT + index];
-        const int size             = snprintf(point->id, sizeof(point->id), "output-%02u", (unsigned)(index + 1U));
-
-        if (size <= 0 || (size_t)size >= sizeof(point->id))
-        {
-            return false;
-        }
-
-        point->direction  = 2;
-        point->value_type = CONTROLLER_PROTOCOL_POINT_DIGITAL;
-    }
-
-    debug_target              = (flow_target_t){.points                 = debug_target_points,
-                                                .point_count            = CONTROLLER_IO_POINT_COUNT,
-                                                .supported_capabilities = UINT32_C(0x1f),
-                                                .maximum_snapshot_bytes = FLOW_DEBUG_SNAPSHOT_CAPACITY};
-    const bool is_initialized = flow_debug_init(&controller_debug, &debug_target, get_debug_input, NULL);
+    debug_target = (flow_vm_target_t){.abi_version            = FLOW_VM_ABI_VERSION,
+                                      .capabilities           = FLOW_VM_CAPABILITIES_ALL,
+                                      .maximum_artifact_bytes = FLOW_VM_MAX_ARTIFACT,
+                                      .maximum_work_per_scan  = FLOW_VM_MAX_INSTRUCTIONS,
+                                      .maximum_snapshot_bytes = FLOW_DEBUG_SNAPSHOT_CAPACITY};
+    const bool is_initialized = flow_debug_init(&controller_debug, &debug_target, read_flow_inputs, NULL);
 
     if (is_initialized)
     {

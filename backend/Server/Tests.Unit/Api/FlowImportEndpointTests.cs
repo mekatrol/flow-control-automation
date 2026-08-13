@@ -11,7 +11,7 @@ internal sealed class FlowImportEndpointTests
     private static readonly string FixtureRoot = Path.Combine(
         AppContext.BaseDirectory,
         "ContractFixtures",
-        "flow-il-v2");
+        "flow-il-v1");
 
     [Test]
     public async Task PreviewDoesNotPersistAndReturnsRecoveryProvenance()
@@ -32,7 +32,7 @@ internal sealed class FlowImportEndpointTests
             Assert.That(result!.Saved, Is.False);
             Assert.That(result.Flow.Name, Is.EqualTo("Recovered preview"));
             Assert.That(result.Flow.Nodes, Has.Count.EqualTo(4));
-            Assert.That(result.Provenance.ArtifactVersion, Is.EqualTo(2));
+            Assert.That(result.Provenance.ArtifactVersion, Is.EqualTo(1));
         });
     }
 

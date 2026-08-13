@@ -3,7 +3,6 @@ using Server.Services.Contracts;
 using Server.Services.Implementation;
 using System.Buffers.Binary;
 using System.Security.Cryptography;
-using System.Runtime.InteropServices;
 
 namespace Tests.Unit.Flows;
 
@@ -12,7 +11,7 @@ public sealed class FlowDecompilerTests
     private static readonly string FixtureRoot = Path.Combine(
         AppContext.BaseDirectory,
         "ContractFixtures",
-        "flow-il-v2");
+        "flow-il-v1");
 
     [TestCase("valid-two-button-and")]
     [TestCase("valid-memory-feedback")]
@@ -69,7 +68,7 @@ public sealed class FlowDecompilerTests
             Assert.That(first.Flow.Nodes, Has.Count.EqualTo(nodeCount));
             Assert.That(first.Flow.Connections, Has.Count.EqualTo(connectionCount));
             Assert.That(first.Warnings, Is.Empty);
-            Assert.That(first.Provenance.ArtifactVersion, Is.EqualTo(2));
+            Assert.That(first.Provenance.ArtifactVersion, Is.EqualTo(1));
         });
     }
 
@@ -130,75 +129,6 @@ public sealed class FlowDecompilerTests
             Assert.That(exception!.Diagnostic.Code, Is.EqualTo("unsupported_version"));
             Assert.That(exception.Diagnostic.Path, Is.EqualTo("/version"));
         });
-    }
-
-    [Test]
-    public void RecoversNormalizedDesignerFlowWhenAuthoringMetadataIsAbsent()
-    {
-        var artifact = StripAuthoringMetadata(Artifact("valid-two-button-and"));
-
-        var result = new FlowDecompiler().Decompile(artifact);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(result.RecoveryLevel, Is.EqualTo("normalized"));
-            Assert.That(result.Warnings, Has.Count.EqualTo(1));
-            Assert.That(result.Flow.Nodes.All(node => node.Label.Length > 0), Is.True);
-        });
-    }
-
-    private static byte[] StripAuthoringMetadata(byte[] artifact)
-    {
-        const int envelopeBytes = 128;
-        const int entryBytes = 48;
-        var sections = new List<byte[]>();
-        var counts = new List<uint>();
-        var versions = new List<ushort>();
-        for (var index = 0; index < 8; index++)
-        {
-            var entry = artifact.AsSpan(envelopeBytes + (index * entryBytes), entryBytes);
-            var offset = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(entry[4..]));
-            var length = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(entry[8..]));
-            counts.Add(BinaryPrimitives.ReadUInt32LittleEndian(entry[12..]));
-            versions.Add(BinaryPrimitives.ReadUInt16LittleEndian(entry[2..]));
-            sections.Add(artifact.AsSpan(offset, length).ToArray());
-        }
-
-        var reader = sections[5].AsSpan();
-        var normalized = new List<byte>();
-        var position = 0;
-        for (var index = 0; index < counts[5]; index++)
-        {
-            normalized.AddRange(reader.Slice(position, 3).ToArray());
-            position += 3;
-            var nodeLength = reader[position];
-            normalized.AddRange(reader.Slice(position, nodeLength + 1).ToArray());
-            position += nodeLength + 1;
-            var labelLength = reader[position];
-            position += labelLength + 1 + 24;
-            var groupLength = reader[position];
-            position += groupLength + 1;
-        }
-
-        sections[5] = normalized.ToArray();
-        var output = new List<byte>(artifact.AsSpan(0, envelopeBytes).ToArray());
-        var sectionOffset = envelopeBytes + (8 * entryBytes);
-        for (var index = 0; index < sections.Count; index++)
-        {
-            var entry = new byte[entryBytes];
-            BinaryPrimitives.WriteUInt16LittleEndian(entry, checked((ushort)(index + 1)));
-            BinaryPrimitives.WriteUInt16LittleEndian(entry.AsSpan(2), checked((ushort)(index == 5 ? 1 : versions[index])));
-            BinaryPrimitives.WriteUInt32LittleEndian(entry.AsSpan(4), checked((uint)sectionOffset));
-            BinaryPrimitives.WriteUInt32LittleEndian(entry.AsSpan(8), checked((uint)sections[index].Length));
-            BinaryPrimitives.WriteUInt32LittleEndian(entry.AsSpan(12), counts[index]);
-            SHA256.HashData(sections[index]).CopyTo(entry, 16);
-            output.AddRange(entry);
-            sectionOffset += sections[index].Length;
-        }
-
-        foreach (var section in sections) output.AddRange(section);
-        BinaryPrimitives.WriteUInt32LittleEndian(CollectionsMarshal.AsSpan(output).Slice(8, 4), checked((uint)output.Count));
-        return output.ToArray();
     }
 
     private static byte[] Artifact(string fixture) =>

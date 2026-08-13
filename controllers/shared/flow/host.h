@@ -1,7 +1,7 @@
 #pragma once
 
 /*
- * Purpose: Host one durably activated Flow IL v2 artifact on a controller.
+ * Purpose: Host one durably activated Flow IL v1 artifact on a controller.
  *
  * Why this contract exists: Durable deployment and volatile debugging must use
  * the normative portable VM without allowing transport code to own execution.

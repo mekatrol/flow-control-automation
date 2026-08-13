@@ -100,7 +100,7 @@ describe('catalogue DTO parsing', () => {
     [{ ...point, direction: 'sideways' }, /point.direction/],
     [{ ...point, valueType: 'float' }, /point.valueType/],
     [{ ...point, revision: 1.5 }, /point.revision/],
-    [{ ...template, schemaVersion: 2 }, /schemaVersion/],
+    [{ ...template, schemaVersion: 0 }, /schemaVersion/],
     [{ ...template, capabilities: { ...template.capabilities, pointTypes: [1] } }, /pointTypes/],
     [{ ...template, limits: { ...template.limits, maxFlows: 0 } }, /maxFlows/]
   ])('rejects malformed payloads', (payload, expected) => {

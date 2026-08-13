@@ -9,7 +9,7 @@ it.
 
 The production flow runtime is documented in
 [`../docs/portable-flow-il-architecture.md`](../docs/portable-flow-il-architecture.md).
-The backend compiles and schedules Flow IL v2; controllers validate and execute
+The backend compiles and schedules Flow IL v1; controllers validate and execute
 it through the shared portable VM rather than compiling designer graphs.
 
 Execution uses the strict [`PLC Scan Cycle`](../docs/plc-scan-cycle.md): Read
@@ -21,7 +21,7 @@ For a clean machine or newly cloned repository, follow
 [`SETUP_DEV.md`](SETUP_DEV.md) before building.
 
 See [`FEATURES.md`](FEATURES.md) for the implemented firmware capabilities and
-[`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) for work that remains.
+[`../docs/portable-flow-il-architecture.md`](../docs/portable-flow-il-architecture.md) for the current execution design.
 
 The first supported board is the KinCony KC868-A16v3 on ESP32-S3. Future ESP32,
 Raspberry Pi, STM32, and other targets should add a board description and, only
@@ -242,11 +242,11 @@ unset FCP_KEY
 ```
 
 Upload an immutable compiled artifact, activate it separately, and verify an
-exact download. Flow IL v2 is validated by the portable VM before commit and
+exact download. Flow IL v1 is validated by the portable VM before commit and
 prepared transactionally before the active runtime is replaced.
 
 ```sh
-./scripts/fcp-client.py "$FCP_PORT" upload --address 0 --key "$FCP_KEY" --file flow.fil --flow-id plant-1 --revision 1 --schema 2
+./scripts/fcp-client.py "$FCP_PORT" upload --address 0 --key "$FCP_KEY" --file flow.fil --flow-id plant-1 --revision 1 --schema 1
 ./scripts/fcp-client.py "$FCP_PORT" activate --address 0 --key "$FCP_KEY"
 ./scripts/fcp-client.py "$FCP_PORT" download --address 0 --key "$FCP_KEY" --file downloaded.fil
 cmp flow.fil downloaded.fil
@@ -254,7 +254,7 @@ cmp flow.fil downloaded.fil
 ./scripts/fcp-client.py "$FCP_PORT" remove-flow --address 0 --key "$FCP_KEY"
 ```
 
-Load a Flow IL v2 artifact into volatile memory, take one coherent shadow step,
+Load a Flow IL v1 artifact into volatile memory, take one coherent shadow step,
 verify and print its snapshot, then stop and clear the session:
 
 ```bash
@@ -279,7 +279,7 @@ B, and signal ground to ground before testing; swap A and B if the adapter and
 controller use opposite terminal naming.
 
 Implemented capabilities are summarized in [`FEATURES.md`](FEATURES.md), the
-remaining roadmap is in [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md), and
+execution architecture is in [`../docs/portable-flow-il-architecture.md`](../docs/portable-flow-il-architecture.md), and
 the normative bespoke wire contract is in [`PROTOCOL.md`](PROTOCOL.md).
 Board-specific wiring and commissioning notes belong under that board's
 directory.
