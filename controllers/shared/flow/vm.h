@@ -146,6 +146,19 @@ typedef struct
 
 typedef struct
 {
+    flow_vm_execution_view_t execution;
+    uint16_t slot_count;
+    uint16_t state_count;
+    uint16_t output_count;
+    bool slots[FLOW_VM_MAX_SLOTS];
+    bool current_state[FLOW_VM_MAX_STATES];
+    bool staged_state[FLOW_VM_MAX_STATES];
+    bool staged_state_valid[FLOW_VM_MAX_STATES];
+    flow_vm_command_t outputs[FLOW_VM_MAX_OUTPUTS];
+} flow_vm_debug_frame_t;
+
+typedef struct
+{
     flow_vm_lifecycle_t lifecycle;
     char flow_id[FLOW_VM_MAX_ID_BYTES + 1];
     uint32_t flow_revision;
@@ -192,6 +205,9 @@ flow_vm_result_t flow_vm_begin_tick(flow_vm_t *vm, const flow_vm_input_frame_t *
 
 /* Executes one scheduled instruction without committing staged state or commands. */
 flow_vm_result_t flow_vm_step_instruction(flow_vm_t *vm, flow_vm_execution_view_t *view);
+
+/* Copies the bounded private execution frame without publishing any staged value. */
+flow_vm_result_t flow_vm_get_debug_frame(const flow_vm_t *vm, flow_vm_debug_frame_t *frame);
 
 /* Runs remaining instructions, then performs the atomic Write Outputs phase. */
 flow_vm_result_t flow_vm_commit_tick(flow_vm_t *vm, flow_vm_command_t *commands, size_t command_capacity, size_t *command_count,

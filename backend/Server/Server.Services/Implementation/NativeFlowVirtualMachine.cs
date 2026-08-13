@@ -10,6 +10,7 @@ internal sealed unsafe partial class NativeFlowVirtualMachine : IFlowVirtualMach
     private const uint AbiVersion = 1;
     private const int MaximumArtifactBytes = 8192;
     private const int MaximumSlots = 256;
+    private const int MaximumStates = 128;
     private const int MaximumOutputs = 64;
     private readonly object _gate = new();
     private NativeVmHandle _instance;
@@ -112,6 +113,47 @@ internal sealed unsafe partial class NativeFlowVirtualMachine : IFlowVirtualMach
         }
     }
 
+    public FlowVmExecutionFrame BeginScan(IReadOnlyList<FlowVmInput> inputs, ulong sampledAtMilliseconds)
+    {
+        ArgumentNullException.ThrowIfNull(inputs);
+        if (inputs.Count > 64) throw new ArgumentOutOfRangeException(nameof(inputs));
+        lock (_gate)
+        {
+            ThrowIfDisposed();
+            BeginScanCore(inputs, sampledAtMilliseconds);
+            return GetFrameCore();
+        }
+    }
+
+    public FlowVmExecutionFrame StepInstruction()
+    {
+        lock (_gate)
+        {
+            ThrowIfDisposed();
+            NativeExecutionView view = default;
+            Check(Native.flow_vm_step_instruction(Handle, &view));
+            return GetFrameCore();
+        }
+    }
+
+    public FlowVmScanResult CommitScan()
+    {
+        lock (_gate)
+        {
+            ThrowIfDisposed();
+            return CommitScanCore();
+        }
+    }
+
+    public void AbortScan()
+    {
+        lock (_gate)
+        {
+            ThrowIfDisposed();
+            Check(Native.flow_vm_abort_tick(Handle));
+        }
+    }
+
     public void Reset()
     {
         lock (_gate)
@@ -158,6 +200,71 @@ internal sealed unsafe partial class NativeFlowVirtualMachine : IFlowVirtualMach
 
     private IntPtr Handle => _instance.DangerousGetHandle();
 
+    private void BeginScanCore(IReadOnlyList<FlowVmInput> inputs, ulong sampledAtMilliseconds)
+    {
+        var samples = stackalloc NativeInput[inputs.Count];
+        for (var index = 0; index < inputs.Count; index++)
+        {
+            WriteIdentifier(inputs[index].PointId, samples[index].PointId, 64);
+            samples[index].Value = inputs[index].Value ? (byte)1 : (byte)0;
+            samples[index].Quality = inputs[index].IsGood ? (byte)1 : (byte)0;
+        }
+
+        var frame = new NativeInputFrame
+        {
+            Samples = (IntPtr)samples,
+            SampleCount = (nuint)inputs.Count,
+            SampledAtMilliseconds = sampledAtMilliseconds,
+            IsCoherent = 1
+        };
+        Check(Native.flow_vm_begin_tick(Handle, &frame));
+    }
+
+    private FlowVmScanResult CommitScanCore()
+    {
+        var commands = stackalloc NativeCommand[MaximumOutputs];
+        nuint commandCount = 0;
+        NativeSnapshot snapshot = default;
+        Check(Native.flow_vm_commit_tick(Handle, commands, MaximumOutputs, &commandCount, &snapshot));
+        var resultCommands = new FlowVmCommand[checked((int)commandCount)];
+        for (var index = 0; index < resultCommands.Length; index++)
+        {
+            resultCommands[index] = new FlowVmCommand(ReadIdentifier(commands[index].PointId, 64), commands[index].Value != 0);
+        }
+
+        var slots = new bool[snapshot.SlotCount];
+        for (var index = 0; index < slots.Length; index++) slots[index] = snapshot.Slots[index] != 0;
+        return new FlowVmScanResult(snapshot.ScanNumber, snapshot.SampledAtMilliseconds, slots, resultCommands);
+    }
+
+    private FlowVmExecutionFrame GetFrameCore()
+    {
+        NativeDebugFrame frame = default;
+        Check(Native.flow_vm_get_debug_frame(Handle, &frame));
+        var slots = new bool[frame.SlotCount];
+        var currentState = new bool[frame.StateCount];
+        var stagedState = new bool?[frame.StateCount];
+        var commands = new FlowVmCommand[frame.OutputCount];
+        for (var index = 0; index < slots.Length; index++) slots[index] = frame.Slots[index] != 0;
+        for (var index = 0; index < currentState.Length; index++)
+        {
+            currentState[index] = frame.CurrentState[index] != 0;
+            stagedState[index] = frame.StagedStateValid[index] != 0 ? frame.StagedState[index] != 0 : null;
+        }
+        for (var index = 0; index < commands.Length; index++)
+        {
+            commands[index] = new FlowVmCommand(ReadIdentifier(frame.Outputs + (index * 65), 64), frame.Outputs[(index * 65) + 64] != 0);
+        }
+        return new FlowVmExecutionFrame(
+            frame.Execution.InstructionIndex,
+            frame.Execution.Opcode,
+            frame.Execution.IsAtCommit != 0,
+            slots,
+            currentState,
+            stagedState,
+            commands);
+    }
+
     private sealed class NativeVmHandle : SafeHandleZeroOrMinusOneIsInvalid
     {
         public NativeVmHandle() : base(true)
@@ -192,6 +299,21 @@ internal sealed unsafe partial class NativeFlowVirtualMachine : IFlowVirtualMach
     [StructLayout(LayoutKind.Sequential)]
     private struct NativeCommand { public fixed byte PointId[64]; public byte Value; }
     [StructLayout(LayoutKind.Sequential)]
+    private struct NativeExecutionView { public ushort InstructionIndex; public byte Opcode; public byte IsAtCommit; }
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativeDebugFrame
+    {
+        public NativeExecutionView Execution;
+        public ushort SlotCount;
+        public ushort StateCount;
+        public ushort OutputCount;
+        public fixed byte Slots[MaximumSlots];
+        public fixed byte CurrentState[MaximumStates];
+        public fixed byte StagedState[MaximumStates];
+        public fixed byte StagedStateValid[MaximumStates];
+        public fixed byte Outputs[MaximumOutputs * 65];
+    }
+    [StructLayout(LayoutKind.Sequential)]
     private struct NativeSnapshot
     {
         public fixed byte FlowId[64];
@@ -200,7 +322,6 @@ internal sealed unsafe partial class NativeFlowVirtualMachine : IFlowVirtualMach
         public ulong SampledAtMilliseconds;
         public ushort SlotCount;
         public ushort OutputCount;
-        public byte IsCoherent;
         public fixed byte Slots[MaximumSlots];
         public fixed byte Outputs[MaximumOutputs * 65];
     }
@@ -213,6 +334,8 @@ internal sealed unsafe partial class NativeFlowVirtualMachine : IFlowVirtualMach
         [LibraryImport(Library)] public static partial NativeResult flow_vm_prepare(byte* artifact, nuint size, NativeTarget* target, IntPtr vm);
         [LibraryImport(Library)] public static partial NativeResult flow_vm_initialize(IntPtr vm, byte* retainedState, nuint size);
         [LibraryImport(Library)] public static partial NativeResult flow_vm_begin_tick(IntPtr vm, NativeInputFrame* input);
+        [LibraryImport(Library)] public static partial NativeResult flow_vm_step_instruction(IntPtr vm, NativeExecutionView* view);
+        [LibraryImport(Library)] public static partial NativeResult flow_vm_get_debug_frame(IntPtr vm, NativeDebugFrame* frame);
         [LibraryImport(Library)] public static partial NativeResult flow_vm_commit_tick(IntPtr vm, NativeCommand* commands, nuint capacity, nuint* count, NativeSnapshot* snapshot);
         [LibraryImport(Library)] public static partial NativeResult flow_vm_abort_tick(IntPtr vm);
         [LibraryImport(Library)] public static partial NativeResult flow_vm_reset(IntPtr vm);

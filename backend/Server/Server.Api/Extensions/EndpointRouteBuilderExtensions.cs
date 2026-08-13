@@ -16,6 +16,7 @@ public static class EndpointRouteBuilderExtensions
     {
         endpoints.MapGet(HealthRoute, static () => Results.Json(new { status = "ok" }));
         endpoints.MapFlowDebugEndpoints();
+        endpoints.MapFlowEmulatorEndpoints();
         endpoints.MapGet("/api/flows", ListFlows);
         endpoints.MapPost("/api/flows", CreateFlow);
         endpoints.MapPost("/api/flows/import-il", ImportFlowIl);

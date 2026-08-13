@@ -439,7 +439,14 @@ using only `Server.Api`, with no configured controller.
 
 ### Phase 5 - Add the controller emulator and unified debugger
 
-Status: next.
+Status: complete on 13 August 2026. The backend now owns bounded controller-profile
+emulator instances with deterministic virtual time, scan-boundary input queues,
+captured output history, scenario export, reset/power-cycle, and quality/output
+fault injection. The managed portable-VM boundary exposes the native resumable
+execution frame for server and emulator debug hosts. The unified debug session
+contract negotiates capabilities and supports tick/node/instruction stepping,
+stable-node breakpoints, run-to, paused-frame inspection, restart, stop, and the
+existing event stream while preserving commit-only output publication.
 
 - Define emulator instances from controller templates and explicit point maps.
 - Add deterministic virtual time, manual/scripted/replayed inputs, captured

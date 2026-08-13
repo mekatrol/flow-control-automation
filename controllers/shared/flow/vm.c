@@ -525,6 +525,42 @@ flow_vm_result_t flow_vm_step_instruction(flow_vm_t *vm, flow_vm_execution_view_
     return get_result(FLOW_VM_OK, "");
 }
 
+/* Copies a paused execution frame so hosts can inspect it without weakening atomic commit. */
+flow_vm_result_t flow_vm_get_debug_frame(const flow_vm_t *vm, flow_vm_debug_frame_t *frame)
+{
+    size_t index;
+
+    if ((vm == NULL) || (frame == NULL))
+    {
+        return result(FLOW_VM_MALFORMED, "/debugFrame");
+    }
+
+    if (vm->lifecycle != FLOW_VM_EXECUTING)
+    {
+        return result(FLOW_VM_WRONG_STATE, "/lifecycle");
+    }
+
+    memset(frame, 0, sizeof(*frame));
+    frame->execution.instruction_index = vm->instruction_pointer;
+    frame->execution.is_at_commit      = vm->instruction_pointer == vm->instruction_count;
+    frame->execution.opcode = frame->execution.is_at_commit ? UINT8_MAX : vm->instructions[vm->instruction_pointer].opcode;
+    frame->slot_count       = vm->slot_count;
+    frame->state_count      = vm->state_count;
+    frame->output_count     = vm->output_count;
+    memcpy(frame->slots, vm->working_slots, vm->slot_count * sizeof(frame->slots[0]));
+    memcpy(frame->current_state, vm->current_state, vm->state_count * sizeof(frame->current_state[0]));
+    memcpy(frame->staged_state, vm->staged_state, vm->state_count * sizeof(frame->staged_state[0]));
+    memcpy(frame->staged_state_valid, vm->staged_state_valid, vm->state_count * sizeof(frame->staged_state_valid[0]));
+
+    /* Copy only proposed commands produced by instructions already executed in this frame. */
+    for (index = 0; index < vm->output_count; ++index)
+    {
+        frame->outputs[index] = vm->staged_outputs[index];
+    }
+
+    return result(FLOW_VM_OK, "");
+}
+
 /* Completes Execute Logic and atomically publishes state, proposed commands, and one completed-scan snapshot. */
 flow_vm_result_t flow_vm_commit_tick(flow_vm_t *vm, flow_vm_command_t *commands, size_t command_capacity, size_t *command_count,
                                      flow_vm_snapshot_t *snapshot)

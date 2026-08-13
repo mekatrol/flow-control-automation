@@ -13,6 +13,12 @@ public static class FlowDebugEndpointRouteBuilderExtensions
         endpoints.MapPost("/api/flows/{flowId}/debug-sessions", Start);
         endpoints.MapGet("/api/flows/{flowId}/debug-sessions/{sessionId}", Get);
         endpoints.MapPost("/api/flows/{flowId}/debug-sessions/{sessionId}/step", Step);
+        endpoints.MapPost("/api/flows/{flowId}/debug-sessions/{sessionId}/step-instruction", StepInstruction);
+        endpoints.MapPost("/api/flows/{flowId}/debug-sessions/{sessionId}/step-node", StepNode);
+        endpoints.MapPost("/api/flows/{flowId}/debug-sessions/{sessionId}/run-to", RunTo);
+        endpoints.MapPut("/api/flows/{flowId}/debug-sessions/{sessionId}/breakpoints", ReplaceBreakpoints);
+        endpoints.MapGet("/api/flows/{flowId}/debug-sessions/{sessionId}/frame", Inspect);
+        endpoints.MapPost("/api/flows/{flowId}/debug-sessions/{sessionId}/restart", Restart);
         endpoints.MapPost("/api/flows/{flowId}/debug-sessions/{sessionId}/run", Run);
         endpoints.MapPost("/api/flows/{flowId}/debug-sessions/{sessionId}/pause", Pause);
         endpoints.MapPost("/api/flows/{flowId}/debug-sessions/{sessionId}/live-output", EnableLiveOutput);
@@ -33,8 +39,66 @@ public static class FlowDebugEndpointRouteBuilderExtensions
         }
         try
         {
-            var session = await debug.StartAsync(request.Source, request.ReplaceExisting, cancellationToken);
+            var session = await debug.StartAsync(
+                new StartFlowDebugSession(request.Source, request.Host, request.ReplaceExisting, request.EmulatorId),
+                cancellationToken);
             return Results.Json(session, statusCode: StatusCodes.Status201Created);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            return MapError(exception);
+        }
+    }
+
+    private static async Task<IResult> StepInstruction(
+        string flowId,
+        string sessionId,
+        IFlowDebugService debug,
+        CancellationToken cancellationToken) => await MapDebugResult(
+            () => debug.StepInstructionAsync(flowId, sessionId, cancellationToken));
+
+    private static async Task<IResult> StepNode(
+        string flowId,
+        string sessionId,
+        IFlowDebugService debug,
+        CancellationToken cancellationToken) => await MapDebugResult(
+            () => debug.StepNodeAsync(flowId, sessionId, cancellationToken));
+
+    private static async Task<IResult> RunTo(
+        string flowId,
+        string sessionId,
+        FlowDebugBreakpoint breakpoint,
+        IFlowDebugService debug,
+        CancellationToken cancellationToken) => await MapDebugResult(
+            () => debug.RunToAsync(flowId, sessionId, breakpoint, cancellationToken));
+
+    private static async Task<IResult> ReplaceBreakpoints(
+        string flowId,
+        string sessionId,
+        IReadOnlyList<FlowDebugBreakpoint> breakpoints,
+        IFlowDebugService debug,
+        CancellationToken cancellationToken) => await MapDebugResult(
+            () => debug.ReplaceBreakpointsAsync(flowId, sessionId, breakpoints, cancellationToken));
+
+    private static async Task<IResult> Inspect(
+        string flowId,
+        string sessionId,
+        IFlowDebugService debug,
+        CancellationToken cancellationToken) => await MapDebugResult(
+            () => debug.InspectAsync(flowId, sessionId, cancellationToken));
+
+    private static async Task<IResult> Restart(
+        string flowId,
+        string sessionId,
+        IFlowDebugService debug,
+        CancellationToken cancellationToken) => await MapDebugResult(
+            () => debug.RestartAsync(flowId, sessionId, cancellationToken));
+
+    private static async Task<IResult> MapDebugResult<T>(Func<Task<T>> operation)
+    {
+        try
+        {
+            return Results.Json(await operation());
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
