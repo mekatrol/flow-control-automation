@@ -69,7 +69,9 @@ describe('node-kind registry', () => {
       // Expected outcome: `definition.editor.length` satisfies the required boundary.
       // Acceptance criteria: `definition.editor.length` must satisfy the asserted boundary against `0`, because this condition proves that
       // contains complete rendering, connector, and editor metadata for every supported kind.
-      expect(definition.editor.length > 0).toBe(!['and', 'not', 'or'].includes(kind));
+      expect(definition.editor.length > 0).toBe(
+        !['and', 'nand', 'nor', 'not', 'or', 'xnor', 'xor'].includes(kind)
+      );
 
       // Expected outcome: `Object.keys(definition.defaultConfiguration)` matches the required structure.
       // Acceptance criteria: `Object.keys(definition.defaultConfiguration)` must equal `definition.editor.map(({ key }`, because this condition proves that

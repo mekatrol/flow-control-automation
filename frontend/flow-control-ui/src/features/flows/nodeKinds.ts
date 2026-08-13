@@ -190,8 +190,16 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     [{ key: 'value', label: 'Initial value', input: 'checkbox' }],
     { value: false }
   ),
-  [FlowNodeFunctionType.Nand]: definition(FlowNodeFunctionType.Nand, 'logic', 'nand'),
-  [FlowNodeFunctionType.Nor]: definition(FlowNodeFunctionType.Nor, 'logic', 'nor'),
+  [FlowNodeFunctionType.Nand]: executableDefinition(FlowNodeFunctionType.Nand, [
+    booleanPort('a', 'A', 'input', 'left'),
+    booleanPort('b', 'B', 'input', 'left'),
+    booleanPort('value', 'Value', 'output', 'right')
+  ]),
+  [FlowNodeFunctionType.Nor]: executableDefinition(FlowNodeFunctionType.Nor, [
+    booleanPort('a', 'A', 'input', 'left'),
+    booleanPort('b', 'B', 'input', 'left'),
+    booleanPort('value', 'Value', 'output', 'right')
+  ]),
   [FlowNodeFunctionType.Not]: executableDefinition(FlowNodeFunctionType.Not, [
     booleanPort('in', 'Input', 'input', 'left'),
     booleanPort('value', 'Value', 'output', 'right')
@@ -257,8 +265,16 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     defaultConfiguration: { outputs: 2 }
   },
   [FlowNodeFunctionType.Timer]: definition(FlowNodeFunctionType.Timer, 'timing', 'timer'),
-  [FlowNodeFunctionType.Xnor]: definition(FlowNodeFunctionType.Xnor, 'logic', 'xnor'),
-  [FlowNodeFunctionType.Xor]: definition(FlowNodeFunctionType.Xor, 'logic', 'xor')
+  [FlowNodeFunctionType.Xnor]: executableDefinition(FlowNodeFunctionType.Xnor, [
+    booleanPort('a', 'A', 'input', 'left'),
+    booleanPort('b', 'B', 'input', 'left'),
+    booleanPort('value', 'Value', 'output', 'right')
+  ]),
+  [FlowNodeFunctionType.Xor]: executableDefinition(FlowNodeFunctionType.Xor, [
+    booleanPort('a', 'A', 'input', 'left'),
+    booleanPort('b', 'B', 'input', 'left'),
+    booleanPort('value', 'Value', 'output', 'right')
+  ])
 };
 
 export const flowNodeKinds = Object.keys(nodeKindRegistry) as FlowNodeKind[];

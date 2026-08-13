@@ -1,0 +1,34 @@
+{
+  "flowId": "expanded-boolean",
+  "flowRevision": 1,
+  "sectionCount": 8,
+  "instructionCount": 11,
+  "slotCount": 10,
+  "pointCount": 4,
+  "stateCount": 0,
+  "schedule": [
+    "constant-false",
+    "constant-true",
+    "nand-1",
+    "nor-1",
+    "output-nand",
+    "output-nor",
+    "xnor-1",
+    "output-xnor",
+    "xor-1",
+    "output-xor"
+  ],
+  "slots": {
+    "constant-false": 0,
+    "constant-true": 1,
+    "nand-1": 2,
+    "nor-1": 3,
+    "output-nand": 4,
+    "output-nor": 5,
+    "xnor-1": 6,
+    "output-xnor": 7,
+    "xor-1": 8,
+    "output-xor": 9
+  },
+  "artifactLength": 1191
+}

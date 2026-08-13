@@ -521,6 +521,13 @@ inputs, and firmware contains no v2 graph scheduler/compiler.
 
 ### Phase 8 - Expand the language deliberately
 
+Status: in progress. The first versioned slice is implemented end to end:
+Boolean NAND, NOR, XOR, and XNOR use opcodes 9-12 and capability bit 5, with
+compiler/decompiler lowering, portable VM semantics, controller/server target
+admission, shared fixtures, designer metadata, and truth-table coverage. The
+typed-value ABI required for numeric, unit, timer, and event slices remains
+intentionally separate so those semantics do not overload Boolean storage.
+
 - Add numeric, comparison, level-shifter, point, quality, timer, and event
   opcodes in small versioned slices.
 - For every opcode define types, units, quality propagation, state bytes,

@@ -98,11 +98,22 @@ instruction or current state. Result slots are written exactly once.
 | 6 | load current state | Boolean transient | auxiliary: state slot |
 | 7 | propose output | Boolean transient | operand0, auxiliary: write binding |
 | 8 | stage next state | none | operand0, auxiliary: state slot |
+| 9 | Boolean NAND | Boolean transient | operand0, operand1 |
+| 10 | Boolean NOR | Boolean transient | operand0, operand1 |
+| 11 | Boolean XOR | Boolean transient | operand0, operand1 |
+| 12 | Boolean XNOR | Boolean transient | operand0, operand1 |
 | 255 | commit tick | none | all unused; final instruction exactly once |
 
 Opcode flags are zero. Unknown opcodes, wrong operand shapes/types, forward
 transient reads, duplicate writes, work beyond the envelope bound, and any
 instruction after commit are invalid.
+
+All Boolean combinators are total, unitless, propagate the already-admitted
+good quality of their operands, allocate no state bytes, perform one bounded
+work unit, and write one Boolean slot into snapshots. NAND and NOR negate AND
+and OR respectively; XOR is true exactly when operands differ and XNOR is true
+exactly when operands are equal. These definitions contain no overflow or
+platform-dependent behavior.
 
 ### 3.5 Commit plan — section 5
 
@@ -137,8 +148,9 @@ reproduction auditable.
 ## 4. Capabilities and limits
 
 Required-capability bits are: bit 0 Boolean slots, bit 1 point reads, bit 2
-proposed outputs, bit 3 one-tick state, and bit 4 debug maps. Unknown required
-bits are rejected. A host advertises IL versions, ABI version, capabilities,
+proposed outputs, bit 3 one-tick state, bit 4 debug maps, and bit 5 expanded
+Boolean combinators (NAND, NOR, XOR, and XNOR). Unknown required bits are
+rejected. A host advertises IL versions, ABI version, capabilities,
 maximum artifact/section/instruction/slot/state/point/debug-map sizes, maximum
 work per tick, breakpoint count, paused-frame bytes, and snapshot bytes.
 

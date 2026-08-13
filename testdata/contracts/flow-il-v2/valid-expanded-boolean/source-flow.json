@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "id": "expanded-boolean",
+  "revision": 1,
+  "controllerTemplateId": "kincony-kc868-a16",
+  "controllerTemplateRevision": 3,
+  "nodes": [
+    {
+      "id": "constant-false",
+      "kind": "constant",
+      "value": false
+    },
+    {
+      "id": "constant-true",
+      "kind": "constant",
+      "value": true
+    },
+    {
+      "id": "nand-1",
+      "kind": "nand"
+    },
+    {
+      "id": "nor-1",
+      "kind": "nor"
+    },
+    {
+      "id": "xor-1",
+      "kind": "xor"
+    },
+    {
+      "id": "xnor-1",
+      "kind": "xnor"
+    },
+    {
+      "id": "output-nand",
+      "kind": "output",
+      "pointId": "output-nand"
+    },
+    {
+      "id": "output-nor",
+      "kind": "output",
+      "pointId": "output-nor"
+    },
+    {
+      "id": "output-xor",
+      "kind": "output",
+      "pointId": "output-xor"
+    },
+    {
+      "id": "output-xnor",
+      "kind": "output",
+      "pointId": "output-xnor"
+    }
+  ],
+  "connections": [
+    {
+      "source": "constant-true",
+      "target": "nand-1",
+      "port": "a"
+    },
+    {
+      "source": "constant-false",
+      "target": "nand-1",
+      "port": "b"
+    },
+    {
+      "source": "nand-1",
+      "target": "output-nand",
+      "port": "in"
+    },
+    {
+      "source": "constant-true",
+      "target": "nor-1",
+      "port": "a"
+    },
+    {
+      "source": "constant-false",
+      "target": "nor-1",
+      "port": "b"
+    },
+    {
+      "source": "nor-1",
+      "target": "output-nor",
+      "port": "in"
+    },
+    {
+      "source": "constant-true",
+      "target": "xor-1",
+      "port": "a"
+    },
+    {
+      "source": "constant-false",
+      "target": "xor-1",
+      "port": "b"
+    },
+    {
+      "source": "xor-1",
+      "target": "output-xor",
+      "port": "in"
+    },
+    {
+      "source": "constant-true",
+      "target": "xnor-1",
+      "port": "a"
+    },
+    {
+      "source": "constant-false",
+      "target": "xnor-1",
+      "port": "b"
+    },
+    {
+      "source": "xnor-1",
+      "target": "output-xnor",
+      "port": "in"
+    }
+  ]
+}

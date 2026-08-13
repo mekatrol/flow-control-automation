@@ -13,6 +13,7 @@ public sealed class FlowDecompilerTests
 
     [TestCase("valid-two-button-and")]
     [TestCase("valid-memory-feedback")]
+    [TestCase("valid-expanded-boolean")]
     public void RecompilesRecoveredDesignerSemanticsToTheIdenticalArtifact(string fixture)
     {
         var artifact = Artifact(fixture);

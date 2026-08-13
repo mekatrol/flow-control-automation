@@ -13,7 +13,7 @@ enum
 {
     TEST_OWNER            = 7,
     TEST_OTHER_OWNER      = 8,
-    TEST_ALL_CAPABILITIES = 0x1f,
+    TEST_ALL_CAPABILITIES = FLOW_VM_CAPABILITIES_ALL,
 };
 
 static const flow_target_point_t TARGET_POINTS[] = {{.id = "input-01", .direction = 1, .value_type = 2},

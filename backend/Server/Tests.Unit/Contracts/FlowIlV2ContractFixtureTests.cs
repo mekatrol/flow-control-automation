@@ -29,7 +29,7 @@ public sealed class FlowIlV2ContractFixtureTests
         using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(FixtureRoot, "manifest.json")));
         var fixtures = manifest.RootElement.GetProperty("fixtures").EnumerateArray().ToArray();
 
-        Assert.That(fixtures, Has.Length.EqualTo(8));
+        Assert.That(fixtures, Has.Length.EqualTo(9));
         foreach (var fixture in fixtures)
         {
             var id = fixture.GetProperty("id").GetString()!;

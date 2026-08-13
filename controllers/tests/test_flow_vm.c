@@ -9,7 +9,7 @@
 #endif
 
 static const flow_vm_target_t TARGET = {.abi_version            = FLOW_VM_ABI_VERSION,
-                                        .capabilities           = 0x1f,
+                                        .capabilities           = FLOW_VM_CAPABILITIES_ALL,
                                         .maximum_artifact_bytes = FLOW_VM_MAX_ARTIFACT,
                                         .maximum_work_per_scan  = FLOW_VM_MAX_INSTRUCTIONS,
                                         .maximum_snapshot_bytes = 16384};
@@ -87,6 +87,27 @@ static void test_memory_scans(void)
     assert(command.value);
 }
 
+/* Checks every expanded Boolean opcode has the normative truth-table result in the portable host. */
+static void test_expanded_boolean_scans(void)
+{
+    flow_vm_t vm;
+    get_vm("valid-expanded-boolean", &vm);
+    const flow_vm_input_frame_t input = {.sampled_at_ms = 1U, .is_coherent = true};
+    flow_vm_command_t commands[4];
+    size_t command_count = 0U;
+    flow_vm_snapshot_t snapshot;
+    assert(flow_vm_begin_tick(&vm, &input).code == FLOW_VM_OK);
+    assert(flow_vm_commit_tick(&vm, commands, 4U, &command_count, &snapshot).code == FLOW_VM_OK);
+    assert(command_count == 4U);
+
+    for (size_t index = 0U; index < command_count; index++)
+    {
+        const bool expected = strcmp(commands[index].point_id, "output-nand") == 0 ||
+                              strcmp(commands[index].point_id, "output-xor") == 0;
+        assert(commands[index].value == expected);
+    }
+}
+
 /* Checks a paused Execute Logic frame is resumable and abort commits neither state nor a snapshot. */
 static void test_step_and_abort(void)
 {
@@ -143,6 +164,7 @@ int main(void)
     assert(flow_vm_get_abi_version() == FLOW_VM_ABI_VERSION);
     test_boolean_scans();
     test_memory_scans();
+    test_expanded_boolean_scans();
     test_step_and_abort();
     test_loader_rejections_are_transactional();
 

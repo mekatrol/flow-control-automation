@@ -3,7 +3,7 @@
 #include <string.h>
 
 static const flow_vm_target_t TARGET = {.abi_version            = FLOW_VM_ABI_VERSION,
-                                        .capabilities           = UINT64_C(0x1f),
+                                        .capabilities           = FLOW_VM_CAPABILITIES_ALL,
                                         .maximum_artifact_bytes = FLOW_VM_MAX_ARTIFACT,
                                         .maximum_work_per_scan  = FLOW_VM_MAX_INSTRUCTIONS,
                                         .maximum_snapshot_bytes = sizeof(flow_vm_snapshot_t)};

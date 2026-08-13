@@ -41,7 +41,7 @@ internal sealed unsafe partial class NativeFlowVirtualMachine : IFlowVirtualMach
             var target = new NativeTarget
             {
                 AbiVersion = AbiVersion,
-                Capabilities = 0x1f,
+                Capabilities = 0x3f,
                 MaximumArtifactBytes = MaximumArtifactBytes,
                 MaximumWorkPerScan = 256,
                 MaximumSnapshotBytes = 16384

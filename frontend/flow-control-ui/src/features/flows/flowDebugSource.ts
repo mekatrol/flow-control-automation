@@ -8,6 +8,10 @@ const supportedKinds = new Set([
   'not',
   'and',
   'or',
+  'nand',
+  'nor',
+  'xor',
+  'xnor',
   'memory',
   'digitalOutput'
 ]);

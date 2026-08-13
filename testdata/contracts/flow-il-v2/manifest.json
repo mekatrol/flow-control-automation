@@ -22,6 +22,16 @@
       }
     },
     {
+      "id": "valid-expanded-boolean",
+      "artifactLength": 1191,
+      "artifactSha256": "391af1117b2f2444086b067eb38e73d093fd66f645de058f19a4f331aaea8aff",
+      "expected": {
+        "valid": true,
+        "reason": "ok",
+        "path": ""
+      }
+    },
+    {
       "id": "valid-source-order-permutation",
       "artifactLength": 854,
       "artifactSha256": "af74ddbe4661b626b5ab411967242b167777e590e52093d5edde40f7d44e834b",

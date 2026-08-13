@@ -36,6 +36,29 @@ public sealed class FlowCompilerTests
         });
     }
 
+    [TestCase("nand", 9)]
+    [TestCase("nor", 10)]
+    [TestCase("xor", 11)]
+    [TestCase("xnor", 12)]
+    public void LowersExpandedBooleanNodesToTheirNormativeOpcode(string kind, byte opcode)
+    {
+        var source = ReadSource("valid-two-button-and");
+        source = source with
+        {
+            Nodes = source.Nodes.Select(node => node.Kind == "and" ? node with { Kind = kind } : node).ToArray()
+        };
+
+        var artifact = new FlowCompiler().Compile(Request(source)).Artifact.ToArray();
+        var instructionSection = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(
+            artifact.AsSpan(128 + (3 * 48) + 4, 4));
+
+        var instructionCount = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(artifact.AsSpan(32, 4));
+        Assert.That(
+            Enumerable.Range(0, checked((int)instructionCount))
+                .Select(index => artifact[checked((int)instructionSection) + (index * 12)]),
+            Does.Contain(opcode));
+    }
+
     [Test]
     public void RejectsUnsupportedNodesWithAStableGraphPath()
     {

@@ -65,6 +65,10 @@ public sealed class FlowDecompiler : IFlowDecompiler
                 5 => "or",
                 6 => ConfigureState(configuration, slots, constants, instruction.Auxiliary, index),
                 7 => ConfigurePoint("digitalOutput", configuration, points, instruction.Auxiliary, 2, index),
+                9 => "nand",
+                10 => "nor",
+                11 => "xor",
+                12 => "xnor",
                 _ => throw Error("unsupported_opcode", $"/instructions/{index}/opcode", $"Opcode {instruction.Opcode} cannot be represented by the designer.")
             };
 
@@ -77,6 +81,10 @@ public sealed class FlowDecompiler : IFlowDecompiler
                     break;
                 case 4:
                 case 5:
+                case 9:
+                case 10:
+                case 11:
+                case 12:
                     AddConnection(connections, slotOwners, instruction.Operand0, symbol.NodeId, "a", index);
                     AddConnection(connections, slotOwners, instruction.Operand1, symbol.NodeId, "b", index);
                     inputs.Add(instruction.Operand0);
@@ -295,7 +303,8 @@ public sealed class FlowDecompiler : IFlowDecompiler
         "digitalInput" or "digitalConstant" => [Output("value", "Value")],
         "digitalOutput" => [Input("in", "Input")],
         "not" => [Input("in", "Input"), Output("value", "Value")],
-        "and" or "or" => [Input("a", "A"), Input("b", "B"), Output("value", "Value")],
+        "and" or "or" or "nand" or "nor" or "xor" or "xnor" =>
+            [Input("a", "A"), Input("b", "B"), Output("value", "Value")],
         "memory" => [Input("in", "Input"), Output("value", "Previous value")],
         _ => []
     };

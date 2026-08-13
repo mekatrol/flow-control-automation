@@ -11,6 +11,7 @@ namespace Server.Services.Implementation;
 public sealed partial class FlowCompiler : IFlowCompiler
 {
     private const int MaximumArtifactBytes = 8192;
+    private const ulong ExpandedBooleanCapability = 1UL << 5;
 
     private static readonly IReadOnlyDictionary<string, NodeShape> Shapes =
         new Dictionary<string, NodeShape>(StringComparer.Ordinal)
@@ -20,6 +21,10 @@ public sealed partial class FlowCompiler : IFlowCompiler
             ["not"] = new([new("in", 1), new("value", 2)]),
             ["and"] = new([new("a", 1), new("b", 1), new("value", 2)]),
             ["or"] = new([new("a", 1), new("b", 1), new("value", 2)]),
+            ["nand"] = new([new("a", 1), new("b", 1), new("value", 2)]),
+            ["nor"] = new([new("a", 1), new("b", 1), new("value", 2)]),
+            ["xor"] = new([new("a", 1), new("b", 1), new("value", 2)]),
+            ["xnor"] = new([new("a", 1), new("b", 1), new("value", 2)]),
             ["memory"] = new([new("in", 1), new("value", 2)]),
             ["digitalOutput"] = new([new("in", 1)])
         };
@@ -136,6 +141,14 @@ public sealed partial class FlowCompiler : IFlowCompiler
                 "and" => new(4, result, InputSlot(source, slots, id, "a"), InputSlot(source, slots, id, "b"),
                     ushort.MaxValue, id, 0),
                 "or" => new(5, result, InputSlot(source, slots, id, "a"), InputSlot(source, slots, id, "b"),
+                    ushort.MaxValue, id, 0),
+                "nand" => new(9, result, InputSlot(source, slots, id, "a"), InputSlot(source, slots, id, "b"),
+                    ushort.MaxValue, id, 0),
+                "nor" => new(10, result, InputSlot(source, slots, id, "a"), InputSlot(source, slots, id, "b"),
+                    ushort.MaxValue, id, 0),
+                "xor" => new(11, result, InputSlot(source, slots, id, "a"), InputSlot(source, slots, id, "b"),
+                    ushort.MaxValue, id, 0),
+                "xnor" => new(12, result, InputSlot(source, slots, id, "a"), InputSlot(source, slots, id, "b"),
                     ushort.MaxValue, id, 0),
                 "memory" => new(6, result, ushort.MaxValue, ushort.MaxValue, stateSlots[id], id, 0),
                 "digitalOutput" => new(7, result, InputSlot(source, slots, id, "in"), ushort.MaxValue,
@@ -258,6 +271,11 @@ public sealed partial class FlowCompiler : IFlowCompiler
         if (memoryIds.Length > 0)
         {
             capabilities |= 8UL;
+        }
+
+        if (source.Nodes.Any(node => node.Kind is "nand" or "nor" or "xor" or "xnor"))
+        {
+            capabilities |= ExpandedBooleanCapability;
         }
 
         var workingBytes = checked((uint)((schedule.Count + memoryIds.Length) * 2));

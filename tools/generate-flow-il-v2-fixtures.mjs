@@ -9,7 +9,8 @@ const checkOnly = process.argv.includes('--check');
 const envelopeLength = 128;
 const directoryEntryLength = 48;
 const sectionIds = { constants: 1, points: 2, slots: 3, instructions: 4, commit: 5, symbols: 6, debugMap: 7, dependencies: 8 };
-const opcodes = { readPoint: 1, constant: 2, not: 3, and: 4, or: 5, loadState: 6, proposeOutput: 7, stageState: 8, commit: 255 };
+const opcodes = { readPoint: 1, constant: 2, not: 3, and: 4, or: 5, loadState: 6, proposeOutput: 7, stageState: 8,
+  nand: 9, nor: 10, xor: 11, xnor: 12, commit: 255 };
 
 const u8 = (value) => Buffer.from([value]);
 const u16 = (value) => { const bytes = Buffer.alloc(2); bytes.writeUInt16LE(value); return bytes; };
@@ -82,6 +83,10 @@ function compile(source) {
     if (node.kind === 'not') Object.assign(instruction, { opcode: opcodes.not, op0: inputSlot(id, 'in') });
     if (node.kind === 'and') Object.assign(instruction, { opcode: opcodes.and, op0: inputSlot(id, 'a'), op1: inputSlot(id, 'b') });
     if (node.kind === 'or') Object.assign(instruction, { opcode: opcodes.or, op0: inputSlot(id, 'a'), op1: inputSlot(id, 'b') });
+    if (node.kind === 'nand') Object.assign(instruction, { opcode: opcodes.nand, op0: inputSlot(id, 'a'), op1: inputSlot(id, 'b') });
+    if (node.kind === 'nor') Object.assign(instruction, { opcode: opcodes.nor, op0: inputSlot(id, 'a'), op1: inputSlot(id, 'b') });
+    if (node.kind === 'xor') Object.assign(instruction, { opcode: opcodes.xor, op0: inputSlot(id, 'a'), op1: inputSlot(id, 'b') });
+    if (node.kind === 'xnor') Object.assign(instruction, { opcode: opcodes.xnor, op0: inputSlot(id, 'a'), op1: inputSlot(id, 'b') });
     if (node.kind === 'memory') Object.assign(instruction, { opcode: opcodes.loadState, aux: stateSlotByNode.get(id) });
     if (node.kind === 'output') Object.assign(instruction, { opcode: opcodes.proposeOutput, op0: inputSlot(id, 'in'), aux: pointIndex.get(node.pointId) });
     instructions.push(instruction);
@@ -126,6 +131,7 @@ function compile(source) {
   if (points.some((point) => point.direction === 1)) capabilities |= 2n;
   if (points.some((point) => point.direction === 2)) capabilities |= 4n;
   if (memoryIds.length > 0) capabilities |= 8n;
+  if (orderedIds.some((id) => ['nand', 'nor', 'xor', 'xnor'].includes(nodes.get(id).kind))) capabilities |= 32n;
   envelope.writeUInt32LE(instructions.length, 32); envelope.writeBigUInt64LE(capabilities, 36);
   envelope.writeUInt32LE((orderedIds.length + memoryIds.length) * 2, 44); envelope.writeUInt32LE(16384, 48);
   envelope.writeUInt8(Buffer.byteLength(source.id), 52); envelope.write(source.id, 53, 'utf8'); envelope.writeUInt32LE(envelopeLength, 116);
@@ -145,6 +151,16 @@ const memory = { ...structuredClone(base), id: 'memory-feedback', revision: 2,
     { id: 'or-1', kind: 'or' }, { id: 'output-01-node', kind: 'output', pointId: 'output-01' }],
   connections: [{ source: 'constant-true', target: 'or-1', port: 'a' }, { source: 'memory-1', target: 'or-1', port: 'b' },
     { source: 'or-1', target: 'memory-1', port: 'in' }, { source: 'memory-1', target: 'output-01-node', port: 'in' }] };
+const expandedBoolean = { ...structuredClone(base), id: 'expanded-boolean', revision: 1,
+  nodes: [{ id: 'constant-false', kind: 'constant', value: false }, { id: 'constant-true', kind: 'constant', value: true },
+    { id: 'nand-1', kind: 'nand' }, { id: 'nor-1', kind: 'nor' }, { id: 'xor-1', kind: 'xor' }, { id: 'xnor-1', kind: 'xnor' },
+    { id: 'output-nand', kind: 'output', pointId: 'output-nand' }, { id: 'output-nor', kind: 'output', pointId: 'output-nor' },
+    { id: 'output-xor', kind: 'output', pointId: 'output-xor' }, { id: 'output-xnor', kind: 'output', pointId: 'output-xnor' }],
+  connections: ['nand', 'nor', 'xor', 'xnor'].flatMap((kind) => [
+    { source: 'constant-true', target: `${kind}-1`, port: 'a' },
+    { source: 'constant-false', target: `${kind}-1`, port: 'b' },
+    { source: `${kind}-1`, target: `output-${kind}`, port: 'in' }
+  ]) };
 const maximum = { ...structuredClone(base), id: 'maximum-boolean', revision: 1,
   nodes: Array.from({ length: 128 }, (_, index) => ({ id: `constant-${String(index).padStart(3, '0')}`, kind: 'constant', value: index % 2 === 0 })), connections: [] };
 
@@ -163,6 +179,7 @@ function fixture(id, source, mutate, expected) {
 }
 fixture('valid-two-button-and', base, null, { valid: true, reason: 'ok', path: '' });
 fixture('valid-memory-feedback', memory, null, { valid: true, reason: 'ok', path: '' });
+fixture('valid-expanded-boolean', expandedBoolean, null, { valid: true, reason: 'ok', path: '' });
 const permuted = structuredClone(base); permuted.nodes.reverse(); permuted.connections.reverse();
 fixture('valid-source-order-permutation', permuted, null, { valid: true, reason: 'ok', path: '' });
 fixture('maximum-boolean', maximum, null, { valid: true, reason: 'ok', path: '' });

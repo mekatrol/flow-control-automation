@@ -110,7 +110,7 @@ bool platform_flow_is_artifact_valid(void * /* context */, const controller_flow
 {
     static const uint32_t SUPPORTED_SCHEMA = 2;
     const flow_vm_target_t target          = {.abi_version            = FLOW_VM_ABI_VERSION,
-                                              .capabilities           = UINT64_C(0x1f),
+                                              .capabilities           = FLOW_VM_CAPABILITIES_ALL,
                                               .maximum_artifact_bytes = FLOW_VM_MAX_ARTIFACT,
                                               .maximum_work_per_scan  = FLOW_VM_MAX_INSTRUCTIONS,
                                               .maximum_snapshot_bytes = sizeof(flow_vm_snapshot_t)};

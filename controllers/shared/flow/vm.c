@@ -13,7 +13,6 @@ enum
     SLOT_RECORD_BYTES        = 8,
     INSTRUCTION_RECORD_BYTES = 12,
     UNUSED_INDEX             = 0xffff,
-    CAPABILITY_MASK          = 0x1f,
     OPCODE_READ_POINT        = 1,
     OPCODE_CONSTANT          = 2,
     OPCODE_NOT               = 3,
@@ -22,6 +21,10 @@ enum
     OPCODE_LOAD_STATE        = 6,
     OPCODE_PROPOSE_OUTPUT    = 7,
     OPCODE_STAGE_STATE       = 8,
+    OPCODE_NAND              = 9,
+    OPCODE_NOR               = 10,
+    OPCODE_XOR               = 11,
+    OPCODE_XNOR              = 12,
     OPCODE_COMMIT            = 255,
 };
 
@@ -165,7 +168,7 @@ static flow_vm_result_t get_metadata(const uint8_t *artifact, size_t size, metad
     metadata->working_bytes   = get_u32(&artifact[44]);
     metadata->snapshot_bytes  = get_u32(&artifact[48]);
 
-    if ((metadata->capabilities & ~((uint64_t)CAPABILITY_MASK)) != 0U)
+    if ((metadata->capabilities & ~((uint64_t)FLOW_VM_CAPABILITIES_ALL)) != 0U)
     {
         return get_result(FLOW_VM_UNSUPPORTED_REQUIREMENT, "/requiredCapabilities");
     }
@@ -352,7 +355,7 @@ flow_vm_result_t flow_vm_prepare(const uint8_t *artifact, size_t artifact_size, 
         instruction->auxiliary             = get_u16(&record[8]);
 
         if (record[1] != 0U || get_u16(&record[10]) != 0U || instruction->opcode == 0U ||
-            (instruction->opcode > OPCODE_STAGE_STATE && instruction->opcode != OPCODE_COMMIT))
+            (instruction->opcode > OPCODE_XNOR && instruction->opcode != OPCODE_COMMIT))
         {
             return get_result(FLOW_VM_UNKNOWN_OPCODE, "/instructions");
         }
@@ -484,6 +487,22 @@ flow_vm_result_t flow_vm_step_instruction(flow_vm_t *vm, flow_vm_execution_view_
         case OPCODE_OR:
             vm->working_slots[instruction->result] =
                 vm->working_slots[instruction->operand0] || vm->working_slots[instruction->operand1];
+            break;
+        case OPCODE_NAND:
+            vm->working_slots[instruction->result] =
+                !(vm->working_slots[instruction->operand0] && vm->working_slots[instruction->operand1]);
+            break;
+        case OPCODE_NOR:
+            vm->working_slots[instruction->result] =
+                !(vm->working_slots[instruction->operand0] || vm->working_slots[instruction->operand1]);
+            break;
+        case OPCODE_XOR:
+            vm->working_slots[instruction->result] =
+                vm->working_slots[instruction->operand0] != vm->working_slots[instruction->operand1];
+            break;
+        case OPCODE_XNOR:
+            vm->working_slots[instruction->result] =
+                vm->working_slots[instruction->operand0] == vm->working_slots[instruction->operand1];
             break;
         case OPCODE_LOAD_STATE:
 
