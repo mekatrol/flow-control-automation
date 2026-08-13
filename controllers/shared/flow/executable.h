@@ -26,7 +26,7 @@
 enum
 {
     /* These capacities bound hostile artifacts and make preparation memory use predictable on embedded targets. */
-    FLOW_EXECUTABLE_MAX_ARTIFACT_BYTES = 8192,
+    FLOW_EXECUTABLE_MAX_ARTIFACT_BYTES = 16384,
     FLOW_EXECUTABLE_MAX_NODES          = 128,
     FLOW_EXECUTABLE_MAX_PORTS          = 384,
     FLOW_EXECUTABLE_MAX_CONNECTIONS    = 384,

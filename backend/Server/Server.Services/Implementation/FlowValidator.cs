@@ -9,11 +9,11 @@ internal static partial class FlowValidator
 {
     private static readonly HashSet<string> ValidKinds =
     [
-        "and", "average", "calculator", "calendar", "clamp", "comparator",
+        "add", "and", "average", "calculator", "calendar", "clamp", "comparator",
         "delay", "digitalConstant", "digitalInput", "digitalOutput", "if",
-        "line", "max", "memory", "min", "nand", "nor", "not", "or", "override",
+        "levelShifter", "line", "max", "memory", "min", "nand", "nor", "not", "numericConstant", "or", "override",
         "pulse", "schedule", "selector", "sequence", "split",
-        "timer", "xnor", "xor",
+        "onDelay", "qualityGood", "risingEdge", "timer", "xnor", "xor",
     ];
 
     private static readonly HashSet<string> ValidStatuses = ["draft", "deployed"];

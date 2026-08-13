@@ -50,9 +50,9 @@ describe('designer debug source', () => {
     const flow = debugFlow();
     const source = createExecutableFlowSource(flow, target);
     expect(source.nodes).toEqual([
-      { id: 'input', kind: 'digitalInput', configuration: { pointId: 'button-1' } },
-      { id: 'invert', kind: 'not', configuration: {} },
-      { id: 'output', kind: 'digitalOutput', configuration: { pointId: 'relay-1' } }
+      { id: 'input', kind: 'digitalInput', configuration: { pointId: 'button-1' }, label: 'New Digital Input', x: 0, y: 0, zOrder: 0 },
+      { id: 'invert', kind: 'not', configuration: {}, label: 'New Not', x: 200, y: 0, zOrder: 1 },
+      { id: 'output', kind: 'digitalOutput', configuration: { pointId: 'relay-1' }, label: 'New Digital Output', x: 400, y: 0, zOrder: 2 }
     ]);
     expect(source.connections[0]).toEqual({
       source: { nodeId: 'input', portId: 'value' },

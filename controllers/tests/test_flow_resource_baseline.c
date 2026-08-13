@@ -9,7 +9,7 @@
  * artifact, prepare, tick, and snapshot storage. How: Verifies contract capacities and prints host-ABI structure sizes. */
 int main(void)
 {
-    assert(FLOW_EXECUTABLE_MAX_ARTIFACT_BYTES == 8192);
+    assert(FLOW_EXECUTABLE_MAX_ARTIFACT_BYTES == 16384);
     assert(FLOW_EXECUTABLE_MAX_NODES == 128);
     assert(FLOW_EXECUTABLE_MAX_PORTS == 384);
     assert(FLOW_EXECUTABLE_MAX_CONNECTIONS == 384);

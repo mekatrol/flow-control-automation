@@ -10,8 +10,14 @@ namespace Server.Services.Implementation;
 
 public sealed partial class FlowCompiler : IFlowCompiler
 {
-    private const int MaximumArtifactBytes = 8192;
+    private const int MaximumArtifactBytes = 16384;
     private const ulong ExpandedBooleanCapability = 1UL << 5;
+    private const ulong NumericCapability = 1UL << 6;
+    private const ulong ComparisonCapability = 1UL << 7;
+    private const ulong LevelShifterCapability = 1UL << 8;
+    private const ulong QualityCapability = 1UL << 9;
+    private const ulong TimerCapability = 1UL << 10;
+    private const ulong EventCapability = 1UL << 11;
 
     private static readonly IReadOnlyDictionary<string, NodeShape> Shapes =
         new Dictionary<string, NodeShape>(StringComparer.Ordinal)
@@ -25,6 +31,13 @@ public sealed partial class FlowCompiler : IFlowCompiler
             ["nor"] = new([new("a", 1), new("b", 1), new("value", 2)]),
             ["xor"] = new([new("a", 1), new("b", 1), new("value", 2)]),
             ["xnor"] = new([new("a", 1), new("b", 1), new("value", 2)]),
+            ["numericConstant"] = new([new("value", 2, 2)]),
+            ["add"] = new([new("a", 1, 2), new("b", 1, 2), new("value", 2, 2)]),
+            ["comparator"] = new([new("a", 1, 2), new("b", 1, 2), new("value", 2)]),
+            ["levelShifter"] = new([new("in", 1, 2), new("value", 2, 2)]),
+            ["qualityGood"] = new([new("in", 1), new("value", 2)]),
+            ["onDelay"] = new([new("in", 1), new("value", 2)]),
+            ["risingEdge"] = new([new("in", 1), new("value", 2)]),
             ["memory"] = new([new("in", 1), new("value", 2)]),
             ["digitalOutput"] = new([new("in", 1)])
         };
@@ -83,7 +96,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
 
         if (source.Execution.Mode != "manual"
             || source.Execution.IntervalMs != 0
-            || source.Execution.InputQualityPolicy != "require_good")
+            || source.Execution.InputQualityPolicy is not ("require_good" or "propagate"))
         {
             throw Failure("unsupported_execution", "/execution", "Schema 1 supports manual require-good execution only.");
         }
@@ -111,7 +124,8 @@ public sealed partial class FlowCompiler : IFlowCompiler
         var slots = schedule.Select((id, index) => new { id, index = checked((ushort)index) })
             .ToDictionary(item => item.id, item => item.index, StringComparer.Ordinal);
         var memoryIds = schedule.Where(id => nodes[id].Kind == "memory").ToArray();
-        var stateSlots = memoryIds.Select((id, index) => new
+        var stateIds = schedule.Where(id => nodes[id].Kind is "memory" or "onDelay" or "risingEdge").ToArray();
+        var stateSlots = stateIds.Select((id, index) => new
         {
             id,
             index = checked((ushort)(schedule.Count + index))
@@ -120,10 +134,10 @@ public sealed partial class FlowCompiler : IFlowCompiler
         var points = BuildPoints([.. schedule.Select(id => nodes[id])]);
         var pointIndices = points.Select((point, index) => new { point, index = checked((ushort)index) })
             .ToDictionary(item => item.point, item => item.index);
-        var constants = source.Nodes.Where(node => node.Kind is "digitalConstant" or "memory")
-            .Select(node => node.Configuration["value"].GetBoolean())
+        var constants = source.Nodes.SelectMany(ConstantsFor)
             .Distinct()
-            .Order()
+            .OrderBy(constant => constant.Type)
+            .ThenBy(constant => constant.Number)
             .ToArray();
         var instructions = new List<V2Instruction>();
 
@@ -136,7 +150,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
                 "digitalInput" => new(1, result, ushort.MaxValue, ushort.MaxValue,
                     pointIndices[new PointRecord(node.Configuration["pointId"].GetString()!, 1)], id, 0),
                 "digitalConstant" => new(2, result, ushort.MaxValue, ushort.MaxValue,
-                    checked((ushort)Array.IndexOf(constants, node.Configuration["value"].GetBoolean())), id, 0),
+                    ConstantIndex(constants, Boolean(node.Configuration["value"].GetBoolean())), id, 0),
                 "not" => new(3, result, InputSlot(source, slots, id, "in"), ushort.MaxValue, ushort.MaxValue, id, 0),
                 "and" => new(4, result, InputSlot(source, slots, id, "a"), InputSlot(source, slots, id, "b"),
                     ushort.MaxValue, id, 0),
@@ -150,6 +164,20 @@ public sealed partial class FlowCompiler : IFlowCompiler
                     ushort.MaxValue, id, 0),
                 "xnor" => new(12, result, InputSlot(source, slots, id, "a"), InputSlot(source, slots, id, "b"),
                     ushort.MaxValue, id, 0),
+                "numericConstant" => new(13, result, ushort.MaxValue, ushort.MaxValue,
+                    ConstantIndex(constants, Numeric(node, "value")), id, 0),
+                "add" => new(14, result, InputSlot(source, slots, id, "a"), InputSlot(source, slots, id, "b"),
+                    ushort.MaxValue, id, 0),
+                "comparator" => new(15, result, InputSlot(source, slots, id, "a"), InputSlot(source, slots, id, "b"),
+                    ComparatorCode(node), id, 0),
+                "levelShifter" => new(16, result, InputSlot(source, slots, id, "in"),
+                    ConstantIndex(constants, Numeric(node, "gain")), ConstantIndex(constants, Numeric(node, "offset")), id, 0),
+                "qualityGood" => new(17, result, InputSlot(source, slots, id, "in"), ushort.MaxValue,
+                    ushort.MaxValue, id, 0),
+                "onDelay" => new(18, result, InputSlot(source, slots, id, "in"), ushort.MaxValue,
+                    stateSlots[id], id, 0),
+                "risingEdge" => new(19, result, InputSlot(source, slots, id, "in"), ushort.MaxValue,
+                    stateSlots[id], id, 0),
                 "memory" => new(6, result, ushort.MaxValue, ushort.MaxValue, stateSlots[id], id, 0),
                 "digitalOutput" => new(7, result, InputSlot(source, slots, id, "in"), ushort.MaxValue,
                     pointIndices[new PointRecord(node.Configuration["pointId"].GetString()!, 2)], id, 0),
@@ -178,17 +206,22 @@ public sealed partial class FlowCompiler : IFlowCompiler
             string.Empty,
             0));
 
-        var constantSection = Concat([.. constants.Select(value => new byte[] { 1, value ? (byte)1 : (byte)0, 0, 0 })]);
+        var constantSection = Concat([.. constants.Select(EncodeConstant)]);
         var pointSection = Concat([.. points.Select(point => Concat(
             new byte[] { point.Direction, 1, 1, 0 },
             String8(point.Id)))]);
-        var slotRecords = schedule.Select((_, index) => Concat(
-            new byte[] { 2, 1 }, U16(0), U16(index), U16(ushort.MaxValue))).ToList();
-        slotRecords.AddRange(memoryIds.Select(id => Concat(
-            new byte[] { 3, 1 },
-            U16(0),
-            U16(stateSlots[id]),
-            U16(Array.IndexOf(constants, nodes[id].Configuration["value"].GetBoolean())))));
+        var slotRecords = schedule.Select((id, index) => Concat(
+            new byte[] { 2, ResultType(nodes[id]) }, U16(0), U16(index), U16(ushort.MaxValue))).ToList();
+        slotRecords.AddRange(stateIds.Select(id => nodes[id].Kind switch
+        {
+            "memory" => Concat(new byte[] { 3, 1 }, U16(0), U16(stateSlots[id]),
+                U16(ConstantIndex(constants, Boolean(nodes[id].Configuration["value"].GetBoolean())))),
+            "onDelay" => Concat(new byte[] { 4, 1 }, U16(0), U16(stateSlots[id]),
+                U16(ConstantIndex(constants, Numeric(nodes[id], "durationMs")))),
+            "risingEdge" => Concat(new byte[] { 5, 1 }, U16(0), U16(stateSlots[id]),
+                U16(ConstantIndex(constants, Boolean(false)))),
+            _ => throw new UnreachableException()
+        }));
         var slotSection = Concat([.. slotRecords]);
         var instructionSection = Concat([.. instructions.Select(EncodeV2Instruction)]);
         var commitRecords = memoryIds.Select(id => Concat(
@@ -198,8 +231,20 @@ public sealed partial class FlowCompiler : IFlowCompiler
             U16(pointIndices[new PointRecord(nodes[id].Configuration["pointId"].GetString()!, 2)]),
             U16(slots[id]),
             U16(0))));
-        var symbolSection = Concat([.. instructions.Select((instruction, index) => Concat(
-            U16(index), new byte[] { instruction.Discriminator }, String8AllowEmpty(instruction.NodeId)))]);
+        commitRecords.AddRange(stateIds.Where(id => nodes[id].Kind is "onDelay" or "risingEdge").Select(id => Concat(
+            new byte[] { 1, 0 }, U16(stateSlots[id]), U16(slots[id]), U16(0))));
+        var symbolSection = Concat([.. instructions.Select((instruction, index) =>
+        {
+            var authoring = instruction.NodeId.Length == 0 ? null : nodes[instruction.NodeId];
+            return Concat(
+                U16(index),
+                new byte[] { instruction.Discriminator },
+                String8AllowEmpty(instruction.NodeId),
+                String8AllowEmpty(authoring is null ? string.Empty : AuthoringLabel(authoring)),
+                F64(authoring?.X ?? 0D),
+                F64(authoring?.Y ?? 0D),
+                F64(authoring?.ZOrder ?? 0D));
+        })]);
         var debugSection = Concat([.. instructions.Where(instruction => instruction.NodeId.Length > 0).Select((instruction, index) => Concat(U16(index), U16(instruction.Result), String8(instruction.NodeId)))]);
         var resolvedPoints = request.Target.Points
             .GroupBy(point => point.Id, StringComparer.Ordinal)
@@ -234,7 +279,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
             new(3, checked((uint)slotRecords.Count), slotSection),
             new(4, checked((uint)instructions.Count), instructionSection),
             new(5, checked((uint)commitRecords.Count), Concat([.. commitRecords])),
-            new(6, checked((uint)instructions.Count), symbolSection),
+            new(6, checked((uint)instructions.Count), symbolSection, 2),
             new(7, checked((uint)(instructions.Count - 1)), debugSection),
             new(8, checked((uint)dependencyRecords.Count), dependencySection)
         ];
@@ -244,7 +289,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
         {
             directory.Add(Concat(
                 U16(section.Id),
-                U16(1),
+                U16(section.Version),
                 U32(offset),
                 U32(checked((uint)section.Bytes.Length)),
                 U32(section.Count),
@@ -254,7 +299,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
 
         if (offset > MaximumArtifactBytes)
         {
-            throw Failure("limit_exceeded", "/artifactLength", "Encoded Flow IL exceeds 8192 bytes.");
+            throw Failure("limit_exceeded", "/artifactLength", "Encoded Flow IL exceeds 16384 bytes.");
         }
 
         var capabilities = 1UL | 16UL;
@@ -278,7 +323,26 @@ public sealed partial class FlowCompiler : IFlowCompiler
             capabilities |= ExpandedBooleanCapability;
         }
 
-        var workingBytes = checked((uint)((schedule.Count + memoryIds.Length) * 2));
+        if (source.Nodes.Any(node => node.Kind is "numericConstant" or "add" or "comparator" or "levelShifter"))
+        {
+            capabilities |= NumericCapability;
+        }
+
+        if (source.Nodes.Any(node => node.Kind == "comparator"))
+        {
+            capabilities |= ComparisonCapability;
+        }
+
+        if (source.Nodes.Any(node => node.Kind == "levelShifter"))
+        {
+            capabilities |= LevelShifterCapability;
+        }
+
+        if (source.Nodes.Any(node => node.Kind == "qualityGood")) capabilities |= QualityCapability;
+        if (source.Nodes.Any(node => node.Kind == "onDelay")) capabilities |= TimerCapability;
+        if (source.Nodes.Any(node => node.Kind == "risingEdge")) capabilities |= EventCapability;
+
+        var workingBytes = checked((uint)((schedule.Count + stateIds.Length) * 32));
         var envelope = new byte[envelopeLength];
         "FIL2"u8.CopyTo(envelope);
         WriteU16(envelope, 4, 2);
@@ -287,9 +351,9 @@ public sealed partial class FlowCompiler : IFlowCompiler
         WriteU32(envelope, 12, 1);
         WriteU32(envelope, 16, source.Revision);
         WriteU32(envelope, 20, source.ControllerTemplateRevision);
-        WriteU16(envelope, 24, 1);
+        WriteU16(envelope, 24, 2);
         WriteU16(envelope, 26, sections.Length);
-        envelope[28] = 1;
+        envelope[28] = source.Execution.InputQualityPolicy == "require_good" ? (byte)1 : (byte)2;
         WriteU32(envelope, 32, checked((uint)instructions.Count));
         BinaryPrimitives.WriteUInt64LittleEndian(envelope.AsSpan(36), capabilities);
         WriteU32(envelope, 44, workingBytes);
@@ -372,6 +436,10 @@ public sealed partial class FlowCompiler : IFlowCompiler
         {
             var node = source.Nodes[index];
             ValidateIdentifier(node.Id, $"/nodes/{index}/id", 63);
+            if (Encoding.UTF8.GetByteCount(node.Label) > 255 || !double.IsFinite(node.X) || !double.IsFinite(node.Y) || !double.IsFinite(node.ZOrder))
+            {
+                throw Failure("invalid_authoring_metadata", $"/nodes/{index}", "Label and canvas coordinates exceed authoring metadata bounds.");
+            }
             if (!nodes.TryAdd(node.Id, node))
             {
                 throw Failure("duplicate_node", $"/nodes/{index}/id", $"Node ID \"{node.Id}\" is duplicated.");
@@ -394,6 +462,11 @@ public sealed partial class FlowCompiler : IFlowCompiler
             if (sourcePort.Direction != 2 || targetPort.Direction != 1)
             {
                 throw Failure("invalid_endpoint", $"/connections/{index}", "Connection must run from output to input.");
+            }
+
+            if (sourcePort.Type != targetPort.Type)
+            {
+                throw Failure("type_mismatch", $"/connections/{index}", "Connected ports require the same value type.");
             }
 
             if (!drivers.Add(new(connection.Target.NodeId, connection.Target.PortId)))
@@ -444,11 +517,115 @@ public sealed partial class FlowCompiler : IFlowCompiler
                 throw Failure("invalid_configuration", path, "A Boolean value is required.");
             }
         }
+        else if (node.Kind == "numericConstant")
+        {
+            ValidateFiniteNumber(node, path, "value");
+        }
+        else if (node.Kind == "comparator")
+        {
+            if (node.Configuration.Count != 1
+                || !node.Configuration.TryGetValue("operator", out var comparison)
+                || comparison.ValueKind != JsonValueKind.String
+                || comparison.GetString() is not ("lt" or "lte" or "eq" or "gte" or "gt" or "ne"))
+            {
+                throw Failure("invalid_configuration", path, "A supported comparison operator is required.");
+            }
+        }
+        else if (node.Kind == "levelShifter")
+        {
+            if (node.Configuration.Count != 2)
+            {
+                throw Failure("invalid_configuration", path, "Finite gain and offset values are required.");
+            }
+
+            ValidateFiniteNumber(node, path, "gain");
+            ValidateFiniteNumber(node, path, "offset");
+        }
+        else if (node.Kind == "onDelay")
+        {
+            ValidateFiniteNumber(node, path, "durationMs");
+            var duration = node.Configuration["durationMs"].GetDouble();
+            if (node.Configuration.Count != 1 || duration < 0D || duration > uint.MaxValue)
+            {
+                throw Failure("invalid_configuration", path, "Timer duration must be from 0 through 4294967295 milliseconds.");
+            }
+        }
         else if (node.Configuration.Count != 0)
         {
             throw Failure("invalid_configuration", path, "This node requires empty configuration.");
         }
     }
+
+    private static void ValidateFiniteNumber(ExecutableFlowNode node, string path, string key)
+    {
+        if (!node.Configuration.TryGetValue(key, out var value)
+            || value.ValueKind != JsonValueKind.Number
+            || !value.TryGetDouble(out var number)
+            || !double.IsFinite(number))
+        {
+            throw Failure("invalid_configuration", $"{path}/{key}", "A finite number is required.");
+        }
+    }
+
+    private static IEnumerable<ConstantRecord> ConstantsFor(ExecutableFlowNode node)
+    {
+        if (node.Kind is "digitalConstant" or "memory")
+        {
+            yield return Boolean(node.Configuration["value"].GetBoolean());
+        }
+        else if (node.Kind == "numericConstant")
+        {
+            yield return Numeric(node, "value");
+        }
+        else if (node.Kind == "levelShifter")
+        {
+            yield return Numeric(node, "gain");
+            yield return Numeric(node, "offset");
+        }
+        else if (node.Kind == "onDelay")
+        {
+            yield return Numeric(node, "durationMs");
+        }
+        else if (node.Kind == "risingEdge")
+        {
+            yield return Boolean(false);
+        }
+    }
+
+    private static ConstantRecord Boolean(bool value) => new(1, value ? 1D : 0D);
+
+    private static ConstantRecord Numeric(ExecutableFlowNode node, string key) =>
+        new(2, node.Configuration[key].GetDouble());
+
+    private static ushort ConstantIndex(ConstantRecord[] constants, ConstantRecord value) =>
+        checked((ushort)Array.IndexOf(constants, value));
+
+    private static byte[] EncodeConstant(ConstantRecord constant)
+    {
+        if (constant.Type == 1)
+        {
+            return new byte[] { 1, constant.Number != 0D ? (byte)1 : (byte)0, 0, 0 };
+        }
+
+        var result = new byte[12];
+        result[0] = 2;
+        BinaryPrimitives.WriteInt64LittleEndian(result.AsSpan(4), BitConverter.DoubleToInt64Bits(constant.Number));
+        return result;
+    }
+
+    private static byte ResultType(ExecutableFlowNode node) =>
+        node.Kind is "numericConstant" or "add" or "levelShifter" ? (byte)2 : (byte)1;
+
+    private static ushort ComparatorCode(ExecutableFlowNode node) => node.Configuration["operator"].GetString() switch
+    {
+        "lt" => 1,
+        "lte" => 2,
+        "eq" => 3,
+        "gte" => 4,
+        "gt" => 5,
+        "ne" => 6,
+        _ => throw new UnreachableException()
+    };
 
     private static PortShape FindPort(
         IReadOnlyDictionary<string, ExecutableFlowNode> nodes,
@@ -568,6 +745,13 @@ public sealed partial class FlowCompiler : IFlowCompiler
         return bytes;
     }
 
+    private static byte[] F64(double value)
+    {
+        var bytes = new byte[8];
+        BinaryPrimitives.WriteInt64LittleEndian(bytes, BitConverter.DoubleToInt64Bits(value));
+        return bytes;
+    }
+
     private static byte[] Concat(params byte[][] parts)
     {
         var result = new byte[parts.Sum(part => part.Length)];
@@ -608,13 +792,22 @@ public sealed partial class FlowCompiler : IFlowCompiler
     private static string Escape(string value) => value.Replace("~", "~0", StringComparison.Ordinal)
         .Replace("/", "~1", StringComparison.Ordinal);
 
+    private static string AuthoringLabel(ExecutableFlowNode node) => string.IsNullOrWhiteSpace(node.Label)
+        ? Regex.Replace(node.Kind, "([A-Z])", " $1", RegexOptions.CultureInvariant).Trim() switch
+        {
+            var value when value.Length > 0 => char.ToUpperInvariant(value[0]) + value[1..],
+            _ => node.Kind
+        }
+        : node.Label;
+
     [GeneratedRegex("^[A-Za-z0-9][A-Za-z0-9._:-]*$", RegexOptions.CultureInvariant)]
     private static partial Regex IdentifierRegex();
 
     private sealed record NodeShape(IReadOnlyList<PortShape> Ports);
-    private sealed record PortShape(string Id, byte Direction);
+    private sealed record PortShape(string Id, byte Direction, byte Type = 1);
     private sealed record PortKey(string NodeId, string PortId);
     private sealed record PointRecord(string Id, byte Direction);
+    private sealed record ConstantRecord(byte Type, double Number);
     private sealed record V2Instruction(
         byte Opcode,
         ushort Result,
@@ -623,5 +816,5 @@ public sealed partial class FlowCompiler : IFlowCompiler
         ushort Auxiliary,
         string NodeId,
         byte Discriminator);
-    private sealed record V2Section(ushort Id, uint Count, byte[] Bytes);
+    private sealed record V2Section(ushort Id, uint Count, byte[] Bytes, ushort Version = 1);
 }

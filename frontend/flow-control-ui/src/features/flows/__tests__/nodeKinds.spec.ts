@@ -12,13 +12,13 @@ describe('node-kind registry', () => {
     // Expected outcome: `flowNodeKinds` contains the required number of entries.
     // Acceptance criteria: `flowNodeKinds` must contain exactly 24 entries, because this condition proves that
     // contains complete rendering, connector, and editor metadata for every supported kind.
-    expect(flowNodeKinds).toHaveLength(28);
+    expect(flowNodeKinds).toHaveLength(18);
 
     // Expected outcome: `flowNodeKinds` matches the required structure.
     // Acceptance criteria: `flowNodeKinds` must equal `expect.arrayContaining(['and', 'average', 'calculator', 'nand', 'nor', 'not', 'xnor', 'xor']`, because this condition proves that
     // contains complete rendering, connector, and editor metadata for every supported kind.
     expect(flowNodeKinds).toEqual(
-      expect.arrayContaining(['and', 'average', 'calculator', 'nand', 'nor', 'not', 'xnor', 'xor'])
+      expect.arrayContaining(['add', 'and', 'comparator', 'nand', 'nor', 'not', 'xnor', 'xor'])
     );
 
     for (const kind of flowNodeKinds) {
@@ -56,7 +56,7 @@ describe('node-kind registry', () => {
       // Acceptance criteria: `definition.connectors.some(({ direction }) => direction === 'input')` must be `true`, because this condition proves that
       // contains complete rendering, connector, and editor metadata for every supported kind.
       expect(definition.connectors.some(({ direction }) => direction === 'input')).toBe(
-        kind !== 'digitalInput' && kind !== 'digitalConstant'
+        kind !== 'digitalInput' && kind !== 'digitalConstant' && kind !== 'numericConstant'
       );
 
       // Expected outcome: `definition.connectors.some(({ direction }) => direction === 'output')` has the required value.
@@ -70,7 +70,7 @@ describe('node-kind registry', () => {
       // Acceptance criteria: `definition.editor.length` must satisfy the asserted boundary against `0`, because this condition proves that
       // contains complete rendering, connector, and editor metadata for every supported kind.
       expect(definition.editor.length > 0).toBe(
-        !['and', 'nand', 'nor', 'not', 'or', 'xnor', 'xor'].includes(kind)
+        !['add', 'and', 'nand', 'nor', 'not', 'or', 'qualityGood', 'risingEdge', 'xnor', 'xor'].includes(kind)
       );
 
       // Expected outcome: `Object.keys(definition.defaultConfiguration)` matches the required structure.

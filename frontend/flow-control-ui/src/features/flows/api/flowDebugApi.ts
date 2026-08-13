@@ -108,7 +108,7 @@ export interface ExecutableFlowSource {
   controllerTemplateId: string;
   controllerTemplateRevision: number;
   execution: { mode: 'manual'; intervalMs: number; inputQualityPolicy: 'require_good' };
-  nodes: { id: string; kind: string; configuration: Record<string, unknown> }[];
+  nodes: { id: string; kind: string; configuration: Record<string, unknown>; label: string; x: number; y: number; zOrder: number }[];
   connections: {
     source: { nodeId: string; portId: string };
     target: { nodeId: string; portId: string };

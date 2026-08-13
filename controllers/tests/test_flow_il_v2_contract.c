@@ -11,7 +11,7 @@
 
 enum
 {
-    TEST_ARTIFACT_CAPACITY       = 8192,
+    TEST_ARTIFACT_CAPACITY       = 16384,
     TEST_ENVELOPE_LENGTH         = 128,
     TEST_DIRECTORY_ENTRY_LENGTH  = 48,
     TEST_SECTION_COUNT           = 8,
@@ -121,7 +121,9 @@ static test_flow_il_result_t get_metadata(const uint8_t *bytes, size_t size, tes
         const uint32_t length = get_u32(&entry[8]);
         const uint32_t count  = get_u32(&entry[12]);
 
-        if (get_u16(&entry[2]) != 1U || offset != expected_offset || length > size - offset)
+        const uint16_t expected_version = id == 6U ? 2U : 1U;
+
+        if (get_u16(&entry[2]) != expected_version || offset != expected_offset || length > size - offset)
         {
             return TEST_FLOW_IL_MALFORMED;
         }

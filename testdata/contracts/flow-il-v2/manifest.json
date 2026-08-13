@@ -3,8 +3,8 @@
   "fixtures": [
     {
       "id": "valid-two-button-and",
-      "artifactLength": 854,
-      "artifactSha256": "af74ddbe4661b626b5ab411967242b167777e590e52093d5edde40f7d44e834b",
+      "artifactLength": 1022,
+      "artifactSha256": "beb8a9e336c46f499571b2267644a2ef18c029c03195609fbe7864b330313940",
       "expected": {
         "valid": true,
         "reason": "ok",
@@ -13,8 +13,8 @@
     },
     {
       "id": "valid-memory-feedback",
-      "artifactLength": 843,
-      "artifactSha256": "14100765851ea81d8968db6215a8fb1813b01bd98da8b6afe0b614b5264a7bfa",
+      "artifactLength": 1037,
+      "artifactSha256": "03c8677c7d3d618b8810438f151b22cccf1bdad1a349fff3494465825f36f8c9",
       "expected": {
         "valid": true,
         "reason": "ok",
@@ -23,8 +23,28 @@
     },
     {
       "id": "valid-expanded-boolean",
-      "artifactLength": 1191,
-      "artifactSha256": "391af1117b2f2444086b067eb38e73d093fd66f645de058f19a4f331aaea8aff",
+      "artifactLength": 1568,
+      "artifactSha256": "2fafa47b78930796ab6bea08b89285153ba51d1be1e23c8719ae89cb476a3d6c",
+      "expected": {
+        "valid": true,
+        "reason": "ok",
+        "path": ""
+      }
+    },
+    {
+      "id": "valid-numeric-language",
+      "artifactLength": 1022,
+      "artifactSha256": "3a61e68cd039505175999e55f942e1717cfd9843afda6c5f0b3db5d100ec2c29",
+      "expected": {
+        "valid": true,
+        "reason": "ok",
+        "path": ""
+      }
+    },
+    {
+      "id": "valid-quality-timer-event",
+      "artifactLength": 965,
+      "artifactSha256": "45df7633e6d0b65a1001d68a2838725ca14b4bf44c4c70e79e6046fad12506ce",
       "expected": {
         "valid": true,
         "reason": "ok",
@@ -33,8 +53,8 @@
     },
     {
       "id": "valid-source-order-permutation",
-      "artifactLength": 854,
-      "artifactSha256": "af74ddbe4661b626b5ab411967242b167777e590e52093d5edde40f7d44e834b",
+      "artifactLength": 1022,
+      "artifactSha256": "beb8a9e336c46f499571b2267644a2ef18c029c03195609fbe7864b330313940",
       "expected": {
         "valid": true,
         "reason": "ok",
@@ -43,8 +63,8 @@
     },
     {
       "id": "maximum-boolean",
-      "artifactLength": 7343,
-      "artifactSha256": "7fe1b79d9e57f0c1ffdb64085366145a6277f76dcf620de58413f79246f962dd",
+      "artifactLength": 12616,
+      "artifactSha256": "aa9c5d3b696a1e15f19f5f0b9d3e2cda111929f5c94e8e178151229cc907b58f",
       "expected": {
         "valid": true,
         "reason": "ok",
@@ -53,8 +73,8 @@
     },
     {
       "id": "malformed-truncated",
-      "artifactLength": 853,
-      "artifactSha256": "64ac56e9a194b88370ac85be0f5515a7ff6a61ed36e99d5c78ca68f3511f964e",
+      "artifactLength": 1021,
+      "artifactSha256": "2a0b2f47661dc1114845afdb8b24eea7dc390782fd83c080c73d83a6510980df",
       "expected": {
         "valid": false,
         "reason": "length_mismatch",
@@ -63,8 +83,8 @@
     },
     {
       "id": "invalid-operand",
-      "artifactLength": 854,
-      "artifactSha256": "c703002ab82688effbcf5e046371c861bcc7bcc2b0685bc212a7b8e27435775d",
+      "artifactLength": 1022,
+      "artifactSha256": "ab064d90329b85d57411c9a955a4c3aa144449ef4c701ca4f21eebe902013a5c",
       "expected": {
         "valid": false,
         "reason": "invalid_operand",
@@ -73,8 +93,8 @@
     },
     {
       "id": "unknown-section",
-      "artifactLength": 854,
-      "artifactSha256": "400fcbd5bed0619bfcd6eb33124c2ea4ae67e9cf89cbe92e51dc96da965876ea",
+      "artifactLength": 1022,
+      "artifactSha256": "5dce12961116f99899cc8e4e2e2d1461bb5e93649d24f15b87bf3471f0371e48",
       "expected": {
         "valid": false,
         "reason": "unknown_section",
@@ -83,8 +103,8 @@
     },
     {
       "id": "noncanonical-section-order",
-      "artifactLength": 854,
-      "artifactSha256": "435fe9ada6acb9d2ee65cf9d3b2be00f585b7e6dfc402560162cdf35fa7f9466",
+      "artifactLength": 1022,
+      "artifactSha256": "ef5ea5ab3088b6c387d6a3ce0f06fa3de90de880024e44ab0758bb0b59d5933e",
       "expected": {
         "valid": false,
         "reason": "non_canonical_order",

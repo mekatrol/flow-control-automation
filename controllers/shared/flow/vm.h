@@ -20,13 +20,14 @@
 
 enum
 {
-    FLOW_VM_ABI_VERSION      = 1,
-    FLOW_VM_MAX_ARTIFACT     = 8192,
+    FLOW_VM_ABI_VERSION      = 2,
+    FLOW_VM_MAX_ARTIFACT     = 16384,
     FLOW_VM_MAX_INSTRUCTIONS = 256,
     FLOW_VM_MAX_SLOTS        = 256,
     FLOW_VM_MAX_POINTS       = 64,
     FLOW_VM_MAX_STATES       = 128,
     FLOW_VM_MAX_OUTPUTS      = 64,
+    FLOW_VM_MAX_CONSTANTS    = 256,
     FLOW_VM_MAX_ID_BYTES     = 63,
     FLOW_VM_PATH_BYTES       = 95,
     FLOW_VM_CAPABILITY_BOOLEAN_SLOTS    = 1U << 0,
@@ -35,7 +36,13 @@ enum
     FLOW_VM_CAPABILITY_ONE_TICK_STATE   = 1U << 3,
     FLOW_VM_CAPABILITY_DEBUG_MAPS       = 1U << 4,
     FLOW_VM_CAPABILITY_EXPANDED_BOOLEAN = 1U << 5,
-    FLOW_VM_CAPABILITIES_ALL            = (1U << 6) - 1U,
+    FLOW_VM_CAPABILITY_NUMERIC           = 1U << 6,
+    FLOW_VM_CAPABILITY_COMPARISON        = 1U << 7,
+    FLOW_VM_CAPABILITY_LEVEL_SHIFTER     = 1U << 8,
+    FLOW_VM_CAPABILITY_QUALITY           = 1U << 9,
+    FLOW_VM_CAPABILITY_TIMER             = 1U << 10,
+    FLOW_VM_CAPABILITY_EVENT             = 1U << 11,
+    FLOW_VM_CAPABILITIES_ALL             = (1U << 12) - 1U,
 };
 
 typedef enum
@@ -101,6 +108,8 @@ typedef struct
     char point_id[FLOW_VM_MAX_ID_BYTES + 1];
     bool value;
     uint8_t quality;
+    uint8_t type;
+    double number;
 } flow_vm_input_sample_t;
 
 typedef struct
@@ -115,6 +124,9 @@ typedef struct
 {
     char point_id[FLOW_VM_MAX_ID_BYTES + 1];
     bool value;
+    uint8_t quality;
+    uint8_t type;
+    double number;
 } flow_vm_command_t;
 
 typedef struct
@@ -127,6 +139,9 @@ typedef struct
     uint16_t output_count;
     bool slots[FLOW_VM_MAX_SLOTS];
     flow_vm_command_t outputs[FLOW_VM_MAX_OUTPUTS];
+    uint8_t slot_types[FLOW_VM_MAX_SLOTS];
+    uint8_t slot_qualities[FLOW_VM_MAX_SLOTS];
+    double numeric_slots[FLOW_VM_MAX_SLOTS];
 } flow_vm_snapshot_t;
 
 typedef struct
@@ -142,6 +157,7 @@ typedef struct
 {
     char id[FLOW_VM_MAX_ID_BYTES + 1];
     uint8_t direction;
+    uint8_t type;
 } flow_vm_point_t;
 
 typedef struct
@@ -162,6 +178,9 @@ typedef struct
     bool staged_state[FLOW_VM_MAX_STATES];
     bool staged_state_valid[FLOW_VM_MAX_STATES];
     flow_vm_command_t outputs[FLOW_VM_MAX_OUTPUTS];
+    uint8_t slot_types[FLOW_VM_MAX_SLOTS];
+    uint8_t slot_qualities[FLOW_VM_MAX_SLOTS];
+    double numeric_slots[FLOW_VM_MAX_SLOTS];
 } flow_vm_debug_frame_t;
 
 typedef struct
@@ -176,13 +195,24 @@ typedef struct
     uint16_t state_slot_base;
     uint16_t output_count;
     uint16_t instruction_pointer;
+    uint8_t quality_policy;
     uint64_t scan_number;
     uint64_t sampled_at_ms;
-    bool constants[2];
+    uint16_t constant_count;
+    bool constants[FLOW_VM_MAX_CONSTANTS];
+    double numeric_constants[FLOW_VM_MAX_CONSTANTS];
+    uint8_t constant_types[FLOW_VM_MAX_CONSTANTS];
     bool initial_state[FLOW_VM_MAX_STATES];
     bool current_state[FLOW_VM_MAX_STATES];
     bool staged_state[FLOW_VM_MAX_STATES];
+    uint8_t state_kinds[FLOW_VM_MAX_STATES];
+    uint64_t timer_durations_ms[FLOW_VM_MAX_STATES];
+    uint64_t timer_started_at_ms[FLOW_VM_MAX_STATES];
+    uint64_t staged_timer_started_at_ms[FLOW_VM_MAX_STATES];
     bool working_slots[FLOW_VM_MAX_SLOTS];
+    double numeric_slots[FLOW_VM_MAX_SLOTS];
+    uint8_t slot_types[FLOW_VM_MAX_SLOTS];
+    uint8_t slot_qualities[FLOW_VM_MAX_SLOTS];
     bool staged_state_valid[FLOW_VM_MAX_STATES];
     flow_vm_point_t points[FLOW_VM_MAX_POINTS];
     flow_vm_instruction_t instructions[FLOW_VM_MAX_INSTRUCTIONS];

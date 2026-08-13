@@ -17,7 +17,7 @@ All integers are unsigned little-endian. Records are packed without implicit
 alignment. Reserved bytes and fields are zero. Booleans are exactly zero or
 one. Identifiers are `string8`: a one-byte UTF-8 length followed by 1-63 bytes
 matching `[A-Za-z0-9][A-Za-z0-9._:-]*`. IDs compare by unsigned UTF-8 bytes.
-No table contains trailing bytes. An artifact is at most 8192 bytes.
+No table contains trailing bytes. An artifact is at most 16384 bytes.
 
 The canonical compiler resolves immutable source dependencies, sorts all
 identity tables, removes edges into stateful memory nodes, and applies Kahn
@@ -34,7 +34,7 @@ The envelope is exactly 128 bytes.
 | 0 | 4 | magic | ASCII `FIL2` |
 | 4 | 2 | IL version | 2 |
 | 6 | 2 | envelope length | 128 |
-| 8 | 4 | artifact length | exact received length, at most 8192 |
+| 8 | 4 | artifact length | exact received length, at most 16384 |
 | 12 | 4 | flags | bit 0: debug map present; other bits zero |
 | 16 | 4 | flow revision | nonzero |
 | 20 | 4 | template revision | nonzero |
@@ -55,15 +55,19 @@ The directory immediately follows the envelope. Each 48-byte entry is
 `section_id:u16, section_version:u16, offset:u32, length:u32, count:u32,
 sha256:bytes[32]`. The digest covers the section's exact bytes, including an
 empty section's standard SHA-256 value.
-Entries have IDs 1 through 8 in ascending order, version 1, contiguous offsets,
+Entries have IDs 1 through 8 in ascending order, version 1 except the required
+version-2 symbol section,
+contiguous offsets,
 and non-overlapping ranges. The final range ends at artifact length.
 
 ## 3. Sections
 
 ### 3.1 Typed constants — section 1
 
-Each four-byte record is `type:u8, value:u8, reserved:u16`. Version 1 supports
-type 1 Boolean only. Values sort false before true and duplicates are invalid.
+Records begin `type:u8, flags:u8, reserved:u16`. Type 1 appends no bytes and
+stores its Boolean in `flags`; type 2 has zero flags and appends one canonical
+little-endian finite IEEE-754 binary64 value. Values sort by type then value and
+duplicates are invalid.
 
 ### 3.2 Point bindings — section 2
 
@@ -76,8 +80,9 @@ then direction. They contain no credentials, driver address, or physical handle.
 ### 3.3 Slot layout — section 3
 
 Each eight-byte record is `kind:u8, type:u8, flags:u16, slot_index:u16,
-initial_constant:u16`. Kind 2 is a transient register and kind 3 persistent
-current/next state. Type 1 is Boolean. Indices are contiguous from zero.
+initial_constant:u16`. Kind 2 is a transient register, kind 3 Boolean memory,
+kind 4 timer state, and kind 5 prior-value event state. Type 1 is Boolean and
+type 2 is binary64. Indices are contiguous from zero.
 Transient initial constant is `0xffff`; state references a compatible constant.
 Slots are caller-owned and fully allocated before execution.
 
@@ -102,6 +107,13 @@ instruction or current state. Result slots are written exactly once.
 | 10 | Boolean NOR | Boolean transient | operand0, operand1 |
 | 11 | Boolean XOR | Boolean transient | operand0, operand1 |
 | 12 | Boolean XNOR | Boolean transient | operand0, operand1 |
+| 13 | binary64 constant | numeric transient | auxiliary: constant |
+| 14 | binary64 add | numeric transient | operand0, operand1 |
+| 15 | compare | Boolean transient | numeric operands; auxiliary: LT/LTE/EQ/GTE/GT/NE |
+| 16 | level shift | numeric transient | operand0; gain and offset constants |
+| 17 | quality is good | Boolean transient | operand0 |
+| 18 | on-delay timer | Boolean transient | operand0; auxiliary: timer state |
+| 19 | rising-edge event | Boolean transient | operand0; auxiliary: prior-value state |
 | 255 | commit tick | none | all unused; final instruction exactly once |
 
 Opcode flags are zero. Unknown opcodes, wrong operand shapes/types, forward
@@ -114,6 +126,23 @@ work unit, and write one Boolean slot into snapshots. NAND and NOR negate AND
 and OR respectively; XOR is true exactly when operands differ and XNOR is true
 exactly when operands are equal. These definitions contain no overflow or
 platform-dependent behavior.
+
+Numeric values are finite IEEE-754 binary64 values. Addition requires identical
+units. Level shifting produces `input * gain + offset`, with unitless gain and
+an offset in the input unit. NaN, infinity, and non-finite arithmetic results
+fault the scan before commit. Comparisons are exact binary64 comparisons.
+
+Quality is `0 good, 1 bad`; unary operations preserve quality and binary
+operations use the worse operand quality. Envelope policy 1 rejects bad input;
+policy 2 propagates it. Opcode 17 produces a good-quality Boolean describing
+its operand quality. Snapshots carry type, quality, Boolean, and binary64
+storage explicitly. Each stateless opcode costs one work unit.
+
+On-delay uses captured monotonic milliseconds, a bounded 64-bit start timestamp,
+and a 64-bit duration. It resets while false and cannot expire when time moves
+backward. Rising-edge stores one prior Boolean and is true for exactly the scan
+where false changes to true. Their next state publishes only at commit, each
+costs one work unit, and each snapshot result is Boolean.
 
 ### 3.5 Commit plan — section 5
 
@@ -129,6 +158,12 @@ Instruction indices are ascending. The compiler-assigned discriminator is zero
 for a node's main instruction and nonzero for additional lowering instructions.
 The commit instruction has an empty node ID encoded as length zero. Stable node
 identity, not a byte offset, is the public diagnostic and breakpoint key.
+
+Section version 2 appends `label:string8, x:f64, y:f64, zOrder:f64` to every
+record. Labels are bounded UTF-8 and coordinates are finite. The current
+prerelease profile requires this metadata for lossless label and canvas
+recovery. Groups are not advertised because source schema 1 has no persisted
+group model.
 
 ### 3.7 Debug map — section 7
 
@@ -148,13 +183,14 @@ reproduction auditable.
 ## 4. Capabilities and limits
 
 Required-capability bits are: bit 0 Boolean slots, bit 1 point reads, bit 2
-proposed outputs, bit 3 one-tick state, bit 4 debug maps, and bit 5 expanded
-Boolean combinators (NAND, NOR, XOR, and XNOR). Unknown required bits are
+proposed outputs, bit 3 one-tick state, bit 4 debug maps, bit 5 expanded
+Boolean combinators, bit 6 numeric values, bit 7 comparisons, bit 8 level
+shifting, bit 9 quality, bit 10 timers, and bit 11 events. Unknown required bits are
 rejected. A host advertises IL versions, ABI version, capabilities,
 maximum artifact/section/instruction/slot/state/point/debug-map sizes, maximum
 work per tick, breakpoint count, paused-frame bytes, and snapshot bytes.
 
-The initial profile limits are 8192 artifact bytes, 8 sections, 256
+The initial profile limits are 16384 artifact bytes, 8 sections, 256
 instructions, 256 total slots, 128 state slots, 64 point bindings, 192 commit
 records, 8192 debug-map bytes, 32 breakpoints, 32768 paused-frame bytes, and
 16384 snapshot bytes. Maximum work is 256 instructions per tick. A target may

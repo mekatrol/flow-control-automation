@@ -16,7 +16,7 @@ public sealed class FcpControllerDebugTransport(IFcpClient client) : IController
         bool replaceExisting,
         CancellationToken cancellationToken)
     {
-        if (artifact.IsEmpty || artifact.Length > 8192)
+        if (artifact.IsEmpty || artifact.Length > 16384)
         {
             throw new ArgumentOutOfRangeException(nameof(artifact));
         }

@@ -70,7 +70,11 @@ internal sealed class FlowDeploymentService(
             {
                 Id = node.Id,
                 Kind = node.Kind,
-                Configuration = node.Configuration
+                Configuration = node.Configuration,
+                Label = node.Label,
+                X = node.X,
+                Y = node.Y,
+                ZOrder = node.ZOrder
             }).ToArray(),
             Connections = flow.Connections.Select(connection => new ExecutableFlowConnection(
                 new ExecutableFlowEndpoint(connection.Start.NodeId, connection.Start.ConnectorId),

@@ -1,0 +1,22 @@
+{
+  "flowId": "quality-timer-event",
+  "flowRevision": 1,
+  "sectionCount": 8,
+  "instructionCount": 5,
+  "slotCount": 6,
+  "pointCount": 1,
+  "stateCount": 2,
+  "schedule": [
+    "input-01-node",
+    "edge-1",
+    "quality-1",
+    "timer-1"
+  ],
+  "slots": {
+    "input-01-node": 0,
+    "edge-1": 1,
+    "quality-1": 2,
+    "timer-1": 3
+  },
+  "artifactLength": 965
+}

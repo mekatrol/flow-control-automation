@@ -14,6 +14,7 @@ public sealed class FlowDecompilerTests
     [TestCase("valid-two-button-and")]
     [TestCase("valid-memory-feedback")]
     [TestCase("valid-expanded-boolean")]
+    [TestCase("valid-numeric-language")]
     public void RecompilesRecoveredDesignerSemanticsToTheIdenticalArtifact(string fixture)
     {
         var artifact = Artifact(fixture);
@@ -28,7 +29,11 @@ public sealed class FlowDecompilerTests
             {
                 Id = node.Id,
                 Kind = node.Kind,
-                Configuration = node.Configuration
+                Configuration = node.Configuration,
+                Label = node.Label,
+                X = node.X,
+                Y = node.Y,
+                ZOrder = node.ZOrder
             }).ToArray(),
             Connections = recovered.Flow.Connections.Select(connection => new ExecutableFlowConnection(
                 new ExecutableFlowEndpoint(connection.Start.NodeId, connection.Start.ConnectorId),
@@ -55,10 +60,10 @@ public sealed class FlowDecompilerTests
             Assert.That(
                 System.Text.Json.JsonSerializer.Serialize(first, FlowControlJson.Options),
                 Is.EqualTo(System.Text.Json.JsonSerializer.Serialize(second, FlowControlJson.Options)));
-            Assert.That(first.RecoveryLevel, Is.EqualTo("normalized"));
+            Assert.That(first.RecoveryLevel, Is.EqualTo("lossless"));
             Assert.That(first.Flow.Nodes, Has.Count.EqualTo(nodeCount));
             Assert.That(first.Flow.Connections, Has.Count.EqualTo(connectionCount));
-            Assert.That(first.Warnings, Has.Count.EqualTo(1));
+            Assert.That(first.Warnings, Is.Empty);
             Assert.That(first.Provenance.ArtifactVersion, Is.EqualTo(2));
         });
     }

@@ -5,7 +5,7 @@
 #include <string.h>
 
 #ifndef FLOW_IL_V2_FIXTURE_DIRECTORY
-#error "FLOW_IL_V2_FIXTURE_DIRECTORY must identify the shared fixture directory"
+#define FLOW_IL_V2_FIXTURE_DIRECTORY "testdata/contracts/flow-il-v2"
 #endif
 
 static const flow_vm_target_t TARGET = {.abi_version            = FLOW_VM_ABI_VERSION,
@@ -108,6 +108,46 @@ static void test_expanded_boolean_scans(void)
     }
 }
 
+/* Checks numeric, comparison, and level-shifter opcodes share deterministic binary64 semantics. */
+static void test_numeric_scans(void)
+{
+    flow_vm_t vm;
+    get_vm("valid-numeric-language", &vm);
+    const flow_vm_input_frame_t input = {.sampled_at_ms = 1U, .is_coherent = true};
+    size_t command_count = 0U;
+    flow_vm_snapshot_t snapshot;
+    assert(flow_vm_begin_tick(&vm, &input).code == FLOW_VM_OK);
+    assert(flow_vm_commit_tick(&vm, NULL, 0U, &command_count, &snapshot).code == FLOW_VM_OK);
+    assert(command_count == 0U);
+    assert(snapshot.numeric_slots[2] == 5.0);
+    assert(snapshot.numeric_slots[3] == 9.0);
+    assert(snapshot.slots[4]);
+}
+
+/* Checks propagated quality, monotonic on-delay state, and one-scan rising-edge events. */
+static void test_quality_timer_event_scans(void)
+{
+    flow_vm_t vm;
+    get_vm("valid-quality-timer-event", &vm);
+    flow_vm_input_sample_t sample = {.point_id = "input-01", .value = true, .quality = 1U, .type = 1U};
+    flow_vm_input_frame_t input = {.samples = &sample, .sample_count = 1U, .sampled_at_ms = 10U, .is_coherent = true};
+    size_t command_count = 0U;
+    flow_vm_snapshot_t snapshot;
+    assert(flow_vm_begin_tick(&vm, &input).code == FLOW_VM_OK);
+    assert(flow_vm_commit_tick(&vm, NULL, 0U, &command_count, &snapshot).code == FLOW_VM_OK);
+    assert(snapshot.slots[1]);
+    assert(!snapshot.slots[2]);
+    assert(!snapshot.slots[3]);
+
+    sample.quality = 0U;
+    input.sampled_at_ms = 110U;
+    assert(flow_vm_begin_tick(&vm, &input).code == FLOW_VM_OK);
+    assert(flow_vm_commit_tick(&vm, NULL, 0U, &command_count, &snapshot).code == FLOW_VM_OK);
+    assert(!snapshot.slots[1]);
+    assert(snapshot.slots[2]);
+    assert(snapshot.slots[3]);
+}
+
 /* Checks a paused Execute Logic frame is resumable and abort commits neither state nor a snapshot. */
 static void test_step_and_abort(void)
 {
@@ -165,6 +205,8 @@ int main(void)
     test_boolean_scans();
     test_memory_scans();
     test_expanded_boolean_scans();
+    test_numeric_scans();
+    test_quality_timer_event_scans();
     test_step_and_abort();
     test_loader_rejections_are_transactional();
 

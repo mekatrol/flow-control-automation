@@ -16,6 +16,7 @@ export interface NodeKindDefinition {
   connectors: FlowNodeConnector[];
   editor: NodeEditorField[];
   defaultConfiguration: Record<string, boolean | number | string | null>;
+  executable: boolean;
 }
 
 const defaultNodeSize = (): NodeKindDefinition['defaultSize'] => ({ width: 170, height: 40 });
@@ -59,7 +60,8 @@ const executableDefinition = (
   defaultSize: defaultNodeSize(),
   connectors,
   editor,
-  defaultConfiguration
+  defaultConfiguration,
+  executable: true
 });
 const definition = (
   kind: FlowNodeFunctionType,
@@ -74,10 +76,16 @@ const definition = (
   defaultSize: defaultNodeSize(),
   connectors,
   editor: [{ key: 'enabled', label: 'Enabled', input: 'checkbox' }],
-  defaultConfiguration: { enabled: true }
+  defaultConfiguration: { enabled: true },
+  executable: false
 });
 
 export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
+  [FlowNodeFunctionType.Add]: executableDefinition(FlowNodeFunctionType.Add, [
+    { id: 'a', label: 'A', direction: 'input', dataType: 'number', side: 'left' },
+    { id: 'b', label: 'B', direction: 'input', dataType: 'number', side: 'left' },
+    { id: 'value', label: 'Value', direction: 'output', dataType: 'number', side: 'right' }
+  ]),
   [FlowNodeFunctionType.And]: executableDefinition(FlowNodeFunctionType.And, [
     booleanPort('a', 'A', 'input', 'left'),
     booleanPort('b', 'B', 'input', 'left'),
@@ -125,6 +133,7 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
         side: 'right'
       }
     ],
+    executable: false,
     editor: [
       { key: 'operation', label: 'Operation', input: 'select', options: ['average', 'sum'] }
     ],
@@ -137,11 +146,15 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     'clamp',
     numberConnectors()
   ),
-  [FlowNodeFunctionType.Comparator]: definition(
+  [FlowNodeFunctionType.Comparator]: executableDefinition(
     FlowNodeFunctionType.Comparator,
-    'logic',
-    'comparator',
-    numberConnectors()
+    [
+      { id: 'a', label: 'A', direction: 'input', dataType: 'number', side: 'left' },
+      { id: 'b', label: 'B', direction: 'input', dataType: 'number', side: 'left' },
+      booleanPort('value', 'Value', 'output', 'right')
+    ],
+    [{ key: 'operator', label: 'Operator', input: 'select', options: ['lt', 'lte', 'eq', 'gte', 'gt', 'ne'] }],
+    { operator: 'gt' }
   ),
   [FlowNodeFunctionType.Delay]: definition(FlowNodeFunctionType.Delay, 'timing', 'delay'),
   [FlowNodeFunctionType.DigitalConstant]: executableDefinition(
@@ -168,6 +181,18 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     'maths',
     'line',
     numberConnectors()
+  ),
+  [FlowNodeFunctionType.LevelShifter]: executableDefinition(
+    FlowNodeFunctionType.LevelShifter,
+    [
+      { id: 'in', label: 'Input', direction: 'input', dataType: 'number', side: 'left' },
+      { id: 'value', label: 'Value', direction: 'output', dataType: 'number', side: 'right' }
+    ],
+    [
+      { key: 'gain', label: 'Gain', input: 'number' },
+      { key: 'offset', label: 'Offset', input: 'number' }
+    ],
+    { gain: 1, offset: 0 }
   ),
   [FlowNodeFunctionType.Max]: definition(
     FlowNodeFunctionType.Max,
@@ -200,6 +225,12 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     booleanPort('b', 'B', 'input', 'left'),
     booleanPort('value', 'Value', 'output', 'right')
   ]),
+  [FlowNodeFunctionType.NumericConstant]: executableDefinition(
+    FlowNodeFunctionType.NumericConstant,
+    [{ id: 'value', label: 'Value', direction: 'output', dataType: 'number', side: 'right' }],
+    [{ key: 'value', label: 'Value', input: 'number' }],
+    { value: 0 }
+  ),
   [FlowNodeFunctionType.Not]: executableDefinition(FlowNodeFunctionType.Not, [
     booleanPort('in', 'Input', 'input', 'left'),
     booleanPort('value', 'Value', 'output', 'right')
@@ -209,6 +240,15 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     booleanPort('b', 'B', 'input', 'left'),
     booleanPort('value', 'Value', 'output', 'right')
   ]),
+  [FlowNodeFunctionType.OnDelay]: executableDefinition(
+    FlowNodeFunctionType.OnDelay,
+    [
+      booleanPort('in', 'Input', 'input', 'left'),
+      booleanPort('value', 'Elapsed', 'output', 'right')
+    ],
+    [{ key: 'durationMs', label: 'Duration (ms)', input: 'number' }],
+    { durationMs: 1000 }
+  ),
   [FlowNodeFunctionType.Override]: {
     kind: FlowNodeFunctionType.Override,
     label: 'Override',
@@ -219,6 +259,7 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
       { id: 'input', label: 'Automatic', direction: 'input', dataType: 'any', side: 'left' },
       { id: 'output', label: 'Effective', direction: 'output', dataType: 'any', side: 'right' }
     ],
+    executable: false,
     editor: [{ key: 'enabled', label: 'Override enabled', input: 'checkbox' }],
     defaultConfiguration: { enabled: false }
   },
@@ -232,9 +273,18 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
       { id: 'input', label: 'Trigger', direction: 'input', dataType: 'any', side: 'left' },
       { id: 'output', label: 'Pulse', direction: 'output', dataType: 'any', side: 'right' }
     ],
+    executable: false,
     editor: [{ key: 'durationSeconds', label: 'Duration (seconds)', input: 'number' }],
     defaultConfiguration: { durationSeconds: 30 }
   },
+  [FlowNodeFunctionType.QualityGood]: executableDefinition(FlowNodeFunctionType.QualityGood, [
+    booleanPort('in', 'Input', 'input', 'left'),
+    booleanPort('value', 'Good', 'output', 'right')
+  ]),
+  [FlowNodeFunctionType.RisingEdge]: executableDefinition(FlowNodeFunctionType.RisingEdge, [
+    booleanPort('in', 'Input', 'input', 'left'),
+    booleanPort('value', 'Event', 'output', 'right')
+  ]),
   [FlowNodeFunctionType.Schedule]: definition(FlowNodeFunctionType.Schedule, 'timing', 'schedule'),
   [FlowNodeFunctionType.Selector]: definition(FlowNodeFunctionType.Selector, 'routing', 'selector'),
   [FlowNodeFunctionType.Sequence]: definition(FlowNodeFunctionType.Sequence, 'routing', 'sequence'),
@@ -261,6 +311,7 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
         side: 'right'
       }
     ],
+    executable: false,
     editor: [{ key: 'outputs', label: 'Output count', input: 'number' }],
     defaultConfiguration: { outputs: 2 }
   },
@@ -277,7 +328,9 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
   ])
 };
 
-export const flowNodeKinds = Object.keys(nodeKindRegistry) as FlowNodeKind[];
+export const flowNodeKinds = (Object.keys(nodeKindRegistry) as FlowNodeKind[]).filter(
+  (kind) => nodeKindRegistry[kind].executable
+);
 
 export const getNodeKind = (kind: FlowNodeKind): NodeKindDefinition => nodeKindRegistry[kind];
 

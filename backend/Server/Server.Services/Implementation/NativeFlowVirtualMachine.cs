@@ -7,8 +7,8 @@ namespace Server.Services.Implementation;
 
 internal sealed unsafe partial class NativeFlowVirtualMachine : IFlowVirtualMachine
 {
-    private const uint AbiVersion = 1;
-    private const int MaximumArtifactBytes = 8192;
+    private const uint AbiVersion = 2;
+    private const int MaximumArtifactBytes = 16384;
     private const int MaximumSlots = 256;
     private const int MaximumStates = 128;
     private const int MaximumOutputs = 64;
@@ -41,7 +41,7 @@ internal sealed unsafe partial class NativeFlowVirtualMachine : IFlowVirtualMach
             var target = new NativeTarget
             {
                 AbiVersion = AbiVersion,
-                Capabilities = 0x3f,
+                Capabilities = 0xfff,
                 MaximumArtifactBytes = MaximumArtifactBytes,
                 MaximumWorkPerScan = 256,
                 MaximumSnapshotBytes = 16384
@@ -72,7 +72,8 @@ internal sealed unsafe partial class NativeFlowVirtualMachine : IFlowVirtualMach
             {
                 WriteIdentifier(inputs[index].PointId, samples[index].PointId, 64);
                 samples[index].Value = inputs[index].Value ? (byte)1 : (byte)0;
-                samples[index].Quality = inputs[index].IsGood ? (byte)1 : (byte)0;
+                samples[index].Quality = inputs[index].IsGood ? (byte)0 : (byte)1;
+                samples[index].Type = 1;
             }
 
             var frame = new NativeInputFrame
@@ -207,7 +208,8 @@ internal sealed unsafe partial class NativeFlowVirtualMachine : IFlowVirtualMach
         {
             WriteIdentifier(inputs[index].PointId, samples[index].PointId, 64);
             samples[index].Value = inputs[index].Value ? (byte)1 : (byte)0;
-            samples[index].Quality = inputs[index].IsGood ? (byte)1 : (byte)0;
+            samples[index].Quality = inputs[index].IsGood ? (byte)0 : (byte)1;
+            samples[index].Type = 1;
         }
 
         var frame = new NativeInputFrame
@@ -253,7 +255,7 @@ internal sealed unsafe partial class NativeFlowVirtualMachine : IFlowVirtualMach
         }
         for (var index = 0; index < commands.Length; index++)
         {
-            commands[index] = new FlowVmCommand(ReadIdentifier(frame.Outputs + (index * 65), 64), frame.Outputs[(index * 65) + 64] != 0);
+            commands[index] = new FlowVmCommand(ReadIdentifier(frame.Outputs + (index * 80), 64), frame.Outputs[(index * 80) + 64] != 0);
         }
         return new FlowVmExecutionFrame(
             frame.Execution.InstructionIndex,
@@ -292,38 +294,58 @@ internal sealed unsafe partial class NativeFlowVirtualMachine : IFlowVirtualMach
         [FieldOffset(20)] public uint MaximumWorkPerScan;
         [FieldOffset(24)] public uint MaximumSnapshotBytes;
     }
-    [StructLayout(LayoutKind.Sequential)]
-    private struct NativeInput { public fixed byte PointId[64]; public byte Value; public byte Quality; }
-    [StructLayout(LayoutKind.Sequential)]
-    private struct NativeInputFrame { public IntPtr Samples; public nuint SampleCount; public ulong SampledAtMilliseconds; public byte IsCoherent; }
-    [StructLayout(LayoutKind.Sequential)]
-    private struct NativeCommand { public fixed byte PointId[64]; public byte Value; }
-    [StructLayout(LayoutKind.Sequential)]
-    private struct NativeExecutionView { public ushort InstructionIndex; public byte Opcode; public byte IsAtCommit; }
-    [StructLayout(LayoutKind.Sequential)]
-    private struct NativeDebugFrame
+    [StructLayout(LayoutKind.Explicit, Size = 80)]
+    private struct NativeInput
     {
-        public NativeExecutionView Execution;
-        public ushort SlotCount;
-        public ushort StateCount;
-        public ushort OutputCount;
-        public fixed byte Slots[MaximumSlots];
-        public fixed byte CurrentState[MaximumStates];
-        public fixed byte StagedState[MaximumStates];
-        public fixed byte StagedStateValid[MaximumStates];
-        public fixed byte Outputs[MaximumOutputs * 65];
+        [FieldOffset(0)] public fixed byte PointId[64];
+        [FieldOffset(64)] public byte Value;
+        [FieldOffset(65)] public byte Quality;
+        [FieldOffset(66)] public byte Type;
+        [FieldOffset(72)] public double Number;
     }
     [StructLayout(LayoutKind.Sequential)]
+    private struct NativeInputFrame { public IntPtr Samples; public nuint SampleCount; public ulong SampledAtMilliseconds; public byte IsCoherent; }
+    [StructLayout(LayoutKind.Explicit, Size = 80)]
+    private struct NativeCommand
+    {
+        [FieldOffset(0)] public fixed byte PointId[64];
+        [FieldOffset(64)] public byte Value;
+        [FieldOffset(65)] public byte Quality;
+        [FieldOffset(66)] public byte Type;
+        [FieldOffset(72)] public double Number;
+    }
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativeExecutionView { public ushort InstructionIndex; public byte Opcode; public byte IsAtCommit; }
+    [StructLayout(LayoutKind.Explicit, Size = 8336)]
+    private struct NativeDebugFrame
+    {
+        [FieldOffset(0)] public NativeExecutionView Execution;
+        [FieldOffset(4)] public ushort SlotCount;
+        [FieldOffset(6)] public ushort StateCount;
+        [FieldOffset(8)] public ushort OutputCount;
+        [FieldOffset(10)] public fixed byte Slots[MaximumSlots];
+        [FieldOffset(266)] public fixed byte CurrentState[MaximumStates];
+        [FieldOffset(394)] public fixed byte StagedState[MaximumStates];
+        [FieldOffset(522)] public fixed byte StagedStateValid[MaximumStates];
+        [FieldOffset(656)] public fixed byte Outputs[MaximumOutputs * 80];
+        [FieldOffset(5776)] public fixed byte SlotTypes[MaximumSlots];
+        [FieldOffset(6032)] public fixed byte SlotQualities[MaximumSlots];
+        [FieldOffset(6288)] public fixed double NumericSlots[MaximumSlots];
+    }
+    [StructLayout(LayoutKind.Explicit, Size = 8032)]
     private struct NativeSnapshot
     {
-        public fixed byte FlowId[64];
-        public uint FlowRevision;
-        public ulong ScanNumber;
-        public ulong SampledAtMilliseconds;
-        public ushort SlotCount;
-        public ushort OutputCount;
-        public fixed byte Slots[MaximumSlots];
-        public fixed byte Outputs[MaximumOutputs * 65];
+        [FieldOffset(0)] public fixed byte FlowId[64];
+        [FieldOffset(64)] public uint FlowRevision;
+        [FieldOffset(72)] public ulong ScanNumber;
+        [FieldOffset(80)] public ulong SampledAtMilliseconds;
+        [FieldOffset(88)] public ushort SlotCount;
+        [FieldOffset(90)] public ushort OutputCount;
+        [FieldOffset(92)] public fixed byte Slots[MaximumSlots];
+        [FieldOffset(352)] public fixed byte Outputs[MaximumOutputs * 80];
+        [FieldOffset(5472)] public fixed byte SlotTypes[MaximumSlots];
+        [FieldOffset(5728)] public fixed byte SlotQualities[MaximumSlots];
+        [FieldOffset(5984)] public fixed double NumericSlots[MaximumSlots];
     }
 
     private static partial class Native

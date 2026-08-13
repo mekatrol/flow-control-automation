@@ -114,7 +114,7 @@ public sealed class FlowCompilerTests
                 "output-01-node"
             }));
             Assert.That(result.MaximumWorkPerScan, Is.EqualTo(6));
-            Assert.That(result.WorkingBytes, Is.EqualTo(10));
+            Assert.That(result.WorkingBytes, Is.EqualTo(160));
             Assert.That(result.MaximumSnapshotBytes, Is.EqualTo(16384));
         });
     }

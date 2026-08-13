@@ -8,4 +8,8 @@ public sealed record ExecutableFlowNode
     public required string Kind { get; init; }
     public IReadOnlyDictionary<string, JsonElement> Configuration { get; init; }
         = new Dictionary<string, JsonElement>();
+    public string Label { get; init; } = string.Empty;
+    public double X { get; init; }
+    public double Y { get; init; }
+    public double ZOrder { get; init; }
 }

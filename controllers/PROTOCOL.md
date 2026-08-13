@@ -9,7 +9,7 @@ commands, and resumable transfer of compiled flow deployments.
 FCP version 1 is implemented by Phase 9 of `IMPLEMENTATION_PLAN.md`. The
 implemented controller profile includes framing, device and point reads,
 authenticated sessions, bounded point arbitration and subscriptions, and
-transactional transfer of one compiled artifact up to 8192 bytes.
+transactional transfer of one compiled artifact up to 16384 bytes.
 
 The words **must**, **must not**, **should**, and **may** are normative. Numeric
 multi-byte fields use little-endian order. Receivers decode bytes explicitly and

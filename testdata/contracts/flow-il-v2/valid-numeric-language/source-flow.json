@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "id": "numeric-language",
+  "revision": 1,
+  "controllerTemplateId": "kincony-kc868-a16",
+  "controllerTemplateRevision": 3,
+  "nodes": [
+    {
+      "id": "constant-2",
+      "kind": "numericConstant",
+      "value": 2
+    },
+    {
+      "id": "constant-3",
+      "kind": "numericConstant",
+      "value": 3
+    },
+    {
+      "id": "add-1",
+      "kind": "add"
+    },
+    {
+      "id": "shift-1",
+      "kind": "levelShifter",
+      "gain": 2,
+      "offset": -1
+    },
+    {
+      "id": "compare-1",
+      "kind": "comparator",
+      "operator": 5
+    }
+  ],
+  "connections": [
+    {
+      "source": "constant-2",
+      "target": "add-1",
+      "port": "a"
+    },
+    {
+      "source": "constant-3",
+      "target": "add-1",
+      "port": "b"
+    },
+    {
+      "source": "add-1",
+      "target": "shift-1",
+      "port": "in"
+    },
+    {
+      "source": "shift-1",
+      "target": "compare-1",
+      "port": "a"
+    },
+    {
+      "source": "constant-3",
+      "target": "compare-1",
+      "port": "b"
+    }
+  ]
+}

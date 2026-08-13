@@ -12,6 +12,13 @@ const supportedKinds = new Set([
   'nor',
   'xor',
   'xnor',
+  'numericConstant',
+  'add',
+  'comparator',
+  'levelShifter',
+  'qualityGood',
+  'onDelay',
+  'risingEdge',
   'memory',
   'digitalOutput'
 ]);
@@ -45,6 +52,11 @@ const configurationFor = (node: FlowNode): Record<string, unknown> => {
   }
   if (node.kind === 'digitalConstant' || node.kind === 'memory')
     return { value: Boolean(node.configuration.value) };
+  if (node.kind === 'numericConstant') return { value: Number(node.configuration.value) };
+  if (node.kind === 'comparator') return { operator: String(node.configuration.operator) };
+  if (node.kind === 'levelShifter')
+    return { gain: Number(node.configuration.gain), offset: Number(node.configuration.offset) };
+  if (node.kind === 'onDelay') return { durationMs: Number(node.configuration.durationMs) };
   return {};
 };
 
@@ -72,7 +84,11 @@ export const createExecutableFlowSource = (
     nodes: flow.nodes.map((node) => ({
       id: node.id,
       kind: node.kind,
-      configuration: configurationFor(node)
+      configuration: configurationFor(node),
+      label: node.label,
+      x: node.x,
+      y: node.y,
+      zOrder: node.zOrder
     })),
     connections: flow.connections.map((connection) => ({
       source: { nodeId: connection.start.nodeId, portId: connection.start.connectorId },
