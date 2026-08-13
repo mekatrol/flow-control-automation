@@ -9,7 +9,7 @@ compiler lowers it to executable envelope/body schema 1 as specified by
 
 It remains a frozen debug/compiler fixture contract. The production source
 adapter and scheduled Flow IL v2 will be backend-owned as described in
-[`portable-flow-il-implementation-plan.md`](portable-flow-il-implementation-plan.md);
+[`portable-flow-il-architecture.md`](portable-flow-il-architecture.md);
 controllers will not receive this source graph or run its scheduling algorithm.
 
 This contract is distinct from persisted flow-designer JSON. The designer has

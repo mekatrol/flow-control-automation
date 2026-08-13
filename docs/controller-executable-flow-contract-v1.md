@@ -6,7 +6,7 @@ This schema is frozen as the graph-shaped controller-debug compatibility
 format. It proves deterministic compilation and portable evaluation, but its
 preparation step still constructs a Kahn schedule on the receiver. Production
 cross-target execution will use scheduled Flow IL v2 as planned in
-[`portable-flow-il-implementation-plan.md`](portable-flow-il-implementation-plan.md).
+[`portable-flow-il-architecture.md`](portable-flow-il-architecture.md).
 Schema 1 must not be changed or reinterpreted to obtain v2 behavior.
 
 This document is the normative contract for executable flow envelope schema 1

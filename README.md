@@ -9,8 +9,8 @@ snapshot, **Execute Logic** against that snapshot and committed state, then
 completed-scan snapshot. Intentional feedback uses explicit memory/delay state,
 so cyclic behavior is predictable without recursive graph evaluation.
 
-The primary execution roadmap is the
-[`portable Flow IL architecture and implementation plan`](docs/portable-flow-il-implementation-plan.md).
+The production execution architecture is defined by the
+[`portable Flow IL architecture`](docs/portable-flow-il-architecture.md).
 Flows compile on the backend into deterministic bytecode and execute through the
 same portable VM on the server or a hardware controller. Earlier design records
 remain under [`docs/decisions/`](docs/decisions/), but pre-release runtime paths
@@ -24,8 +24,8 @@ IL version. Non-current versions are rejected rather than migrated or executed.
 The backend decompiler performs the reverse tooling operation: users
 can import supported compiled IL as a valid editable designer flow. Artifacts
 recover a deterministic semantically equivalent graph with stable executable
-IDs and configuration plus explicit warnings for labels and canvas layout that
-the current runtime artifact does not contain.
+IDs and configuration. Current symbol metadata restores labels, groups, and
+canvas layout losslessly; stripped metadata produces explicit recovery warnings.
 
 ## What the Application Does
 

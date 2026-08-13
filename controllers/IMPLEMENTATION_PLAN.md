@@ -2,7 +2,7 @@
 
 > Architecture update (12 August 2026): this document remains the schema-1
 > controller execution history and compatibility plan. New production execution
-> follows `../docs/portable-flow-il-implementation-plan.md`: the backend compiler
+> follows `../docs/portable-flow-il-architecture.md`: the backend compiler
 > performs graph validation and Kahn scheduling, emits scheduled Flow IL v2, and
 > the controller only validates, prepares, and executes that IL through the
 > shared portable VM.

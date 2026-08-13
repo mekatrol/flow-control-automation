@@ -3,7 +3,7 @@
 > Compatibility scope: v1 supports whole-tick Step, Run, and Pause only. It does
 > not provide node/instruction breakpoints, run-to, or partial-frame inspection.
 > Those are Flow IL v2 debugger capabilities defined by
-> [`portable-flow-il-implementation-plan.md`](portable-flow-il-implementation-plan.md).
+> [`portable-flow-il-architecture.md`](portable-flow-il-architecture.md).
 > They must be added through negotiated new protocol/schema versions rather than
 > changing these v1 operation meanings.
 

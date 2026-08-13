@@ -40,7 +40,7 @@ This reference complements
 which remains the detailed authority for deterministic controller execution,
 artifact validation, lifecycle integration, and production commissioning.
 The next-generation production architecture is defined by
-[`portable-flow-il-implementation-plan.md`](portable-flow-il-implementation-plan.md).
+[`portable-flow-il-architecture.md`](portable-flow-il-architecture.md).
 It reuses this portable evaluator foundation on the server and controller, but
 moves Kahn scheduling entirely into the backend compiler and introduces a
 scheduled Flow IL v2 rather than extending graph-shaped schema 1.
