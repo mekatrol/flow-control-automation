@@ -242,24 +242,23 @@ unset FCP_KEY
 ```
 
 Upload an immutable compiled artifact, activate it separately, and verify an
-exact download. Schema 1 is currently an opaque bounded artifact; activation
-does not yet execute it because evaluator bytecode is deliberately outside
-Phase 9.
+exact download. Flow IL v2 is validated by the portable VM before commit and
+prepared transactionally before the active runtime is replaced.
 
 ```sh
-./scripts/fcp-client.py "$FCP_PORT" upload --address 0 --key "$FCP_KEY" --file flow.fca --flow-id plant-1 --revision 1 --schema 1
+./scripts/fcp-client.py "$FCP_PORT" upload --address 0 --key "$FCP_KEY" --file flow.fil --flow-id plant-1 --revision 1 --schema 2
 ./scripts/fcp-client.py "$FCP_PORT" activate --address 0 --key "$FCP_KEY"
-./scripts/fcp-client.py "$FCP_PORT" download --address 0 --key "$FCP_KEY" --file downloaded.fca
-cmp flow.fca downloaded.fca
+./scripts/fcp-client.py "$FCP_PORT" download --address 0 --key "$FCP_KEY" --file downloaded.fil
+cmp flow.fil downloaded.fil
 ./scripts/fcp-client.py "$FCP_PORT" deactivate --address 0 --key "$FCP_KEY"
 ./scripts/fcp-client.py "$FCP_PORT" remove-flow --address 0 --key "$FCP_KEY"
 ```
 
-Load a schema-1 artifact into volatile memory, take one coherent shadow step,
+Load a Flow IL v2 artifact into volatile memory, take one coherent shadow step,
 verify and print its snapshot, then stop and clear the session:
 
 ```bash
-./scripts/fcp-client.py "$FCP_PORT" debug-step --address 0 --key "$FCP_KEY" --file flow.fca
+./scripts/fcp-client.py "$FCP_PORT" debug-step --address 0 --key "$FCP_KEY" --file flow.fil
 ```
 
 This command never commits or activates the artifact and never commands a

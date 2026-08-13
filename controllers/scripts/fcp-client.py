@@ -130,7 +130,7 @@ def get_arguments():
     parser.add_argument("--file", type=Path, help="compiled artifact path for upload or download")
     parser.add_argument("--flow-id", default="flow-1", help="bounded flow identity for upload")
     parser.add_argument("--revision", type=int, default=1, help="positive artifact revision for upload")
-    parser.add_argument("--schema", type=int, default=1, help="positive artifact schema for upload")
+    parser.add_argument("--schema", type=int, choices=(2,), default=2, help="Flow IL artifact version for upload")
     parser.add_argument("--expected-revision", type=int, help="optional committed revision precondition")
     parser.add_argument("--mask", type=lambda value: int(value, 0), help="16-bit output subscription mask")
     parser.add_argument("--source-id", default="fcp-client", help="command owner used by relinquish")
@@ -254,7 +254,7 @@ def download_flow(file_descriptor, arguments, key, session_id, transaction):
 # Loads, prepares, steps, verifies, and stops one volatile shadow debug session.
 def debug_step(file_descriptor, arguments, key, auth_session_id, transaction, artifact, live_output=False):
     sequence = 1
-    body = struct.pack("<IBI", secrets.randbits(32), 1, len(artifact)) + hashlib.sha256(artifact).digest()
+    body = struct.pack("<IBI", secrets.randbits(32), 2, len(artifact)) + hashlib.sha256(artifact).digest()
     _, response = transact_authenticated(file_descriptor, arguments, key, auth_session_id, sequence,
                                          OPERATIONS["debug-step"], body, transaction)
     debug_session_id, chunk_limit, _ = struct.unpack("<QHI", response)

@@ -376,7 +376,7 @@ ID/revision, referenced point/source revisions, execution mode/interval,
 node/connection counts, required capabilities/limits, payload length, and
 SHA-256 digest.
 
-Envelope schema 1 and body schema 1 use the deterministic encoding in
+Flow IL envelope version 2 is the sole accepted executable artifact and uses the deterministic encoding in
 [`../docs/controller-executable-flow-contract-v1.md`](../docs/controller-executable-flow-contract-v1.md).
 FCP transfer still treats the bytes as opaque; the deployment validator owns
 their semantics.
@@ -429,9 +429,16 @@ The initial durable profile stores one committed flow in an atomic NVS blob and
 one volatile staging transfer. Upload status permits retransmission and resume
 within the current boot; a reboot discards staging but recovers either the old
 complete generation or the newly committed complete generation. Artifact
-schema 1 is the executable envelope and body contract linked above; digest and
+Flow IL v2 is the executable envelope and body contract linked above; digest and
 schema validation occur before commit, while activation remains a distinct
 durable operation.
+
+The capabilities response appends `artifact_version_count:u8,
+artifact_versions:u8[count], vm_abi_version:u8, debugger_features:u8,
+maximum_debug_outputs:u8`. The current controller advertises artifact version 2,
+VM ABI version 1, and debugger feature bits for tick/node/instruction stepping,
+continue, pause, run-to, and inspection. Hosts reject a target before upload when
+these versions, opcode requirements, or bounded resources do not match.
 
 ### 12.1 Volatile debug operations
 

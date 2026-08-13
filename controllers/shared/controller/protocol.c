@@ -1091,8 +1091,12 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                 break;
             }
 
-            response.payload_size = 19;
-            response.payload[0]   = PROTOCOL_CAPABILITY_MINOR;
+            static const size_t CAPABILITY_PAYLOAD_V2_SIZE = 24;
+            static const uint8_t ARTIFACT_VERSION_COUNT    = 1;
+            static const uint8_t FLOW_IL_VERSION           = 2;
+            static const uint8_t DEBUGGER_FEATURES         = UINT8_C(0x7f);
+            response.payload_size                          = CAPABILITY_PAYLOAD_V2_SIZE;
+            response.payload[0]                            = PROTOCOL_CAPABILITY_MINOR;
             put_u16(&response.payload[1], CONTROLLER_PROTOCOL_FRAME_CAPACITY);
             put_u16(&response.payload[3], CONTROLLER_PROTOCOL_PAYLOAD_CAPACITY);
             response.payload[5]  = PROTOCOL_OPERATION_BITMAP_SIZE;
@@ -1109,6 +1113,11 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
             response.payload[16] = UINT8_MAX;
             response.payload[17] = UINT8_C(0x0f);
             response.payload[18] = PROTOCOL_POINT_TYPE_MASK;
+            response.payload[19] = ARTIFACT_VERSION_COUNT;
+            response.payload[20] = FLOW_IL_VERSION;
+            response.payload[21] = FLOW_VM_ABI_VERSION;
+            response.payload[22] = DEBUGGER_FEATURES;
+            response.payload[23] = FLOW_VM_MAX_OUTPUTS;
             send_response(protocol, &response);
             break;
         case CONTROLLER_PROTOCOL_OPERATION_GET_DEVICE_INFO:

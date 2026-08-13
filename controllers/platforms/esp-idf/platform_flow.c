@@ -1,3 +1,4 @@
+#include "flow/vm.h"
 #include "platform/flow.h"
 
 #include <string.h>
@@ -104,10 +105,25 @@ bool platform_flow_get_digest(void * /* context */, const uint8_t *data, size_t 
            digest_size == CONTROLLER_FLOW_DIGEST_SIZE;
 }
 
-/* Accepts only the implemented opaque schema while preserving non-empty bounded artifacts. */
+/* Validates only current Flow IL v2 by preparing it against the controller VM profile. */
 bool platform_flow_is_artifact_valid(void * /* context */, const controller_flow_metadata_t *metadata, const uint8_t *artifact)
 {
-    const uint32_t supported_schema = 1;
+    static const uint32_t SUPPORTED_SCHEMA = 2;
+    const flow_vm_target_t target          = {.abi_version            = FLOW_VM_ABI_VERSION,
+                                              .capabilities           = UINT64_C(0x1f),
+                                              .maximum_artifact_bytes = FLOW_VM_MAX_ARTIFACT,
+                                              .maximum_work_per_scan  = FLOW_VM_MAX_INSTRUCTIONS,
+                                              .maximum_snapshot_bytes = sizeof(flow_vm_snapshot_t)};
+    flow_vm_t candidate;
 
-    return metadata != NULL && artifact != NULL && metadata->artifact_schema == supported_schema && metadata->size > 0;
+    if (metadata == NULL || artifact == NULL || metadata->artifact_schema != SUPPORTED_SCHEMA || metadata->size == 0)
+    {
+        return false;
+    }
+
+    memset(&candidate, 0, sizeof(candidate));
+    const flow_vm_result_t prepared = flow_vm_prepare(artifact, metadata->size, &target, &candidate);
+    flow_vm_clear(&candidate);
+
+    return prepared.code == FLOW_VM_OK;
 }

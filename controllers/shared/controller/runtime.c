@@ -12,6 +12,7 @@
 #include "controller/protocol.h"
 #include "diagnostics/service.h"
 #include "ethernet/link.h"
+#include "flow/host.h"
 #include "flow/service.h"
 #include "network/manager.h"
 #include "platform/auth.h"
@@ -106,12 +107,15 @@ static controller_protocol_t controller_protocol;
 static controller_auth_t controller_auth;
 static controller_flow_t controller_flow;
 static flow_debug_t controller_debug;
+static flow_host_t controller_flow_host;
+static uint64_t next_flow_scan_ms;
 static flow_target_point_t debug_target_points[CONTROLLER_IO_POINT_COUNT];
 static flow_input_sample_t debug_input_samples[CONTROLLER_IO_INPUT_COUNT];
 static flow_target_t debug_target;
 static controller_points_t controller_points;
 static bool is_flow_ready;
 static bool is_debug_ready;
+static bool is_flow_host_ready;
 static controller_io_t controller_io;
 static bool is_io_ready;
 static uint64_t next_io_poll_ms;
@@ -119,6 +123,9 @@ static char protocol_device_id[PROTOCOL_DEVICE_ID_CAPACITY];
 static platform_settings_result_t platform_settings_result = PLATFORM_SETTINGS_DISABLED;
 static char mqtt_availability_topic[MQTT_TOPIC_CAPACITY];
 static char mqtt_health_topic[MQTT_TOPIC_CAPACITY];
+
+/* Resolves a stable output point identifier to the physical output index. */
+static bool get_debug_output_index(const char *point_id, uint8_t *output);
 
 /* Copies an encoded protocol response into the bounded RS485 transmit queue. */
 static bool send_protocol_frame(void *context, const uint8_t *data, size_t size)
@@ -168,6 +175,82 @@ static void initialize_flow(void)
     controller_flow_store_t store;
     is_flow_ready = platform_flow_initialize(&store) && controller_flow_init(&controller_flow, platform_flow_get_digest,
                                                                              platform_flow_is_artifact_valid, NULL, &store);
+}
+
+/* Captures the physical digital inputs into the v2 VM's coherent input frame. */
+static bool read_flow_inputs(void * /* context */, flow_vm_input_sample_t *samples, size_t capacity, size_t *count,
+                             uint64_t *sampled_at_ms)
+{
+    const controller_io_snapshot_t snapshot = controller_io_get_snapshot(&controller_io);
+
+    if (samples == NULL || count == NULL || sampled_at_ms == NULL || capacity < CONTROLLER_IO_INPUT_COUNT)
+    {
+        return false;
+    }
+
+    for (size_t index = 0; index < CONTROLLER_IO_INPUT_COUNT; index++)
+    {
+        snprintf(samples[index].point_id, sizeof(samples[index].point_id), "input-%02u", (unsigned)(index + 1U));
+        samples[index].value   = (snapshot.inputs & (uint16_t)(1U << index)) != 0U;
+        samples[index].quality = snapshot.are_inputs_valid ? 1U : 0U;
+    }
+
+    *count         = CONTROLLER_IO_INPUT_COUNT;
+    *sampled_at_ms = (uint64_t)snapshot.sampled_at_ms;
+
+    return snapshot.are_inputs_valid;
+}
+
+/* Publishes one committed v2 command batch under the durable flow owner. */
+static bool publish_flow_commands(void * /* context */, const flow_vm_command_t *commands, size_t count, uint64_t now_ms)
+{
+    static const char SOURCE_ID[]              = "flow-runtime";
+    static const char CORRELATION_ID[]         = "scan";
+    static const uint8_t FLOW_COMMAND_PRIORITY = 16;
+
+    for (size_t index = 0; index < count; index++)
+    {
+        uint8_t output = 0;
+
+        if (!get_debug_output_index(commands[index].point_id, &output))
+        {
+            return false;
+        }
+
+        controller_point_command_t command = {.is_used       = true,
+                                              .output        = output,
+                                              .command_class = 1,
+                                              .priority      = FLOW_COMMAND_PRIORITY,
+                                              .value         = commands[index].value,
+                                              .issued_at_ms  = (int64_t)now_ms,
+                                              .expires_at_ms = 0};
+        snprintf(command.source_id, sizeof(command.source_id), "%s", SOURCE_ID);
+        snprintf(command.correlation_id, sizeof(command.correlation_id), "%s", CORRELATION_ID);
+
+        if (controller_points_command(&controller_points, &command, command.issued_at_ms) != CONTROLLER_POINT_OK)
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/* Synchronizes durable activation and invokes one bounded production PLC scan. */
+static void process_flow(uint64_t now_ms)
+{
+    if (!is_flow_ready || !is_flow_host_ready || now_ms < next_flow_scan_ms)
+    {
+        return;
+    }
+
+    if (flow_host_synchronize(&controller_flow_host, &controller_flow) && controller_flow_host.is_running)
+    {
+        flow_vm_snapshot_t snapshot;
+        flow_host_scan(&controller_flow_host, now_ms, &snapshot);
+    }
+
+    next_flow_scan_ms = now_ms + CONTROLLER_TICK_MS;
 }
 
 /* Copies the latest coherent physical input bitmap into the portable debug evaluator adapter. */
@@ -319,8 +402,10 @@ static void initialize_io(void)
         controller_points_init(&controller_points, platform_io_write_outputs);
     }
 
-    is_debug_ready  = initialize_debug();
-    next_io_poll_ms = platform_get_monotonic_ms();
+    is_debug_ready     = initialize_debug();
+    is_flow_host_ready = flow_host_init(&controller_flow_host, read_flow_inputs, publish_flow_commands, NULL);
+    next_flow_scan_ms  = platform_get_monotonic_ms();
+    next_io_poll_ms    = platform_get_monotonic_ms();
 }
 
 /* Polls all PCF8574 banks into one cache so protocol reads never block on field I/O. */
@@ -834,6 +919,7 @@ static void controller_task(void * /* context */)
 
         /* Field samples are cached before protocol dispatch for coherent non-blocking reads. */
         process_io(now_ms);
+        process_flow(now_ms);
 
         if (is_debug_ready)
         {

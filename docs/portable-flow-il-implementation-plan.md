@@ -493,6 +493,17 @@ Exit: the complete flow UI execution loop works against the backend server alone
 
 ### Phase 7 - Complete controller debugging and deployment on current IL
 
+Status: complete on 13 August 2026. FCP capability negotiation now advertises
+Flow IL v2, VM ABI v1, debugger feature flags, and bounded outputs. Durable
+uploads accept only v2 and validate them by preparing the normative portable VM.
+The controller production host maintains two caller-owned VM instances so a
+replacement is fully prepared before cutover, recovers active artifacts after
+reboot, captures coherent physical inputs, runs non-overlapping PLC scans, and
+publishes committed command batches through controller arbitration. Invalid
+replacement artifacts preserve the prior runtime. Volatile debug remains
+isolated from durable activation and retains its lease, shadow/live-output, and
+relinquishment safety behavior.
+
 - Advertise supported IL envelope/body and VM ABI versions through FCP.
 - Transfer the same artifact produced for the server when target capabilities
   permit it; validate requirements before mutation.

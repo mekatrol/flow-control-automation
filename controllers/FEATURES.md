@@ -92,10 +92,10 @@ Implemented protocol capabilities include:
   caller-only relinquish;
 - bounded output-change subscriptions with sequence numbers, coalescing, gap
   reporting, and explicit read-based resynchronization; and
-- resumable authenticated artifact upload, validation, atomic commit, exact
+- resumable authenticated Flow IL v2 upload, VM validation, atomic commit, exact
   download, metadata/list operations, activation, deactivation, removal, and
-  reboot-safe recovery. The current schema-1 artifact is deliberately opaque
-  and is not yet executed by a flow evaluator.
+  reboot-safe recovery. Active v2 artifacts execute through the portable VM
+  production host and controller point adapters.
 
 ## Verification and tools
 
@@ -107,7 +107,7 @@ requirements, prepare, initialize, instruction stepping, commit, abort, reset,
 retained-state export, snapshot retrieval, and clear operations. Static firmware
 and shared native-library targets build the same sources; fixture tests cover
 Boolean scans, one-scan feedback, paused execution, abort safety, invalid
-artifacts, and schema-1 compatibility.
+artifacts, and Flow IL v2 host equivalence.
 
 - Portable host suites cover diagnostics, supervisors, MQTT, settings,
   terminal behaviour, protocol framing and dispatch, authentication, point

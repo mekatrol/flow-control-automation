@@ -16,6 +16,7 @@ idf_component_register(
         "${SHARED_DIR}/flow/debug.c"
         "${SHARED_DIR}/flow/sha256.c"
         "${SHARED_DIR}/flow/vm.c"
+        "${SHARED_DIR}/flow/host.c"
         "${SHARED_DIR}/controller/points.c"
         "${SHARED_DIR}/controller/health.c"
         "${SHARED_DIR}/controller/health_format.c"

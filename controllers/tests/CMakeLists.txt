@@ -105,6 +105,8 @@ add_test(NAME flow_il_v2_contract COMMAND flow_il_v2_contract_tests)
 
 add_library(flow_vm_static STATIC
     ../shared/flow/vm.c
+    ../shared/flow/host.c
+    ../shared/flow/service.c
     ../shared/flow/sha256.c)
 target_include_directories(flow_vm_static PUBLIC ../shared)
 

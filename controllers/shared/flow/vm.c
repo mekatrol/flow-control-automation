@@ -532,12 +532,12 @@ flow_vm_result_t flow_vm_get_debug_frame(const flow_vm_t *vm, flow_vm_debug_fram
 
     if ((vm == NULL) || (frame == NULL))
     {
-        return result(FLOW_VM_MALFORMED, "/debugFrame");
+        return get_result(FLOW_VM_MALFORMED, "/debugFrame");
     }
 
     if (vm->lifecycle != FLOW_VM_EXECUTING)
     {
-        return result(FLOW_VM_WRONG_STATE, "/lifecycle");
+        return get_result(FLOW_VM_WRONG_STATE, "/lifecycle");
     }
 
     memset(frame, 0, sizeof(*frame));
@@ -558,7 +558,7 @@ flow_vm_result_t flow_vm_get_debug_frame(const flow_vm_t *vm, flow_vm_debug_fram
         frame->outputs[index] = vm->staged_outputs[index];
     }
 
-    return result(FLOW_VM_OK, "");
+    return get_result(FLOW_VM_OK, "");
 }
 
 /* Completes Execute Logic and atomically publishes state, proposed commands, and one completed-scan snapshot. */

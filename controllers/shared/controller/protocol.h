@@ -8,6 +8,7 @@
 #include "controller/points.h"
 #include "flow/debug.h"
 #include "flow/service.h"
+#include "flow/vm.h"
 
 /* Version-one wire limits preserve the 256-byte RS485 transport bound. */
 enum
