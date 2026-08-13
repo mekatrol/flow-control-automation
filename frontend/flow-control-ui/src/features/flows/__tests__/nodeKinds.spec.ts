@@ -12,7 +12,7 @@ describe('node-kind registry', () => {
     // Expected outcome: `flowNodeKinds` contains the required number of entries.
     // Acceptance criteria: `flowNodeKinds` must contain exactly 24 entries, because this condition proves that
     // contains complete rendering, connector, and editor metadata for every supported kind.
-    expect(flowNodeKinds).toHaveLength(18);
+    expect(flowNodeKinds).toHaveLength(36);
 
     // Expected outcome: `flowNodeKinds` matches the required structure.
     // Acceptance criteria: `flowNodeKinds` must equal `expect.arrayContaining(['and', 'average', 'calculator', 'nand', 'nor', 'not', 'xnor', 'xor']`, because this condition proves that
@@ -56,14 +56,14 @@ describe('node-kind registry', () => {
       // Acceptance criteria: `definition.connectors.some(({ direction }) => direction === 'input')` must be `true`, because this condition proves that
       // contains complete rendering, connector, and editor metadata for every supported kind.
       expect(definition.connectors.some(({ direction }) => direction === 'input')).toBe(
-        kind !== 'digitalInput' && kind !== 'digitalConstant' && kind !== 'numericConstant'
+        kind !== 'digitalInput' && kind !== 'analogInput' && kind !== 'digitalConstant' && kind !== 'numericConstant'
       );
 
       // Expected outcome: `definition.connectors.some(({ direction }) => direction === 'output')` has the required value.
       // Acceptance criteria: `definition.connectors.some(({ direction }) => direction === 'output')` must be `true`, because this condition proves that
       // contains complete rendering, connector, and editor metadata for every supported kind.
       expect(definition.connectors.some(({ direction }) => direction === 'output')).toBe(
-        kind !== 'digitalOutput'
+        kind !== 'digitalOutput' && kind !== 'analogOutput'
       );
 
       // Expected outcome: `definition.editor.length` satisfies the required boundary.
@@ -159,6 +159,8 @@ describe('node-kind registry', () => {
     // Acceptance criteria: `routingDefinitions.map(({ kind }) => kind` must equal `[ 'selector', 'sequence', 'split' ]`, because this condition proves that
     // keeps logic and routing blocks in their presentation categories.
     expect(routingDefinitions.map(({ kind }) => kind).sort()).toEqual([
+      'analogInput',
+      'analogOutput',
       'selector',
       'sequence',
       'split'

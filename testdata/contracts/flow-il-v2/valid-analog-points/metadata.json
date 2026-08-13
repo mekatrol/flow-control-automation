@@ -1,0 +1,20 @@
+{
+  "flowId": "analog-points",
+  "flowRevision": 1,
+  "sectionCount": 8,
+  "instructionCount": 4,
+  "slotCount": 3,
+  "pointCount": 2,
+  "stateCount": 0,
+  "schedule": [
+    "analog-in",
+    "shift",
+    "analog-out"
+  ],
+  "slots": {
+    "analog-in": 0,
+    "shift": 1,
+    "analog-out": 2
+  },
+  "artifactLength": 940
+}

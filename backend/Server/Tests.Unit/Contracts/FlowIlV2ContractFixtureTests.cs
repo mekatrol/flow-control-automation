@@ -29,7 +29,7 @@ public sealed class FlowIlV2ContractFixtureTests
         using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(FixtureRoot, "manifest.json")));
         var fixtures = manifest.RootElement.GetProperty("fixtures").EnumerateArray().ToArray();
 
-        Assert.That(fixtures, Has.Length.EqualTo(11));
+        Assert.That(fixtures, Has.Length.EqualTo(12));
         foreach (var fixture in fixtures)
         {
             var id = fixture.GetProperty("id").GetString()!;
@@ -120,8 +120,8 @@ public sealed class FlowIlV2ContractFixtureTests
             var offset = checked((int)ReadUInt32(artifact, entryOffset + 4));
             var length = checked((int)ReadUInt32(artifact, entryOffset + 8));
             var count = checked((int)ReadUInt32(artifact, entryOffset + 12));
-            var expectedVersion = id == 6 ? 2 : 1;
-            if (ReadUInt16(artifact, entryOffset + 2) != expectedVersion || offset != expectedOffset ||
+            var version = ReadUInt16(artifact, entryOffset + 2);
+            if ((id is 2 or 6 ? version is not (1 or 2) : version != 1) || offset != expectedOffset ||
                 length < 0 || offset < 0 || offset > artifact.Length || length > artifact.Length - offset)
             {
                 return DecodeResult.Error("malformed", "");

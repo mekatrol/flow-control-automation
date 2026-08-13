@@ -7,6 +7,7 @@
       "name": "Compact digital controller",
       "description": "Interval-only target with digital I/O",
       "readOnly": false,
+      "revision": 1,
       "capabilities": {
         "pointTypes": ["digital"],
         "pointDirections": ["input", "output"],
@@ -22,10 +23,8 @@
         "maxConnectionsPerFlow": 96,
         "minimumIntervalMilliseconds": 100
       },
-      "revision": 1,
       "createdAt": "2026-01-01T00:00:00Z",
       "updatedAt": "2026-01-01T00:00:00Z"
     }
   ]
 }
-

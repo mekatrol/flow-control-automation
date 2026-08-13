@@ -66,7 +66,9 @@ function compile(source) {
   const stateIds = orderedIds.filter((id) => ['memory', 'onDelay', 'risingEdge'].includes(nodes.get(id).kind));
   const stateSlotByNode = new Map(stateIds.map((id, index) => [id, orderedIds.length + index]));
   const points = [...new Map(source.nodes.filter((node) => node.pointId).map((node) => [node.pointId, {
-    id: node.pointId, direction: node.kind === 'input' ? 1 : 2
+    id: node.pointId, direction: node.kind === 'input' || node.kind === 'analogInput' ? 1 : 2,
+    type: node.kind === 'analogInput' || node.kind === 'analogOutput' ? 2 : 1,
+    units: node.units ?? ''
   }])).values()].sort((left, right) => compare(left.id, right.id) || left.direction - right.direction);
   const pointIndex = new Map(points.map((point, index) => [point.id, index]));
   const requestedConstants = source.nodes.flatMap((node) => {
@@ -91,6 +93,7 @@ function compile(source) {
     const result = slotByNode.get(id);
     const instruction = { nodeId: id, discriminator: 0, result, op0: 0xffff, op1: 0xffff, aux: 0xffff };
     if (node.kind === 'input') Object.assign(instruction, { opcode: opcodes.readPoint, aux: pointIndex.get(node.pointId) });
+    if (node.kind === 'analogInput') Object.assign(instruction, { opcode: opcodes.readPoint, aux: pointIndex.get(node.pointId) });
     if (node.kind === 'constant') Object.assign(instruction, { opcode: opcodes.constant, aux: constantIndex(1, Boolean(node.value) ? 1 : 0) });
     if (node.kind === 'not') Object.assign(instruction, { opcode: opcodes.not, op0: inputSlot(id, 'in') });
     if (node.kind === 'and') Object.assign(instruction, { opcode: opcodes.and, op0: inputSlot(id, 'a'), op1: inputSlot(id, 'b') });
@@ -108,13 +111,14 @@ function compile(source) {
     if (node.kind === 'risingEdge') Object.assign(instruction, { opcode: 19, op0: inputSlot(id, 'in'), aux: stateSlotByNode.get(id) });
     if (node.kind === 'memory') Object.assign(instruction, { opcode: opcodes.loadState, aux: stateSlotByNode.get(id) });
     if (node.kind === 'output') Object.assign(instruction, { opcode: opcodes.proposeOutput, op0: inputSlot(id, 'in'), aux: pointIndex.get(node.pointId) });
+    if (node.kind === 'analogOutput') Object.assign(instruction, { opcode: opcodes.proposeOutput, op0: inputSlot(id, 'in'), aux: pointIndex.get(node.pointId) });
     instructions.push(instruction);
   }
   for (const id of memoryIds) instructions.push({ opcode: opcodes.stageState, nodeId: id, discriminator: 1,
     result: 0xffff, op0: inputSlot(id, 'in'), op1: 0xffff, aux: stateSlotByNode.get(id) });
   instructions.push({ opcode: opcodes.commit, nodeId: '', discriminator: 0, result: 0xffff, op0: 0xffff, op1: 0xffff, aux: 0xffff });
 
-  const numericKinds = new Set(['numericConstant', 'add', 'levelShifter']);
+  const numericKinds = new Set(['numericConstant', 'add', 'levelShifter', 'analogInput', 'analogOutput']);
   const slots = orderedIds.map((id, index) => Buffer.concat([u8(2), u8(numericKinds.has(nodes.get(id).kind) ? 2 : 1), u16(0), u16(index), u16(0xffff)]));
   for (const id of stateIds) {
     const node = nodes.get(id);
@@ -125,19 +129,19 @@ function compile(source) {
   const instructionBytes = instructions.map((item) => Buffer.concat([u8(item.opcode), u8(0), u16(item.result), u16(item.op0), u16(item.op1), u16(item.aux), u16(0)]));
   const commits = [];
   for (const id of memoryIds) commits.push(Buffer.concat([u8(1), u8(0), u16(stateSlotByNode.get(id)), u16(inputSlot(id, 'in')), u16(0)]));
-  for (const id of orderedIds.filter((nodeId) => nodes.get(nodeId).kind === 'output')) commits.push(Buffer.concat([u8(2), u8(0), u16(pointIndex.get(nodes.get(id).pointId)), u16(slotByNode.get(id)), u16(0)]));
+  for (const id of orderedIds.filter((nodeId) => ['output', 'analogOutput'].includes(nodes.get(nodeId).kind))) commits.push(Buffer.concat([u8(2), u8(0), u16(pointIndex.get(nodes.get(id).pointId)), u16(slotByNode.get(id)), u16(0)]));
   const symbols = instructions.map((item, index) => {
     const node = nodes.get(item.nodeId);
     const label = node ? (node.label ?? authoringLabel(node.kind)) : '';
     return Buffer.concat([u16(index), u8(item.discriminator), string8(item.nodeId), string8(label),
-      f64(node?.x ?? 0), f64(node?.y ?? 0), f64(node?.zOrder ?? 0)]);
+      f64(node?.x ?? 0), f64(node?.y ?? 0), f64(node?.zOrder ?? 0), string8(node?.groupId ?? '')]);
   });
   const debugMap = instructions.filter((item) => item.nodeId).map((item, index) => Buffer.concat([u16(index), u16(item.result), string8(item.nodeId)]));
   const sections = [
     { id: sectionIds.constants, count: constants.length, bytes: Buffer.concat(constants.map((constant) => constant.type === 1
       ? Buffer.concat([u8(1), u8(constant.value), u16(0)])
       : Buffer.concat([u8(2), u8(0), u16(0), f64(constant.value)]))) },
-    { id: sectionIds.points, count: points.length, bytes: Buffer.concat(points.map((point) => Buffer.concat([u8(point.direction), u8(1), u8(1), u8(0), string8(point.id)]))) },
+    { id: sectionIds.points, version: 2, count: points.length, bytes: Buffer.concat(points.map((point) => Buffer.concat([u8(point.direction), u8(point.type), u8(1), u8(0), string8(point.id), string8(point.units)]))) },
     { id: sectionIds.slots, count: slots.length, bytes: Buffer.concat(slots) },
     { id: sectionIds.instructions, count: instructionBytes.length, bytes: Buffer.concat(instructionBytes) },
     { id: sectionIds.commit, count: commits.length, bytes: Buffer.concat(commits) },
@@ -164,7 +168,7 @@ function compile(source) {
   if (points.some((point) => point.direction === 2)) capabilities |= 4n;
   if (memoryIds.length > 0) capabilities |= 8n;
   if (orderedIds.some((id) => ['nand', 'nor', 'xor', 'xnor'].includes(nodes.get(id).kind))) capabilities |= 32n;
-  if (orderedIds.some((id) => ['numericConstant', 'add', 'comparator', 'levelShifter'].includes(nodes.get(id).kind))) capabilities |= 64n;
+  if (orderedIds.some((id) => ['numericConstant', 'add', 'comparator', 'levelShifter', 'analogInput', 'analogOutput'].includes(nodes.get(id).kind))) capabilities |= 64n;
   if (orderedIds.some((id) => nodes.get(id).kind === 'comparator')) capabilities |= 128n;
   if (orderedIds.some((id) => nodes.get(id).kind === 'levelShifter')) capabilities |= 256n;
   if (orderedIds.some((id) => nodes.get(id).kind === 'qualityGood')) capabilities |= 512n;
@@ -211,6 +215,11 @@ const stateful = { ...structuredClone(base), id: 'quality-timer-event', revision
     { id: 'timer-1', kind: 'onDelay', durationMs: 100 }, { id: 'edge-1', kind: 'risingEdge' }],
   connections: [{ source: 'input-01-node', target: 'quality-1', port: 'in' },
     { source: 'input-01-node', target: 'timer-1', port: 'in' }, { source: 'input-01-node', target: 'edge-1', port: 'in' }] };
+const analogPoints = { ...structuredClone(base), id: 'analog-points', revision: 1,
+  nodes: [{ id: 'analog-in', kind: 'analogInput', pointId: 'temperature', units: 'degC' },
+    { id: 'shift', kind: 'levelShifter', gain: 2, offset: 1, groupId: 'conditioning' },
+    { id: 'analog-out', kind: 'analogOutput', pointId: 'command', units: 'degC' }],
+  connections: [{ source: 'analog-in', target: 'shift', port: 'in' }, { source: 'shift', target: 'analog-out', port: 'in' }] };
 const maximum = { ...structuredClone(base), id: 'maximum-boolean', revision: 1,
   nodes: Array.from({ length: 128 }, (_, index) => ({ id: `constant-${String(index).padStart(3, '0')}`, kind: 'constant', value: index % 2 === 0 })), connections: [] };
 
@@ -232,6 +241,7 @@ fixture('valid-memory-feedback', memory, null, { valid: true, reason: 'ok', path
 fixture('valid-expanded-boolean', expandedBoolean, null, { valid: true, reason: 'ok', path: '' });
 fixture('valid-numeric-language', numeric, null, { valid: true, reason: 'ok', path: '' });
 fixture('valid-quality-timer-event', stateful, null, { valid: true, reason: 'ok', path: '' });
+fixture('valid-analog-points', analogPoints, null, { valid: true, reason: 'ok', path: '' });
 const permuted = structuredClone(base); permuted.nodes.reverse(); permuted.connections.reverse();
 fixture('valid-source-order-permutation', permuted, null, { valid: true, reason: 'ok', path: '' });
 fixture('maximum-boolean', maximum, null, { valid: true, reason: 'ok', path: '' });

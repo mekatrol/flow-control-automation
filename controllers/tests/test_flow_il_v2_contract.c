@@ -121,9 +121,9 @@ static test_flow_il_result_t get_metadata(const uint8_t *bytes, size_t size, tes
         const uint32_t length = get_u32(&entry[8]);
         const uint32_t count  = get_u32(&entry[12]);
 
-        const uint16_t expected_version = id == 6U ? 2U : 1U;
+        const uint16_t version = get_u16(&entry[2]);
 
-        if (get_u16(&entry[2]) != expected_version || offset != expected_offset || length > size - offset)
+        if ((id == 2U || id == 6U ? (version != 1U && version != 2U) : version != 1U) || offset != expected_offset || length > size - offset)
         {
             return TEST_FLOW_IL_MALFORMED;
         }

@@ -74,6 +74,11 @@ internal sealed unsafe partial class NativeFlowVirtualMachine : IFlowVirtualMach
                 samples[index].Value = inputs[index].Value ? (byte)1 : (byte)0;
                 samples[index].Quality = inputs[index].IsGood ? (byte)0 : (byte)1;
                 samples[index].Type = 1;
+                if (inputs[index].TypedValue.Type == "number")
+                {
+                    samples[index].Type = 2;
+                    samples[index].Number = inputs[index].TypedValue.Number;
+                }
             }
 
             var frame = new NativeInputFrame
@@ -105,11 +110,10 @@ internal sealed unsafe partial class NativeFlowVirtualMachine : IFlowVirtualMach
             var resultCommands = new FlowVmCommand[checked((int)commandCount)];
             for (var index = 0; index < resultCommands.Length; index++)
             {
-                resultCommands[index] = new FlowVmCommand(ReadIdentifier(commands[index].PointId, 64), commands[index].Value != 0);
+                resultCommands[index] = ReadCommand(commands[index]);
             }
 
-            var slots = new bool[snapshot.SlotCount];
-            for (var index = 0; index < slots.Length; index++) slots[index] = snapshot.Slots[index] != 0;
+            var slots = ReadSlots(snapshot.SlotCount, snapshot.Slots, snapshot.SlotTypes, snapshot.SlotQualities, snapshot.NumericSlots);
             return new FlowVmScanResult(snapshot.ScanNumber, snapshot.SampledAtMilliseconds, slots, resultCommands);
         }
     }
@@ -210,6 +214,11 @@ internal sealed unsafe partial class NativeFlowVirtualMachine : IFlowVirtualMach
             samples[index].Value = inputs[index].Value ? (byte)1 : (byte)0;
             samples[index].Quality = inputs[index].IsGood ? (byte)0 : (byte)1;
             samples[index].Type = 1;
+            if (inputs[index].TypedValue.Type == "number")
+            {
+                samples[index].Type = 2;
+                samples[index].Number = inputs[index].TypedValue.Number;
+            }
         }
 
         var frame = new NativeInputFrame
@@ -231,11 +240,10 @@ internal sealed unsafe partial class NativeFlowVirtualMachine : IFlowVirtualMach
         var resultCommands = new FlowVmCommand[checked((int)commandCount)];
         for (var index = 0; index < resultCommands.Length; index++)
         {
-            resultCommands[index] = new FlowVmCommand(ReadIdentifier(commands[index].PointId, 64), commands[index].Value != 0);
+            resultCommands[index] = ReadCommand(commands[index]);
         }
 
-        var slots = new bool[snapshot.SlotCount];
-        for (var index = 0; index < slots.Length; index++) slots[index] = snapshot.Slots[index] != 0;
+        var slots = ReadSlots(snapshot.SlotCount, snapshot.Slots, snapshot.SlotTypes, snapshot.SlotQualities, snapshot.NumericSlots);
         return new FlowVmScanResult(snapshot.ScanNumber, snapshot.SampledAtMilliseconds, slots, resultCommands);
     }
 
@@ -243,11 +251,10 @@ internal sealed unsafe partial class NativeFlowVirtualMachine : IFlowVirtualMach
     {
         NativeDebugFrame frame = default;
         Check(Native.flow_vm_get_debug_frame(Handle, &frame));
-        var slots = new bool[frame.SlotCount];
+        var slots = ReadSlots(frame.SlotCount, frame.Slots, frame.SlotTypes, frame.SlotQualities, frame.NumericSlots);
         var currentState = new bool[frame.StateCount];
         var stagedState = new bool?[frame.StateCount];
         var commands = new FlowVmCommand[frame.OutputCount];
-        for (var index = 0; index < slots.Length; index++) slots[index] = frame.Slots[index] != 0;
         for (var index = 0; index < currentState.Length; index++)
         {
             currentState[index] = frame.CurrentState[index] != 0;
@@ -255,7 +262,7 @@ internal sealed unsafe partial class NativeFlowVirtualMachine : IFlowVirtualMach
         }
         for (var index = 0; index < commands.Length; index++)
         {
-            commands[index] = new FlowVmCommand(ReadIdentifier(frame.Outputs + (index * 80), 64), frame.Outputs[(index * 80) + 64] != 0);
+            commands[index] = ReadCommand(*(NativeCommand*)(frame.Outputs + (index * 80)));
         }
         return new FlowVmExecutionFrame(
             frame.Execution.InstructionIndex,
@@ -265,6 +272,29 @@ internal sealed unsafe partial class NativeFlowVirtualMachine : IFlowVirtualMach
             currentState,
             stagedState,
             commands);
+    }
+
+    private static FlowVmCommand ReadCommand(NativeCommand command)
+    {
+        var quality = command.Quality == 0 ? "good" : "bad";
+        var value = command.Type == 2
+            ? FlowVmValue.FromNumber(command.Number, quality)
+            : FlowVmValue.FromBoolean(command.Value != 0, quality);
+        return new FlowVmCommand(ReadIdentifier(command.PointId, 64), value);
+    }
+
+    private static FlowVmValue[] ReadSlots(ushort count, byte* booleans, byte* types, byte* qualities, double* numbers)
+    {
+        var result = new FlowVmValue[count];
+        for (var index = 0; index < result.Length; index++)
+        {
+            var quality = qualities[index] == 0 ? "good" : "bad";
+            result[index] = types[index] == 2
+                ? FlowVmValue.FromNumber(numbers[index], quality)
+                : FlowVmValue.FromBoolean(booleans[index] != 0, quality);
+        }
+
+        return result;
     }
 
     private sealed class NativeVmHandle : SafeHandleZeroOrMinusOneIsInvalid

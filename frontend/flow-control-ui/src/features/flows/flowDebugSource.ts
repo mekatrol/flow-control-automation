@@ -13,6 +13,8 @@ const supportedKinds = new Set([
   'xor',
   'xnor',
   'numericConstant',
+  'analogInput',
+  'analogOutput',
   'add',
   'comparator',
   'levelShifter',
@@ -44,7 +46,7 @@ export const graphRevision = (flow: FlowDefinition): number => {
 };
 
 const configurationFor = (node: FlowNode): Record<string, unknown> => {
-  if (node.kind === 'digitalInput' || node.kind === 'digitalOutput') {
+  if (node.kind === 'digitalInput' || node.kind === 'digitalOutput' || node.kind === 'analogInput' || node.kind === 'analogOutput') {
     const pointId = node.configuration.pointId;
     if (typeof pointId !== 'string' || !pointId.trim())
       throw new FlowDebugSourceError(`${node.label} (${node.id}) requires a point ID.`, node.id);
@@ -80,7 +82,11 @@ export const createExecutableFlowSource = (
     revision: graphRevision(flow),
     controllerTemplateId: target.controllerTemplateId,
     controllerTemplateRevision: target.controllerTemplateRevision,
-    execution: { mode: 'manual', intervalMs: 0, inputQualityPolicy: 'require_good' },
+    execution: {
+      mode: 'manual',
+      intervalMs: 0,
+      inputQualityPolicy: flow.nodes.some((node) => node.kind === 'qualityGood') ? 'propagate' : 'require_good',
+    },
     nodes: flow.nodes.map((node) => ({
       id: node.id,
       kind: node.kind,
@@ -88,7 +94,8 @@ export const createExecutableFlowSource = (
       label: node.label,
       x: node.x,
       y: node.y,
-      zOrder: node.zOrder
+      zOrder: node.zOrder,
+      ...(node.groupId ? { groupId: node.groupId } : {})
     })),
     connections: flow.connections.map((connection) => ({
       source: { nodeId: connection.start.nodeId, portId: connection.start.connectorId },

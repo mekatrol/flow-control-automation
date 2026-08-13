@@ -12,7 +12,9 @@ export type DebugLifecycleState =
 
 export interface DebugTypedValue {
   type: string;
-  value: boolean;
+  value?: boolean;
+  number?: number;
+  quality?: string;
 }
 
 export interface DebugNodeSnapshot {
@@ -26,7 +28,9 @@ export interface DebugProposedOutput {
   pointId: string;
   state: string;
   quality: string;
-  proposedValue: boolean;
+  proposedValue?: boolean;
+  proposedNumber?: number;
+  typedValue?: DebugTypedValue;
 }
 
 export interface DebugRuntimeSnapshot {
@@ -107,8 +111,8 @@ export interface ExecutableFlowSource {
   revision: number;
   controllerTemplateId: string;
   controllerTemplateRevision: number;
-  execution: { mode: 'manual'; intervalMs: number; inputQualityPolicy: 'require_good' };
-  nodes: { id: string; kind: string; configuration: Record<string, unknown>; label: string; x: number; y: number; zOrder: number }[];
+  execution: { mode: 'manual'; intervalMs: number; inputQualityPolicy: 'require_good' | 'propagate' };
+  nodes: { id: string; kind: string; configuration: Record<string, unknown>; label: string; x: number; y: number; zOrder: number; groupId?: string }[];
   connections: {
     source: { nodeId: string; portId: string };
     target: { nodeId: string; portId: string };

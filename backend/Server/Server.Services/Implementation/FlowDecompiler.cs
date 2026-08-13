@@ -25,6 +25,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
         var symbols = ReadSymbols(Section(bytes, sections, 6), instructions.Count);
         ValidateDebugMap(Section(bytes, sections, 7));
         var dependencies = ReadDependencies(Section(bytes, sections, 8));
+        var hasAuthoringMetadata = sections[5].Version == 2;
 
         var flowId = ReadFlowId(bytes);
         var nodes = new List<FlowNode>();
@@ -58,13 +59,13 @@ public sealed class FlowDecompiler : IFlowDecompiler
             var configuration = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
             var kind = instruction.Opcode switch
             {
-                1 => ConfigurePoint("digitalInput", configuration, points, instruction.Auxiliary, 1, index),
+                1 => ConfigurePoint(configuration, points, instruction.Auxiliary, 1, index),
                 2 => ConfigureBoolean("digitalConstant", configuration, constants, instruction.Auxiliary, index),
                 3 => "not",
                 4 => "and",
                 5 => "or",
                 6 => ConfigureState(configuration, slots, constants, instruction.Auxiliary, index),
-                7 => ConfigurePoint("digitalOutput", configuration, points, instruction.Auxiliary, 2, index),
+                7 => ConfigurePoint(configuration, points, instruction.Auxiliary, 2, index),
                 9 => "nand",
                 10 => "nor",
                 11 => "xor",
@@ -124,10 +125,11 @@ public sealed class FlowDecompiler : IFlowDecompiler
             {
                 Id = symbol.NodeId,
                 Kind = kind,
-                Label = symbol.Label,
-                X = symbol.X,
-                Y = symbol.Y,
-                ZOrder = symbol.ZOrder,
+                Label = hasAuthoringMetadata ? symbol.Label : Label(kind),
+                X = hasAuthoringMetadata ? symbol.X : depth * 220,
+                Y = hasAuthoringMetadata ? symbol.Y : row * 120,
+                ZOrder = hasAuthoringMetadata ? symbol.ZOrder : nodes.Count,
+                GroupId = symbol.GroupId.Length == 0 ? null : symbol.GroupId,
                 Connectors = Connectors(kind),
                 Configuration = configuration
             });
@@ -163,8 +165,10 @@ public sealed class FlowDecompiler : IFlowDecompiler
         return new FlowDecompilationResult
         {
             Flow = flow,
-            RecoveryLevel = "lossless",
-            Warnings = [],
+            RecoveryLevel = hasAuthoringMetadata ? "lossless" : "normalized",
+            Warnings = hasAuthoringMetadata
+                ? []
+                : ["Authoring metadata is absent; deterministic labels and canvas layout were generated."],
             Provenance = new FlowDecompilationProvenance(
                 2,
                 Convert.ToHexStringLower(SHA256.HashData(bytes)),
@@ -197,7 +201,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
             var length = checked((int)U32(entry, 8));
             var count = checked((int)U32(entry, 12));
             var version = U16(entry, 2);
-            if (id != index + 1 || version != (id == 6 ? 2 : 1)) Fail("invalid_section", $"/sections/{index}", "Sections must use canonical IDs, order, and version.");
+            if (id != index + 1 || (id is 2 or 6 ? version is not (1 or 2) : version != 1)) Fail("invalid_section", $"/sections/{index}", "Sections must use canonical IDs, order, and version.");
             if (offset != expectedOffset || length < 0 || offset > bytes.Length || length > bytes.Length - offset) Fail("invalid_section", $"/sections/{index}", "Section bounds are invalid.");
             if (!SHA256.HashData(bytes.Slice(offset, length)).AsSpan().SequenceEqual(entry.Slice(16, 32))) Fail("invalid_digest", $"/sections/{index}/digest", "Section digest does not match its contents.");
             result[index] = new SectionInfo(offset, length, count, version);
@@ -241,8 +245,9 @@ public sealed class FlowDecompiler : IFlowDecompiler
         {
             var prefix = reader.Fixed(4, $"/points/{i}");
             var id = reader.String8($"/points/{i}/id");
-            if (prefix[0] is not (1 or 2) || prefix[1] != 1) Fail("unsupported_point", $"/points/{i}", "Only Boolean read/write bindings are supported.");
-            values.Add(new PointRecord(prefix[0], id));
+            var units = reader.Version == 2 ? reader.String8AllowEmpty($"/points/{i}/units") : string.Empty;
+            if (prefix[0] is not (1 or 2) || prefix[1] is not (1 or 2)) Fail("unsupported_point", $"/points/{i}", "Point binding type is unsupported.");
+            values.Add(new PointRecord(prefix[0], prefix[1], id, units));
         }
         reader.End("/points");
         return values;
@@ -283,11 +288,18 @@ public sealed class FlowDecompiler : IFlowDecompiler
             var prefix = reader.Fixed(3, $"/symbols/{i}");
             if (U16(prefix, 0) != i) Fail("invalid_symbols", $"/symbols/{i}", "Symbol indices must be canonical.");
             var nodeId = reader.String8AllowEmpty($"/symbols/{i}/nodeId");
+            if (reader.Version == 1)
+            {
+                values.Add(new SymbolRecord(prefix[2], nodeId, string.Empty, 0D, 0D, 0D, string.Empty));
+                continue;
+            }
+
             var label = reader.String8AllowEmpty($"/symbols/{i}/label");
             var x = reader.F64($"/symbols/{i}/x");
             var y = reader.F64($"/symbols/{i}/y");
             var zOrder = reader.F64($"/symbols/{i}/zOrder");
-            values.Add(new SymbolRecord(prefix[2], nodeId, label, x, y, zOrder));
+            var groupId = reader.String8AllowEmpty($"/symbols/{i}/groupId");
+            values.Add(new SymbolRecord(prefix[2], nodeId, label, x, y, zOrder, groupId));
         }
         reader.End("/symbols");
         return values;
@@ -311,11 +323,13 @@ public sealed class FlowDecompiler : IFlowDecompiler
     private static void ValidateCommitPlan(SectionReader reader) { for (var i = 0; i < reader.Count; i++) _ = reader.Fixed(8, $"/commit/{i}"); reader.End("/commit"); }
     private static void ValidateDebugMap(SectionReader reader) { for (var i = 0; i < reader.Count; i++) { _ = reader.Fixed(4, $"/debugMap/{i}"); _ = reader.String8($"/debugMap/{i}/nodeId"); } reader.End("/debugMap"); }
 
-    private static string ConfigurePoint(string kind, Dictionary<string, JsonElement> config, IReadOnlyList<PointRecord> points, ushort index, byte direction, int instruction)
+    private static string ConfigurePoint(Dictionary<string, JsonElement> config, IReadOnlyList<PointRecord> points, ushort index, byte direction, int instruction)
     {
         if (index >= points.Count || points[index].Direction != direction) Fail("invalid_operand", $"/instructions/{instruction}/auxiliary", "Point binding is missing or has the wrong direction.");
         config["pointId"] = JsonSerializer.SerializeToElement(points[index].Id);
-        return kind;
+        return points[index].Type == 2
+            ? direction == 1 ? "analogInput" : "analogOutput"
+            : direction == 1 ? "digitalInput" : "digitalOutput";
     }
 
     private static string ConfigureBoolean(string kind, Dictionary<string, JsonElement> config, IReadOnlyList<ConstantRecord> constants, ushort index, int instruction)
@@ -380,7 +394,9 @@ public sealed class FlowDecompiler : IFlowDecompiler
     private static IReadOnlyList<FlowConnector> Connectors(string kind) => kind switch
     {
         "digitalInput" or "digitalConstant" => [Output("value", "Value")],
+        "analogInput" => [NumberOutput("value", "Value")],
         "digitalOutput" => [Input("in", "Input")],
+        "analogOutput" => [NumberInput("in", "Input")],
         "not" => [Input("in", "Input"), Output("value", "Value")],
         "and" or "or" or "nand" or "nor" or "xor" or "xnor" =>
             [Input("a", "A"), Input("b", "B"), Output("value", "Value")],
@@ -400,16 +416,17 @@ public sealed class FlowDecompiler : IFlowDecompiler
     private static string Label(string value) => string.Join(' ', value.Split(['-', '_'], StringSplitOptions.RemoveEmptyEntries).Select(word => char.ToUpperInvariant(word[0]) + word[1..]));
     private static void RequireSymbol(SymbolRecord symbol, int index, byte discriminator) { if (symbol.NodeId.Length == 0 || symbol.Discriminator != discriminator) Fail("invalid_symbols", $"/symbols/{index}", "Instruction symbol cannot be represented as a designer node."); }
     private static string ReadFlowId(ReadOnlySpan<byte> bytes) { var length = bytes[52]; if (length is 0 or > 63) Fail("invalid_identifier", "/flowId", "Flow ID length is invalid."); return Encoding.UTF8.GetString(bytes.Slice(53, length)); }
-    private static SectionReader Section(ReadOnlySpan<byte> artifact, SectionInfo[] sections, int id) { var value = sections[id - 1]; return new SectionReader(artifact.Slice(value.Offset, value.Length).ToArray(), value.Count); }
+    private static SectionReader Section(ReadOnlySpan<byte> artifact, SectionInfo[] sections, int id) { var value = sections[id - 1]; return new SectionReader(artifact.Slice(value.Offset, value.Length).ToArray(), value.Count, value.Version); }
     private static ushort U16(ReadOnlySpan<byte> bytes, int offset) => BinaryPrimitives.ReadUInt16LittleEndian(bytes[offset..]);
     private static uint U32(ReadOnlySpan<byte> bytes, int offset) => BinaryPrimitives.ReadUInt32LittleEndian(bytes[offset..]);
     private static FlowDecompilationException Error(string code, string path, string message) => new(new(code, path, message));
     private static void Fail(string code, string path, string message) => throw Error(code, path, message);
 
-    private sealed class SectionReader(byte[] bytes, int count)
+    private sealed class SectionReader(byte[] bytes, int count, ushort version)
     {
         private int _offset;
         public int Count { get; } = count;
+        public ushort Version { get; } = version;
         public ReadOnlySpan<byte> Fixed(int length, string path) { if (length < 0 || _offset > bytes.Length - length) Fail("malformed_section", path, "Section record is truncated."); var result = bytes.AsSpan(_offset, length); _offset += length; return result; }
         public string String8(string path) { var value = String8AllowEmpty(path); if (value.Length == 0) Fail("invalid_identifier", path, "Identifier must not be empty."); return value; }
         public string String8AllowEmpty(string path) { var length = Fixed(1, path)[0]; var value = Encoding.UTF8.GetString(Fixed(length, path)); if (Encoding.UTF8.GetByteCount(value) != length) Fail("invalid_identifier", path, "Identifier is not canonical UTF-8."); return value; }
@@ -418,11 +435,11 @@ public sealed class FlowDecompiler : IFlowDecompiler
     }
 
     private sealed record SectionInfo(int Offset, int Length, int Count, ushort Version);
-    private sealed record PointRecord(byte Direction, string Id);
+    private sealed record PointRecord(byte Direction, byte Type, string Id, string Units);
     private sealed record ConstantRecord(byte Type, double Number);
     private sealed record SlotRecord(byte Kind, byte Type, ushort InitialConstant);
     private sealed record Instruction(byte Opcode, ushort Result, ushort Operand0, ushort Operand1, ushort Auxiliary);
-    private sealed record SymbolRecord(byte Discriminator, string NodeId, string Label, double X, double Y, double ZOrder);
+    private sealed record SymbolRecord(byte Discriminator, string NodeId, string Label, double X, double Y, double ZOrder, string GroupId);
     private sealed record Dependency(byte Kind, string Id, uint Revision);
     private sealed record PendingConnection(FlowEndpoint Source, string TargetNodeId, string TargetPortId);
 }

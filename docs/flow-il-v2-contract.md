@@ -71,8 +71,11 @@ duplicates are invalid.
 
 ### 3.2 Point bindings — section 2
 
-Records are `direction:u8, type:u8, quality_policy:u8, command_policy:u8,
-point_id:string8`. Direction is 1 read or 2 proposed write. Type 1 is Boolean.
+Version-2 records are `direction:u8, type:u8, quality_policy:u8,
+command_policy:u8, point_id:string8, units:string8`. Direction is 1 read or 2
+proposed write. Type 1 is Boolean and type 2 is finite binary64. Units are
+bounded and empty only for unitless values. Version 1 omits units and remains
+valid for normalized legacy Boolean artifacts.
 Quality policy 1 requires good input. Read bindings use command policy zero;
 write bindings use a separately resolved host policy. Records sort by point ID
 then direction. They contain no credentials, driver address, or physical handle.
@@ -159,11 +162,12 @@ for a node's main instruction and nonzero for additional lowering instructions.
 The commit instruction has an empty node ID encoded as length zero. Stable node
 identity, not a byte offset, is the public diagnostic and breakpoint key.
 
-Section version 2 appends `label:string8, x:f64, y:f64, zOrder:f64` to every
+Section version 2 appends `label:string8, x:f64, y:f64, zOrder:f64,
+group_id:string8` to every
 record. Labels are bounded UTF-8 and coordinates are finite. The current
 prerelease profile requires this metadata for lossless label and canvas
-recovery. Groups are not advertised because source schema 1 has no persisted
-group model.
+recovery, including optional stable group membership. Section version 1 is the
+metadata-stripped normalized-recovery profile.
 
 ### 3.7 Debug map — section 7
 

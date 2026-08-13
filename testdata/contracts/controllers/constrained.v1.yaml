@@ -3,6 +3,7 @@ id: compact-digital
 name: Compact digital controller
 description: Interval-only target with digital I/O
 readOnly: false
+revision: 1
 capabilities:
   pointTypes: [digital]
   pointDirections: [input, output]
@@ -16,4 +17,3 @@ limits:
   maxNodesPerFlow: 64
   maxConnectionsPerFlow: 96
   minimumIntervalMilliseconds: 100
-

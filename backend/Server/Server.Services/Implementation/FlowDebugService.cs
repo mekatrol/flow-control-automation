@@ -550,7 +550,7 @@ public sealed class FlowDebugService(
             InstructionPointer = frame.InstructionIndex,
             IsAtCommit = frame.IsAtCommit,
             NodeId = NodeAt(local, frame.InstructionIndex),
-            Slots = frame.Slots.Select(value => new DebugTypedValue("boolean", value)).ToArray(),
+            Slots = frame.Slots.Select(DebugValue).ToArray(),
             CurrentState = frame.CurrentState.Select(value => new DebugTypedValue("boolean", value)).ToArray(),
             StagedNextState = frame.StagedState
                 .Select(value => value.HasValue ? new DebugTypedValue("boolean", value.Value) : null)
@@ -589,14 +589,20 @@ public sealed class FlowDebugService(
                 pair.Key,
                 "evaluated",
                 "good",
-                new DebugTypedValue("boolean", scan.Slots[pair.Value])))
+                DebugValue(scan.Slots[pair.Value])))
             .ToArray(),
         ProposedOutputs = scan.Commands.Select(command => new DebugProposedOutput(
             command.PointId,
             "proposed",
-            "good",
-            command.Value)).ToArray()
+            command.TypedValue.Quality,
+            command.Value,
+            command.TypedValue.Type == "number" ? command.TypedValue.Number : null,
+            command.TypedValue)).ToArray()
     };
+
+    private static DebugTypedValue DebugValue(FlowVmValue value) => value.Type == "number"
+        ? new DebugTypedValue("number", Number: value.Number, Quality: value.Quality)
+        : new DebugTypedValue("boolean", value.Boolean, Quality: value.Quality);
 
     private static DebugRuntimeSnapshot ToCompatibilitySnapshot(FlowDebugSession session) => session.Snapshot
         ?? throw new InvalidOperationException("The completed scan did not produce a snapshot.");

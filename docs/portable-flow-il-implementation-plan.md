@@ -115,12 +115,12 @@ and a digest.
    advertise bounds for debug-map bytes, breakpoints, paused-frame storage, and
    inspectable slots.
 
-Flow IL v2 currently has exactly these eight sections. Exact recovery of non-runtime
-designer details such as labels, groups, and canvas layout requires a bounded
-authoring-metadata section in a future IL envelope version (or a separately
-versioned, digest-bound companion artifact). Until the first production release,
-that change may replace v2 outright rather than add a compatibility decoder. V2 retains the stable IDs and executable configuration
-needed for normalized semantic recovery.
+Flow IL v2 has exactly these eight sections. Symbol-section version 2 contains
+bounded, digest-protected labels, group IDs, and finite canvas coordinates for
+lossless recovery. Symbol-section version 1 remains a valid stripping profile;
+the decompiler reports normalized recovery and deterministically regenerates
+the omitted authoring details. Both profiles retain stable IDs and executable
+configuration.
 
 The compiler performs structural graph validation, connector and unit checking,
 point/template resolution, combinational-cycle rejection, deterministic Kahn
@@ -337,7 +337,7 @@ stable result; source permutations produce byte-identical IL.
 ### Phase 2 - Refactor the portable VM
 
 Status: complete on 12 August 2026. `controllers/shared/flow/vm.c` and `vm.h`
-implement the Flow IL v2 loader, version-1 host ABI, typed Boolean slots/state,
+implement the Flow IL v2 loader, version-2 host ABI, typed slots/state,
 explicit PLC Scan Cycle, atomic commit, resumable instruction frame, abort/reset,
 retained-state export, and bounded snapshots/commands. Host CMake builds static
 firmware and shared server-library variants.
@@ -521,7 +521,7 @@ inputs, and firmware contains no v2 graph scheduler/compiler.
 
 ### Phase 8 - Expand the language deliberately
 
-Status: complete. The final prerelease profile implements expanded Boolean,
+Status: complete on 13 August 2026. The final prerelease profile implements expanded Boolean,
 finite binary64 numeric/addition, comparison, level shifting, quality
 inspection/propagation, point I/O, monotonic on-delay timers, and rising-edge
 events as bounded opcode slices. ABI 2 snapshots carry explicit type, quality,

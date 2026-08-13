@@ -237,7 +237,7 @@ public sealed class ConfigurationFixtureTests
     {
         if (node is JsonObject value)
         {
-            value.Remove("revision");
+            if (!value.ContainsKey("capabilities")) value.Remove("revision");
             value.Remove("createdAt");
             value.Remove("updatedAt");
             foreach (var child in value.Select(item => item.Value).OfType<JsonNode>())

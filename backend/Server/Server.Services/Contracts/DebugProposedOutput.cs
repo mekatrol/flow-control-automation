@@ -4,4 +4,6 @@ public sealed record DebugProposedOutput(
     string PointId,
     string State,
     string Quality,
-    bool ProposedValue);
+    bool ProposedValue,
+    double? ProposedNumber = null,
+    FlowVmValue? TypedValue = null);

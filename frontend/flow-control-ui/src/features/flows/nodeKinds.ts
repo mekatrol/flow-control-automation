@@ -42,11 +42,12 @@ const executableDefinition = (
   kind: FlowNodeFunctionType,
   connectors: FlowNodeConnector[],
   editor: NodeEditorField[] = [],
-  defaultConfiguration: NodeKindDefinition['defaultConfiguration'] = {}
+  defaultConfiguration: NodeKindDefinition['defaultConfiguration'] = {},
+  category: NodeKindDefinition['category'] = 'logic'
 ): NodeKindDefinition => ({
   kind,
   label: kind.replace(/([A-Z])/g, ' $1').replace(/^./, (letter) => letter.toUpperCase()),
-  category: 'logic',
+  category,
   icon:
     kind === FlowNodeFunctionType.Memory
       ? 'delay'
@@ -85,7 +86,21 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     { id: 'a', label: 'A', direction: 'input', dataType: 'number', side: 'left' },
     { id: 'b', label: 'B', direction: 'input', dataType: 'number', side: 'left' },
     { id: 'value', label: 'Value', direction: 'output', dataType: 'number', side: 'right' }
-  ]),
+  ], [], {}, 'maths'),
+  [FlowNodeFunctionType.AnalogInput]: executableDefinition(
+    FlowNodeFunctionType.AnalogInput,
+    [{ id: 'value', label: 'Value', direction: 'output', dataType: 'number', side: 'right' }],
+    [{ key: 'pointId', label: 'Input point ID', input: 'text' }],
+    { pointId: 'analog-input-point' },
+    'routing'
+  ),
+  [FlowNodeFunctionType.AnalogOutput]: executableDefinition(
+    FlowNodeFunctionType.AnalogOutput,
+    [{ id: 'in', label: 'Input', direction: 'input', dataType: 'number', side: 'left' }],
+    [{ key: 'pointId', label: 'Output point ID', input: 'text' }],
+    { pointId: 'analog-output-point' },
+    'routing'
+  ),
   [FlowNodeFunctionType.And]: executableDefinition(FlowNodeFunctionType.And, [
     booleanPort('a', 'A', 'input', 'left'),
     booleanPort('b', 'B', 'input', 'left'),
@@ -328,9 +343,7 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
   ])
 };
 
-export const flowNodeKinds = (Object.keys(nodeKindRegistry) as FlowNodeKind[]).filter(
-  (kind) => nodeKindRegistry[kind].executable
-);
+export const flowNodeKinds = Object.keys(nodeKindRegistry) as FlowNodeKind[];
 
 export const getNodeKind = (kind: FlowNodeKind): NodeKindDefinition => nodeKindRegistry[kind];
 

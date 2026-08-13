@@ -55,6 +55,7 @@ const controllerFields = new Set([
   'name',
   'description',
   'readOnly',
+  'revision',
   'capabilities',
   'limits'
 ]);
@@ -89,9 +90,10 @@ const parseStrictFixture = (
 const withoutBackendMetadata = (value: unknown): unknown => {
   if (Array.isArray(value)) return value.map(withoutBackendMetadata);
   if (typeof value !== 'object' || value === null) return value;
+  const preserveRevision = Object.hasOwn(value, 'capabilities');
   return Object.fromEntries(
     Object.entries(value)
-      .filter(([key]) => !['revision', 'createdAt', 'updatedAt'].includes(key))
+      .filter(([key]) => !['createdAt', 'updatedAt'].includes(key) && (key !== 'revision' || preserveRevision))
       .map(([key, child]) => [key, withoutBackendMetadata(child)])
   );
 };

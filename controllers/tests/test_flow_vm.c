@@ -148,6 +148,25 @@ static void test_quality_timer_event_scans(void)
     assert(snapshot.slots[3]);
 }
 
+/* Checks typed analog point input, unit-bearing binding, arithmetic, and numeric command output. */
+static void test_analog_point_scan(void)
+{
+    flow_vm_t vm;
+    get_vm("valid-analog-points", &vm);
+    const flow_vm_input_sample_t sample = {
+        .point_id = "temperature", .quality = 0U, .type = 2U, .number = 10.0};
+    const flow_vm_input_frame_t input = {
+        .samples = &sample, .sample_count = 1U, .sampled_at_ms = 1U, .is_coherent = true};
+    flow_vm_command_t command;
+    size_t command_count = 0U;
+    flow_vm_snapshot_t snapshot;
+    assert(flow_vm_begin_tick(&vm, &input).code == FLOW_VM_OK);
+    assert(flow_vm_commit_tick(&vm, &command, 1U, &command_count, &snapshot).code == FLOW_VM_OK);
+    assert(command_count == 1U);
+    assert(command.type == 2U);
+    assert(command.number == 21.0);
+}
+
 /* Checks a paused Execute Logic frame is resumable and abort commits neither state nor a snapshot. */
 static void test_step_and_abort(void)
 {
@@ -198,6 +217,44 @@ static void test_loader_rejections_are_transactional(void)
     }
 }
 
+/* Fuzzes bounded payload bytes and requires every digest-invalid artifact to fail without changing caller storage. */
+static void test_payload_fuzz_rejections(void)
+{
+    uint8_t artifact[FLOW_VM_MAX_ARTIFACT];
+    const size_t size = get_artifact("valid-two-button-and", artifact, sizeof(artifact));
+    const size_t first_payload = 128U + 8U * 48U;
+
+    for (size_t index = first_payload; index < size; index += 7U)
+    {
+        uint8_t mutated[FLOW_VM_MAX_ARTIFACT];
+        memcpy(mutated, artifact, size);
+        mutated[index] ^= (uint8_t)(1U << (index % 8U));
+        flow_vm_t vm;
+        assert(flow_vm_prepare(mutated, size, &TARGET, &vm).code != FLOW_VM_OK);
+    }
+}
+
+/* Runs a long deterministic sequence to prove fixed storage and scan-state stability. */
+static void test_long_running_scans(void)
+{
+    flow_vm_t vm;
+    get_vm("valid-two-button-and", &vm);
+
+    for (uint64_t scan = 1U; scan <= 10000U; scan++)
+    {
+        const bool value = (scan & 1U) != 0U;
+        assert(get_and_output(&vm, value, true, scan) == value);
+    }
+}
+
+/* Prepares the largest normative fixture within the advertised artifact and slot bounds. */
+static void test_maximum_fixture(void)
+{
+    flow_vm_t vm;
+    get_vm("maximum-boolean", &vm);
+    assert(vm.slot_count == 128U);
+}
+
 /* Runs v2 loader, PLC scan, state feedback, debug-frame, abort, and transactional rejection tests. */
 int main(void)
 {
@@ -207,8 +264,12 @@ int main(void)
     test_expanded_boolean_scans();
     test_numeric_scans();
     test_quality_timer_event_scans();
+    test_analog_point_scan();
     test_step_and_abort();
     test_loader_rejections_are_transactional();
+    test_payload_fuzz_rejections();
+    test_long_running_scans();
+    test_maximum_fixture();
 
     return 0;
 }

@@ -23,6 +23,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
         new Dictionary<string, NodeShape>(StringComparer.Ordinal)
         {
             ["digitalInput"] = new([new("value", 2)]),
+            ["analogInput"] = new([new("value", 2, 2)]),
             ["digitalConstant"] = new([new("value", 2)]),
             ["not"] = new([new("in", 1), new("value", 2)]),
             ["and"] = new([new("a", 1), new("b", 1), new("value", 2)]),
@@ -39,7 +40,8 @@ public sealed partial class FlowCompiler : IFlowCompiler
             ["onDelay"] = new([new("in", 1), new("value", 2)]),
             ["risingEdge"] = new([new("in", 1), new("value", 2)]),
             ["memory"] = new([new("in", 1), new("value", 2)]),
-            ["digitalOutput"] = new([new("in", 1)])
+            ["digitalOutput"] = new([new("in", 1)]),
+            ["analogOutput"] = new([new("in", 1, 2)])
         };
 
     public FlowCompilationResult Compile(FlowCompilationRequest request)
@@ -112,6 +114,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
         }
 
         ValidateGraph(source);
+        ValidateUnits(request);
     }
 
     private static FlowCompilationResult CompileFlowIlV2(FlowCompilationRequest request)
@@ -131,9 +134,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
             index = checked((ushort)(schedule.Count + index))
         })
             .ToDictionary(item => item.id, item => item.index, StringComparer.Ordinal);
-        var points = BuildPoints([.. schedule.Select(id => nodes[id])]);
-        var pointIndices = points.Select((point, index) => new { point, index = checked((ushort)index) })
-            .ToDictionary(item => item.point, item => item.index);
+        var points = BuildPoints([.. schedule.Select(id => nodes[id])], request.Target.Points);
         var constants = source.Nodes.SelectMany(ConstantsFor)
             .Distinct()
             .OrderBy(constant => constant.Type)
@@ -148,7 +149,9 @@ public sealed partial class FlowCompiler : IFlowCompiler
             instructions.Add(node.Kind switch
             {
                 "digitalInput" => new(1, result, ushort.MaxValue, ushort.MaxValue,
-                    pointIndices[new PointRecord(node.Configuration["pointId"].GetString()!, 1)], id, 0),
+                    PointIndex(points, node, 1, 1), id, 0),
+                "analogInput" => new(1, result, ushort.MaxValue, ushort.MaxValue,
+                    PointIndex(points, node, 1, 2), id, 0),
                 "digitalConstant" => new(2, result, ushort.MaxValue, ushort.MaxValue,
                     ConstantIndex(constants, Boolean(node.Configuration["value"].GetBoolean())), id, 0),
                 "not" => new(3, result, InputSlot(source, slots, id, "in"), ushort.MaxValue, ushort.MaxValue, id, 0),
@@ -180,7 +183,9 @@ public sealed partial class FlowCompiler : IFlowCompiler
                     stateSlots[id], id, 0),
                 "memory" => new(6, result, ushort.MaxValue, ushort.MaxValue, stateSlots[id], id, 0),
                 "digitalOutput" => new(7, result, InputSlot(source, slots, id, "in"), ushort.MaxValue,
-                    pointIndices[new PointRecord(node.Configuration["pointId"].GetString()!, 2)], id, 0),
+                    PointIndex(points, node, 2, 1), id, 0),
+                "analogOutput" => new(7, result, InputSlot(source, slots, id, "in"), ushort.MaxValue,
+                    PointIndex(points, node, 2, 2), id, 0),
                 _ => throw new UnreachableException()
             });
         }
@@ -208,8 +213,9 @@ public sealed partial class FlowCompiler : IFlowCompiler
 
         var constantSection = Concat([.. constants.Select(EncodeConstant)]);
         var pointSection = Concat([.. points.Select(point => Concat(
-            new byte[] { point.Direction, 1, 1, 0 },
-            String8(point.Id)))]);
+            new byte[] { point.Direction, point.Type, 1, 0 },
+            String8(point.Id),
+            String8AllowEmpty(point.Units ?? string.Empty)))]);
         var slotRecords = schedule.Select((id, index) => Concat(
             new byte[] { 2, ResultType(nodes[id]) }, U16(0), U16(index), U16(ushort.MaxValue))).ToList();
         slotRecords.AddRange(stateIds.Select(id => nodes[id].Kind switch
@@ -226,9 +232,9 @@ public sealed partial class FlowCompiler : IFlowCompiler
         var instructionSection = Concat([.. instructions.Select(EncodeV2Instruction)]);
         var commitRecords = memoryIds.Select(id => Concat(
             new byte[] { 1, 0 }, U16(stateSlots[id]), U16(InputSlot(source, slots, id, "in")), U16(0))).ToList();
-        commitRecords.AddRange(schedule.Where(id => nodes[id].Kind == "digitalOutput").Select(id => Concat(
+        commitRecords.AddRange(schedule.Where(id => nodes[id].Kind is "digitalOutput" or "analogOutput").Select(id => Concat(
             new byte[] { 2, 0 },
-            U16(pointIndices[new PointRecord(nodes[id].Configuration["pointId"].GetString()!, 2)]),
+            U16(PointIndex(points, nodes[id], 2, ResultType(nodes[id]))),
             U16(slots[id]),
             U16(0))));
         commitRecords.AddRange(stateIds.Where(id => nodes[id].Kind is "onDelay" or "risingEdge").Select(id => Concat(
@@ -243,7 +249,8 @@ public sealed partial class FlowCompiler : IFlowCompiler
                 String8AllowEmpty(authoring is null ? string.Empty : AuthoringLabel(authoring)),
                 F64(authoring?.X ?? 0D),
                 F64(authoring?.Y ?? 0D),
-                F64(authoring?.ZOrder ?? 0D));
+                F64(authoring?.ZOrder ?? 0D),
+                String8AllowEmpty(authoring?.GroupId ?? string.Empty));
         })]);
         var debugSection = Concat([.. instructions.Where(instruction => instruction.NodeId.Length > 0).Select((instruction, index) => Concat(U16(index), U16(instruction.Result), String8(instruction.NodeId)))]);
         var resolvedPoints = request.Target.Points
@@ -275,7 +282,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
         V2Section[] sections =
         [
             new(1, checked((uint)constants.Length), constantSection),
-            new(2, checked((uint)points.Length), pointSection),
+            new(2, checked((uint)points.Length), pointSection, 2),
             new(3, checked((uint)slotRecords.Count), slotSection),
             new(4, checked((uint)instructions.Count), instructionSection),
             new(5, checked((uint)commitRecords.Count), Concat([.. commitRecords])),
@@ -420,6 +427,12 @@ public sealed partial class FlowCompiler : IFlowCompiler
         string portId) => slots[source.Connections.Single(connection =>
             connection.Target.NodeId == targetId && connection.Target.PortId == portId).Source.NodeId];
 
+    private static ushort PointIndex(IReadOnlyList<PointRecord> points, ExecutableFlowNode node, byte direction, byte type) =>
+        checked((ushort)points.Select((point, index) => new { point, index }).Single(item =>
+            item.point.Id == node.Configuration["pointId"].GetString()
+            && item.point.Direction == direction
+            && item.point.Type == type).index);
+
     private static byte[] EncodeV2Instruction(V2Instruction instruction) => Concat(
         new byte[] { instruction.Opcode, 0 },
         U16(instruction.Result),
@@ -439,6 +452,11 @@ public sealed partial class FlowCompiler : IFlowCompiler
             if (Encoding.UTF8.GetByteCount(node.Label) > 255 || !double.IsFinite(node.X) || !double.IsFinite(node.Y) || !double.IsFinite(node.ZOrder))
             {
                 throw Failure("invalid_authoring_metadata", $"/nodes/{index}", "Label and canvas coordinates exceed authoring metadata bounds.");
+            }
+
+            if (node.GroupId is { Length: > 0 } groupId)
+            {
+                ValidateIdentifier(groupId, $"/nodes/{index}/groupId", 63);
             }
             if (!nodes.TryAdd(node.Id, node))
             {
@@ -496,7 +514,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
     private static void ValidateConfiguration(ExecutableFlowNode node, int index)
     {
         var path = $"/nodes/{index}/configuration";
-        if (node.Kind is "digitalInput" or "digitalOutput")
+        if (node.Kind is "digitalInput" or "digitalOutput" or "analogInput" or "analogOutput")
         {
             if (node.Configuration.Count != 1
                 || !node.Configuration.TryGetValue("pointId", out var point)
@@ -614,7 +632,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
     }
 
     private static byte ResultType(ExecutableFlowNode node) =>
-        node.Kind is "numericConstant" or "add" or "levelShifter" ? (byte)2 : (byte)1;
+        node.Kind is "numericConstant" or "add" or "levelShifter" or "analogInput" or "analogOutput" ? (byte)2 : (byte)1;
 
     private static ushort ComparatorCode(ExecutableFlowNode node) => node.Configuration["operator"].GetString() switch
     {
@@ -649,7 +667,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
     private static void ValidatePointReferences(IReadOnlyList<ExecutableFlowNode> nodes)
     {
         var outputPoints = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var node in nodes.Where(node => node.Kind == "digitalOutput"))
+        foreach (var node in nodes.Where(node => node.Kind is "digitalOutput" or "analogOutput"))
         {
             var pointId = node.Configuration["pointId"].GetString()!;
             if (!outputPoints.Add(pointId))
@@ -710,11 +728,13 @@ public sealed partial class FlowCompiler : IFlowCompiler
         }
     }
 
-    private static PointRecord[] BuildPoints(IReadOnlyList<ExecutableFlowNode> nodes) => [.. nodes
-        .Where(node => node.Kind is "digitalInput" or "digitalOutput")
+    private static PointRecord[] BuildPoints(IReadOnlyList<ExecutableFlowNode> nodes, IReadOnlyList<Point> resolvedPoints) => [.. nodes
+        .Where(node => node.Kind is "digitalInput" or "digitalOutput" or "analogInput" or "analogOutput")
         .Select(node => new PointRecord(
             node.Configuration["pointId"].GetString()!,
-            checked((byte)(node.Kind == "digitalInput" ? 1 : 2))))
+            checked((byte)(node.Kind.EndsWith("Input", StringComparison.Ordinal) ? 1 : 2)),
+            checked((byte)(node.Kind.StartsWith("analog", StringComparison.Ordinal) ? 2 : 1)),
+            resolvedPoints.SingleOrDefault(point => point.Id == node.Configuration["pointId"].GetString())?.Units))
         .Distinct()
         .OrderBy(point => point.Id, StringComparer.Ordinal)
         .ThenBy(point => point.Direction)];
@@ -744,6 +764,60 @@ public sealed partial class FlowCompiler : IFlowCompiler
         BinaryPrimitives.WriteUInt32LittleEndian(bytes, value);
         return bytes;
     }
+
+    private static void ValidateUnits(FlowCompilationRequest request)
+    {
+        var source = request.Source;
+        var nodes = source.Nodes.ToDictionary(node => node.Id, StringComparer.Ordinal);
+        var units = new Dictionary<string, string?>(StringComparer.Ordinal);
+        foreach (var id in GetSchedule(source))
+        {
+            var node = nodes[id];
+            string? value = node.Kind switch
+            {
+                "analogInput" => request.Target.Points.SingleOrDefault(point =>
+                    point.Id == node.Configuration["pointId"].GetString())?.Units,
+                "numericConstant" => null,
+                "add" => RequireMatchingUnits(source, units, id, "a", "b"),
+                "comparator" => RequireMatchingUnits(source, units, id, "a", "b"),
+                "levelShifter" => units[SourceNode(source, id, "in")],
+                _ => null
+            };
+            units[id] = value;
+
+            if (node.Kind == "analogOutput")
+            {
+                var inputUnits = units[SourceNode(source, id, "in")];
+                var pointUnits = request.Target.Points.SingleOrDefault(point =>
+                    point.Id == node.Configuration["pointId"].GetString())?.Units;
+                if (!string.Equals(inputUnits, pointUnits, StringComparison.Ordinal))
+                {
+                    throw Failure("unit_mismatch", $"/nodes/{Escape(id)}", "Analog output units do not match its point binding.");
+                }
+            }
+        }
+    }
+
+    private static string? RequireMatchingUnits(
+        ExecutableFlowSource source,
+        IReadOnlyDictionary<string, string?> units,
+        string nodeId,
+        string leftPort,
+        string rightPort)
+    {
+        var left = units[SourceNode(source, nodeId, leftPort)];
+        var right = units[SourceNode(source, nodeId, rightPort)];
+        if (!string.Equals(left, right, StringComparison.Ordinal))
+        {
+            throw Failure("unit_mismatch", $"/nodes/{Escape(nodeId)}", "Numeric operands require identical units.");
+        }
+
+        return left;
+    }
+
+    private static string SourceNode(ExecutableFlowSource source, string nodeId, string portId) =>
+        source.Connections.Single(connection =>
+            connection.Target.NodeId == nodeId && connection.Target.PortId == portId).Source.NodeId;
 
     private static byte[] F64(double value)
     {
@@ -806,7 +880,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
     private sealed record NodeShape(IReadOnlyList<PortShape> Ports);
     private sealed record PortShape(string Id, byte Direction, byte Type = 1);
     private sealed record PortKey(string NodeId, string PortId);
-    private sealed record PointRecord(string Id, byte Direction);
+    private sealed record PointRecord(string Id, byte Direction, byte Type, string? Units);
     private sealed record ConstantRecord(byte Type, double Number);
     private sealed record V2Instruction(
         byte Opcode,

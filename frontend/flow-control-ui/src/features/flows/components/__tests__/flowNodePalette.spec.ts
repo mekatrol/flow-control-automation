@@ -27,11 +27,16 @@ describe('node palette filtering and grouping', () => {
       'digitalInput',
       'digitalOutput',
       'if',
+      'levelShifter',
       'memory',
       'nand',
       'nor',
+      'numericConstant',
       'not',
       'or',
+      'onDelay',
+      'qualityGood',
+      'risingEdge',
       'xnor',
       'xor'
     ]);
@@ -69,6 +74,7 @@ describe('node palette filtering and grouping', () => {
     // Acceptance criteria: `groups.maths?.map(({ kind }) => kind)` must equal `[ 'average', 'calculator', 'clamp', 'line', 'max', 'min' ]`, because this condition proves that
     // groups registry entries by authoring category.
     expect(groups.maths?.map(({ kind }) => kind)).toEqual([
+      'add',
       'average',
       'calculator',
       'clamp',

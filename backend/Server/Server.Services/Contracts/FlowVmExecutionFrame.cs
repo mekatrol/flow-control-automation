@@ -4,7 +4,7 @@ public sealed record FlowVmExecutionFrame(
     ushort InstructionIndex,
     byte Opcode,
     bool IsAtCommit,
-    IReadOnlyList<bool> Slots,
+    IReadOnlyList<FlowVmValue> Slots,
     IReadOnlyList<bool> CurrentState,
     IReadOnlyList<bool?> StagedState,
     IReadOnlyList<FlowVmCommand> ProposedCommands);

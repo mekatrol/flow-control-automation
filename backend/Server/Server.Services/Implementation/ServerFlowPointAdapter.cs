@@ -19,11 +19,8 @@ internal sealed class ServerFlowPointAdapter(IServiceScopeFactory scopes) : IFlo
         for (var index = 0; index < pointIds.Count; index++)
         {
             var envelope = await reader.ReadAsync(pointIds[index], cancellationToken);
-            var value = false;
-            var isGood = string.Equals(envelope.Quality, "good", StringComparison.Ordinal)
-                && envelope.Value is not null
-                && TryBoolean(envelope.Value.ToJsonString(), out value);
-            result[index] = new FlowVmInput(pointIds[index], isGood && value, isGood);
+            var quality = string.Equals(envelope.Quality, "good", StringComparison.Ordinal) ? "good" : "bad";
+            result[index] = new FlowVmInput(pointIds[index], ParseValue(envelope.Value?.ToJsonString(), quality));
         }
 
         return result;
@@ -43,17 +40,25 @@ internal sealed class ServerFlowPointAdapter(IServiceScopeFactory scopes) : IFlo
         return Task.CompletedTask;
     }
 
-    private static bool TryBoolean(string json, out bool value)
+    private static FlowVmValue ParseValue(string? json, string quality)
     {
+        if (json is null) return FlowVmValue.FromBoolean(false, "bad");
+
         try
         {
-            value = JsonSerializer.Deserialize<bool>(json);
-            return true;
+            using var document = JsonDocument.Parse(json);
+            return document.RootElement.ValueKind switch
+            {
+                JsonValueKind.True => FlowVmValue.FromBoolean(true, quality),
+                JsonValueKind.False => FlowVmValue.FromBoolean(false, quality),
+                JsonValueKind.Number when document.RootElement.TryGetDouble(out var number) && double.IsFinite(number) =>
+                    FlowVmValue.FromNumber(number, quality),
+                _ => FlowVmValue.FromBoolean(false, "bad")
+            };
         }
         catch (JsonException)
         {
-            value = false;
-            return false;
+            return FlowVmValue.FromBoolean(false, "bad");
         }
     }
 }

@@ -10,6 +10,7 @@ public sealed record FlowNode
     public double X { get; init; }
     public double Y { get; init; }
     public double ZOrder { get; init; }
+    public string? GroupId { get; init; }
     public IReadOnlyList<FlowConnector> Connectors { get; init; } = [];
     public IReadOnlyDictionary<string, JsonElement> Configuration { get; init; }
         = new Dictionary<string, JsonElement>();

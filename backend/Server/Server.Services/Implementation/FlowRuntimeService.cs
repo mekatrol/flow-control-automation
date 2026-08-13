@@ -199,9 +199,14 @@ internal sealed class FlowRuntimeService(
                 node => node.Id,
                 node => new NodeRuntimeSnapshot("running", updatedAt)
                 {
-                    Value = instance.Compilation.NodeIndices.TryGetValue(node.Id, out var slot)
+                    TypedValue = instance.Compilation.NodeIndices.TryGetValue(node.Id, out var slot)
                         && slot < scan.Slots.Count
                             ? scan.Slots[slot]
+                            : null,
+                    Value = instance.Compilation.NodeIndices.TryGetValue(node.Id, out slot)
+                        && slot < scan.Slots.Count
+                        && scan.Slots[slot].Type == "boolean"
+                            ? scan.Slots[slot].Boolean
                             : null
                 },
                 StringComparer.Ordinal);

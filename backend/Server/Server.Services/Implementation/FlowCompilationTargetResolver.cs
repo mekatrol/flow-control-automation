@@ -126,14 +126,15 @@ public sealed class FlowCompilationTargetResolver(
             .Where(item => item.PointId is not null)
             .Select(item => new PointReference(
                 item.PointId!,
-                item.Node.Kind == "digitalInput"))
+                item.Node.Kind is "digitalInput" or "analogInput",
+                item.Node.Kind.StartsWith("analog", StringComparison.Ordinal)))
             .Distinct()
             .OrderBy(reference => reference.PointId, StringComparer.Ordinal)
             .ThenBy(reference => reference.IsInput ? 0 : 1)
             .ToArray();
 
     private static string? PointId(ExecutableFlowNode node) =>
-        node.Kind is "digitalInput" or "digitalOutput"
+        node.Kind is "digitalInput" or "digitalOutput" or "analogInput" or "analogOutput"
         && node.Configuration.TryGetValue("pointId", out var value)
         && value.ValueKind == System.Text.Json.JsonValueKind.String
             ? value.GetString()
@@ -142,7 +143,7 @@ public sealed class FlowCompilationTargetResolver(
     private static void ValidatePoint(PointReference reference, Point point)
     {
         var valid = point.Enabled
-            && string.Equals(point.ValueType, "digital", StringComparison.Ordinal)
+            && string.Equals(point.ValueType, reference.IsAnalog ? "analog" : "digital", StringComparison.Ordinal)
             && (reference.IsInput
                 ? point.Readable && string.Equals(point.Direction, "input", StringComparison.Ordinal)
                 : point.Commandable && string.Equals(point.Direction, "output", StringComparison.Ordinal));
@@ -151,7 +152,7 @@ public sealed class FlowCompilationTargetResolver(
             throw Failure(
                 "point_direction_mismatch",
                 $"/points/{Escape(reference.PointId)}",
-                $"Point \"{reference.PointId}\" is not a compatible enabled digital "
+                $"Point \"{reference.PointId}\" is not a compatible enabled {(reference.IsAnalog ? "analog" : "digital")} "
                     + (reference.IsInput ? "input." : "output."));
         }
     }
@@ -159,7 +160,9 @@ public sealed class FlowCompilationTargetResolver(
     private static string? RequiredFunction(string kind) => kind switch
     {
         "digitalInput" => "read-point",
+        "analogInput" => "read-point",
         "digitalOutput" => "write-point",
+        "analogOutput" => "write-point",
         "not" => "not",
         "and" => "and",
         "or" => "or",
@@ -172,5 +175,5 @@ public sealed class FlowCompilationTargetResolver(
     private static string Escape(string value) => value.Replace("~", "~0", StringComparison.Ordinal)
         .Replace("/", "~1", StringComparison.Ordinal);
 
-    private sealed record PointReference(string PointId, bool IsInput);
+    private sealed record PointReference(string PointId, bool IsInput, bool IsAnalog);
 }

@@ -5,6 +5,8 @@ export type FlowStatus = 'draft' | 'deployed';
 // translation table between the toolbox, graph, and API payload.
 export enum FlowNodeFunctionType {
   Add = 'add',
+  AnalogInput = 'analogInput',
+  AnalogOutput = 'analogOutput',
   And = 'and',
   Average = 'average',
   Calculator = 'calculator',
@@ -71,6 +73,7 @@ export interface FlowNode {
   x: number;
   y: number;
   zOrder: number;
+  groupId?: string;
   connectors: FlowNodeConnector[];
   configuration: Record<string, FlowConfigurationValue>;
 }

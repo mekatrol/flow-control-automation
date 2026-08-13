@@ -64,7 +64,7 @@ internal sealed class FlowDeploymentService(
                 // owns the 100 ms interval used to invoke that program.
                 Mode = "manual",
                 IntervalMs = 0,
-                InputQualityPolicy = "require_good"
+                InputQualityPolicy = flow.Nodes.Any(node => node.Kind == "qualityGood") ? "propagate" : "require_good"
             },
             Nodes = flow.Nodes.Select(node => new ExecutableFlowNode
             {
@@ -74,7 +74,8 @@ internal sealed class FlowDeploymentService(
                 Label = node.Label,
                 X = node.X,
                 Y = node.Y,
-                ZOrder = node.ZOrder
+                ZOrder = node.ZOrder,
+                GroupId = node.GroupId
             }).ToArray(),
             Connections = flow.Connections.Select(connection => new ExecutableFlowConnection(
                 new ExecutableFlowEndpoint(connection.Start.NodeId, connection.Start.ConnectorId),

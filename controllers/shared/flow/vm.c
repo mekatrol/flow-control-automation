@@ -38,6 +38,7 @@ enum
 
 typedef struct
 {
+    uint16_t version;
     uint32_t offset;
     uint32_t length;
     uint32_t count;
@@ -145,14 +146,14 @@ static flow_vm_result_t get_metadata(const uint8_t *artifact, size_t size, metad
             return get_result(FLOW_VM_NON_CANONICAL_ORDER, "/sections/0/id");
         }
 
-        section_t *section = &metadata->sections[index];
+        const uint16_t version = get_u16(&entry[2]);
+        section_t *section     = &metadata->sections[index];
+        section->version   = version;
         section->offset    = get_u32(&entry[4]);
         section->length    = get_u32(&entry[8]);
         section->count     = get_u32(&entry[12]);
 
-        const uint16_t expected_version = id == 6U ? 2U : 1U;
-
-        if (get_u16(&entry[2]) != expected_version || section->offset != expected_offset || section->offset > size ||
+        if ((id == 2U || id == 6U ? (version != 1U && version != 2U) : version != 1U) || section->offset != expected_offset || section->offset > size ||
             section->length > size - section->offset)
         {
             return get_result(FLOW_VM_MALFORMED, "/sections");
@@ -369,6 +370,22 @@ flow_vm_result_t flow_vm_prepare(const uint8_t *artifact, size_t artifact_size, 
 
         memcpy(vm->points[index].id, &artifact[point_offset + 5U], id_length);
         point_offset += 5U + id_length;
+
+        if (points.version == 2U)
+        {
+            if (point_offset >= points.offset + points.length)
+            {
+                return get_result(FLOW_VM_INVALID_BINDING, "/points/units");
+            }
+
+            const uint8_t unit_length = artifact[point_offset];
+            point_offset += 1U + unit_length;
+
+            if (point_offset > points.offset + points.length)
+            {
+                return get_result(FLOW_VM_INVALID_BINDING, "/points/units");
+            }
+        }
     }
 
     if (point_offset != points.offset + points.length)
@@ -546,7 +563,7 @@ flow_vm_result_t flow_vm_step_instruction(flow_vm_t *vm, flow_vm_execution_view_
 
             const flow_vm_input_sample_t *sample = get_input(vm, vm->points[instruction->auxiliary].id);
 
-            if (sample == NULL)
+            if (sample == NULL || (sample->type != 0U && sample->type != vm->points[instruction->auxiliary].type))
             {
                 return get_result(FLOW_VM_INPUT_REJECTED, "/inputs");
             }
@@ -745,6 +762,11 @@ flow_vm_result_t flow_vm_step_instruction(flow_vm_t *vm, flow_vm_execution_view_
             if (instruction->auxiliary >= vm->point_count)
             {
                 return get_result(FLOW_VM_INVALID_OPERAND, "/instructions/point");
+            }
+
+            if (vm->slot_types[instruction->operand0] != vm->points[instruction->auxiliary].type)
+            {
+                return get_result(FLOW_VM_INVALID_OPERAND, "/instructions/pointType");
             }
 
             vm->working_slots[instruction->result] = vm->working_slots[instruction->operand0];
