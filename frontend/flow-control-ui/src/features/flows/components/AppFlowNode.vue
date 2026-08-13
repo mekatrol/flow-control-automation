@@ -4,7 +4,7 @@
     class="flow-node"
     :data-node-id="node.id"
     :data-node-category="definition.category"
-    :class="{ selected }"
+    :class="{ selected, current, breakpoint }"
     :transform="transform"
     role="button"
     tabindex="0"
@@ -14,6 +14,7 @@
     @pointerdown.stop="emit(EVENTS.DRAG_START, node.id, $event)"
     @keydown.enter.prevent="emit(EVENTS.SELECT, node.id)"
     @keydown.space.prevent="emit(EVENTS.SELECT, node.id)"
+    @dblclick.stop="emit('toggleBreakpoint', node.id)"
   >
     <rect
       class="node-body"
@@ -102,6 +103,8 @@ const props = defineProps<{
   statusValue?: string;
   connectionStart?: FlowConnectionEndpoint;
   compatibleConnectorKeys?: string[];
+  current?: boolean;
+  breakpoint?: boolean;
 }>();
 
 const automation = useAutomation(props.automation);
@@ -112,6 +115,7 @@ const emit = defineEmits<{
   (event: typeof EVENTS.CONNECTOR_ACTIVATE, endpoint: FlowConnectionEndpoint): void;
   (event: typeof EVENTS.CONNECTOR_RELEASE, endpoint: FlowConnectionEndpoint): void;
   (event: typeof EVENTS.CONNECTOR_PREVIEW, endpoint: FlowConnectionEndpoint): void;
+  (event: 'toggleBreakpoint', nodeId: string): void;
 }>();
 
 // A node is positioned by translating one SVG group. Its body, label, status,
@@ -168,5 +172,12 @@ const connectorKey = (connectorId: string): string => `${props.node.id}:${connec
 .flow-node.selected .node-body {
   stroke: var(--color-action-primary-text);
   stroke-width: var(--stroke-width-heavy);
+}
+.flow-node.current .node-body {
+  stroke: var(--color-warning-text);
+  stroke-width: var(--stroke-width-heavy);
+}
+.flow-node.breakpoint .node-body {
+  stroke-dasharray: 6 3;
 }
 </style>

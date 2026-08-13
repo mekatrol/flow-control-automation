@@ -140,23 +140,43 @@
         :snapshot="debugSnapshot"
         :stale="debugSnapshotStale"
         :error="debugError"
-        :target-available="debugTargetId !== 'host'"
+        :target-available="true"
+        :host="debugHost"
+        :capabilities="debugCapabilities"
+        :inspection="debugInspection"
         :affected-output-points="debugAffectedOutputPoints"
         :live-output-enabled="debugLiveOutputEnabled"
         :live-output-priority="debugLiveOutputPriority"
         :live-output-hold-milliseconds="debugLiveOutputHoldMilliseconds"
         @load="loadDebugSession"
-        @step="stepDebugSession"
+        @step-tick="stepDebugSession"
+        @step-node="stepNodeDebugSession"
+        @step-instruction="stepInstructionDebugSession"
         @run="runDebugSession"
+        @run-to="runToBreakpoint"
         @pause="pauseDebugSession"
         @stop="stopDebugSession"
+        @restart="restartDebugSession"
         @enable-live-output="enableLiveOutput"
+      />
+
+      <AppFlowEmulatorPanel
+        v-if="selectedDebugTarget?.kind === 'emulator'"
+        automation="flow-emulator"
+        :snapshot="emulatorSnapshot"
+        @set-input="setEmulatorInput"
+        @advance="advanceEmulator"
+        @fault="setEmulatorFault"
+        @reset="resetEmulator"
       />
 
       <AppFlowDesignerCanvas
         v-bind="automation('canvas')"
         :flow="flow"
         :runtime="debugNodeRuntime ?? runtime"
+        :current-node-id="debugInspection?.nodeId"
+        :breakpoint-node-ids="debugBreakpoints.map((breakpoint) => breakpoint.nodeId)"
+        @toggle-breakpoint="toggleBreakpoint"
         @[EVENTS.MOVE_NODE]="moveNode"
         @[EVENTS.REORDER_NODE]="reorderNode"
         @[EVENTS.DELETE_NODE]="deleteNode"
@@ -195,12 +215,17 @@ import AppErrorNotice from '@/components/AppErrorNotice.vue';
 import AppFlowDesignerCanvas from '@/features/flows/components/AppFlowDesignerCanvas.vue';
 import AppFlowDebugTargetSelector from '@/features/flows/components/AppFlowDebugTargetSelector.vue';
 import AppFlowDebugPanel from '@/features/flows/components/AppFlowDebugPanel.vue';
+import AppFlowEmulatorPanel from '@/features/flows/components/AppFlowEmulatorPanel.vue';
 import { getFlowDebugTargets } from '@/features/flows/debugTargets';
 import {
   flowDebugApi,
   type DebugRuntimeSnapshot,
-  type ExecutableFlowSource
+  type ExecutableFlowSource,
+  type FlowDebugCapabilities,
+  type FlowDebugInspection,
+  type FlowDebugBreakpoint
 } from '@/features/flows/api/flowDebugApi';
+import { flowEmulatorApi, type EmulatorSnapshot } from '@/features/flows/api/flowEmulatorApi';
 import { createExecutableFlowSource, graphRevision } from '@/features/flows/flowDebugSource';
 import { useControllerTemplatesCatalogueStore } from '@/features/catalogues/stores/catalogues';
 import { useFlowsStore } from '@/features/flows/stores/flows';
@@ -245,7 +270,7 @@ const deployDialog = ref<HTMLElement>();
 const discardDialog = ref<HTMLElement>();
 const runtime = computed(() => runtimeStore.snapshotFor(props.flowId));
 const debugTargets = computed(() => getFlowDebugTargets(controllerTemplates.allItems));
-const debugTargetId = ref('host');
+const debugTargetId = ref('server');
 type DesignerDebugLifecycle =
   | 'idle'
   | 'loading'
@@ -264,6 +289,10 @@ const debugAffectedOutputPoints = ref<string[]>([]);
 const debugLiveOutputEnabled = ref(false);
 const debugLiveOutputPriority = ref<number>();
 const debugLiveOutputHoldMilliseconds = ref<number>();
+const debugCapabilities = ref<FlowDebugCapabilities>();
+const debugInspection = ref<FlowDebugInspection>();
+const debugBreakpoints = ref<FlowDebugBreakpoint[]>([]);
+const emulatorSnapshot = ref<EmulatorSnapshot>();
 let debugController: AbortController | undefined;
 let debugPollTimer: ReturnType<typeof window.setInterval> | undefined;
 const stopDebugPolling = (): void => {
@@ -277,7 +306,7 @@ const pendingRoute = ref<string>();
 let allowNavigation = false;
 
 watch(debugTargets, (targets) => {
-  if (!targets.some((target) => target.id === debugTargetId.value)) debugTargetId.value = 'host';
+  if (!targets.some((target) => target.id === debugTargetId.value)) debugTargetId.value = 'server';
 });
 watch(debugTargetId, () => {
   if (debugSessionId.value) void stopDebugSession();
@@ -311,6 +340,10 @@ const debugNodeRuntime = computed(() => {
 const selectedDebugTarget = computed(() =>
   debugTargets.value.find((target) => target.id === debugTargetId.value)
 );
+const debugHost = computed<'server' | 'emulator' | 'controller'>(() => {
+  const kind = selectedDebugTarget.value?.kind;
+  return kind === 'emulator' || kind === 'controller' ? kind : 'server';
+});
 const executableSource = (): ExecutableFlowSource | undefined => {
   const current = flow.value;
   const target = selectedDebugTarget.value;
@@ -328,7 +361,14 @@ const loadDebugSession = async (): Promise<void> => {
   try {
     const source = executableSource();
     if (!source) throw new Error('The flow is not available.');
-    const session = await flowDebugApi.load(source, debugController.signal);
+    if (selectedDebugTarget.value?.kind === 'emulator' && !emulatorSnapshot.value)
+      emulatorSnapshot.value = await flowEmulatorApi.create(source);
+    const session = await flowDebugApi.load(
+      source,
+      debugHost.value,
+      emulatorSnapshot.value?.emulatorId,
+      debugController.signal
+    );
     if (session.flowId !== props.flowId || session.revision !== source.revision)
       throw new Error('Loaded debug session does not match this flow revision.');
     debugSessionId.value = session.debugSessionId;
@@ -338,9 +378,90 @@ const loadDebugSession = async (): Promise<void> => {
     debugLiveOutputEnabled.value = session.liveOutputEnabled;
     debugLiveOutputPriority.value = session.liveOutputPriority;
     debugLiveOutputHoldMilliseconds.value = session.liveOutputHoldMilliseconds;
+    debugCapabilities.value = session.capabilities;
+    debugInspection.value = session.inspection;
     debugLifecycle.value = 'ready';
   } catch (error) {
     debugLifecycle.value = 'fault';
+    debugError.value = debugFailure(error);
+  }
+};
+const applyDebugSession = (session: Awaited<ReturnType<typeof flowDebugApi.stepNode>>): void => {
+  debugLifecycle.value = session.lifecycleState === 'empty' ? 'stopped' : session.lifecycleState;
+  debugSnapshot.value = session.snapshot;
+  debugCapabilities.value = session.capabilities;
+  debugInspection.value = session.inspection;
+};
+const stepNodeDebugSession = async (): Promise<void> => {
+  if (!debugSessionId.value) return;
+  try {
+    applyDebugSession(await flowDebugApi.stepNode(props.flowId, debugSessionId.value));
+  } catch (error) {
+    debugError.value = debugFailure(error);
+  }
+};
+const stepInstructionDebugSession = async (): Promise<void> => {
+  if (!debugSessionId.value) return;
+  try {
+    applyDebugSession(await flowDebugApi.stepInstruction(props.flowId, debugSessionId.value));
+  } catch (error) {
+    debugError.value = debugFailure(error);
+  }
+};
+const restartDebugSession = async (): Promise<void> => {
+  if (!debugSessionId.value) return;
+  try {
+    applyDebugSession(await flowDebugApi.restart(props.flowId, debugSessionId.value));
+  } catch (error) {
+    debugError.value = debugFailure(error);
+  }
+};
+const setEmulatorInput = async (pointId: string, value: boolean): Promise<void> => {
+  if (!emulatorSnapshot.value) return;
+  emulatorSnapshot.value = await flowEmulatorApi.setInputs(emulatorSnapshot.value.emulatorId, [
+    { pointId, value, isGood: true }
+  ]);
+};
+const advanceEmulator = async (milliseconds: number): Promise<void> => {
+  if (!emulatorSnapshot.value) return;
+  emulatorSnapshot.value = await flowEmulatorApi.advance(
+    emulatorSnapshot.value.emulatorId,
+    milliseconds
+  );
+};
+const setEmulatorFault = async (fault: string | null): Promise<void> => {
+  if (!emulatorSnapshot.value) return;
+  emulatorSnapshot.value = await flowEmulatorApi.fault(emulatorSnapshot.value.emulatorId, fault);
+};
+const resetEmulator = async (powerCycle: boolean): Promise<void> => {
+  if (!emulatorSnapshot.value) return;
+  emulatorSnapshot.value = await flowEmulatorApi.reset(
+    emulatorSnapshot.value.emulatorId,
+    powerCycle
+  );
+};
+const toggleBreakpoint = async (nodeId: string): Promise<void> => {
+  if (!debugSessionId.value || !debugCapabilities.value?.maximumBreakpoints) return;
+  const exists = debugBreakpoints.value.some((breakpoint) => breakpoint.nodeId === nodeId);
+  const next = exists
+    ? debugBreakpoints.value.filter((breakpoint) => breakpoint.nodeId !== nodeId)
+    : [...debugBreakpoints.value, { nodeId, position: 'before' as const }];
+  try {
+    const session = await flowDebugApi.replaceBreakpoints(props.flowId, debugSessionId.value, next);
+    debugBreakpoints.value = session.breakpoints;
+  } catch (error) {
+    debugError.value = debugFailure(error);
+  }
+};
+const runToBreakpoint = async (): Promise<void> => {
+  const breakpoint = debugBreakpoints.value[0];
+  if (!debugSessionId.value || !breakpoint) {
+    debugError.value = 'Add a breakpoint by double-clicking a node first.';
+    return;
+  }
+  try {
+    applyDebugSession(await flowDebugApi.runTo(props.flowId, debugSessionId.value, breakpoint));
+  } catch (error) {
     debugError.value = debugFailure(error);
   }
 };
@@ -427,6 +548,9 @@ const stopDebugSession = async (keepalive = false): Promise<void> => {
   debugLiveOutputEnabled.value = false;
   debugLiveOutputPriority.value = undefined;
   debugLiveOutputHoldMilliseconds.value = undefined;
+  debugCapabilities.value = undefined;
+  debugInspection.value = undefined;
+  debugBreakpoints.value = [];
   debugLifecycle.value = 'stopped';
   if (!sessionId) return;
   try {

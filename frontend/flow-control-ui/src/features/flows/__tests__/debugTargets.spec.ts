@@ -25,7 +25,7 @@ const template = (
 });
 
 describe('flow debug targets', () => {
-  it('offers host followed by compatible configured controllers', () => {
+  it('offers server, emulator, and compatible configured controllers', () => {
     const targets = getFlowDebugTargets([
       template(),
       template({ id: 'default', name: 'Default host' }),
@@ -37,7 +37,20 @@ describe('flow debug targets', () => {
     ]);
 
     expect(targets).toEqual([
-      { id: 'host', kind: 'host', label: 'Host' },
+      {
+        id: 'server',
+        kind: 'server',
+        label: 'Server',
+        controllerTemplateId: 'default',
+        controllerTemplateRevision: 1
+      },
+      {
+        id: 'emulator:kc868-a16',
+        kind: 'emulator',
+        label: 'Emulator — KC868-A16',
+        controllerTemplateId: 'kc868-a16',
+        controllerTemplateRevision: 3
+      },
       {
         id: 'controller:kc868-a16',
         kind: 'controller',

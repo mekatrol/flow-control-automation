@@ -2,7 +2,7 @@ import type { ControllerTemplateSummary } from '@/features/catalogues/api/catalo
 
 export interface FlowDebugTarget {
   id: string;
-  kind: 'host' | 'controller';
+  kind: 'host' | 'server' | 'emulator' | 'controller';
   label: string;
   controllerTemplateId?: string;
   controllerTemplateRevision?: number;
@@ -23,7 +23,20 @@ export const isControllerDebugCompatible = (template: ControllerTemplateSummary)
 export const getFlowDebugTargets = (
   templates: readonly ControllerTemplateSummary[]
 ): FlowDebugTarget[] => [
-  { id: 'host', kind: 'host', label: 'Host' },
+  {
+    id: 'server',
+    kind: 'server',
+    label: 'Server',
+    controllerTemplateId: 'default',
+    controllerTemplateRevision: 1
+  },
+  ...templates.filter(isControllerDebugCompatible).map((template) => ({
+    id: `emulator:${template.id}`,
+    kind: 'emulator' as const,
+    label: `Emulator — ${template.name}`,
+    controllerTemplateId: template.id,
+    controllerTemplateRevision: template.revision
+  })),
   ...templates.filter(isControllerDebugCompatible).map((template) => ({
     id: `controller:${template.id}`,
     kind: 'controller' as const,

@@ -49,7 +49,7 @@ export const createExecutableFlowSource = (
   target: FlowDebugTarget
 ): ExecutableFlowSource => {
   if (!target.controllerTemplateId || !target.controllerTemplateRevision)
-    throw new FlowDebugSourceError('Choose a compatible controller target.');
+    throw new FlowDebugSourceError('Choose a compatible execution target.');
   const unsupported = flow.nodes.find((node) => !supportedKinds.has(node.kind));
   if (unsupported)
     throw new FlowDebugSourceError(

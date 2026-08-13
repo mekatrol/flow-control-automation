@@ -1,11 +1,36 @@
 <template>
-  <section v-bind="automation()" class="debug-panel" aria-label="Shadow debugging">
+  <section v-bind="automation()" class="debug-panel" aria-label="Flow debugging">
     <div class="debug-controls">
-      <strong>Shadow debug</strong>
-      <span class="mode">Proposed outputs are non-physical</span>
+      <strong>{{ hostLabel }} debug</strong>
+      <span class="mode">{{
+        host === 'controller' ? 'Shadow outputs by default' : 'Server-hosted execution'
+      }}</span>
       <AppButton automation="debug-load" text="Load" :disabled="!canLoad" @click="emit('load')" />
-      <AppButton automation="debug-step" text="Step" :disabled="!canStep" @click="emit('step')" />
+      <AppButton
+        automation="debug-step"
+        text="Step tick"
+        :disabled="!canStepTick"
+        @click="emit('stepTick')"
+      />
+      <AppButton
+        automation="debug-step-node"
+        text="Step node"
+        :disabled="!canStepNode"
+        @click="emit('stepNode')"
+      />
+      <AppButton
+        automation="debug-step-instruction"
+        text="Step instruction"
+        :disabled="!canStepInstruction"
+        @click="emit('stepInstruction')"
+      />
       <AppButton automation="debug-run" text="Run" :disabled="!canRun" @click="emit('run')" />
+      <AppButton
+        automation="debug-run-to"
+        text="Run to breakpoint"
+        :disabled="!canRunTo"
+        @click="emit('runTo')"
+      />
       <AppButton
         automation="debug-pause"
         text="Pause"
@@ -13,6 +38,12 @@
         @click="emit('pause')"
       />
       <AppButton automation="debug-stop" text="Stop" :disabled="!canStop" @click="emit('stop')" />
+      <AppButton
+        automation="debug-restart"
+        text="Restart"
+        :disabled="!canRestart"
+        @click="emit('restart')"
+      />
       <span class="state" :class="{ stale }" role="status">{{ stateLabel }}</span>
     </div>
     <div v-if="affectedOutputPoints.length" class="live-output">
@@ -36,6 +67,19 @@
       </strong>
     </div>
     <p v-if="error" class="debug-error" role="alert">{{ error }}</p>
+    <div v-if="inspection" class="inspection" aria-label="Paused execution frame">
+      <strong>Frame {{ inspection.instructionPointer }}</strong>
+      <span>Node {{ inspection.nodeId ?? 'commit' }}</span>
+      <span>{{ inspection.isAtCommit ? 'At tick boundary' : 'Uncommitted' }}</span>
+      <span>Slots: {{ inspection.slots.map((slot) => slot.value).join(', ') || 'none' }}</span>
+      <span>
+        Current state: {{ inspection.currentState.map((slot) => slot.value).join(', ') || 'none' }}
+      </span>
+      <span>
+        Next state:
+        {{ inspection.stagedNextState.map((slot) => slot?.value ?? '—').join(', ') || 'none' }}
+      </span>
+    </div>
     <div v-if="snapshot" class="snapshot" :class="{ stale }">
       <span>Tick {{ snapshot.tickNumber }}</span>
       <span>{{ snapshot.executionDurationUs }} µs</span>
@@ -61,7 +105,11 @@
 import { computed, ref } from 'vue';
 import AppButton from '@/components/AppButton.vue';
 import { useAutomation } from '@/composables/useAutomation';
-import type { DebugRuntimeSnapshot } from '@/features/flows/api/flowDebugApi';
+import type {
+  DebugRuntimeSnapshot,
+  FlowDebugCapabilities,
+  FlowDebugInspection
+} from '@/features/flows/api/flowDebugApi';
 
 const props = defineProps<{
   automation: string;
@@ -74,23 +122,50 @@ const props = defineProps<{
   liveOutputEnabled?: boolean;
   liveOutputPriority?: number;
   liveOutputHoldMilliseconds?: number;
+  host?: 'server' | 'emulator' | 'controller';
+  capabilities?: FlowDebugCapabilities;
+  inspection?: FlowDebugInspection;
 }>();
 const emit = defineEmits<{
   load: [];
-  step: [];
+  stepTick: [];
+  stepNode: [];
+  stepInstruction: [];
   run: [];
+  runTo: [];
   pause: [];
   stop: [];
+  restart: [];
   enableLiveOutput: [pointIds: string[]];
 }>();
 const automation = useAutomation(props.automation);
 const busy = computed(() => props.lifecycle === 'loading' || props.lifecycle === 'stepping');
 const active = computed(() => ['ready', 'running', 'paused', 'fault'].includes(props.lifecycle));
 const canLoad = computed(() => props.targetAvailable && !busy.value && !active.value);
-const canStep = computed(() => !props.stale && ['ready', 'paused'].includes(props.lifecycle));
-const canRun = computed(() => !props.stale && ['ready', 'paused'].includes(props.lifecycle));
-const canPause = computed(() => props.lifecycle === 'running');
+const host = computed(() => props.host ?? 'controller');
+const hostLabel = computed(() => `${host.value.charAt(0).toUpperCase()}${host.value.slice(1)}`);
+const canStepTick = computed(
+  () =>
+    props.capabilities?.stepTick !== false &&
+    !props.stale &&
+    ['ready', 'paused'].includes(props.lifecycle)
+);
+const canStepNode = computed(() => props.capabilities?.stepNode === true && canStepTick.value);
+const canStepInstruction = computed(
+  () => props.capabilities?.stepInstruction === true && canStepTick.value
+);
+const canRun = computed(
+  () =>
+    props.capabilities?.continue !== false &&
+    !props.stale &&
+    ['ready', 'paused'].includes(props.lifecycle)
+);
+const canRunTo = computed(() => props.capabilities?.runTo === true && canRun.value);
+const canPause = computed(
+  () => props.capabilities?.pause !== false && props.lifecycle === 'running'
+);
 const canStop = computed(() => active.value || busy.value);
+const canRestart = computed(() => active.value && !busy.value);
 const affectedOutputPoints = computed(() => props.affectedOutputPoints ?? []);
 const liveOutputConfirmed = ref(false);
 const canEnableLiveOutput = computed(
@@ -141,6 +216,13 @@ const stateLabel = computed(() => (props.stale ? 'stale' : props.lifecycle));
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-5);
+  padding: var(--space-3);
+  border-top: var(--border-width-default) solid var(--color-border-subtle);
+}
+.inspection {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
   padding: var(--space-3);
   border-top: var(--border-width-default) solid var(--color-border-subtle);
 }

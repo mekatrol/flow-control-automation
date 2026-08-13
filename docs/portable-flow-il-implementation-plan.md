@@ -465,6 +465,16 @@ breakpoint/step/run-to workflow entirely on the server.
 
 ### Phase 6 - Connect the existing UI to server execution and debugging
 
+Status: complete on 13 August 2026. The designer now defaults to the built-in
+server VM, consumes the unified debug capability/session/frame models, renders
+revision-checked snapshots by stable node ID, and exposes capability-gated tick,
+node, and instruction stepping, continue, pause, restart, stop, breakpoint
+markers, current-node highlighting, and typed paused-frame inspection. Compatible
+hardware profiles also expose an emulator target with virtual inputs, time
+advance, captured outputs, reset/power-cycle, and fault injection. A mocked
+no-controller Playwright journey covers server load, instruction pause,
+inspection, highlighting, and stop.
+
 - Make the built-in server target the default Load/Run/Step target.
 - Unify deployment and debug/runtime snapshot models where semantics match;
   retain controller lease/live-output fields only for remote hardware sessions.

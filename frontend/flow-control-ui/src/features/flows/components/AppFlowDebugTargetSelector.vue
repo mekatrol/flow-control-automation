@@ -16,7 +16,8 @@
     <small v-else-if="selected?.kind === 'controller'">
       Template revision {{ selected.controllerTemplateRevision }} · Shadow mode
     </small>
-    <small v-else>Local execution target</small>
+    <small v-else-if="selected?.kind === 'emulator'">Controller limits with simulated I/O</small>
+    <small v-else>Built-in server VM</small>
   </div>
 </template>
 

@@ -13,12 +13,16 @@ describe('flow debug panel', () => {
     expect(buttons.map((button) => button.attributes('disabled') === undefined)).toEqual([
       false,
       true,
+      false,
+      false,
       true,
       false,
+      false,
+      true,
       true
     ]);
     await buttons[1]!.trigger('click');
-    expect(wrapper.emitted('step')).toHaveLength(1);
+    expect(wrapper.emitted('stepTick')).toHaveLength(1);
   });
 
   it('marks snapshots stale and disables execution', () => {

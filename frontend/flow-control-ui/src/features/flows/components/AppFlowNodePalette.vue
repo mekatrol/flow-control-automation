@@ -17,7 +17,7 @@
         <AppButton
           v-for="definition in definitions"
           :key="definition.kind"
-          v-bind="automation(`add-${definition.kind}`)"
+          v-bind="automation(`add-${automationKind(definition.kind)}`)"
           :text="definition.label"
           draggable="true"
           :aria-label="`Add ${definition.label} node`"
@@ -27,7 +27,7 @@
           <template #icon>
             <AppSvg
               :src="getNodeIconUrl(definition.icon)"
-              v-bind="automation(`add-${definition.kind}-icon`)"
+              v-bind="automation(`add-${automationKind(definition.kind)}-icon`)"
               size="100%"
             />
           </template>
@@ -90,6 +90,8 @@ const emit = defineEmits<{
   (event: typeof EVENTS.ADD, kind: FlowNodeKind): void;
 }>();
 const automation = useAutomation(props.automation);
+const automationKind = (kind: string): string =>
+  kind.replaceAll(/([a-z0-9])([A-Z])/g, '$1-$2').toLocaleLowerCase();
 const filter = ref('');
 const query = ref('');
 const groups = computed(() => groupNodeKinds(filterNodeKinds(query.value)));

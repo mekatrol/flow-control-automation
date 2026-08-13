@@ -68,6 +68,37 @@ export interface FlowDebugSession {
   liveOutputEnabled: boolean;
   liveOutputPriority?: number;
   liveOutputHoldMilliseconds?: number;
+  host: 'server' | 'emulator' | 'controller';
+  capabilities: FlowDebugCapabilities;
+  breakpoints: FlowDebugBreakpoint[];
+  inspection?: FlowDebugInspection;
+}
+
+export interface FlowDebugCapabilities {
+  stepTick: boolean;
+  stepNode: boolean;
+  stepInstruction: boolean;
+  continue: boolean;
+  pause: boolean;
+  runTo: boolean;
+  maximumBreakpoints: number;
+  maximumInspectableSlots: number;
+}
+
+export interface FlowDebugBreakpoint {
+  nodeId: string;
+  position: 'before' | 'after';
+  instructionDiscriminator?: number;
+}
+
+export interface FlowDebugInspection {
+  instructionPointer: number;
+  isAtCommit: boolean;
+  nodeId?: string;
+  slots: DebugTypedValue[];
+  currentState: DebugTypedValue[];
+  stagedNextState: (DebugTypedValue | null)[];
+  proposedOutputs: { pointId: string; value: boolean }[];
 }
 
 export interface ExecutableFlowSource {
@@ -178,6 +209,7 @@ const parseSession = (value: unknown): FlowDebugSession => {
   const affectedOutputPoints = value.affectedOutputPoints ?? [];
   if (!Array.isArray(affectedOutputPoints))
     throw new TypeError('affectedOutputPoints must be an array.');
+  const capabilities = isRecord(value.capabilities) ? value.capabilities : {};
   return {
     debugSessionId: text(value.debugSessionId, 'debugSessionId'),
     flowId: text(value.flowId, 'flowId'),
@@ -196,6 +228,26 @@ const parseSession = (value: unknown): FlowDebugSession => {
       text(item, `affectedOutputPoints[${index}]`)
     ),
     liveOutputEnabled: value.liveOutputEnabled === true,
+    host: value.host === 'server' || value.host === 'emulator' ? value.host : 'controller',
+    capabilities: {
+      stepTick: capabilities.stepTick !== false,
+      stepNode: capabilities.stepNode === true,
+      stepInstruction: capabilities.stepInstruction === true,
+      continue: capabilities.continue === true,
+      pause: capabilities.pause === true,
+      runTo: capabilities.runTo === true,
+      maximumBreakpoints: number(capabilities.maximumBreakpoints ?? 0, 'maximumBreakpoints'),
+      maximumInspectableSlots: number(
+        capabilities.maximumInspectableSlots ?? 0,
+        'maximumInspectableSlots'
+      )
+    },
+    breakpoints: Array.isArray(value.breakpoints)
+      ? value.breakpoints.map((item) => item as unknown as FlowDebugBreakpoint)
+      : [],
+    ...(isRecord(value.inspection)
+      ? { inspection: value.inspection as unknown as FlowDebugInspection }
+      : {}),
     ...(value.liveOutputPriority === null || value.liveOutputPriority === undefined
       ? {}
       : { liveOutputPriority: number(value.liveOutputPriority, 'liveOutputPriority') }),
@@ -241,13 +293,18 @@ const request = async <T>(
 
 const base = (flowId: string): string => `/api/flows/${encodeURIComponent(flowId)}/debug-sessions`;
 export const flowDebugApi = {
-  load: (source: ExecutableFlowSource, signal?: AbortSignal) =>
+  load: (
+    source: ExecutableFlowSource,
+    host: 'server' | 'emulator' | 'controller',
+    emulatorId?: string,
+    signal?: AbortSignal
+  ) =>
     request(
       base(source.id),
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ source, replaceExisting: false }),
+        body: JSON.stringify({ source, host, emulatorId, replaceExisting: false }),
         signal
       },
       parseSession
@@ -263,6 +320,62 @@ export const flowDebugApi = {
       `${base(flowId)}/${encodeURIComponent(sessionId)}/step`,
       { method: 'POST', signal },
       parseDebugSnapshot
+    ),
+  stepInstruction: (flowId: string, sessionId: string, signal?: AbortSignal) =>
+    request(
+      `${base(flowId)}/${encodeURIComponent(sessionId)}/step-instruction`,
+      { method: 'POST', signal },
+      parseSession
+    ),
+  stepNode: (flowId: string, sessionId: string, signal?: AbortSignal) =>
+    request(
+      `${base(flowId)}/${encodeURIComponent(sessionId)}/step-node`,
+      { method: 'POST', signal },
+      parseSession
+    ),
+  runTo: (
+    flowId: string,
+    sessionId: string,
+    breakpoint: FlowDebugBreakpoint,
+    signal?: AbortSignal
+  ) =>
+    request(
+      `${base(flowId)}/${encodeURIComponent(sessionId)}/run-to`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(breakpoint),
+        signal
+      },
+      parseSession
+    ),
+  restart: (flowId: string, sessionId: string, signal?: AbortSignal) =>
+    request(
+      `${base(flowId)}/${encodeURIComponent(sessionId)}/restart`,
+      { method: 'POST', signal },
+      parseSession
+    ),
+  replaceBreakpoints: (
+    flowId: string,
+    sessionId: string,
+    breakpoints: FlowDebugBreakpoint[],
+    signal?: AbortSignal
+  ) =>
+    request(
+      `${base(flowId)}/${encodeURIComponent(sessionId)}/breakpoints`,
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(breakpoints),
+        signal
+      },
+      parseSession
+    ),
+  inspectFrame: (flowId: string, sessionId: string, signal?: AbortSignal) =>
+    request(
+      `${base(flowId)}/${encodeURIComponent(sessionId)}/frame`,
+      { method: 'GET', signal },
+      (value) => value as FlowDebugInspection
     ),
   run: (flowId: string, sessionId: string, intervalMilliseconds = 500, signal?: AbortSignal) =>
     request(

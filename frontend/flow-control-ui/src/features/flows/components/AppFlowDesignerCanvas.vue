@@ -128,6 +128,9 @@
               :status-value="runtime?.nodes[node.id]?.value"
               :connection-start="connectionStart"
               :compatible-connector-keys="compatibleConnectorKeys"
+              :current="node.id === currentNodeId"
+              :breakpoint="breakpointNodeIds?.includes(node.id)"
+              @toggle-breakpoint="emit('toggleBreakpoint', $event)"
               @[EVENTS.SELECT]="handleNodeSelection"
               @[EVENTS.DRAG_START]="handleDragStart"
               @[EVENTS.CONNECTOR_PRESS]="handleConnectorPress"
@@ -201,10 +204,13 @@ const props = defineProps<{
   automation: string;
   flow: FlowDefinition;
   runtime?: FlowRuntimeSnapshot;
+  currentNodeId?: string;
+  breakpointNodeIds?: string[];
 }>();
 
 const automation = useAutomation(props.automation);
 const emit = defineEmits<{
+  (event: 'toggleBreakpoint', nodeId: string): void;
   (event: typeof EVENTS.MOVE_NODE, nodeId: string, x: number, y: number): void;
   (event: typeof EVENTS.REORDER_NODE, nodeId: string, command: ZOrderCommand): void;
   (event: typeof EVENTS.DELETE_NODE, nodeId: string): void;
