@@ -43,7 +43,23 @@ public sealed partial class FlowCompiler : IFlowCompiler
             ["flowInput"] = new([new("value", 2)]),
             ["flowOutput"] = new([new("value", 1)]),
             ["digitalOutput"] = new([new("in", 1)]),
-            ["analogOutput"] = new([new("in", 1, 2)])
+            ["analogOutput"] = new([new("in", 1, 2)]),
+            ["average"] = new([new("input", 1, 2), new("output", 2, 2)]),
+            ["calculator"] = new([new("input", 1, 2), new("output", 2, 2)]),
+            ["clamp"] = new([new("input", 1, 2), new("output", 2, 2)]),
+            ["min"] = new([new("a", 1, 2), new("b", 1, 2), new("value", 2, 2)]),
+            ["max"] = new([new("a", 1, 2), new("b", 1, 2), new("value", 2, 2)]),
+            ["line"] = new([new("input", 1, 2), new("output", 2, 2)]),
+            ["if"] = new([new("condition", 1), new("whenTrue", 1), new("whenFalse", 1), new("value", 2)]),
+            ["selector"] = new([new("condition", 1), new("a", 1, 2), new("b", 1, 2), new("value", 2, 2)]),
+            ["split"] = new([new("input", 1), new("output", 2)]),
+            ["sequence"] = new([new("a", 1), new("b", 1), new("value", 2)]),
+            ["override"] = new([new("input", 1), new("output", 2)]),
+            ["delay"] = new([new("input", 1), new("output", 2)]),
+            ["timer"] = new([new("input", 1), new("output", 2)]),
+            ["pulse"] = new([new("input", 1), new("output", 2)]),
+            ["schedule"] = new([new("output", 2)]),
+            ["calendar"] = new([new("output", 2)])
         };
 
     public FlowCompilationResult Compile(FlowCompilationRequest request)
@@ -131,7 +147,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
         var slots = schedule.Select((id, index) => new { id, index = checked((ushort)index) })
             .ToDictionary(item => item.id, item => item.index, StringComparer.Ordinal);
         var memoryIds = schedule.Where(id => nodes[id].Kind == "memory").ToArray();
-        var stateIds = schedule.Where(id => nodes[id].Kind is "memory" or "onDelay" or "risingEdge").ToArray();
+        var stateIds = schedule.Where(id => nodes[id].Kind is "memory" or "onDelay" or "risingEdge" or "delay" or "timer" or "pulse").ToArray();
         var stateSlots = stateIds.Select((id, index) => new
         {
             id,
@@ -194,6 +210,17 @@ public sealed partial class FlowCompiler : IFlowCompiler
                     PointIndex(points, node, 2, 2), id, 0),
                 "flowOutput" => new(7, result, InputSlot(source, slots, id, "value"), ushort.MaxValue,
                     PointIndex(points, node, 2, InterfaceType(source, node)), id, 0),
+                "average" or "calculator" or "split" or "override" => new(24, result, InputSlot(source, slots, id, node.Kind is "split" or "override" ? "input" : "input"), ushort.MaxValue, ushort.MaxValue, id, 0),
+                "min" => new(20, result, InputSlot(source, slots, id, "a"), InputSlot(source, slots, id, "b"), ushort.MaxValue, id, 0),
+                "max" => new(21, result, InputSlot(source, slots, id, "a"), InputSlot(source, slots, id, "b"), ushort.MaxValue, id, 0),
+                "clamp" => new(22, result, InputSlot(source, slots, id, "input"), ConstantIndex(constants, Numeric(node, "minimum")), ConstantIndex(constants, Numeric(node, "maximum")), id, 0),
+                "line" => new(16, result, InputSlot(source, slots, id, "input"), ConstantIndex(constants, Numeric(node, "gain")), ConstantIndex(constants, Numeric(node, "offset")), id, 0),
+                "if" => new(23, result, InputSlot(source, slots, id, "condition"), InputSlot(source, slots, id, "whenTrue"), InputSlot(source, slots, id, "whenFalse"), id, 0),
+                "selector" => new(23, result, InputSlot(source, slots, id, "condition"), InputSlot(source, slots, id, "a"), InputSlot(source, slots, id, "b"), id, 0),
+                "sequence" => new(4, result, InputSlot(source, slots, id, "a"), InputSlot(source, slots, id, "b"), ushort.MaxValue, id, 0),
+                "delay" or "timer" => new(18, result, InputSlot(source, slots, id, "input"), ushort.MaxValue, stateSlots[id], id, 0),
+                "pulse" => new(19, result, InputSlot(source, slots, id, "input"), ushort.MaxValue, stateSlots[id], id, 0),
+                "schedule" or "calendar" => new(2, result, ushort.MaxValue, ushort.MaxValue, ConstantIndex(constants, Boolean(node.Configuration["enabled"].GetBoolean())), id, 0),
                 _ => throw new UnreachableException()
             });
         }
@@ -230,9 +257,9 @@ public sealed partial class FlowCompiler : IFlowCompiler
         {
             "memory" => Concat(new byte[] { 3, 1 }, U16(0), U16(stateSlots[id]),
                 U16(ConstantIndex(constants, Boolean(nodes[id].Configuration["value"].GetBoolean())))),
-            "onDelay" => Concat(new byte[] { 4, 1 }, U16(0), U16(stateSlots[id]),
+            "onDelay" or "delay" or "timer" => Concat(new byte[] { 4, 1 }, U16(0), U16(stateSlots[id]),
                 U16(ConstantIndex(constants, Numeric(nodes[id], "durationMs")))),
-            "risingEdge" => Concat(new byte[] { 5, 1 }, U16(0), U16(stateSlots[id]),
+            "risingEdge" or "pulse" => Concat(new byte[] { 5, 1 }, U16(0), U16(stateSlots[id]),
                 U16(ConstantIndex(constants, Boolean(false)))),
             _ => throw new UnreachableException()
         }));
@@ -245,7 +272,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
             U16(PointIndex(points, nodes[id], 2, ResultType(source, nodes[id]))),
             U16(slots[id]),
             U16(0))));
-        commitRecords.AddRange(stateIds.Where(id => nodes[id].Kind is "onDelay" or "risingEdge").Select(id => Concat(
+        commitRecords.AddRange(stateIds.Where(id => nodes[id].Kind is "onDelay" or "risingEdge" or "delay" or "timer" or "pulse").Select(id => Concat(
             new byte[] { 1, 0 }, U16(stateSlots[id]), U16(slots[id]), U16(0))));
         var symbolSection = Concat([.. instructions.Select((instruction, index) =>
         {
@@ -338,7 +365,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
             capabilities |= ExpandedBooleanCapability;
         }
 
-        if (source.Nodes.Any(node => node.Kind is "numericConstant" or "add" or "comparator" or "levelShifter")
+        if (source.Nodes.Any(node => node.Kind is "numericConstant" or "add" or "comparator" or "levelShifter" or "average" or "calculator" or "clamp" or "min" or "max" or "line" or "selector")
             || points.Any(point => point.Type == 2))
         {
             capabilities |= NumericCapability;
@@ -355,8 +382,8 @@ public sealed partial class FlowCompiler : IFlowCompiler
         }
 
         if (source.Nodes.Any(node => node.Kind == "qualityGood")) capabilities |= QualityCapability;
-        if (source.Nodes.Any(node => node.Kind == "onDelay")) capabilities |= TimerCapability;
-        if (source.Nodes.Any(node => node.Kind == "risingEdge")) capabilities |= EventCapability;
+        if (source.Nodes.Any(node => node.Kind is "onDelay" or "delay" or "timer")) capabilities |= TimerCapability;
+        if (source.Nodes.Any(node => node.Kind is "risingEdge" or "pulse")) capabilities |= EventCapability;
 
         var workingBytes = checked((uint)((schedule.Count + stateIds.Length) * 32));
         var envelope = new byte[envelopeLength];
@@ -627,7 +654,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
                 throw Failure("invalid_configuration", path, "A supported comparison operator is required.");
             }
         }
-        else if (node.Kind == "levelShifter")
+        else if (node.Kind is "levelShifter" or "line")
         {
             if (node.Configuration.Count != 2)
             {
@@ -637,7 +664,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
             ValidateFiniteNumber(node, path, "gain");
             ValidateFiniteNumber(node, path, "offset");
         }
-        else if (node.Kind == "onDelay")
+        else if (node.Kind is "onDelay" or "delay" or "timer")
         {
             ValidateFiniteNumber(node, path, "durationMs");
             var duration = node.Configuration["durationMs"].GetDouble();
@@ -645,6 +672,20 @@ public sealed partial class FlowCompiler : IFlowCompiler
             {
                 throw Failure("invalid_configuration", path, "Timer duration must be from 0 through 4294967295 milliseconds.");
             }
+        }
+        else if (node.Kind == "clamp")
+        {
+            if (node.Configuration.Count != 2) throw Failure("invalid_configuration", path, "Finite minimum and maximum values are required.");
+            ValidateFiniteNumber(node, path, "minimum");
+            ValidateFiniteNumber(node, path, "maximum");
+            if (node.Configuration["minimum"].GetDouble() > node.Configuration["maximum"].GetDouble())
+                throw Failure("invalid_configuration", path, "Minimum must not exceed maximum.");
+        }
+        else if (node.Kind is "schedule" or "calendar")
+        {
+            if (node.Configuration.Count != 1 || !node.Configuration.TryGetValue("enabled", out var enabled) ||
+                enabled.ValueKind is not (JsonValueKind.True or JsonValueKind.False))
+                throw Failure("invalid_configuration", path, "An enabled Boolean is required.");
         }
         else if (node.Configuration.Count != 0)
         {
@@ -673,18 +714,27 @@ public sealed partial class FlowCompiler : IFlowCompiler
         {
             yield return Numeric(node, "value");
         }
-        else if (node.Kind == "levelShifter")
+        else if (node.Kind is "levelShifter" or "line")
         {
             yield return Numeric(node, "gain");
             yield return Numeric(node, "offset");
         }
-        else if (node.Kind == "onDelay")
+        else if (node.Kind == "clamp")
+        {
+            yield return Numeric(node, "minimum");
+            yield return Numeric(node, "maximum");
+        }
+        else if (node.Kind is "onDelay" or "delay" or "timer")
         {
             yield return Numeric(node, "durationMs");
         }
-        else if (node.Kind == "risingEdge")
+        else if (node.Kind is "risingEdge" or "pulse")
         {
             yield return Boolean(false);
+        }
+        else if (node.Kind is "schedule" or "calendar")
+        {
+            yield return Boolean(node.Configuration["enabled"].GetBoolean());
         }
     }
 
@@ -711,7 +761,8 @@ public sealed partial class FlowCompiler : IFlowCompiler
 
     private static byte ResultType(ExecutableFlowSource source, ExecutableFlowNode node) =>
         node.Kind is "flowInput" or "flowOutput" ? InterfaceType(source, node)
-        : node.Kind is "numericConstant" or "add" or "levelShifter" or "analogInput" or "analogOutput" ? (byte)2 : (byte)1;
+        : node.Kind is "numericConstant" or "add" or "levelShifter" or "analogInput" or "analogOutput" or
+            "average" or "calculator" or "clamp" or "min" or "max" or "line" or "selector" ? (byte)2 : (byte)1;
 
     private static ushort ComparatorCode(ExecutableFlowNode node) => node.Configuration["operator"].GetString() switch
     {
@@ -863,6 +914,8 @@ public sealed partial class FlowCompiler : IFlowCompiler
                 "add" => RequireMatchingUnits(source, units, id, "a", "b"),
                 "comparator" => RequireMatchingUnits(source, units, id, "a", "b"),
                 "levelShifter" => units[SourceNode(source, id, "in")],
+                "average" or "calculator" or "clamp" or "line" => units[SourceNode(source, id, "input")],
+                "min" or "max" or "selector" => RequireMatchingUnits(source, units, id, "a", "b"),
                 _ => null
             };
             units[id] = value;

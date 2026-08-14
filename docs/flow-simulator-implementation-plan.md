@@ -373,6 +373,11 @@ Commit gate:
 
 ### Phase 5 - Complete executable function coverage
 
+**Status: Complete.** The canonical Phase 5 profile uses typed single-value
+forms for legacy polymorphic blocks, one-scan `pulse` semantics, transactional
+timer state, and deterministic enabled-state `schedule`/`calendar` sources.
+Event payload blocks remain gated on the future event source contract.
+
 **Purpose:** Ensure every function offered as simulatable has production-grade
 portable semantics.
 

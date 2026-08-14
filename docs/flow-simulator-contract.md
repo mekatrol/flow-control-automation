@@ -8,8 +8,8 @@ implementation details, but must preserve the decisions in sections 2 through
 
 ## 1. Current executable-language inventory
 
-The designer registers 36 node kinds. The compiler currently accepts the 20
-kinds below. Every accepted node produces a stable node-index/symbol entry and
+The designer registers 38 node kinds. The compiler accepts the complete
+palette. Every accepted node produces a stable node-index/symbol entry and
 debug-map instruction range. The portable C VM is the only implementation of
 the listed opcode semantics.
 
@@ -31,6 +31,15 @@ the listed opcode semantics.
 | `qualityGood` | `QUALITY_GOOD` (17) | stateless quality projection | compiler validation and portable VM semantics |
 | `onDelay` | `ON_DELAY` (18) plus state metadata | stages timer state; publishes only at `COMMIT` | compiler state metadata and portable VM transactional tests |
 | `risingEdge` | `RISING_EDGE` (19) plus state metadata | stages previous-input state; publishes only at `COMMIT` | compiler state metadata and portable VM transactional tests |
+| `average`, `calculator`, `split`, `override` | `COPY` (24) | stateless canonical single-value profiles | compiler and registry tests |
+| `min`, `max` | `MIN` (20), `MAX` (21) | stateless; propagates worst input quality | compiler and portable VM tests |
+| `clamp` | `CLAMP` (22) | stateless; finite ordered bounds | compiler and portable VM tests |
+| `line` | `LEVEL_SHIFTER` (16) | stateless affine transform | compiler and portable VM tests |
+| `if`, `selector` | `SELECT` (23) | stateless typed selection | compiler and portable VM tests |
+| `sequence` | `AND` (4) | stateless ordered Boolean gate | compiler and portable VM tests |
+| `delay`, `timer` | `ON_DELAY` (18) plus state metadata | staged timer state, atomic commit | timer transactional tests |
+| `pulse` | `RISING_EDGE` (19) plus state metadata | one-scan pulse, atomic prior-input commit | event transactional tests |
+| `schedule`, `calendar` | `CONSTANT` (2) | deterministic enabled-state source | compiler and registry tests |
 | `memory` | `LOAD_STATE` (6), then `STAGE_STATE` (8) | reads current state and stages next state for `COMMIT` | memory golden fixture; debugger abort test |
 | `digitalOutput`, `analogOutput` | `PROPOSE_OUTPUT` (7) | proposed command publishes only at `COMMIT` | compiler point fixtures; VM transactional tests |
 
@@ -40,11 +49,8 @@ The cross-cutting tests are `FlowCompilerTests`, `FlowDecompilerTests`,
 `FlowDebugServiceTests`, `LocalFlowDebuggerTests`,
 `FlowEmulatorServiceTests`, and `controllers/tests/test_flow_vm.c`.
 
-The 16 registered but non-executable kinds are `average`, `calculator`,
-`calendar`, `clamp`, `delay`, `if`, `line`, `max`, `min`, `override`, `pulse`,
-`schedule`, `selector`, `sequence`, `split`, and `timer`. They remain visible
-authoring nodes and must not be advertised as simulatable until their complete
-vertical slice passes.
+Phase 5 defines canonical portable profiles for the former 16 authoring-only
+kinds. All 38 registered kinds are now advertised as executable.
 
 ## 2. Flow interface decision
 

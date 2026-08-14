@@ -33,6 +33,11 @@ enum
     OPCODE_QUALITY_GOOD      = 17,
     OPCODE_ON_DELAY          = 18,
     OPCODE_RISING_EDGE       = 19,
+    OPCODE_MIN               = 20,
+    OPCODE_MAX               = 21,
+    OPCODE_CLAMP             = 22,
+    OPCODE_SELECT            = 23,
+    OPCODE_COPY              = 24,
     OPCODE_COMMIT            = 255,
 };
 
@@ -457,7 +462,7 @@ flow_vm_result_t flow_vm_prepare(const uint8_t *artifact, size_t artifact_size, 
         instruction->auxiliary             = get_u16(&record[8]);
 
         if (record[1] != 0U || get_u16(&record[10]) != 0U || instruction->opcode == 0U ||
-            (instruction->opcode > OPCODE_RISING_EDGE && instruction->opcode != OPCODE_COMMIT))
+            (instruction->opcode > OPCODE_COPY && instruction->opcode != OPCODE_COMMIT))
         {
             return get_result(FLOW_VM_UNKNOWN_OPCODE, "/instructions");
         }
@@ -465,7 +470,11 @@ flow_vm_result_t flow_vm_prepare(const uint8_t *artifact, size_t artifact_size, 
         if ((instruction->result != UNUSED_INDEX && instruction->result >= vm->slot_count) ||
             (instruction->operand0 != UNUSED_INDEX && instruction->operand0 >= vm->slot_count) ||
             (instruction->operand1 != UNUSED_INDEX && instruction->opcode != OPCODE_LEVEL_SHIFTER &&
-             instruction->operand1 >= vm->slot_count))
+             instruction->opcode != OPCODE_CLAMP &&
+             instruction->operand1 >= vm->slot_count) ||
+            (instruction->opcode == OPCODE_SELECT && instruction->auxiliary >= vm->slot_count) ||
+            (instruction->opcode == OPCODE_CLAMP &&
+             (instruction->operand1 >= vm->constant_count || instruction->auxiliary >= vm->constant_count)))
         {
             return get_result(FLOW_VM_INVALID_OPERAND, "/instructions/0/resultSlot");
         }
@@ -664,6 +673,39 @@ flow_vm_result_t flow_vm_step_instruction(flow_vm_t *vm, flow_vm_execution_view_
                     : vm->slot_qualities[instruction->operand1];
             break;
         }
+        case OPCODE_MIN:
+        case OPCODE_MAX: {
+            const double left = vm->numeric_slots[instruction->operand0];
+            const double right = vm->numeric_slots[instruction->operand1];
+            vm->numeric_slots[instruction->result] = instruction->opcode == OPCODE_MIN ? fmin(left, right) : fmax(left, right);
+            vm->slot_qualities[instruction->result] =
+                vm->slot_qualities[instruction->operand0] > vm->slot_qualities[instruction->operand1]
+                    ? vm->slot_qualities[instruction->operand0] : vm->slot_qualities[instruction->operand1];
+            break;
+        }
+        case OPCODE_CLAMP: {
+            if (instruction->operand1 >= vm->constant_count || instruction->auxiliary >= vm->constant_count ||
+                vm->constant_types[instruction->operand1] != 2U || vm->constant_types[instruction->auxiliary] != 2U)
+                return get_result(FLOW_VM_INVALID_OPERAND, "/instructions/clamp");
+            vm->numeric_slots[instruction->result] = fmin(fmax(vm->numeric_slots[instruction->operand0],
+                vm->numeric_constants[instruction->operand1]), vm->numeric_constants[instruction->auxiliary]);
+            vm->slot_qualities[instruction->result] = vm->slot_qualities[instruction->operand0];
+            break;
+        }
+        case OPCODE_SELECT: {
+            const uint16_t selected = vm->working_slots[instruction->operand0] ? instruction->operand1 : instruction->auxiliary;
+            if (selected >= vm->slot_count) return get_result(FLOW_VM_INVALID_OPERAND, "/instructions/select");
+            vm->working_slots[instruction->result] = vm->working_slots[selected];
+            vm->numeric_slots[instruction->result] = vm->numeric_slots[selected];
+            vm->slot_qualities[instruction->result] = vm->slot_qualities[instruction->operand0] > vm->slot_qualities[selected]
+                ? vm->slot_qualities[instruction->operand0] : vm->slot_qualities[selected];
+            break;
+        }
+        case OPCODE_COPY:
+            vm->working_slots[instruction->result] = vm->working_slots[instruction->operand0];
+            vm->numeric_slots[instruction->result] = vm->numeric_slots[instruction->operand0];
+            vm->slot_qualities[instruction->result] = vm->slot_qualities[instruction->operand0];
+            break;
         case OPCODE_COMPARE: {
             const double left  = vm->numeric_slots[instruction->operand0];
             const double right = vm->numeric_slots[instruction->operand1];

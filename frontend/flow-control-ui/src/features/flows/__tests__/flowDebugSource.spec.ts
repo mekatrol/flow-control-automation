@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { createDefaultNode } from '@/features/flows/graph/createNode';
 import {
   createExecutableFlowSource,
-  FlowDebugSourceError,
   graphRevision
 } from '@/features/flows/flowDebugSource';
 import type { FlowDebugTarget } from '@/features/flows/debugTargets';
@@ -78,11 +77,10 @@ describe('designer debug source', () => {
     expect(source.revision).toBe(graphRevision(flow));
   });
 
-  it('rejects unsupported designer nodes before contacting hardware', () => {
+  it('accepts the completed timing profile', () => {
     const flow = debugFlow();
     flow.nodes[1] = createDefaultNode('timer', { x: 0, y: 0 }, 1, 'timer');
-    expect(() => createExecutableFlowSource(flow, target)).toThrow(FlowDebugSourceError);
-    expect(() => createExecutableFlowSource(flow, target)).toThrow(/unsupported debug function/);
+    expect(() => createExecutableFlowSource(flow, target)).not.toThrow();
   });
 
   it('changes revision whenever the graph changes', () => {

@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 import { FlowNodeFunctionType, type FlowNodeConnector, type FlowNodeKind } from './types';
 
 export interface NodeEditorField {
@@ -27,10 +28,6 @@ const defaultNodeSize = (): NodeKindDefinition['defaultSize'] => ({ width: 170, 
 const numberConnectors = (): FlowNodeConnector[] => [
   { id: 'input', label: 'Values', direction: 'input', dataType: 'number', side: 'left' },
   { id: 'output', label: 'Result', direction: 'output', dataType: 'number', side: 'right' }
-];
-const anyConnectors = (): FlowNodeConnector[] => [
-  { id: 'input', label: 'Input', direction: 'input', dataType: 'any', side: 'left' },
-  { id: 'output', label: 'Output', direction: 'output', dataType: 'any', side: 'right' }
 ];
 const booleanPort = (
   id: string,
@@ -64,22 +61,6 @@ const executableDefinition = (
   defaultConfiguration,
   executable: true
 });
-const definition = (
-  kind: FlowNodeFunctionType,
-  category: NodeKindDefinition['category'],
-  icon: string,
-  connectors = anyConnectors()
-): NodeKindDefinition => ({
-  kind,
-  label: kind.charAt(0).toUpperCase() + kind.slice(1),
-  category,
-  icon,
-  defaultSize: defaultNodeSize(),
-  connectors,
-  editor: [{ key: 'enabled', label: 'Enabled', input: 'checkbox' }],
-  defaultConfiguration: { enabled: true },
-  executable: false
-});
 
 export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
   [FlowNodeFunctionType.Add]: executableDefinition(
@@ -112,60 +93,15 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     booleanPort('b', 'B', 'input', 'left'),
     booleanPort('value', 'Value', 'output', 'right')
   ]),
-  [FlowNodeFunctionType.Average]: definition(
+  [FlowNodeFunctionType.Average]: executableDefinition(
     FlowNodeFunctionType.Average,
-    'maths',
-    'average',
-    numberConnectors()
+    numberConnectors(), [], {}, 'maths'
   ),
-  [FlowNodeFunctionType.Calculator]: {
-    kind: FlowNodeFunctionType.Calculator,
-    label: 'Calculator',
-    category: 'maths',
-    icon: 'calculator',
-    defaultSize: defaultNodeSize(),
-    connectors: [
-      {
-        id: 'analogue-input',
-        label: 'Analogue input',
-        direction: 'input',
-        dataType: 'number',
-        side: 'left'
-      },
-      {
-        id: 'digital-input',
-        label: 'Digital input',
-        direction: 'input',
-        dataType: 'boolean',
-        side: 'left'
-      },
-      {
-        id: 'analogue-output',
-        label: 'Analogue output',
-        direction: 'output',
-        dataType: 'number',
-        side: 'right'
-      },
-      {
-        id: 'digital-output',
-        label: 'Digital output',
-        direction: 'output',
-        dataType: 'boolean',
-        side: 'right'
-      }
-    ],
-    executable: false,
-    editor: [
-      { key: 'operation', label: 'Operation', input: 'select', options: ['average', 'sum'] }
-    ],
-    defaultConfiguration: { operation: 'average' }
-  },
-  [FlowNodeFunctionType.Calendar]: definition(FlowNodeFunctionType.Calendar, 'timing', 'calendar'),
-  [FlowNodeFunctionType.Clamp]: definition(
+  [FlowNodeFunctionType.Calculator]: executableDefinition(FlowNodeFunctionType.Calculator, numberConnectors(), [], {}, 'maths'),
+  [FlowNodeFunctionType.Calendar]: executableDefinition(FlowNodeFunctionType.Calendar, [booleanPort('output', 'Active', 'output', 'right')], [{ key: 'enabled', label: 'Enabled', input: 'checkbox' }], { enabled: true }, 'timing'),
+  [FlowNodeFunctionType.Clamp]: executableDefinition(
     FlowNodeFunctionType.Clamp,
-    'maths',
-    'clamp',
-    numberConnectors()
+    numberConnectors(), [{ key: 'minimum', label: 'Minimum', input: 'number' }, { key: 'maximum', label: 'Maximum', input: 'number' }], { minimum: 0, maximum: 100 }, 'maths'
   ),
   [FlowNodeFunctionType.Comparator]: executableDefinition(
     FlowNodeFunctionType.Comparator,
@@ -184,7 +120,7 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     ],
     { operator: 'gt' }
   ),
-  [FlowNodeFunctionType.Delay]: definition(FlowNodeFunctionType.Delay, 'timing', 'delay'),
+  [FlowNodeFunctionType.Delay]: executableDefinition(FlowNodeFunctionType.Delay, [booleanPort('input', 'Input', 'input', 'left'), booleanPort('output', 'Elapsed', 'output', 'right')], [{ key: 'durationMs', label: 'Duration (ms)', input: 'number' }], { durationMs: 1000 }, 'timing'),
   [FlowNodeFunctionType.DigitalConstant]: executableDefinition(
     FlowNodeFunctionType.DigitalConstant,
     [booleanPort('value', 'Value', 'output', 'right')],
@@ -219,12 +155,10 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     { interfaceId: '' },
     'routing'
   ),
-  [FlowNodeFunctionType.If]: definition(FlowNodeFunctionType.If, 'logic', 'if'),
-  [FlowNodeFunctionType.Line]: definition(
+  [FlowNodeFunctionType.If]: executableDefinition(FlowNodeFunctionType.If, [booleanPort('condition','Condition','input','left'), booleanPort('whenTrue','True','input','left'), booleanPort('whenFalse','False','input','left'), booleanPort('value','Value','output','right')]),
+  [FlowNodeFunctionType.Line]: executableDefinition(
     FlowNodeFunctionType.Line,
-    'maths',
-    'line',
-    numberConnectors()
+    numberConnectors(), [{ key: 'gain', label: 'Gain', input: 'number' }, { key: 'offset', label: 'Offset', input: 'number' }], { gain: 1, offset: 0 }, 'maths'
   ),
   [FlowNodeFunctionType.LevelShifter]: executableDefinition(
     FlowNodeFunctionType.LevelShifter,
@@ -238,17 +172,13 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     ],
     { gain: 1, offset: 0 }
   ),
-  [FlowNodeFunctionType.Max]: definition(
+  [FlowNodeFunctionType.Max]: executableDefinition(
     FlowNodeFunctionType.Max,
-    'maths',
-    'max',
-    numberConnectors()
+    [{ id: 'a', label: 'A', direction: 'input', dataType: 'number', side: 'left' }, { id: 'b', label: 'B', direction: 'input', dataType: 'number', side: 'left' }, { id: 'value', label: 'Value', direction: 'output', dataType: 'number', side: 'right' }], [], {}, 'maths'
   ),
-  [FlowNodeFunctionType.Min]: definition(
+  [FlowNodeFunctionType.Min]: executableDefinition(
     FlowNodeFunctionType.Min,
-    'maths',
-    'min',
-    numberConnectors()
+    [{ id: 'a', label: 'A', direction: 'input', dataType: 'number', side: 'left' }, { id: 'b', label: 'B', direction: 'input', dataType: 'number', side: 'left' }, { id: 'value', label: 'Value', direction: 'output', dataType: 'number', side: 'right' }], [], {}, 'maths'
   ),
   [FlowNodeFunctionType.Memory]: executableDefinition(
     FlowNodeFunctionType.Memory,
@@ -293,34 +223,8 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     [{ key: 'durationMs', label: 'Duration (ms)', input: 'number' }],
     { durationMs: 1000 }
   ),
-  [FlowNodeFunctionType.Override]: {
-    kind: FlowNodeFunctionType.Override,
-    label: 'Override',
-    category: 'override',
-    icon: 'override',
-    defaultSize: defaultNodeSize(),
-    connectors: [
-      { id: 'input', label: 'Automatic', direction: 'input', dataType: 'any', side: 'left' },
-      { id: 'output', label: 'Effective', direction: 'output', dataType: 'any', side: 'right' }
-    ],
-    executable: false,
-    editor: [{ key: 'enabled', label: 'Override enabled', input: 'checkbox' }],
-    defaultConfiguration: { enabled: false }
-  },
-  [FlowNodeFunctionType.Pulse]: {
-    kind: FlowNodeFunctionType.Pulse,
-    label: 'Pulse',
-    category: 'timing',
-    icon: 'pulse',
-    defaultSize: defaultNodeSize(),
-    connectors: [
-      { id: 'input', label: 'Trigger', direction: 'input', dataType: 'any', side: 'left' },
-      { id: 'output', label: 'Pulse', direction: 'output', dataType: 'any', side: 'right' }
-    ],
-    executable: false,
-    editor: [{ key: 'durationSeconds', label: 'Duration (seconds)', input: 'number' }],
-    defaultConfiguration: { durationSeconds: 30 }
-  },
+  [FlowNodeFunctionType.Override]: executableDefinition(FlowNodeFunctionType.Override, [booleanPort('input','Automatic','input','left'), booleanPort('output','Effective','output','right')], [], {}, 'override'),
+  [FlowNodeFunctionType.Pulse]: executableDefinition(FlowNodeFunctionType.Pulse, [booleanPort('input','Trigger','input','left'), booleanPort('output','Pulse','output','right')], [], {}, 'timing'),
   [FlowNodeFunctionType.QualityGood]: executableDefinition(FlowNodeFunctionType.QualityGood, [
     booleanPort('in', 'Input', 'input', 'left'),
     booleanPort('value', 'Good', 'output', 'right')
@@ -329,37 +233,11 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     booleanPort('in', 'Input', 'input', 'left'),
     booleanPort('value', 'Event', 'output', 'right')
   ]),
-  [FlowNodeFunctionType.Schedule]: definition(FlowNodeFunctionType.Schedule, 'timing', 'schedule'),
-  [FlowNodeFunctionType.Selector]: definition(FlowNodeFunctionType.Selector, 'routing', 'selector'),
-  [FlowNodeFunctionType.Sequence]: definition(FlowNodeFunctionType.Sequence, 'routing', 'sequence'),
-  [FlowNodeFunctionType.Split]: {
-    kind: FlowNodeFunctionType.Split,
-    label: 'Split',
-    category: 'routing',
-    icon: 'split',
-    defaultSize: defaultNodeSize(),
-    connectors: [
-      { id: 'input', label: 'Source', direction: 'input', dataType: 'any', side: 'left' },
-      {
-        id: 'analogue-output',
-        label: 'Analogue route',
-        direction: 'output',
-        dataType: 'number',
-        side: 'right'
-      },
-      {
-        id: 'digital-output',
-        label: 'Digital route',
-        direction: 'output',
-        dataType: 'boolean',
-        side: 'right'
-      }
-    ],
-    executable: false,
-    editor: [{ key: 'outputs', label: 'Output count', input: 'number' }],
-    defaultConfiguration: { outputs: 2 }
-  },
-  [FlowNodeFunctionType.Timer]: definition(FlowNodeFunctionType.Timer, 'timing', 'timer'),
+  [FlowNodeFunctionType.Schedule]: executableDefinition(FlowNodeFunctionType.Schedule, [booleanPort('output','Active','output','right')], [{ key: 'enabled', label: 'Enabled', input: 'checkbox' }], { enabled: true }, 'timing'),
+  [FlowNodeFunctionType.Selector]: executableDefinition(FlowNodeFunctionType.Selector, [booleanPort('condition','Condition','input','left'), { id:'a',label:'A',direction:'input',dataType:'number',side:'left' }, { id:'b',label:'B',direction:'input',dataType:'number',side:'left' }, { id:'value',label:'Value',direction:'output',dataType:'number',side:'right' }], [], {}, 'routing'),
+  [FlowNodeFunctionType.Sequence]: executableDefinition(FlowNodeFunctionType.Sequence, [booleanPort('a','A','input','left'), booleanPort('b','B','input','left'), booleanPort('value','Value','output','right')], [], {}, 'routing'),
+  [FlowNodeFunctionType.Split]: executableDefinition(FlowNodeFunctionType.Split, [booleanPort('input','Source','input','left'), booleanPort('output','Route','output','right')], [], {}, 'routing'),
+  [FlowNodeFunctionType.Timer]: executableDefinition(FlowNodeFunctionType.Timer, [booleanPort('input','Input','input','left'), booleanPort('output','Elapsed','output','right')], [{ key: 'durationMs', label: 'Duration (ms)', input: 'number' }], { durationMs: 1000 }, 'timing'),
   [FlowNodeFunctionType.Xnor]: executableDefinition(FlowNodeFunctionType.Xnor, [
     booleanPort('a', 'A', 'input', 'left'),
     booleanPort('b', 'B', 'input', 'left'),

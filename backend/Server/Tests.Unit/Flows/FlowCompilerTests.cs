@@ -67,7 +67,7 @@ public sealed class FlowCompilerTests
         {
             Nodes =
             [
-                ReadSource("valid-two-button-and").Nodes[0] with { Kind = "timer" }
+                ReadSource("valid-two-button-and").Nodes[0] with { Kind = "unknownNode" }
             ],
             Connections = []
         };

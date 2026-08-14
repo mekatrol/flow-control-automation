@@ -59,6 +59,8 @@ describe('node-kind registry', () => {
         kind !== 'digitalInput' &&
           kind !== 'analogInput' &&
           kind !== 'flowInput' &&
+          kind !== 'calendar' &&
+          kind !== 'schedule' &&
           kind !== 'digitalConstant' &&
           kind !== 'numericConstant'
       );
@@ -76,13 +78,23 @@ describe('node-kind registry', () => {
       expect(definition.editor.length > 0).toBe(
         ![
           'add',
+          'average',
           'and',
+          'calculator',
+          'if',
+          'max',
+          'min',
           'nand',
           'nor',
           'not',
           'or',
           'qualityGood',
           'risingEdge',
+          'override',
+          'pulse',
+          'selector',
+          'sequence',
+          'split',
           'xnor',
           'xor'
         ].includes(kind)
@@ -102,36 +114,36 @@ describe('node-kind registry', () => {
    * Description: Exercises preserves the legacy multi-port calculator and split blocks from its arranged starting state and
    * verifies the observable results required by the scenario.
    */
-  it('preserves the legacy multi-port calculator and split blocks', () => {
+  it('uses canonical executable calculator and split profiles', () => {
     // Expected outcome: `nodeKindRegistry.calculator.connectors` contains the required number of entries.
     // Acceptance criteria: `nodeKindRegistry.calculator.connectors` must contain exactly 4 entries, because this condition proves that
     // preserves the legacy multi-port calculator and split blocks.
-    expect(nodeKindRegistry.calculator.connectors).toHaveLength(4);
+    expect(nodeKindRegistry.calculator.connectors).toHaveLength(2);
 
     // Expected outcome: `nodeKindRegistry.calculator.connectors.filter(({ side }) => side === 'left')` contains the required number of entries.
     // Acceptance criteria: `nodeKindRegistry.calculator.connectors.filter(({ side }) => side === 'left')` must contain exactly 2 entries, because this condition proves that
     // preserves the legacy multi-port calculator and split blocks.
     expect(
       nodeKindRegistry.calculator.connectors.filter(({ side }) => side === 'left')
-    ).toHaveLength(2);
+    ).toHaveLength(1);
 
     // Expected outcome: `nodeKindRegistry.calculator.connectors.filter(({ side }) => side === 'right')` contains the required number of entries.
     // Acceptance criteria: `nodeKindRegistry.calculator.connectors.filter(({ side }) => side === 'right')` must contain exactly 2 entries, because this condition proves that
     // preserves the legacy multi-port calculator and split blocks.
     expect(
       nodeKindRegistry.calculator.connectors.filter(({ side }) => side === 'right')
-    ).toHaveLength(2);
+    ).toHaveLength(1);
 
     // Expected outcome: `nodeKindRegistry.split.connectors` contains the required number of entries.
     // Acceptance criteria: `nodeKindRegistry.split.connectors` must contain exactly 3 entries, because this condition proves that
     // preserves the legacy multi-port calculator and split blocks.
-    expect(nodeKindRegistry.split.connectors).toHaveLength(3);
+    expect(nodeKindRegistry.split.connectors).toHaveLength(2);
 
     // Expected outcome: `nodeKindRegistry.split.connectors.filter(({ side }) => side === 'right')` contains the required number of entries.
     // Acceptance criteria: `nodeKindRegistry.split.connectors.filter(({ side }) => side === 'right')` must contain exactly 2 entries, because this condition proves that
     // preserves the legacy multi-port calculator and split blocks.
     expect(nodeKindRegistry.split.connectors.filter(({ side }) => side === 'right')).toHaveLength(
-      2
+      1
     );
   });
 

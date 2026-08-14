@@ -21,17 +21,15 @@ describe('default node creation', () => {
       x: 120,
       y: 144,
       zOrder: 4,
-      configuration: { operation: 'average' }
+      configuration: {}
     });
 
     // Expected outcome: `node.connectors.map(({ id }) => id)` matches the required structure.
     // Acceptance criteria: `node.connectors.map(({ id }) => id)` must equal `[ 'analogue-input', 'digital-input', 'analogue-output', 'digital-output' ]`, because this condition proves that
     // creates a serialisable node from registry defaults and a supplied ID.
     expect(node.connectors.map(({ id }) => id)).toEqual([
-      'analogue-input',
-      'digital-input',
-      'analogue-output',
-      'digital-output'
+      'input',
+      'output'
     ]);
 
     // Expected outcome: The invalid operation is rejected.
@@ -59,6 +57,6 @@ describe('default node creation', () => {
     // Expected outcome: `second.configuration.durationSeconds` has the required value.
     // Acceptance criteria: `second.configuration.durationSeconds` must be `30`, because this condition proves that
     // does not share mutable connector or configuration defaults.
-    expect(second.configuration.durationSeconds).toBe(30);
+    expect(second.configuration).toEqual({});
   });
 });

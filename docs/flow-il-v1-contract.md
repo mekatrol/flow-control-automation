@@ -116,6 +116,11 @@ instruction or current state. Result slots are written exactly once.
 | 17 | quality is good | Boolean transient | operand0 |
 | 18 | on-delay timer | Boolean transient | operand0; auxiliary: timer state |
 | 19 | rising-edge event | Boolean transient | operand0; auxiliary: prior-value state |
+| 20 | minimum | numeric | operand0, operand1 |
+| 21 | maximum | numeric | operand0, operand1 |
+| 22 | clamp | numeric | operand0; operand1: minimum constant; auxiliary: maximum constant |
+| 23 | select | typed value | operand0: Boolean condition; operand1/auxiliary: value slots |
+| 24 | copy | typed value | operand0 |
 | 255 | commit tick | none | all unused; final instruction exactly once |
 
 Opcode flags are zero. Unknown opcodes, wrong operand shapes/types, forward
