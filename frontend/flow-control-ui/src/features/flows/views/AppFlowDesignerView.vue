@@ -89,6 +89,7 @@
         </div>
         <div class="heading-actions">
           <AppFlowDebugTargetSelector
+            v-if="workspaceMode === 'debugger'"
             v-model="debugTargetId"
             automation="flow-debug-target"
             :targets="debugTargets"
@@ -134,7 +135,48 @@
         </div>
       </div>
 
+      <nav class="workspace-modes" aria-label="Flow workspace mode">
+        <button
+          type="button"
+          :aria-pressed="workspaceMode === 'design'"
+          @click="workspaceMode = 'design'"
+        >
+          Design
+        </button>
+        <button
+          type="button"
+          :aria-pressed="workspaceMode === 'simulator'"
+          @click="workspaceMode = 'simulator'"
+        >
+          Simulator
+        </button>
+        <button
+          type="button"
+          :aria-pressed="workspaceMode === 'debugger'"
+          @click="workspaceMode = 'debugger'"
+        >
+          Advanced debugger
+        </button>
+      </nav>
+
+      <AppFlowSimulatorPanel
+        v-if="workspaceMode === 'simulator'"
+        automation="flow-simulator"
+        :lifecycle="simulator.lifecycle"
+        :session="simulator.session"
+        :error="simulator.error"
+        @[EVENTS.START_SIMULATION]="startSimulation"
+        @[EVENTS.STEP_TICK]="simulator.stepTick"
+        @[EVENTS.STEP_NODE]="simulator.stepNode"
+        @[EVENTS.STEP_INSTRUCTION]="simulator.stepInstruction"
+        @[EVENTS.RUN]="simulator.run"
+        @[EVENTS.PAUSE]="simulator.pause"
+        @[EVENTS.RESTART]="simulator.restart"
+        @[EVENTS.STOP_SIMULATION]="simulator.stop"
+      />
+
       <AppFlowDebugPanel
+        v-if="workspaceMode === 'debugger'"
         automation="flow-debug"
         :lifecycle="debugLifecycle"
         :snapshot="debugSnapshot"
@@ -161,7 +203,7 @@
       />
 
       <AppFlowEmulatorPanel
-        v-if="selectedDebugTarget?.kind === 'emulator'"
+        v-if="workspaceMode === 'debugger' && selectedDebugTarget?.kind === 'emulator'"
         automation="flow-emulator"
         :snapshot="emulatorSnapshot"
         @set-input="setEmulatorInput"
@@ -216,6 +258,7 @@ import AppFlowDesignerCanvas from '@/features/flows/components/AppFlowDesignerCa
 import AppFlowDebugTargetSelector from '@/features/flows/components/AppFlowDebugTargetSelector.vue';
 import AppFlowDebugPanel from '@/features/flows/components/AppFlowDebugPanel.vue';
 import AppFlowEmulatorPanel from '@/features/flows/components/AppFlowEmulatorPanel.vue';
+import AppFlowSimulatorPanel from '@/features/flows/components/AppFlowSimulatorPanel.vue';
 import { getFlowDebugTargets } from '@/features/flows/debugTargets';
 import {
   flowDebugApi,
@@ -234,6 +277,7 @@ import { FlowApiError, flowApi } from '@/features/flows/api/flowApi';
 import { flowRuntimeApi } from '@/features/flows/api/flowRuntimeApi';
 import { createLatestRequestGuard } from '@/features/flows/api/latestRequest';
 import { useFlowRuntimeStore } from '@/features/flows/stores/flowRuntime';
+import { useFlowSimulatorStore } from '@/features/flows/stores/flowSimulator';
 import { useModalFocus } from '@/features/flows/composables/useModalFocus';
 import type {
   FlowConfigurationValue,
@@ -248,6 +292,8 @@ const automation = useAutomation('flow-designer');
 
 const flowStore = useFlowsStore();
 const runtimeStore = useFlowRuntimeStore();
+const simulator = useFlowSimulatorStore();
+const workspaceMode = ref<'design' | 'simulator' | 'debugger'>('design');
 const controllerTemplates = useControllerTemplatesCatalogueStore();
 const router = useRouter();
 const flow = computed(() => flowStore.findFlow(props.flowId));
@@ -313,6 +359,9 @@ watch(debugTargetId, () => {
 });
 
 const flowRevision = computed(() => (flow.value ? graphRevision(flow.value) : 1));
+watch(flowRevision, (revision, previous) => {
+  if (previous !== undefined && revision !== previous) simulator.markStale();
+});
 const debugSnapshotStale = computed(() =>
   Boolean(debugSnapshot.value && debugRevision.value !== flowRevision.value)
 );
@@ -349,6 +398,12 @@ const executableSource = (): ExecutableFlowSource | undefined => {
   const target = selectedDebugTarget.value;
   if (!current || !target) return;
   return createExecutableFlowSource(current, target);
+};
+const startSimulation = async (): Promise<void> => {
+  const current = flow.value;
+  const target = debugTargets.value.find((item) => item.id === 'server');
+  if (!current || !target) return;
+  await simulator.start(createExecutableFlowSource(current, target));
 };
 const debugFailure = (error: unknown): string =>
   error instanceof Error ? error.message : 'Debug operation failed.';
@@ -703,17 +758,22 @@ const saveFlow = async (): Promise<void> => {
 
 watch(
   () => props.flowId,
-  (flowId) => void loadFlow(flowId),
+  (flowId, previous) => {
+    if (previous !== undefined && flowId !== previous) void simulator.stop(true);
+    void loadFlow(flowId);
+  },
   { immediate: true }
 );
 onBeforeUnmount(() => {
   loadGuard.invalidate();
   loadController?.abort();
   controllerTemplates.cancel();
+  void simulator.stop(true);
   void stopDebugSession(true);
 });
 
 const handleBeforeUnload = (event: BeforeUnloadEvent): void => {
+  if (simulator.session) void simulator.stop(true);
   if (debugSessionId.value) void stopDebugSession(true);
   if (!dirty.value) return;
   // Browsers show their own confirmation wording for tab close and page refresh.
@@ -747,6 +807,7 @@ onBeforeRouteLeave((to) => {
   // Client-side routing does not trigger beforeunload, so it needs a separate
   // guard and an application-owned dialog that can keep or discard the draft.
   if (allowNavigation || !dirty.value) {
+    if (simulator.session) void simulator.stop(true);
     if (debugSessionId.value) void stopDebugSession(true);
     return true;
   }
@@ -775,6 +836,27 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', handleBeforeUnl
 .designer-page :deep(.canvas-frame) {
   min-height: 0;
   flex: 1;
+}
+
+.workspace-modes {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.workspace-modes button {
+  min-height: var(--control-min-height);
+  padding: var(--space-2) var(--space-4);
+  color: var(--color-text-primary);
+  background: var(--color-surface-raised);
+  border: var(--border-width-default) solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+}
+
+.workspace-modes button[aria-pressed='true'] {
+  color: var(--color-action-primary-strong);
+  background: var(--color-action-primary-surface);
+  border-color: var(--color-action-primary);
 }
 
 .designer-heading {

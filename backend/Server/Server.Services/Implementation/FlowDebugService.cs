@@ -539,7 +539,8 @@ public sealed class FlowDebugService(
             RunTo = true,
             MaximumBreakpoints = MaximumBreakpoints,
             MaximumInspectableSlots = MaximumInspectableSlots
-        }
+        },
+        SourceDigest = local.Compilation.ArtifactSha256
     };
 
     private static FlowDebugInspection ToInspection(LocalFlowDebugSession local)

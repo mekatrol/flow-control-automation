@@ -56,7 +56,10 @@ describe('node-kind registry', () => {
       // Acceptance criteria: `definition.connectors.some(({ direction }) => direction === 'input')` must be `true`, because this condition proves that
       // contains complete rendering, connector, and editor metadata for every supported kind.
       expect(definition.connectors.some(({ direction }) => direction === 'input')).toBe(
-        kind !== 'digitalInput' && kind !== 'analogInput' && kind !== 'digitalConstant' && kind !== 'numericConstant'
+        kind !== 'digitalInput' &&
+          kind !== 'analogInput' &&
+          kind !== 'digitalConstant' &&
+          kind !== 'numericConstant'
       );
 
       // Expected outcome: `definition.connectors.some(({ direction }) => direction === 'output')` has the required value.
@@ -70,7 +73,18 @@ describe('node-kind registry', () => {
       // Acceptance criteria: `definition.editor.length` must satisfy the asserted boundary against `0`, because this condition proves that
       // contains complete rendering, connector, and editor metadata for every supported kind.
       expect(definition.editor.length > 0).toBe(
-        !['add', 'and', 'nand', 'nor', 'not', 'or', 'qualityGood', 'risingEdge', 'xnor', 'xor'].includes(kind)
+        ![
+          'add',
+          'and',
+          'nand',
+          'nor',
+          'not',
+          'or',
+          'qualityGood',
+          'risingEdge',
+          'xnor',
+          'xor'
+        ].includes(kind)
       );
 
       // Expected outcome: `Object.keys(definition.defaultConfiguration)` matches the required structure.

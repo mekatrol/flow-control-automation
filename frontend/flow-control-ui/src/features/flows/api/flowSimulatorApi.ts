@@ -1,0 +1,130 @@
+import { FlowApiError } from './flowApi';
+import type {
+  DebugRuntimeSnapshot,
+  ExecutableFlowSource,
+  FlowDebugBreakpoint,
+  FlowDebugCapabilities,
+  FlowDebugInspection
+} from './flowDebugApi';
+
+export type SimulatorLifecycle =
+  | 'idle'
+  | 'compiling'
+  | 'ready'
+  | 'running'
+  | 'paused'
+  | 'faulted'
+  | 'stopped'
+  | 'stale';
+
+export interface SimulatorSession {
+  sessionId: string;
+  flowId: string;
+  sourceRevision: number;
+  sourceDigest: string;
+  lifecycleState: Exclude<SimulatorLifecycle, 'idle' | 'compiling' | 'stale'>;
+  capabilities: FlowDebugCapabilities;
+  snapshot?: DebugRuntimeSnapshot;
+  inspection?: FlowDebugInspection;
+  breakpoints: FlowDebugBreakpoint[];
+  leaseRemainingMilliseconds: number;
+}
+
+const parse = (value: unknown): SimulatorSession => {
+  if (typeof value !== 'object' || value === null)
+    throw new TypeError('Simulator session is invalid.');
+  const item = value as Partial<SimulatorSession>;
+  if (
+    typeof item.sessionId !== 'string' ||
+    typeof item.flowId !== 'string' ||
+    typeof item.sourceRevision !== 'number' ||
+    typeof item.sourceDigest !== 'string' ||
+    typeof item.lifecycleState !== 'string' ||
+    typeof item.leaseRemainingMilliseconds !== 'number' ||
+    typeof item.capabilities !== 'object' ||
+    item.capabilities === null
+  )
+    throw new TypeError('Simulator session fields are invalid.');
+  return {
+    ...item,
+    breakpoints: Array.isArray(item.breakpoints) ? item.breakpoints : []
+  } as SimulatorSession;
+};
+
+const request = async (
+  url: string,
+  init: RequestInit,
+  signal?: AbortSignal
+): Promise<SimulatorSession> => {
+  try {
+    const response = await fetch(url, { ...init, signal });
+    if (!response.ok) {
+      const body = (await response.json().catch(() => ({}))) as {
+        code?: unknown;
+        message?: unknown;
+      };
+      throw new FlowApiError(
+        'http',
+        typeof body.message === 'string'
+          ? body.message
+          : `Simulator request failed with status ${response.status}.`,
+        response.status
+      );
+    }
+    return parse(await response.json());
+  } catch (error) {
+    if (error instanceof FlowApiError || error instanceof TypeError) throw error;
+    if (error instanceof DOMException && error.name === 'AbortError')
+      throw new FlowApiError('cancelled', 'The simulator request was cancelled.');
+    throw new FlowApiError('network', 'Unable to reach the simulator.');
+  }
+};
+
+const base = (flowId: string): string =>
+  `/api/flows/${encodeURIComponent(flowId)}/simulator-sessions`;
+const sessionUrl = (flowId: string, sessionId: string): string =>
+  `${base(flowId)}/${encodeURIComponent(sessionId)}`;
+
+export const flowSimulatorApi = {
+  start: (source: ExecutableFlowSource, signal?: AbortSignal) =>
+    request(
+      base(source.id),
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source, replaceExisting: true })
+      },
+      signal
+    ),
+  get: (flowId: string, sessionId: string, signal?: AbortSignal) =>
+    request(sessionUrl(flowId, sessionId), { method: 'GET' }, signal),
+  stepTick: (flowId: string, sessionId: string, signal?: AbortSignal) =>
+    request(`${sessionUrl(flowId, sessionId)}/step`, { method: 'POST' }, signal),
+  stepNode: (flowId: string, sessionId: string, signal?: AbortSignal) =>
+    request(`${sessionUrl(flowId, sessionId)}/step-node`, { method: 'POST' }, signal),
+  stepInstruction: (flowId: string, sessionId: string, signal?: AbortSignal) =>
+    request(`${sessionUrl(flowId, sessionId)}/step-instruction`, { method: 'POST' }, signal),
+  restart: (flowId: string, sessionId: string, signal?: AbortSignal) =>
+    request(`${sessionUrl(flowId, sessionId)}/restart`, { method: 'POST' }, signal),
+  run: (flowId: string, sessionId: string, signal?: AbortSignal) =>
+    request(
+      `${sessionUrl(flowId, sessionId)}/run`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ intervalMilliseconds: 500 })
+      },
+      signal
+    ),
+  pause: (flowId: string, sessionId: string, signal?: AbortSignal) =>
+    request(`${sessionUrl(flowId, sessionId)}/pause`, { method: 'POST' }, signal),
+  stop: async (flowId: string, sessionId: string, keepalive = false): Promise<void> => {
+    const response = await fetch(sessionUrl(flowId, sessionId), { method: 'DELETE', keepalive });
+    if (!response.ok && response.status !== 404)
+      throw new FlowApiError(
+        'http',
+        `Stop simulation failed with status ${response.status}.`,
+        response.status
+      );
+  }
+};

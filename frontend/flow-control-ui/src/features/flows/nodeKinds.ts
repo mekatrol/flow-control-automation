@@ -82,11 +82,17 @@ const definition = (
 });
 
 export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
-  [FlowNodeFunctionType.Add]: executableDefinition(FlowNodeFunctionType.Add, [
-    { id: 'a', label: 'A', direction: 'input', dataType: 'number', side: 'left' },
-    { id: 'b', label: 'B', direction: 'input', dataType: 'number', side: 'left' },
-    { id: 'value', label: 'Value', direction: 'output', dataType: 'number', side: 'right' }
-  ], [], {}, 'maths'),
+  [FlowNodeFunctionType.Add]: executableDefinition(
+    FlowNodeFunctionType.Add,
+    [
+      { id: 'a', label: 'A', direction: 'input', dataType: 'number', side: 'left' },
+      { id: 'b', label: 'B', direction: 'input', dataType: 'number', side: 'left' },
+      { id: 'value', label: 'Value', direction: 'output', dataType: 'number', side: 'right' }
+    ],
+    [],
+    {},
+    'maths'
+  ),
   [FlowNodeFunctionType.AnalogInput]: executableDefinition(
     FlowNodeFunctionType.AnalogInput,
     [{ id: 'value', label: 'Value', direction: 'output', dataType: 'number', side: 'right' }],
@@ -168,7 +174,14 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
       { id: 'b', label: 'B', direction: 'input', dataType: 'number', side: 'left' },
       booleanPort('value', 'Value', 'output', 'right')
     ],
-    [{ key: 'operator', label: 'Operator', input: 'select', options: ['lt', 'lte', 'eq', 'gte', 'gt', 'ne'] }],
+    [
+      {
+        key: 'operator',
+        label: 'Operator',
+        input: 'select',
+        options: ['lt', 'lte', 'eq', 'gte', 'gt', 'ne']
+      }
+    ],
     { operator: 'gt' }
   ),
   [FlowNodeFunctionType.Delay]: definition(FlowNodeFunctionType.Delay, 'timing', 'delay'),

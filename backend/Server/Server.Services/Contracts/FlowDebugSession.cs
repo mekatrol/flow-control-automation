@@ -17,6 +17,7 @@ public sealed record FlowDebugSession
     public bool LiveOutputEnabled { get; init; }
     public byte? LiveOutputPriority { get; init; }
     public uint? LiveOutputHoldMilliseconds { get; init; }
+    public string? SourceDigest { get; init; }
     public string Host { get; init; } = "controller";
     public FlowDebugCapabilities Capabilities { get; init; } = new() { StepTick = true };
     public IReadOnlyList<FlowDebugBreakpoint> Breakpoints { get; init; } = [];

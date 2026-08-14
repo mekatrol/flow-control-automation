@@ -111,8 +111,21 @@ export interface ExecutableFlowSource {
   revision: number;
   controllerTemplateId: string;
   controllerTemplateRevision: number;
-  execution: { mode: 'manual'; intervalMs: number; inputQualityPolicy: 'require_good' | 'propagate' };
-  nodes: { id: string; kind: string; configuration: Record<string, unknown>; label: string; x: number; y: number; zOrder: number; groupId?: string }[];
+  execution: {
+    mode: 'manual';
+    intervalMs: number;
+    inputQualityPolicy: 'require_good' | 'propagate';
+  };
+  nodes: {
+    id: string;
+    kind: string;
+    configuration: Record<string, unknown>;
+    label: string;
+    x: number;
+    y: number;
+    zOrder: number;
+    groupId?: string;
+  }[];
   connections: {
     source: { nodeId: string; portId: string };
     target: { nodeId: string; portId: string };

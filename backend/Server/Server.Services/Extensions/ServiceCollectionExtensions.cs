@@ -69,6 +69,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IControllerDebugTransport, FcpControllerDebugTransport>();
         services.AddSingleton<FlowDebugSessionRegistry>();
         services.AddScoped<IFlowDebugService, FlowDebugService>();
+        services.AddSingleton<FlowSimulatorSessionRegistry>();
+        services.AddScoped<IFlowSimulatorService, FlowSimulatorService>();
         services.AddScoped<IPointReadService, PointReadService>();
         services.AddScoped<IPointSourceService, PointSourceDatabaseService>();
         services.AddScoped<CredentialDatabaseService>();

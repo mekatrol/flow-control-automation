@@ -93,7 +93,10 @@ const withoutBackendMetadata = (value: unknown): unknown => {
   const preserveRevision = Object.hasOwn(value, 'capabilities');
   return Object.fromEntries(
     Object.entries(value)
-      .filter(([key]) => !['createdAt', 'updatedAt'].includes(key) && (key !== 'revision' || preserveRevision))
+      .filter(
+        ([key]) =>
+          !['createdAt', 'updatedAt'].includes(key) && (key !== 'revision' || preserveRevision)
+      )
       .map(([key, child]) => [key, withoutBackendMetadata(child)])
   );
 };
