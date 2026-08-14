@@ -540,7 +540,8 @@ public sealed class FlowDebugService(
             MaximumBreakpoints = MaximumBreakpoints,
             MaximumInspectableSlots = MaximumInspectableSlots
         },
-        SourceDigest = local.Compilation.ArtifactSha256
+        SourceDigest = local.Compilation.ArtifactSha256,
+        ExecutionOrder = local.Compilation.Schedule
     };
 
     private static FlowDebugInspection ToInspection(LocalFlowDebugSession local)
@@ -556,7 +557,10 @@ public sealed class FlowDebugService(
             StagedNextState = frame.StagedState
                 .Select(value => value.HasValue ? new DebugTypedValue("boolean", value.Value) : null)
                 .ToArray(),
-            ProposedOutputs = frame.ProposedCommands
+            ProposedOutputs = frame.ProposedCommands,
+            NodeValues = local.Compilation.NodeIndices
+                .Where(pair => pair.Value < frame.Slots.Count)
+                .ToDictionary(pair => pair.Key, pair => DebugValue(frame.Slots[pair.Value]), StringComparer.Ordinal)
         };
     }
 

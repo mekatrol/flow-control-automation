@@ -7,6 +7,7 @@ const flow = {
   status: 'draft',
   disabled: false,
   updatedAt: '2026-08-13T10:00:00+10:00',
+  interface: { schemaVersion: 1, inputs: [], outputs: [] },
   nodes: [
     {
       id: 'constant-1',
@@ -72,10 +73,13 @@ test('loads and steps a server debug session without a controller', async ({ pag
     revision = body.source.revision;
     await route.fulfill({ status: 201, json: session(revision) });
   });
-  await page.route('**/api/flows/portable-debug/debug-sessions/server-session/step-instruction',
-    (route) => route.fulfill({ json: session(revision, 'paused') }));
-  await page.route('**/api/flows/portable-debug/debug-sessions/server-session/stop',
-    (route) => route.fulfill({ status: 204 }));
+  await page.route(
+    '**/api/flows/portable-debug/debug-sessions/server-session/step-instruction',
+    (route) => route.fulfill({ json: session(revision, 'paused') })
+  );
+  await page.route('**/api/flows/portable-debug/debug-sessions/server-session/stop', (route) =>
+    route.fulfill({ status: 204 })
+  );
 
   await page.goto('/flows/portable-debug');
   await page.getByRole('button', { name: 'Advanced debugger' }).click();

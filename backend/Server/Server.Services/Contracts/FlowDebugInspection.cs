@@ -9,4 +9,6 @@ public sealed record FlowDebugInspection
     public IReadOnlyList<DebugTypedValue> CurrentState { get; init; } = [];
     public IReadOnlyList<DebugTypedValue?> StagedNextState { get; init; } = [];
     public IReadOnlyList<FlowVmCommand> ProposedOutputs { get; init; } = [];
+    public IReadOnlyDictionary<string, DebugTypedValue> NodeValues { get; init; }
+        = new Dictionary<string, DebugTypedValue>(StringComparer.Ordinal);
 }

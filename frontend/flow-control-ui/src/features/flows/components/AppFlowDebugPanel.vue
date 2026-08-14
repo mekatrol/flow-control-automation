@@ -13,6 +13,12 @@
         @click="emit('stepTick')"
       />
       <AppButton
+        automation="debug-run-to-boundary"
+        text="Run to tick boundary"
+        :disabled="!canStepTick"
+        @click="emit(EVENTS.RUN_TO_BOUNDARY)"
+      />
+      <AppButton
         automation="debug-step-node"
         text="Step node"
         :disabled="!canStepNode"
@@ -67,6 +73,22 @@
       </strong>
     </div>
     <p v-if="error" class="debug-error" role="alert">{{ error }}</p>
+    <section
+      v-if="executionOrder.length || breakpoints.length"
+      class="execution-summary"
+      aria-label="Execution and breakpoint summary"
+    >
+      <h3>Execution order</h3>
+      <ol>
+        <li v-for="nodeId in executionOrder" :key="nodeId">{{ nodeId }}</li>
+      </ol>
+      <h3>Breakpoints</h3>
+      <ul>
+        <li v-for="breakpoint in breakpoints" :key="`${breakpoint.nodeId}:${breakpoint.position}`">
+          {{ breakpoint.position }} {{ breakpoint.nodeId }}
+        </li>
+      </ul>
+    </section>
     <div v-if="inspection" class="inspection" aria-label="Paused execution frame">
       <strong>Frame {{ inspection.instructionPointer }}</strong>
       <span>Node {{ inspection.nodeId ?? 'commit' }}</span>
@@ -92,6 +114,14 @@
       <span v-if="stale">Stale snapshot — graph revision changed</span>
       <span v-else>Current shadow snapshot</span>
       <span v-if="snapshot.lastReason">{{ snapshot.lastReason }}</span>
+      <button
+        v-if="snapshot.lastReasonPath"
+        type="button"
+        class="diagnostic-link"
+        @click="emit(EVENTS.SELECT_DIAGNOSTIC, diagnosticNodeId)"
+      >
+        Go to affected node {{ diagnosticNodeId }}
+      </button>
       <ul v-if="snapshot.proposedOutputs.length" aria-label="Proposed non-physical outputs">
         <li v-for="output in snapshot.proposedOutputs" :key="output.pointId">
           {{ output.pointId }}: {{ output.proposedValue }} ({{ output.quality }}) — proposed only
@@ -105,11 +135,13 @@
 import { computed, ref } from 'vue';
 import AppButton from '@/components/AppButton.vue';
 import { useAutomation } from '@/composables/useAutomation';
+import { EVENTS } from '@/constants/events';
 import type {
   DebugRuntimeSnapshot,
   FlowDebugCapabilities,
   FlowDebugInspection
 } from '@/features/flows/api/flowDebugApi';
+import type { FlowDebugBreakpoint } from '@/features/flows/api/flowDebugApi';
 
 const props = defineProps<{
   automation: string;
@@ -125,18 +157,25 @@ const props = defineProps<{
   host?: 'server' | 'emulator' | 'controller';
   capabilities?: FlowDebugCapabilities;
   inspection?: FlowDebugInspection;
+  executionOrder?: string[];
+  breakpoints?: FlowDebugBreakpoint[];
 }>();
 const emit = defineEmits<{
-  load: [];
-  stepTick: [];
-  stepNode: [];
-  stepInstruction: [];
-  run: [];
-  runTo: [];
-  pause: [];
-  stop: [];
-  restart: [];
-  enableLiveOutput: [pointIds: string[]];
+  (
+    event:
+      | 'load'
+      | 'stepTick'
+      | 'stepNode'
+      | 'stepInstruction'
+      | 'run'
+      | 'runTo'
+      | 'pause'
+      | 'stop'
+      | 'restart'
+  ): void;
+  (event: 'enableLiveOutput', pointIds: string[]): void;
+  (event: typeof EVENTS.RUN_TO_BOUNDARY): void;
+  (event: typeof EVENTS.SELECT_DIAGNOSTIC, nodeId: string): void;
 }>();
 const automation = useAutomation(props.automation);
 const busy = computed(() => props.lifecycle === 'loading' || props.lifecycle === 'stepping');
@@ -172,6 +211,13 @@ const canEnableLiveOutput = computed(
   () => liveOutputConfirmed.value && !props.stale && ['ready', 'paused'].includes(props.lifecycle)
 );
 const stateLabel = computed(() => (props.stale ? 'stale' : props.lifecycle));
+const executionOrder = computed(() => props.executionOrder ?? []);
+const breakpoints = computed(() => props.breakpoints ?? []);
+const diagnosticNodeId = computed(() => {
+  const path = props.snapshot?.lastReasonPath ?? '';
+  const match = path.match(/\/nodes\/([^/]+)/);
+  return match?.[1] ?? path;
+});
 </script>
 
 <style scoped>

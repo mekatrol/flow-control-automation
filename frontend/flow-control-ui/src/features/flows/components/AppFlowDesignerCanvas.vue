@@ -46,6 +46,33 @@
         :can-move-back="canMoveBack"
         @[EVENTS.REORDER]="handleReorder"
       />
+      <div
+        v-if="debugging && selectedNodeId"
+        class="debug-actions"
+        role="group"
+        aria-label="Selected node breakpoints"
+      >
+        <AppButton
+          automation="flow-breakpoint-before"
+          text="Breakpoint before"
+          @click="setSelectedBreakpoint('before')"
+        />
+        <AppButton
+          automation="flow-breakpoint-after"
+          text="Breakpoint after"
+          @click="setSelectedBreakpoint('after')"
+        />
+        <AppButton
+          automation="flow-breakpoint-clear"
+          text="Clear breakpoints"
+          @click="setSelectedBreakpoint(null)"
+        />
+        <AppButton
+          automation="flow-run-to-node"
+          text="Run to selected node"
+          @click="emit(EVENTS.RUN_TO_NODE, selectedNodeId)"
+        />
+      </div>
     </div>
 
     <div class="designer-workspace">
@@ -129,8 +156,8 @@
               :connection-start="connectionStart"
               :compatible-connector-keys="compatibleConnectorKeys"
               :current="node.id === currentNodeId"
-              :breakpoint="breakpointNodeIds?.includes(node.id)"
-              @toggle-breakpoint="emit('toggleBreakpoint', $event)"
+              :breakpoint-positions="breakpointPositions(node.id)"
+              :connector-values="connectorValues?.[node.id]"
               @[EVENTS.SELECT]="handleNodeSelection"
               @[EVENTS.DRAG_START]="handleDragStart"
               @[EVENTS.CONNECTOR_PRESS]="handleConnectorPress"
@@ -163,7 +190,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 
 import AppButton from '@/components/AppButton.vue';
 import { useAutomation } from '@/composables/useAutomation';
@@ -200,18 +227,24 @@ import type {
 } from '@/features/flows/types';
 import { flowNodeKinds } from '@/features/flows/nodeKinds';
 import type { FlowRuntimeSnapshot } from '@/features/flows/api/flowRuntimeApi';
+import type { ConnectorRuntimeValue } from '@/features/flows/api/flowRuntimeApi';
+import type { FlowDebugBreakpoint } from '@/features/flows/api/flowDebugApi';
 
 const props = defineProps<{
   automation: string;
   flow: FlowDefinition;
   runtime?: FlowRuntimeSnapshot;
   currentNodeId?: string;
-  breakpointNodeIds?: string[];
+  breakpoints?: FlowDebugBreakpoint[];
+  connectorValues?: Record<string, Record<string, ConnectorRuntimeValue>>;
+  debugging?: boolean;
+  focusNodeId?: string;
 }>();
 
 const automation = useAutomation(props.automation);
 const emit = defineEmits<{
-  (event: 'toggleBreakpoint', nodeId: string): void;
+  (event: typeof EVENTS.SET_BREAKPOINT, nodeId: string, position: 'before' | 'after' | null): void;
+  (event: typeof EVENTS.RUN_TO_NODE, nodeId: string): void;
   (event: typeof EVENTS.MOVE_NODE, nodeId: string, x: number, y: number): void;
   (event: typeof EVENTS.REORDER_NODE, nodeId: string, command: ZOrderCommand): void;
   (event: typeof EVENTS.DELETE_NODE, nodeId: string): void;
@@ -243,6 +276,13 @@ const handleNodeConfigurationUpdate = (
     emit(EVENTS.UPDATE_NODE_CONFIGURATION, selectedNode.value.id, key, value);
   }
 };
+const breakpointPositions = (nodeId: string): ('before' | 'after')[] =>
+  (props.breakpoints ?? [])
+    .filter((breakpoint) => breakpoint.nodeId === nodeId)
+    .map((breakpoint) => breakpoint.position);
+const setSelectedBreakpoint = (position: 'before' | 'after' | null): void => {
+  if (selectedNodeId.value) emit(EVENTS.SET_BREAKPOINT, selectedNodeId.value, position);
+};
 
 const viewportElement = ref<HTMLElement>();
 const canvasElement = ref<SVGSVGElement>();
@@ -262,6 +302,12 @@ const {
   clearSelection,
   handleSelectionKeydown
 } = useDesignerSelection();
+watch(
+  () => props.focusNodeId,
+  (nodeId) => {
+    if (nodeId && nodesById.value.has(nodeId)) selectNode(nodeId);
+  }
+);
 const { dragState, startDrag, finishDrag, cancelDrag } = useNodeDragging();
 const {
   connectionStart,
@@ -684,6 +730,11 @@ const handleDragCancel = (event: PointerEvent): void => {
   align-items: center;
   color: var(--color-text-secondary);
   white-space: nowrap;
+}
+.debug-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
 }
 
 .canvas-viewport {

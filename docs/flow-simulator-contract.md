@@ -189,3 +189,12 @@ Current error responses are inconsistent across these endpoint groups (plain
 `ErrorResponse`, compiler diagnostic arrays, and empty emulator 404s). Phase 1
 must introduce application-level simulator endpoints using section 5 without
 changing the portable execution path.
+
+Debugger sessions expose the compiler schedule as execution order and paused
+frames expose stable node-to-slot typed values. Canvas consumers may project
+those values onto declared output connectors and connected inputs, but must
+label committed snapshot values separately from uncommitted paused-frame
+values. Before-node and after-node breakpoints remain distinct stable records;
+their UI must communicate position with text as well as colour. Diagnostic
+paths identify affected node IDs and are navigation targets, while raw slots
+and instruction pointers remain advanced inspection details.

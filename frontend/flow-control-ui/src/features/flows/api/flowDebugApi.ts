@@ -77,6 +77,7 @@ export interface FlowDebugSession {
   capabilities: FlowDebugCapabilities;
   breakpoints: FlowDebugBreakpoint[];
   inspection?: FlowDebugInspection;
+  executionOrder?: string[];
 }
 
 export interface FlowDebugCapabilities {
@@ -104,6 +105,7 @@ export interface FlowDebugInspection {
   currentState: DebugTypedValue[];
   stagedNextState: (DebugTypedValue | null)[];
   proposedOutputs: { pointId: string; value: boolean }[];
+  nodeValues?: Record<string, DebugTypedValue>;
 }
 
 export interface ExecutableFlowSource {
@@ -263,6 +265,9 @@ const parseSession = (value: unknown): FlowDebugSession => {
     },
     breakpoints: Array.isArray(value.breakpoints)
       ? value.breakpoints.map((item) => item as unknown as FlowDebugBreakpoint)
+      : [],
+    executionOrder: Array.isArray(value.executionOrder)
+      ? value.executionOrder.filter((item): item is string => typeof item === 'string')
       : [],
     ...(isRecord(value.inspection)
       ? { inspection: value.inspection as unknown as FlowDebugInspection }

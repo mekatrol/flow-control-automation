@@ -30,6 +30,7 @@ public sealed class LocalFlowDebuggerTests
         {
             Assert.That(paused.LifecycleState, Is.EqualTo("paused"));
             Assert.That(inspection.Slots[0].Value, Is.True);
+            Assert.That(inspection.NodeValues["constant"].Value, Is.True);
             Assert.That(points.Published, Is.Empty);
         });
 

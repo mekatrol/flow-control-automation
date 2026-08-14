@@ -8,6 +8,36 @@ import { sampleFlows } from '@/features/flows/__tests__/fixtures/sampleFlows';
 
 describe('FlowNode', () => {
   /**
+   * Purpose: Protects connector-level debugger values and non-colour breakpoint communication.
+   * Description: Renders a committed connector value with before/after breakpoints and verifies both visible and accessible text.
+   */
+  it('renders typed connector overlays and textual breakpoint positions', () => {
+    const node = sampleFlows[0]!.nodes[0]!;
+    const output = node.connectors.find((connector) => connector.direction === 'output')!;
+    const wrapper = mount(AppFlowNode, {
+      props: {
+        automation: 'flow-node-debug',
+        node,
+        selected: false,
+        breakpointPositions: ['before', 'after'],
+        connectorValues: {
+          [output.id]: { value: '21.5', units: '°C', quality: 'good', state: 'committed' }
+        }
+      }
+    });
+
+    // Expected outcome: Connector value, units, quality, and commit state are visible together.
+    // Acceptance criteria: The overlay contains the complete typed phrase, proving none of those distinctions relies on colour alone.
+    expect(wrapper.get('.connector-value').text()).toContain('21.5 °C · good · committed');
+    // Expected outcome: Both breakpoint positions have textual markers and accessible names.
+    // Acceptance criteria: B/A are rendered and the node label announces both positions, protecting keyboard and non-visual debugging.
+    expect(wrapper.findAll('.breakpoint-marker').map((marker) => marker.text())).toEqual([
+      'B',
+      'A'
+    ]);
+    expect(wrapper.attributes('aria-label')).toContain('breakpoints before and after');
+  });
+  /**
    * Purpose: Protects the behavioral contract that uses registry metadata and exposes an accessible node name and status.
    * Description: Exercises uses registry metadata and exposes an accessible node name and status from its arranged starting state and
    * verifies the observable results required by the scenario.

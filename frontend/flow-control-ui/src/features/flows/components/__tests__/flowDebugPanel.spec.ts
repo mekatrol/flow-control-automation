@@ -13,6 +13,7 @@ describe('flow debug panel', () => {
     expect(buttons.map((button) => button.attributes('disabled') === undefined)).toEqual([
       false,
       true,
+      true,
       false,
       false,
       true,

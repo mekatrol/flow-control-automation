@@ -201,6 +201,8 @@
         :host="debugHost"
         :capabilities="debugCapabilities"
         :inspection="debugInspection"
+        :execution-order="debugExecutionOrder"
+        :breakpoints="debugBreakpoints"
         :affected-output-points="debugAffectedOutputPoints"
         :live-output-enabled="debugLiveOutputEnabled"
         :live-output-priority="debugLiveOutputPriority"
@@ -211,6 +213,8 @@
         @step-instruction="stepInstructionDebugSession"
         @run="runDebugSession"
         @run-to="runToBreakpoint"
+        @[EVENTS.RUN_TO_BOUNDARY]="stepDebugSession"
+        @[EVENTS.SELECT_DIAGNOSTIC]="focusDiagnosticNode"
         @pause="pauseDebugSession"
         @stop="stopDebugSession"
         @restart="restartDebugSession"
@@ -234,8 +238,12 @@
         :flow="flow"
         :runtime="debugNodeRuntime ?? runtime"
         :current-node-id="debugInspection?.nodeId"
-        :breakpoint-node-ids="debugBreakpoints.map((breakpoint) => breakpoint.nodeId)"
-        @toggle-breakpoint="toggleBreakpoint"
+        :breakpoints="debugBreakpoints"
+        :connector-values="debugConnectorValues"
+        :debugging="workspaceMode === 'debugger' && Boolean(debugSessionId)"
+        :focus-node-id="diagnosticNodeId"
+        @[EVENTS.SET_BREAKPOINT]="setBreakpoint"
+        @[EVENTS.RUN_TO_NODE]="runToNode"
         @[EVENTS.MOVE_NODE]="moveNode"
         @[EVENTS.REORDER_NODE]="reorderNode"
         @[EVENTS.DELETE_NODE]="deleteNode"
@@ -356,6 +364,8 @@ const debugLiveOutputPriority = ref<number>();
 const debugLiveOutputHoldMilliseconds = ref<number>();
 const debugCapabilities = ref<FlowDebugCapabilities>();
 const debugInspection = ref<FlowDebugInspection>();
+const debugExecutionOrder = ref<string[]>([]);
+const diagnosticNodeId = ref<string>();
 const debugBreakpoints = ref<FlowDebugBreakpoint[]>([]);
 const emulatorSnapshot = ref<EmulatorSnapshot>();
 let debugController: AbortController | undefined;
@@ -420,6 +430,56 @@ const debugNodeRuntime = computed(() => {
     )
   };
 });
+const debugConnectorValues = computed(() => {
+  const snapshot = debugSnapshot.value;
+  const currentFlow = flow.value;
+  if (!snapshot || !currentFlow || debugSnapshotStale.value) return undefined;
+  const values: Record<
+    string,
+    Record<string, import('@/features/flows/api/flowRuntimeApi').ConnectorRuntimeValue>
+  > = {};
+  for (const nodeSnapshot of snapshot.nodes) {
+    const node = currentFlow.nodes.find((candidate) => candidate.id === nodeSnapshot.nodeId);
+    if (!node || !nodeSnapshot.typedValue) continue;
+    const typed = nodeSnapshot.typedValue;
+    const text = typed.type === 'number' ? String(typed.number) : String(typed.value);
+    const units =
+      node.kind === 'flowInput'
+        ? currentFlow.interface.inputs.find((entry) => entry.id === node.configuration.interfaceId)
+            ?.units
+        : node.kind === 'flowOutput'
+          ? currentFlow.interface.outputs.find(
+              (entry) => entry.id === node.configuration.interfaceId
+            )?.units
+          : undefined;
+    values[node.id] = {};
+    for (const connector of node.connectors.filter((candidate) => candidate.direction === 'output'))
+      values[node.id]![connector.id] = {
+        value: text,
+        quality: nodeSnapshot.quality,
+        units,
+        state: 'committed'
+      };
+  }
+  for (const [nodeId, typed] of Object.entries(debugInspection.value?.nodeValues ?? {})) {
+    const node = currentFlow.nodes.find((candidate) => candidate.id === nodeId);
+    if (!node) continue;
+    const text = typed.type === 'number' ? String(typed.number) : String(typed.value);
+    values[nodeId] ??= {};
+    for (const connector of node.connectors.filter((candidate) => candidate.direction === 'output'))
+      values[nodeId]![connector.id] = {
+        value: text,
+        quality: typed.quality ?? 'good',
+        state: 'paused-frame'
+      };
+  }
+  for (const connection of currentFlow.connections) {
+    const source = values[connection.start.nodeId]?.[connection.start.connectorId];
+    if (!source) continue;
+    (values[connection.end.nodeId] ??= {})[connection.end.connectorId] = source;
+  }
+  return values;
+});
 const selectedDebugTarget = computed(() =>
   debugTargets.value.find((target) => target.id === debugTargetId.value)
 );
@@ -480,6 +540,7 @@ const applyDebugSession = (session: Awaited<ReturnType<typeof flowDebugApi.stepN
   debugSnapshot.value = session.snapshot;
   debugCapabilities.value = session.capabilities;
   debugInspection.value = session.inspection;
+  debugExecutionOrder.value = session.executionOrder ?? [];
 };
 const stepNodeDebugSession = async (): Promise<void> => {
   if (!debugSessionId.value) return;
@@ -536,18 +597,32 @@ const resetEmulatorInputs = async (): Promise<void> => {
   if (!emulatorSnapshot.value) return;
   emulatorSnapshot.value = await flowEmulatorApi.resetInputs(emulatorSnapshot.value.emulatorId);
 };
-const toggleBreakpoint = async (nodeId: string): Promise<void> => {
+const setBreakpoint = async (
+  nodeId: string,
+  position: 'before' | 'after' | null
+): Promise<void> => {
   if (!debugSessionId.value || !debugCapabilities.value?.maximumBreakpoints) return;
-  const exists = debugBreakpoints.value.some((breakpoint) => breakpoint.nodeId === nodeId);
-  const next = exists
-    ? debugBreakpoints.value.filter((breakpoint) => breakpoint.nodeId !== nodeId)
-    : [...debugBreakpoints.value, { nodeId, position: 'before' as const }];
+  const retained = debugBreakpoints.value.filter((breakpoint) => breakpoint.nodeId !== nodeId);
+  const next = position ? [...retained, { nodeId, position }] : retained;
   try {
     const session = await flowDebugApi.replaceBreakpoints(props.flowId, debugSessionId.value, next);
     debugBreakpoints.value = session.breakpoints;
   } catch (error) {
     debugError.value = debugFailure(error);
   }
+};
+const runToNode = async (nodeId: string): Promise<void> => {
+  if (!debugSessionId.value) return;
+  try {
+    applyDebugSession(
+      await flowDebugApi.runTo(props.flowId, debugSessionId.value, { nodeId, position: 'before' })
+    );
+  } catch (error) {
+    debugError.value = debugFailure(error);
+  }
+};
+const focusDiagnosticNode = (nodeId: string): void => {
+  diagnosticNodeId.value = nodeId;
 };
 const runToBreakpoint = async (): Promise<void> => {
   const breakpoint = debugBreakpoints.value[0];

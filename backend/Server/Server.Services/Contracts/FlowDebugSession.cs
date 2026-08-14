@@ -22,4 +22,5 @@ public sealed record FlowDebugSession
     public FlowDebugCapabilities Capabilities { get; init; } = new() { StepTick = true };
     public IReadOnlyList<FlowDebugBreakpoint> Breakpoints { get; init; } = [];
     public FlowDebugInspection? Inspection { get; init; }
+    public IReadOnlyList<string> ExecutionOrder { get; init; } = [];
 }

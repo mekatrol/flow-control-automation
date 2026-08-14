@@ -16,6 +16,13 @@ export interface FlowRuntimeSnapshot {
   nodes: Record<string, NodeRuntimeSnapshot>;
 }
 
+export interface ConnectorRuntimeValue {
+  value: string;
+  quality: string;
+  units?: string;
+  state: 'committed' | 'paused-frame';
+}
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 const isDate = (value: unknown): value is string =>

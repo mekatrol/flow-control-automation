@@ -4,17 +4,16 @@
     class="flow-node"
     :data-node-id="node.id"
     :data-node-category="definition.category"
-    :class="{ selected, current, breakpoint }"
+    :class="{ selected, current, breakpoint: breakpointPositions?.length }"
     :transform="transform"
     role="button"
     tabindex="0"
-    :aria-label="`${node.label}, ${definition.label} node${status ? `, ${status}` : ''}${statusValue ? `, ${statusValue}` : ''}`"
+    :aria-label="nodeAriaLabel"
     :aria-pressed="selected"
     @click="emit(EVENTS.SELECT, node.id)"
     @pointerdown.stop="emit(EVENTS.DRAG_START, node.id, $event)"
     @keydown.enter.prevent="emit(EVENTS.SELECT, node.id)"
     @keydown.space.prevent="emit(EVENTS.SELECT, node.id)"
-    @dblclick.stop="emit('toggleBreakpoint', node.id)"
   >
     <rect
       class="node-body"
@@ -78,6 +77,28 @@
         emit(EVENTS.CONNECTOR_PREVIEW, { nodeId: node.id, connectorId: layout.connector.id })
       "
     />
+    <g v-for="layout in connectorLayouts" :key="`value-${layout.connector.id}`">
+      <text
+        v-if="connectorValues?.[layout.connector.id]"
+        class="connector-value"
+        :x="layout.x + (layout.connector.side === 'left' ? 8 : -8)"
+        :y="layout.y - 8"
+        :text-anchor="layout.connector.side === 'left' ? 'start' : 'end'"
+      >
+        {{ connectorText(layout.connector.id) }}
+      </text>
+    </g>
+    <text v-if="breakpointPositions?.includes('before')" class="breakpoint-marker" x="6" y="14">
+      B
+    </text>
+    <text
+      v-if="breakpointPositions?.includes('after')"
+      class="breakpoint-marker"
+      :x="definition.defaultSize.width - 14"
+      y="14"
+    >
+      A
+    </text>
   </g>
 </template>
 
@@ -94,6 +115,7 @@ import { useAutomation } from '@/composables/useAutomation';
 import { EVENTS } from '@/constants/events';
 import { getNodeKind } from '@/features/flows/nodeKinds';
 import type { FlowConnectionEndpoint, FlowNode } from '@/features/flows/types';
+import type { ConnectorRuntimeValue } from '@/features/flows/api/flowRuntimeApi';
 
 const props = defineProps<{
   automation: string;
@@ -104,7 +126,8 @@ const props = defineProps<{
   connectionStart?: FlowConnectionEndpoint;
   compatibleConnectorKeys?: string[];
   current?: boolean;
-  breakpoint?: boolean;
+  breakpointPositions?: ('before' | 'after')[];
+  connectorValues?: Record<string, ConnectorRuntimeValue>;
 }>();
 
 const automation = useAutomation(props.automation);
@@ -115,7 +138,6 @@ const emit = defineEmits<{
   (event: typeof EVENTS.CONNECTOR_ACTIVATE, endpoint: FlowConnectionEndpoint): void;
   (event: typeof EVENTS.CONNECTOR_RELEASE, endpoint: FlowConnectionEndpoint): void;
   (event: typeof EVENTS.CONNECTOR_PREVIEW, endpoint: FlowConnectionEndpoint): void;
-  (event: 'toggleBreakpoint', nodeId: string): void;
 }>();
 
 // A node is positioned by translating one SVG group. Its body, label, status,
@@ -134,6 +156,24 @@ const connectorLayouts = computed(() =>
   )
 );
 const connectorKey = (connectorId: string): string => `${props.node.id}:${connectorId}`;
+const connectorText = (connectorId: string): string => {
+  const value = props.connectorValues?.[connectorId];
+  return value
+    ? `${value.value}${value.units ? ` ${value.units}` : ''} · ${value.quality} · ${value.state}`
+    : '';
+};
+const nodeAriaLabel = computed(() => {
+  const values = props.node.connectors
+    .map((connector) => connectorText(connector.id))
+    .filter(Boolean)
+    .join(', ');
+  const breakpoints = props.breakpointPositions?.length
+    ? `, breakpoints ${props.breakpointPositions.join(' and ')}`
+    : '';
+  const status = props.status ? `, ${props.status}` : '';
+  const statusValue = props.statusValue ? `, ${props.statusValue}` : '';
+  return `${props.node.label}, ${definition.value.label} node${status}${statusValue}${values ? `, ${values}` : ''}${breakpoints}`;
+});
 </script>
 
 <style scoped>
@@ -179,5 +219,17 @@ const connectorKey = (connectorId: string): string => `${props.node.id}:${connec
 }
 .flow-node.breakpoint .node-body {
   stroke-dasharray: 6 3;
+}
+.connector-value {
+  fill: var(--color-text-primary);
+  font-size: var(--font-size-xs);
+  paint-order: stroke;
+  stroke: var(--color-surface-raised);
+  stroke-width: var(--stroke-width-heavy);
+}
+.breakpoint-marker {
+  fill: var(--color-warning-text);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
 }
 </style>
