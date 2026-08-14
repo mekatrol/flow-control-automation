@@ -182,6 +182,10 @@ VM. Do not implement tutorial-specific function semantics.
 
 ## 6. Delivery phases
 
+Implementation status: Phase 0 is complete. Phase 1 is next. The status refers
+to this simulator plan; similarly named phases in the earlier portable Flow IL
+roadmap are separate work.
+
 ### Phase 0 - Baseline and contract record
 
 **Purpose:** Establish an accurate implementation baseline and freeze the first
@@ -640,4 +644,3 @@ The overall plan is complete when:
 - Simulator output cannot operate physical equipment.
 - Required frontend, backend, portable-host, fixture, accessibility, and build
   gates pass.
-
