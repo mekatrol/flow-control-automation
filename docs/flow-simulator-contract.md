@@ -174,16 +174,18 @@ debug session per flow, replaces only on explicit request, disposes local VMs
 on replacement/stop, and asks remote transports to stop. Controller sessions
 have renewable dead-man leases; server-local sessions currently have no expiry.
 
-Emulator endpoints are rooted at `/api/emulators`: create, get, set Boolean
-point inputs, advance virtual time/optionally scan, inject a supported fault,
-reset/power-cycle, export the in-memory input/output trace, and delete. Instances
+Emulator endpoints are rooted at `/api/emulators`: create, get, set typed point
+or flow-interface inputs, atomically apply inputs and step, advance virtual
+time/optionally scan, inject a supported fault, reset persisted input defaults,
+reset/power-cycle VM state, export the in-memory input/output trace, and delete. Instances
 are held by a singleton service, dispose their VM on delete or service shutdown,
 and cap output samples at 1,024. They currently have no count limit, lease, or
-automatic disconnect cleanup. Inputs are point-addressed Boolean values and the
-export is not the persisted scenario contract in section 3.
+automatic disconnect cleanup. Inputs carry typed values, stable binding IDs,
+interface identity, and quality. Output history distinguishes proposed and
+committed simulator values and includes units, quality, last-change scan, and
+interface identity. The export is not the persisted scenario contract in section 3.
 
 Current error responses are inconsistent across these endpoint groups (plain
 `ErrorResponse`, compiler diagnostic arrays, and empty emulator 404s). Phase 1
 must introduce application-level simulator endpoints using section 5 without
 changing the portable execution path.
-

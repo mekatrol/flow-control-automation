@@ -174,6 +174,7 @@
         :lifecycle="simulator.lifecycle"
         :session="simulator.session"
         :error="simulator.error"
+        :flow-interface="flow.interface"
         @[EVENTS.START_SIMULATION]="startSimulation"
         @[EVENTS.STEP_TICK]="simulator.stepTick"
         @[EVENTS.STEP_NODE]="simulator.stepNode"
@@ -182,6 +183,11 @@
         @[EVENTS.PAUSE]="simulator.pause"
         @[EVENTS.RESTART]="simulator.restart"
         @[EVENTS.STOP_SIMULATION]="simulator.stop"
+        @[EVENTS.APPLY_INPUTS_STEP]="simulator.applyInputsAndStep"
+        @[EVENTS.ADVANCE]="simulator.advance"
+        @[EVENTS.FAULT]="simulator.fault"
+        @[EVENTS.RESET]="simulator.resetIo"
+        @[EVENTS.RESET_INPUTS]="simulator.resetInputs"
       />
 
       <AppFlowDebugPanel
@@ -215,10 +221,12 @@
         v-if="workspaceMode === 'debugger' && selectedDebugTarget?.kind === 'emulator'"
         automation="flow-emulator"
         :snapshot="emulatorSnapshot"
-        @set-input="setEmulatorInput"
-        @advance="advanceEmulator"
-        @fault="setEmulatorFault"
-        @reset="resetEmulator"
+        :flow-interface="flow.interface"
+        @[EVENTS.APPLY_INPUTS_STEP]="applyEmulatorInputsAndStep"
+        @[EVENTS.ADVANCE]="advanceEmulator"
+        @[EVENTS.FAULT]="setEmulatorFault"
+        @[EVENTS.RESET]="resetEmulator"
+        @[EVENTS.RESET_INPUTS]="resetEmulatorInputs"
       />
 
       <AppFlowDesignerCanvas
@@ -497,11 +505,14 @@ const restartDebugSession = async (): Promise<void> => {
     debugError.value = debugFailure(error);
   }
 };
-const setEmulatorInput = async (pointId: string, value: boolean): Promise<void> => {
+const applyEmulatorInputsAndStep = async (
+  inputs: import('@/features/flows/api/flowEmulatorApi').EmulatorInputChange[]
+): Promise<void> => {
   if (!emulatorSnapshot.value) return;
-  emulatorSnapshot.value = await flowEmulatorApi.setInputs(emulatorSnapshot.value.emulatorId, [
-    { pointId, value, isGood: true }
-  ]);
+  emulatorSnapshot.value = await flowEmulatorApi.applyInputsAndStep(
+    emulatorSnapshot.value.emulatorId,
+    inputs
+  );
 };
 const advanceEmulator = async (milliseconds: number): Promise<void> => {
   if (!emulatorSnapshot.value) return;
@@ -520,6 +531,10 @@ const resetEmulator = async (powerCycle: boolean): Promise<void> => {
     emulatorSnapshot.value.emulatorId,
     powerCycle
   );
+};
+const resetEmulatorInputs = async (): Promise<void> => {
+  if (!emulatorSnapshot.value) return;
+  emulatorSnapshot.value = await flowEmulatorApi.resetInputs(emulatorSnapshot.value.emulatorId);
 };
 const toggleBreakpoint = async (nodeId: string): Promise<void> => {
   if (!debugSessionId.value || !debugCapabilities.value?.maximumBreakpoints) return;

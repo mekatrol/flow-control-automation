@@ -3,10 +3,13 @@ namespace Server.Services.Contracts;
 public sealed record EmulatorOutputSample(
     ulong ScanNumber,
     ulong TimestampMilliseconds,
-    string PointId,
-    bool ProposedValue,
-    bool EffectiveValue,
+    string OutputId,
+    FlowVmValue ProposedValue,
+    FlowVmValue EffectiveValue,
     string Quality,
+    string? Units,
+    ulong LastChangeScan,
+    bool IsInterface,
     string ArbitrationOwner,
     byte Priority,
     ulong? ExpiresAtMilliseconds);

@@ -7,15 +7,30 @@ export interface EmulatorSnapshot {
   lifecycleState: string;
   virtualTimeMilliseconds: number;
   scanNumber: number;
-  inputs: { pointId: string; value: boolean; isGood: boolean }[];
+  inputs: { pointId: string; typedValue: EmulatorValue; isInterface: boolean }[];
   outputHistory: {
     scanNumber: number;
-    pointId: string;
-    proposedValue: boolean;
-    effectiveValue: boolean;
+    outputId: string;
+    proposedValue: EmulatorValue;
+    effectiveValue: EmulatorValue;
     quality: string;
+    units?: string;
+    lastChangeScan: number;
+    isInterface: boolean;
   }[];
   activeFault?: string;
+}
+
+export interface EmulatorValue {
+  type: 'boolean' | 'number';
+  boolean: boolean;
+  number: number;
+  quality: 'good' | 'bad' | 'stale' | 'unavailable';
+}
+
+export interface EmulatorInputChange {
+  inputId: string;
+  typedValue: EmulatorValue;
 }
 
 const json = async <T>(url: string, init?: RequestInit): Promise<T> => {
@@ -31,9 +46,15 @@ export const flowEmulatorApi = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ source })
     }),
-  setInputs: (emulatorId: string, inputs: { pointId: string; value: boolean; isGood: boolean }[]) =>
+  setInputs: (emulatorId: string, inputs: EmulatorInputChange[]) =>
     json<EmulatorSnapshot>(`/api/emulators/${encodeURIComponent(emulatorId)}/inputs`, {
       method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ inputs })
+    }),
+  applyInputsAndStep: (emulatorId: string, inputs: EmulatorInputChange[]) =>
+    json<EmulatorSnapshot>(`/api/emulators/${encodeURIComponent(emulatorId)}/apply-and-step`, {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ inputs })
     }),
@@ -54,5 +75,9 @@ export const flowEmulatorApi = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ powerCycle })
+    }),
+  resetInputs: (emulatorId: string) =>
+    json<EmulatorSnapshot>(`/api/emulators/${encodeURIComponent(emulatorId)}/reset-inputs`, {
+      method: 'POST'
     })
 };

@@ -123,6 +123,10 @@ export const createExecutableFlowSource = (
       source: { nodeId: connection.start.nodeId, portId: connection.start.connectorId },
       target: { nodeId: connection.end.nodeId, portId: connection.end.connectorId }
     })),
-    interface: structuredClone(flow.interface)
+    interface: {
+      schemaVersion: flow.interface.schemaVersion,
+      inputs: flow.interface.inputs.map((entry) => ({ ...entry })),
+      outputs: flow.interface.outputs.map((entry) => ({ ...entry }))
+    }
   };
 };

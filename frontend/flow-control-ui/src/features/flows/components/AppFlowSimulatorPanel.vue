@@ -82,21 +82,36 @@
       <p>Instruction {{ session.inspection?.instructionPointer ?? 'at scan boundary' }}</p>
       <p>{{ session.breakpoints.length }} breakpoints</p>
     </details>
+    <AppFlowEmulatorPanel
+      v-if="session?.io"
+      automation="simulator-io"
+      :snapshot="session.io"
+      :flow-interface="flowInterface"
+      @[EVENTS.APPLY_INPUTS_STEP]="forwardInputs"
+      @[EVENTS.ADVANCE]="forwardAdvance"
+      @[EVENTS.FAULT]="forwardFault"
+      @[EVENTS.RESET]="forwardReset"
+      @[EVENTS.RESET_INPUTS]="emit(EVENTS.RESET_INPUTS)"
+    />
   </section>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
 import AppButton from '@/components/AppButton.vue';
+import AppFlowEmulatorPanel from '@/features/flows/components/AppFlowEmulatorPanel.vue';
 import { useAutomation } from '@/composables/useAutomation';
 import { EVENTS } from '@/constants/events';
 import type { SimulatorLifecycle, SimulatorSession } from '@/features/flows/api/flowSimulatorApi';
+import type { EmulatorInputChange } from '@/features/flows/api/flowEmulatorApi';
+import type { FlowInterface } from '@/features/flows/types';
 
 const props = defineProps<{
   automation: string;
   lifecycle: SimulatorLifecycle;
   session?: SimulatorSession;
   error?: string;
+  flowInterface?: FlowInterface;
 }>();
 const emit = defineEmits<{
   (event: typeof EVENTS.START_SIMULATION): void;
@@ -104,9 +119,22 @@ const emit = defineEmits<{
   (event: typeof EVENTS.STEP_NODE): void;
   (event: typeof EVENTS.STEP_INSTRUCTION): void;
   (event: typeof EVENTS.STOP_SIMULATION): void;
+  (event: typeof EVENTS.APPLY_INPUTS_STEP, inputs: EmulatorInputChange[]): void;
+  (event: typeof EVENTS.ADVANCE, milliseconds: number): void;
+  (event: typeof EVENTS.FAULT, fault: string | null): void;
+  (event: typeof EVENTS.RESET, powerCycle: boolean): void;
+  (event: typeof EVENTS.RESET_INPUTS): void;
   (event: typeof EVENTS.RUN | typeof EVENTS.PAUSE | typeof EVENTS.RESTART): void;
 }>();
 const automation = useAutomation(props.automation);
+const flowInterface = computed<FlowInterface>(
+  () => props.flowInterface ?? { schemaVersion: 1, inputs: [], outputs: [] }
+);
+const forwardInputs = (inputs: EmulatorInputChange[]): void =>
+  emit(EVENTS.APPLY_INPUTS_STEP, inputs);
+const forwardAdvance = (milliseconds: number): void => emit(EVENTS.ADVANCE, milliseconds);
+const forwardFault = (fault: string | null): void => emit(EVENTS.FAULT, fault);
+const forwardReset = (powerCycle: boolean): void => emit(EVENTS.RESET, powerCycle);
 const active = computed(() =>
   ['ready', 'running', 'paused', 'faulted', 'stale'].includes(props.lifecycle)
 );

@@ -11,6 +11,11 @@ public static class FlowSimulatorEndpointRouteBuilderExtensions
         endpoints.MapPost("/api/flows/{flowId}/simulator-sessions", Start);
         endpoints.MapGet("/api/flows/{flowId}/simulator-sessions/{sessionId}", Get);
         endpoints.MapPost("/api/flows/{flowId}/simulator-sessions/{sessionId}/step", Step);
+        endpoints.MapPost("/api/flows/{flowId}/simulator-sessions/{sessionId}/apply-and-step", ApplyInputsAndStep);
+        endpoints.MapPost("/api/flows/{flowId}/simulator-sessions/{sessionId}/advance", Advance);
+        endpoints.MapPut("/api/flows/{flowId}/simulator-sessions/{sessionId}/fault", InjectFault);
+        endpoints.MapPost("/api/flows/{flowId}/simulator-sessions/{sessionId}/reset-io", ResetIo);
+        endpoints.MapPost("/api/flows/{flowId}/simulator-sessions/{sessionId}/reset-inputs", ResetInputs);
         endpoints.MapPost("/api/flows/{flowId}/simulator-sessions/{sessionId}/step-node", StepNode);
         endpoints.MapPost("/api/flows/{flowId}/simulator-sessions/{sessionId}/step-instruction", StepInstruction);
         endpoints.MapPost("/api/flows/{flowId}/simulator-sessions/{sessionId}/restart", Restart);
@@ -31,6 +36,16 @@ public static class FlowSimulatorEndpointRouteBuilderExtensions
         await Map(() => simulator.GetAsync(flowId, sessionId, cancellationToken));
     private static async Task<IResult> Step(string flowId, string sessionId, IFlowSimulatorService simulator, CancellationToken cancellationToken) =>
         await Map(() => simulator.StepTickAsync(flowId, sessionId, cancellationToken));
+    private static async Task<IResult> ApplyInputsAndStep(string flowId, string sessionId, SetEmulatorInputsRequest request, IFlowSimulatorService simulator, CancellationToken cancellationToken) =>
+        await Map(() => simulator.ApplyInputsAndStepAsync(flowId, sessionId, request.Inputs, cancellationToken));
+    private static async Task<IResult> Advance(string flowId, string sessionId, AdvanceEmulatorRequest request, IFlowSimulatorService simulator, CancellationToken cancellationToken) =>
+        await Map(() => simulator.AdvanceAsync(flowId, sessionId, request.Milliseconds, cancellationToken));
+    private static async Task<IResult> InjectFault(string flowId, string sessionId, InjectEmulatorFaultRequest request, IFlowSimulatorService simulator, CancellationToken cancellationToken) =>
+        await Map(() => simulator.InjectFaultAsync(flowId, sessionId, request.Fault, cancellationToken));
+    private static async Task<IResult> ResetIo(string flowId, string sessionId, ResetEmulatorRequest request, IFlowSimulatorService simulator, CancellationToken cancellationToken) =>
+        await Map(() => simulator.ResetIoAsync(flowId, sessionId, request.PowerCycle, cancellationToken));
+    private static async Task<IResult> ResetInputs(string flowId, string sessionId, IFlowSimulatorService simulator, CancellationToken cancellationToken) =>
+        await Map(() => simulator.ResetInputsAsync(flowId, sessionId, cancellationToken));
     private static async Task<IResult> StepNode(string flowId, string sessionId, IFlowSimulatorService simulator, CancellationToken cancellationToken) =>
         await Map(() => simulator.StepNodeAsync(flowId, sessionId, cancellationToken));
     private static async Task<IResult> StepInstruction(string flowId, string sessionId, IFlowSimulatorService simulator, CancellationToken cancellationToken) =>

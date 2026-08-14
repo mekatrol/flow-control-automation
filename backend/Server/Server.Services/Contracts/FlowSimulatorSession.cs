@@ -9,6 +9,7 @@ public sealed record FlowSimulatorSession
     public required string LifecycleState { get; init; }
     public required FlowDebugCapabilities Capabilities { get; init; }
     public DebugRuntimeSnapshot? Snapshot { get; init; }
+    public FlowEmulatorSnapshot? Io { get; init; }
     public FlowDebugInspection? Inspection { get; init; }
     public IReadOnlyList<FlowDebugBreakpoint> Breakpoints { get; init; } = [];
     public uint LeaseRemainingMilliseconds { get; init; }

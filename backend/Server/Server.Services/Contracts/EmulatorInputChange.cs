@@ -1,7 +1,6 @@
 namespace Server.Services.Contracts;
 
 public sealed record EmulatorInputChange(
-    string PointId,
-    bool Value,
-    bool IsGood = true,
+    string InputId,
+    FlowVmValue TypedValue,
     ulong? EffectiveAtMilliseconds = null);

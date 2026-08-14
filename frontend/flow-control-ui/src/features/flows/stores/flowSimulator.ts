@@ -8,6 +8,7 @@ import {
   type SimulatorLifecycle,
   type SimulatorSession
 } from '@/features/flows/api/flowSimulatorApi';
+import type { EmulatorInputChange } from '@/features/flows/api/flowEmulatorApi';
 
 export const useFlowSimulatorStore = defineStore('flow-simulator', () => {
   const lifecycle = ref<SimulatorLifecycle>('idle');
@@ -75,6 +76,23 @@ export const useFlowSimulatorStore = defineStore('flow-simulator', () => {
   };
 
   const stepTick = (): Promise<void> => operate(flowSimulatorApi.stepTick);
+  const applyInputsAndStep = (inputs: EmulatorInputChange[]): Promise<void> =>
+    operate((flowId, sessionId, signal) =>
+      flowSimulatorApi.applyInputsAndStep(flowId, sessionId, inputs, signal)
+    );
+  const advance = (milliseconds: number): Promise<void> =>
+    operate((flowId, sessionId, signal) =>
+      flowSimulatorApi.advance(flowId, sessionId, milliseconds, signal)
+    );
+  const fault = (value: string | null): Promise<void> =>
+    operate((flowId, sessionId, signal) =>
+      flowSimulatorApi.fault(flowId, sessionId, value, signal)
+    );
+  const resetIo = (powerCycle: boolean): Promise<void> =>
+    operate((flowId, sessionId, signal) =>
+      flowSimulatorApi.resetIo(flowId, sessionId, powerCycle, signal)
+    );
+  const resetInputs = (): Promise<void> => operate(flowSimulatorApi.resetInputs);
   const stepNode = (): Promise<void> => operate(flowSimulatorApi.stepNode);
   const stepInstruction = (): Promise<void> => operate(flowSimulatorApi.stepInstruction);
   const restart = (): Promise<void> => operate(flowSimulatorApi.restart);
@@ -130,6 +148,11 @@ export const useFlowSimulatorStore = defineStore('flow-simulator', () => {
     busy,
     start,
     stepTick,
+    applyInputsAndStep,
+    advance,
+    fault,
+    resetIo,
+    resetInputs,
     stepNode,
     stepInstruction,
     run,

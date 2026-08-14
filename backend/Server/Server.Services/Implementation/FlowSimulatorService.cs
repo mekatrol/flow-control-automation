@@ -16,12 +16,18 @@ public sealed class FlowSimulatorService(
         ArgumentNullException.ThrowIfNull(source);
         var registry = new FlowDebugSessionRegistry();
         FlowSimulatorSessionRegistry.Entry entry;
-        try { entry = sessions.Add(source.Id, registry, replaceExisting); }
-        catch { registry.Dispose(); throw; }
+        var emulator = await emulators.CreateAsync(source, cancellationToken);
+        try { entry = sessions.Add(source.Id, registry, replaceExisting, emulator.EmulatorId, () => emulators.Delete(emulator.EmulatorId)); }
+        catch
+        {
+            registry.Dispose();
+            emulators.Delete(emulator.EmulatorId);
+            throw;
+        }
         try
         {
-            var result = await Debug(registry).StartAsync(new StartFlowDebugSession(source, "server", false), cancellationToken);
-            return Map(result, sessions.Touch(entry));
+            var result = await Debug(registry).StartAsync(new StartFlowDebugSession(source, "emulator", false, emulator.EmulatorId), cancellationToken);
+            return Map(result, entry, sessions.Touch(entry));
         }
         catch
         {
@@ -37,7 +43,49 @@ public sealed class FlowSimulatorService(
     {
         var entry = Require(flowId, sessionId);
         await Debug(entry.Registry).StepAsync(flowId, sessionId, cancellationToken);
-        return Map(entry.Registry.Session!, sessions.Touch(entry));
+        return Map(entry.Registry.Session!, entry, sessions.Touch(entry));
+    }
+
+    public async Task<FlowSimulatorSession> ApplyInputsAndStepAsync(
+        string flowId,
+        string sessionId,
+        IReadOnlyList<EmulatorInputChange> inputs,
+        CancellationToken cancellationToken)
+    {
+        var entry = Require(flowId, sessionId);
+        emulators.SetInputs(entry.EmulatorId!, inputs);
+        await Debug(entry.Registry).StepAsync(flowId, sessionId, cancellationToken);
+        return Map(entry.Registry.Session!, entry, sessions.Touch(entry));
+    }
+
+    public async Task<FlowSimulatorSession> AdvanceAsync(string flowId, string sessionId, ulong milliseconds, CancellationToken cancellationToken)
+    {
+        var entry = Require(flowId, sessionId);
+        emulators.Advance(entry.EmulatorId!, milliseconds, scan: false);
+        await Debug(entry.Registry).StepAsync(flowId, sessionId, cancellationToken);
+        return Map(entry.Registry.Session!, entry, sessions.Touch(entry));
+    }
+
+    public Task<FlowSimulatorSession> InjectFaultAsync(string flowId, string sessionId, string? fault, CancellationToken cancellationToken)
+    {
+        var entry = Require(flowId, sessionId);
+        emulators.InjectFault(entry.EmulatorId!, fault);
+        return Task.FromResult(Map(entry.Registry.Session!, entry, sessions.Touch(entry)));
+    }
+
+    public async Task<FlowSimulatorSession> ResetIoAsync(string flowId, string sessionId, bool powerCycle, CancellationToken cancellationToken)
+    {
+        var entry = Require(flowId, sessionId);
+        emulators.Reset(entry.EmulatorId!, powerCycle);
+        var debug = await Debug(entry.Registry).RestartAsync(flowId, sessionId, cancellationToken);
+        return Map(debug, entry, sessions.Touch(entry));
+    }
+
+    public Task<FlowSimulatorSession> ResetInputsAsync(string flowId, string sessionId, CancellationToken cancellationToken)
+    {
+        var entry = Require(flowId, sessionId);
+        emulators.ResetInputs(entry.EmulatorId!);
+        return Task.FromResult(Map(entry.Registry.Session!, entry, sessions.Touch(entry)));
     }
 
     public async Task<FlowSimulatorSession> StepNodeAsync(string flowId, string sessionId, CancellationToken cancellationToken) =>
@@ -61,7 +109,7 @@ public sealed class FlowSimulatorService(
     private async Task<FlowSimulatorSession> Execute(string flowId, string sessionId, Func<IFlowDebugService, Task<FlowDebugSession>> operation)
     {
         var entry = Require(flowId, sessionId);
-        return Map(await operation(Debug(entry.Registry)), sessions.Touch(entry));
+        return Map(await operation(Debug(entry.Registry)), entry, sessions.Touch(entry));
     }
 
     private FlowSimulatorSessionRegistry.Entry Require(string flowId, string sessionId)
@@ -76,7 +124,7 @@ public sealed class FlowSimulatorService(
     private FlowDebugService Debug(FlowDebugSessionRegistry registry) => new(
         targetResolver, compiler, transport, registry, machines, new ShadowPointAdapter(points), emulators);
 
-    private static FlowSimulatorSession Map(FlowDebugSession session, uint lease) => new()
+    private FlowSimulatorSession Map(FlowDebugSession session, FlowSimulatorSessionRegistry.Entry entry, uint lease) => new()
     {
         SessionId = session.DebugSessionId,
         FlowId = session.FlowId,
@@ -85,6 +133,7 @@ public sealed class FlowSimulatorService(
         LifecycleState = session.LifecycleState == "fault" ? "faulted" : session.LifecycleState,
         Capabilities = session.Capabilities,
         Snapshot = session.Snapshot,
+        Io = entry.EmulatorId is null ? null : emulators.Get(entry.EmulatorId),
         Inspection = session.Inspection,
         Breakpoints = session.Breakpoints,
         LeaseRemainingMilliseconds = lease

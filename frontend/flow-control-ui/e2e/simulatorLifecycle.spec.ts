@@ -2,7 +2,7 @@ import { expect, test } from './fixtures/flowTest';
 
 const flow = {
   id: 'simulator-lifecycle', name: 'Simulator lifecycle', description: 'Draft simulation.',
-  status: 'draft', disabled: false, updatedAt: '2026-08-14T10:00:00+10:00',
+  status: 'draft', disabled: false, updatedAt: '2026-08-14T10:00:00+10:00', interface: { schemaVersion: 1, inputs: [], outputs: [] },
   nodes: [{ id: 'constant-1', kind: 'digitalConstant', label: 'Enabled', x: 100, y: 100, zOrder: 0,
     connectors: [{ id: 'value', label: 'Value', direction: 'output', dataType: 'boolean', side: 'right' }],
     configuration: { value: true } }], connections: []

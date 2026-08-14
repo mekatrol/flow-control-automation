@@ -10,9 +10,11 @@ public static class FlowEmulatorEndpointRouteBuilderExtensions
         endpoints.MapPost("/api/emulators", Create);
         endpoints.MapGet("/api/emulators/{emulatorId}", Get);
         endpoints.MapPut("/api/emulators/{emulatorId}/inputs", SetInputs);
+        endpoints.MapPost("/api/emulators/{emulatorId}/apply-and-step", ApplyInputsAndStep);
         endpoints.MapPost("/api/emulators/{emulatorId}/advance", Advance);
         endpoints.MapPut("/api/emulators/{emulatorId}/fault", InjectFault);
         endpoints.MapPost("/api/emulators/{emulatorId}/reset", Reset);
+        endpoints.MapPost("/api/emulators/{emulatorId}/reset-inputs", ResetInputs);
         endpoints.MapGet("/api/emulators/{emulatorId}/scenario", ExportScenario);
         endpoints.MapDelete("/api/emulators/{emulatorId}", Delete);
         return endpoints;
@@ -43,6 +45,12 @@ public static class FlowEmulatorEndpointRouteBuilderExtensions
         SetEmulatorInputsRequest request,
         IFlowEmulatorService emulators) => Map(() => emulators.SetInputs(emulatorId, request.Inputs));
 
+    private static IResult ApplyInputsAndStep(
+        string emulatorId,
+        SetEmulatorInputsRequest request,
+        IFlowEmulatorService emulators) =>
+        Map(() => emulators.ApplyInputsAndStep(emulatorId, request.Inputs));
+
     private static IResult Advance(
         string emulatorId,
         AdvanceEmulatorRequest request,
@@ -57,6 +65,9 @@ public static class FlowEmulatorEndpointRouteBuilderExtensions
         string emulatorId,
         ResetEmulatorRequest request,
         IFlowEmulatorService emulators) => Map(() => emulators.Reset(emulatorId, request.PowerCycle));
+
+    private static IResult ResetInputs(string emulatorId, IFlowEmulatorService emulators) =>
+        Map(() => emulators.ResetInputs(emulatorId));
 
     private static IResult ExportScenario(string emulatorId, IFlowEmulatorService emulators) =>
         Map(() => emulators.ExportScenario(emulatorId));

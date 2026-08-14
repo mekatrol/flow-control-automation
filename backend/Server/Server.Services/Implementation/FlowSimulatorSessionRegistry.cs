@@ -16,7 +16,7 @@ public sealed class FlowSimulatorSessionRegistry(TimeProvider timeProvider) : ID
         }
     }
 
-    internal Entry Add(string flowId, FlowDebugSessionRegistry registry, bool replaceExisting)
+    internal Entry Add(string flowId, FlowDebugSessionRegistry registry, bool replaceExisting, string? emulatorId = null, Action? cleanup = null)
     {
         lock (_gate)
         {
@@ -29,7 +29,7 @@ public sealed class FlowSimulatorSessionRegistry(TimeProvider timeProvider) : ID
             }
             if (_entries.Count >= MaximumSessions)
                 throw new FlowSimulatorException("simulator_limit_exceeded", "The active simulator session limit has been reached.");
-            var entry = new Entry(registry, timeProvider.GetUtcNow());
+            var entry = new Entry(registry, timeProvider.GetUtcNow(), emulatorId, cleanup);
             _entries.Add(flowId, entry);
             return entry;
         }
@@ -85,10 +85,15 @@ public sealed class FlowSimulatorSessionRegistry(TimeProvider timeProvider) : ID
         }
     }
 
-    internal sealed class Entry(FlowDebugSessionRegistry registry, DateTimeOffset lastAccess) : IDisposable
+    internal sealed class Entry(FlowDebugSessionRegistry registry, DateTimeOffset lastAccess, string? emulatorId, Action? cleanup) : IDisposable
     {
         public FlowDebugSessionRegistry Registry { get; } = registry;
+        public string? EmulatorId { get; } = emulatorId;
         public DateTimeOffset LastAccess { get; set; } = lastAccess;
-        public void Dispose() => Registry.Dispose();
+        public void Dispose()
+        {
+            Registry.Dispose();
+            cleanup?.Invoke();
+        }
     }
 }

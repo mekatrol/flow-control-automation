@@ -6,6 +6,7 @@ import type {
   FlowDebugCapabilities,
   FlowDebugInspection
 } from './flowDebugApi';
+import type { EmulatorInputChange, EmulatorSnapshot } from './flowEmulatorApi';
 
 export type SimulatorLifecycle =
   | 'idle'
@@ -25,6 +26,7 @@ export interface SimulatorSession {
   lifecycleState: Exclude<SimulatorLifecycle, 'idle' | 'compiling' | 'stale'>;
   capabilities: FlowDebugCapabilities;
   snapshot?: DebugRuntimeSnapshot;
+  io?: EmulatorSnapshot;
   inspection?: FlowDebugInspection;
   breakpoints: FlowDebugBreakpoint[];
   leaseRemainingMilliseconds: number;
@@ -100,6 +102,53 @@ export const flowSimulatorApi = {
     request(sessionUrl(flowId, sessionId), { method: 'GET' }, signal),
   stepTick: (flowId: string, sessionId: string, signal?: AbortSignal) =>
     request(`${sessionUrl(flowId, sessionId)}/step`, { method: 'POST' }, signal),
+  applyInputsAndStep: (
+    flowId: string,
+    sessionId: string,
+    inputs: EmulatorInputChange[],
+    signal?: AbortSignal
+  ) =>
+    request(
+      `${sessionUrl(flowId, sessionId)}/apply-and-step`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inputs })
+      },
+      signal
+    ),
+  advance: (flowId: string, sessionId: string, milliseconds: number, signal?: AbortSignal) =>
+    request(
+      `${sessionUrl(flowId, sessionId)}/advance`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ milliseconds, scan: true })
+      },
+      signal
+    ),
+  fault: (flowId: string, sessionId: string, fault: string | null, signal?: AbortSignal) =>
+    request(
+      `${sessionUrl(flowId, sessionId)}/fault`,
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fault })
+      },
+      signal
+    ),
+  resetIo: (flowId: string, sessionId: string, powerCycle: boolean, signal?: AbortSignal) =>
+    request(
+      `${sessionUrl(flowId, sessionId)}/reset-io`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ powerCycle })
+      },
+      signal
+    ),
+  resetInputs: (flowId: string, sessionId: string, signal?: AbortSignal) =>
+    request(`${sessionUrl(flowId, sessionId)}/reset-inputs`, { method: 'POST' }, signal),
   stepNode: (flowId: string, sessionId: string, signal?: AbortSignal) =>
     request(`${sessionUrl(flowId, sessionId)}/step-node`, { method: 'POST' }, signal),
   stepInstruction: (flowId: string, sessionId: string, signal?: AbortSignal) =>

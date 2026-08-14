@@ -182,7 +182,7 @@ VM. Do not implement tutorial-specific function semantics.
 
 ## 6. Delivery phases
 
-Implementation status: Phases 0, 1, and 2 are complete. Phase 3 is next. The status refers
+Implementation status: Phases 0, 1, 2, and 3 are complete. Phase 4 is next. The status refers
 to this simulator plan; similarly named phases in the earlier portable Flow IL
 roadmap are separate work.
 
