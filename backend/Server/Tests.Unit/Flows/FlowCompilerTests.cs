@@ -1,6 +1,7 @@
 using Server.Services;
 using Server.Services.Contracts;
 using Server.Services.Implementation;
+using System.Text;
 using System.Text.Json;
 
 namespace Tests.Unit.Flows;
@@ -159,6 +160,38 @@ public sealed class FlowCompilerTests
         });
 
         Assert.That(second.Artifact.ToArray(), Is.Not.EqualTo(first.Artifact.ToArray()));
+    }
+
+    [Test]
+    public void InterfaceTerminalsCompileDeterministicallyWithStableSourceIdentity()
+    {
+        var source = ReadSource("valid-two-button-and") with
+        {
+            Interface = new FlowInterface
+            {
+                Inputs = [new FlowInterfaceInput { Id = "temperature", Name = "Temperature", DataType = "number", Units = "°C", Required = true }],
+                Outputs = [new FlowInterfaceOutput { Id = "result", Name = "Result", DataType = "number", Units = "°C" }]
+            },
+            Nodes =
+            [
+                new ExecutableFlowNode { Id = "input", Kind = "flowInput", Configuration = new Dictionary<string, JsonElement> { ["interfaceId"] = JsonSerializer.SerializeToElement("temperature") } },
+                new ExecutableFlowNode { Id = "output", Kind = "flowOutput", Configuration = new Dictionary<string, JsonElement> { ["interfaceId"] = JsonSerializer.SerializeToElement("result") } }
+            ],
+            Connections = [new ExecutableFlowConnection(new ExecutableFlowEndpoint("input", "value"), new ExecutableFlowEndpoint("output", "value"))]
+        };
+        var request = Request(source);
+
+        var first = new FlowCompiler().Compile(request);
+        var second = new FlowCompiler().Compile(request);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(first.Artifact.ToArray(), Is.EqualTo(second.Artifact.ToArray()));
+            Assert.That(first.Schedule, Is.EqualTo(new[] { "input", "output" }));
+            Assert.That(first.NodeIndices.Keys, Is.EquivalentTo(new[] { "input", "output" }));
+            Assert.That(Encoding.UTF8.GetString(first.Artifact.Span), Does.Contain("temperature"));
+            Assert.That(Encoding.UTF8.GetString(first.Artifact.Span), Does.Contain("result"));
+        });
     }
 
     [Test]

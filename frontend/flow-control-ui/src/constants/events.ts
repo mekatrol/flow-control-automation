@@ -41,6 +41,7 @@ export const EVENTS = {
   TOGGLE_DISABLED: 'toggle-disabled',
   TOGGLE_SORT: 'toggle-sort',
   UPDATE_CONFIGURATION: 'update-configuration',
+  UPDATE_INTERFACE: 'update-interface',
   UPDATE_LABEL: 'update-label',
   UPDATE_MODEL_VALUE: 'update:modelValue',
   UPDATE_NODE_CONFIGURATION: 'update-node-configuration',

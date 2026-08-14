@@ -22,8 +22,19 @@
 
       <label v-for="field in definition.editor" :key="field.key">
         <span>{{ field.label }}</span>
+        <select
+          v-if="field.key === 'interfaceId'"
+          :value="node.configuration.interfaceId"
+          :aria-invalid="Boolean(errors.interfaceId)"
+          @change="updateField(field, $event)"
+        >
+          <option value="">Choose an interface entry</option>
+          <option v-for="entry in interfaceEntries" :key="entry.id" :value="entry.id">
+            {{ entry.name }} · {{ entry.dataType }}{{ entry.units ? ` · ${entry.units}` : '' }}
+          </option>
+        </select>
         <input
-          v-if="field.input === 'checkbox'"
+          v-else-if="field.input === 'checkbox'"
           type="checkbox"
           :checked="Boolean(node.configuration[field.key])"
           @change="updateField(field, $event)"
@@ -94,9 +105,9 @@ import { useAutomation } from '@/composables/useAutomation';
 import { EVENTS } from '@/constants/events';
 import { getNodeIconUrl, getNodeKind } from '@/features/flows/nodeKinds';
 import type { NodeEditorField } from '@/features/flows/nodeKinds';
-import type { FlowConfigurationValue, FlowNode } from '@/features/flows/types';
+import type { FlowConfigurationValue, FlowInterface, FlowNode } from '@/features/flows/types';
 
-const props = defineProps<{ automation: string; node: FlowNode }>();
+const props = defineProps<{ automation: string; node: FlowNode; flowInterface?: FlowInterface }>();
 const emit = defineEmits<{
   (event: typeof EVENTS.UPDATE_LABEL, label: string): void;
   (event: typeof EVENTS.UPDATE_CONFIGURATION, key: string, value: FlowConfigurationValue): void;
@@ -104,6 +115,11 @@ const emit = defineEmits<{
 
 const automation = useAutomation(props.automation);
 const definition = computed(() => getNodeKind(props.node.kind));
+const interfaceEntries = computed(() =>
+  props.node.kind === 'flowInput'
+    ? (props.flowInterface?.inputs ?? [])
+    : (props.flowInterface?.outputs ?? [])
+);
 const errors = ref<Record<string, string>>({});
 
 const updateLabel = (event: Event): void => {

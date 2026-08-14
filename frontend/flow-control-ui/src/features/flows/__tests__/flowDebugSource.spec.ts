@@ -23,6 +23,7 @@ const debugFlow = (): FlowDefinition => {
   const output = createDefaultNode('digitalOutput', { x: 400, y: 0 }, 2, 'output');
   output.configuration.pointId = 'relay-1';
   return {
+    interface: { schemaVersion: 1, inputs: [], outputs: [] },
     id: 'flow-a',
     name: 'Digital shadow flow',
     description: '',

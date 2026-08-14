@@ -5,6 +5,7 @@ import { pagedFlows } from './fixtures/flowTest';
 import type { FlowDefinition, FlowNode } from '@/features/flows/types';
 
 const emptyFlow = (): FlowDefinition => ({
+  interface: { schemaVersion: 1, inputs: [], outputs: [] },
   id: 'critical-journey',
   name: 'Critical journey',
   description: '',
@@ -121,6 +122,7 @@ test('renders a large validated graph without dropping nodes or connections', as
     configuration: { operation: 'sum' }
   }));
   const flow: FlowDefinition = {
+    interface: { schemaVersion: 1, inputs: [], outputs: [] },
     id: 'large-graph',
     name: 'Large graph',
     description: 'Render hardening fixture',

@@ -6,11 +6,38 @@ import type { FlowDto } from './flowDto';
 // dirty-state comparison and explicit discard.
 const copyFlow = (flow: FlowDefinition | FlowDto): FlowDto => ({
   ...flow,
-  nodes: flow.nodes.map((node) => ({
-    ...node,
-    connectors: node.connectors.map((connector) => ({ ...connector })),
-    configuration: { ...node.configuration }
-  })),
+  interface: {
+    schemaVersion: 1,
+    inputs: flow.interface.inputs.map((entry) => ({ ...entry })),
+    outputs: flow.interface.outputs.map((entry) => ({ ...entry }))
+  },
+  nodes: flow.nodes.map((node) => {
+    const reference = node.configuration.interfaceId;
+    const entry =
+      node.kind === 'flowInput'
+        ? flow.interface.inputs.find((candidate) => candidate.id === reference)
+        : node.kind === 'flowOutput'
+          ? flow.interface.outputs.find((candidate) => candidate.id === reference)
+          : undefined;
+    return {
+      ...node,
+      ...(entry
+        ? {
+            label: entry.name,
+            connectors: [
+              {
+                id: 'value',
+                label: entry.units ? `${entry.name} (${entry.units})` : entry.name,
+                direction: node.kind === 'flowInput' ? ('output' as const) : ('input' as const),
+                dataType: entry.dataType,
+                side: node.kind === 'flowInput' ? ('right' as const) : ('left' as const)
+              }
+            ]
+          }
+        : { connectors: node.connectors.map((connector) => ({ ...connector })) }),
+      configuration: { ...node.configuration }
+    };
+  }),
   connections: flow.connections.map((connection) => ({
     ...connection,
     start: { ...connection.start },

@@ -109,6 +109,7 @@ typedef struct
     bool value;
     uint8_t quality;
     uint8_t type;
+    uint8_t binding_kind;
     double number;
 } flow_vm_input_sample_t;
 
@@ -126,6 +127,7 @@ typedef struct
     bool value;
     uint8_t quality;
     uint8_t type;
+    uint8_t binding_kind;
     double number;
 } flow_vm_command_t;
 
@@ -158,6 +160,7 @@ typedef struct
     char id[FLOW_VM_MAX_ID_BYTES + 1];
     uint8_t direction;
     uint8_t type;
+    uint8_t binding_kind;
 } flow_vm_point_t;
 
 typedef struct

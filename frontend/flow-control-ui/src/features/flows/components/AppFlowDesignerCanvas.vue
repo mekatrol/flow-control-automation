@@ -154,6 +154,7 @@
         v-if="selectedNode"
         v-bind="automation('node-configuration')"
         :node="selectedNode"
+        :flow-interface="flow.interface"
         @[EVENTS.UPDATE_LABEL]="handleNodeLabelUpdate"
         @[EVENTS.UPDATE_CONFIGURATION]="handleNodeConfigurationUpdate"
       />

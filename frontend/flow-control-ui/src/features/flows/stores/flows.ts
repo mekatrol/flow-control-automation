@@ -8,7 +8,8 @@ import { addConnection as addGraphConnection } from '@/features/flows/graph/conn
 import type {
   FlowConfigurationValue,
   FlowConnectionEndpoint,
-  FlowNode
+  FlowNode,
+  FlowInterface
 } from '@/features/flows/types';
 import type { FlowDefinition } from '@/features/flows/types';
 
@@ -153,17 +154,64 @@ export const useFlowsStore = defineStore('flows', () => {
     return true;
   };
 
+  const synchronizeInterfaceNodes = (flow: FlowDefinition): void => {
+    for (const node of flow.nodes) {
+      if (node.kind !== 'flowInput' && node.kind !== 'flowOutput') continue;
+      const id = node.configuration.interfaceId;
+      const entry =
+        node.kind === 'flowInput'
+          ? flow.interface.inputs.find((candidate) => candidate.id === id)
+          : flow.interface.outputs.find((candidate) => candidate.id === id);
+      if (!entry) continue;
+      node.label = entry.name;
+      node.connectors = [
+        {
+          id: 'value',
+          label: entry.units ? `${entry.name} (${entry.units})` : entry.name,
+          direction: node.kind === 'flowInput' ? 'output' : 'input',
+          dataType: entry.dataType,
+          side: node.kind === 'flowInput' ? 'right' : 'left'
+        }
+      ];
+    }
+  };
+
   const updateNodeConfiguration = (
     flowId: string,
     nodeId: string,
     key: string,
     value: FlowConfigurationValue
   ): boolean => {
-    const node = findFlow(flowId)?.nodes.find(({ id }) => id === nodeId);
+    const flow = findFlow(flowId);
+    const node = flow?.nodes.find(({ id }) => id === nodeId);
     // Editors may update configured fields but cannot silently expand the saved
     // schema with an unknown key produced by stale UI metadata.
     if (!node || !(key in node.configuration)) return false;
     node.configuration[key] = value;
+    if (flow && key === 'interfaceId') synchronizeInterfaceNodes(flow);
+    return true;
+  };
+
+  const updateFlowInterface = (flowId: string, definition: FlowInterface): boolean => {
+    const flow = findFlow(flowId);
+    if (!flow) return false;
+    const inputIds = new Set(definition.inputs.map((entry) => entry.id));
+    const outputIds = new Set(definition.outputs.map((entry) => entry.id));
+    if (
+      flow.nodes.some(
+        (node) => node.kind === 'flowInput' && !inputIds.has(String(node.configuration.interfaceId))
+      )
+    )
+      return false;
+    if (
+      flow.nodes.some(
+        (node) =>
+          node.kind === 'flowOutput' && !outputIds.has(String(node.configuration.interfaceId))
+      )
+    )
+      return false;
+    flow.interface = structuredClone(definition);
+    synchronizeInterfaceNodes(flow);
     return true;
   };
 
@@ -187,6 +235,7 @@ export const useFlowsStore = defineStore('flows', () => {
     deleteConnection,
     addNode,
     updateNodeLabel,
-    updateNodeConfiguration
+    updateNodeConfiguration,
+    updateFlowInterface
   };
 });

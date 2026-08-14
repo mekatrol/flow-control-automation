@@ -1,4 +1,5 @@
 import { FlowApiError } from './flowApi';
+import type { FlowInterface } from '@/features/flows/types';
 
 export type DebugLifecycleState =
   | 'empty'
@@ -130,6 +131,7 @@ export interface ExecutableFlowSource {
     source: { nodeId: string; portId: string };
     target: { nodeId: string; portId: string };
   }[];
+  interface: FlowInterface;
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>

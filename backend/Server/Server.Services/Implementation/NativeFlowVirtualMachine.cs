@@ -74,6 +74,7 @@ internal sealed unsafe partial class NativeFlowVirtualMachine : IFlowVirtualMach
                 samples[index].Value = inputs[index].Value ? (byte)1 : (byte)0;
                 samples[index].Quality = inputs[index].IsGood ? (byte)0 : (byte)1;
                 samples[index].Type = 1;
+                samples[index].BindingKind = inputs[index].IsInterface ? (byte)1 : (byte)0;
                 if (inputs[index].TypedValue.Type == "number")
                 {
                     samples[index].Type = 2;
@@ -214,6 +215,7 @@ internal sealed unsafe partial class NativeFlowVirtualMachine : IFlowVirtualMach
             samples[index].Value = inputs[index].Value ? (byte)1 : (byte)0;
             samples[index].Quality = inputs[index].IsGood ? (byte)0 : (byte)1;
             samples[index].Type = 1;
+            samples[index].BindingKind = inputs[index].IsInterface ? (byte)1 : (byte)0;
             if (inputs[index].TypedValue.Type == "number")
             {
                 samples[index].Type = 2;
@@ -280,7 +282,7 @@ internal sealed unsafe partial class NativeFlowVirtualMachine : IFlowVirtualMach
         var value = command.Type == 2
             ? FlowVmValue.FromNumber(command.Number, quality)
             : FlowVmValue.FromBoolean(command.Value != 0, quality);
-        return new FlowVmCommand(ReadIdentifier(command.PointId, 64), value);
+        return new FlowVmCommand(ReadIdentifier(command.PointId, 64), value, command.BindingKind == 1);
     }
 
     private static FlowVmValue[] ReadSlots(ushort count, byte* booleans, byte* types, byte* qualities, double* numbers)
@@ -331,6 +333,7 @@ internal sealed unsafe partial class NativeFlowVirtualMachine : IFlowVirtualMach
         [FieldOffset(64)] public byte Value;
         [FieldOffset(65)] public byte Quality;
         [FieldOffset(66)] public byte Type;
+        [FieldOffset(67)] public byte BindingKind;
         [FieldOffset(72)] public double Number;
     }
     [StructLayout(LayoutKind.Sequential)]
@@ -342,6 +345,7 @@ internal sealed unsafe partial class NativeFlowVirtualMachine : IFlowVirtualMach
         [FieldOffset(64)] public byte Value;
         [FieldOffset(65)] public byte Quality;
         [FieldOffset(66)] public byte Type;
+        [FieldOffset(67)] public byte BindingKind;
         [FieldOffset(72)] public double Number;
     }
     [StructLayout(LayoutKind.Sequential)]

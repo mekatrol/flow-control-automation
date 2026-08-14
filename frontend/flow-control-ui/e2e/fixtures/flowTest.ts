@@ -128,6 +128,7 @@ export const useMutableFlowsApi = async (page: Page): Promise<void> => {
     if (route.request().method() === 'POST') {
       const { name } = route.request().postDataJSON() as { name: string };
       const created = {
+        interface: { schemaVersion: 1 as const, inputs: [], outputs: [] },
         id: 'new-automation',
         name,
         description: '',

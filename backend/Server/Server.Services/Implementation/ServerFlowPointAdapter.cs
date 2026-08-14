@@ -31,6 +31,7 @@ internal sealed class ServerFlowPointAdapter(IServiceScopeFactory scopes) : IFlo
         IReadOnlyList<FlowVmCommand> commands,
         CancellationToken cancellationToken)
     {
+        commands = commands.Where(command => !command.IsInterface).ToArray();
         cancellationToken.ThrowIfCancellationRequested();
         lock (_gate)
         {

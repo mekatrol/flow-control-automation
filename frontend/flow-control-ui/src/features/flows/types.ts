@@ -17,6 +17,8 @@ export enum FlowNodeFunctionType {
   DigitalConstant = 'digitalConstant',
   DigitalInput = 'digitalInput',
   DigitalOutput = 'digitalOutput',
+  FlowInput = 'flowInput',
+  FlowOutput = 'flowOutput',
   If = 'if',
   Line = 'line',
   LevelShifter = 'levelShifter',
@@ -54,6 +56,29 @@ export type ConnectorDataType = 'any' | 'boolean' | 'event' | 'number' | 'string
 export type ConnectorSide = 'left' | 'right' | 'top' | 'bottom';
 
 export type FlowConfigurationValue = boolean | number | string | null;
+export type FlowInterfaceDataType = 'boolean' | 'number' | 'string' | 'event';
+
+export interface FlowInterfaceInput {
+  id: string;
+  name: string;
+  dataType: FlowInterfaceDataType;
+  units?: string;
+  defaultValue?: boolean | number | string | null;
+  required: boolean;
+}
+
+export interface FlowInterfaceOutput {
+  id: string;
+  name: string;
+  dataType: FlowInterfaceDataType;
+  units?: string;
+}
+
+export interface FlowInterface {
+  schemaVersion: 1;
+  inputs: FlowInterfaceInput[];
+  outputs: FlowInterfaceOutput[];
+}
 
 // These interfaces describe persisted flow data only. Selection, pointer
 // gestures, zoom, and validation messages remain transient browser state so they
@@ -98,4 +123,5 @@ export interface FlowDefinition {
   updatedAt: string;
   nodes: FlowNode[];
   connections: FlowConnection[];
+  interface: FlowInterface;
 }

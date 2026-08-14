@@ -10,9 +10,9 @@ describe('node-kind registry', () => {
    */
   it('contains complete rendering, connector, and editor metadata for every supported kind', () => {
     // Expected outcome: `flowNodeKinds` contains the required number of entries.
-    // Acceptance criteria: `flowNodeKinds` must contain exactly 24 entries, because this condition proves that
+    // Acceptance criteria: `flowNodeKinds` must contain exactly 38 entries, because this condition proves that
     // contains complete rendering, connector, and editor metadata for every supported kind.
-    expect(flowNodeKinds).toHaveLength(36);
+    expect(flowNodeKinds).toHaveLength(38);
 
     // Expected outcome: `flowNodeKinds` matches the required structure.
     // Acceptance criteria: `flowNodeKinds` must equal `expect.arrayContaining(['and', 'average', 'calculator', 'nand', 'nor', 'not', 'xnor', 'xor']`, because this condition proves that
@@ -58,6 +58,7 @@ describe('node-kind registry', () => {
       expect(definition.connectors.some(({ direction }) => direction === 'input')).toBe(
         kind !== 'digitalInput' &&
           kind !== 'analogInput' &&
+          kind !== 'flowInput' &&
           kind !== 'digitalConstant' &&
           kind !== 'numericConstant'
       );
@@ -66,7 +67,7 @@ describe('node-kind registry', () => {
       // Acceptance criteria: `definition.connectors.some(({ direction }) => direction === 'output')` must be `true`, because this condition proves that
       // contains complete rendering, connector, and editor metadata for every supported kind.
       expect(definition.connectors.some(({ direction }) => direction === 'output')).toBe(
-        kind !== 'digitalOutput' && kind !== 'analogOutput'
+        kind !== 'digitalOutput' && kind !== 'analogOutput' && kind !== 'flowOutput'
       );
 
       // Expected outcome: `definition.editor.length` satisfies the required boundary.
@@ -175,6 +176,8 @@ describe('node-kind registry', () => {
     expect(routingDefinitions.map(({ kind }) => kind).sort()).toEqual([
       'analogInput',
       'analogOutput',
+      'flowInput',
+      'flowOutput',
       'selector',
       'sequence',
       'split'

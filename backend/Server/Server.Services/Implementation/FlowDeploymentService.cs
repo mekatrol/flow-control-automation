@@ -48,7 +48,7 @@ internal sealed class FlowDeploymentService(
         }
 
         var graph = JsonSerializer.SerializeToUtf8Bytes(
-            new { flow.Nodes, flow.Connections },
+            new { flow.Nodes, flow.Connections, flow.Interface },
             FlowControlJson.Options);
         var revision = BinaryPrimitives.ReadUInt32LittleEndian(SHA256.HashData(graph));
         if (revision == 0) revision = 1;
@@ -79,7 +79,8 @@ internal sealed class FlowDeploymentService(
             }).ToArray(),
             Connections = flow.Connections.Select(connection => new ExecutableFlowConnection(
                 new ExecutableFlowEndpoint(connection.Start.NodeId, connection.Start.ConnectorId),
-                new ExecutableFlowEndpoint(connection.End.NodeId, connection.End.ConnectorId))).ToArray()
+                new ExecutableFlowEndpoint(connection.End.NodeId, connection.End.ConnectorId))).ToArray(),
+            Interface = flow.Interface
         };
     }
 }

@@ -159,6 +159,15 @@
         </button>
       </nav>
 
+      <AppFlowInterfaceSettings
+        v-if="workspaceMode === 'design'"
+        automation="flow-interface"
+        :model-value="flow.interface"
+        :referenced-input-ids="referencedInputIds"
+        :referenced-output-ids="referencedOutputIds"
+        @[EVENTS.UPDATE_INTERFACE]="updateFlowInterface"
+      />
+
       <AppFlowSimulatorPanel
         v-if="workspaceMode === 'simulator'"
         automation="flow-simulator"
@@ -259,6 +268,7 @@ import AppFlowDebugTargetSelector from '@/features/flows/components/AppFlowDebug
 import AppFlowDebugPanel from '@/features/flows/components/AppFlowDebugPanel.vue';
 import AppFlowEmulatorPanel from '@/features/flows/components/AppFlowEmulatorPanel.vue';
 import AppFlowSimulatorPanel from '@/features/flows/components/AppFlowSimulatorPanel.vue';
+import AppFlowInterfaceSettings from '@/features/flows/components/AppFlowInterfaceSettings.vue';
 import { getFlowDebugTargets } from '@/features/flows/debugTargets';
 import {
   flowDebugApi,
@@ -282,6 +292,7 @@ import { useModalFocus } from '@/features/flows/composables/useModalFocus';
 import type {
   FlowConfigurationValue,
   FlowConnectionEndpoint,
+  FlowDefinition,
   FlowNode
 } from '@/features/flows/types';
 
@@ -359,6 +370,21 @@ watch(debugTargetId, () => {
 });
 
 const flowRevision = computed(() => (flow.value ? graphRevision(flow.value) : 1));
+const referencedInputIds = computed(
+  () =>
+    flow.value?.nodes
+      .filter((node) => node.kind === 'flowInput')
+      .map((node) => String(node.configuration.interfaceId)) ?? []
+);
+const referencedOutputIds = computed(
+  () =>
+    flow.value?.nodes
+      .filter((node) => node.kind === 'flowOutput')
+      .map((node) => String(node.configuration.interfaceId)) ?? []
+);
+const updateFlowInterface = (value: FlowDefinition['interface']): void => {
+  flowStore.updateFlowInterface(props.flowId, value);
+};
 watch(flowRevision, (revision, previous) => {
   if (previous !== undefined && revision !== previous) simulator.markStale();
 });

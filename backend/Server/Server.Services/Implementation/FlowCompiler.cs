@@ -40,6 +40,8 @@ public sealed partial class FlowCompiler : IFlowCompiler
             ["onDelay"] = new([new("in", 1), new("value", 2)]),
             ["risingEdge"] = new([new("in", 1), new("value", 2)]),
             ["memory"] = new([new("in", 1), new("value", 2)]),
+            ["flowInput"] = new([new("value", 2)]),
+            ["flowOutput"] = new([new("value", 1)]),
             ["digitalOutput"] = new([new("in", 1)]),
             ["analogOutput"] = new([new("in", 1, 2)])
         };
@@ -113,6 +115,8 @@ public sealed partial class FlowCompiler : IFlowCompiler
             throw Failure("limit_exceeded", "/connections", "Connection count exceeds 384.");
         }
 
+        ValidateInterface(source);
+
         ValidateGraph(source);
         ValidateUnits(request);
     }
@@ -134,7 +138,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
             index = checked((ushort)(schedule.Count + index))
         })
             .ToDictionary(item => item.id, item => item.index, StringComparer.Ordinal);
-        var points = BuildPoints([.. schedule.Select(id => nodes[id])], request.Target.Points);
+        var points = BuildPoints(source, [.. schedule.Select(id => nodes[id])], request.Target.Points);
         var constants = source.Nodes.SelectMany(ConstantsFor)
             .Distinct()
             .OrderBy(constant => constant.Type)
@@ -152,6 +156,8 @@ public sealed partial class FlowCompiler : IFlowCompiler
                     PointIndex(points, node, 1, 1), id, 0),
                 "analogInput" => new(1, result, ushort.MaxValue, ushort.MaxValue,
                     PointIndex(points, node, 1, 2), id, 0),
+                "flowInput" => new(1, result, ushort.MaxValue, ushort.MaxValue,
+                    PointIndex(points, node, 1, InterfaceType(source, node)), id, 0),
                 "digitalConstant" => new(2, result, ushort.MaxValue, ushort.MaxValue,
                     ConstantIndex(constants, Boolean(node.Configuration["value"].GetBoolean())), id, 0),
                 "not" => new(3, result, InputSlot(source, slots, id, "in"), ushort.MaxValue, ushort.MaxValue, id, 0),
@@ -186,6 +192,8 @@ public sealed partial class FlowCompiler : IFlowCompiler
                     PointIndex(points, node, 2, 1), id, 0),
                 "analogOutput" => new(7, result, InputSlot(source, slots, id, "in"), ushort.MaxValue,
                     PointIndex(points, node, 2, 2), id, 0),
+                "flowOutput" => new(7, result, InputSlot(source, slots, id, "value"), ushort.MaxValue,
+                    PointIndex(points, node, 2, InterfaceType(source, node)), id, 0),
                 _ => throw new UnreachableException()
             });
         }
@@ -213,11 +221,11 @@ public sealed partial class FlowCompiler : IFlowCompiler
 
         var constantSection = Concat([.. constants.Select(EncodeConstant)]);
         var pointSection = Concat([.. points.Select(point => Concat(
-            new byte[] { point.Direction, point.Type, 1, 0 },
+            new byte[] { point.Direction, point.Type, 1, point.Kind },
             String8(point.Id),
             String8AllowEmpty(point.Units ?? string.Empty)))]);
         var slotRecords = schedule.Select((id, index) => Concat(
-            new byte[] { 2, ResultType(nodes[id]) }, U16(0), U16(index), U16(ushort.MaxValue))).ToList();
+            new byte[] { 2, ResultType(source, nodes[id]) }, U16(0), U16(index), U16(ushort.MaxValue))).ToList();
         slotRecords.AddRange(stateIds.Select(id => nodes[id].Kind switch
         {
             "memory" => Concat(new byte[] { 3, 1 }, U16(0), U16(stateSlots[id]),
@@ -232,9 +240,9 @@ public sealed partial class FlowCompiler : IFlowCompiler
         var instructionSection = Concat([.. instructions.Select(EncodeV1Instruction)]);
         var commitRecords = memoryIds.Select(id => Concat(
             new byte[] { 1, 0 }, U16(stateSlots[id]), U16(InputSlot(source, slots, id, "in")), U16(0))).ToList();
-        commitRecords.AddRange(schedule.Where(id => nodes[id].Kind is "digitalOutput" or "analogOutput").Select(id => Concat(
+        commitRecords.AddRange(schedule.Where(id => nodes[id].Kind is "digitalOutput" or "analogOutput" or "flowOutput").Select(id => Concat(
             new byte[] { 2, 0 },
-            U16(PointIndex(points, nodes[id], 2, ResultType(nodes[id]))),
+            U16(PointIndex(points, nodes[id], 2, ResultType(source, nodes[id]))),
             U16(slots[id]),
             U16(0))));
         commitRecords.AddRange(stateIds.Where(id => nodes[id].Kind is "onDelay" or "risingEdge").Select(id => Concat(
@@ -262,7 +270,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
         {
             Concat(new byte[] { 1 }, String8(source.ControllerTemplateId), U32(source.ControllerTemplateRevision))
         };
-        dependencyRecords.AddRange(points.Select(point => point.Id).Distinct(StringComparer.Ordinal).Select(pointId =>
+        dependencyRecords.AddRange(points.Where(point => point.Kind == 0).Select(point => point.Id).Distinct(StringComparer.Ordinal).Select(pointId =>
         {
             var resolved = resolvedPoints.SingleOrDefault(candidate => candidate.Id == pointId);
             if (resolved is null)
@@ -330,7 +338,8 @@ public sealed partial class FlowCompiler : IFlowCompiler
             capabilities |= ExpandedBooleanCapability;
         }
 
-        if (source.Nodes.Any(node => node.Kind is "numericConstant" or "add" or "comparator" or "levelShifter"))
+        if (source.Nodes.Any(node => node.Kind is "numericConstant" or "add" or "comparator" or "levelShifter")
+            || points.Any(point => point.Type == 2))
         {
             capabilities |= NumericCapability;
         }
@@ -429,9 +438,10 @@ public sealed partial class FlowCompiler : IFlowCompiler
 
     private static ushort PointIndex(IReadOnlyList<PointRecord> points, ExecutableFlowNode node, byte direction, byte type) =>
         checked((ushort)points.Select((point, index) => new { point, index }).Single(item =>
-            item.point.Id == node.Configuration["pointId"].GetString()
+            item.point.Id == node.Configuration[node.Kind is "flowInput" or "flowOutput" ? "interfaceId" : "pointId"].GetString()
             && item.point.Direction == direction
-            && item.point.Type == type).index);
+            && item.point.Type == type
+            && item.point.Kind == (node.Kind is "flowInput" or "flowOutput" ? 1 : 0)).index);
 
     private static byte[] EncodeV1Instruction(V1Instruction instruction) => Concat(
         new byte[] { instruction.Opcode, 0 },
@@ -468,8 +478,13 @@ public sealed partial class FlowCompiler : IFlowCompiler
                 throw Failure("unsupported_node", $"/nodes/{index}/kind", $"Node kind \"{node.Kind}\" is unsupported.");
             }
 
-            ValidateConfiguration(node, index);
-            shapes[node.Id] = shape.Ports.ToDictionary(port => port.Id, StringComparer.Ordinal);
+            ValidateConfiguration(source, node, index);
+            shapes[node.Id] = node.Kind switch
+            {
+                "flowInput" => new[] { new PortShape("value", 2, InterfaceType(source, node)) }.ToDictionary(port => port.Id, StringComparer.Ordinal),
+                "flowOutput" => new[] { new PortShape("value", 1, InterfaceType(source, node)) }.ToDictionary(port => port.Id, StringComparer.Ordinal),
+                _ => shape.Ports.ToDictionary(port => port.Id, StringComparer.Ordinal)
+            };
         }
 
         var drivers = new HashSet<PortKey>();
@@ -495,7 +510,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
 
         foreach (var node in source.Nodes)
         {
-            foreach (var input in Shapes[node.Kind].Ports.Where(port => port.Direction == 1))
+            foreach (var input in shapes[node.Id].Values.Where(port => port.Direction == 1))
             {
                 if (!drivers.Contains(new(node.Id, input.Id)))
                 {
@@ -511,10 +526,73 @@ public sealed partial class FlowCompiler : IFlowCompiler
         ValidateAcyclic(source, nodes);
     }
 
-    private static void ValidateConfiguration(ExecutableFlowNode node, int index)
+    private static void ValidateInterface(ExecutableFlowSource source)
+    {
+        if (source.Interface.SchemaVersion != 1)
+            throw Failure("unsupported_interface_schema", "/interface/schemaVersion", "Only interface schema 1 is supported.");
+        if (source.Interface.Inputs.Count > 64 || source.Interface.Outputs.Count > 64)
+            throw Failure("limit_exceeded", "/interface", "At most 64 interface inputs and outputs are supported.");
+        ValidateInterfaceEntries(source.Interface.Inputs.Select(entry => new InterfaceRecord(entry.Id, entry.Name, entry.DataType, entry.Units, entry.DefaultValue)), "/interface/inputs");
+        ValidateInterfaceEntries(source.Interface.Outputs.Select(entry => new InterfaceRecord(entry.Id, entry.Name, entry.DataType, entry.Units, null)), "/interface/outputs");
+    }
+
+    private static void ValidateInterfaceEntries(IEnumerable<InterfaceRecord> entries, string path)
+    {
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (entry, index) in entries.Select((entry, index) => (entry, index)))
+        {
+            ValidateIdentifier(entry.Id, $"{path}/{index}/id", 63);
+            if (string.IsNullOrWhiteSpace(entry.Name) || Encoding.UTF8.GetByteCount(entry.Name) > 255 || !ids.Add(entry.Id) || !names.Add(entry.Name))
+                throw Failure("invalid_interface", $"{path}/{index}", "Interface IDs and names must be non-empty, bounded, and unique.");
+            if (entry.DataType is not ("boolean" or "number"))
+                throw Failure("unsupported_interface_type", $"{path}/{index}/dataType", "The current executable profile supports Boolean and number interfaces.");
+            if (entry.DataType != "number" && !string.IsNullOrEmpty(entry.Units))
+                throw Failure("incompatible_units", $"{path}/{index}/units", "Only number interfaces may declare units.");
+            if (entry.DefaultValue is { } value && !DefaultMatches(value, entry.DataType))
+                throw Failure("invalid_interface_default", $"{path}/{index}/defaultValue", "Default value does not match the interface type.");
+        }
+    }
+
+    private static bool DefaultMatches(JsonElement value, string type) => type switch
+    {
+        "boolean" => value.ValueKind is JsonValueKind.True or JsonValueKind.False,
+        "number" => value.ValueKind == JsonValueKind.Number && value.TryGetDouble(out var number) && double.IsFinite(number),
+        _ => false
+    };
+
+    private static InterfaceRecord InterfaceEntry(ExecutableFlowSource source, ExecutableFlowNode node)
+    {
+        var id = node.Configuration["interfaceId"].GetString();
+        var entry = node.Kind == "flowInput"
+            ? source.Interface.Inputs.Where(item => item.Id == id).Select(item => new InterfaceRecord(item.Id, item.Name, item.DataType, item.Units, item.DefaultValue)).SingleOrDefault()
+            : source.Interface.Outputs.Where(item => item.Id == id).Select(item => new InterfaceRecord(item.Id, item.Name, item.DataType, item.Units, null)).SingleOrDefault();
+        return entry ?? throw Failure("missing_interface_reference", $"/nodes/{Escape(node.Id)}/configuration/interfaceId", "Referenced interface entry does not exist in the required direction.");
+    }
+
+    private static byte InterfaceType(ExecutableFlowSource source, ExecutableFlowNode node) => InterfaceEntry(source, node).DataType switch
+    {
+        "boolean" => 1,
+        "number" => 2,
+        _ => throw new UnreachableException()
+    };
+
+    private static string? InterfaceUnits(ExecutableFlowSource source, ExecutableFlowNode node) => InterfaceEntry(source, node).Units;
+
+    private static void ValidateConfiguration(ExecutableFlowSource source, ExecutableFlowNode node, int index)
     {
         var path = $"/nodes/{index}/configuration";
-        if (node.Kind is "digitalInput" or "digitalOutput" or "analogInput" or "analogOutput")
+        if (node.Kind is "flowInput" or "flowOutput")
+        {
+            if (node.Configuration.Count != 1
+                || !node.Configuration.TryGetValue("interfaceId", out var reference)
+                || reference.ValueKind != JsonValueKind.String
+                || reference.GetString() is not string interfaceId)
+                throw Failure("missing_interface_reference", $"{path}/interfaceId", "An interfaceId string is required.");
+            ValidateIdentifier(interfaceId, $"{path}/interfaceId", 63);
+            _ = InterfaceEntry(source, node);
+        }
+        else if (node.Kind is "digitalInput" or "digitalOutput" or "analogInput" or "analogOutput")
         {
             if (node.Configuration.Count != 1
                 || !node.Configuration.TryGetValue("pointId", out var point)
@@ -631,8 +709,9 @@ public sealed partial class FlowCompiler : IFlowCompiler
         return result;
     }
 
-    private static byte ResultType(ExecutableFlowNode node) =>
-        node.Kind is "numericConstant" or "add" or "levelShifter" or "analogInput" or "analogOutput" ? (byte)2 : (byte)1;
+    private static byte ResultType(ExecutableFlowSource source, ExecutableFlowNode node) =>
+        node.Kind is "flowInput" or "flowOutput" ? InterfaceType(source, node)
+        : node.Kind is "numericConstant" or "add" or "levelShifter" or "analogInput" or "analogOutput" ? (byte)2 : (byte)1;
 
     private static ushort ComparatorCode(ExecutableFlowNode node) => node.Configuration["operator"].GetString() switch
     {
@@ -728,15 +807,17 @@ public sealed partial class FlowCompiler : IFlowCompiler
         }
     }
 
-    private static PointRecord[] BuildPoints(IReadOnlyList<ExecutableFlowNode> nodes, IReadOnlyList<Point> resolvedPoints) => [.. nodes
-        .Where(node => node.Kind is "digitalInput" or "digitalOutput" or "analogInput" or "analogOutput")
+    private static PointRecord[] BuildPoints(ExecutableFlowSource source, IReadOnlyList<ExecutableFlowNode> nodes, IReadOnlyList<Point> resolvedPoints) => [.. nodes
+        .Where(node => node.Kind is "digitalInput" or "digitalOutput" or "analogInput" or "analogOutput" or "flowInput" or "flowOutput")
         .Select(node => new PointRecord(
-            node.Configuration["pointId"].GetString()!,
+            node.Configuration[node.Kind is "flowInput" or "flowOutput" ? "interfaceId" : "pointId"].GetString()!,
             checked((byte)(node.Kind.EndsWith("Input", StringComparison.Ordinal) ? 1 : 2)),
-            checked((byte)(node.Kind.StartsWith("analog", StringComparison.Ordinal) ? 2 : 1)),
-            resolvedPoints.SingleOrDefault(point => point.Id == node.Configuration["pointId"].GetString())?.Units))
+            node.Kind is "flowInput" or "flowOutput" ? InterfaceType(source, node) : checked((byte)(node.Kind.StartsWith("analog", StringComparison.Ordinal) ? 2 : 1)),
+            node.Kind is "flowInput" or "flowOutput" ? InterfaceUnits(source, node) : resolvedPoints.SingleOrDefault(point => point.Id == node.Configuration["pointId"].GetString())?.Units,
+            checked((byte)(node.Kind is "flowInput" or "flowOutput" ? 1 : 0))))
         .Distinct()
-        .OrderBy(point => point.Id, StringComparer.Ordinal)
+        .OrderBy(point => point.Kind)
+        .ThenBy(point => point.Id, StringComparer.Ordinal)
         .ThenBy(point => point.Direction)];
 
     private static byte[] String8(string value)
@@ -777,6 +858,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
             {
                 "analogInput" => request.Target.Points.SingleOrDefault(point =>
                     point.Id == node.Configuration["pointId"].GetString())?.Units,
+                "flowInput" => InterfaceUnits(source, node),
                 "numericConstant" => null,
                 "add" => RequireMatchingUnits(source, units, id, "a", "b"),
                 "comparator" => RequireMatchingUnits(source, units, id, "a", "b"),
@@ -794,6 +876,12 @@ public sealed partial class FlowCompiler : IFlowCompiler
                 {
                     throw Failure("unit_mismatch", $"/nodes/{Escape(id)}", "Analog output units do not match its point binding.");
                 }
+            }
+            if (node.Kind == "flowOutput")
+            {
+                var inputUnits = units[SourceNode(source, id, "value")];
+                if (!string.Equals(inputUnits, InterfaceUnits(source, node), StringComparison.Ordinal))
+                    throw Failure("unit_mismatch", $"/nodes/{Escape(id)}/ports/value", "Flow output units do not match its input.");
             }
         }
     }
@@ -880,7 +968,8 @@ public sealed partial class FlowCompiler : IFlowCompiler
     private sealed record NodeShape(IReadOnlyList<PortShape> Ports);
     private sealed record PortShape(string Id, byte Direction, byte Type = 1);
     private sealed record PortKey(string NodeId, string PortId);
-    private sealed record PointRecord(string Id, byte Direction, byte Type, string? Units);
+    private sealed record PointRecord(string Id, byte Direction, byte Type, string? Units, byte Kind = 0);
+    private sealed record InterfaceRecord(string Id, string Name, string DataType, string? Units, JsonElement? DefaultValue);
     private sealed record ConstantRecord(byte Type, double Number);
     private sealed record V1Instruction(
         byte Opcode,

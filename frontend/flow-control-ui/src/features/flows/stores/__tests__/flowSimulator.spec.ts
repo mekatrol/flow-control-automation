@@ -14,7 +14,8 @@ const source = (): ExecutableFlowSource => ({
   controllerTemplateRevision: 1,
   execution: { mode: 'manual', intervalMs: 0, inputQualityPolicy: 'require_good' },
   nodes: [],
-  connections: []
+  connections: [],
+  interface: { schemaVersion: 1, inputs: [], outputs: [] }
 });
 const session = (state: SimulatorSession['lifecycleState'] = 'ready'): SimulatorSession => ({
   sessionId: 'session-a',

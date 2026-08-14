@@ -201,11 +201,12 @@ static flow_vm_result_t get_metadata(const uint8_t *artifact, size_t size, metad
 }
 
 /* Finds one captured good-quality Boolean point sample by stable binding ID. */
-static const flow_vm_input_sample_t *get_input(const flow_vm_t *vm, const char *point_id)
+static const flow_vm_input_sample_t *get_input(const flow_vm_t *vm, const char *point_id, uint8_t binding_kind)
 {
     for (size_t index = 0; index < vm->captured_input_count; index++)
     {
-        if (strcmp(vm->captured_inputs[index].point_id, point_id) == 0)
+        if (strcmp(vm->captured_inputs[index].point_id, point_id) == 0 &&
+            vm->captured_inputs[index].binding_kind == binding_kind)
         {
             return &vm->captured_inputs[index];
         }
@@ -362,8 +363,9 @@ flow_vm_result_t flow_vm_prepare(const uint8_t *artifact, size_t artifact_size, 
 
         vm->points[index].direction = artifact[point_offset];
         vm->points[index].type      = artifact[point_offset + 1U];
+        vm->points[index].binding_kind = artifact[point_offset + 3U];
 
-        if (vm->points[index].type != 1U && vm->points[index].type != 2U)
+        if ((vm->points[index].type != 1U && vm->points[index].type != 2U) || vm->points[index].binding_kind > 1U)
         {
             return get_result(FLOW_VM_INVALID_BINDING, "/points");
         }
@@ -561,7 +563,10 @@ flow_vm_result_t flow_vm_step_instruction(flow_vm_t *vm, flow_vm_execution_view_
                 return get_result(FLOW_VM_INVALID_OPERAND, "/instructions/point");
             }
 
-            const flow_vm_input_sample_t *sample = get_input(vm, vm->points[instruction->auxiliary].id);
+            const flow_vm_input_sample_t *sample = get_input(
+                vm,
+                vm->points[instruction->auxiliary].id,
+                vm->points[instruction->auxiliary].binding_kind);
 
             if (sample == NULL || (sample->type != 0U && sample->type != vm->points[instruction->auxiliary].type))
             {
@@ -868,6 +873,7 @@ flow_vm_result_t flow_vm_commit_tick(flow_vm_t *vm, flow_vm_command_t *commands,
             command->number = vm->numeric_slots[instruction->result];
             command->quality = vm->slot_qualities[instruction->result];
             command->type = vm->slot_types[instruction->result];
+            command->binding_kind = vm->points[instruction->auxiliary].binding_kind;
         }
     }
 

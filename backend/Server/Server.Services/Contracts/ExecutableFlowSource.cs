@@ -10,4 +10,5 @@ public sealed record ExecutableFlowSource
     public ExecutableFlowExecution Execution { get; init; } = new();
     public IReadOnlyList<ExecutableFlowNode> Nodes { get; init; } = [];
     public IReadOnlyList<ExecutableFlowConnection> Connections { get; init; } = [];
+    public FlowInterface Interface { get; init; } = new();
 }

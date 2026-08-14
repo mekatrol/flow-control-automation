@@ -203,6 +203,22 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     [{ key: 'pointId', label: 'Output point ID', input: 'text' }],
     { pointId: 'output-point' }
   ),
+  [FlowNodeFunctionType.FlowInput]: executableDefinition(
+    FlowNodeFunctionType.FlowInput,
+    [
+      { id: 'value', label: 'Interface value', direction: 'output', dataType: 'any', side: 'right' }
+    ],
+    [{ key: 'interfaceId', label: 'Flow input', input: 'text' }],
+    { interfaceId: '' },
+    'routing'
+  ),
+  [FlowNodeFunctionType.FlowOutput]: executableDefinition(
+    FlowNodeFunctionType.FlowOutput,
+    [{ id: 'value', label: 'Interface value', direction: 'input', dataType: 'any', side: 'left' }],
+    [{ key: 'interfaceId', label: 'Flow output', input: 'text' }],
+    { interfaceId: '' },
+    'routing'
+  ),
   [FlowNodeFunctionType.If]: definition(FlowNodeFunctionType.If, 'logic', 'if'),
   [FlowNodeFunctionType.Line]: definition(
     FlowNodeFunctionType.Line,

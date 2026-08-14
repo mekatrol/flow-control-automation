@@ -70,12 +70,14 @@ duplicates are invalid.
 ### 3.2 Point bindings — section 2
 
 Records are `direction:u8, type:u8, quality_policy:u8,
-command_policy:u8, point_id:string8, units:string8`. Direction is 1 read or 2
+binding_kind:u8, binding_id:string8, units:string8`. Direction is 1 read or 2
 proposed write. Type 1 is Boolean and type 2 is finite binary64. Units are
 bounded and empty only for unitless values.
-Quality policy 1 requires good input. Read bindings use command policy zero;
-write bindings use a separately resolved host policy. Records sort by point ID
-then direction. They contain no credentials, driver address, or physical handle.
+Quality policy 1 requires good input. Binding kind 0 identifies an automation
+point and kind 1 identifies a persisted flow-interface terminal. Records sort
+by binding kind, binding ID, then direction. Interface writes are committed
+shadow outputs and hosts must never publish them as physical point commands.
+Bindings contain no credentials, driver address, or physical handle.
 
 ### 3.3 Slot layout — section 3
 
