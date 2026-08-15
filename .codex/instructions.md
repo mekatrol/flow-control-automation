@@ -55,6 +55,23 @@ For every change under `frontend/flow-control-ui`:
   frontend change as complete while formatting, lint, tests, type-checking, or the
   production build fails.
 
+## Frontend API documentation
+
+Every TypeScript interface and object-shaped contract type must use TSDoc that
+appears in editor hover information. Document the contract itself and every
+property, including non-exported contracts used across a module boundary.
+
+- Explain domain purpose rather than repeating the property name or TypeScript
+  type.
+- State valid string vocabularies and formats, numeric units and inclusive or
+  exclusive bounds, collection ordering and uniqueness, and what optional or
+  nullable values mean.
+- Document every callable member and exported function with `@param`,
+  `@returns`, and expected `@throws` behavior. Parameter documentation must
+  describe purpose and constraints, not merely restate the signature.
+- Link related contracts with `{@link TypeName}` where that identifies the
+  source of contextual validation. Do not invent a bound that is not enforced.
+
 ## Frontend end-to-end test organisation
 
 - Segregate Playwright tests into separate spec files by user-facing function.

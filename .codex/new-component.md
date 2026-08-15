@@ -90,6 +90,11 @@ Omit the style block when the component needs no styles. Do not use the Options 
 - Use `defineExpose` only for an intentionally imperative API, as in `AppDialog`.
 - Export a component-local interface only when consumers genuinely need it.
 - Give functions explicit return types. The lint configuration enforces explicit function return types and unused-variable checks.
+- Give every interface and object-shaped contract type TSDoc hover documentation,
+  including every property. Document units, bounds, accepted vocabulary,
+  ordering, uniqueness, null/optional meaning, and contextual validation rather
+  than repeating names and TypeScript types. Exported functions and callable
+  members require `@param`, `@returns`, and relevant `@throws` tags.
 
 ## 4. Use repository import conventions
 

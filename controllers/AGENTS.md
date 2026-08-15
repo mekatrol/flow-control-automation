@@ -15,6 +15,17 @@ formatting setup.
    result or observable effects. Parameters and local variables do not need
    individual comments when their names make their purpose unambiguous.
 
+   Public header contracts must use Doxygen hover documentation. Document every
+   public enum, struct, typedef, callback, function, and each enum value or
+   struct field. Function and callback comments must include `@param` entries
+   for every parameter and `@return` when non-void. State ownership, lifetime,
+   nullability, units, inclusive or exclusive numeric bounds, buffer capacity
+   rules, accepted enum/string vocabulary, and observable failure behavior.
+   Comments that only repeat an identifier or C type are not compliant. Private
+   translation-unit contract types require the same semantic field and range
+   documentation, although ordinary private helpers may use non-Doxygen
+   contract comments.
+
 2. Comment logic inside method and function bodies with both what the logic
    does and why it is necessary. Do not add comments that merely restate
    self-explanatory syntax.
