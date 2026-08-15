@@ -31,9 +31,9 @@ test('opens the flow library and navigates to a designer', async ({ page }) => {
   await page.getByRole('link', { name: /Climate control/ }).click();
 
   // Expected outcome: Navigation reaches the required route.
-  // Acceptance criteria: the page URL must match `/\/flows\/climate-control$/`, because this condition proves that
+  // Acceptance criteria: the page URL must match `/\/flows\/climate-control\/design$/`, because this condition proves that
   // opens the flow library and navigates to a designer.
-  await expect(page).toHaveURL(/\/flows\/climate-control$/);
+  await expect(page).toHaveURL(/\/flows\/climate-control\/design$/);
 
   // Expected outcome: `page.getByRole('heading', { name: 'Climate control' })` is visible to the user.
   // Acceptance criteria: `page.getByRole('heading', { name: 'Climate control' })` must be visible, because this condition proves that
@@ -155,7 +155,7 @@ test('creates a flow and opens its designer', async ({ page }) => {
   // Expected outcome: Navigation reaches the required route.
   // Acceptance criteria: the page URL must match `/\/flows\/new-automation$/`, because this condition proves that
   // creates a flow and opens its designer.
-  await expect(page).toHaveURL(/\/flows\/new-automation$/);
+  await expect(page).toHaveURL(/\/flows\/new-automation\/design$/);
 
   // Expected outcome: `page.getByRole('heading', { name: 'New automation' })` is visible to the user.
   // Acceptance criteria: `page.getByRole('heading', { name: 'New automation' })` must be visible, because this condition proves that

@@ -136,27 +136,24 @@
       </div>
 
       <nav class="workspace-modes" aria-label="Flow workspace mode">
-        <button
-          type="button"
-          :aria-pressed="workspaceMode === 'design'"
-          @click="workspaceMode = 'design'"
+        <RouterLink
+          :to="{ name: ROUTE_NAMES.flowDesigner, params: { flowId } }"
+          :aria-current="workspaceMode === 'design' ? 'page' : undefined"
         >
           Design
-        </button>
-        <button
-          type="button"
-          :aria-pressed="workspaceMode === 'simulator'"
-          @click="workspaceMode = 'simulator'"
+        </RouterLink>
+        <RouterLink
+          :to="{ name: ROUTE_NAMES.flowSimulator, params: { flowId } }"
+          :aria-current="workspaceMode === 'simulator' ? 'page' : undefined"
         >
           Simulator
-        </button>
-        <button
-          type="button"
-          :aria-pressed="workspaceMode === 'debugger'"
-          @click="workspaceMode = 'debugger'"
+        </RouterLink>
+        <RouterLink
+          :to="{ name: ROUTE_NAMES.flowDebugger, params: { flowId } }"
+          :aria-current="workspaceMode === 'debugger' ? 'page' : undefined"
         >
           Debugger
-        </button>
+        </RouterLink>
       </nav>
 
       <AppFlowInterfaceSettings
@@ -276,6 +273,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
+import { ROUTE_NAMES } from '@/router';
 
 import { useAutomation } from '@/composables/useAutomation';
 import { EVENTS } from '@/constants/events';
@@ -327,13 +325,14 @@ import { flowDomainToDto } from '@/features/flows/api/flowMapper';
 
 const props = defineProps<{
   flowId: string;
+  workspaceMode: 'design' | 'simulator' | 'debugger';
 }>();
 const automation = useAutomation('flow-designer');
 
 const flowStore = useFlowsStore();
 const runtimeStore = useFlowRuntimeStore();
 const simulator = useFlowSimulatorStore();
-const workspaceMode = ref<'design' | 'simulator' | 'debugger'>('design');
+const workspaceMode = computed(() => props.workspaceMode);
 const activeTutorial = ref<FlowTutorial>();
 const controllerTemplates = useControllerTemplatesCatalogueStore();
 const router = useRouter();
@@ -782,7 +781,7 @@ const showTutorial = (kind: FlowNode['kind']): void => {
 };
 const openTutorialExample = (tutorial: FlowTutorial): void => {
   activeTutorial.value = tutorial;
-  workspaceMode.value = 'simulator';
+  void router.push({ name: ROUTE_NAMES.flowSimulator, params: { flowId: props.flowId } });
 };
 const copyTutorialExample = async (tutorial: FlowTutorial): Promise<void> => {
   try {
@@ -957,6 +956,12 @@ const discardChanges = async (): Promise<void> => {
 };
 
 onBeforeRouteLeave((to) => {
+  const workspaceRoutes = [
+    ROUTE_NAMES.flowDesigner,
+    ROUTE_NAMES.flowSimulator,
+    ROUTE_NAMES.flowDebugger
+  ];
+  if (to.params.flowId === props.flowId && workspaceRoutes.includes(String(to.name))) return true;
   // Client-side routing does not trigger beforeunload, so it needs a separate
   // guard and an application-owned dialog that can keep or discard the draft.
   if (allowNavigation || !dirty.value) {
@@ -997,16 +1002,17 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', handleBeforeUnl
   margin-bottom: var(--space-3);
 }
 
-.workspace-modes button {
+.workspace-modes a {
   min-height: var(--control-min-height);
   padding: var(--space-2) var(--space-4);
   color: var(--color-text-primary);
   background: var(--color-surface-raised);
   border: var(--border-width-default) solid var(--color-border-default);
   border-radius: var(--radius-lg);
+  text-decoration: none;
 }
 
-.workspace-modes button[aria-pressed='true'] {
+.workspace-modes a[aria-current='page'] {
   color: var(--color-action-primary-strong);
   background: var(--color-action-primary-surface);
   border-color: var(--color-action-primary);

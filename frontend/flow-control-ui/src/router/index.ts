@@ -7,6 +7,8 @@ export const ROUTE_NAMES = {
   home: 'home',
   flows: 'flows',
   flowDesigner: 'flow-designer',
+  flowSimulator: 'flow-simulator',
+  flowDebugger: 'flow-debugger',
   points: 'points',
   pointNew: 'point-new',
   pointDetail: 'point-detail',
@@ -43,11 +45,30 @@ export const routes: RouteRecordRaw[] = [
       },
       {
         path: 'flows/:flowId',
+        redirect: (route) => ({
+          name: ROUTE_NAMES.flowDesigner,
+          params: { flowId: route.params.flowId }
+        })
+      },
+      {
+        path: 'flows/:flowId/design',
         name: ROUTE_NAMES.flowDesigner,
         component: () => import('@/features/flows/views/AppFlowDesignerView.vue'),
         // Convert the route parameter at the boundary so the view receives a plain
         // string prop and does not need to understand router parameter shapes.
-        props: (route) => ({ flowId: String(route.params.flowId) })
+        props: (route) => ({ flowId: String(route.params.flowId), workspaceMode: 'design' })
+      },
+      {
+        path: 'flows/:flowId/simulator',
+        name: ROUTE_NAMES.flowSimulator,
+        component: () => import('@/features/flows/views/AppFlowDesignerView.vue'),
+        props: (route) => ({ flowId: String(route.params.flowId), workspaceMode: 'simulator' })
+      },
+      {
+        path: 'flows/:flowId/debugger',
+        name: ROUTE_NAMES.flowDebugger,
+        component: () => import('@/features/flows/views/AppFlowDesignerView.vue'),
+        props: (route) => ({ flowId: String(route.params.flowId), workspaceMode: 'debugger' })
       },
       {
         path: 'points',

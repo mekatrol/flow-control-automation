@@ -113,7 +113,7 @@ test('applies numeric interface inputs and presents committed shadow output meta
   );
 
   await page.goto('/flows/simulator-io');
-  await page.getByRole('button', { name: 'Simulator' }).click();
+  await page.getByRole('link', { name: 'Simulator' }).click();
   await page.getByRole('button', { name: 'Start simulation' }).click();
   await page.getByRole('spinbutton', { name: 'Value' }).fill('21.5');
   await page.getByRole('button', { name: 'Apply inputs and step' }).click();

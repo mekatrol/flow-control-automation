@@ -411,9 +411,9 @@ test('protects dirty navigation and supports explicit discard', async ({ page })
   await expect(page.getByRole('alertdialog', { name: 'Discard unsaved changes?' })).toBeVisible();
 
   // Expected outcome: Navigation reaches the required route.
-  // Acceptance criteria: the page URL must match `/\/flows\/climate-control$/`, because this condition proves that
+  // Acceptance criteria: the page URL must match `/\/flows\/climate-control\/design$/`, because this condition proves that
   // protects dirty navigation and supports explicit discard.
-  await expect(page).toHaveURL(/\/flows\/climate-control$/);
+  await expect(page).toHaveURL(/\/flows\/climate-control\/design$/);
   await page.getByRole('button', { name: 'Keep editing' }).click();
 
   // Expected outcome: `page.getByRole('alertdialog')` is not exposed to the user.
