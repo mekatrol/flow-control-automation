@@ -25,6 +25,19 @@ public sealed class FlowCompilationTargetResolverTests
     }
 
     [Test]
+    public async Task ResolvesReadableAndCommandableVirtualValuesAsFlowIo()
+    {
+        var resolver = Resolver(
+            Template(),
+            [VirtualValue("input-01", readable: true), VirtualValue("output-01", commandable: true)]);
+
+        var target = await resolver.ResolveAsync(Source(), default);
+
+        Assert.That(target.Points.Select(point => point.Id),
+            Is.EqualTo(new[] { "input-01", "output-01" }));
+    }
+
+    [Test]
     public void RejectsAStaleTemplateRevisionBeforeReadingPoints()
     {
         var pointStore = new StubPointStore([]);
@@ -142,6 +155,12 @@ public sealed class FlowCompilationTargetResolverTests
     private static Point Input(string id) => Point(id, "input", readable: true);
 
     private static Point Output(string id) => Point(id, "output", commandable: true);
+
+    private static Point VirtualValue(
+        string id,
+        bool readable = false,
+        bool commandable = false) =>
+        Point(id, "value", readable, commandable) with { Implementation = "virtual" };
 
     private static Point Point(
         string id,

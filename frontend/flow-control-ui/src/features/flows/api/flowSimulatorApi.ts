@@ -32,6 +32,35 @@ export interface SimulatorSession {
   leaseRemainingMilliseconds: number;
 }
 
+interface CompilerDiagnostic {
+  message: string;
+  path?: string;
+}
+
+const compilerDiagnostics = (value: unknown): CompilerDiagnostic[] => {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (typeof item !== 'object' || item === null || !('message' in item)) return [];
+    if (typeof item.message !== 'string' || !item.message.trim()) return [];
+    const path = 'path' in item && typeof item.path === 'string' ? item.path.trim() : '';
+    return [{ message: item.message.trim(), ...(path ? { path } : {}) }];
+  });
+};
+
+const errorMessage = (body: unknown, status: number): string => {
+  if (typeof body !== 'object' || body === null)
+    return `Simulator request failed with status ${status}.`;
+  const payload = body as { message?: unknown; diagnostics?: unknown };
+  const summary =
+    typeof payload.message === 'string' && payload.message.trim()
+      ? payload.message.trim()
+      : `Simulator request failed with status ${status}.`;
+  const details = compilerDiagnostics(payload.diagnostics).map((diagnostic) =>
+    diagnostic.path ? `${diagnostic.message} (${diagnostic.path})` : diagnostic.message
+  );
+  return details.length > 0 ? `${summary} ${details.join(' ')}` : summary;
+};
+
 const parse = (value: unknown): SimulatorSession => {
   if (typeof value !== 'object' || value === null)
     throw new TypeError('Simulator session is invalid.');
@@ -61,17 +90,8 @@ const request = async (
   try {
     const response = await fetch(url, { ...init, signal });
     if (!response.ok) {
-      const body = (await response.json().catch(() => ({}))) as {
-        code?: unknown;
-        message?: unknown;
-      };
-      throw new FlowApiError(
-        'http',
-        typeof body.message === 'string'
-          ? body.message
-          : `Simulator request failed with status ${response.status}.`,
-        response.status
-      );
+      const body: unknown = await response.json().catch(() => undefined);
+      throw new FlowApiError('http', errorMessage(body, response.status), response.status);
     }
     return parse(await response.json());
   } catch (error) {

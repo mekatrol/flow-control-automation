@@ -4,7 +4,7 @@
       id="yaml-resource-error-notice"
       automation="yaml-resource-error"
       :message="apiError"
-      :details="apiErrorDetails"
+      :details="noticeErrorDetails"
     />
     <nav aria-label="Breadcrumb">
       <RouterLink :to="{ name: listRoute }">{{ pluralLabel }}</RouterLink> /
@@ -352,6 +352,13 @@ const validating = ref(false);
 const error = ref('');
 const apiError = ref('');
 const apiErrorDetails = ref<string[]>([]);
+const noticeErrorDetails = computed(() =>
+  apiErrorDetails.value.length > 0
+    ? apiErrorDetails.value
+    : apiError.value
+      ? [apiError.value]
+      : []
+);
 const status = ref('');
 const deleteConflict = ref(false);
 const serverDiagnostics = ref<ValidationDiagnostic[]>([]);
@@ -438,17 +445,18 @@ const save = async (): Promise<void> => {
   error.value = '';
   serverDiagnostics.value = [];
   try {
+    const savedResourceId = resourceIdFromYaml();
     const result = props.resourceId
       ? await api.value.update(props.resourceId, yaml.value, revision.value)
       : await api.value.create(yaml.value);
     yaml.value = baseline.value = result.yaml;
     revision.value = result.revision;
     status.value = `${singularLabel.value} saved.`;
-    if (!props.resourceId) {
+    if (!props.resourceId || savedResourceId !== props.resourceId) {
       allowNavigation = true;
       await router.replace({
         name: detailRoute.value,
-        params: { resourceId: resourceIdFromYaml() }
+        params: { resourceId: savedResourceId }
       });
     }
   } catch (reason) {

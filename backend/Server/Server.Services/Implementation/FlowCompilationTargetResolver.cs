@@ -141,11 +141,13 @@ public sealed class FlowCompilationTargetResolver(
 
     private static void ValidatePoint(PointReference reference, Point point)
     {
+        var virtualValue = string.Equals(point.Implementation, "virtual", StringComparison.Ordinal)
+            && string.Equals(point.Direction, "value", StringComparison.Ordinal);
         var valid = point.Enabled
             && string.Equals(point.ValueType, reference.IsAnalog ? "analog" : "digital", StringComparison.Ordinal)
             && (reference.IsInput
-                ? point.Readable && string.Equals(point.Direction, "input", StringComparison.Ordinal)
-                : point.Commandable && string.Equals(point.Direction, "output", StringComparison.Ordinal));
+                ? point.Readable && (string.Equals(point.Direction, "input", StringComparison.Ordinal) || virtualValue)
+                : point.Commandable && (string.Equals(point.Direction, "output", StringComparison.Ordinal) || virtualValue));
         if (!valid)
         {
             throw Failure(

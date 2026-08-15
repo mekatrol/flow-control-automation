@@ -55,11 +55,6 @@ internal sealed class PointDefinitionDatabaseStore(
     {
         var entity = await FindPoint(id, cancellationToken);
         var previous = DeserializePoint(entity);
-        if (point.Id != id)
-        {
-            throw new PointDefinitionValidationException(
-                "point id must match request path");
-        }
         EnsureRevision(revision, previous.Revision);
         validator.Validate(point, await Context(cancellationToken));
         var now = timeProvider.GetUtcNow();
@@ -69,8 +64,20 @@ internal sealed class PointDefinitionDatabaseStore(
             CreatedAt = previous.CreatedAt,
             UpdatedAt = Timestamp(now)
         };
-        Update(entity, updated, now);
-        await SaveUpdate(entity, "point name already exists", cancellationToken);
+        if (point.Id == id)
+        {
+            Update(entity, updated, now);
+            await SaveUpdate(entity, "point name already exists", cancellationToken);
+        }
+        else
+        {
+            // EF Core does not allow a tracked primary key to be changed. Replace
+            // the row in one SaveChanges call so a rename is atomic while the
+            // public resource revision and creation timestamp remain continuous.
+            context.Points.Remove(entity);
+            context.Points.Add(Entity(updated, now));
+            await SaveUpdate(entity: null, "point ID or name already exists", cancellationToken);
+        }
         return updated;
     }
 

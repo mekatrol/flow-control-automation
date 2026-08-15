@@ -104,4 +104,52 @@ describe('flow simulator store', () => {
     expect(store.lifecycle).toBe('faulted');
     expect(store.error).toBe('Draft is invalid.');
   });
+
+  it('presents every compiler diagnostic with its source path', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          code: 'compile_invalid_source',
+          message: 'The draft flow could not be compiled.',
+          diagnostics: [
+            {
+              code: 'duplicate_point',
+              path: '/nodes/1/configuration/pointId',
+              message: 'Input point IDs must be unique.'
+            },
+            {
+              code: 'missing_input',
+              path: '/nodes/2',
+              message: 'The OR node requires two inputs.'
+            }
+          ]
+        }),
+        { status: 422 }
+      )
+    );
+    const store = useFlowSimulatorStore();
+
+    await store.start(source());
+
+    expect(store.error).toBe(
+      'The draft flow could not be compiled. Input point IDs must be unique. (/nodes/1/configuration/pointId) The OR node requires two inputs. (/nodes/2)'
+    );
+  });
+
+  it('ignores malformed compiler diagnostics', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: 'The draft flow could not be compiled.',
+          diagnostics: [null, {}, { message: 42 }, { message: '   ' }]
+        }),
+        { status: 422 }
+      )
+    );
+    const store = useFlowSimulatorStore();
+
+    await store.start(source());
+
+    expect(store.error).toBe('The draft flow could not be compiled.');
+  });
 });

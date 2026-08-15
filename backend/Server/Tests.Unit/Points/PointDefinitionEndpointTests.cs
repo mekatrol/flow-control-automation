@@ -66,15 +66,20 @@ internal sealed class PointDefinitionEndpointTests
             client,
             HttpMethod.Put,
             "/api/points/supply",
-            PointYaml.Render(created with { Name = "Updated supply" }),
+            PointYaml.Render(created with { Id = "renamed-supply", Name = "Updated supply" }),
             revision: 1);
         AssertResource(update, HttpStatusCode.OK, revision: 2);
+
+        using var oldId = await client.GetAsync("/api/points/supply");
+        Assert.That(oldId.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+        using var renamed = await client.GetAsync("/api/points/renamed-supply");
+        AssertResource(renamed, HttpStatusCode.OK, revision: 2);
 
         using var stale = await SendYaml(
             client,
             HttpMethod.Put,
-            "/api/points/supply",
-            PointYaml.Render(created),
+            "/api/points/renamed-supply",
+            PointYaml.Render(created with { Id = "renamed-supply" }),
             revision: 1);
         await AssertError(stale, HttpStatusCode.Conflict, "stale_revision");
 
@@ -103,7 +108,7 @@ internal sealed class PointDefinitionEndpointTests
             // point and group crud uses canonical yaml and revisions.
             Assert.That(
                 conflict.GetProperty("details").GetProperty("pointIds")[0].GetString(),
-                Is.EqualTo("supply"));
+                Is.EqualTo("renamed-supply"));
         });
 
         using var standalone = await client.PostAsync(
@@ -136,7 +141,7 @@ internal sealed class PointDefinitionEndpointTests
                 Is.False);
         });
 
-        using var deletePoint = await client.DeleteAsync("/api/points/supply?revision=3");
+        using var deletePoint = await client.DeleteAsync("/api/points/renamed-supply?revision=3");
 
         // Expected outcome: `deletePoint.StatusCode` has the required value.
         // Acceptance criteria: `deletePoint.StatusCode` must equal `HttpStatusCode.NoContent`, because this condition proves that
@@ -318,12 +323,12 @@ internal sealed class PointDefinitionEndpointTests
     }
 
     /// <summary>
-    /// Purpose: Protects the behavioral contract that unknown resources invalid revisions and path mismatch are stable.
-    /// Description: Arranges the inputs for unknown resources invalid revisions and path mismatch are stable, exercises the relevant operation,
+    /// Purpose: Protects the behavioral contract that unknown resources, invalid revisions, and point renames are stable.
+    /// Description: Arranges unknown resources, invalid revisions, and a point rename, exercises the relevant operations,
     /// and verifies the observable results required by that scenario.
     /// </summary>
     [Test]
-    public async Task UnknownResourcesInvalidRevisionsAndPathMismatchAreStable()
+    public async Task UnknownResourcesInvalidRevisionsAndPointRenamesAreStable()
     {
         await using var factory = new Api.FlowControlApplicationFactory();
         using var client = factory.CreateClient();
@@ -346,13 +351,17 @@ internal sealed class PointDefinitionEndpointTests
         // Acceptance criteria: `created.StatusCode` must equal `HttpStatusCode.Created`, because this condition proves that
         // unknown resources invalid revisions and path mismatch are stable.
         Assert.That(created.StatusCode, Is.EqualTo(HttpStatusCode.Created));
-        using var mismatch = await SendYaml(
+        using var rename = await SendYaml(
             client,
             HttpMethod.Put,
             "/api/points/point",
             PointYaml.Render(Point("other", "Other")),
             revision: 1);
-        await AssertError(mismatch, HttpStatusCode.BadRequest, "validation_failed");
+        AssertResource(rename, HttpStatusCode.OK, revision: 2);
+        using var oldId = await client.GetAsync("/api/points/point");
+        await AssertError(oldId, HttpStatusCode.NotFound, "not_found");
+        using var newId = await client.GetAsync("/api/points/other");
+        AssertResource(newId, HttpStatusCode.OK, revision: 2);
     }
 
     /// <summary>
