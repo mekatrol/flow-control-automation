@@ -6,7 +6,7 @@ firmware, build project, tests, and workspace tasks are at the
 select `kincony-kc868-a16` with the **Set board** task.
 
 The generic phased communications roadmap is in
-[`portable-flow-il-architecture.md`](../../../../docs/portable-flow-il-architecture.md).
+[`portable-flow-runtime-architecture.md`](../../../../docs/portable-flow-runtime-architecture.md).
 
 ## Hardware target
 

@@ -2,7 +2,7 @@
 
 This document describes capabilities currently implemented in the controller
 firmware. Work that is not yet complete remains in
-[`../docs/portable-flow-il-architecture.md`](../docs/portable-flow-il-architecture.md).
+[`../docs/portable-flow-runtime-architecture.md`](../docs/portable-flow-runtime-architecture.md).
 
 ## Portable runtime and diagnostics
 

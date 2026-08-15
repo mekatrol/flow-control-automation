@@ -1,10 +1,10 @@
-# Flow simulator contract and Phase 0 baseline
+# Flow simulator contract
 
-Status: Accepted for the pre-release simulator implementation. This document
-records the contract decisions and repository baseline required by Phase 0 of
-`flow-simulator-implementation-plan.md`. Later phases may replace current
-implementation details, but must preserve the decisions in sections 2 through
-5 or amend this record deliberately.
+Status: Accepted. This document records the normative simulator schemas,
+diagnostics, limits, and endpoint behavior that complement the system design in
+[`portable-flow-runtime-architecture.md`](portable-flow-runtime-architecture.md). Changes
+to these contracts must be made deliberately across producers, consumers,
+fixtures, and tests.
 
 ## 1. Current executable-language inventory
 
@@ -49,13 +49,13 @@ The cross-cutting tests are `FlowCompilerTests`, `FlowDecompilerTests`,
 `FlowDebugServiceTests`, `LocalFlowDebuggerTests`,
 `FlowEmulatorServiceTests`, and `controllers/tests/test_flow_vm.c`.
 
-Phase 5 defines canonical portable profiles for the former 16 authoring-only
-kinds. All 38 registered kinds are now advertised as executable.
+Canonical portable profiles cover the former 16 authoring-only kinds. All 38
+registered kinds are advertised as executable.
 
 ## 2. Flow interface decision
 
-The current flow source schema will gain one required, versioned `interface`
-object with `inputs` and `outputs` arrays. Entries use stable IDs and the types
+The current flow source schema has one required, versioned `interface` object
+with `inputs` and `outputs` arrays. Entries use stable IDs and the types
 `boolean`, `number`, `string`, or `event`. Names are user-facing and unique
 within their direction. Units and defaults are definition data; live values are
 session data and are never persisted in a flow.
@@ -104,7 +104,7 @@ authority.
 
 ## 5. Diagnostic and error contract
 
-New simulator endpoints use one JSON error envelope:
+Simulator endpoints use one JSON error envelope:
 
 ```json
 {
@@ -141,7 +141,7 @@ diagnostics, 429 bounded-resource exhaustion, and 503 unavailable host.
 
 ## 6. Shared limits
 
-These are the initial server profile and apply before allocation or execution.
+These are the current server profile and apply before allocation or execution.
 A target may advertise a smaller limit; the effective limit is the minimum.
 
 | Resource | Limit |
@@ -167,7 +167,7 @@ and execution. Controller-template node and connection limits continue to
 apply. Limits are returned as capabilities where the UI needs to prevent
 invalid work, but server validation remains authoritative.
 
-## 7. Existing endpoint and lifecycle inventory
+## 7. Endpoint and lifecycle inventory
 
 Debug endpoints are rooted at
 `/api/flows/{flowId}/debug-sessions`: create, get, tick/node/instruction step,
@@ -190,10 +190,11 @@ interface identity, and quality. Output history distinguishes proposed and
 committed simulator values and includes units, quality, last-change scan, and
 interface identity. The export is not the persisted scenario contract in section 3.
 
-Current error responses are inconsistent across these endpoint groups (plain
-`ErrorResponse`, compiler diagnostic arrays, and empty emulator 404s). Phase 1
-must introduce application-level simulator endpoints using section 5 without
-changing the portable execution path.
+Application-level simulator endpoints are rooted at
+`/api/flows/{flowId}/simulator-sessions`. They provide the consistent envelope
+from section 5 while composing the existing compiler, debugger, and emulator
+services without changing the portable execution path. Lower-level debug and
+emulator endpoints retain their established response contracts.
 
 Debugger sessions expose the compiler schedule as execution order and paused
 frames expose stable node-to-slot typed values. Canvas consumers may project

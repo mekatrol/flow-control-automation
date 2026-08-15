@@ -10,7 +10,7 @@ completed-scan snapshot. Intentional feedback uses explicit memory/delay state,
 so cyclic behavior is predictable without recursive graph evaluation.
 
 The production execution architecture is defined by the
-[`portable Flow IL architecture`](docs/portable-flow-il-architecture.md).
+[`portable flow runtime architecture`](docs/portable-flow-runtime-architecture.md).
 Flows compile on the backend into deterministic bytecode and execute through the
 same portable VM on the server or a hardware controller. Earlier design records
 remain under [`docs/decisions/`](docs/decisions/), but pre-release runtime paths

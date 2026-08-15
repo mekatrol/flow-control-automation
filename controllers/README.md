@@ -8,7 +8,7 @@ every platform. A thin platform entry (for example ESP-IDF's `app_main`) calls
 it.
 
 The production flow runtime is documented in
-[`../docs/portable-flow-il-architecture.md`](../docs/portable-flow-il-architecture.md).
+[`../docs/portable-flow-runtime-architecture.md`](../docs/portable-flow-runtime-architecture.md).
 The backend compiles and schedules Flow IL v1; controllers validate and execute
 it through the shared portable VM rather than compiling designer graphs.
 
@@ -21,7 +21,7 @@ For a clean machine or newly cloned repository, follow
 [`SETUP_DEV.md`](SETUP_DEV.md) before building.
 
 See [`FEATURES.md`](FEATURES.md) for the implemented firmware capabilities and
-[`../docs/portable-flow-il-architecture.md`](../docs/portable-flow-il-architecture.md) for the current execution design.
+[`../docs/portable-flow-runtime-architecture.md`](../docs/portable-flow-runtime-architecture.md) for the current execution design.
 
 The first supported board is the KinCony KC868-A16v3 on ESP32-S3. Future ESP32,
 Raspberry Pi, STM32, and other targets should add a board description and, only
@@ -279,7 +279,7 @@ B, and signal ground to ground before testing; swap A and B if the adapter and
 controller use opposite terminal naming.
 
 Implemented capabilities are summarized in [`FEATURES.md`](FEATURES.md), the
-execution architecture is in [`../docs/portable-flow-il-architecture.md`](../docs/portable-flow-il-architecture.md), and
+execution architecture is in [`../docs/portable-flow-runtime-architecture.md`](../docs/portable-flow-runtime-architecture.md), and
 the normative bespoke wire contract is in [`PROTOCOL.md`](PROTOCOL.md).
 Board-specific wiring and commissioning notes belong under that board's
 directory.

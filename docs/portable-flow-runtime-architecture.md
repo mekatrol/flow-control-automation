@@ -1,4 +1,4 @@
-# Portable Flow IL architecture
+# Portable flow runtime architecture
 
 ## Decision
 
@@ -264,6 +264,59 @@ electrical waveforms, CPU instruction timing, network stacks, or vendor firmware
 Those may be added as explicit device-model extensions. A flow passing the
 emulator proves IL/VM and modeled-I/O behavior, but does not replace on-target
 commissioning for physical timing or output safety.
+
+## Flow simulator application model
+
+The flow simulator is the application-facing composition of the compiler,
+portable debugger, and server-side emulator. It is not another execution host
+or evaluator. The browser submits the current draft source, and the backend
+validates and compiles it before creating a volatile, server-owned shadow
+session. The returned source revision and artifact digest are authoritative for
+all subsequent commands. Editing executable source makes the session stale and
+requires recompilation.
+
+Simulator sessions occupy a namespace separate from deployments and controller
+debug sessions. They support typed inputs and quality, virtual time, scan/node/
+instruction stepping, run and pause, breakpoints, frame inspection, reset and
+power cycle, fault injection, output history, and deterministic scenario
+replay. Replacement, explicit stop, idle expiry, disconnect, cancellation, VM
+fault, and server shutdown discard any uncommitted execution frame and dispose
+the VM. Simulator outputs are always shadow outputs: no simulator endpoint can
+activate controller live output or issue a physical point command.
+
+### Flow interfaces
+
+Each flow declares a versioned interface containing bounded typed inputs and
+outputs with stable IDs. `flowInput` and `flowOutput` nodes reference those IDs
+and form portable boundaries for simulation, tutorials, tests, and reusable
+flows. They never resolve to physical points. Point nodes remain the explicit
+boundary for virtual, external, or hardware I/O. Interface definition data is
+persisted with the flow; live values and quality belong only to a session.
+
+### Scenarios and tutorials
+
+Scenarios are versioned resources stored separately from flows and artifacts.
+They address inputs and expectations by stable interface ID, retain the
+backend-issued flow revision, and contain bounded ordered virtual-time steps.
+Replay, import, export, and CI execution use the ordinary compiler and portable
+VM. A revision mismatch is a hard stale-scenario error and is never rebound by
+display name.
+
+Tutorials are repository-owned, versioned content made from ordinary flow
+fixtures, simulator scenarios, guidance, and optional challenge fixtures.
+Every executable palette kind has verified tutorial coverage. Tutorial flows
+use the same source parser, compiler, simulator API, and VM as user-authored
+flows; tutorial-specific function semantics are forbidden.
+
+### Bounds and lifecycle guarantees
+
+Allocation and execution are bounded before work is accepted. The server
+limits interface entries, active sessions, session idle time, scenarios per
+flow, steps and expectations, breakpoints, history, inspectable slots, artifact
+size, instructions per scan, scenario scans, request size, and scenario wall
+time. Target profiles may advertise smaller limits, in which case the effective
+limit is the minimum. Exact current values and structured error codes are
+normative in [`flow-simulator-contract.md`](flow-simulator-contract.md).
 
 ## Deployment model
 
