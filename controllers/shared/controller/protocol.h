@@ -103,14 +103,22 @@ typedef enum
     CONTROLLER_PROTOCOL_DECODE_BAD_CRC,
 } controller_protocol_decode_result_t;
 
+/** One decoded version-one request or response frame. */
 typedef struct
 {
+    /** Version-one flag bits; reserved bits must be zero. */
     uint8_t flags;
+    /** Destination controller address in the inclusive wire range 0 through 65535. */
     uint16_t destination;
+    /** Source address used to route and correlate the response. */
     uint16_t source;
+    /** Caller-selected transaction value echoed by the response. */
     uint16_t transaction;
+    /** Operation code from @ref controller_protocol_operation_t. */
     uint8_t operation;
+    /** Number of valid bytes in payload, from zero through CONTROLLER_PROTOCOL_PAYLOAD_CAPACITY. */
     size_t payload_size;
+    /** Caller-owned decoded payload storage; only the first payload_size bytes are meaningful. */
     uint8_t payload[CONTROLLER_PROTOCOL_PAYLOAD_CAPACITY];
 } controller_protocol_message_t;
 
@@ -253,26 +261,65 @@ typedef struct
     uint64_t authenticated_now_ms;
 } controller_protocol_t;
 
-/* Calculates the normative CRC-16/Modbus value for a byte range. */
+/**
+ * Calculates the normative CRC-16/Modbus value for a byte range.
+ * @param data Read-only byte range, or NULL only when size is zero.
+ * @param size Number of bytes to include; the complete range must be readable.
+ * @return CRC-16/Modbus initialized and finalized according to the wire protocol.
+ */
 uint16_t controller_protocol_get_crc(const uint8_t *data, size_t size);
 
-/* Encodes one validated message into a bounded version-one wire frame. */
+/**
+ * Encodes one validated message into a bounded version-one wire frame.
+ * @param message Non-NULL message whose payload_size does not exceed CONTROLLER_PROTOCOL_PAYLOAD_CAPACITY.
+ * @param output Non-NULL caller-owned destination with at least capacity writable bytes.
+ * @param capacity Destination capacity; it must accommodate the header, payload, and CRC and cannot exceed SIZE_MAX.
+ * @param output_size Non-NULL result receiving the encoded byte count on success; it is set to zero on failure.
+ * @return true when the complete frame was encoded, otherwise false without writing beyond capacity.
+ */
 bool controller_protocol_encode(const controller_protocol_message_t *message, uint8_t *output, size_t capacity,
                                 size_t *output_size);
 
-/* Decodes and validates one complete version-one wire frame. */
+/**
+ * Decodes and validates one complete version-one wire frame.
+ * @param frame Non-NULL read-only frame containing exactly size bytes.
+ * @param size Complete frame size from header plus CRC through CONTROLLER_PROTOCOL_FRAME_CAPACITY.
+ * @param message Non-NULL output receiving decoded fields only when CONTROLLER_PROTOCOL_DECODE_OK is returned.
+ * @return Stable framing result identifying success or the first rejected wire invariant.
+ */
 controller_protocol_decode_result_t controller_protocol_decode(const uint8_t *frame, size_t size,
                                                                controller_protocol_message_t *message);
 
-/* Initializes a protocol dispatcher with immutable identity and provider contracts. */
+/**
+ * Initializes a protocol dispatcher with immutable identity and provider contracts.
+ * @param protocol Non-NULL caller-owned dispatcher storage that remains valid for its complete lifetime.
+ * @param config Non-NULL configuration whose referenced strings, services, and contexts outlive protocol.
+ * @param send Non-NULL callback that copies each complete response before returning.
+ * @param send_context Opaque callback context, which may be NULL when accepted by send.
+ * @return true when every required provider and bounded identity is valid; false leaves protocol unusable.
+ */
 bool controller_protocol_init(controller_protocol_t *protocol, const controller_protocol_config_t *config,
                               controller_protocol_send_t send, void *send_context);
 
-/* Validates and dispatches one owned transport frame without blocking. */
+/**
+ * Validates and dispatches one owned transport frame without blocking.
+ * @param protocol Non-NULL initialized dispatcher with no concurrent caller.
+ * @param frame Non-NULL complete frame that remains readable only for this call.
+ * @param size Frame byte count from one through CONTROLLER_PROTOCOL_FRAME_CAPACITY.
+ * @param now_ms Monotonic milliseconds used for authentication leases and delayed discovery; it must not move backward.
+ */
 void controller_protocol_receive(controller_protocol_t *protocol, const uint8_t *frame, size_t size, uint64_t now_ms);
 
-/* Sends a pending collision-delayed discovery response when its bounded slot expires. */
+/**
+ * Sends a pending collision-delayed discovery response when its bounded slot expires.
+ * @param protocol Non-NULL initialized dispatcher with no concurrent caller.
+ * @param now_ms Current monotonic milliseconds; it must be at least the last value supplied to the dispatcher.
+ */
 void controller_protocol_process(controller_protocol_t *protocol, uint64_t now_ms);
 
-/* Gets a read-only snapshot of protocol validation and dispatch counters. */
+/**
+ * Gets a read-only snapshot of protocol validation and dispatch counters.
+ * @param protocol Non-NULL initialized dispatcher; the caller must prevent concurrent mutation while copying.
+ * @return Counter snapshot whose unsigned fields wrap only after UINT32_MAX observations.
+ */
 controller_protocol_health_t controller_protocol_get_health(const controller_protocol_t *protocol);
