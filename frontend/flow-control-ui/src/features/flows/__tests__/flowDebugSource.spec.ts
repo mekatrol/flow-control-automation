@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createDefaultNode } from '@/features/flows/graph/createNode';
-import {
-  createExecutableFlowSource,
-  graphRevision
-} from '@/features/flows/flowDebugSource';
+import { createExecutableFlowSource, graphRevision } from '@/features/flows/flowDebugSource';
 import type { FlowDebugTarget } from '@/features/flows/debugTargets';
 import type { FlowDefinition } from '@/features/flows/types';
 

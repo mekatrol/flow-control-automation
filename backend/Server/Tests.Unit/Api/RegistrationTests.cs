@@ -105,6 +105,8 @@ public sealed class RegistrationTests
 
         public DbSet<CredentialEntity> Credentials => throw new NotSupportedException();
 
+        public DbSet<FlowScenarioEntity> FlowScenarios => throw new NotSupportedException();
+
         public DbSet<TEntity> Set<TEntity>()
             where TEntity : class => throw new NotSupportedException();
 

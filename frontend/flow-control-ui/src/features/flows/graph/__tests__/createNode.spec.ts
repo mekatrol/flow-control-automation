@@ -27,10 +27,7 @@ describe('default node creation', () => {
     // Expected outcome: `node.connectors.map(({ id }) => id)` matches the required structure.
     // Acceptance criteria: `node.connectors.map(({ id }) => id)` must equal `[ 'analogue-input', 'digital-input', 'analogue-output', 'digital-output' ]`, because this condition proves that
     // creates a serialisable node from registry defaults and a supplied ID.
-    expect(node.connectors.map(({ id }) => id)).toEqual([
-      'input',
-      'output'
-    ]);
+    expect(node.connectors.map(({ id }) => id)).toEqual(['input', 'output']);
 
     // Expected outcome: The invalid operation is rejected.
     // Acceptance criteria: the operation must throw the asserted error, because this condition proves that

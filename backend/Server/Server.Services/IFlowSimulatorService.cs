@@ -8,6 +8,7 @@ public interface IFlowSimulatorService
     Task<FlowSimulatorSession> GetAsync(string flowId, string sessionId, CancellationToken cancellationToken);
     Task<FlowSimulatorSession> StepTickAsync(string flowId, string sessionId, CancellationToken cancellationToken);
     Task<FlowSimulatorSession> ApplyInputsAndStepAsync(string flowId, string sessionId, IReadOnlyList<EmulatorInputChange> inputs, CancellationToken cancellationToken);
+    Task<FlowSimulatorSession> ApplyInputsAsync(string flowId, string sessionId, IReadOnlyList<EmulatorInputChange> inputs, CancellationToken cancellationToken);
     Task<FlowSimulatorSession> AdvanceAsync(string flowId, string sessionId, ulong milliseconds, CancellationToken cancellationToken);
     Task<FlowSimulatorSession> InjectFaultAsync(string flowId, string sessionId, string? fault, CancellationToken cancellationToken);
     Task<FlowSimulatorSession> ResetIoAsync(string flowId, string sessionId, bool powerCycle, CancellationToken cancellationToken);

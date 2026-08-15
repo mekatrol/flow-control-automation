@@ -58,6 +58,17 @@ public sealed class FlowSimulatorService(
         return Map(entry.Registry.Session!, entry, sessions.Touch(entry));
     }
 
+    public Task<FlowSimulatorSession> ApplyInputsAsync(
+        string flowId,
+        string sessionId,
+        IReadOnlyList<EmulatorInputChange> inputs,
+        CancellationToken cancellationToken)
+    {
+        var entry = Require(flowId, sessionId);
+        emulators.SetInputs(entry.EmulatorId!, inputs);
+        return Task.FromResult(Map(entry.Registry.Session!, entry, sessions.Touch(entry)));
+    }
+
     public async Task<FlowSimulatorSession> AdvanceAsync(string flowId, string sessionId, ulong milliseconds, CancellationToken cancellationToken)
     {
         var entry = Require(flowId, sessionId);

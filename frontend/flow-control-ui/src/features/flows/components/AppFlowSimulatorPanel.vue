@@ -82,6 +82,51 @@
       <p>Instruction {{ session.inspection?.instructionPointer ?? 'at scan boundary' }}</p>
       <p>{{ session.breakpoints.length }} breakpoints</p>
     </details>
+    <section v-if="session" class="scenarios" aria-labelledby="scenario-title">
+      <h3 id="scenario-title">Scenarios</h3>
+      <div class="controls" role="group" aria-label="Scenario recording controls">
+        <AppButton
+          automation="scenario-record"
+          :text="recording ? 'Recording…' : 'Record'"
+          :disabled="recording"
+          @click="emit(EVENTS.START_RECORDING)"
+        />
+        <AppButton
+          automation="scenario-stop-recording"
+          text="Stop recording"
+          :disabled="!recording"
+          @click="emit(EVENTS.STOP_RECORDING)"
+        />
+        <label for="scenario-name">Scenario name</label>
+        <input id="scenario-name" v-model.trim="scenarioName" maxlength="200" />
+        <AppButton
+          automation="scenario-save"
+          text="Save scenario"
+          :disabled="recordedStepCount === 0 || scenarioName.length === 0"
+          @click="emit(EVENTS.SAVE_SCENARIO, scenarioName)"
+        />
+      </div>
+      <p role="status" aria-live="polite">{{ recordedStepCount }} recorded steps.</p>
+      <ol v-if="recordedStepCount > 0" aria-label="Recorded timeline">
+        <li v-for="(step, index) in recordedSteps" :key="index">
+          {{ step.atMilliseconds }} ms — {{ step.action }}
+        </li>
+      </ol>
+      <ul v-if="scenarios.length > 0" class="scenario-list">
+        <li v-for="scenario in scenarios" :key="scenario.id">
+          <span>{{ scenario.name }} ({{ scenario.steps.length }} steps)</span>
+          <AppButton
+            :automation="`scenario-replay-${scenario.id}`"
+            text="Replay"
+            @click="emit(EVENTS.REPLAY_SCENARIO, scenario)"
+          />
+        </li>
+      </ul>
+      <p v-if="scenarioResult" :class="scenarioResult.passed ? 'passed' : 'error'" role="status">
+        Replay {{ scenarioResult.passed ? 'passed' : 'failed' }} at scan
+        {{ scenarioResult.scanNumber }}.
+      </p>
+    </section>
     <AppFlowEmulatorPanel
       v-if="session?.io"
       automation="simulator-io"
@@ -97,7 +142,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import AppButton from '@/components/AppButton.vue';
 import AppFlowEmulatorPanel from '@/features/flows/components/AppFlowEmulatorPanel.vue';
 import { useAutomation } from '@/composables/useAutomation';
@@ -105,14 +150,32 @@ import { EVENTS } from '@/constants/events';
 import type { SimulatorLifecycle, SimulatorSession } from '@/features/flows/api/flowSimulatorApi';
 import type { EmulatorInputChange } from '@/features/flows/api/flowEmulatorApi';
 import type { FlowInterface } from '@/features/flows/types';
+import type { FlowScenario, FlowScenarioRunResult } from '@/features/flows/api/flowScenarioApi';
 
-const props = defineProps<{
-  automation: string;
-  lifecycle: SimulatorLifecycle;
-  session?: SimulatorSession;
-  error?: string;
-  flowInterface?: FlowInterface;
-}>();
+const props = withDefaults(
+  defineProps<{
+    automation: string;
+    lifecycle: SimulatorLifecycle;
+    session?: SimulatorSession;
+    error?: string;
+    flowInterface?: FlowInterface;
+    recording?: boolean;
+    recordedStepCount?: number;
+    scenarios?: FlowScenario[];
+    recordedSteps?: FlowScenario['steps'];
+    scenarioResult?: FlowScenarioRunResult;
+  }>(),
+  {
+    session: undefined,
+    error: undefined,
+    flowInterface: undefined,
+    recording: false,
+    recordedStepCount: 0,
+    scenarios: () => [],
+    recordedSteps: () => [],
+    scenarioResult: undefined
+  }
+);
 const emit = defineEmits<{
   (event: typeof EVENTS.START_SIMULATION): void;
   (event: typeof EVENTS.STEP_TICK): void;
@@ -125,8 +188,12 @@ const emit = defineEmits<{
   (event: typeof EVENTS.RESET, powerCycle: boolean): void;
   (event: typeof EVENTS.RESET_INPUTS): void;
   (event: typeof EVENTS.RUN | typeof EVENTS.PAUSE | typeof EVENTS.RESTART): void;
+  (event: typeof EVENTS.START_RECORDING | typeof EVENTS.STOP_RECORDING): void;
+  (event: typeof EVENTS.SAVE_SCENARIO, name: string): void;
+  (event: typeof EVENTS.REPLAY_SCENARIO, scenario: FlowScenario): void;
 }>();
 const automation = useAutomation(props.automation);
+const scenarioName = ref('Recorded scenario');
 const flowInterface = computed<FlowInterface>(
   () => props.flowInterface ?? { schemaVersion: 1, inputs: [], outputs: [] }
 );
@@ -197,5 +264,22 @@ const stateLabel = computed(
 }
 .advanced {
   margin-top: var(--space-3);
+}
+.scenarios {
+  margin-top: var(--space-4);
+  border-top: var(--border-width-default) solid var(--color-border-subtle);
+}
+.scenario-list {
+  padding: 0;
+  list-style: none;
+}
+.scenario-list li {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+}
+.passed {
+  color: var(--color-success-text);
 }
 </style>

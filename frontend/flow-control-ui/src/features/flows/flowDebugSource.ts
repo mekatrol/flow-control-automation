@@ -24,8 +24,23 @@ const supportedKinds = new Set([
   'memory',
   'digitalOutput',
   'flowInput',
-  'flowOutput'
-  ,'average','calculator','calendar','clamp','delay','if','line','max','min','override','pulse','schedule','selector','sequence','split','timer'
+  'flowOutput',
+  'average',
+  'calculator',
+  'calendar',
+  'clamp',
+  'delay',
+  'if',
+  'line',
+  'max',
+  'min',
+  'override',
+  'pulse',
+  'schedule',
+  'selector',
+  'sequence',
+  'split',
+  'timer'
 ]);
 
 export class FlowDebugSourceError extends Error {
@@ -80,10 +95,17 @@ const configurationFor = (node: FlowNode): Record<string, unknown> => {
   if (node.kind === 'levelShifter')
     return { gain: Number(node.configuration.gain), offset: Number(node.configuration.offset) };
   if (node.kind === 'onDelay') return { durationMs: Number(node.configuration.durationMs) };
-  if (node.kind === 'delay' || node.kind === 'timer') return { durationMs: Number(node.configuration.durationMs) };
-  if (node.kind === 'clamp') return { minimum: Number(node.configuration.minimum), maximum: Number(node.configuration.maximum) };
-  if (node.kind === 'line') return { gain: Number(node.configuration.gain), offset: Number(node.configuration.offset) };
-  if (node.kind === 'schedule' || node.kind === 'calendar') return { enabled: Boolean(node.configuration.enabled) };
+  if (node.kind === 'delay' || node.kind === 'timer')
+    return { durationMs: Number(node.configuration.durationMs) };
+  if (node.kind === 'clamp')
+    return {
+      minimum: Number(node.configuration.minimum),
+      maximum: Number(node.configuration.maximum)
+    };
+  if (node.kind === 'line')
+    return { gain: Number(node.configuration.gain), offset: Number(node.configuration.offset) };
+  if (node.kind === 'schedule' || node.kind === 'calendar')
+    return { enabled: Boolean(node.configuration.enabled) };
   return {};
 };
 

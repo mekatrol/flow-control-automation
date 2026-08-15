@@ -182,7 +182,7 @@ VM. Do not implement tutorial-specific function semantics.
 
 ## 6. Delivery phases
 
-Implementation status: Phases 0, 1, 2, 3, and 4 are complete. Phase 5 is next. The status refers
+Implementation status: Phases 0 through 6 are complete. Phase 7 is next. The status refers
 to this simulator plan; similarly named phases in the earlier portable Flow IL
 roadmap are separate work.
 
@@ -411,6 +411,11 @@ Commit gate for each block:
   icons, fixtures, and documentation use one canonical kind.
 
 ### Phase 6 - Scenario recording, persistence, and replay
+
+**Status: Complete.** Scenarios use the strict current schema, persist separately
+from flows, replay against backend-authoritative draft revisions with deterministic
+virtual time, and report structured expectation failures. The simulator workbench
+records, saves, lists, and replays scenarios without commanding physical outputs.
 
 **Purpose:** Make simulations reproducible for debugging and CI.
 

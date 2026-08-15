@@ -19,6 +19,8 @@ internal sealed class FlowControlDbContextModelSnapshot : ModelSnapshot
         BuildEntity<PointSourceEntity>(modelBuilder, "PointSources");
         BuildEntity<PointEntity>(modelBuilder, "Points");
         BuildEntity<PointGroupEntity>(modelBuilder, "PointGroups");
+        BuildEntity<FlowScenarioEntity>(modelBuilder, "FlowScenarios");
+        modelBuilder.Entity<FlowScenarioEntity>().HasIndex(item => item.Key).IsUnique(false);
     }
 
     private static void BuildEntity<TEntity>(ModelBuilder modelBuilder, string tableName)

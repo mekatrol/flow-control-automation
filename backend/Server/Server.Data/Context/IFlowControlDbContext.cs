@@ -15,6 +15,8 @@ public interface IFlowControlDbContext
 
     DbSet<CredentialEntity> Credentials { get; }
 
+    DbSet<FlowScenarioEntity> FlowScenarios { get; }
+
     DbSet<TEntity> Set<TEntity>()
         where TEntity : class;
 
