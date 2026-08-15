@@ -5,17 +5,17 @@
     :type="type"
     :aria-label="hideText ? text : ariaLabel"
   >
-    <span v-if="$slots.icon" class="button-icon-slot">
+    <span v-if="$slots.icon" class="button-icon-slot" v-bind="automation('icon')">
       <slot name="icon" />
     </span>
     <AppSvg
       v-else-if="icon"
       class="button-icon"
       :src="icon"
-      automation="app-button-icon"
+      v-bind="automation('icon')"
       :size="18"
     />
-    <span v-if="!hideText" class="button-text">{{ text }}</span>
+    <span v-if="!hideText" class="button-text" v-bind="automation('text')">{{ text }}</span>
   </button>
 </template>
 

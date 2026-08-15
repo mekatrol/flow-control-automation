@@ -1,10 +1,6 @@
 <template>
   <section v-bind="automation()" class="configuration-page editor-page">
-    <AppErrorNotice
-      id="point-source-error-notice"
-      automation="point-source-error"
-      :message="error"
-    />
+    <AppErrorNotice id="point-source-error-notice" v-bind="automation('error')" :message="error" />
     <nav aria-label="Breadcrumb">
       <RouterLink :to="{ name: 'point-sources' }">Point sources</RouterLink> /
       {{ isNew ? 'New source' : 'Edit source' }}
@@ -24,7 +20,7 @@
       <form @submit.prevent="save">
         <AppYamlEditor
           v-model="yaml"
-          automation="point-source-yaml-editor"
+          v-bind="automation('yaml-editor')"
           label="Point source YAML"
           help="Errors and suggestions use the point-source schema. The server validates again when you test or save."
           :schema="pointSourceSchema"
@@ -34,14 +30,14 @@
         />
         <div class="editor-actions">
           <AppButton
-            automation="point-source-save"
+            v-bind="automation('save')"
             type="submit"
             :text="saving ? 'Saving…' : 'Save'"
             :icon="saveIcon"
             :disabled="saving || hasEditorErrors"
           />
           <AppButton
-            automation="point-source-test-connection"
+            v-bind="automation('test-connection')"
             :text="testing ? 'Testing…' : 'Test connection'"
             :icon="testConnectionIcon"
             :disabled="testing || hasEditorErrors"
@@ -49,14 +45,14 @@
           />
           <AppButton
             v-if="testing"
-            automation="point-source-cancel-test"
+            v-bind="automation('cancel-test')"
             text="Cancel test"
             :icon="cancelIcon"
             @click="cancelTest"
           />
           <AppButton
             v-if="!isNew"
-            automation="point-source-delete"
+            v-bind="automation('delete')"
             text="Delete"
             :icon="deleteIcon"
             @click="remove"
@@ -92,7 +88,7 @@
           :aria-label="`${selectedExample.name} example YAML`"
         ><code>{{ selectedExample.yaml }}</code></pre>
         <AppButton
-          automation="point-source-use-example"
+          v-bind="automation('use-example')"
           text="Use this example"
           :icon="checkIcon"
           @click="useSelectedExample"
@@ -135,7 +131,7 @@
       </ol>
       <AppButton
         v-if="testResult.status === 'failed'"
-        automation="point-source-retry-test"
+        v-bind="automation('retry-test')"
         text="Retry test"
         :icon="retryIcon"
         @click="testConnection"

@@ -2,7 +2,7 @@
   <section v-bind="automation()" class="flow-library">
     <AppErrorNotice
       id="flows-error-notice"
-      automation="flows-error"
+      v-bind="automation('error')"
       :message="error ?? ''"
       :retryable="errorRetry"
       @[EVENTS.RETRY]="loadFlows"
@@ -25,7 +25,7 @@
           placeholder="Enter new flow name"
         />
         <AppButton
-          automation="flow-create"
+          v-bind="automation('create')"
           type="submit"
           :disabled="creating || !newFlowName.trim()"
           :text="creating ? 'Creating…' : 'New flow'"
@@ -77,7 +77,7 @@
     <p v-if="loading" class="request-status" role="status">Loading flows…</p>
     <div v-if="!error" class="flow-results">
       <AppFilter
-        automation="flows-filter"
+        v-bind="automation('filter')"
         class="table-tools"
         @[EVENTS.APPLY_FILTER]="applyFilters"
       >
@@ -93,7 +93,7 @@
         </label>
         <AppMultiSelectDropdown
           v-model="filterStatuses"
-          automation="flows-status-filter"
+          v-bind="automation('status-filter')"
           class="app-filter-field app-filter-field--content"
           label="Deployment status"
           all-label="All"
@@ -127,7 +127,7 @@
       />
       <AppTablePagination
         v-if="totalItems > 0"
-        automation="flows-pagination"
+        v-bind="automation('pagination')"
         :page="page"
         :page-count="pageCount"
         :page-size="pageSize"

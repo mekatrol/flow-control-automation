@@ -14,7 +14,7 @@
         <div class="area-heading">
           <h4 id="inputs-title">Inputs</h4>
           <AppButton
-            automation="emulator-reset-inputs"
+            v-bind="automation('reset-inputs')"
             text="Restore defaults"
             :disabled="!snapshot"
             @click="emit(EVENTS.RESET_INPUTS)"
@@ -50,12 +50,12 @@
         <p v-if="error" class="error" role="alert">{{ error }}</p>
         <div class="execute-actions">
           <AppButton
-            automation="emulator-apply-step"
+            v-bind="automation('apply-step')"
             text="Apply inputs and run one scan"
             :disabled="!snapshot"
             @click="applyAndStep"
           /><AppButton
-            automation="emulator-advance"
+            v-bind="automation('advance')"
             text="Advance 100 ms and scan"
             :disabled="!snapshot"
             @click="emit(EVENTS.ADVANCE, 100)"
@@ -75,12 +75,12 @@
         >
         <div class="reset-actions">
           <AppButton
-            automation="emulator-reset"
+            v-bind="automation('reset')"
             text="Reset state"
             :disabled="!snapshot"
             @click="emit(EVENTS.RESET, false)"
           /><AppButton
-            automation="emulator-power-cycle"
+            v-bind="automation('power-cycle')"
             text="Power cycle"
             :disabled="!snapshot"
             @click="emit(EVENTS.RESET, true)"

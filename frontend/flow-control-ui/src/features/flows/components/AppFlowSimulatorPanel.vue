@@ -17,7 +17,7 @@
     <div class="command-bar" role="group" aria-label="Simulation controls">
       <div class="command-group primary-actions">
         <AppButton
-          automation="simulator-start"
+          v-bind="automation('start')"
           :text="
             lifecycle === 'compiling'
               ? 'Compiling…'
@@ -29,13 +29,13 @@
           @click="emit(EVENTS.START_SIMULATION)"
         />
         <AppButton
-          automation="simulator-run"
+          v-bind="automation('run')"
           text="Run continuously"
           :disabled="!canExecute"
           @click="emit(EVENTS.RUN)"
         />
         <AppButton
-          automation="simulator-pause"
+          v-bind="automation('pause')"
           text="Pause"
           :disabled="lifecycle !== 'running'"
           @click="emit(EVENTS.PAUSE)"
@@ -44,19 +44,19 @@
       <div class="command-group step-actions">
         <span class="group-label">Step</span>
         <AppButton
-          automation="simulator-step-tick"
+          v-bind="automation('step-tick')"
           text="One scan"
           :disabled="!canExecute"
           @click="emit(EVENTS.STEP_TICK)"
         />
         <AppButton
-          automation="simulator-step-node"
+          v-bind="automation('step-mode')"
           text="Node"
           :disabled="!canStepNode"
           @click="emit(EVENTS.STEP_NODE)"
         />
         <AppButton
-          automation="simulator-step-instruction"
+          v-bind="automation('step-instruction')"
           text="Instruction"
           :disabled="!canStepInstruction"
           @click="emit(EVENTS.STEP_INSTRUCTION)"
@@ -64,13 +64,13 @@
       </div>
       <div class="command-group session-actions">
         <AppButton
-          automation="simulator-restart"
+          v-bind="automation('restart')"
           text="Restart"
           :disabled="!active || lifecycle === 'running'"
           @click="emit(EVENTS.RESTART)"
         />
         <AppButton
-          automation="simulator-stop"
+          v-bind="automation('stop')"
           text="Stop"
           :disabled="!active"
           @click="emit(EVENTS.STOP_SIMULATION)"
@@ -101,7 +101,7 @@
     </dl>
     <AppFlowEmulatorPanel
       v-if="session?.io"
-      automation="simulator-io"
+      v-bind="automation('io')"
       :snapshot="session.io"
       :flow-interface="flowInterface"
       @[EVENTS.APPLY_INPUTS_STEP]="forwardInputs"

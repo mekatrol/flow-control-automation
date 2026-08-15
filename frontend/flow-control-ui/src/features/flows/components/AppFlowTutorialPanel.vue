@@ -6,7 +6,7 @@
         <h2 id="tutorial-title">{{ tutorial.title }}</h2>
         <p>{{ tutorial.objective }}</p>
       </div>
-      <AppButton automation="tutorial-close" text="Close tutorial" @click="emit(EVENTS.CLOSE)" />
+      <AppButton v-bind="automation('close')" text="Close tutorial" @click="emit(EVENTS.CLOSE)" />
     </header>
     <ol>
       <li v-for="step in tutorial.guidance" :key="step.title">
@@ -17,12 +17,12 @@
     </ol>
     <div class="actions">
       <AppButton
-        automation="tutorial-open-example"
+        v-bind="automation('open-example')"
         text="Open disposable example"
         @click="emit(EVENTS.OPEN_TUTORIAL, tutorial)"
       />
       <AppButton
-        automation="tutorial-copy-example"
+        v-bind="automation('copy-example')"
         text="Copy to my flows"
         @click="emit(EVENTS.COPY_TUTORIAL, tutorial)"
       />

@@ -32,7 +32,7 @@ describe('flow simulator panel', () => {
       }
     });
 
-    await wrapper.get('[data-automation="simulator-step-tick"]').trigger('click');
+    await wrapper.get('[data-automation="simulator.step-tick"]').trigger('click');
 
     expect(wrapper.emitted('step-tick')).toHaveLength(1);
     expect(wrapper.get('[role="status"]').text()).toBe('Ready');
@@ -46,10 +46,10 @@ describe('flow simulator panel', () => {
 
     expect(wrapper.get('[role="alert"]').text()).toContain('Start simulation again');
     expect(
-      wrapper.get('[data-automation="simulator-step-tick"]').attributes('disabled')
+      wrapper.get('[data-automation="simulator.step-tick"]').attributes('disabled')
     ).toBeDefined();
     expect(
-      wrapper.get('[data-automation="simulator-start"]').attributes('disabled')
+      wrapper.get('[data-automation="simulator.start"]').attributes('disabled')
     ).toBeUndefined();
   });
 
@@ -125,7 +125,7 @@ describe('flow simulator panel', () => {
     });
 
     await wrapper.get('input[type="number"]').setValue('21.5');
-    await wrapper.get('[data-automation="emulator-apply-step"]').trigger('click');
+    await wrapper.get('[data-automation="simulator-io.apply-step"]').trigger('click');
 
     // Expected outcome: One atomic typed request is emitted using the stable interface ID.
     // Acceptance criteria: The emitted value is numeric 21.5 for `temperature`, proving the workbench does not use a display label or Boolean coercion.

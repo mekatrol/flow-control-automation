@@ -55,7 +55,7 @@ describe('flow debug panel', () => {
       }
     });
     expect(wrapper.text()).toContain('Stale snapshot');
-    expect(wrapper.find('[data-automation="debug-step"]').attributes('disabled')).toBeDefined();
+    expect(wrapper.find('[data-automation="debug.step"]').attributes('disabled')).toBeDefined();
   });
 
   it('names every physical output and requires explicit confirmation', async () => {
@@ -67,7 +67,7 @@ describe('flow debug panel', () => {
         affectedOutputPoints: ['output-01', 'output-08']
       }
     });
-    const enable = wrapper.find('[data-automation="debug-enable-live-output"]');
+    const enable = wrapper.find('[data-automation="debug.enable-live-output"]');
     expect(wrapper.text()).toContain('output-01, output-08');
     expect(enable.attributes('disabled')).toBeDefined();
 

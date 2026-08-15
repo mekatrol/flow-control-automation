@@ -1,6 +1,6 @@
 <template>
   <section v-bind="automation()" class="configuration-page credential-page">
-    <AppErrorNotice id="credentials-error-notice" automation="credentials-error" :message="error" />
+    <AppErrorNotice id="credentials-error-notice" v-bind="automation('error')" :message="error" />
     <div class="page-heading">
       <div>
         <p>Secure configuration</p>
@@ -22,7 +22,7 @@
             <p>Use the displayed reference in point-source YAML.</p>
           </div>
           <AppButton
-            automation="credential-new"
+            v-bind="automation('new')"
             text="New credential"
             :icon="createIcon"
             @click="openCreateDialog"
@@ -73,11 +73,11 @@
     id="credential-form-dialog"
     ref="credentialDialog"
     :content-label="editing ? `Edit ${form.name}` : 'Create new credential'"
-    automation="credential-dialog"
+    v-bind="automation('dialog')"
     :dismissible="false"
     @[EVENTS.CANCEL]="handleCredentialDialogCancel"
   >
-    <AppForm class="credential-form" automation="credential-form" @submit.prevent="save">
+    <AppForm class="credential-form" v-bind="automation('form')" @submit.prevent="save">
       <p>{{ editing ? 'Update credential' : 'New credential' }}</p>
       <h2>{{ editing ? `Edit ${form.name}` : 'Credential details' }}</h2>
       <label for="credential-name">Display name</label>
@@ -114,7 +114,7 @@
           />
           <AppButton
             v-if="form.password"
-            automation="credential-password-visibility"
+            v-bind="automation('password-visibility')"
             class="secret-visibility-button"
             :text="passwordVisible ? 'Hide password' : 'Show password'"
             :icon="visibilityIcon"
@@ -137,7 +137,7 @@
           />
           <AppButton
             v-if="form.token"
-            automation="credential-token-visibility"
+            v-bind="automation('token-visibility')"
             class="secret-visibility-button"
             :text="tokenVisible ? 'Hide token' : 'Show token'"
             :icon="visibilityIcon"
@@ -153,14 +153,14 @@
       </p>
       <div class="editor-actions">
         <AppButton
-          automation="credential-save"
+          v-bind="automation('save')"
           type="submit"
           :text="saving ? 'Saving…' : editing ? 'Save changes' : 'Create credential'"
           :icon="editing ? saveIcon : createIcon"
           :disabled="saving"
         />
         <AppButton
-          automation="credential-cancel"
+          v-bind="automation('cancel')"
           text="Cancel"
           :icon="cancelIcon"
           :disabled="saving"
@@ -168,7 +168,7 @@
         />
         <AppButton
           v-if="editing"
-          automation="credential-delete"
+          v-bind="automation('delete')"
           text="Delete"
           :icon="deleteIcon"
           @click="remove"
@@ -181,7 +181,7 @@
     id="credential-discard-dialog"
     ref="credentialDiscardDialog"
     content-label="Discard unsaved credential changes"
-    automation="credential-discard-dialog"
+    v-bind="automation('discard-dialog')"
     message="Your credential changes have not been saved and will be lost."
     @[EVENTS.CANCEL]="keepEditing"
     @[EVENTS.CONFIRM]="discardCredentialChanges"

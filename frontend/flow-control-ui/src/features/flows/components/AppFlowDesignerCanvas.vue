@@ -8,7 +8,7 @@
       </span>
       <div class="zoom-controls" aria-label="Canvas zoom controls">
         <AppButton
-          automation="flow-designer-zoom-out"
+          v-bind="automation('zoom-out')"
           text="Zoom out"
           hide-text
           :disabled="zoom <= 0.5"
@@ -22,7 +22,7 @@
         </AppButton>
         <output aria-live="polite">{{ Math.round(zoom * 100) }}%</output>
         <AppButton
-          automation="flow-designer-zoom-in"
+          v-bind="automation('zoom-in')"
           text="Zoom in"
           hide-text
           :disabled="zoom >= 2"
@@ -53,22 +53,22 @@
         aria-label="Selected node breakpoints"
       >
         <AppButton
-          automation="flow-breakpoint-before"
+          v-bind="automation('breakpoint-before')"
           text="Breakpoint before"
           @click="setSelectedBreakpoint('before')"
         />
         <AppButton
-          automation="flow-breakpoint-after"
+          v-bind="automation('breakpoint-after')"
           text="Breakpoint after"
           @click="setSelectedBreakpoint('after')"
         />
         <AppButton
-          automation="flow-breakpoint-clear"
+          v-bind="automation('breakpoint-clear')"
           text="Clear breakpoints"
           @click="setSelectedBreakpoint(null)"
         />
         <AppButton
-          automation="flow-run-to-node"
+          v-bind="automation('run-to-node')"
           text="Run to selected node"
           @click="emit(EVENTS.RUN_TO_NODE, selectedNodeId)"
         />

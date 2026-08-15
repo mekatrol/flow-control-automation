@@ -82,10 +82,10 @@ test('loads and steps a server debug session without a controller', async ({ pag
   );
 
   await page.goto('/flows/portable-debug');
-  await page.getByRole('link', { name: 'Debugger' }).click();
+  await page.getByRole('link', { name: 'Debug' }).click();
   await expect(page).toHaveURL(/\/flows\/portable-debug\/debugger$/);
   await page.reload();
-  await expect(page.getByRole('link', { name: 'Debugger' })).toHaveAttribute(
+  await expect(page.getByRole('link', { name: 'Debug' })).toHaveAttribute(
     'aria-current',
     'page'
   );

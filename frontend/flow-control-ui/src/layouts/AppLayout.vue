@@ -23,7 +23,7 @@
           <RouterLink to="/point-sources">Point sources</RouterLink>
           <RouterLink to="/controller-templates">Controllers</RouterLink>
           <RouterLink to="/credentials">Credentials</RouterLink>
-          <AppThemeSelector automation="theme-selector" />
+          <AppThemeSelector v-bind="automation('theme-selector')" />
         </nav>
       </slot>
     </header>

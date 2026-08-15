@@ -2,7 +2,7 @@
   <section v-bind="automation()" class="catalogue-page" aria-labelledby="templates-heading">
     <AppErrorNotice
       id="controller-templates-error-notice"
-      automation="controller-templates-error"
+      v-bind="automation('error')"
       :message="store.error"
       retryable
       @[EVENTS.RETRY]="store.load"
@@ -14,16 +14,12 @@
         <p>Review the capabilities and limits available to flow targets.</p>
       </div>
       <RouterLink class="primary-link" :to="{ name: 'controller-template-new' }">
-        <AppSvg :src="newIcon" automation="controller-templates-new-icon" size="1em" />
+        <AppSvg :src="newIcon" v-bind="automation('new-icon')" size="1em" />
         New template
       </RouterLink>
     </div>
 
-    <AppFilter
-      automation="controller-templates-filter"
-      constrained
-      @[EVENTS.APPLY_FILTER]="applyFilter"
-    >
+    <AppFilter v-bind="automation('filter')" constrained @[EVENTS.APPLY_FILTER]="applyFilter">
       <label class="app-filter-field" for="templates-filter">
         <span>Filter controller templates</span>
         <input id="templates-filter" v-model="filter" type="search" autocomplete="off" />
@@ -39,7 +35,7 @@
       No controller templates found.
     </p>
     <template v-else-if="!store.error">
-      <AppTable automation="controller-templates-table" caption="Controller templates">
+      <AppTable v-bind="automation('table')" caption="Controller templates">
         <template #head>
           <tr>
             <th scope="col">Name</th>
@@ -77,7 +73,7 @@
         </template>
       </AppTable>
       <AppTablePagination
-        automation="controller-templates-pagination"
+        v-bind="automation('pagination')"
         :page="store.result.page"
         :page-count="store.result.pageCount"
         :page-size="store.result.pageSize"

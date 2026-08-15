@@ -15,12 +15,7 @@
     >
       <header class="notice-header">
         <slot name="header" :title="title" :variant="variant" :icon="variantIcon">
-          <AppSvg
-            class="notice-icon"
-            :src="variantIcon"
-            automation="notice-variant-icon"
-            :size="28"
-          />
+          <AppSvg class="notice-icon" :src="variantIcon" v-bind="automation('icon')" :size="28" />
           <h2 :id="titleId">{{ title }}</h2>
         </slot>
       </header>
@@ -31,7 +26,7 @@
         </slot>
       </div>
 
-      <footer class="notice-footer">
+      <footer class="notice-footer" v-bind="automation('footer')">
         <slot name="footer" :close="close" :copy="copyToClipboard" :copied="copyState === 'copied'">
           <p class="copy-status" aria-live="polite">{{ copyStatus }}</p>
           <AppButton

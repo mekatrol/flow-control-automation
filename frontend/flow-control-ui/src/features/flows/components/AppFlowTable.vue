@@ -4,7 +4,7 @@
       <tr>
         <th scope="col" :aria-sort="sortDirection">
           <AppTableSortButton
-            automation="flows-name-sort"
+            v-bind="automation('name-sort')"
             label="Name"
             :direction="sortDirection"
             @[EVENTS.TOGGLE]="$emit(EVENTS.TOGGLE_SORT)"

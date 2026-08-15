@@ -1,11 +1,7 @@
 <template>
   <aside v-bind="automation()" class="node-palette" aria-label="Function block toolbox">
     <h2>Function blocks</h2>
-    <AppFilter
-      automation="flow-node-palette-filter"
-      layout="stacked"
-      @[EVENTS.APPLY_FILTER]="applyFilter"
-    >
+    <AppFilter v-bind="automation('filter')" layout="stacked" @[EVENTS.APPLY_FILTER]="applyFilter">
       <label class="app-filter-field">
         <span>Find a node</span>
         <input v-model="filter" type="search" placeholder="Search nodes" />

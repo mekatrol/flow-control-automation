@@ -2,7 +2,7 @@
   <section v-bind="automation()" class="configuration-page editor-page">
     <AppErrorNotice
       id="yaml-resource-error-notice"
-      automation="yaml-resource-error"
+      v-bind="automation('error')"
       :message="apiError"
       :details="noticeErrorDetails"
     />
@@ -47,7 +47,7 @@
       </div>
       <AppYamlEditor
         v-model="yaml"
-        automation="yaml-resource-editor"
+        v-bind="automation('editor')"
         :label="`${singularLabel} YAML`"
         :help="editorHelp"
         :schema="schema"
@@ -59,7 +59,7 @@
       <div class="editor-actions">
         <AppButton
           v-if="!readOnly"
-          automation="yaml-resource-save"
+          v-bind="automation('save')"
           type="submit"
           :text="saving ? 'Saving…' : 'Save'"
           :icon="saveIcon"
@@ -67,7 +67,7 @@
         />
         <AppButton
           v-if="kind === 'controller' && !readOnly"
-          automation="yaml-resource-validate"
+          v-bind="automation('validate')"
           text="Validate"
           :icon="checkIcon"
           :disabled="busy || hasEditorErrors"
@@ -75,7 +75,7 @@
         />
         <AppButton
           v-if="!isNew && !readOnly"
-          automation="yaml-resource-delete"
+          v-bind="automation('delete')"
           text="Delete"
           :icon="deleteIcon"
           :disabled="busy"
@@ -83,7 +83,7 @@
         />
         <AppButton
           v-if="kind === 'group' && !isNew && deleteConflict"
-          automation="point-group-make-standalone"
+          v-bind="automation('make-standalone')"
           text="Make member points standalone"
           :icon="checkIcon"
           @click="makeStandalone"
@@ -93,7 +93,7 @@
           class="primary-link"
           :to="{ name: 'controller-template-new' }"
         >
-          <AppSvg :src="newIcon" automation="controller-template-create-icon" size="1em" />
+          <AppSvg :src="newIcon" v-bind="automation('create-icon')" size="1em" />
           Create custom template from example
         </RouterLink>
       </div>
@@ -107,13 +107,13 @@
       <div>
         <h2 id="runtime-heading">Live point value</h2>
         <AppButton
-          automation="point-runtime-toggle-updates"
+          v-bind="automation('runtime-toggle-updates')"
           :text="runtimePaused ? 'Resume updates' : 'Pause updates'"
           :icon="runtimePaused ? playIcon : pauseIcon"
           @click="runtimePaused = !runtimePaused"
         />
         <AppButton
-          automation="point-runtime-retry"
+          v-bind="automation('runtime-retry')"
           text="Retry now"
           :icon="retryIcon"
           @click="loadRuntime"
@@ -353,11 +353,7 @@ const error = ref('');
 const apiError = ref('');
 const apiErrorDetails = ref<string[]>([]);
 const noticeErrorDetails = computed(() =>
-  apiErrorDetails.value.length > 0
-    ? apiErrorDetails.value
-    : apiError.value
-      ? [apiError.value]
-      : []
+  apiErrorDetails.value.length > 0 ? apiErrorDetails.value : apiError.value ? [apiError.value] : []
 );
 const status = ref('');
 const deleteConflict = ref(false);

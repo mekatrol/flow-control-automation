@@ -2,7 +2,7 @@
   <section v-bind="automation()" class="configuration-page">
     <AppErrorNotice
       id="point-sources-error-notice"
-      automation="point-sources-error"
+      v-bind="automation('error')"
       :message="error"
       retryable
       @[EVENTS.RETRY]="load"
@@ -14,14 +14,14 @@
         <p>Define reusable, read-only connections before mapping points.</p>
       </div>
       <RouterLink class="primary-link" :to="{ name: 'point-source-new' }">
-        <AppSvg :src="newIcon" automation="point-sources-new-icon" size="1em" />
+        <AppSvg :src="newIcon" v-bind="automation('new-icon')" size="1em" />
         New source
       </RouterLink>
     </div>
 
     <p v-if="loading" role="status">Loading point sources…</p>
     <div v-if="!error" class="source-list">
-      <AppFilter automation="point-sources-filter" constrained @[EVENTS.APPLY_FILTER]="applyFilter">
+      <AppFilter v-bind="automation('filter')" constrained @[EVENTS.APPLY_FILTER]="applyFilter">
         <label class="app-filter-field" for="source-filter">
           <span>Filter by name</span>
           <input id="source-filter" v-model="filter" type="search" autocomplete="off" />

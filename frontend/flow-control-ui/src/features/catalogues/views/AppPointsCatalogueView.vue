@@ -2,7 +2,7 @@
   <section v-bind="automation()" class="catalogue-page" aria-labelledby="points-heading">
     <AppErrorNotice
       id="points-error-notice"
-      automation="points-error"
+      v-bind="automation('error')"
       :message="errorMessage"
       retryable
       retry-label="Check again"
@@ -15,12 +15,12 @@
         <p>Review standalone and grouped automation points and their capabilities.</p>
       </div>
       <RouterLink class="primary-link" :to="{ name: 'point-new' }">
-        <AppSvg :src="newIcon" automation="points-new-icon" size="1em" />
+        <AppSvg :src="newIcon" v-bind="automation('new-icon')" size="1em" />
         New point
       </RouterLink>
     </div>
 
-    <AppFilter automation="points-filter" constrained @[EVENTS.APPLY_FILTER]="applyFilter">
+    <AppFilter v-bind="automation('filter')" constrained @[EVENTS.APPLY_FILTER]="applyFilter">
       <label class="app-filter-field" for="points-filter">
         <span>Filter points</span>
         <input id="points-filter" v-model="filter" type="search" autocomplete="off" />
@@ -36,7 +36,7 @@
       No points found.
     </p>
     <template v-else-if="!store.error">
-      <AppTable automation="points-table" caption="Configured points">
+      <AppTable v-bind="automation('table')" caption="Configured points">
         <template #head>
           <tr>
             <th scope="col">Name</th>
@@ -71,7 +71,7 @@
         </template>
       </AppTable>
       <AppTablePagination
-        automation="points-pagination"
+        v-bind="automation('pagination')"
         :page="store.result.page"
         :page-count="store.result.pageCount"
         :page-size="store.result.pageSize"

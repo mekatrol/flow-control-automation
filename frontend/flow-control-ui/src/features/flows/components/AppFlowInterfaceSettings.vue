@@ -5,8 +5,8 @@
         <h2 id="flow-interface-title">Flow inputs and outputs</h2>
         <p>Portable terminals for simulation and reusable flows.</p>
       </div>
-      <AppButton automation="flow-interface-add-input" text="Add input" @click="addInput" />
-      <AppButton automation="flow-interface-add-output" text="Add output" @click="addOutput" />
+      <AppButton v-bind="automation('add-input')" text="Add input" @click="addInput" />
+      <AppButton v-bind="automation('add-output')" text="Add output" @click="addOutput" />
     </div>
     <p v-if="error" role="alert" class="error">{{ error }}</p>
     <div class="entries">
@@ -38,19 +38,19 @@
         /></label>
         <label><input v-model="entry.required" type="checkbox" @change="publish" /> Required</label>
         <AppButton
-          :automation="`flow-interface-move-up-${entry.id}`"
+          v-bind="automation(`move-up-${entry.id}`)"
           text="Move input up"
           :disabled="draft.inputs[0]?.id === entry.id"
           @click="moveInput(entry.id, -1)"
         />
         <AppButton
-          :automation="`flow-interface-move-down-${entry.id}`"
+          v-bind="automation(`move-down-${entry.id}`)"
           text="Move input down"
           :disabled="draft.inputs.at(-1)?.id === entry.id"
           @click="moveInput(entry.id, 1)"
         />
         <AppButton
-          :automation="`flow-interface-remove-${entry.id}`"
+          v-bind="automation(`remove-${entry.id}`)"
           text="Remove input"
           @click="removeInput(entry.id)"
         />
@@ -68,19 +68,19 @@
           >Units <input v-model="entry.units" @change="publish"
         /></label>
         <AppButton
-          :automation="`flow-interface-move-up-${entry.id}`"
+          v-bind="automation(`move-up-${entry.id}`)"
           text="Move output up"
           :disabled="draft.outputs[0]?.id === entry.id"
           @click="moveOutput(entry.id, -1)"
         />
         <AppButton
-          :automation="`flow-interface-move-down-${entry.id}`"
+          v-bind="automation(`move-down-${entry.id}`)"
           text="Move output down"
           :disabled="draft.outputs.at(-1)?.id === entry.id"
           @click="moveOutput(entry.id, 1)"
         />
         <AppButton
-          :automation="`flow-interface-remove-${entry.id}`"
+          v-bind="automation(`remove-${entry.id}`)"
           text="Remove output"
           @click="removeOutput(entry.id)"
         />

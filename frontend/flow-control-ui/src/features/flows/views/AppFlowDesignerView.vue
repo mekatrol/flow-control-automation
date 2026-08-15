@@ -2,7 +2,7 @@
   <section v-bind="automation()" class="designer-page">
     <AppErrorNotice
       id="flow-designer-error-notice"
-      automation="flow-designer-error"
+      v-bind="automation('designer-error')"
       :message="noticeError"
     />
     <p v-if="loading" class="request-status" role="status">Loading latest flow…</p>
@@ -23,14 +23,14 @@
         </p>
         <div>
           <AppButton
-            automation="flow-deploy-cancel"
+            v-bind="automation('deploy-cancel')"
             text="Cancel"
             :icon="cancelIcon"
             data-dialog-initial-focus
             @click="closeDeployConfirmation"
           />
           <AppButton
-            automation="flow-deploy-confirm"
+            v-bind="automation('deploy-confirm')"
             text="Deploy now"
             :icon="deployIcon"
             @click="deployFlow"
@@ -53,14 +53,14 @@
         <p id="discard-description">This flow has changes that have not been saved.</p>
         <div>
           <AppButton
-            automation="flow-discard-keep-editing"
+            v-bind="automation('discard-keep-editing')"
             text="Keep editing"
             :icon="renameFlowIcon"
             data-dialog-initial-focus
             @click="keepEditing"
           />
           <AppButton
-            automation="flow-discard-confirm"
+            v-bind="automation('discard-confirm')"
             text="Discard changes"
             :icon="discardIcon"
             @click="discardChanges"
@@ -91,20 +91,20 @@
           <AppFlowDebugTargetSelector
             v-if="workspaceMode === 'debugger'"
             v-model="debugTargetId"
-            automation="flow-debug-target"
+            v-bind="automation('debug-target')"
             :targets="debugTargets"
             :loading="controllerTemplates.loading"
             :error="controllerTemplates.error"
           />
           <AppButton
-            automation="flow-save"
+            v-bind="automation('save')"
             :text="saving ? 'Saving…' : 'Save flow'"
             :icon="saveIcon"
             :disabled="saving"
             @click="saveFlow"
           />
           <AppButton
-            automation="flow-deploy"
+            v-bind="automation('deploy')"
             :text="deploying ? 'Deploying…' : 'Deploy flow'"
             :icon="deployIcon"
             :disabled="dirty || deploying"
@@ -112,7 +112,7 @@
           />
           <AppButton
             v-if="flow.status === 'deployed'"
-            automation="flow-toggle-disabled"
+            v-bind="automation('toggle-disabled')"
             :text="
               togglingDisabled
                 ? flow.disabled
@@ -127,7 +127,7 @@
             @click="setFlowDisabled(!flow.disabled)"
           />
           <AppButton
-            automation="flow-refresh-runtime"
+            v-bind="automation('refresh-runtime')"
             text="Refresh runtime"
             :icon="refreshIcon"
             @click="refreshRuntime()"
@@ -137,7 +137,7 @@
 
       <nav class="workspace-modes" aria-label="Flow workspace mode">
         <AppLink
-          automation="flow-design-mode"
+          v-bind="automation('design-mode')"
           text="Design"
           :to="{ name: ROUTE_NAMES.flowDesigner, params: { flowId } }"
           :aria-current="workspaceMode === 'design' ? 'page' : undefined"
@@ -146,7 +146,7 @@
           @click="saveFlow"
         />
         <AppLink
-          automation="flow-simulate-mode"
+          v-bind="automation('simulate-mode')"
           text="Simulate"
           :to="{ name: ROUTE_NAMES.flowSimulator, params: { flowId } }"
           :aria-current="workspaceMode === 'simulator' ? 'page' : undefined"
@@ -155,7 +155,7 @@
           @click="saveFlow"
         />
         <AppLink
-          automation="flow-debug-mode"
+          v-bind="automation('debug-mode')"
           text="Debug"
           :to="{ name: ROUTE_NAMES.flowDebugger, params: { flowId } }"
           :aria-current="workspaceMode === 'debugger' ? 'page' : undefined"
@@ -167,7 +167,7 @@
 
       <AppFlowInterfaceSettings
         v-if="workspaceMode === 'design'"
-        automation="flow-interface"
+        v-bind="automation('interface')"
         :model-value="flow.interface"
         :referenced-input-ids="referencedInputIds"
         :referenced-output-ids="referencedOutputIds"
@@ -176,7 +176,7 @@
 
       <AppFlowTutorialPanel
         v-if="activeTutorial"
-        automation="flow-tutorial"
+        v-bind="automation('tutorial')"
         :tutorial="activeTutorial"
         @[EVENTS.CLOSE]="activeTutorial = undefined"
         @[EVENTS.OPEN_TUTORIAL]="openTutorialExample"
@@ -185,7 +185,7 @@
 
       <AppFlowSimulatorPanel
         v-if="workspaceMode === 'simulator'"
-        automation="flow-simulator"
+        v-bind="automation('simulator')"
         :lifecycle="simulator.lifecycle"
         :session="simulator.session"
         :error="simulator.error"
@@ -207,7 +207,7 @@
 
       <AppFlowDebugPanel
         v-if="workspaceMode === 'debugger'"
-        automation="flow-debug"
+        v-bind="automation('debug')"
         :lifecycle="debugLifecycle"
         :snapshot="debugSnapshot"
         :stale="debugSnapshotStale"
@@ -238,7 +238,7 @@
 
       <AppFlowEmulatorPanel
         v-if="workspaceMode === 'debugger' && selectedDebugTarget?.kind === 'emulator'"
-        automation="flow-emulator"
+        v-bind="automation('emulator')"
         :snapshot="emulatorSnapshot"
         :flow-interface="flow.interface"
         @[EVENTS.APPLY_INPUTS_STEP]="applyEmulatorInputsAndStep"

@@ -70,8 +70,29 @@ npm run format
 npm run lint
 npm run test:unit -- --run
 npm run test:e2e
+npm run test:e2e -- --last-failed
+npm run test:e2e -- e2e/simulatorIo.spec.ts:97 --project=desktop-chromium --reporter=html
 npm run test:e2e:dotnet
 npm run build
+```
+
+You can snapshot page HTML at any time using:
+
+```ts
+test('applies numeric interface inputs and presents committed shadow output metadata', async ({
+  page
+}, testInfo) => {
+
+  // Do stuff...
+
+  // Take snapshop of page HTML
+  await testInfo.attach('page.html', {
+    body: await page.content(),
+    contentType: 'text/html'
+  });
+
+  // Do more stuff...
+});
 ```
 
 Playwright starts its own Vite server and covers desktop Chromium, Firefox, and

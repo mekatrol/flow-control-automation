@@ -8,7 +8,7 @@
       v-bind="automation()"
       @click="navigate"
     >
-      <span v-if="$slots.icon" class="link-icon-slot" automation="app-link-icon">
+      <span v-if="$slots.icon" class="link-icon-slot" v-bind="automation('icon')">
         <slot name="icon" />
       </span>
 
@@ -16,11 +16,11 @@
         v-else-if="icon"
         class="link-icon"
         :src="icon"
-        automation="app-link-icon"
+        v-bind="automation('icon')"
         :size="18"
       />
 
-      <span v-if="!hideText" class="link-text" automation="app-link-text">
+      <span v-if="!hideText" class="link-text" v-bind="automation('text')">
         {{ text }}
       </span>
     </a>

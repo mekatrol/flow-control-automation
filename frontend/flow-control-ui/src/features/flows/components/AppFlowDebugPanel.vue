@@ -5,47 +5,57 @@
       <span class="mode">{{
         host === 'controller' ? 'Shadow outputs by default' : 'Server-hosted execution'
       }}</span>
-      <AppButton automation="debug-load" text="Load" :disabled="!canLoad" @click="emit('load')" />
       <AppButton
-        automation="debug-step"
+        v-bind="automation('load')"
+        text="Load"
+        :disabled="!canLoad"
+        @click="emit('load')"
+      />
+      <AppButton
+        v-bind="automation('step')"
         text="Step tick"
         :disabled="!canStepTick"
         @click="emit('stepTick')"
       />
       <AppButton
-        automation="debug-run-to-boundary"
+        v-bind="automation('run-to-boundary')"
         text="Run to tick boundary"
         :disabled="!canStepTick"
         @click="emit(EVENTS.RUN_TO_BOUNDARY)"
       />
       <AppButton
-        automation="debug-step-node"
+        v-bind="automation('step-node')"
         text="Step node"
         :disabled="!canStepNode"
         @click="emit('stepNode')"
       />
       <AppButton
-        automation="debug-step-instruction"
+        v-bind="automation('step-instruction')"
         text="Step instruction"
         :disabled="!canStepInstruction"
         @click="emit('stepInstruction')"
       />
-      <AppButton automation="debug-run" text="Run" :disabled="!canRun" @click="emit('run')" />
+      <AppButton v-bind="automation('run')" text="Run" :disabled="!canRun" @click="emit('run')" />
       <AppButton
-        automation="debug-run-to"
+        v-bind="automation('run-to')"
         text="Run to breakpoint"
         :disabled="!canRunTo"
         @click="emit('runTo')"
       />
       <AppButton
-        automation="debug-pause"
+        v-bind="automation('pause')"
         text="Pause"
         :disabled="!canPause"
         @click="emit('pause')"
       />
-      <AppButton automation="debug-stop" text="Stop" :disabled="!canStop" @click="emit('stop')" />
       <AppButton
-        automation="debug-restart"
+        v-bind="automation('stop')"
+        text="Stop"
+        :disabled="!canStop"
+        @click="emit('stop')"
+      />
+      <AppButton
+        v-bind="automation('restart')"
         text="Restart"
         :disabled="!canRestart"
         @click="emit('restart')"
@@ -61,7 +71,7 @@
           I confirm these named outputs may energise physical equipment.
         </label>
         <AppButton
-          automation="debug-enable-live-output"
+          v-bind="automation('enable-live-output')"
           text="Enable live outputs"
           :disabled="!canEnableLiveOutput"
           @click="emit('enableLiveOutput', affectedOutputPoints)"
