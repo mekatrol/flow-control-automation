@@ -124,6 +124,35 @@ transactional replacement, and graceful shutdown without affecting other flows.
 - `CancellationToken`, channels, and `PeriodicTimer` support event-driven execution, timed execution, and graceful shutdown.
 - Typed structures provide validation when mapping frontend JSON flow graphs to backend models.
 
+## .NET API documentation
+
+Every C# interface and record is part of a contract and must provide XML
+documentation that appears in IDE hover information. Documentation is required
+on the interface or record itself and on every member it declares.
+
+- Use a `<summary>` that explains the member's role in the domain and its
+  observable contract. Do not merely repeat the identifier or CLR type.
+- Document every method parameter with `<param name="...">`. State what the
+  caller supplies, whether null, empty, or cancellation is meaningful, and any
+  accepted vocabulary, units, inclusive bounds, or relationship to another
+  parameter.
+- Document non-void results with `<returns>`, including ownership, ordering,
+  nullability, and failure representation when relevant.
+- Document exceptions that callers are expected to handle with `<exception>`.
+- For positional records, put a `<param>` entry on the record for every primary
+  constructor parameter. These entries are also the hover documentation for the
+  generated properties.
+- For records with declared properties, put a `<summary>` immediately above
+  every property. State its purpose and valid values or range. For strings,
+  identify the canonical vocabulary or format; for numbers, give units and
+  inclusive/exclusive bounds; for collections, describe ordering, uniqueness,
+  and whether they may be empty; and for nullable values, explain what `null`
+  means.
+- When validation is contextual or a bound is defined by another contract,
+  link to the relevant type or member with `<see cref="..."/>` and state where
+  validation occurs. Never invent a numeric range that the implementation does
+  not enforce.
+
 Conceptual flow runner:
 
 ```csharp
