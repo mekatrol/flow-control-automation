@@ -15,14 +15,19 @@ type RuleContext = Rule.RuleContext & {
 };
 
 // The app component types we do not want automation tags enforced when linting
-const EXCLUDED_COMPONENTS = new Set<string>([
-]);
+const EXCLUDED_COMPONENTS = new Set<string>([]);
+
+const ROOT_WRAPPER_COMPONENTS = new Set<string>(['RouterLink']);
 
 // Must:
 // - start with a lowercase letter
 // - contain only lowercase letters, numbers and hyphens
 // - be kebab-case (no leading/trailing/consecutive hyphens)
 const AUTOMATION_PATTERN = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
+
+const getFirstElementChild = (node: VueAST.VElement): VueAST.VElement | undefined => {
+  return node.children.find((child): child is VueAST.VElement => child.type === 'VElement');
+};
 
 const requireAutomationProp: Rule.RuleModule = {
   meta: {
@@ -87,6 +92,54 @@ const requireAutomationProp: Rule.RuleModule = {
         });
 
         if (!automationAttr) {
+          if (isAppComponentRoot && ROOT_WRAPPER_COMPONENTS.has(name)) {
+            const firstChild = getFirstElementChild(node);
+
+            if (!firstChild) {
+              typedContext.report({
+                node: node.startTag,
+                messageId: 'missingAutomation',
+                data: { name: componentName }
+              });
+
+              return;
+            }
+
+            const childAutomationAttr = firstChild.startTag.attributes.find(
+              (attr): attr is VueAST.VAttribute => {
+                if (attr.type !== 'VAttribute') {
+                  return false;
+                }
+
+                if (!attr.directive) {
+                  return attr.key.name === 'automation';
+                }
+
+                const expression = attr.value?.expression;
+
+                return (
+                  attr.key.name.name === 'bind' &&
+                  ((attr.key.argument?.type === 'VIdentifier' &&
+                    attr.key.argument.name === 'automation') ||
+                    (attr.key.argument === null &&
+                      expression?.type === 'CallExpression' &&
+                      expression.callee.type === 'Identifier' &&
+                      expression.callee.name === 'automation'))
+                );
+              }
+            );
+
+            if (!childAutomationAttr) {
+              typedContext.report({
+                node: firstChild.startTag,
+                messageId: 'missingAutomation',
+                data: { name: componentName }
+              });
+            }
+
+            return;
+          }
+
           const requiresAutomation =
             name.startsWith('App') || name.startsWith('Base') || isAppComponentRoot;
 

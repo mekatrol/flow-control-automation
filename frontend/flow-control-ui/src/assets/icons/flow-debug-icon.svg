@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Central segmented body and head structure -->
+  <path d="M8 9h8v7a4 4 0 0 1-8 0V9Z"/>
+  <path d="M12 9v9"/>
+  <!-- Antennae / feelers -->
+  <path d="m9 5 1.5 2M15 5l-1.5 2"/>
+  <!-- Left and right side legs -->
+  <path d="M5 13h3M16 13h3M6 18l2-1.5M18 18l-2-1.5"/>
+</svg>

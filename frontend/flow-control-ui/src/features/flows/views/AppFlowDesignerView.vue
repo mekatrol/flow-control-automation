@@ -136,24 +136,33 @@
       </div>
 
       <nav class="workspace-modes" aria-label="Flow workspace mode">
-        <RouterLink
+        <AppLink
+          automation="flow-design-mode"
+          text="Design"
           :to="{ name: ROUTE_NAMES.flowDesigner, params: { flowId } }"
           :aria-current="workspaceMode === 'design' ? 'page' : undefined"
-        >
-          Design
-        </RouterLink>
-        <RouterLink
+          :icon="designIcon"
+          :disabled="saving"
+          @click="saveFlow"
+        />
+        <AppLink
+          automation="flow-simulate-mode"
+          text="Simulate"
           :to="{ name: ROUTE_NAMES.flowSimulator, params: { flowId } }"
           :aria-current="workspaceMode === 'simulator' ? 'page' : undefined"
-        >
-          Simulator
-        </RouterLink>
-        <RouterLink
+          :icon="simulateIcon"
+          :disabled="saving"
+          @click="saveFlow"
+        />
+        <AppLink
+          automation="flow-debug-mode"
+          text="Debug"
           :to="{ name: ROUTE_NAMES.flowDebugger, params: { flowId } }"
           :aria-current="workspaceMode === 'debugger' ? 'page' : undefined"
-        >
-          Debugger
-        </RouterLink>
+          :icon="debugIcon"
+          :disabled="saving"
+          @click="saveFlow"
+        />
       </nav>
 
       <AppFlowInterfaceSettings
@@ -285,7 +294,11 @@ import enableFlowIcon from '@/assets/icons/enable-flow-icon.svg';
 import refreshIcon from '@/assets/icons/refresh-icon.svg';
 import renameFlowIcon from '@/assets/icons/rename-flow-icon.svg';
 import saveIcon from '@/assets/icons/save-icon.svg';
+import designIcon from '@/assets/icons/flow-design-icon.svg';
+import simulateIcon from '@/assets/icons/flow-simulate-icon.svg';
+import debugIcon from '@/assets/icons/flow-debug-icon.svg';
 import AppButton from '@/components/AppButton.vue';
+import AppLink from '@/components/AppLink.vue';
 import AppErrorNotice from '@/components/AppErrorNotice.vue';
 import AppFlowDesignerCanvas from '@/features/flows/components/AppFlowDesignerCanvas.vue';
 import AppFlowDebugTargetSelector from '@/features/flows/components/AppFlowDebugTargetSelector.vue';
