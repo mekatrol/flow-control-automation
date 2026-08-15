@@ -112,7 +112,7 @@ test('shows connector frame values and keyboard-accessible breakpoint positions'
   );
 
   await page.goto('/flows/visual-debug');
-  await page.getByRole('button', { name: 'Advanced debugger' }).click();
+  await page.getByRole('button', { name: 'Debugger' }).click();
   await page.getByRole('button', { name: 'Load' }).click();
   await page.locator('[data-node-id="constant"]').click();
   await page.getByRole('button', { name: 'Breakpoint after' }).click();

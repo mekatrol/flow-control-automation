@@ -155,7 +155,7 @@
           :aria-pressed="workspaceMode === 'debugger'"
           @click="workspaceMode = 'debugger'"
         >
-          Advanced debugger
+          Debugger
         </button>
       </nav>
 

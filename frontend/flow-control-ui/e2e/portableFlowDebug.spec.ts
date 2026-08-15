@@ -82,7 +82,7 @@ test('loads and steps a server debug session without a controller', async ({ pag
   );
 
   await page.goto('/flows/portable-debug');
-  await page.getByRole('button', { name: 'Advanced debugger' }).click();
+  await page.getByRole('button', { name: 'Debugger' }).click();
   await expect(page.getByLabel('Debug target')).toHaveValue('server');
   await page.getByRole('button', { name: 'Load' }).click();
   await page.getByRole('button', { name: 'Step instruction' }).click();
