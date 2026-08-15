@@ -1,6 +1,7 @@
 using Server.Api.Contracts;
 using Server.Services;
 using Server.Services.Contracts;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Server.Api.Extensions;
 
@@ -10,9 +11,11 @@ public static class FlowScenarioEndpointRouteBuilderExtensions
     {
         endpoints.MapGet("/api/flows/{flowId}/scenarios", List);
         endpoints.MapGet("/api/flows/{flowId}/scenarios/{scenarioId}", Get);
-        endpoints.MapPut("/api/flows/{flowId}/scenarios/{scenarioId}", Save);
+        endpoints.MapPut("/api/flows/{flowId}/scenarios/{scenarioId}", Save)
+            .WithMetadata(new RequestSizeLimitAttribute(1_048_576));
         endpoints.MapDelete("/api/flows/{flowId}/scenarios/{scenarioId}", Delete);
-        endpoints.MapPost("/api/flows/{flowId}/scenarios/run", Run);
+        endpoints.MapPost("/api/flows/{flowId}/scenarios/run", Run)
+            .WithMetadata(new RequestSizeLimitAttribute(1_048_576));
         return endpoints;
     }
 

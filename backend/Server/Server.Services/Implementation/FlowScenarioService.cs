@@ -14,6 +14,8 @@ internal sealed class FlowScenarioService(
     private const int MaxScenariosPerFlow = 100;
     private const int MaxSteps = 1000;
     private const int MaxExpectations = 1000;
+    private const int MaxExecutionScans = 10_000;
+    private static readonly TimeSpan MaximumExecutionTime = TimeSpan.FromSeconds(30);
 
     public async Task<IReadOnlyList<FlowScenario>> ListAsync(string flowId, CancellationToken cancellationToken) =>
         (await context.FlowScenarios.AsNoTracking()
@@ -66,29 +68,34 @@ internal sealed class FlowScenarioService(
         if (!string.Equals(scenario.FlowId, source.Id, StringComparison.Ordinal) || scenario.FlowRevision != source.Revision)
             throw new FlowScenarioException("scenario_stale_revision", "The scenario targets another flow revision.", "/flowRevision");
 
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(MaximumExecutionTime);
+        var executionToken = timeout.Token;
         FlowSimulatorSession? session = null;
         try
         {
-            session = await simulator.StartAsync(source, true, cancellationToken);
+            session = await simulator.StartAsync(source, true, executionToken);
             ulong clock = 0;
             foreach (var step in scenario.Steps)
             {
-                cancellationToken.ThrowIfCancellationRequested();
+                executionToken.ThrowIfCancellationRequested();
                 if (step.AtMilliseconds > clock)
                 {
-                    session = await simulator.AdvanceAsync(source.Id, session.SessionId, step.AtMilliseconds - clock, cancellationToken);
+                    session = await simulator.AdvanceAsync(source.Id, session.SessionId, step.AtMilliseconds - clock, executionToken);
                     clock = step.AtMilliseconds;
                 }
                 session = step.Action switch
                 {
-                    "apply" => await simulator.ApplyInputsAsync(source.Id, session.SessionId, step.Inputs, cancellationToken),
+                    "apply" => await simulator.ApplyInputsAsync(source.Id, session.SessionId, step.Inputs, executionToken),
                     "step" => step.Inputs.Count == 0
-                        ? await simulator.StepTickAsync(source.Id, session.SessionId, cancellationToken)
-                        : await simulator.ApplyInputsAndStepAsync(source.Id, session.SessionId, step.Inputs, cancellationToken),
+                        ? await simulator.StepTickAsync(source.Id, session.SessionId, executionToken)
+                        : await simulator.ApplyInputsAndStepAsync(source.Id, session.SessionId, step.Inputs, executionToken),
                     "advance" => session,
-                    "reset" => await simulator.ResetIoAsync(source.Id, session.SessionId, step.PowerCycle, cancellationToken),
+                    "reset" => await simulator.ResetIoAsync(source.Id, session.SessionId, step.PowerCycle, executionToken),
                     _ => throw new InvalidOperationException()
                 };
+                if ((session.Io?.ScanNumber ?? 0) > MaxExecutionScans)
+                    throw new FlowScenarioException("scenario_limit_exceeded", $"Scenario execution cannot exceed {MaxExecutionScans} scans.");
             }
 
             var results = scenario.Expectations.Select(expectation => Evaluate(expectation, session.Io?.OutputHistory ?? [])).ToList();
@@ -99,6 +106,10 @@ internal sealed class FlowScenarioService(
                 ScanNumber = session.Io?.ScanNumber ?? 0,
                 Expectations = results
             };
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new FlowScenarioException("scenario_limit_exceeded", "Scenario execution exceeded 30 seconds.");
         }
         finally
         {
@@ -146,6 +157,7 @@ internal sealed class FlowScenarioService(
         if (scenario.SchemaVersion != 1) throw Invalid("scenario_version_unsupported", "Only scenario schema version 1 is supported.", "/schemaVersion");
         if (string.IsNullOrWhiteSpace(scenario.Id) || scenario.Id.Length > 100) throw Invalid("scenario_invalid", "Scenario ID is required and limited to 100 characters.", "/id");
         if (string.IsNullOrWhiteSpace(scenario.Name) || scenario.Name.Length > 200) throw Invalid("scenario_invalid", "Scenario name is required and limited to 200 characters.", "/name");
+        if (scenario.Description?.Length > 2000) throw Invalid("scenario_invalid", "Scenario description is limited to 2000 characters.", "/description");
         if (string.IsNullOrWhiteSpace(scenario.FlowId)) throw Invalid("scenario_invalid", "Flow ID is required.", "/flowId");
         if (scenario.Steps.Count > MaxSteps) throw Invalid("scenario_limit_exceeded", $"A scenario can contain at most {MaxSteps} steps.", "/steps");
         if (scenario.Expectations.Count > MaxExpectations) throw Invalid("scenario_limit_exceeded", $"A scenario can contain at most {MaxExpectations} expectations.", "/expectations");

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using Server.Data;
 using Server.Data.Extensions;
 using Server.Services;
@@ -29,6 +30,10 @@ internal sealed class FlowControlApplicationFactory(
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        // Tests assert expected persistence failures directly. Avoid the Windows
+        // Event Log provider, which requires machine-level write permission and
+        // can otherwise replace the domain exception being asserted.
+        builder.ConfigureLogging(logging => logging.ClearProviders());
         Directory.CreateDirectory(_temporaryDirectory);
         builder.ConfigureAppConfiguration((_, configuration) =>
         {

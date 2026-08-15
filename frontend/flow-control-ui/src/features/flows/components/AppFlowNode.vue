@@ -5,100 +5,106 @@
     :data-node-id="node.id"
     :data-node-category="definition.category"
     :class="{ selected, current, breakpoint: breakpointPositions?.length }"
-    :transform="transform"
-    role="button"
-    tabindex="0"
+    role="group"
     :aria-label="nodeAriaLabel"
-    :aria-pressed="selected"
-    @click="emit(EVENTS.SELECT, node.id)"
-    @pointerdown.stop="emit(EVENTS.DRAG_START, node.id, $event)"
-    @keydown.enter.prevent="emit(EVENTS.SELECT, node.id)"
-    @keydown.space.prevent="emit(EVENTS.SELECT, node.id)"
   >
-    <rect
-      class="node-body"
-      :width="definition.defaultSize.width"
-      :height="definition.defaultSize.height"
-      rx="2"
-    />
-    <AppFlowNodeIcon v-bind="automation('icon')" :icon="definition.icon" />
-    <AppFlowNodeLabel
-      v-bind="automation('label')"
-      :label="node.label"
-      :kind-label="definition.label"
-    />
-    <AppFlowNodeStatus
-      v-if="status"
-      v-bind="automation('status')"
-      :status="status"
-      :value="statusValue"
-      :width="definition.defaultSize.width"
-    />
-    <!-- These legacy function indicators intentionally overlap the top edge.
-    Their shape as well as colour communicates state, so they remain distinct
-    for people who cannot distinguish the colours. -->
-    <AppFlowNodeMarker
-      v-bind="automation('marker-square')"
-      shape="square"
-      color="orange"
-      :x="definition.defaultSize.width - 60"
-    />
-    <AppFlowNodeMarker
-      v-bind="automation('marker-triangle')"
-      shape="triangle"
-      color="green"
-      :x="definition.defaultSize.width - 40"
-    />
-    <AppFlowNodeMarker
-      v-bind="automation('marker-circle')"
-      shape="circle"
-      color="blue"
-      :x="definition.defaultSize.width - 20"
-    />
-    <AppFlowConnector
-      v-for="layout in connectorLayouts"
-      :key="layout.connector.id"
-      v-bind="automation(`connector-${layout.connector.id}`)"
-      :layout="layout"
-      :compatible="compatibleConnectorKeys?.includes(connectorKey(layout.connector.id))"
-      :active="
-        connectionStart?.nodeId === node.id && connectionStart.connectorId === layout.connector.id
-      "
-      @[EVENTS.PRESS]="
-        emit(EVENTS.CONNECTOR_PRESS, { nodeId: node.id, connectorId: layout.connector.id })
-      "
-      @[EVENTS.ACTIVATE]="
-        emit(EVENTS.CONNECTOR_ACTIVATE, { nodeId: node.id, connectorId: layout.connector.id })
-      "
-      @[EVENTS.RELEASE]="
-        emit(EVENTS.CONNECTOR_RELEASE, { nodeId: node.id, connectorId: layout.connector.id })
-      "
-      @[EVENTS.PREVIEW]="
-        emit(EVENTS.CONNECTOR_PREVIEW, { nodeId: node.id, connectorId: layout.connector.id })
-      "
-    />
-    <g v-for="layout in connectorLayouts" :key="`value-${layout.connector.id}`">
+    <g
+      class="node-selector"
+      :data-node-category="definition.category"
+      :transform="transform"
+      role="button"
+      tabindex="0"
+      :aria-label="nodeAriaLabel"
+      :aria-pressed="selected"
+      @click="emit(EVENTS.SELECT, node.id)"
+      @pointerdown.stop="emit(EVENTS.DRAG_START, node.id, $event)"
+      @keydown.enter.prevent="emit(EVENTS.SELECT, node.id)"
+      @keydown.space.prevent="emit(EVENTS.SELECT, node.id)"
+    >
+      <rect
+        class="node-body"
+        :width="definition.defaultSize.width"
+        :height="definition.defaultSize.height"
+        rx="2"
+      />
+      <AppFlowNodeIcon v-bind="automation('icon')" :icon="definition.icon" />
+      <AppFlowNodeLabel
+        v-bind="automation('label')"
+        :label="node.label"
+        :kind-label="definition.label"
+      />
+      <AppFlowNodeStatus
+        v-if="status"
+        v-bind="automation('status')"
+        :status="status"
+        :value="statusValue"
+        :width="definition.defaultSize.width"
+      />
+      <AppFlowNodeMarker
+        v-bind="automation('marker-square')"
+        shape="square"
+        color="orange"
+        :x="definition.defaultSize.width - 60"
+      />
+      <AppFlowNodeMarker
+        v-bind="automation('marker-triangle')"
+        shape="triangle"
+        color="green"
+        :x="definition.defaultSize.width - 40"
+      />
+      <AppFlowNodeMarker
+        v-bind="automation('marker-circle')"
+        shape="circle"
+        color="blue"
+        :x="definition.defaultSize.width - 20"
+      />
+      <text v-if="breakpointPositions?.includes('before')" class="breakpoint-marker" x="6" y="14">
+        B
+      </text>
       <text
-        v-if="connectorValues?.[layout.connector.id]"
-        class="connector-value"
-        :x="layout.x + (layout.connector.side === 'left' ? 8 : -8)"
-        :y="layout.y - 8"
-        :text-anchor="layout.connector.side === 'left' ? 'start' : 'end'"
+        v-if="breakpointPositions?.includes('after')"
+        class="breakpoint-marker"
+        :x="definition.defaultSize.width - 14"
+        y="14"
       >
-        {{ connectorText(layout.connector.id) }}
+        A
       </text>
     </g>
-    <text v-if="breakpointPositions?.includes('before')" class="breakpoint-marker" x="6" y="14">
-      B
-    </text>
-    <text
-      v-if="breakpointPositions?.includes('after')"
-      class="breakpoint-marker"
-      :x="definition.defaultSize.width - 14"
-      y="14"
-    >
-      A
-    </text>
+    <g :transform="transform">
+      <AppFlowConnector
+        v-for="layout in connectorLayouts"
+        :key="layout.connector.id"
+        v-bind="automation(`connector-${layout.connector.id}`)"
+        :layout="layout"
+        :compatible="compatibleConnectorKeys?.includes(connectorKey(layout.connector.id))"
+        :active="
+          connectionStart?.nodeId === node.id && connectionStart.connectorId === layout.connector.id
+        "
+        @[EVENTS.PRESS]="
+          emit(EVENTS.CONNECTOR_PRESS, { nodeId: node.id, connectorId: layout.connector.id })
+        "
+        @[EVENTS.ACTIVATE]="
+          emit(EVENTS.CONNECTOR_ACTIVATE, { nodeId: node.id, connectorId: layout.connector.id })
+        "
+        @[EVENTS.RELEASE]="
+          emit(EVENTS.CONNECTOR_RELEASE, { nodeId: node.id, connectorId: layout.connector.id })
+        "
+        @[EVENTS.PREVIEW]="
+          emit(EVENTS.CONNECTOR_PREVIEW, { nodeId: node.id, connectorId: layout.connector.id })
+        "
+      />
+      <g v-for="layout in connectorLayouts" :key="`value-${layout.connector.id}`">
+        <text
+          v-if="connectorValues?.[layout.connector.id]"
+          class="connector-value"
+          :x="layout.x + (layout.connector.side === 'left' ? 8 : -8)"
+          :y="layout.y - 8"
+          :text-anchor="layout.connector.side === 'left' ? 'start' : 'end'"
+        >
+          {{ connectorText(layout.connector.id) }}
+        </text>
+      </g>
+    </g>
   </g>
 </template>
 

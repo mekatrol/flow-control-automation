@@ -222,6 +222,30 @@ export const useFlowSimulatorStore = defineStore('flow-simulator', () => {
       failure(value);
     }
   };
+  const runAll = async (source: ExecutableFlowSource): Promise<void> => {
+    for (const scenario of scenarios.value) {
+      await replay(scenario, source);
+      if (scenarioResult.value?.passed === false) return;
+    }
+  };
+  const importScenario = async (scenario: FlowScenario): Promise<void> => {
+    try {
+      const saved = await flowScenarioApi.save(scenario);
+      const index = scenarios.value.findIndex((item) => item.id === saved.id);
+      if (index < 0) scenarios.value.push(saved);
+      else scenarios.value[index] = saved;
+    } catch (value) {
+      failure(value);
+    }
+  };
+  const deleteScenario = async (scenario: FlowScenario): Promise<void> => {
+    try {
+      await flowScenarioApi.remove(scenario.flowId, scenario.id);
+      scenarios.value = scenarios.value.filter((item) => item.id !== scenario.id);
+    } catch (value) {
+      failure(value);
+    }
+  };
 
   return {
     lifecycle,
@@ -251,6 +275,9 @@ export const useFlowSimulatorStore = defineStore('flow-simulator', () => {
     stopRecording,
     loadScenarios,
     saveRecording,
-    replay
+    replay,
+    runAll,
+    importScenario,
+    deleteScenario
   };
 });

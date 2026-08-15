@@ -76,7 +76,11 @@
     </div>
 
     <div class="designer-workspace">
-      <AppFlowNodePalette v-bind="automation('node-palette')" @[EVENTS.ADD]="handleAddNode" />
+      <AppFlowNodePalette
+        v-bind="automation('node-palette')"
+        @[EVENTS.ADD]="handleAddNode"
+        @[EVENTS.LEARN]="handleLearn"
+      />
       <div class="canvas-column">
         <p v-if="connectionError" class="connection-error" role="alert">{{ connectionError }}</p>
 
@@ -255,6 +259,7 @@ const emit = defineEmits<{
   ): void;
   (event: typeof EVENTS.DELETE_CONNECTION, connectionId: string): void;
   (event: typeof EVENTS.ADD_NODE, node: FlowNodeModel): void;
+  (event: typeof EVENTS.LEARN, kind: FlowNodeModel['kind']): void;
   (event: typeof EVENTS.UPDATE_NODE_LABEL, nodeId: string, label: string): void;
   (
     event: typeof EVENTS.UPDATE_NODE_CONFIGURATION,
@@ -408,6 +413,7 @@ const handleAddNode = (kind: FlowNodeModel['kind']): void => {
   emit(EVENTS.ADD_NODE, node);
   selectNode(node.id);
 };
+const handleLearn = (kind: FlowNodeModel['kind']): void => emit(EVENTS.LEARN, kind);
 const addNodeAt = (kind: FlowNodeModel['kind'], position: Point): void => {
   const zOrder = Math.max(-1, ...props.flow.nodes.map((node) => node.zOrder)) + 1;
   const size = getNodeKind(kind).defaultSize;

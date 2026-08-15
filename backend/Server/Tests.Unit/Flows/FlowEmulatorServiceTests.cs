@@ -7,6 +7,44 @@ namespace Tests.Unit.Flows;
 
 public sealed class FlowEmulatorServiceTests
 {
+    /// <summary>
+    /// Purpose: Proves inactive emulator instances expire and release their VM resources.
+    /// Description: Advances a controllable clock beyond the shared lease and observes that lookup rejects the expired ID.
+    /// </summary>
+    [Test]
+    public async Task ExpiredInstancesAreRemovedDeterministically()
+    {
+        // Arrange: Create one emulator against a fixed clock.
+        var time = new MutableTimeProvider(DateTimeOffset.Parse("2026-08-15T00:00:00Z"));
+        using var service = new FlowEmulatorService(new Resolver(), new Compiler(), new MachineFactory(), time);
+        var created = await service.CreateAsync(Source(), default);
+
+        // Act: Cross the lease boundary before looking up the instance.
+        time.Advance(FlowEmulatorService.Lease);
+
+        // Assert: Expiry is observable as the normal not-found contract.
+        Assert.That(
+            () => service.Get(created.EmulatorId),
+            Throws.TypeOf<FlowEmulatorNotFoundException>());
+    }
+
+    /// <summary>
+    /// Purpose: Bounds server memory by enforcing the shared active-emulator limit before allocation.
+    /// Description: Fills the registry and verifies one additional instance is rejected with a stable simulator code.
+    /// </summary>
+    [Test]
+    public async Task ActiveInstanceLimitIsEnforced()
+    {
+        // Arrange: Fill every permitted emulator slot.
+        using var service = new FlowEmulatorService(new Resolver(), new Compiler(), new MachineFactory());
+        for (var index = 0; index < FlowEmulatorService.MaximumInstances; index++)
+            await service.CreateAsync(Source() with { Id = $"flow-{index}" }, default);
+
+        // Act and assert: The next request is rejected before it can remain registered.
+        var error = Assert.ThrowsAsync<FlowSimulatorException>(async () =>
+            await service.CreateAsync(Source() with { Id = "overflow" }, default));
+        Assert.That(error!.Code, Is.EqualTo("simulator_limit_exceeded"));
+    }
     [Test]
     public async Task AppliesScheduledInputsOnlyAtScanBoundariesAndCapturesOutputs()
     {
@@ -150,5 +188,12 @@ public sealed class FlowEmulatorServiceTests
         public void Dispose()
         {
         }
+    }
+
+    private sealed class MutableTimeProvider(DateTimeOffset now) : TimeProvider
+    {
+        private DateTimeOffset _now = now;
+        public override DateTimeOffset GetUtcNow() => _now;
+        public void Advance(TimeSpan duration) => _now += duration;
     }
 }

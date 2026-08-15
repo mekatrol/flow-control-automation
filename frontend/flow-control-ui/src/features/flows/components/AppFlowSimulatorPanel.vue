@@ -107,6 +107,22 @@
         />
       </div>
       <p role="status" aria-live="polite">{{ recordedStepCount }} recorded steps.</p>
+      <div class="controls">
+        <AppButton
+          automation="scenario-run-all"
+          text="Run all scenarios"
+          :disabled="scenarios.length === 0"
+          @click="emit(EVENTS.RUN_ALL_SCENARIOS)"
+        />
+        <label for="scenario-import">Import scenario</label>
+        <input
+          id="scenario-import"
+          type="file"
+          accept="application/json,.json"
+          @change="importFile"
+        />
+      </div>
+      <p v-if="importError" class="error" role="alert">{{ importError }}</p>
       <ol v-if="recordedStepCount > 0" aria-label="Recorded timeline">
         <li v-for="(step, index) in recordedSteps" :key="index">
           {{ step.atMilliseconds }} ms — {{ step.action }}
@@ -119,6 +135,16 @@
             :automation="`scenario-replay-${scenario.id}`"
             text="Replay"
             @click="emit(EVENTS.REPLAY_SCENARIO, scenario)"
+          />
+          <AppButton
+            :automation="`scenario-export-${scenario.id}`"
+            text="Export"
+            @click="exportScenario(scenario)"
+          />
+          <AppButton
+            :automation="`scenario-delete-${scenario.id}`"
+            text="Delete"
+            @click="emit(EVENTS.DELETE_SCENARIO, scenario)"
           />
         </li>
       </ul>
@@ -150,7 +176,11 @@ import { EVENTS } from '@/constants/events';
 import type { SimulatorLifecycle, SimulatorSession } from '@/features/flows/api/flowSimulatorApi';
 import type { EmulatorInputChange } from '@/features/flows/api/flowEmulatorApi';
 import type { FlowInterface } from '@/features/flows/types';
-import type { FlowScenario, FlowScenarioRunResult } from '@/features/flows/api/flowScenarioApi';
+import {
+  parseScenario,
+  type FlowScenario,
+  type FlowScenarioRunResult
+} from '@/features/flows/api/flowScenarioApi';
 
 const props = withDefaults(
   defineProps<{
@@ -191,9 +221,15 @@ const emit = defineEmits<{
   (event: typeof EVENTS.START_RECORDING | typeof EVENTS.STOP_RECORDING): void;
   (event: typeof EVENTS.SAVE_SCENARIO, name: string): void;
   (event: typeof EVENTS.REPLAY_SCENARIO, scenario: FlowScenario): void;
+  (event: typeof EVENTS.RUN_ALL_SCENARIOS): void;
+  (
+    event: typeof EVENTS.IMPORT_SCENARIO | typeof EVENTS.DELETE_SCENARIO,
+    scenario: FlowScenario
+  ): void;
 }>();
 const automation = useAutomation(props.automation);
 const scenarioName = ref('Recorded scenario');
+const importError = ref<string>();
 const flowInterface = computed<FlowInterface>(
   () => props.flowInterface ?? { schemaVersion: 1, inputs: [], outputs: [] }
 );
@@ -216,6 +252,26 @@ const canStepInstruction = computed(
 const stateLabel = computed(
   () => props.lifecycle.charAt(0).toUpperCase() + props.lifecycle.slice(1)
 );
+const importFile = async (event: Event): Promise<void> => {
+  const file = (event.target as HTMLInputElement).files?.[0];
+  if (!file) return;
+  try {
+    emit(EVENTS.IMPORT_SCENARIO, parseScenario(JSON.parse(await file.text()) as unknown));
+    importError.value = undefined;
+  } catch {
+    importError.value = 'The selected scenario file is malformed or unsupported.';
+  }
+};
+const exportScenario = (scenario: FlowScenario): void => {
+  const url = URL.createObjectURL(
+    new Blob([JSON.stringify(scenario, undefined, 2)], { type: 'application/json' })
+  );
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = `${scenario.id}.json`;
+  anchor.click();
+  URL.revokeObjectURL(url);
+};
 </script>
 
 <style scoped>

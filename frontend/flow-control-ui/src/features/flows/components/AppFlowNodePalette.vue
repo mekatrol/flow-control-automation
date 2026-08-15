@@ -14,24 +14,31 @@
     <div v-if="Object.keys(groups).length" class="palette-groups">
       <section v-for="(definitions, category) in groups" :key="category">
         <h3>{{ category }}</h3>
-        <AppButton
-          v-for="definition in definitions"
-          :key="definition.kind"
-          v-bind="automation(`add-${automationKind(definition.kind)}`)"
-          :text="definition.label"
-          draggable="true"
-          :aria-label="`Add ${definition.label} node`"
-          @click="emit(EVENTS.ADD, definition.kind)"
-          @dragstart="startPaletteDrag(definition.kind, $event)"
-        >
-          <template #icon>
-            <AppSvg
-              :src="getNodeIconUrl(definition.icon)"
-              v-bind="automation(`add-${automationKind(definition.kind)}-icon`)"
-              size="100%"
-            />
-          </template>
-        </AppButton>
+        <div v-for="definition in definitions" :key="definition.kind" class="palette-item">
+          <AppButton
+            v-bind="automation(`add-${automationKind(definition.kind)}`)"
+            :text="definition.label"
+            draggable="true"
+            :aria-label="`Add ${definition.label} node`"
+            @click="emit(EVENTS.ADD, definition.kind)"
+            @dragstart="startPaletteDrag(definition.kind, $event)"
+          >
+            <template #icon>
+              <AppSvg
+                :src="getNodeIconUrl(definition.icon)"
+                v-bind="automation(`add-${automationKind(definition.kind)}-icon`)"
+                size="100%"
+              />
+            </template>
+          </AppButton>
+          <AppButton
+            v-if="definition.executable"
+            v-bind="automation(`learn-${automationKind(definition.kind)}`)"
+            text="Learn"
+            :aria-label="`Learn ${definition.label} block`"
+            @click="emit(EVENTS.LEARN, definition.kind)"
+          />
+        </div>
       </section>
     </div>
     <p v-else>No node kinds match “{{ query }}”.</p>
@@ -88,6 +95,7 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{
   (event: typeof EVENTS.ADD, kind: FlowNodeKind): void;
+  (event: typeof EVENTS.LEARN, kind: FlowNodeKind): void;
 }>();
 const automation = useAutomation(props.automation);
 const automationKind = (kind: string): string =>
@@ -133,6 +141,11 @@ section {
   display: grid;
   gap: var(--space-2);
   align-items: center;
+}
+.palette-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-1);
 }
 
 h3 {

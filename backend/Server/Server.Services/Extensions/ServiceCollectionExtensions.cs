@@ -49,7 +49,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<FlowEmulatorService>(provider => new FlowEmulatorService(
             provider.GetRequiredService<IServiceScopeFactory>(),
             provider.GetRequiredService<IFlowCompiler>(),
-            provider.GetRequiredService<IFlowVirtualMachineFactory>()));
+            provider.GetRequiredService<IFlowVirtualMachineFactory>(),
+            provider.GetRequiredService<TimeProvider>()));
         services.AddSingleton<IFlowEmulatorService>(provider => provider.GetRequiredService<FlowEmulatorService>());
         services.AddScoped<IFlowDeploymentService, FlowDeploymentService>();
         services.AddScoped<FlowDatabaseService>();

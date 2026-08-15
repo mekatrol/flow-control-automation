@@ -14,27 +14,27 @@
         <legend>Input · {{ entry.id }}</legend>
         <label>Name <input v-model="entry.name" @change="publish" /></label>
         <label
-        >Type
+          >Type
           <select v-model="entry.dataType" @change="changeType(entry)">
             <option v-for="type in dataTypes" :key="type">{{ type }}</option>
           </select></label
         >
         <label v-if="entry.dataType === 'number'"
-        >Units <input v-model="entry.units" @change="publish"
+          >Units <input v-model="entry.units" @change="publish"
         /></label>
         <label v-if="entry.dataType === 'boolean'"
-        >Default
+          >Default
           <select v-model="entry.defaultValue" @change="publish">
             <option :value="false">False</option>
             <option :value="true">True</option>
           </select></label
         >
         <label v-else-if="entry.dataType === 'number'"
-        >Default
+          >Default
           <input v-model.number="entry.defaultValue" type="number" @change="publish" />
         </label>
         <label v-else-if="entry.dataType === 'string'"
-        >Default <input v-model="entry.defaultValue" @change="publish"
+          >Default <input v-model="entry.defaultValue" @change="publish"
         /></label>
         <label><input v-model="entry.required" type="checkbox" @change="publish" /> Required</label>
         <AppButton
@@ -59,13 +59,13 @@
         <legend>Output · {{ entry.id }}</legend>
         <label>Name <input v-model="entry.name" @change="publish" /></label>
         <label
-        >Type
+          >Type
           <select v-model="entry.dataType" @change="changeType(entry)">
             <option v-for="type in dataTypes" :key="type">{{ type }}</option>
           </select></label
         >
         <label v-if="entry.dataType === 'number'"
-        >Units <input v-model="entry.units" @change="publish"
+          >Units <input v-model="entry.units" @change="publish"
         /></label>
         <AppButton
           :automation="`flow-interface-move-up-${entry.id}`"

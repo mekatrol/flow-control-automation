@@ -7,31 +7,47 @@ namespace Server.Services.Implementation;
 public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
 {
     private const int MaximumHistory = 1024;
+    public const int MaximumInstances = 32;
+    public static readonly TimeSpan Lease = TimeSpan.FromMinutes(15);
     private readonly ConcurrentDictionary<string, Instance> _instances = [];
     private readonly IServiceScopeFactory? _scopeFactory;
     private readonly IFlowCompilationTargetResolver? _targetResolver;
     private readonly IFlowCompiler _compiler;
     private readonly IFlowVirtualMachineFactory _machines;
+    private readonly TimeProvider _timeProvider;
+    private readonly object _instancesGate = new();
 
     [ActivatorUtilitiesConstructor]
     public FlowEmulatorService(
         IServiceScopeFactory scopeFactory,
         IFlowCompiler compiler,
-        IFlowVirtualMachineFactory machines)
+        IFlowVirtualMachineFactory machines,
+        TimeProvider timeProvider)
     {
         _scopeFactory = scopeFactory;
         _compiler = compiler;
         _machines = machines;
+        _timeProvider = timeProvider;
     }
 
     public FlowEmulatorService(
         IFlowCompilationTargetResolver targetResolver,
         IFlowCompiler compiler,
         IFlowVirtualMachineFactory machines)
+        : this(targetResolver, compiler, machines, TimeProvider.System)
+    {
+    }
+
+    public FlowEmulatorService(
+        IFlowCompilationTargetResolver targetResolver,
+        IFlowCompiler compiler,
+        IFlowVirtualMachineFactory machines,
+        TimeProvider timeProvider)
     {
         _targetResolver = targetResolver;
         _compiler = compiler;
         _machines = machines;
+        _timeProvider = timeProvider;
     }
 
     public async Task<FlowEmulatorSnapshot> CreateAsync(
@@ -39,6 +55,7 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(source);
+        RemoveExpired();
         FlowCompilationTarget target;
         if (_scopeFactory is not null)
         {
@@ -53,11 +70,20 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
         }
         var compilation = _compiler.Compile(new FlowCompilationRequest { Source = source, Target = target });
         var id = Guid.NewGuid().ToString("N");
-        var instance = new Instance(id, source, _machines.Create(compilation.Artifact));
-        if (!_instances.TryAdd(id, instance))
+        var instance = new Instance(id, source, _machines.Create(compilation.Artifact), _timeProvider.GetUtcNow());
+        lock (_instancesGate)
         {
-            instance.Dispose();
-            throw new InvalidOperationException("Unable to allocate an emulator instance.");
+            RemoveExpiredCore();
+            if (_instances.Count >= MaximumInstances)
+            {
+                instance.Dispose();
+                throw new FlowSimulatorException("simulator_limit_exceeded", "The active emulator limit has been reached.");
+            }
+            if (!_instances.TryAdd(id, instance))
+            {
+                instance.Dispose();
+                throw new InvalidOperationException("Unable to allocate an emulator instance.");
+            }
         }
         return instance.Snapshot();
     }
@@ -100,8 +126,26 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
         _instances.Clear();
     }
 
-    internal Instance GetInstance(string emulatorId) => _instances.GetValueOrDefault(emulatorId)
-        ?? throw new FlowEmulatorNotFoundException(emulatorId);
+    internal Instance GetInstance(string emulatorId)
+    {
+        RemoveExpired();
+        var instance = _instances.GetValueOrDefault(emulatorId)
+            ?? throw new FlowEmulatorNotFoundException(emulatorId);
+        instance.LastAccess = _timeProvider.GetUtcNow();
+        return instance;
+    }
+
+    private void RemoveExpired()
+    {
+        lock (_instancesGate) RemoveExpiredCore();
+    }
+
+    private void RemoveExpiredCore()
+    {
+        var now = _timeProvider.GetUtcNow();
+        foreach (var pair in _instances.Where(pair => now - pair.Value.LastAccess >= Lease).ToArray())
+            if (_instances.TryRemove(pair.Key, out var expired)) expired.Dispose();
+    }
 
     internal sealed class Instance : IDisposable
     {
@@ -116,15 +160,17 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
         private ulong _clock;
         private ulong _scanNumber;
 
-        public Instance(string id, ExecutableFlowSource source, IFlowVirtualMachine machine)
+        public Instance(string id, ExecutableFlowSource source, IFlowVirtualMachine machine, DateTimeOffset lastAccess)
         {
             Id = id;
             _source = source;
             _machine = machine;
+            LastAccess = lastAccess;
             foreach (var input in InitialInputs(source)) _inputs[input.PointId] = input;
         }
 
         public string Id { get; }
+        public DateTimeOffset LastAccess { get; set; }
 
         public FlowEmulatorSnapshot SetInputs(IReadOnlyList<EmulatorInputChange> changes)
         {

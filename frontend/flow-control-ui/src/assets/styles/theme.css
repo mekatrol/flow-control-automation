@@ -177,9 +177,9 @@
   /* Strong body text used for labels and field content. */
   --color-text-secondary: #34495b;
   /* Supporting copy and metadata. */
-  --color-text-muted: #627587;
+  --color-text-muted: #52697d;
   /* Low-emphasis hints, dates, and disabled copy. */
-  --color-text-subtle: #718394;
+  --color-text-subtle: #52697d;
   /* Faint placeholder text. */
   --color-text-placeholder: #9cabb7;
   /* Text and icons displayed on strong coloured surfaces. */

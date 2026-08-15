@@ -162,12 +162,10 @@ A target may advertise a smaller limit; the effective limit is the minimum.
 | Scenario execution scans | 10,000 |
 | Scenario execution wall time | 30 seconds |
 
-The existing implementation already enforces the last five runtime-oriented
-bounds except scenario scans/time, which do not exist yet. Controller template
-node and connection limits continue to apply. Phase 1 must enforce session
-count and lease cleanup; Phases 2 and 6 must enforce interface and scenario
-limits respectively. Limits are returned as capabilities where the UI needs to
-prevent invalid work, but server validation remains authoritative.
+The current implementation enforces these bounds before or during allocation
+and execution. Controller-template node and connection limits continue to
+apply. Limits are returned as capabilities where the UI needs to prevent
+invalid work, but server validation remains authoritative.
 
 ## 7. Existing endpoint and lifecycle inventory
 
@@ -185,8 +183,9 @@ or flow-interface inputs, atomically apply inputs and step, advance virtual
 time/optionally scan, inject a supported fault, reset persisted input defaults,
 reset/power-cycle VM state, export the in-memory input/output trace, and delete. Instances
 are held by a singleton service, dispose their VM on delete or service shutdown,
-and cap output samples at 1,024. They currently have no count limit, lease, or
-automatic disconnect cleanup. Inputs carry typed values, stable binding IDs,
+and cap output samples at 1,024. Instances share the 32-session server bound,
+expire after 15 minutes of inactivity, and are disposed on deletion or server
+shutdown. Inputs carry typed values, stable binding IDs,
 interface identity, and quality. Output history distinguishes proposed and
 committed simulator values and includes units, quality, last-change scan, and
 interface identity. The export is not the persisted scenario contract in section 3.

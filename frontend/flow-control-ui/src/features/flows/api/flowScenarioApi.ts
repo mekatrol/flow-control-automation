@@ -42,6 +42,23 @@ export interface FlowScenarioRunResult {
   }[];
 }
 
+export const parseScenario = (value: unknown): FlowScenario => {
+  if (typeof value !== 'object' || value === null)
+    throw new TypeError('Scenario must be an object.');
+  const item = value as Partial<FlowScenario>;
+  if (
+    item.schemaVersion !== 1 ||
+    typeof item.id !== 'string' ||
+    typeof item.name !== 'string' ||
+    typeof item.flowId !== 'string' ||
+    typeof item.flowRevision !== 'number' ||
+    !Array.isArray(item.steps) ||
+    !Array.isArray(item.expectations)
+  )
+    throw new TypeError('Scenario fields are invalid or unsupported.');
+  return item as FlowScenario;
+};
+
 const json = async <T>(url: string, init?: RequestInit): Promise<T> => {
   const response = await fetch(url, init);
   if (!response.ok) {

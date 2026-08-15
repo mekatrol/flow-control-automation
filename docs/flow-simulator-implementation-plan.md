@@ -11,9 +11,10 @@ This is a delivery plan, not a replacement architecture. The existing portable
 Flow IL architecture, debugger contract, PLC scan cycle, and pre-release version
 policy remain authoritative.
 
-## 2. Existing foundation
+## 2. Foundation at plan authoring
 
-The repository already contains much of the low-level implementation required:
+When this plan was written, the repository already contained much of the
+low-level implementation required:
 
 - The ASP.NET Core backend compiles resolved flow source into Flow IL.
 - The portable VM is the normative evaluator for server, emulator, and controller
@@ -26,10 +27,11 @@ The repository already contains much of the low-level implementation required:
   history, reset/power-cycle operations, and basic fault injection.
 - The Vue designer already contains debug target, debug control, and emulator
   panels.
-- Twenty of the thirty-six registered designer node kinds are currently marked
-  executable. The remaining palette entries cannot yet be compiled and run.
+- Twenty of the thirty-six registered designer node kinds were marked
+  executable. The remaining palette entries could not yet be compiled and run.
 
-The main gaps are product integration rather than a missing execution engine:
+The main gaps at that point were product integration rather than a missing
+execution engine:
 
 - Simulator state and controls are embedded in the designer view rather than
   presented as a coherent simulator workflow.
@@ -182,7 +184,7 @@ VM. Do not implement tutorial-specific function semantics.
 
 ## 6. Delivery phases
 
-Implementation status: Phases 0 through 6 are complete. Phase 7 is next. The status refers
+Implementation status: Phases 0 through 8 are complete. The status refers
 to this simulator plan; similarly named phases in the earlier portable Flow IL
 roadmap are separate work.
 
@@ -456,6 +458,11 @@ Commit gate:
 
 ### Phase 7 - Function tutorial framework
 
+**Status: Complete.** Every executable registry kind has strict current-schema
+tutorial metadata, an ordinary disposable flow fixture, ordered guidance, and
+palette-level discovery. Exact coverage and fixture-identity checks fail on
+missing, duplicate, unknown, or malformed tutorial entries.
+
 **Purpose:** Teach each executable function through real, editable simulator
 flows.
 
@@ -487,6 +494,12 @@ Commit gate:
 - Tutorials run through the normal compiler and simulator, not mocked results.
 
 ### Phase 8 - Hardening, accessibility, and conformance
+
+**Status: Complete.** Simulator and emulator sessions, scenarios, histories,
+breakpoints, inspection, artifacts, and execution are bounded. Expiry and
+shutdown dispose resources deterministically. Portable-host fuzz/conformance
+coverage and frontend keyboard, reflow, and automated WCAG checks exercise the
+supported execution and user-interface boundaries.
 
 **Purpose:** Establish the simulator as a safe, bounded, cross-target execution
 and debugging tool.

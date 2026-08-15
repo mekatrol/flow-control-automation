@@ -70,7 +70,7 @@ test('searches the node palette and adds registry-backed nodes', async ({ page }
   // Expected outcome: `page.getByRole('button', { name: /Trigger, input, any/ })` is visible to the user.
   // Acceptance criteria: `page.getByRole('button', { name: /Trigger, input, any/ })` must be visible, because this condition proves that
   // searches the node palette and adds registry-backed nodes.
-  await expect(page.getByRole('button', { name: /Trigger, input, any/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Trigger, input, boolean/ })).toBeVisible();
 
   await search.fill('routing');
   await page.getByRole('button', { name: 'Apply filter' }).click();
@@ -95,7 +95,7 @@ test('searches the node palette and adds registry-backed nodes', async ({ page }
   // Expected outcome: `split.locator('rect.connector-port')` resolves to the required number of elements.
   // Acceptance criteria: `split.locator('rect.connector-port')` must resolve to exactly 3 elements, because this condition proves that
   // searches the node palette and adds registry-backed nodes.
-  await expect(split.locator('rect.connector-port')).toHaveCount(3);
+  await expect(page.locator('.flow-node').filter({ has: split }).locator('rect.connector-port')).toHaveCount(2);
 
   // Expected outcome: `page.getByText('6 nodes', { exact: true })` is visible to the user.
   // Acceptance criteria: `page.getByText('6 nodes', { exact: true })` must be visible, because this condition proves that

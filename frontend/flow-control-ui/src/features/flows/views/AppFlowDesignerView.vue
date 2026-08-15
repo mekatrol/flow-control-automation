@@ -168,6 +168,15 @@
         @[EVENTS.UPDATE_INTERFACE]="updateFlowInterface"
       />
 
+      <AppFlowTutorialPanel
+        v-if="activeTutorial"
+        automation="flow-tutorial"
+        :tutorial="activeTutorial"
+        @[EVENTS.CLOSE]="activeTutorial = undefined"
+        @[EVENTS.OPEN_TUTORIAL]="openTutorialExample"
+        @[EVENTS.COPY_TUTORIAL]="copyTutorialExample"
+      />
+
       <AppFlowSimulatorPanel
         v-if="workspaceMode === 'simulator'"
         automation="flow-simulator"
@@ -197,6 +206,9 @@
         @[EVENTS.STOP_RECORDING]="simulator.stopRecording"
         @[EVENTS.SAVE_SCENARIO]="simulator.saveRecording"
         @[EVENTS.REPLAY_SCENARIO]="replayScenario"
+        @[EVENTS.RUN_ALL_SCENARIOS]="runAllScenarios"
+        @[EVENTS.IMPORT_SCENARIO]="simulator.importScenario"
+        @[EVENTS.DELETE_SCENARIO]="simulator.deleteScenario"
       />
 
       <AppFlowDebugPanel
@@ -259,6 +271,7 @@
         @[EVENTS.ADD_CONNECTION]="addConnection"
         @[EVENTS.DELETE_CONNECTION]="deleteConnection"
         @[EVENTS.ADD_NODE]="addNode"
+        @[EVENTS.LEARN]="showTutorial"
         @[EVENTS.UPDATE_NODE_LABEL]="updateNodeLabel"
         @[EVENTS.UPDATE_NODE_CONFIGURATION]="updateNodeConfiguration"
       />
@@ -294,6 +307,7 @@ import AppFlowDebugPanel from '@/features/flows/components/AppFlowDebugPanel.vue
 import AppFlowEmulatorPanel from '@/features/flows/components/AppFlowEmulatorPanel.vue';
 import AppFlowSimulatorPanel from '@/features/flows/components/AppFlowSimulatorPanel.vue';
 import AppFlowInterfaceSettings from '@/features/flows/components/AppFlowInterfaceSettings.vue';
+import AppFlowTutorialPanel from '@/features/flows/components/AppFlowTutorialPanel.vue';
 import { getFlowDebugTargets } from '@/features/flows/debugTargets';
 import {
   flowDebugApi,
@@ -321,6 +335,8 @@ import type {
   FlowNode
 } from '@/features/flows/types';
 import type { FlowScenario } from '@/features/flows/api/flowScenarioApi';
+import { tutorialForKind, type FlowTutorial } from '@/features/flows/tutorialCatalogue';
+import { flowDomainToDto } from '@/features/flows/api/flowMapper';
 
 const props = defineProps<{
   flowId: string;
@@ -331,6 +347,7 @@ const flowStore = useFlowsStore();
 const runtimeStore = useFlowRuntimeStore();
 const simulator = useFlowSimulatorStore();
 const workspaceMode = ref<'design' | 'simulator' | 'debugger'>('design');
+const activeTutorial = ref<FlowTutorial>();
 const controllerTemplates = useControllerTemplatesCatalogueStore();
 const router = useRouter();
 const flow = computed(() => flowStore.findFlow(props.flowId));
@@ -513,6 +530,10 @@ const startSimulation = async (): Promise<void> => {
 const replayScenario = async (scenario: FlowScenario): Promise<void> => {
   const source = executableSource();
   if (source) await simulator.replay(scenario, source);
+};
+const runAllScenarios = async (): Promise<void> => {
+  const source = executableSource();
+  if (source) await simulator.runAll(source);
 };
 const debugFailure = (error: unknown): string =>
   error instanceof Error ? error.message : 'Debug operation failed.';
@@ -778,6 +799,29 @@ const deleteConnection = (connectionId: string): void => {
 const addNode = (node: FlowNode): void => {
   flowStore.addNode(props.flowId, node);
 };
+const showTutorial = (kind: FlowNode['kind']): void => {
+  activeTutorial.value = tutorialForKind(kind);
+};
+const openTutorialExample = (tutorial: FlowTutorial): void => {
+  activeTutorial.value = tutorial;
+  workspaceMode.value = 'simulator';
+};
+const copyTutorialExample = async (tutorial: FlowTutorial): Promise<void> => {
+  try {
+    const created = await flowApi.createFlow(`${tutorial.title} copy`);
+    await flowApi.saveFlow(
+      flowDomainToDto({
+        ...tutorial.flow,
+        id: created.id,
+        name: created.name,
+        updatedAt: created.updatedAt
+      })
+    );
+    await router.push({ name: 'flow-designer', params: { flowId: created.id } });
+  } catch (error) {
+    loadError.value = runtimeFailureMessage(error, 'Unable to copy the tutorial flow.');
+  }
+};
 
 const updateNodeLabel = (nodeId: string, label: string): void => {
   flowStore.updateNodeLabel(props.flowId, nodeId, label);
@@ -1022,7 +1066,7 @@ h1 {
 
 .title-row span {
   padding: var(--space-2) var(--space-3-5);
-  color: var(--color-node-status-fill);
+  color: var(--color-text-primary);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-black);
   letter-spacing: 0.08em;

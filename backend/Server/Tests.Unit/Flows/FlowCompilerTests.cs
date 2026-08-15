@@ -8,6 +8,15 @@ namespace Tests.Unit.Flows;
 
 public sealed class FlowCompilerTests
 {
+    private static readonly string[] TutorialKinds =
+    [
+        "add", "analogInput", "analogOutput", "and", "average", "calculator", "calendar",
+        "clamp", "comparator", "delay", "digitalConstant", "digitalInput", "digitalOutput",
+        "flowInput", "flowOutput", "if", "line", "levelShifter", "max", "memory", "min",
+        "nand", "nor", "not", "numericConstant", "onDelay", "or", "override", "pulse",
+        "qualityGood", "risingEdge", "schedule", "selector", "sequence", "split", "timer",
+        "xnor", "xor"
+    ];
     private static readonly string SourceFixtureRoot = Path.Combine(
         AppContext.BaseDirectory,
         "ContractFixtures",
@@ -16,6 +25,28 @@ public sealed class FlowCompilerTests
         AppContext.BaseDirectory,
         "ContractFixtures",
         "flow-il-v1");
+
+    /// <summary>
+    /// Purpose: Ensures every executable tutorial function has a compiler-valid ordinary flow fixture.
+    /// Description: Builds a minimal fully-driven graph for each canonical kind and compiles it through Flow IL.
+    /// </summary>
+    [TestCaseSource(nameof(TutorialKinds))]
+    public void EveryExecutableTutorialKindCompilesThroughTheNormalCompiler(string kind)
+    {
+        // Arrange: Create a current-schema fixture with typed constant drivers and canonical configuration.
+        var source = TutorialSource(kind);
+
+        // Act: Compile through the production compiler rather than tutorial-specific semantics.
+        var compilation = new FlowCompiler().Compile(Request(source));
+
+        // Assert: A bounded current artifact and stable source identity are produced.
+        Assert.Multiple(() =>
+        {
+            Assert.That(compilation.Artifact.Length, Is.GreaterThan(0));
+            Assert.That(compilation.Artifact.Length, Is.LessThanOrEqualTo(16_384));
+            Assert.That(compilation.NodeIndices, Does.ContainKey("tutorial-node"));
+        });
+    }
 
     [TestCase("valid-two-button-and")]
     [TestCase("valid-source-order-permutation")]
@@ -207,6 +238,78 @@ public sealed class FlowCompilerTests
             $"/points/{source.Nodes[0].Configuration["pointId"].GetString()}");
     }
 
+    private static ExecutableFlowSource TutorialSource(string kind)
+    {
+        var numericInputs = kind switch
+        {
+            "add" or "comparator" or "min" or "max" => new[] { "a", "b" },
+            "selector" => new[] { "a", "b" },
+            "average" or "calculator" or "clamp" or "line" => new[] { "input" },
+            "levelShifter" => new[] { "in" },
+            "analogOutput" => new[] { "in" },
+            _ => []
+        };
+        var booleanInputs = kind switch
+        {
+            "not" or "qualityGood" or "onDelay" or "risingEdge" or "memory" => new[] { "in" },
+            "and" or "or" or "nand" or "nor" or "xnor" or "xor" or "sequence" => new[] { "a", "b" },
+            "if" => new[] { "condition", "whenTrue", "whenFalse" },
+            "selector" => new[] { "condition" },
+            "split" or "override" or "delay" or "timer" or "pulse" => new[] { "input" },
+            "digitalOutput" => new[] { "in" },
+            "flowOutput" => new[] { "value" },
+            _ => []
+        };
+        var configuration = kind switch
+        {
+            "digitalInput" or "digitalOutput" or "analogInput" or "analogOutput" => Config("pointId", "tutorial-point"),
+            "digitalConstant" or "memory" => Config("value", true),
+            "numericConstant" => Config("value", 1D),
+            "comparator" => Config("operator", "gt"),
+            "levelShifter" or "line" => Config(("gain", 1D), ("offset", 0D)),
+            "onDelay" or "delay" or "timer" => Config("durationMs", 100D),
+            "clamp" => Config(("minimum", 0D), ("maximum", 100D)),
+            "schedule" or "calendar" => Config("enabled", true),
+            "flowInput" or "flowOutput" => Config("interfaceId", kind == "flowInput" ? "tutorial-input" : "tutorial-output"),
+            _ => new Dictionary<string, JsonElement>()
+        };
+        var nodes = new List<ExecutableFlowNode>();
+        var connections = new List<ExecutableFlowConnection>();
+        foreach (var port in numericInputs)
+        {
+            var id = $"number-{port}";
+            nodes.Add(new ExecutableFlowNode { Id = id, Kind = "numericConstant", Configuration = Config("value", 1D) });
+            connections.Add(new ExecutableFlowConnection(new ExecutableFlowEndpoint(id, "value"), new ExecutableFlowEndpoint("tutorial-node", port)));
+        }
+        foreach (var port in booleanInputs)
+        {
+            var id = $"boolean-{port}";
+            nodes.Add(new ExecutableFlowNode { Id = id, Kind = "digitalConstant", Configuration = Config("value", true) });
+            connections.Add(new ExecutableFlowConnection(new ExecutableFlowEndpoint(id, "value"), new ExecutableFlowEndpoint("tutorial-node", port)));
+        }
+        nodes.Add(new ExecutableFlowNode { Id = "tutorial-node", Kind = kind, Configuration = configuration });
+        return new ExecutableFlowSource
+        {
+            Id = "tutorial",
+            Revision = 1,
+            ControllerTemplateId = "fixture",
+            ControllerTemplateRevision = 1,
+            Nodes = nodes,
+            Connections = connections,
+            Interface = new FlowInterface
+            {
+                Inputs = [new FlowInterfaceInput { Id = "tutorial-input", Name = "Tutorial input", DataType = "boolean", Required = false }],
+                Outputs = [new FlowInterfaceOutput { Id = "tutorial-output", Name = "Tutorial output", DataType = "boolean" }]
+            }
+        };
+    }
+
+    private static Dictionary<string, JsonElement> Config(string key, object value) =>
+        new() { [key] = JsonSerializer.SerializeToElement(value) };
+
+    private static Dictionary<string, JsonElement> Config(params (string Key, object Value)[] values) =>
+        values.ToDictionary(value => value.Key, value => JsonSerializer.SerializeToElement(value.Value), StringComparer.Ordinal);
+
     private static ExecutableFlowSource ReadSource(string fixture)
     {
         var json = File.ReadAllText(Path.Combine(SourceFixtureRoot, fixture, "source-flow.json"));
@@ -225,25 +328,25 @@ public sealed class FlowCompilerTests
                     Name = "Fixture target",
                     Revision = checked((int)source.ControllerTemplateRevision)
                 },
-                new HashSet<PointValueType> { PointValueType.Digital },
+                new HashSet<PointValueType> { PointValueType.Digital, PointValueType.Analog },
                 new HashSet<PointDirection> { PointDirection.Input, PointDirection.Output },
                 new HashSet<ControllerPointFeature>(),
-                new HashSet<ConnectorDataType> { ConnectorDataType.Boolean },
+                new HashSet<ConnectorDataType> { ConnectorDataType.Boolean, ConnectorDataType.Number },
                 new HashSet<string>(StringComparer.Ordinal),
                 new HashSet<ExecutionMode>(),
                 new HashSet<ControllerRuntimeFeature>()),
             Points = source.Nodes
-                .Where(node => node.Kind is "digitalInput" or "digitalOutput")
+                .Where(node => node.Kind is "digitalInput" or "digitalOutput" or "analogInput" or "analogOutput")
                 .Select(node => new Point
                 {
                     Id = node.Configuration["pointId"].GetString()!,
                     Name = node.Configuration["pointId"].GetString()!,
                     Enabled = true,
                     Implementation = "virtual",
-                    Direction = node.Kind == "digitalInput" ? "input" : "output",
-                    ValueType = "digital",
-                    Readable = node.Kind == "digitalInput",
-                    Commandable = node.Kind == "digitalOutput",
+                    Direction = node.Kind is "digitalInput" or "analogInput" ? "input" : "output",
+                    ValueType = node.Kind is "analogInput" or "analogOutput" ? "analog" : "digital",
+                    Readable = node.Kind is "digitalInput" or "analogInput",
+                    Commandable = node.Kind is "digitalOutput" or "analogOutput",
                     Persistence = "volatile",
                     Revision = 1
                 })

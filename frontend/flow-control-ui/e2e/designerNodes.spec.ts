@@ -258,7 +258,9 @@ test('validates, saves, and reloads typed node configuration', async ({ page }) 
   // validates, saves, and reloads typed node configuration.
   await expect(page.getByText('Loading latest flow…')).toBeHidden();
 
-  await page.getByRole('button', { name: /Average temperature, Calculator node/ }).click();
+  await page.getByRole('searchbox', { name: 'Find a node' }).fill('line');
+  await page.getByRole('button', { name: 'Apply filter' }).click();
+  await page.getByRole('button', { name: 'Add Line node' }).click();
   const label = page.getByRole('textbox', { name: 'Node label' });
   await label.fill('   ');
 
@@ -266,18 +268,18 @@ test('validates, saves, and reloads typed node configuration', async ({ page }) 
   // Acceptance criteria: `page.getByRole('alert')` must display `'Node label is required.'`, because this condition proves that
   // validates, saves, and reloads typed node configuration.
   await expect(page.getByRole('alert')).toHaveText('Node label is required.');
-  await label.fill('Whole house average');
-  const operation = page.getByRole('combobox', { name: 'Operation' });
-  await operation.selectOption('sum');
+  await label.fill('Scaled temperature');
+  const gain = page.getByRole('spinbutton', { name: 'Gain' });
+  await gain.fill('2.5');
 
   // Expected outcome: `page.getByText('Unsaved changes', { exact: true })` is visible to the user.
   // Acceptance criteria: `page.getByText('Unsaved changes', { exact: true })` must be visible, because this condition proves that
   // validates, saves, and reloads typed node configuration.
   await expect(page.getByText('Unsaved changes', { exact: true })).toBeVisible();
   await expect(
-    page.getByRole('button', { name: /Whole house average, Calculator node/ })
+    page.getByRole('button', { name: /Scaled temperature, Line node/ })
   ).toBeVisible();
-  await expect(operation).toHaveValue('sum');
+  await expect(gain).toHaveValue('2.5');
 
   const saveResponse = page.waitForResponse(
     (response) =>
@@ -287,12 +289,12 @@ test('validates, saves, and reloads typed node configuration', async ({ page }) 
   );
   await page.getByRole('button', { name: 'Save flow' }).click();
   await saveResponse;
-  await expect.poll(() => persistedPayload.nodes[0]?.label).toBe('Whole house average');
+  await expect.poll(() => persistedPayload.nodes.at(-1)?.label).toBe('Scaled temperature');
 
   // Expected outcome: `persistedPayload.nodes[0]?.configuration.operation` has the required value.
   // Acceptance criteria: `persistedPayload.nodes[0]?.configuration.operation` must be `'sum'`, because this condition proves that
   // validates, saves, and reloads typed node configuration.
-  expect(persistedPayload.nodes[0]?.configuration.operation).toBe('sum');
+  expect(persistedPayload.nodes.at(-1)?.configuration.gain).toBe(2.5);
 
   // Expected outcome: `page.getByText('Unsaved changes', { exact: true })` is not exposed to the user.
   // Acceptance criteria: `page.getByText('Unsaved changes', { exact: true })` must be hidden, because this condition proves that
@@ -303,7 +305,7 @@ test('validates, saves, and reloads typed node configuration', async ({ page }) 
   // only for DOM content avoids treating an unrelated late resource as a failed
   // reload after the persisted PUT has already completed.
   await page.reload({ waitUntil: 'domcontentloaded' });
-  const savedNode = page.getByRole('button', { name: /Whole house average, Calculator node/ });
+  const savedNode = page.getByRole('button', { name: /Scaled temperature, Line node/ });
 
   // Expected outcome: `savedNode` is visible to the user.
   // Acceptance criteria: `savedNode` must be visible, because this condition proves that
@@ -314,5 +316,5 @@ test('validates, saves, and reloads typed node configuration', async ({ page }) 
   // Expected outcome: `page.getByRole('combobox', { name: 'Operation' })` contains the required input value.
   // Acceptance criteria: `page.getByRole('combobox', { name: 'Operation' })` must have value `'sum'`, because this condition proves that
   // validates, saves, and reloads typed node configuration.
-  await expect(page.getByRole('combobox', { name: 'Operation' })).toHaveValue('sum');
+  await expect(page.getByRole('spinbutton', { name: 'Gain' })).toHaveValue('2.5');
 });

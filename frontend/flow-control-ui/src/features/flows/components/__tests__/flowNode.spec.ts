@@ -144,7 +144,7 @@ describe('FlowNode', () => {
       }
     });
 
-    await wrapper.trigger('keydown', { key: 'Enter' });
+    await wrapper.find('.node-selector').trigger('keydown', { key: 'Enter' });
 
     // Expected outcome: `wrapper.emitted('select')` matches the required structure.
     // Acceptance criteria: `wrapper.emitted('select')` must equal `[['temperature-average']]`, because this condition proves that
