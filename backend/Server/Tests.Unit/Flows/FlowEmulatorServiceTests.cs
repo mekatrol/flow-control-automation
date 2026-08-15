@@ -38,7 +38,9 @@ public sealed class FlowEmulatorServiceTests
         // Arrange: Fill every permitted emulator slot.
         using var service = new FlowEmulatorService(new Resolver(), new Compiler(), new MachineFactory());
         for (var index = 0; index < FlowEmulatorService.MaximumInstances; index++)
+        {
             await service.CreateAsync(Source() with { Id = $"flow-{index}" }, default);
+        }
 
         // Act and assert: The next request is rejected before it can remain registered.
         var error = Assert.ThrowsAsync<FlowSimulatorException>(async () =>

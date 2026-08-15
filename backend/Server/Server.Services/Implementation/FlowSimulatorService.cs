@@ -125,10 +125,12 @@ public sealed class FlowSimulatorService(
 
     private FlowSimulatorSessionRegistry.Entry Require(string flowId, string sessionId)
     {
-        var entry = sessions.Get(flowId);
-        if (entry is null) throw new FlowSimulatorException("simulator_session_not_found", "The simulator session was not found or has expired.");
+        var entry = sessions.Get(flowId) ?? throw new FlowSimulatorException("simulator_session_not_found", "The simulator session was not found or has expired.");
         if (!string.Equals(entry.Registry.Session?.DebugSessionId, sessionId, StringComparison.Ordinal))
+        {
             throw new FlowSimulatorException("simulator_session_not_found", "The simulator session was not found.");
+        }
+
         return entry;
     }
 

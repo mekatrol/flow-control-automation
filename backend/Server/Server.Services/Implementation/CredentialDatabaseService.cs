@@ -1,5 +1,3 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using Server.Data.Context;
 using Server.Data.Entities;
 using Server.Services.Contracts;

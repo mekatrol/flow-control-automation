@@ -1,8 +1,6 @@
 using Server.Services;
 using Server.Services.Contracts;
 using Server.Services.Implementation;
-using System.Buffers.Binary;
-using System.Security.Cryptography;
 
 namespace Tests.Unit.Flows;
 
@@ -28,7 +26,7 @@ public sealed class FlowDecompilerTests
             Revision = recovered.Provenance.FlowRevision,
             ControllerTemplateId = recovered.Provenance.ControllerTemplateId,
             ControllerTemplateRevision = recovered.Provenance.ControllerTemplateRevision,
-            Nodes = recovered.Flow.Nodes.Select(node => new ExecutableFlowNode
+            Nodes = [.. recovered.Flow.Nodes.Select(node => new ExecutableFlowNode
             {
                 Id = node.Id,
                 Kind = node.Kind,
@@ -38,10 +36,10 @@ public sealed class FlowDecompilerTests
                 Y = node.Y,
                 ZOrder = node.ZOrder,
                 GroupId = node.GroupId
-            }).ToArray(),
-            Connections = recovered.Flow.Connections.Select(connection => new ExecutableFlowConnection(
+            })],
+            Connections = [.. recovered.Flow.Connections.Select(connection => new ExecutableFlowConnection(
                 new ExecutableFlowEndpoint(connection.Start.NodeId, connection.Start.ConnectorId),
-                new ExecutableFlowEndpoint(connection.End.NodeId, connection.End.ConnectorId))).ToArray()
+                new ExecutableFlowEndpoint(connection.End.NodeId, connection.End.ConnectorId)))]
         };
 
         var recompiled = new FlowCompiler().Compile(CompilationRequest(source));
@@ -153,7 +151,7 @@ public sealed class FlowDecompilerTests
                 new HashSet<string>(StringComparer.Ordinal),
                 new HashSet<ExecutionMode>(),
                 new HashSet<ControllerRuntimeFeature>()),
-            Points = source.Nodes
+            Points = [.. source.Nodes
                 .Where(node => node.Kind is "digitalInput" or "digitalOutput" or "analogInput" or "analogOutput")
                 .Select(node => new Point
                 {
@@ -169,8 +167,7 @@ public sealed class FlowDecompilerTests
                     Persistence = "volatile",
                     Revision = 1
                 })
-                .DistinctBy(point => point.Id, StringComparer.Ordinal)
-                .ToArray()
+                .DistinctBy(point => point.Id, StringComparer.Ordinal)]
         }
     };
 }

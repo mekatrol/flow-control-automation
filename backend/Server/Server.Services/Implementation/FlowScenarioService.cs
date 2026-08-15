@@ -1,8 +1,7 @@
-using System.Text.Json;
-using Microsoft.EntityFrameworkCore;
 using Server.Data.Context;
 using Server.Data.Entities;
 using Server.Services.Contracts;
+using System.Text.Json;
 
 namespace Server.Services.Implementation;
 
@@ -42,12 +41,18 @@ internal sealed class FlowScenarioService(
         {
             var count = await context.FlowScenarios.CountAsync(item => item.Key == scenario.FlowId, cancellationToken);
             if (count >= MaxScenariosPerFlow)
+            {
                 throw new FlowScenarioException("scenario_limit_exceeded", $"A flow can contain at most {MaxScenariosPerFlow} scenarios.");
+            }
+
             entity = new FlowScenarioEntity { Id = scenario.Id, Key = scenario.FlowId, Created = now };
             context.FlowScenarios.Add(entity);
         }
         else if (!string.Equals(entity.Key, scenario.FlowId, StringComparison.Ordinal))
+        {
             throw new FlowScenarioException("scenario_id_conflict", "The scenario ID belongs to another flow.");
+        }
+
         entity.Json = JsonSerializer.Serialize(scenario, FlowControlJson.Options);
         entity.Updated = now;
         await context.SaveChangesAsync(cancellationToken);
@@ -66,7 +71,9 @@ internal sealed class FlowScenarioService(
     {
         Validate(scenario);
         if (!string.Equals(scenario.FlowId, source.Id, StringComparison.Ordinal) || scenario.FlowRevision != source.Revision)
+        {
             throw new FlowScenarioException("scenario_stale_revision", "The scenario targets another flow revision.", "/flowRevision");
+        }
 
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(MaximumExecutionTime);
@@ -95,7 +102,9 @@ internal sealed class FlowScenarioService(
                     _ => throw new InvalidOperationException()
                 };
                 if ((session.Io?.ScanNumber ?? 0) > MaxExecutionScans)
+                {
                     throw new FlowScenarioException("scenario_limit_exceeded", $"Scenario execution cannot exceed {MaxExecutionScans} scans.");
+                }
             }
 
             var results = scenario.Expectations.Select(expectation => Evaluate(expectation, session.Io?.OutputHistory ?? [])).ToList();
@@ -114,8 +123,10 @@ internal sealed class FlowScenarioService(
         finally
         {
             if (session is not null)
+            {
                 try { await simulator.StopAsync(source.Id, session.SessionId, CancellationToken.None); }
                 catch (FlowSimulatorException) { }
+            }
         }
     }
 
@@ -154,28 +165,79 @@ internal sealed class FlowScenarioService(
 
     private static void Validate(FlowScenario scenario)
     {
-        if (scenario.SchemaVersion != 1) throw Invalid("scenario_version_unsupported", "Only scenario schema version 1 is supported.", "/schemaVersion");
-        if (string.IsNullOrWhiteSpace(scenario.Id) || scenario.Id.Length > 100) throw Invalid("scenario_invalid", "Scenario ID is required and limited to 100 characters.", "/id");
-        if (string.IsNullOrWhiteSpace(scenario.Name) || scenario.Name.Length > 200) throw Invalid("scenario_invalid", "Scenario name is required and limited to 200 characters.", "/name");
-        if (scenario.Description?.Length > 2000) throw Invalid("scenario_invalid", "Scenario description is limited to 2000 characters.", "/description");
-        if (string.IsNullOrWhiteSpace(scenario.FlowId)) throw Invalid("scenario_invalid", "Flow ID is required.", "/flowId");
-        if (scenario.Steps.Count > MaxSteps) throw Invalid("scenario_limit_exceeded", $"A scenario can contain at most {MaxSteps} steps.", "/steps");
-        if (scenario.Expectations.Count > MaxExpectations) throw Invalid("scenario_limit_exceeded", $"A scenario can contain at most {MaxExpectations} expectations.", "/expectations");
+        if (scenario.SchemaVersion != 1)
+        {
+            throw Invalid("scenario_version_unsupported", "Only scenario schema version 1 is supported.", "/schemaVersion");
+        }
+
+        if (string.IsNullOrWhiteSpace(scenario.Id) || scenario.Id.Length > 100)
+        {
+            throw Invalid("scenario_invalid", "Scenario ID is required and limited to 100 characters.", "/id");
+        }
+
+        if (string.IsNullOrWhiteSpace(scenario.Name) || scenario.Name.Length > 200)
+        {
+            throw Invalid("scenario_invalid", "Scenario name is required and limited to 200 characters.", "/name");
+        }
+
+        if (scenario.Description?.Length > 2000)
+        {
+            throw Invalid("scenario_invalid", "Scenario description is limited to 2000 characters.", "/description");
+        }
+
+        if (string.IsNullOrWhiteSpace(scenario.FlowId))
+        {
+            throw Invalid("scenario_invalid", "Flow ID is required.", "/flowId");
+        }
+
+        if (scenario.Steps.Count > MaxSteps)
+        {
+            throw Invalid("scenario_limit_exceeded", $"A scenario can contain at most {MaxSteps} steps.", "/steps");
+        }
+
+        if (scenario.Expectations.Count > MaxExpectations)
+        {
+            throw Invalid("scenario_limit_exceeded", $"A scenario can contain at most {MaxExpectations} expectations.", "/expectations");
+        }
+
         ulong previous = 0;
         for (var index = 0; index < scenario.Steps.Count; index++)
         {
             var step = scenario.Steps[index];
-            if (index > 0 && step.AtMilliseconds < previous) throw Invalid("scenario_invalid", "Steps must be ordered by time.", $"/steps/{index}/atMilliseconds");
-            if (step.Action is not ("apply" or "step" or "advance" or "reset")) throw Invalid("scenario_invalid", "Scenario action is unsupported.", $"/steps/{index}/action");
+            if (index > 0 && step.AtMilliseconds < previous)
+            {
+                throw Invalid("scenario_invalid", "Steps must be ordered by time.", $"/steps/{index}/atMilliseconds");
+            }
+
+            if (step.Action is not ("apply" or "step" or "advance" or "reset"))
+            {
+                throw Invalid("scenario_invalid", "Scenario action is unsupported.", $"/steps/{index}/action");
+            }
+
             previous = step.AtMilliseconds;
         }
         for (var index = 0; index < scenario.Expectations.Count; index++)
         {
             var item = scenario.Expectations[index];
-            if (string.IsNullOrWhiteSpace(item.OutputId)) throw Invalid("scenario_invalid", "Output ID is required.", $"/expectations/{index}/outputId");
-            if (item.Operator is not ("equals" or "approximately" or "changes" or "remains")) throw Invalid("scenario_invalid", "Expectation operator is unsupported.", $"/expectations/{index}/operator");
-            if (item.Operator is ("equals" or "approximately") && item.ExpectedValue is null) throw Invalid("scenario_invalid", "This operator requires an expected value.", $"/expectations/{index}/expectedValue");
-            if (item.Tolerance.HasValue && (!double.IsFinite(item.Tolerance.Value) || item.Tolerance.Value < 0)) throw Invalid("scenario_invalid", "Tolerance must be finite and non-negative.", $"/expectations/{index}/tolerance");
+            if (string.IsNullOrWhiteSpace(item.OutputId))
+            {
+                throw Invalid("scenario_invalid", "Output ID is required.", $"/expectations/{index}/outputId");
+            }
+
+            if (item.Operator is not ("equals" or "approximately" or "changes" or "remains"))
+            {
+                throw Invalid("scenario_invalid", "Expectation operator is unsupported.", $"/expectations/{index}/operator");
+            }
+
+            if (item.Operator is ("equals" or "approximately") && item.ExpectedValue is null)
+            {
+                throw Invalid("scenario_invalid", "This operator requires an expected value.", $"/expectations/{index}/expectedValue");
+            }
+
+            if (item.Tolerance.HasValue && (!double.IsFinite(item.Tolerance.Value) || item.Tolerance.Value < 0))
+            {
+                throw Invalid("scenario_invalid", "Tolerance must be finite and non-negative.", $"/expectations/{index}/tolerance");
+            }
         }
     }
 

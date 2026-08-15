@@ -1,5 +1,3 @@
-using Microsoft.Extensions.Configuration;
-
 namespace Server.Data;
 
 public sealed class DatabaseOptions

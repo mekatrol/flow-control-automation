@@ -1,5 +1,3 @@
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Server.Data.Extensions;
 using Server.Services.Implementation;
 

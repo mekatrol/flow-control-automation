@@ -12,7 +12,11 @@ public sealed record FlowVmValue
 
     public static FlowVmValue FromNumber(double value, string quality = "good")
     {
-        if (!double.IsFinite(value)) throw new ArgumentOutOfRangeException(nameof(value));
+        if (!double.IsFinite(value))
+        {
+            throw new ArgumentOutOfRangeException(nameof(value));
+        }
+
         return new() { Type = "number", Number = value, Quality = quality };
     }
 

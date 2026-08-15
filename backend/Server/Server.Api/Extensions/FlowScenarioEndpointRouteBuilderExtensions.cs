@@ -1,7 +1,7 @@
+using Microsoft.AspNetCore.Mvc;
 using Server.Api.Contracts;
 using Server.Services;
 using Server.Services.Contracts;
-using Microsoft.AspNetCore.Mvc;
 
 namespace Server.Api.Extensions;
 
@@ -29,7 +29,10 @@ public static class FlowScenarioEndpointRouteBuilderExtensions
         await Map(async () =>
         {
             if (scenario.FlowId != flowId || scenario.Id != scenarioId)
+            {
                 throw new FlowScenarioException("scenario_invalid", "Flow and scenario IDs must match the request path.");
+            }
+
             return Results.Ok(await scenarios.SaveAsync(scenario, cancellationToken));
         });
 
@@ -44,7 +47,10 @@ public static class FlowScenarioEndpointRouteBuilderExtensions
         await Map(async () =>
         {
             if (request.Scenario.FlowId != flowId || request.Source.Id != flowId)
+            {
                 throw new FlowScenarioException("scenario_invalid", "Flow IDs must match the request path.");
+            }
+
             return Results.Ok(await scenarios.RunAsync(request.Scenario, request.Source, cancellationToken));
         });
 

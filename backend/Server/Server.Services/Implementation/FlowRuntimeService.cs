@@ -33,8 +33,15 @@ internal sealed class FlowRuntimeService(
     {
         ArgumentNullException.ThrowIfNull(flow);
         ArgumentNullException.ThrowIfNull(compilation);
-        if (flow.Disabled) return Stop(flow);
-        if (interval <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(interval));
+        if (flow.Disabled)
+        {
+            return Stop(flow);
+        }
+
+        if (interval <= TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(interval));
+        }
 
         await _deploymentGate.WaitAsync(cancellationToken);
         try
@@ -131,15 +138,23 @@ internal sealed class FlowRuntimeService(
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
+
         _disposed = true;
         _shutdown.Cancel();
         var instances = _instances.Values.ToArray();
         _instances.Clear();
-        foreach (var instance in instances) instance.Cancellation.Cancel();
+        foreach (var instance in instances)
+        {
+            instance.Cancellation.Cancel();
+        }
+
         try
         {
-            Task.WaitAll(instances.Select(instance => instance.Task).ToArray(), TimeSpan.FromSeconds(5));
+            Task.WaitAll([.. instances.Select(instance => instance.Task)], TimeSpan.FromSeconds(5));
         }
         catch (AggregateException exception) when (exception.InnerExceptions.All(item => item is OperationCanceledException))
         {
@@ -300,7 +315,11 @@ internal sealed class FlowRuntimeService(
 
         public void Dispose()
         {
-            if (IsDisposed) return;
+            if (IsDisposed)
+            {
+                return;
+            }
+
             IsDisposed = true;
             Machine.Dispose();
             ScanGate.Dispose();

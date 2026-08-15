@@ -1,5 +1,3 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Server.Api.Contracts;
 using Server.Data.Context;
 using Server.Services;

@@ -83,7 +83,11 @@ public sealed class FcpControllerDebugTransport(IFcpClient client) : IController
 
     public Task<ControllerDebugWireStatus> RunAsync(ulong sessionId, uint intervalMilliseconds, CancellationToken cancellationToken)
     {
-        if (intervalMilliseconds is < 10 or > 60000) throw new ArgumentOutOfRangeException(nameof(intervalMilliseconds));
+        if (intervalMilliseconds is < 10 or > 60000)
+        {
+            throw new ArgumentOutOfRangeException(nameof(intervalMilliseconds));
+        }
+
         var body = new byte[12];
         BinaryPrimitives.WriteUInt64LittleEndian(body, sessionId);
         BinaryPrimitives.WriteUInt32LittleEndian(body.AsSpan(8), intervalMilliseconds);

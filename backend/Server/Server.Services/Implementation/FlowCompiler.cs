@@ -299,12 +299,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
         };
         dependencyRecords.AddRange(points.Where(point => point.Kind == 0).Select(point => point.Id).Distinct(StringComparer.Ordinal).Select(pointId =>
         {
-            var resolved = resolvedPoints.SingleOrDefault(candidate => candidate.Id == pointId);
-            if (resolved is null)
-            {
-                throw Failure("missing_point", $"/points/{Escape(pointId)}", "Resolved point dependency is missing.");
-            }
-
+            var resolved = resolvedPoints.SingleOrDefault(candidate => candidate.Id == pointId) ?? throw Failure("missing_point", $"/points/{Escape(pointId)}", "Resolved point dependency is missing.");
             var revision = resolved.Revision;
             if (revision <= 0)
             {
@@ -313,7 +308,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
 
             return Concat(new byte[] { 2 }, String8(pointId), U32(checked((uint)revision)));
         }));
-        var dependencySection = Concat(dependencyRecords.ToArray());
+        var dependencySection = Concat([.. dependencyRecords]);
         V1Section[] sections =
         [
             new(1, checked((uint)constants.Length), constantSection),
@@ -381,9 +376,20 @@ public sealed partial class FlowCompiler : IFlowCompiler
             capabilities |= LevelShifterCapability;
         }
 
-        if (source.Nodes.Any(node => node.Kind == "qualityGood")) capabilities |= QualityCapability;
-        if (source.Nodes.Any(node => node.Kind is "onDelay" or "delay" or "timer")) capabilities |= TimerCapability;
-        if (source.Nodes.Any(node => node.Kind is "risingEdge" or "pulse")) capabilities |= EventCapability;
+        if (source.Nodes.Any(node => node.Kind == "qualityGood"))
+        {
+            capabilities |= QualityCapability;
+        }
+
+        if (source.Nodes.Any(node => node.Kind is "onDelay" or "delay" or "timer"))
+        {
+            capabilities |= TimerCapability;
+        }
+
+        if (source.Nodes.Any(node => node.Kind is "risingEdge" or "pulse"))
+        {
+            capabilities |= EventCapability;
+        }
 
         var workingBytes = checked((uint)((schedule.Count + stateIds.Length) * 32));
         var envelope = new byte[envelopeLength];
@@ -556,9 +562,15 @@ public sealed partial class FlowCompiler : IFlowCompiler
     private static void ValidateInterface(ExecutableFlowSource source)
     {
         if (source.Interface.SchemaVersion != 1)
+        {
             throw Failure("unsupported_interface_schema", "/interface/schemaVersion", "Only interface schema 1 is supported.");
+        }
+
         if (source.Interface.Inputs.Count > 64 || source.Interface.Outputs.Count > 64)
+        {
             throw Failure("limit_exceeded", "/interface", "At most 64 interface inputs and outputs are supported.");
+        }
+
         ValidateInterfaceEntries(source.Interface.Inputs.Select(entry => new InterfaceRecord(entry.Id, entry.Name, entry.DataType, entry.Units, entry.DefaultValue)), "/interface/inputs");
         ValidateInterfaceEntries(source.Interface.Outputs.Select(entry => new InterfaceRecord(entry.Id, entry.Name, entry.DataType, entry.Units, null)), "/interface/outputs");
     }
@@ -571,13 +583,24 @@ public sealed partial class FlowCompiler : IFlowCompiler
         {
             ValidateIdentifier(entry.Id, $"{path}/{index}/id", 63);
             if (string.IsNullOrWhiteSpace(entry.Name) || Encoding.UTF8.GetByteCount(entry.Name) > 255 || !ids.Add(entry.Id) || !names.Add(entry.Name))
+            {
                 throw Failure("invalid_interface", $"{path}/{index}", "Interface IDs and names must be non-empty, bounded, and unique.");
+            }
+
             if (entry.DataType is not ("boolean" or "number"))
+            {
                 throw Failure("unsupported_interface_type", $"{path}/{index}/dataType", "The current executable profile supports Boolean and number interfaces.");
+            }
+
             if (entry.DataType != "number" && !string.IsNullOrEmpty(entry.Units))
+            {
                 throw Failure("incompatible_units", $"{path}/{index}/units", "Only number interfaces may declare units.");
+            }
+
             if (entry.DefaultValue is { } value && !DefaultMatches(value, entry.DataType))
+            {
                 throw Failure("invalid_interface_default", $"{path}/{index}/defaultValue", "Default value does not match the interface type.");
+            }
         }
     }
 
@@ -615,7 +638,10 @@ public sealed partial class FlowCompiler : IFlowCompiler
                 || !node.Configuration.TryGetValue("interfaceId", out var reference)
                 || reference.ValueKind != JsonValueKind.String
                 || reference.GetString() is not string interfaceId)
+            {
                 throw Failure("missing_interface_reference", $"{path}/interfaceId", "An interfaceId string is required.");
+            }
+
             ValidateIdentifier(interfaceId, $"{path}/interfaceId", 63);
             _ = InterfaceEntry(source, node);
         }
@@ -675,17 +701,25 @@ public sealed partial class FlowCompiler : IFlowCompiler
         }
         else if (node.Kind == "clamp")
         {
-            if (node.Configuration.Count != 2) throw Failure("invalid_configuration", path, "Finite minimum and maximum values are required.");
+            if (node.Configuration.Count != 2)
+            {
+                throw Failure("invalid_configuration", path, "Finite minimum and maximum values are required.");
+            }
+
             ValidateFiniteNumber(node, path, "minimum");
             ValidateFiniteNumber(node, path, "maximum");
             if (node.Configuration["minimum"].GetDouble() > node.Configuration["maximum"].GetDouble())
+            {
                 throw Failure("invalid_configuration", path, "Minimum must not exceed maximum.");
+            }
         }
         else if (node.Kind is "schedule" or "calendar")
         {
             if (node.Configuration.Count != 1 || !node.Configuration.TryGetValue("enabled", out var enabled) ||
                 enabled.ValueKind is not (JsonValueKind.True or JsonValueKind.False))
+            {
                 throw Failure("invalid_configuration", path, "An enabled Boolean is required.");
+            }
         }
         else if (node.Configuration.Count != 0)
         {
@@ -905,7 +939,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
         foreach (var id in GetSchedule(source))
         {
             var node = nodes[id];
-            string? value = node.Kind switch
+            var value = node.Kind switch
             {
                 "analogInput" => request.Target.Points.SingleOrDefault(point =>
                     point.Id == node.Configuration["pointId"].GetString())?.Units,
@@ -934,7 +968,9 @@ public sealed partial class FlowCompiler : IFlowCompiler
             {
                 var inputUnits = units[SourceNode(source, id, "value")];
                 if (!string.Equals(inputUnits, InterfaceUnits(source, node), StringComparison.Ordinal))
+                {
                     throw Failure("unit_mismatch", $"/nodes/{Escape(id)}/ports/value", "Flow output units do not match its input.");
+                }
             }
         }
     }

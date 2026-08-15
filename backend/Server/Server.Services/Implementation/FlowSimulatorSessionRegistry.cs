@@ -23,12 +23,19 @@ public sealed class FlowSimulatorSessionRegistry(TimeProvider timeProvider) : ID
             RemoveExpiredCore();
             if (_entries.TryGetValue(flowId, out var existing))
             {
-                if (!replaceExisting) throw new FlowSimulatorException("simulator_session_conflict", "A simulator session already exists for this flow.");
+                if (!replaceExisting)
+                {
+                    throw new FlowSimulatorException("simulator_session_conflict", "A simulator session already exists for this flow.");
+                }
+
                 existing.Dispose();
                 _entries.Remove(flowId);
             }
             if (_entries.Count >= MaximumSessions)
+            {
                 throw new FlowSimulatorException("simulator_limit_exceeded", "The active simulator session limit has been reached.");
+            }
+
             var entry = new Entry(registry, timeProvider.GetUtcNow(), emulatorId, cleanup);
             _entries.Add(flowId, entry);
             return entry;
@@ -40,7 +47,11 @@ public sealed class FlowSimulatorSessionRegistry(TimeProvider timeProvider) : ID
         lock (_gate)
         {
             if (!_entries.TryGetValue(flowId, out var entry)
-                || !string.Equals(entry.Registry.Session?.DebugSessionId, sessionId, StringComparison.Ordinal)) return false;
+                || !string.Equals(entry.Registry.Session?.DebugSessionId, sessionId, StringComparison.Ordinal))
+            {
+                return false;
+            }
+
             _entries.Remove(flowId);
             entry.Dispose();
             return true;
@@ -51,7 +62,11 @@ public sealed class FlowSimulatorSessionRegistry(TimeProvider timeProvider) : ID
     {
         lock (_gate)
         {
-            if (!_entries.TryGetValue(flowId, out var entry) || !ReferenceEquals(entry, expected)) return;
+            if (!_entries.TryGetValue(flowId, out var entry) || !ReferenceEquals(entry, expected))
+            {
+                return;
+            }
+
             _entries.Remove(flowId);
             entry.Dispose();
         }
@@ -80,7 +95,11 @@ public sealed class FlowSimulatorSessionRegistry(TimeProvider timeProvider) : ID
     {
         lock (_gate)
         {
-            foreach (var entry in _entries.Values) entry.Dispose();
+            foreach (var entry in _entries.Values)
+            {
+                entry.Dispose();
+            }
+
             _entries.Clear();
         }
     }

@@ -1,6 +1,6 @@
+using Server.Services.Contracts;
 using System.Net;
 using System.Net.Http.Json;
-using Server.Services.Contracts;
 
 namespace Tests.Unit.Api;
 

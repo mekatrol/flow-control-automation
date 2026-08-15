@@ -121,7 +121,7 @@ public sealed class FlowCompilationTargetResolver(
     }
 
     private static IReadOnlyList<PointReference> PointReferences(ExecutableFlowSource source) =>
-        source.Nodes
+        [.. source.Nodes
             .Select(node => new { Node = node, PointId = PointId(node) })
             .Where(item => item.PointId is not null)
             .Select(item => new PointReference(
@@ -130,8 +130,7 @@ public sealed class FlowCompilationTargetResolver(
                 item.Node.Kind.StartsWith("analog", StringComparison.Ordinal)))
             .Distinct()
             .OrderBy(reference => reference.PointId, StringComparer.Ordinal)
-            .ThenBy(reference => reference.IsInput ? 0 : 1)
-            .ToArray();
+            .ThenBy(reference => reference.IsInput ? 0 : 1)];
 
     private static string? PointId(ExecutableFlowNode node) =>
         node.Kind is "digitalInput" or "digitalOutput" or "analogInput" or "analogOutput"

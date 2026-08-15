@@ -1,6 +1,5 @@
 using Server.Services.Contracts;
 using System.Collections.Concurrent;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Server.Services.Implementation;
 
@@ -117,12 +116,19 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
 
     public void Delete(string emulatorId)
     {
-        if (_instances.TryRemove(emulatorId, out var instance)) instance.Dispose();
+        if (_instances.TryRemove(emulatorId, out var instance))
+        {
+            instance.Dispose();
+        }
     }
 
     public void Dispose()
     {
-        foreach (var instance in _instances.Values) instance.Dispose();
+        foreach (var instance in _instances.Values)
+        {
+            instance.Dispose();
+        }
+
         _instances.Clear();
     }
 
@@ -137,14 +143,22 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
 
     private void RemoveExpired()
     {
-        lock (_instancesGate) RemoveExpiredCore();
+        lock (_instancesGate)
+        {
+            RemoveExpiredCore();
+        }
     }
 
     private void RemoveExpiredCore()
     {
         var now = _timeProvider.GetUtcNow();
         foreach (var pair in _instances.Where(pair => now - pair.Value.LastAccess >= Lease).ToArray())
-            if (_instances.TryRemove(pair.Key, out var expired)) expired.Dispose();
+        {
+            if (_instances.TryRemove(pair.Key, out var expired))
+            {
+                expired.Dispose();
+            }
+        }
     }
 
     internal sealed class Instance : IDisposable
@@ -166,7 +180,10 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
             _source = source;
             _machine = machine;
             LastAccess = lastAccess;
-            foreach (var input in InitialInputs(source)) _inputs[input.PointId] = input;
+            foreach (var input in InitialInputs(source))
+            {
+                _inputs[input.PointId] = input;
+            }
         }
 
         public string Id { get; }
@@ -196,7 +213,11 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
             lock (_gate)
             {
                 _clock = checked(_clock + milliseconds);
-                if (scan) ScanCore();
+                if (scan)
+                {
+                    ScanCore();
+                }
+
                 return SnapshotCore();
             }
         }
@@ -210,7 +231,11 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
             lock (_gate)
             {
                 _fault = fault;
-                if (fault is "reset" or "power_cycle") ResetCore();
+                if (fault is "reset" or "power_cycle")
+                {
+                    ResetCore();
+                }
+
                 return SnapshotCore();
             }
         }
@@ -220,7 +245,11 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
             lock (_gate)
             {
                 ResetCore();
-                if (powerCycle) _clock = 0;
+                if (powerCycle)
+                {
+                    _clock = 0;
+                }
+
                 _fault = null;
                 return SnapshotCore();
             }
@@ -232,19 +261,29 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
             {
                 _pending.Clear();
                 _inputs.Clear();
-                foreach (var input in InitialInputs(_source)) _inputs[input.PointId] = input;
+                foreach (var input in InitialInputs(_source))
+                {
+                    _inputs[input.PointId] = input;
+                }
+
                 return SnapshotCore();
             }
         }
 
         public FlowEmulatorScenario ExportScenario()
         {
-            lock (_gate) return new FlowEmulatorScenario([.. _scenarioInputs], [.. _outputs]);
+            lock (_gate)
+            {
+                return new FlowEmulatorScenario([.. _scenarioInputs], [.. _outputs]);
+            }
         }
 
         public FlowEmulatorSnapshot Snapshot()
         {
-            lock (_gate) return SnapshotCore();
+            lock (_gate)
+            {
+                return SnapshotCore();
+            }
         }
 
         internal IReadOnlyList<FlowVmInput> CaptureInputs()
@@ -252,18 +291,27 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
             lock (_gate)
             {
                 ApplyPendingInputs();
-                return _inputs.Values.OrderBy(input => input.PointId, StringComparer.Ordinal).ToArray();
+                return [.. _inputs.Values.OrderBy(input => input.PointId, StringComparer.Ordinal)];
             }
         }
 
         internal ulong Clock
         {
-            get { lock (_gate) return _clock; }
+            get
+            {
+                lock (_gate)
+                {
+                    return _clock;
+                }
+            }
         }
 
         internal void Publish(FlowVmScanResult scan)
         {
-            lock (_gate) PublishCore(scan);
+            lock (_gate)
+            {
+                PublishCore(scan);
+            }
         }
 
         private void ScanCore()
@@ -272,12 +320,14 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
             if (_fault == "communication_loss")
             {
                 foreach (var input in _inputs.Values.ToArray())
+                {
                     _inputs[input.PointId] = new FlowVmInput(
                         input.PointId,
                         input.TypedValue with { Quality = "unavailable" },
                         input.IsInterface);
+                }
             }
-            var scan = _machine.Scan(_inputs.Values.OrderBy(input => input.PointId, StringComparer.Ordinal).ToArray(), _clock);
+            var scan = _machine.Scan([.. _inputs.Values.OrderBy(input => input.PointId, StringComparer.Ordinal)], _clock);
             PublishCore(scan);
         }
 
@@ -298,7 +348,10 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
                     scan.ScanNumber, _clock, command.PointId, command.TypedValue, effective,
                     quality, OutputUnits(command), lastChange, command.IsInterface, "emulator", 16, null));
             }
-            if (_outputs.Count > MaximumHistory) _outputs.RemoveRange(0, _outputs.Count - MaximumHistory);
+            if (_outputs.Count > MaximumHistory)
+            {
+                _outputs.RemoveRange(0, _outputs.Count - MaximumHistory);
+            }
         }
 
         private void ApplyPendingInputs()
@@ -322,7 +375,10 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
             _outputs.Clear();
             _pending.Clear();
             _inputs.Clear();
-            foreach (var input in InitialInputs(_source)) _inputs[input.PointId] = input;
+            foreach (var input in InitialInputs(_source))
+            {
+                _inputs[input.PointId] = input;
+            }
         }
 
         private void QueueInputs(IReadOnlyList<EmulatorInputChange> changes)
@@ -330,13 +386,25 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
             foreach (var change in changes)
             {
                 if (!_inputs.TryGetValue(change.InputId, out var existing))
+                {
                     throw new ArgumentException($"Input '{change.InputId}' is not mapped by this flow.", nameof(changes));
+                }
+
                 if (change.TypedValue.Type != existing.TypedValue.Type)
+                {
                     throw new ArgumentException($"Input '{change.InputId}' requires type '{existing.TypedValue.Type}'.", nameof(changes));
+                }
+
                 if (change.TypedValue.Quality is not ("good" or "bad" or "stale" or "unavailable"))
+                {
                     throw new ArgumentException($"Input '{change.InputId}' has unsupported quality.", nameof(changes));
+                }
+
                 if (change.TypedValue.Type == "number" && !double.IsFinite(change.TypedValue.Number))
+                {
                     throw new ArgumentException($"Input '{change.InputId}' must be finite.", nameof(changes));
+                }
+
                 var scheduled = change with { EffectiveAtMilliseconds = change.EffectiveAtMilliseconds ?? _clock };
                 _pending.Add(scheduled);
                 _scenarioInputs.Add(scheduled);
@@ -356,7 +424,7 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
             LifecycleState = _fault is null ? "ready" : "fault-injected",
             VirtualTimeMilliseconds = _clock,
             ScanNumber = _scanNumber,
-            Inputs = _inputs.Values.OrderBy(input => input.PointId, StringComparer.Ordinal).ToArray(),
+            Inputs = [.. _inputs.Values.OrderBy(input => input.PointId, StringComparer.Ordinal)],
             OutputHistory = [.. _outputs],
             ActiveFault = _fault
         };
@@ -374,7 +442,10 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
                         : FlowVmValue.FromBoolean(false, entry.Required ? "unavailable" : "good");
                 yield return new FlowVmInput(entry.Id, value, isInterface: true);
             }
-            foreach (var pointId in InputPointIds(source)) yield return new FlowVmInput(pointId, false);
+            foreach (var pointId in InputPointIds(source))
+            {
+                yield return new FlowVmInput(pointId, false);
+            }
         }
 
         private static IEnumerable<string> InputPointIds(ExecutableFlowSource source) => source.Nodes

@@ -1,5 +1,3 @@
-using Microsoft.Extensions.Configuration;
-
 namespace Server.Services;
 
 public sealed class ServerOptions
@@ -28,7 +26,7 @@ public sealed class ServerOptions
         try
         {
             /*  This key can be generated with:
-             *  
+             *
              *  C#
              *       using System;
              *       using System.Security.Cryptography;

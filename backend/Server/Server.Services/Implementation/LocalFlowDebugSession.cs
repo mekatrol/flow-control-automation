@@ -21,7 +21,11 @@ internal sealed class LocalFlowDebugSession(
 
     public void Dispose()
     {
-        if (Frame is not null) Machine.AbortScan();
+        if (Frame is not null)
+        {
+            Machine.AbortScan();
+        }
+
         Machine.Dispose();
     }
 }

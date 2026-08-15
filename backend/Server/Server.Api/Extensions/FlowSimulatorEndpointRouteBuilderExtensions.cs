@@ -28,7 +28,10 @@ public static class FlowSimulatorEndpointRouteBuilderExtensions
     private static async Task<IResult> Start(string flowId, CreateSimulatorSessionRequest request, IFlowSimulatorService simulator, CancellationToken cancellationToken)
     {
         if (!string.Equals(flowId, request.Source.Id, StringComparison.Ordinal))
+        {
             return Error(StatusCodes.Status400BadRequest, "compile_invalid_source", "Flow ID must match the request path.", "/source/id");
+        }
+
         return await Map(() => simulator.StartAsync(request.Source, request.ReplaceExisting, cancellationToken), StatusCodes.Status201Created);
     }
 

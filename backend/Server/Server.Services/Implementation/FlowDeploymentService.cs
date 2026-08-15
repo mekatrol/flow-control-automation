@@ -51,7 +51,11 @@ internal sealed class FlowDeploymentService(
             new { flow.Nodes, flow.Connections, flow.Interface },
             FlowControlJson.Options);
         var revision = BinaryPrimitives.ReadUInt32LittleEndian(SHA256.HashData(graph));
-        if (revision == 0) revision = 1;
+        if (revision == 0)
+        {
+            revision = 1;
+        }
+
         return new ExecutableFlowSource
         {
             Id = flow.Id,
@@ -66,7 +70,7 @@ internal sealed class FlowDeploymentService(
                 IntervalMs = 0,
                 InputQualityPolicy = flow.Nodes.Any(node => node.Kind == "qualityGood") ? "propagate" : "require_good"
             },
-            Nodes = flow.Nodes.Select(node => new ExecutableFlowNode
+            Nodes = [.. flow.Nodes.Select(node => new ExecutableFlowNode
             {
                 Id = node.Id,
                 Kind = node.Kind,
@@ -76,10 +80,10 @@ internal sealed class FlowDeploymentService(
                 Y = node.Y,
                 ZOrder = node.ZOrder,
                 GroupId = node.GroupId
-            }).ToArray(),
-            Connections = flow.Connections.Select(connection => new ExecutableFlowConnection(
+            })],
+            Connections = [.. flow.Connections.Select(connection => new ExecutableFlowConnection(
                 new ExecutableFlowEndpoint(connection.Start.NodeId, connection.Start.ConnectorId),
-                new ExecutableFlowEndpoint(connection.End.NodeId, connection.End.ConnectorId))).ToArray(),
+                new ExecutableFlowEndpoint(connection.End.NodeId, connection.End.ConnectorId)))],
             Interface = flow.Interface
         };
     }

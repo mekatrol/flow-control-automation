@@ -101,7 +101,9 @@ const vueRules: Linter.RulesRecord = {
 
   'local/requireAutomationProp': 'error',
 
+  // Oxfmt owns template indentation so the documented format-then-lint workflow remains idempotent.
   'vue/html-closing-bracket-newline': 'off',
+  'vue/html-indent': 'off',
   'vue/html-self-closing': 'off',
   'vue/max-attributes-per-line': 'off',
   'vue/singleline-html-element-content-newline': 'off',

@@ -63,7 +63,11 @@ internal sealed unsafe partial class NativeFlowVirtualMachine : IFlowVirtualMach
     public FlowVmScanResult Scan(IReadOnlyList<FlowVmInput> inputs, ulong sampledAtMilliseconds)
     {
         ArgumentNullException.ThrowIfNull(inputs);
-        if (inputs.Count > 64) throw new ArgumentOutOfRangeException(nameof(inputs));
+        if (inputs.Count > 64)
+        {
+            throw new ArgumentOutOfRangeException(nameof(inputs));
+        }
+
         lock (_gate)
         {
             ThrowIfDisposed();
@@ -122,7 +126,11 @@ internal sealed unsafe partial class NativeFlowVirtualMachine : IFlowVirtualMach
     public FlowVmExecutionFrame BeginScan(IReadOnlyList<FlowVmInput> inputs, ulong sampledAtMilliseconds)
     {
         ArgumentNullException.ThrowIfNull(inputs);
-        if (inputs.Count > 64) throw new ArgumentOutOfRangeException(nameof(inputs));
+        if (inputs.Count > 64)
+        {
+            throw new ArgumentOutOfRangeException(nameof(inputs));
+        }
+
         lock (_gate)
         {
             ThrowIfDisposed();
@@ -173,7 +181,11 @@ internal sealed unsafe partial class NativeFlowVirtualMachine : IFlowVirtualMach
     {
         lock (_gate)
         {
-            if (_disposed) return;
+            if (_disposed)
+            {
+                return;
+            }
+
             _disposed = true;
             _instance.Dispose();
         }
@@ -181,13 +193,20 @@ internal sealed unsafe partial class NativeFlowVirtualMachine : IFlowVirtualMach
 
     private static void Check(NativeResult result)
     {
-        if (result.Code != 0) throw new FlowVirtualMachineException(result.Code, ReadIdentifier(result.Path, 96));
+        if (result.Code != 0)
+        {
+            throw new FlowVirtualMachineException(result.Code, ReadIdentifier(result.Path, 96));
+        }
     }
 
     private static void WriteIdentifier(string value, byte* target, int capacity)
     {
         var count = Encoding.UTF8.GetByteCount(value);
-        if (count is <= 0 || count >= capacity) throw new ArgumentException("Identifier is outside native bounds.", nameof(value));
+        if (count is <= 0 || count >= capacity)
+        {
+            throw new ArgumentException("Identifier is outside native bounds.", nameof(value));
+        }
+
         fixed (char* chars = value)
         {
             _ = Encoding.UTF8.GetBytes(chars, value.Length, target, capacity - 1);
@@ -198,7 +217,11 @@ internal sealed unsafe partial class NativeFlowVirtualMachine : IFlowVirtualMach
     private static string ReadIdentifier(byte* value, int capacity)
     {
         var length = 0;
-        while (length < capacity && value[length] != 0) length++;
+        while (length < capacity && value[length] != 0)
+        {
+            length++;
+        }
+
         return Encoding.UTF8.GetString(value, length);
     }
 

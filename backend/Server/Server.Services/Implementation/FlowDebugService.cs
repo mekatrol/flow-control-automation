@@ -88,7 +88,11 @@ public sealed class FlowDebugService(
         string sessionId,
         CancellationToken cancellationToken)
     {
-        if (registry.Local is not null) return MatchLocal(flowId, sessionId);
+        if (registry.Local is not null)
+        {
+            return MatchLocal(flowId, sessionId);
+        }
+
         var id = ParseAndMatch(flowId, sessionId);
         var status = await transport.GetStatusAsync(id, cancellationToken);
         ValidateStatus(status, id, registry.Session!.Revision);
@@ -252,7 +256,11 @@ public sealed class FlowDebugService(
         {
             var local = GetLocal(flowId, sessionId);
             await EnsureFrameAsync(local, cancellationToken);
-            if (!local.Frame!.IsAtCommit) local.Frame = local.Machine.StepInstruction();
+            if (!local.Frame!.IsAtCommit)
+            {
+                local.Frame = local.Machine.StepInstruction();
+            }
+
             return UpdateLocalSession(local, "paused");
         }
         finally
@@ -274,7 +282,11 @@ public sealed class FlowDebugService(
             var initialNode = NodeAt(local, local.Frame!.InstructionIndex);
             do
             {
-                if (local.Frame.IsAtCommit) break;
+                if (local.Frame.IsAtCommit)
+                {
+                    break;
+                }
+
                 local.Frame = local.Machine.StepInstruction();
             }
             while (string.Equals(initialNode, NodeAt(local, local.Frame.InstructionIndex), StringComparison.Ordinal));
@@ -302,7 +314,11 @@ public sealed class FlowDebugService(
             while (!local.Frame!.IsAtCommit)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (string.Equals(NodeAt(local, local.Frame.InstructionIndex), breakpoint.NodeId, StringComparison.Ordinal)) break;
+                if (string.Equals(NodeAt(local, local.Frame.InstructionIndex), breakpoint.NodeId, StringComparison.Ordinal))
+                {
+                    break;
+                }
+
                 local.Frame = local.Machine.StepInstruction();
             }
             return UpdateLocalSession(local, "paused");
@@ -328,7 +344,11 @@ public sealed class FlowDebugService(
             {
                 throw new ControllerGatewayException("validation", "Breakpoint capacity was exceeded.");
             }
-            foreach (var breakpoint in breakpoints) ValidateBreakpoint(local, breakpoint);
+            foreach (var breakpoint in breakpoints)
+            {
+                ValidateBreakpoint(local, breakpoint);
+            }
+
             local.Breakpoints = [.. breakpoints];
             return UpdateLocalSession(local, registry.Session!.LifecycleState);
         }
@@ -361,7 +381,11 @@ public sealed class FlowDebugService(
         try
         {
             var local = GetLocal(flowId, sessionId);
-            if (local.Frame is not null) local.Machine.AbortScan();
+            if (local.Frame is not null)
+            {
+                local.Machine.AbortScan();
+            }
+
             local.Frame = null;
             local.Machine.Reset();
             return UpdateLocalSession(local, "ready") with { TickNumber = 0, Snapshot = null };
@@ -373,13 +397,12 @@ public sealed class FlowDebugService(
     }
 
     private static IReadOnlyList<string> GetAffectedOutputPoints(ExecutableFlowSource source) =>
-        source.Nodes
+        [.. source.Nodes
             .Where(node => string.Equals(node.Kind, "digitalOutput", StringComparison.Ordinal))
             .OrderBy(node => node.Id, StringComparer.Ordinal)
             .Select(node => node.Configuration.TryGetValue("pointId", out var pointId) ? pointId.GetString() : null)
             .Where(pointId => !string.IsNullOrEmpty(pointId))
-            .Cast<string>()
-            .ToArray();
+            .Cast<string>()];
 
     private async Task<FlowDebugSession> StartLocalAsync(
         StartFlowDebugSession request,
@@ -467,7 +490,11 @@ public sealed class FlowDebugService(
 
     private async Task EnsureFrameAsync(LocalFlowDebugSession local, CancellationToken cancellationToken)
     {
-        if (local.Frame is not null) return;
+        if (local.Frame is not null)
+        {
+            return;
+        }
+
         IReadOnlyList<FlowVmInput> inputs;
         ulong sampledAt;
         if (local.Emulator is not null)
@@ -552,11 +579,9 @@ public sealed class FlowDebugService(
             InstructionPointer = frame.InstructionIndex,
             IsAtCommit = frame.IsAtCommit,
             NodeId = NodeAt(local, frame.InstructionIndex),
-            Slots = frame.Slots.Select(DebugValue).ToArray(),
-            CurrentState = frame.CurrentState.Select(value => new DebugTypedValue("boolean", value)).ToArray(),
-            StagedNextState = frame.StagedState
-                .Select(value => value.HasValue ? new DebugTypedValue("boolean", value.Value) : null)
-                .ToArray(),
+            Slots = [.. frame.Slots.Select(DebugValue)],
+            CurrentState = [.. frame.CurrentState.Select(value => new DebugTypedValue("boolean", value))],
+            StagedNextState = [.. frame.StagedState.Select(value => value.HasValue ? new DebugTypedValue("boolean", value.Value) : null)],
             ProposedOutputs = frame.ProposedCommands,
             NodeValues = local.Compilation.NodeIndices
                 .Where(pair => pair.Value < frame.Slots.Count)
@@ -588,21 +613,20 @@ public sealed class FlowDebugService(
         ExecutionDurationUs = 0,
         LastReason = "ok",
         LastReasonPath = string.Empty,
-        Nodes = local.Compilation.NodeIndices
+        Nodes = [.. local.Compilation.NodeIndices
             .OrderBy(pair => pair.Value)
             .Select(pair => new DebugNodeSnapshot(
                 pair.Key,
                 "evaluated",
                 "good",
-                DebugValue(scan.Slots[pair.Value])))
-            .ToArray(),
-        ProposedOutputs = scan.Commands.Select(command => new DebugProposedOutput(
+                DebugValue(scan.Slots[pair.Value])))],
+        ProposedOutputs = [.. scan.Commands.Select(command => new DebugProposedOutput(
             command.PointId,
             "proposed",
             command.TypedValue.Quality,
             command.Value,
             command.TypedValue.Type == "number" ? command.TypedValue.Number : null,
-            command.TypedValue)).ToArray()
+            command.TypedValue))]
     };
 
     private static DebugTypedValue DebugValue(FlowVmValue value) => value.Type == "number"

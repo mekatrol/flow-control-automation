@@ -1,4 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
 using Server.Services.Contracts;
 using System.Text.Json;
 
@@ -31,11 +30,11 @@ internal sealed class ServerFlowPointAdapter(IServiceScopeFactory scopes) : IFlo
         IReadOnlyList<FlowVmCommand> commands,
         CancellationToken cancellationToken)
     {
-        commands = commands.Where(command => !command.IsInterface).ToArray();
+        commands = [.. commands.Where(command => !command.IsInterface)];
         cancellationToken.ThrowIfCancellationRequested();
         lock (_gate)
         {
-            _latestCommands[flowId] = commands.ToArray();
+            _latestCommands[flowId] = [.. commands];
         }
 
         return Task.CompletedTask;
@@ -43,7 +42,10 @@ internal sealed class ServerFlowPointAdapter(IServiceScopeFactory scopes) : IFlo
 
     private static FlowVmValue ParseValue(string? json, string quality)
     {
-        if (json is null) return FlowVmValue.FromBoolean(false, "bad");
+        if (json is null)
+        {
+            return FlowVmValue.FromBoolean(false, "bad");
+        }
 
         try
         {

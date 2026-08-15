@@ -77,7 +77,11 @@ public static class DebugSnapshotDecoder
             var valueType = reader.ReadByte();
             var boolean = valueType == 1 && reader.ReadBoolean();
             var number = valueType == 2 ? reader.ReadDouble() : (double?)null;
-            if (valueType is not (1 or 2)) throw Protocol("unknown proposed-output value type");
+            if (valueType is not (1 or 2))
+            {
+                throw Protocol("unknown proposed-output value type");
+            }
+
             if (!outputIds.Add(pointId))
             {
                 throw Protocol("proposed output is duplicated");
@@ -174,7 +178,11 @@ public static class DebugSnapshotDecoder
         {
             var bits = ReadUInt64();
             var value = BitConverter.Int64BitsToDouble(unchecked((long)bits));
-            if (!double.IsFinite(value)) throw Protocol("numeric snapshot value is not finite");
+            if (!double.IsFinite(value))
+            {
+                throw Protocol("numeric snapshot value is not finite");
+            }
+
             return value;
         }
 

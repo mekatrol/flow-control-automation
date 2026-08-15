@@ -77,7 +77,7 @@ public sealed class FlowCompilerTests
         var source = ReadSource("valid-two-button-and");
         source = source with
         {
-            Nodes = source.Nodes.Select(node => node.Kind == "and" ? node with { Kind = kind } : node).ToArray()
+            Nodes = [.. source.Nodes.Select(node => node.Kind == "and" ? node with { Kind = kind } : node)]
         };
 
         var artifact = new FlowCompiler().Compile(Request(source)).Artifact.ToArray();
@@ -230,7 +230,7 @@ public sealed class FlowCompilerTests
     {
         var source = ReadSource("valid-two-button-and");
         var request = Request(source);
-        request = request with { Target = request.Target with { Points = request.Target.Points.Skip(1).ToArray() } };
+        request = request with { Target = request.Target with { Points = [.. request.Target.Points.Skip(1)] } };
 
         AssertDiagnostic(
             () => new FlowCompiler().Compile(request),
@@ -335,7 +335,7 @@ public sealed class FlowCompilerTests
                 new HashSet<string>(StringComparer.Ordinal),
                 new HashSet<ExecutionMode>(),
                 new HashSet<ControllerRuntimeFeature>()),
-            Points = source.Nodes
+            Points = [.. source.Nodes
                 .Where(node => node.Kind is "digitalInput" or "digitalOutput" or "analogInput" or "analogOutput")
                 .Select(node => new Point
                 {
@@ -350,8 +350,7 @@ public sealed class FlowCompilerTests
                     Persistence = "volatile",
                     Revision = 1
                 })
-                .DistinctBy(point => point.Id, StringComparer.Ordinal)
-                .ToArray()
+                .DistinctBy(point => point.Id, StringComparer.Ordinal)]
         }
     };
 
