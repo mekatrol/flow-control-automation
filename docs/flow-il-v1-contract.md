@@ -38,7 +38,7 @@ The envelope is exactly 128 bytes.
 | 20 | 4 | template revision | nonzero |
 | 24 | 2 | minimum host ABI | 1 |
 | 26 | 2 | section count | 8 |
-| 28 | 1 | execution profile | 1 manual, 2 fixed interval |
+| 28 | 1 | input quality policy | 1 require good, 2 propagate quality |
 | 29 | 3 | reserved | zero |
 | 32 | 4 | maximum work per tick | instruction count, nonzero |
 | 36 | 8 | required capabilities | section 8 |

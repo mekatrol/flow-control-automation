@@ -11,11 +11,11 @@ so cyclic behavior is predictable without recursive graph evaluation.
 
 The production execution architecture is defined by the
 [`portable flow runtime architecture`](docs/portable-flow-runtime-architecture.md).
-Flows compile on the backend into deterministic bytecode and execute through the
-same portable VM on the server or a hardware controller. Earlier design records
+Flows compile on the backend into deterministic bytecode and execute through
+contract-compatible managed .NET and controller runtimes. Earlier design records
 remain under [`docs/decisions/`](docs/decisions/), but pre-release runtime paths
 support only the current format.
-The normative production bytecode and native-host boundaries are defined by the
+The production bytecode and host boundaries are defined by the
 [`Flow IL v1 contract`](docs/flow-il-v1-contract.md),
 [`VM host ABI`](docs/flow-vm-host-abi-v1.md), and
 [`debugger contract`](docs/flow-il-v1-debug-contract.md).

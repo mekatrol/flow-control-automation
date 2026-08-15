@@ -133,11 +133,12 @@ frozen input/current-state image, executes scheduled instructions into private
 working storage, and atomically publishes only at Write Outputs. The existing
 word `tick` means one complete PLC scan in existing APIs.
 
-Keep the normative VM in portable C under `controllers/shared/flow/`, but split
-it from controller-specific lifecycle code. Build the same sources as:
+Keep the server runtime entirely in managed .NET. Controller firmware may keep
+its portable C implementation under `controllers/shared/flow/`. The two hosts
+consume the same Flow IL contract and shared conformance fixtures as:
 
-- a native library loaded by `Server.Services` through a narrow managed wrapper;
-- the existing portable host-test target; and
+- a managed C# VM hosted directly by `Server.Services`;
+- the existing portable controller host-test target; and
 - a firmware library linked by each controller target.
 
 The ABI uses caller-owned buffers and explicit result codes. It exposes prepare,
@@ -367,8 +368,9 @@ than a separate compiler pipeline.
   for recompilation.
 - Never send an artifact to a target before version/capability/limit negotiation.
 - Do not claim cross-target equivalence until shared fixture snapshots match.
-- Do not add a C# evaluator as a production fallback. If the native server VM
-  cannot load, deployment fails visibly while the previous runtime remains.
+- The server VM is managed C#/.NET and must not load or invoke controller C code.
+  Server and controller parity is enforced with shared artifacts and expected
+  scan results rather than an in-process native ABI.
 - There are no deployed flows to preserve before the production milestone. A
   pre-release compiler/format change updates or removes all fixtures and
   consumers in the same change.

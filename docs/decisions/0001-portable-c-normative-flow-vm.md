@@ -1,6 +1,6 @@
 # ADR 0001: Portable C is the normative Flow VM
 
-- Status: accepted
+- Status: superseded for server execution by ADR 0003; retained for controller firmware
 - Date: 12 August 2026
 
 ## Context

@@ -1,6 +1,6 @@
 # ADR 0002: The .NET server loads the Flow VM through a narrow native boundary
 
-- Status: accepted
+- Status: superseded by ADR 0003
 - Date: 12 August 2026
 
 ## Context
