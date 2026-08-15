@@ -36,7 +36,7 @@ describe('flow simulator panel', () => {
 
     expect(wrapper.emitted('step-tick')).toHaveLength(1);
     expect(wrapper.get('[role="status"]').text()).toBe('Ready');
-    expect(wrapper.text()).toContain('Physical equipment cannot be commanded');
+    expect(wrapper.text()).toContain('No commands from this workspace are sent');
   });
 
   it('requires recompilation after an edit and disables execution', () => {
@@ -137,6 +137,7 @@ describe('flow simulator panel', () => {
     ]);
     // Expected outcome: Output history clearly identifies committed simulator state and units.
     // Acceptance criteria: Visible text contains the committed label and °C, distinguishing it from a physical output.
-    expect(wrapper.text()).toContain('committed simulator 12.5 °C');
+    expect(wrapper.text()).toContain('Committed');
+    expect(wrapper.text()).toContain('12.5 °C');
   });
 });

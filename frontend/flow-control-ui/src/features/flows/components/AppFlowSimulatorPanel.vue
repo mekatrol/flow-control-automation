@@ -1,158 +1,104 @@
 <template>
   <section v-bind="automation()" class="simulator-panel" aria-labelledby="simulator-title">
-    <div class="simulator-heading">
+    <header class="simulator-heading">
       <div>
+        <p class="eyebrow">Test workspace</p>
         <h2 id="simulator-title">Simulator</h2>
-        <p>Run this draft with shadow outputs. Physical equipment cannot be commanded.</p>
+        <p class="description">Run the current draft safely with shadow outputs.</p>
       </div>
-      <strong class="state" :class="lifecycle" role="status" aria-live="polite">{{
-        stateLabel
-      }}</strong>
+      <span class="state" :class="lifecycle" role="status" aria-live="polite"
+        ><span class="state-dot" aria-hidden="true"></span>{{ stateLabel }}</span
+      >
+    </header>
+    <div class="safety-note">
+      <strong>Isolated from physical equipment</strong
+      ><span>No commands from this workspace are sent to connected controllers.</span>
     </div>
-    <div class="controls" role="group" aria-label="Simulation controls">
-      <AppButton
-        automation="simulator-start"
-        :text="lifecycle === 'compiling' ? 'Compiling…' : 'Start simulation'"
-        :disabled="!canStart"
-        @click="emit(EVENTS.START_SIMULATION)"
-      />
-      <AppButton
-        automation="simulator-step-tick"
-        text="Step tick"
-        :disabled="!canExecute"
-        @click="emit(EVENTS.STEP_TICK)"
-      />
-      <AppButton
-        automation="simulator-step-node"
-        text="Step node"
-        :disabled="!canStepNode"
-        @click="emit(EVENTS.STEP_NODE)"
-      />
-      <AppButton
-        automation="simulator-step-instruction"
-        text="Step instruction"
-        :disabled="!canStepInstruction"
-        @click="emit(EVENTS.STEP_INSTRUCTION)"
-      />
-      <AppButton
-        automation="simulator-run"
-        text="Run"
-        :disabled="!canExecute"
-        @click="emit(EVENTS.RUN)"
-      />
-      <AppButton
-        automation="simulator-pause"
-        text="Pause"
-        :disabled="lifecycle !== 'running'"
-        @click="emit(EVENTS.PAUSE)"
-      />
-      <AppButton
-        automation="simulator-restart"
-        text="Restart"
-        :disabled="!active || lifecycle === 'running'"
-        @click="emit(EVENTS.RESTART)"
-      />
-      <AppButton
-        automation="simulator-stop"
-        text="Stop"
-        :disabled="!active"
-        @click="emit(EVENTS.STOP_SIMULATION)"
-      />
+    <div class="command-bar" role="group" aria-label="Simulation controls">
+      <div class="command-group primary-actions">
+        <AppButton
+          automation="simulator-start"
+          :text="
+            lifecycle === 'compiling'
+              ? 'Compiling…'
+              : active
+                ? 'Recompile draft'
+                : 'Start simulation'
+          "
+          :disabled="!canStart"
+          @click="emit(EVENTS.START_SIMULATION)"
+        />
+        <AppButton
+          automation="simulator-run"
+          text="Run continuously"
+          :disabled="!canExecute"
+          @click="emit(EVENTS.RUN)"
+        />
+        <AppButton
+          automation="simulator-pause"
+          text="Pause"
+          :disabled="lifecycle !== 'running'"
+          @click="emit(EVENTS.PAUSE)"
+        />
+      </div>
+      <div class="command-group step-actions">
+        <span class="group-label">Step</span>
+        <AppButton
+          automation="simulator-step-tick"
+          text="One scan"
+          :disabled="!canExecute"
+          @click="emit(EVENTS.STEP_TICK)"
+        />
+        <AppButton
+          automation="simulator-step-node"
+          text="Node"
+          :disabled="!canStepNode"
+          @click="emit(EVENTS.STEP_NODE)"
+        />
+        <AppButton
+          automation="simulator-step-instruction"
+          text="Instruction"
+          :disabled="!canStepInstruction"
+          @click="emit(EVENTS.STEP_INSTRUCTION)"
+        />
+      </div>
+      <div class="command-group session-actions">
+        <AppButton
+          automation="simulator-restart"
+          text="Restart"
+          :disabled="!active || lifecycle === 'running'"
+          @click="emit(EVENTS.RESTART)"
+        />
+        <AppButton
+          automation="simulator-stop"
+          text="Stop"
+          :disabled="!active"
+          @click="emit(EVENTS.STOP_SIMULATION)"
+        />
+      </div>
     </div>
-    <p v-if="lifecycle === 'stale'" class="stale" role="alert">
+    <p v-if="lifecycle === 'stale'" class="message error" role="alert">
       The draft changed. Start simulation again to compile the current graph.
     </p>
-    <p v-if="error" class="error" role="alert">{{ error }}</p>
+    <p v-if="error" class="message error" role="alert">{{ error }}</p>
     <dl v-if="session" class="summary">
       <div>
-        <dt>Source digest</dt>
-        <dd>{{ session.sourceDigest }}</dd>
+        <dt>Scan</dt>
+        <dd>{{ session.snapshot?.tickNumber ?? session.io?.scanNumber ?? 0 }}</dd>
       </div>
       <div>
-        <dt>Tick</dt>
-        <dd>{{ session.snapshot?.tickNumber ?? 0 }}</dd>
+        <dt>Virtual time</dt>
+        <dd>{{ session.io?.virtualTimeMilliseconds ?? 0 }} ms</dd>
       </div>
       <div>
-        <dt>Lease</dt>
-        <dd>{{ Math.ceil(session.leaseRemainingMilliseconds / 1000) }} seconds</dd>
+        <dt>Session expires</dt>
+        <dd>{{ Math.ceil(session.leaseRemainingMilliseconds / 60000) }} min</dd>
+      </div>
+      <div class="revision">
+        <dt>Compiled revision</dt>
+        <dd :title="session.sourceDigest">{{ session.sourceDigest.slice(0, 12) }}</dd>
       </div>
     </dl>
-    <details v-if="session" class="advanced">
-      <summary>Advanced debugger</summary>
-      <p>Instruction {{ session.inspection?.instructionPointer ?? 'at scan boundary' }}</p>
-      <p>{{ session.breakpoints.length }} breakpoints</p>
-    </details>
-    <section v-if="session" class="scenarios" aria-labelledby="scenario-title">
-      <h3 id="scenario-title">Scenarios</h3>
-      <div class="controls" role="group" aria-label="Scenario recording controls">
-        <AppButton
-          automation="scenario-record"
-          :text="recording ? 'Recording…' : 'Record'"
-          :disabled="recording"
-          @click="emit(EVENTS.START_RECORDING)"
-        />
-        <AppButton
-          automation="scenario-stop-recording"
-          text="Stop recording"
-          :disabled="!recording"
-          @click="emit(EVENTS.STOP_RECORDING)"
-        />
-        <label for="scenario-name">Scenario name</label>
-        <input id="scenario-name" v-model.trim="scenarioName" maxlength="200" />
-        <AppButton
-          automation="scenario-save"
-          text="Save scenario"
-          :disabled="recordedStepCount === 0 || scenarioName.length === 0"
-          @click="emit(EVENTS.SAVE_SCENARIO, scenarioName)"
-        />
-      </div>
-      <p role="status" aria-live="polite">{{ recordedStepCount }} recorded steps.</p>
-      <div class="controls">
-        <AppButton
-          automation="scenario-run-all"
-          text="Run all scenarios"
-          :disabled="scenarios.length === 0"
-          @click="emit(EVENTS.RUN_ALL_SCENARIOS)"
-        />
-        <label for="scenario-import">Import scenario</label>
-        <input
-          id="scenario-import"
-          type="file"
-          accept="application/json,.json"
-          @change="importFile"
-        />
-      </div>
-      <p v-if="importError" class="error" role="alert">{{ importError }}</p>
-      <ol v-if="recordedStepCount > 0" aria-label="Recorded timeline">
-        <li v-for="(step, index) in recordedSteps" :key="index">
-          {{ step.atMilliseconds }} ms — {{ step.action }}
-        </li>
-      </ol>
-      <ul v-if="scenarios.length > 0" class="scenario-list">
-        <li v-for="scenario in scenarios" :key="scenario.id">
-          <span>{{ scenario.name }} ({{ scenario.steps.length }} steps)</span>
-          <AppButton
-            :automation="`scenario-replay-${scenario.id}`"
-            text="Replay"
-            @click="emit(EVENTS.REPLAY_SCENARIO, scenario)"
-          />
-          <AppButton
-            :automation="`scenario-export-${scenario.id}`"
-            text="Export"
-            @click="exportScenario(scenario)"
-          />
-          <AppButton
-            :automation="`scenario-delete-${scenario.id}`"
-            text="Delete"
-            @click="emit(EVENTS.DELETE_SCENARIO, scenario)"
-          />
-        </li>
-      </ul>
-      <p v-if="scenarioResult" :class="scenarioResult.passed ? 'passed' : 'error'" role="status">
-        Replay {{ scenarioResult.passed ? 'passed' : 'failed' }} at scan
-        {{ scenarioResult.scanNumber }}.
-      </p>
-    </section>
     <AppFlowEmulatorPanel
       v-if="session?.io"
       automation="simulator-io"
@@ -164,11 +110,18 @@
       @[EVENTS.RESET]="forwardReset"
       @[EVENTS.RESET_INPUTS]="emit(EVENTS.RESET_INPUTS)"
     />
+    <details v-if="session" class="advanced">
+      <summary>Debugger details</summary>
+      <div class="debug-details">
+        <span>Instruction: {{ session.inspection?.instructionPointer ?? 'scan boundary' }}</span
+        ><span>Breakpoints: {{ session.breakpoints.length }}</span>
+      </div>
+    </details>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import AppButton from '@/components/AppButton.vue';
 import AppFlowEmulatorPanel from '@/features/flows/components/AppFlowEmulatorPanel.vue';
 import { useAutomation } from '@/composables/useAutomation';
@@ -176,11 +129,6 @@ import { EVENTS } from '@/constants/events';
 import type { SimulatorLifecycle, SimulatorSession } from '@/features/flows/api/flowSimulatorApi';
 import type { EmulatorInputChange } from '@/features/flows/api/flowEmulatorApi';
 import type { FlowInterface } from '@/features/flows/types';
-import {
-  parseScenario,
-  type FlowScenario,
-  type FlowScenarioRunResult
-} from '@/features/flows/api/flowScenarioApi';
 
 const props = withDefaults(
   defineProps<{
@@ -189,47 +137,28 @@ const props = withDefaults(
     session?: SimulatorSession;
     error?: string;
     flowInterface?: FlowInterface;
-    recording?: boolean;
-    recordedStepCount?: number;
-    scenarios?: FlowScenario[];
-    recordedSteps?: FlowScenario['steps'];
-    scenarioResult?: FlowScenarioRunResult;
   }>(),
-  {
-    session: undefined,
-    error: undefined,
-    flowInterface: undefined,
-    recording: false,
-    recordedStepCount: 0,
-    scenarios: () => [],
-    recordedSteps: () => [],
-    scenarioResult: undefined
-  }
+  { session: undefined, error: undefined, flowInterface: undefined }
 );
 const emit = defineEmits<{
-  (event: typeof EVENTS.START_SIMULATION): void;
-  (event: typeof EVENTS.STEP_TICK): void;
-  (event: typeof EVENTS.STEP_NODE): void;
-  (event: typeof EVENTS.STEP_INSTRUCTION): void;
-  (event: typeof EVENTS.STOP_SIMULATION): void;
+  (
+    event:
+      | typeof EVENTS.START_SIMULATION
+      | typeof EVENTS.STEP_TICK
+      | typeof EVENTS.STEP_NODE
+      | typeof EVENTS.STEP_INSTRUCTION
+      | typeof EVENTS.STOP_SIMULATION
+      | typeof EVENTS.RUN
+      | typeof EVENTS.PAUSE
+      | typeof EVENTS.RESTART
+      | typeof EVENTS.RESET_INPUTS
+  ): void;
   (event: typeof EVENTS.APPLY_INPUTS_STEP, inputs: EmulatorInputChange[]): void;
   (event: typeof EVENTS.ADVANCE, milliseconds: number): void;
   (event: typeof EVENTS.FAULT, fault: string | null): void;
   (event: typeof EVENTS.RESET, powerCycle: boolean): void;
-  (event: typeof EVENTS.RESET_INPUTS): void;
-  (event: typeof EVENTS.RUN | typeof EVENTS.PAUSE | typeof EVENTS.RESTART): void;
-  (event: typeof EVENTS.START_RECORDING | typeof EVENTS.STOP_RECORDING): void;
-  (event: typeof EVENTS.SAVE_SCENARIO, name: string): void;
-  (event: typeof EVENTS.REPLAY_SCENARIO, scenario: FlowScenario): void;
-  (event: typeof EVENTS.RUN_ALL_SCENARIOS): void;
-  (
-    event: typeof EVENTS.IMPORT_SCENARIO | typeof EVENTS.DELETE_SCENARIO,
-    scenario: FlowScenario
-  ): void;
 }>();
 const automation = useAutomation(props.automation);
-const scenarioName = ref('Recorded scenario');
-const importError = ref<string>();
 const flowInterface = computed<FlowInterface>(
   () => props.flowInterface ?? { schemaVersion: 1, inputs: [], outputs: [] }
 );
@@ -252,90 +181,182 @@ const canStepInstruction = computed(
 const stateLabel = computed(
   () => props.lifecycle.charAt(0).toUpperCase() + props.lifecycle.slice(1)
 );
-const importFile = async (event: Event): Promise<void> => {
-  const file = (event.target as HTMLInputElement).files?.[0];
-  if (!file) return;
-  try {
-    emit(EVENTS.IMPORT_SCENARIO, parseScenario(JSON.parse(await file.text()) as unknown));
-    importError.value = undefined;
-  } catch {
-    importError.value = 'The selected scenario file is malformed or unsupported.';
-  }
-};
-const exportScenario = (scenario: FlowScenario): void => {
-  const url = URL.createObjectURL(
-    new Blob([JSON.stringify(scenario, undefined, 2)], { type: 'application/json' })
-  );
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = `${scenario.id}.json`;
-  anchor.click();
-  URL.revokeObjectURL(url);
-};
 </script>
 
 <style scoped>
 .simulator-panel {
+  max-height: min(38dvh, 26rem);
+  flex: 0 1 auto;
   margin-bottom: var(--space-4);
-  padding: var(--space-4);
+  overflow: hidden auto;
+  scrollbar-gutter: stable;
   border: var(--border-width-default) solid var(--color-border-subtle);
   border-radius: var(--radius-lg);
   background: var(--color-surface-subtle);
 }
-.simulator-heading,
-.controls,
-.summary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  align-items: center;
-}
 .simulator-heading {
+  display: flex;
+  align-items: flex-start;
   justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-6-5);
+  background: var(--color-surface-raised);
 }
-.simulator-heading h2,
-.simulator-heading p,
-.summary dd {
-  margin: 0;
-}
-.state {
+.eyebrow {
+  margin: 0 0 var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
+.simulator-heading h2 {
+  margin: 0;
+  font-size: var(--font-size-xl);
+}
+.description {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-muted);
+}
+.state {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-2) var(--space-4);
+  font-weight: var(--font-weight-semibold);
+  background: var(--color-surface-subtle);
+  border: var(--border-width-default) solid var(--color-border-subtle);
+  border-radius: 999px;
+}
+.state-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  background: currentcolor;
+  border-radius: 50%;
+}
+.state.ready,
+.state.running,
+.state.paused {
+  color: var(--color-success-text);
+}
 .state.stale,
-.stale,
+.state.faulted,
 .error {
   color: var(--color-danger-text);
 }
-.summary {
-  margin-top: var(--space-3);
+.safety-note {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-3) var(--space-6-5);
+  color: var(--color-text-muted);
+  border-top: var(--border-width-default) solid var(--color-border-subtle);
+  border-bottom: var(--border-width-default) solid var(--color-border-subtle);
 }
-.summary div {
-  min-width: 0;
+.safety-note strong {
+  color: var(--color-text-primary);
 }
-.summary dt {
+.command-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-items: stretch;
+  padding: var(--space-4) var(--space-6-5);
+}
+.command-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+.command-group + .command-group {
+  padding-left: var(--space-4);
+  border-left: var(--border-width-default) solid var(--color-border-subtle);
+}
+.group-label {
+  width: 100%;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
 }
+.session-actions {
+  margin-left: auto;
+}
+.summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(8rem, 1fr));
+  gap: var(--space-3);
+  padding: 0 var(--space-6-5) var(--space-4);
+  margin: 0;
+}
+.summary div {
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface-raised);
+  border: var(--border-width-default) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+}
+.summary dt {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
 .summary dd {
-  overflow-wrap: anywhere;
+  margin: var(--space-2) 0 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+}
+.revision dd {
+  overflow: hidden;
+  font-family: monospace;
+  text-overflow: ellipsis;
+}
+.message {
+  margin: 0 var(--space-6-5) var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface-raised);
+  border-left: 3px solid currentcolor;
 }
 .advanced {
-  margin-top: var(--space-3);
+  margin: 0 var(--space-6-5) var(--space-4);
 }
-.scenarios {
-  margin-top: var(--space-4);
-  border-top: var(--border-width-default) solid var(--color-border-subtle);
+.advanced summary {
+  padding: var(--space-3) 0;
+  cursor: pointer;
+  font-weight: var(--font-weight-semibold);
 }
-.scenario-list {
-  padding: 0;
-  list-style: none;
-}
-.scenario-list li {
+.debug-details {
   display: flex;
-  gap: var(--space-3);
-  align-items: center;
-  justify-content: space-between;
+  gap: var(--space-6-5);
+  color: var(--color-text-muted);
 }
-.passed {
-  color: var(--color-success-text);
+@media (max-width: 60rem) {
+  .summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .session-actions {
+    margin-left: 0;
+  }
+}
+@media (max-width: 40rem) {
+  .simulator-panel {
+    max-height: min(44dvh, 24rem);
+  }
+  .simulator-heading {
+    padding: var(--space-4);
+  }
+  .command-bar,
+  .summary {
+    padding-right: var(--space-4);
+    padding-left: var(--space-4);
+  }
+  .command-group + .command-group {
+    width: 100%;
+    padding-top: var(--space-3);
+    padding-left: 0;
+    border-top: var(--border-width-default) solid var(--color-border-subtle);
+    border-left: 0;
+  }
+  .summary {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

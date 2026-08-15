@@ -112,8 +112,6 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
 
     public FlowEmulatorSnapshot ResetInputs(string emulatorId) => GetInstance(emulatorId).ResetInputs();
 
-    public FlowEmulatorScenario ExportScenario(string emulatorId) => GetInstance(emulatorId).ExportScenario();
-
     public void Delete(string emulatorId)
     {
         if (_instances.TryRemove(emulatorId, out var instance))
@@ -168,7 +166,6 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
         private readonly IFlowVirtualMachine _machine;
         private readonly Dictionary<string, FlowVmInput> _inputs = new(StringComparer.Ordinal);
         private readonly List<EmulatorInputChange> _pending = [];
-        private readonly List<EmulatorInputChange> _scenarioInputs = [];
         private readonly List<EmulatorOutputSample> _outputs = [];
         private string? _fault;
         private ulong _clock;
@@ -267,14 +264,6 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
                 }
 
                 return SnapshotCore();
-            }
-        }
-
-        public FlowEmulatorScenario ExportScenario()
-        {
-            lock (_gate)
-            {
-                return new FlowEmulatorScenario([.. _scenarioInputs], [.. _outputs]);
             }
         }
 
@@ -407,7 +396,6 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
 
                 var scheduled = change with { EffectiveAtMilliseconds = change.EffectiveAtMilliseconds ?? _clock };
                 _pending.Add(scheduled);
-                _scenarioInputs.Add(scheduled);
             }
             _pending.Sort(static (left, right) => Nullable.Compare(left.EffectiveAtMilliseconds, right.EffectiveAtMilliseconds));
         }

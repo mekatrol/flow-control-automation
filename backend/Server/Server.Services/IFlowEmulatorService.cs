@@ -12,6 +12,5 @@ public interface IFlowEmulatorService
     FlowEmulatorSnapshot InjectFault(string emulatorId, string? fault);
     FlowEmulatorSnapshot Reset(string emulatorId, bool powerCycle);
     FlowEmulatorSnapshot ResetInputs(string emulatorId);
-    FlowEmulatorScenario ExportScenario(string emulatorId);
     void Delete(string emulatorId);
 }

@@ -184,11 +184,6 @@
         :session="simulator.session"
         :error="simulator.error"
         :flow-interface="flow.interface"
-        :recording="simulator.recording"
-        :recorded-step-count="simulator.recordedSteps.length"
-        :recorded-steps="simulator.recordedSteps"
-        :scenarios="simulator.scenarios"
-        :scenario-result="simulator.scenarioResult"
         @[EVENTS.START_SIMULATION]="startSimulation"
         @[EVENTS.STEP_TICK]="simulator.stepTick"
         @[EVENTS.STEP_NODE]="simulator.stepNode"
@@ -202,13 +197,6 @@
         @[EVENTS.FAULT]="simulator.fault"
         @[EVENTS.RESET]="simulator.resetIo"
         @[EVENTS.RESET_INPUTS]="simulator.resetInputs"
-        @[EVENTS.START_RECORDING]="simulator.startRecording"
-        @[EVENTS.STOP_RECORDING]="simulator.stopRecording"
-        @[EVENTS.SAVE_SCENARIO]="simulator.saveRecording"
-        @[EVENTS.REPLAY_SCENARIO]="replayScenario"
-        @[EVENTS.RUN_ALL_SCENARIOS]="runAllScenarios"
-        @[EVENTS.IMPORT_SCENARIO]="simulator.importScenario"
-        @[EVENTS.DELETE_SCENARIO]="simulator.deleteScenario"
       />
 
       <AppFlowDebugPanel
@@ -334,7 +322,6 @@ import type {
   FlowDefinition,
   FlowNode
 } from '@/features/flows/types';
-import type { FlowScenario } from '@/features/flows/api/flowScenarioApi';
 import { tutorialForKind, type FlowTutorial } from '@/features/flows/tutorialCatalogue';
 import { flowDomainToDto } from '@/features/flows/api/flowMapper';
 
@@ -525,15 +512,6 @@ const startSimulation = async (): Promise<void> => {
   const target = debugTargets.value.find((item) => item.id === 'server');
   if (!current || !target) return;
   await simulator.start(createExecutableFlowSource(current, target));
-  await simulator.loadScenarios(current.id);
-};
-const replayScenario = async (scenario: FlowScenario): Promise<void> => {
-  const source = executableSource();
-  if (source) await simulator.replay(scenario, source);
-};
-const runAllScenarios = async (): Promise<void> => {
-  const source = executableSource();
-  if (source) await simulator.runAll(source);
 };
 const debugFailure = (error: unknown): string =>
   error instanceof Error ? error.message : 'Debug operation failed.';

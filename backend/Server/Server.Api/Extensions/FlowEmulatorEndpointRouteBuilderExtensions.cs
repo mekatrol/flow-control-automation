@@ -15,7 +15,6 @@ public static class FlowEmulatorEndpointRouteBuilderExtensions
         endpoints.MapPut("/api/emulators/{emulatorId}/fault", InjectFault);
         endpoints.MapPost("/api/emulators/{emulatorId}/reset", Reset);
         endpoints.MapPost("/api/emulators/{emulatorId}/reset-inputs", ResetInputs);
-        endpoints.MapGet("/api/emulators/{emulatorId}/scenario", ExportScenario);
         endpoints.MapDelete("/api/emulators/{emulatorId}", Delete);
         return endpoints;
     }
@@ -68,9 +67,6 @@ public static class FlowEmulatorEndpointRouteBuilderExtensions
 
     private static IResult ResetInputs(string emulatorId, IFlowEmulatorService emulators) =>
         Map(() => emulators.ResetInputs(emulatorId));
-
-    private static IResult ExportScenario(string emulatorId, IFlowEmulatorService emulators) =>
-        Map(() => emulators.ExportScenario(emulatorId));
 
     private static IResult Delete(string emulatorId, IFlowEmulatorService emulators)
     {

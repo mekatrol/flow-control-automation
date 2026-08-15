@@ -70,7 +70,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IFlowDebugService, FlowDebugService>();
         services.AddSingleton<FlowSimulatorSessionRegistry>();
         services.AddScoped<IFlowSimulatorService, FlowSimulatorService>();
-        services.AddScoped<IFlowScenarioService, FlowScenarioService>();
         services.AddScoped<IPointReadService, PointReadService>();
         services.AddScoped<IPointSourceService, PointSourceDatabaseService>();
         services.AddScoped<CredentialDatabaseService>();

@@ -71,20 +71,7 @@ Deleting a referenced interface entry is rejected until the referencing nodes
 are removed or rebound. Invalid and missing references remain visible to the
 author and produce path- and node-addressed diagnostics.
 
-## 3. Scenario storage decision
-
-Scenarios are separate resources, never embedded in flow definitions or Flow IL
-artifacts. The current scenario schema has `schemaVersion`, stable scenario and
-flow IDs, the backend-issued `flowRevision`, metadata, bounded ordered steps,
-and bounded expectations. Inputs and outputs are addressed by stable interface
-ID. Import and export use exactly this schema.
-
-Replay uses virtual time and the ordinary compiler and portable VM. A revision
-mismatch fails with `scenario_stale_revision`; it is never rebound by name.
-Storage implementations must provide list, retrieve, create/update, delete,
-import, and export while keeping simulator sessions volatile.
-
-## 4. Simulation and live-output boundary
+## 3. Simulation and live-output boundary
 
 A simulator session is always a server-owned shadow session in a namespace
 separate from deployed runtimes and controller debug sessions. Starting,
@@ -102,7 +89,7 @@ revision/digest. A later executable edit makes the session stale; a browser
 hash may be used only to notice local edits early, never as correlation
 authority.
 
-## 5. Diagnostic and error contract
+## 4. Diagnostic and error contract
 
 Simulator endpoints use one JSON error envelope:
 
@@ -129,7 +116,6 @@ Stable code families and initial codes are:
 | Compile/source | `compile_invalid_source`, `compile_unsupported_node`, `compile_capability_missing`, `compile_limit_exceeded` |
 | Session | `simulator_session_not_found`, `simulator_session_conflict`, `simulator_session_expired`, `simulator_invalid_state`, `simulator_limit_exceeded` |
 | Input | `simulator_input_missing`, `simulator_input_unknown`, `simulator_input_type_mismatch`, `simulator_input_invalid_value`, `simulator_input_quality_unsupported` |
-| Scenario | `scenario_invalid`, `scenario_not_found`, `scenario_stale_revision`, `scenario_limit_exceeded`, `scenario_expectation_failed`, `scenario_version_unsupported` |
 | Correlation/capability | `simulator_stale_revision`, `simulator_capability_unsupported` |
 | Runtime | `simulator_vm_fault`, `simulator_cancelled`, `simulator_unavailable` |
 
@@ -139,7 +125,7 @@ the outer `compile_invalid_source` code does not rename them. HTTP mapping is:
 revision, 410 expired session, 422 valid request with compile/expectation
 diagnostics, 429 bounded-resource exhaustion, and 503 unavailable host.
 
-## 6. Shared limits
+## 5. Shared limits
 
 These are the current server profile and apply before allocation or execution.
 A target may advertise a smaller limit; the effective limit is the minimum.
@@ -151,23 +137,18 @@ A target may advertise a smaller limit; the effective limit is the minimum.
 | Active simulator sessions per server | 32 |
 | Active simulator sessions per flow | 1 |
 | Simulator lease / maximum idle time | 15 minutes |
-| Scenario resources per flow | 100 |
-| Steps per scenario | 1,000 |
-| Expectations per scenario | 1,000 |
 | Breakpoints per session | 32 |
 | Output-history samples per session | 1,024 |
 | Inspectable values/slots | 256 |
 | Flow IL artifact | 16,384 bytes |
 | VM work/instructions per scan | 256 |
-| Scenario execution scans | 10,000 |
-| Scenario execution wall time | 30 seconds |
 
 The current implementation enforces these bounds before or during allocation
 and execution. Controller-template node and connection limits continue to
 apply. Limits are returned as capabilities where the UI needs to prevent
 invalid work, but server validation remains authoritative.
 
-## 7. Endpoint and lifecycle inventory
+## 6. Endpoint and lifecycle inventory
 
 Debug endpoints are rooted at
 `/api/flows/{flowId}/debug-sessions`: create, get, tick/node/instruction step,
@@ -181,18 +162,18 @@ have renewable dead-man leases; server-local sessions currently have no expiry.
 Emulator endpoints are rooted at `/api/emulators`: create, get, set typed point
 or flow-interface inputs, atomically apply inputs and step, advance virtual
 time/optionally scan, inject a supported fault, reset persisted input defaults,
-reset/power-cycle VM state, export the in-memory input/output trace, and delete. Instances
+reset/power-cycle VM state, and delete. Instances
 are held by a singleton service, dispose their VM on delete or service shutdown,
 and cap output samples at 1,024. Instances share the 32-session server bound,
 expire after 15 minutes of inactivity, and are disposed on deletion or server
 shutdown. Inputs carry typed values, stable binding IDs,
 interface identity, and quality. Output history distinguishes proposed and
 committed simulator values and includes units, quality, last-change scan, and
-interface identity. The export is not the persisted scenario contract in section 3.
+interface identity.
 
 Application-level simulator endpoints are rooted at
 `/api/flows/{flowId}/simulator-sessions`. They provide the consistent envelope
-from section 5 while composing the existing compiler, debugger, and emulator
+from section 4 while composing the existing compiler, debugger, and emulator
 services without changing the portable execution path. Lower-level debug and
 emulator endpoints retain their established response contracts.
 

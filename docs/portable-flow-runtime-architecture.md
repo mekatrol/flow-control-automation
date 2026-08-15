@@ -248,8 +248,7 @@ controller template's opcode, type, memory, timing, and capacity limits.
 
 Its device model provides:
 
-- typed virtual inputs that can be set manually, scripted, replayed from a
-  timestamped trace, or driven by deterministic test scenarios;
+- typed virtual inputs that can be set manually or scripted;
 - captured output terminals showing proposed/effective value, quality,
   arbitration owner, priority, expiry, and write history without touching
   hardware;
@@ -258,7 +257,6 @@ Its device model provides:
 - a deterministic virtual monotonic clock with advance-to-next-event, alongside
   optional wall-clock mode;
 - resettable retained/volatile memory and controller lifecycle state; and
-- import/export of bounded scenario and expected-snapshot fixtures for CI.
 
 The first emulator models the controller capability contract and point I/O, not
 electrical waveforms, CPU instruction timing, network stacks, or vendor firmware.
@@ -279,8 +277,8 @@ requires recompilation.
 Simulator sessions occupy a namespace separate from deployments and controller
 debug sessions. They support typed inputs and quality, virtual time, scan/node/
 instruction stepping, run and pause, breakpoints, frame inspection, reset and
-power cycle, fault injection, output history, and deterministic scenario
-replay. Replacement, explicit stop, idle expiry, disconnect, cancellation, VM
+power cycle, fault injection, and output history. Replacement, explicit stop,
+idle expiry, disconnect, cancellation, VM
 fault, and server shutdown discard any uncommitted execution frame and dispose
 the VM. Simulator outputs are always shadow outputs: no simulator endpoint can
 activate controller live output or issue a physical point command.
@@ -294,17 +292,10 @@ flows. They never resolve to physical points. Point nodes remain the explicit
 boundary for virtual, external, or hardware I/O. Interface definition data is
 persisted with the flow; live values and quality belong only to a session.
 
-### Scenarios and tutorials
-
-Scenarios are versioned resources stored separately from flows and artifacts.
-They address inputs and expectations by stable interface ID, retain the
-backend-issued flow revision, and contain bounded ordered virtual-time steps.
-Replay, import, export, and CI execution use the ordinary compiler and portable
-VM. A revision mismatch is a hard stale-scenario error and is never rebound by
-display name.
+### Tutorials
 
 Tutorials are repository-owned, versioned content made from ordinary flow
-fixtures, simulator scenarios, guidance, and optional challenge fixtures.
+fixtures, guidance, and optional challenge fixtures.
 Every executable palette kind has verified tutorial coverage. Tutorial flows
 use the same source parser, compiler, simulator API, and VM as user-authored
 flows; tutorial-specific function semantics are forbidden.
@@ -312,10 +303,9 @@ flows; tutorial-specific function semantics are forbidden.
 ### Bounds and lifecycle guarantees
 
 Allocation and execution are bounded before work is accepted. The server
-limits interface entries, active sessions, session idle time, scenarios per
-flow, steps and expectations, breakpoints, history, inspectable slots, artifact
-size, instructions per scan, scenario scans, request size, and scenario wall
-time. Target profiles may advertise smaller limits, in which case the effective
+limits interface entries, active sessions, session idle time, breakpoints,
+history, inspectable slots, artifact size, instructions per scan, and request
+size. Target profiles may advertise smaller limits, in which case the effective
 limit is the minimum. Exact current values and structured error codes are
 normative in [`flow-simulator-contract.md`](flow-simulator-contract.md).
 
@@ -349,7 +339,7 @@ than a separate compiler pipeline.
   equivalence.
 - Debugger conformance tests stop at every legal instruction, resume to the same
   completed snapshot, and prove aborting at every stop point commits nothing.
-- Emulator conformance tests replay identical scenarios across emulator and
+- Emulator conformance tests compare identical inputs across emulator and
   controller recordings, with documented exclusions for unmodeled hardware.
 - Fuzzing covers artifact framing, operands, counts, symbols, and native ABI
   calls; malformed IL cannot cause out-of-bounds access or partial activation.

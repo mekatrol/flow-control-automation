@@ -101,14 +101,6 @@ export const test = base.extend<{ mockFlowsApi: void }>({
           }
         });
       });
-      await page.route('**/api/flows/*/scenarios', async (route) => {
-        if (route.request().method() === 'GET') {
-          await route.fulfill({ json: [] });
-          return;
-        }
-        await route.fulfill({ status: 404, json: { message: 'scenario not found' } });
-      });
-
       // Yield only after all routes are installed. The test cannot navigate
       // early and accidentally leak a request to the development proxy.
       await use();

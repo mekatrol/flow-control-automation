@@ -9,21 +9,12 @@ import {
   type SimulatorSession
 } from '@/features/flows/api/flowSimulatorApi';
 import type { EmulatorInputChange } from '@/features/flows/api/flowEmulatorApi';
-import {
-  flowScenarioApi,
-  type FlowScenario,
-  type FlowScenarioRunResult
-} from '@/features/flows/api/flowScenarioApi';
 
 export const useFlowSimulatorStore = defineStore('flow-simulator', () => {
   const lifecycle = ref<SimulatorLifecycle>('idle');
   const session = ref<SimulatorSession>();
   const error = ref<string>();
   const requestGeneration = ref(0);
-  const recording = ref(false);
-  const recordedSteps = ref<FlowScenario['steps']>([]);
-  const scenarios = ref<FlowScenario[]>([]);
-  const scenarioResult = ref<FlowScenarioRunResult>();
   let controller: AbortController | undefined;
   let pollTimer: ReturnType<typeof window.setInterval> | undefined;
 
@@ -84,32 +75,13 @@ export const useFlowSimulatorStore = defineStore('flow-simulator', () => {
     }
   };
 
-  const record = (
-    action: FlowScenario['steps'][number]['action'],
-    inputs: EmulatorInputChange[] = [],
-    powerCycle = false,
-    atMilliseconds = session.value?.io?.virtualTimeMilliseconds ?? 0
-  ): void => {
-    if (!recording.value) return;
-    recordedSteps.value.push({
-      atMilliseconds,
-      action,
-      inputs: structuredClone(inputs),
-      powerCycle
-    });
-  };
-  const stepTick = (): Promise<void> => {
-    record('step');
-    return operate(flowSimulatorApi.stepTick);
-  };
+  const stepTick = (): Promise<void> => operate(flowSimulatorApi.stepTick);
   const applyInputsAndStep = (inputs: EmulatorInputChange[]): Promise<void> => {
-    record('step', inputs);
     return operate((flowId, sessionId, signal) =>
       flowSimulatorApi.applyInputsAndStep(flowId, sessionId, inputs, signal)
     );
   };
   const advance = (milliseconds: number): Promise<void> => {
-    record('advance', [], false, (session.value?.io?.virtualTimeMilliseconds ?? 0) + milliseconds);
     return operate((flowId, sessionId, signal) =>
       flowSimulatorApi.advance(flowId, sessionId, milliseconds, signal)
     );
@@ -119,7 +91,6 @@ export const useFlowSimulatorStore = defineStore('flow-simulator', () => {
       flowSimulatorApi.fault(flowId, sessionId, value, signal)
     );
   const resetIo = (powerCycle: boolean): Promise<void> => {
-    record('reset', [], powerCycle);
     return operate((flowId, sessionId, signal) =>
       flowSimulatorApi.resetIo(flowId, sessionId, powerCycle, signal)
     );
@@ -172,90 +143,11 @@ export const useFlowSimulatorStore = defineStore('flow-simulator', () => {
     lifecycle.value = 'idle';
     error.value = undefined;
   };
-  const startRecording = (): void => {
-    recordedSteps.value = [];
-    recording.value = true;
-    scenarioResult.value = undefined;
-  };
-  const stopRecording = (): void => {
-    recording.value = false;
-  };
-  const loadScenarios = async (flowId: string): Promise<void> => {
-    try {
-      scenarios.value = await flowScenarioApi.list(flowId);
-    } catch (value) {
-      failure(value);
-    }
-  };
-  const saveRecording = async (name: string): Promise<void> => {
-    const active = session.value;
-    if (!active || recordedSteps.value.length === 0) return;
-    const scenario: FlowScenario = {
-      schemaVersion: 1,
-      id: crypto.randomUUID(),
-      name: name.trim(),
-      flowId: active.flowId,
-      flowRevision: active.sourceRevision,
-      steps: structuredClone(recordedSteps.value),
-      expectations:
-        active.io?.outputHistory
-          .filter((sample) => sample.isInterface && sample.scanNumber === active.io?.scanNumber)
-          .map((sample) => ({
-            scan: sample.scanNumber,
-            outputId: sample.outputId,
-            operator: 'equals' as const,
-            expectedValue: structuredClone(sample.effectiveValue)
-          })) ?? []
-    };
-    try {
-      scenarios.value.push(await flowScenarioApi.save(scenario));
-      recording.value = false;
-    } catch (value) {
-      failure(value);
-    }
-  };
-  const replay = async (scenario: FlowScenario, source: ExecutableFlowSource): Promise<void> => {
-    scenarioResult.value = undefined;
-    try {
-      scenarioResult.value = await flowScenarioApi.run(scenario, source);
-    } catch (value) {
-      failure(value);
-    }
-  };
-  const runAll = async (source: ExecutableFlowSource): Promise<void> => {
-    for (const scenario of scenarios.value) {
-      await replay(scenario, source);
-      if (scenarioResult.value?.passed === false) return;
-    }
-  };
-  const importScenario = async (scenario: FlowScenario): Promise<void> => {
-    try {
-      const saved = await flowScenarioApi.save(scenario);
-      const index = scenarios.value.findIndex((item) => item.id === saved.id);
-      if (index < 0) scenarios.value.push(saved);
-      else scenarios.value[index] = saved;
-    } catch (value) {
-      failure(value);
-    }
-  };
-  const deleteScenario = async (scenario: FlowScenario): Promise<void> => {
-    try {
-      await flowScenarioApi.remove(scenario.flowId, scenario.id);
-      scenarios.value = scenarios.value.filter((item) => item.id !== scenario.id);
-    } catch (value) {
-      failure(value);
-    }
-  };
-
   return {
     lifecycle,
     session,
     error,
     busy,
-    recording,
-    recordedSteps,
-    scenarios,
-    scenarioResult,
     start,
     stepTick,
     applyInputsAndStep,
@@ -270,14 +162,6 @@ export const useFlowSimulatorStore = defineStore('flow-simulator', () => {
     restart,
     markStale,
     stop,
-    reset,
-    startRecording,
-    stopRecording,
-    loadScenarios,
-    saveRecording,
-    replay,
-    runAll,
-    importScenario,
-    deleteScenario
+    reset
   };
 });

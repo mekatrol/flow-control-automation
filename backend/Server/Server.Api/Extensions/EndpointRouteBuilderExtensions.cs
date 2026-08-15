@@ -18,7 +18,6 @@ public static class EndpointRouteBuilderExtensions
         endpoints.MapFlowDebugEndpoints();
         endpoints.MapFlowEmulatorEndpoints();
         endpoints.MapFlowSimulatorEndpoints();
-        endpoints.MapFlowScenarioEndpoints();
         endpoints.MapGet("/api/flows", ListFlows);
         endpoints.MapPost("/api/flows", CreateFlow);
         endpoints.MapPost("/api/flows/import-il", ImportFlowIl);

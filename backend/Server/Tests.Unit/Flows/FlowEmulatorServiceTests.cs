@@ -62,7 +62,6 @@ public sealed class FlowEmulatorServiceTests
             Assert.That(before.OutputHistory[^1].ProposedValue.Boolean, Is.False);
             Assert.That(after.OutputHistory[^1].ProposedValue.Boolean, Is.True);
             Assert.That(after.VirtualTimeMilliseconds, Is.EqualTo(10));
-            Assert.That(service.ExportScenario(created.EmulatorId).Inputs, Has.Count.EqualTo(1));
         });
     }
 
