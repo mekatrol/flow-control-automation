@@ -209,7 +209,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
 
                 var inputValue = input.TypedValue;
 
-                if (Type(inputValue) != point.Type)
+                if (inputValue.DataType != point.DataType)
                 {
                     Fail(17, "/inputs");
                 }
@@ -336,14 +336,12 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
 
     private FlowVmValue[] EmptySlots() => [.. _slotTypes.Select(type => type == 2 ? FlowVmValue.FromNumber(0) : FlowVmValue.FromBoolean(false))];
 
-    private ConstantRecord Constant(int index, DataType type) => index >= 0 && index < _constants.Length && _constants[index].Type == type ? _constants[index] : throw Error(12, "/instructions/constant");
+    private ConstantRecord Constant(int index, DataType type) => index >= 0 && index < _constants.Length && _constants[index].DataType == type ? _constants[index] : throw Error(12, "/instructions/constant");
 
     private int State(int slot) => slot >= StateBase && slot - StateBase < _currentState.Length ? slot - StateBase : throw Error(12, "/instructions/state");
 
-    private static DataType Type(FlowVmValue value) => value.Type.Equals(nameof(DataType.Number), StringComparison.CurrentCultureIgnoreCase) ? DataType.Number : DataType.Boolean;
-
     private static FlowVmValue Value(ConstantRecord value) =>
-        value.Type == DataType.Number
+        value.DataType == DataType.Number
             ? FlowVmValue.FromNumber(value.Number)
             : FlowVmValue.FromBoolean(value.Boolean);
 
@@ -361,9 +359,9 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
     [DoesNotReturn]
     private static void Fail(int code, string path) => throw Error(code, path);
 
-    private sealed record ConstantRecord(DataType Type, bool Boolean, double Number);
+    private sealed record ConstantRecord(DataType DataType, bool Boolean, double Number);
 
-    private sealed record Point(DataDirection Direction, DataType Type, byte BindingKind, string Id);
+    private sealed record Point(DataDirection Direction, DataType DataType, byte BindingKind, string Id);
 
     private sealed record Slot(FlowSlotKind Kind, byte Type, ushort Index, ushort InitialConstant);
 

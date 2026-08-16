@@ -59,8 +59,8 @@ public static class DebugSnapshotDecoder
             var typedValue = isPresent
                 ? dataType switch
                 {
-                    DataType.Boolean => new DebugTypedValue(nameof(DataType.Boolean).ToLower(), reader.ReadBoolean(), Quality: quality),
-                    DataType.Number => new DebugTypedValue(nameof(DataType.Number).ToLower(), Number: reader.ReadDouble(), Quality: quality),
+                    DataType.Boolean => new DebugTypedValue(DataType.Boolean, Value: reader.ReadBoolean(), Quality: quality),
+                    DataType.Number => new DebugTypedValue(DataType.Number, Number: reader.ReadDouble(), Quality: quality),
                     _ => throw Protocol("unknown snapshot point data type")
                 }
                 : null;

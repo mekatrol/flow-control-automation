@@ -4,7 +4,7 @@ namespace Server.Services.Contracts;
 
 public sealed record FlowVmValue
 {
-    public required string Type { get; init; }
+    public required DataType DataType { get; init; }
 
     public bool Boolean { get; init; }
 
@@ -13,7 +13,7 @@ public sealed record FlowVmValue
     public string Quality { get; init; } = DataQualityExtensions.Good;
 
     public static FlowVmValue FromBoolean(bool value, string quality = DataQualityExtensions.Good) =>
-        new() { Type = DataType.Boolean.ToFriendlyString(), Boolean = value, Quality = quality };
+        new() { DataType = DataType.Boolean, Boolean = value, Quality = quality };
 
     public static FlowVmValue FromNumber(double value, string quality = DataQualityExtensions.Good)
     {
@@ -22,7 +22,7 @@ public sealed record FlowVmValue
             throw new ArgumentOutOfRangeException(nameof(value));
         }
 
-        return new() { Type = DataType.Number.ToFriendlyString(), Number = value, Quality = quality };
+        return new() { DataType = DataType.Number, Number = value, Quality = quality };
     }
 
     public static implicit operator FlowVmValue(bool value) => FromBoolean(value);

@@ -382,9 +382,9 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
                     throw new ArgumentException($"Input '{change.InputId}' is not mapped by this flow.", nameof(changes));
                 }
 
-                if (change.TypedValue.Type != existing.TypedValue.Type)
+                if (change.TypedValue.DataType != existing.TypedValue.DataType)
                 {
-                    throw new ArgumentException($"Input '{change.InputId}' requires type '{existing.TypedValue.Type}'.", nameof(changes));
+                    throw new ArgumentException($"Input '{change.InputId}' requires type '{existing.TypedValue.DataType}'.", nameof(changes));
                 }
 
                 if (change.TypedValue.Quality is not (
@@ -397,7 +397,7 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
                     throw new ArgumentException($"Input '{change.InputId}' has unsupported quality.", nameof(changes));
                 }
 
-                if (change.TypedValue.Type == DataType.Number.ToFriendlyString() && !double.IsFinite(change.TypedValue.Number))
+                if (change.TypedValue.DataType == DataType.Number && !double.IsFinite(change.TypedValue.Number))
                 {
                     throw new ArgumentException($"Input '{change.InputId}' must be finite.", nameof(changes));
                 }

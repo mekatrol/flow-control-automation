@@ -1,4 +1,3 @@
-using Server.Services.Extensions;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
@@ -221,7 +220,7 @@ internal sealed class FlowRuntimeService(
 
                     Value = instance.Compilation.NodeIndices.TryGetValue(node.Id, out slot)
                         && slot < scan.Slots.Count
-                        && scan.Slots[slot].Type == DataType.Boolean.ToFriendlyString()
+                        && scan.Slots[slot].DataType == DataType.Boolean
                             ? scan.Slots[slot].Boolean
                             : null
                 },

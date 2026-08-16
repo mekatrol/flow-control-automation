@@ -1,4 +1,3 @@
-using Server.Services.Extensions;
 using System.Globalization;
 
 namespace Server.Services.Implementation;
@@ -580,8 +579,8 @@ public sealed class FlowDebugService(
             IsAtCommit = frame.IsAtCommit,
             NodeId = NodeAt(local, frame.InstructionIndex),
             Slots = [.. frame.Slots.Select(DebugValue)],
-            CurrentState = [.. frame.CurrentState.Select(value => new DebugTypedValue("boolean", value))],
-            StagedNextState = [.. frame.StagedState.Select(value => value.HasValue ? new DebugTypedValue("boolean", value.Value) : null)],
+            CurrentState = [.. frame.CurrentState.Select(value => new DebugTypedValue(DataType.Boolean, Value: value))],
+            StagedNextState = [.. frame.StagedState.Select(value => value.HasValue ? new DebugTypedValue(DataType.Boolean, Value: value.Value) : null)],
             ProposedOutputs = frame.ProposedCommands,
             NodeValues = local.Compilation.NodeIndices
                 .Where(pair => pair.Value < frame.Slots.Count)
@@ -625,13 +624,13 @@ public sealed class FlowDebugService(
             "proposed",
             command.TypedValue.Quality,
             command.Value,
-            command.TypedValue.Type == DataType.Number.ToFriendlyString() ? command.TypedValue.Number : null,
+            command.TypedValue.DataType == DataType.Number ? command.TypedValue.Number : null,
             command.TypedValue))]
     };
 
-    private static DebugTypedValue DebugValue(FlowVmValue value) => value.Type == DataType.Number.ToFriendlyString()
-        ? new DebugTypedValue("number", Number: value.Number, Quality: value.Quality)
-        : new DebugTypedValue("boolean", value.Boolean, Quality: value.Quality);
+    private static DebugTypedValue DebugValue(FlowVmValue value) => value.DataType == DataType.Number
+        ? new DebugTypedValue(DataType.Number, Number: value.Number, Quality: value.Quality)
+        : new DebugTypedValue(DataType.Boolean, Value: value.Boolean, Quality: value.Quality);
 
     private static DebugRuntimeSnapshot ToCompatibilitySnapshot(FlowDebugSession session) => session.Snapshot
         ?? throw new InvalidOperationException("The completed scan did not produce a snapshot.");
