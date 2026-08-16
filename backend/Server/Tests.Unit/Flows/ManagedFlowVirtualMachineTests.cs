@@ -77,12 +77,12 @@ public sealed class ManagedFlowVirtualMachineTests
     {
         using var machine = Machine("valid-two-button-and");
 
-        var action = () => machine.Scan(
+        FlowVmScanResult action() => machine.Scan(
             [new("input-01", FlowVmValue.FromBoolean(true, DataQualityExtensions.Bad)), new("input-08", true)],
             1);
 
-        Assert.That(action, Throws.TypeOf<FlowVirtualMachineException>()
-            .With.Property(nameof(FlowVirtualMachineException.Code)).EqualTo(17));
+        Assert.That((Func<FlowVmScanResult>)action, Throws.TypeOf<FlowVirtualMachineException>()
+            .With.Property(nameof(FlowVirtualMachineException.Code)).EqualTo(FlowVirtualMachineErrorCode.InvalidRuntimeInput));
     }
 
     [Test]

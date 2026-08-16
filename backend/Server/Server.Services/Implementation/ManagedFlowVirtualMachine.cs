@@ -42,7 +42,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
 
         if (stateSlots.Select((item, index) => item.Index != stateBase + index).Any(invalid => invalid))
         {
-            Fail(10, "/slots/state");
+            Fail(FlowVirtualMachineErrorCode.InvalidStateLayout, "/slots/state");
         }
 
         _initialState =
@@ -52,7 +52,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
                     FlowSlotKind.MemoryState => FlowVmValue.FromNumber(Constant(item.InitialConstant, DataType.Number).Number),
                     FlowSlotKind.EdgeState => FlowVmValue.FromBoolean(false),
                     FlowSlotKind.TimerState => FlowVmValue.FromBoolean(false),
-                    _ => throw Error(12, "/slots/state")
+                    _ => throw Error(FlowVirtualMachineErrorCode.InvalidInstruction, "/slots/state")
                 })
             ];
 
@@ -123,7 +123,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
             ThrowIfDisposed();
             if (_executing)
             {
-                Fail(16, "/lifecycle");
+                Fail(FlowVirtualMachineErrorCode.InvalidLifecycleState, "/lifecycle");
             }
 
             _currentState = [.. _initialState];
@@ -147,12 +147,12 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
         ThrowIfDisposed();
         if (_executing)
         {
-            Fail(16, "/lifecycle");
+            Fail(FlowVirtualMachineErrorCode.InvalidLifecycleState, "/lifecycle");
         }
 
         if (inputs.Count > 64 || (_qualityPolicy == 1 && inputs.Any(item => item.TypedValue.Quality != DataQualityExtensions.Good)))
         {
-            Fail(17, "/inputs");
+            Fail(FlowVirtualMachineErrorCode.InvalidRuntimeInput, "/inputs");
         }
 
         _inputs = inputs;
@@ -191,7 +191,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
         RequireExecuting();
         if (_instructionPointer >= _instructions.Length)
         {
-            Fail(16, "/lifecycle");
+            Fail(FlowVirtualMachineErrorCode.InvalidLifecycleState, "/lifecycle");
         }
 
         var instruction = _instructions[_instructionPointer++];
@@ -203,17 +203,17 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
             case FlowOpcode.PointInput:
                 var point = _points[instruction.Auxiliary];
                 var input = _inputs.FirstOrDefault(item => item.PointId == point.Id && item.IsInterface == (point.BindingKind == PointBindingKind.FlowInterface));
-                
+
                 if (input is null)
                 {
-                    Fail(17, "/inputs");
+                    Fail(FlowVirtualMachineErrorCode.InvalidRuntimeInput, "/inputs");
                 }
 
                 var inputValue = input.TypedValue;
 
                 if (inputValue.DataType != point.DataType)
                 {
-                    Fail(17, "/inputs");
+                    Fail(FlowVirtualMachineErrorCode.InvalidRuntimeInput, "/inputs");
                 }
 
                 _slots[instruction.Result] = inputValue;
@@ -244,7 +244,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
                 break;
             case FlowOpcode.Add: Number(instruction, a.Number + b.Number, quality); break;
             case FlowOpcode.Comparator:
-                var compared = instruction.Auxiliary switch { 1 => a.Number < b.Number, 2 => a.Number <= b.Number, 3 => a.Number == b.Number, 4 => a.Number >= b.Number, 5 => a.Number > b.Number, 6 => a.Number != b.Number, _ => throw Error(12, "/instructions/comparison") };
+                var compared = instruction.Auxiliary switch { 1 => a.Number < b.Number, 2 => a.Number <= b.Number, 3 => a.Number == b.Number, 4 => a.Number >= b.Number, 5 => a.Number > b.Number, 6 => a.Number != b.Number, _ => throw Error(FlowVirtualMachineErrorCode.InvalidInstruction, "/instructions/comparison") };
                 _slots[instruction.Result] = FlowVmValue.FromBoolean(compared, quality);
                 break;
             case FlowOpcode.LevelShifter:
@@ -273,7 +273,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
                 break;
             case FlowOpcode.Passthrough: _slots[instruction.Result] = a; break;
             case FlowOpcode.Commit: break;
-            default: Fail(11, "/instructions"); break;
+            default: Fail(FlowVirtualMachineErrorCode.InvalidOpcode, "/instructions"); break;
         }
     }
 
@@ -316,7 +316,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
     {
         if (!double.IsFinite(value))
         {
-            Fail(17, "/arithmeticOverflow");
+            Fail(FlowVirtualMachineErrorCode.InvalidRuntimeInput, "/arithmeticOverflow");
         }
 
         _slots[instruction.Result] = FlowVmValue.FromNumber(value, quality);
@@ -338,9 +338,9 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
 
     private FlowVmValue[] EmptySlots() => [.. _slotDataTypes.Select(type => type == DataType.Number ? FlowVmValue.FromNumber(0) : FlowVmValue.FromBoolean(false))];
 
-    private ConstantRecord Constant(int index, DataType type) => index >= 0 && index < _constants.Length && _constants[index].DataType == type ? _constants[index] : throw Error(12, "/instructions/constant");
+    private ConstantRecord Constant(int index, DataType type) => index >= 0 && index < _constants.Length && _constants[index].DataType == type ? _constants[index] : throw Error(FlowVirtualMachineErrorCode.InvalidInstruction, "/instructions/constant");
 
-    private int State(int slot) => slot >= StateBase && slot - StateBase < _currentState.Length ? slot - StateBase : throw Error(12, "/instructions/state");
+    private int State(int slot) => slot >= StateBase && slot - StateBase < _currentState.Length ? slot - StateBase : throw Error(FlowVirtualMachineErrorCode.InvalidInstruction, "/instructions/state");
 
     private static FlowVmValue Value(ConstantRecord value) =>
         value.DataType == DataType.Number
@@ -353,15 +353,15 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
     {
         ThrowIfDisposed(); if (!_executing)
         {
-            Fail(16, "/lifecycle");
+            Fail(FlowVirtualMachineErrorCode.InvalidLifecycleState, "/lifecycle");
         }
     }
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);
-    
-    private static FlowVirtualMachineException Error(int code, string path) => new(code, path);
-    
+
+    private static FlowVirtualMachineException Error(FlowVirtualMachineErrorCode code, string path) => new(code, path);
+
     [DoesNotReturn]
-    private static void Fail(int code, string path) => throw Error(code, path);
+    private static void Fail(FlowVirtualMachineErrorCode code, string path) => throw Error(code, path);
 
     private sealed record ConstantRecord(DataType DataType, bool Boolean, double Number);
 
@@ -377,17 +377,17 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
         {
             if (bytes.Length is < 512 or > 16384 || !bytes[..4].SequenceEqual("FIL1"u8))
             {
-                Fail(1, "/");
+                Fail(FlowVirtualMachineErrorCode.InvalidImage, "/");
             }
 
             if (U16(bytes, 4) != 1)
             {
-                Fail(2, "/version");
+                Fail(FlowVirtualMachineErrorCode.UnsupportedVersion, "/version");
             }
 
             if (U16(bytes, 6) != 128 || U32(bytes, 8) != bytes.Length || U16(bytes, 26) != 8)
             {
-                Fail(3, "/envelope");
+                Fail(FlowVirtualMachineErrorCode.InvalidEnvelope, "/envelope");
             }
 
             var sections = new Section[8];
@@ -396,14 +396,14 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
                 var entry = bytes.Slice(128 + (index * 48), 48);
                 if (U16(entry, 0) != index + 1)
                 {
-                    Fail(5, $"/sections/{index}");
+                    Fail(FlowVirtualMachineErrorCode.InvalidSection, $"/sections/{index}");
                 }
 
                 var offset = checked((int)U32(entry, 4));
                 var length = checked((int)U32(entry, 8));
                 if (offset < 512 || length < 0 || offset > bytes.Length - length)
                 {
-                    Fail(3, $"/sections/{index}");
+                    Fail(FlowVirtualMachineErrorCode.InvalidEnvelope, $"/sections/{index}");
                 }
 
                 sections[index] = new(offset, length, checked((int)U32(entry, 12)));
@@ -415,7 +415,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
             var idLength = bytes[52];
             if (idLength is 0 or > 63)
             {
-                Fail(7, "/flowId");
+                Fail(FlowVirtualMachineErrorCode.InvalidIdentifier, "/flowId");
             }
 
             _ = Encoding.UTF8.GetString(bytes.Slice(53, idLength));
@@ -451,7 +451,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
 
                     if (!double.IsFinite(number))
                     {
-                        Fail(8, $"/constants/{index}");
+                        Fail(FlowVirtualMachineErrorCode.InvalidConstant, $"/constants/{index}");
                     }
 
                     result.Add(new(
@@ -463,13 +463,13 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
                 }
                 else
                 {
-                    Fail(8, $"/constants/{index}");
+                    Fail(FlowVirtualMachineErrorCode.InvalidConstant, $"/constants/{index}");
                 }
             }
 
             if (offset != section.Offset + section.Length)
             {
-                Fail(3, "/constants");
+                Fail(FlowVirtualMachineErrorCode.InvalidEnvelope, "/constants");
             }
 
             return [.. result];
@@ -492,7 +492,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
 
             if (offset != section.Offset + section.Length)
             {
-                Fail(3, "/points");
+                Fail(FlowVirtualMachineErrorCode.InvalidEnvelope, "/points");
             }
 
             return [.. result];
@@ -502,7 +502,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
         {
             if (section.Length != section.Count * size)
             {
-                Fail(3, "/sections");
+                Fail(FlowVirtualMachineErrorCode.InvalidEnvelope, "/sections");
             }
 
             var copy = bytes.Slice(section.Offset, section.Length).ToArray();
@@ -515,7 +515,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
             var length = bytes[offset++];
             if (!allowEmpty && length == 0)
             {
-                Fail(7, "/identifier");
+                Fail(FlowVirtualMachineErrorCode.InvalidIdentifier, "/identifier");
             }
 
             var value = Encoding.UTF8.GetString(bytes.Slice(offset, length));
@@ -524,7 +524,9 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
         }
 
         private sealed record Section(int Offset, int Length, int Count);
+
         private static ushort U16(ReadOnlySpan<byte> value, int offset) => BinaryPrimitives.ReadUInt16LittleEndian(value[offset..]);
+
         private static uint U32(ReadOnlySpan<byte> value, int offset) => BinaryPrimitives.ReadUInt32LittleEndian(value[offset..]);
     }
 }
