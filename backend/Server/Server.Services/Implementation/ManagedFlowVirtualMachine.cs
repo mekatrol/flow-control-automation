@@ -175,8 +175,9 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
         var commands = _instructions.Where(item => item.Opcode == FlowOpcode.PointOutput).Select(item =>
         {
             var point = _points[item.Auxiliary];
-            return new FlowVmCommand(point.Id, _slots[item.Result], point.BindingKind == 1);
+            return new FlowVmCommand(point.Id, _slots[item.Result], point.BindingKind == PointBindingKind.FlowInterface);
         }).ToArray();
+
         _currentState = [.. _stagedState];
         _timerStartedAt = [.. _stagedTimerStartedAt];
         _scanNumber++;
@@ -201,7 +202,8 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
         {
             case FlowOpcode.PointInput:
                 var point = _points[instruction.Auxiliary];
-                var input = _inputs.FirstOrDefault(item => item.PointId == point.Id && item.IsInterface == (point.BindingKind == 1));
+                var input = _inputs.FirstOrDefault(item => item.PointId == point.Id && item.IsInterface == (point.BindingKind == PointBindingKind.FlowInterface));
+                
                 if (input is null)
                 {
                     Fail(17, "/inputs");
@@ -363,7 +365,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
 
     private sealed record ConstantRecord(DataType DataType, bool Boolean, double Number);
 
-    private sealed record Point(DataDirection Direction, DataType DataType, byte BindingKind, string Id);
+    private sealed record Point(DataDirection Direction, DataType DataType, PointBindingKind BindingKind, string Id);
 
     private sealed record Slot(FlowSlotKind Kind, DataType DataType, ushort Index, ushort InitialConstant);
 
@@ -482,11 +484,12 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
                 var direction = (DataDirection)bytes[offset++];
                 var type = (DataType)bytes[offset++];
                 _ = bytes[offset++];
-                var binding = bytes[offset++];
+                var binding = (PointBindingKind)bytes[offset++];
                 var id = String8(bytes, ref offset);
                 _ = String8(bytes, ref offset, allowEmpty: true);
                 result.Add(new(direction, type, binding, id));
             }
+
             if (offset != section.Offset + section.Length)
             {
                 Fail(3, "/points");
