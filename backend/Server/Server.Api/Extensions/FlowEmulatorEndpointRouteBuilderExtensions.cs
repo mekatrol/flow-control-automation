@@ -88,7 +88,7 @@ public static class FlowEmulatorEndpointRouteBuilderExtensions
         {
             return Results.BadRequest(new ErrorResponse(exception.Message));
         }
-        catch (FlowVirtualMachineException exception)
+        catch (FlowVmException exception)
         {
             return Results.UnprocessableEntity(new ErrorResponse(exception.Message));
         }

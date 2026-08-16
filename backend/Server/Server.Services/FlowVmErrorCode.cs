@@ -1,6 +1,6 @@
 namespace Server.Services;
 
-public enum FlowVirtualMachineErrorCode : byte
+public enum FlowVmErrorCode : byte
 {
     InvalidImage = 1,
     UnsupportedVersion = 2,

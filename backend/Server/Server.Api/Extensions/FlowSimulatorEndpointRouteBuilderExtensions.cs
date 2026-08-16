@@ -88,7 +88,7 @@ public static class FlowSimulatorEndpointRouteBuilderExtensions
             diagnostics = compilation.Diagnostics
         }, statusCode: StatusCodes.Status422UnprocessableEntity),
         ControllerGatewayException { Category: "validation" } error => Error(StatusCodes.Status422UnprocessableEntity, "simulator_capability_unsupported", error.Message),
-        FlowVirtualMachineException error => Error(StatusCodes.Status422UnprocessableEntity, "simulator_vm_fault", error.Message),
+        FlowVmException error => Error(StatusCodes.Status422UnprocessableEntity, "simulator_vm_fault", error.Message),
         _ => Error(StatusCodes.Status503ServiceUnavailable, "simulator_unavailable", "The simulator is unavailable.")
     };
 

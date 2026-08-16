@@ -80,8 +80,8 @@ public sealed class ManagedFlowVirtualMachineTests
             [new("input-01", FlowVmValue.FromBoolean(true, DataQuality.Bad)), new("input-08", true)],
             1);
 
-        Assert.That((Func<FlowVmScanResult>)action, Throws.TypeOf<FlowVirtualMachineException>()
-            .With.Property(nameof(FlowVirtualMachineException.Code)).EqualTo(FlowVirtualMachineErrorCode.InvalidRuntimeInput));
+        Assert.That((Func<FlowVmScanResult>)action, Throws.TypeOf<FlowVmException>()
+            .With.Property(nameof(FlowVmException.Code)).EqualTo(FlowVmErrorCode.InvalidRuntimeInput));
     }
 
     [Test]
