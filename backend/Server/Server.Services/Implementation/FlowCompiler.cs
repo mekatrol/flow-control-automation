@@ -1,4 +1,3 @@
-using Server.Services.Extensions;
 using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Security.Cryptography;
@@ -43,22 +42,22 @@ public sealed partial class FlowCompiler : IFlowCompiler
         ["flowOutput"] = new([new("value", DataDirection.Output, DataType.Number)]),
         ["digitalOutput"] = new([new("in", DataDirection.Input, DataType.Boolean)]),
         ["analogOutput"] = new([new("in", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Number)]),
-        ["average"] = new([new(DataDirectionExtensions.Input, DataDirection.Input, DataType.Number), new("output", DataDirection.Output, DataType.Number)]),
-        ["calculator"] = new([new(DataDirectionExtensions.Input, DataDirection.Input, DataType.Number), new("output", DataDirection.Output, DataType.Number)]),
-        ["clamp"] = new([new(DataDirectionExtensions.Input, DataDirection.Input, DataType.Number), new("output", DataDirection.Output, DataType.Number)]),
+        ["average"] = new([new("input", DataDirection.Input, DataType.Number), new("output", DataDirection.Output, DataType.Number)]),
+        ["calculator"] = new([new("input", DataDirection.Input, DataType.Number), new("output", DataDirection.Output, DataType.Number)]),
+        ["clamp"] = new([new("input", DataDirection.Input, DataType.Number), new("output", DataDirection.Output, DataType.Number)]),
         ["min"] = new([new("a", DataDirection.Input, DataType.Number), new("b", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Number)]),
         ["max"] = new([new("a", DataDirection.Input, DataType.Number), new("b", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Number)]),
-        ["line"] = new([new(DataDirectionExtensions.Input, DataDirection.Input, DataType.Number), new("output", DataDirection.Output, DataType.Number)]),
+        ["line"] = new([new("input", DataDirection.Input, DataType.Number), new("output", DataDirection.Output, DataType.Number)]),
         ["if"] = new([new("condition", DataDirection.Input, DataType.Boolean), new("whenTrue", DataDirection.Input, DataType.Boolean), new("whenFalse", DataDirection.Input, DataType.Boolean), new("value", DataDirection.Output, DataType.Boolean)]),
         ["selector"] = new([new("condition", DataDirection.Input, DataType.Boolean), new("a", DataDirection.Input, DataType.Number), new("b", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Number)]),
-        ["split"] = new([new(DataDirectionExtensions.Input, DataDirection.Input, DataType.Number), new("output", DataDirection.Output, DataType.Number)]),
+        ["split"] = new([new("input", DataDirection.Input, DataType.Number), new("output", DataDirection.Output, DataType.Number)]),
         ["sequence"] = new([new("a", DataDirection.Input, DataType.Number), new("b", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Number)]),
-        ["override"] = new([new(DataDirectionExtensions.Input, DataDirection.Input, DataType.Boolean), new("output", DataDirection.Output, DataType.Boolean)]),
-        ["delay"] = new([new(DataDirectionExtensions.Input, DataDirection.Input, DataType.Boolean), new("output", DataDirection.Output, DataType.Boolean)]),
-        ["timer"] = new([new(DataDirectionExtensions.Input, DataDirection.Input, DataType.Boolean), new("output", DataDirection.Output, DataType.Boolean)]),
-        ["pulse"] = new([new(DataDirectionExtensions.Input, DataDirection.Input, DataType.Boolean), new("output", DataDirection.Output, DataType.Boolean)]),
-        ["schedule"] = new([new(DataDirectionExtensions.Output, DataDirection.Output, DataType.Number)]),
-        ["calendar"] = new([new(DataDirectionExtensions.Output, DataDirection.Output, DataType.Number)])
+        ["override"] = new([new("input", DataDirection.Input, DataType.Boolean), new("output", DataDirection.Output, DataType.Boolean)]),
+        ["delay"] = new([new("input", DataDirection.Input, DataType.Boolean), new("output", DataDirection.Output, DataType.Boolean)]),
+        ["timer"] = new([new("input", DataDirection.Input, DataType.Boolean), new("output", DataDirection.Output, DataType.Boolean)]),
+        ["pulse"] = new([new("input", DataDirection.Input, DataType.Boolean), new("output", DataDirection.Output, DataType.Boolean)]),
+        ["schedule"] = new([new("output", DataDirection.Output, DataType.Number)]),
+        ["calendar"] = new([new("output", DataDirection.Output, DataType.Number)])
     };
 
     public FlowCompilationResult Compile(FlowCompilationRequest request)
