@@ -8,17 +8,17 @@ namespace Server.Services.Implementation;
 internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
 {
     private const ushort Unused = ushort.MaxValue;
-    private readonly object _gate = new();
+    private readonly Lock _gate = new();
     private readonly byte _qualityPolicy;
     private readonly ConstantRecord[] _constants;
     private readonly Point[] _points;
-    private readonly byte[] _slotTypes;
+    private readonly DataType[] _slotDataTypes;
     private readonly Instruction[] _instructions;
     private readonly FlowVmValue[] _initialState;
     private readonly ulong[] _timerDurations;
     private FlowVmValue[] _currentState;
     private FlowVmValue[] _stagedState;
-    private bool[] _stagedStateValid;
+    private readonly bool[] _stagedStateValid;
     private ulong[] _timerStartedAt;
     private ulong[] _stagedTimerStartedAt;
     private FlowVmValue[] _slots;
@@ -35,7 +35,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
         _qualityPolicy = image.QualityPolicy;
         _constants = image.Constants;
         _points = [.. image.Points];
-        _slotTypes = [.. image.Slots.Select(item => item.Type)];
+        _slotDataTypes = [.. image.Slots.Select(item => item.DataType)];
         _instructions = image.Instructions;
         var stateSlots = image.Slots.Where(item => item.Kind is FlowSlotKind.MemoryState or FlowSlotKind.TimerState or FlowSlotKind.EdgeState).ToArray();
         var stateBase = stateSlots.Length == 0 ? image.Slots.Length : stateSlots.Min(item => item.Index);
@@ -334,7 +334,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
             : (bool?)null)],
         []);
 
-    private FlowVmValue[] EmptySlots() => [.. _slotTypes.Select(type => type == 2 ? FlowVmValue.FromNumber(0) : FlowVmValue.FromBoolean(false))];
+    private FlowVmValue[] EmptySlots() => [.. _slotDataTypes.Select(type => type == DataType.Number ? FlowVmValue.FromNumber(0) : FlowVmValue.FromBoolean(false))];
 
     private ConstantRecord Constant(int index, DataType type) => index >= 0 && index < _constants.Length && _constants[index].DataType == type ? _constants[index] : throw Error(12, "/instructions/constant");
 
@@ -355,7 +355,9 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
         }
     }
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);
+    
     private static FlowVirtualMachineException Error(int code, string path) => new(code, path);
+    
     [DoesNotReturn]
     private static void Fail(int code, string path) => throw Error(code, path);
 
@@ -363,7 +365,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
 
     private sealed record Point(DataDirection Direction, DataType DataType, byte BindingKind, string Id);
 
-    private sealed record Slot(FlowSlotKind Kind, byte Type, ushort Index, ushort InitialConstant);
+    private sealed record Slot(FlowSlotKind Kind, DataType DataType, ushort Index, ushort InitialConstant);
 
     private sealed record Instruction(FlowOpcode Opcode, ushort Result, ushort Operand0, ushort Operand1, ushort Auxiliary);
 
@@ -406,7 +408,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
             }
             var constants = ReadConstants(bytes, sections[0]);
             var points = ReadPoints(bytes, sections[1]);
-            var slots = Fixed(bytes, sections[2], 8).Select(record => new Slot((FlowSlotKind)record[0], record[1], U16(record, 4), U16(record, 6))).ToArray();
+            var slots = Fixed(bytes, sections[2], 8).Select(record => new Slot((FlowSlotKind)record[0], (DataType)record[1], U16(record, 4), U16(record, 6))).ToArray();
             var instructions = Fixed(bytes, sections[3], 12).Select(record => new Instruction((FlowOpcode)record[0], U16(record, 2), U16(record, 4), U16(record, 6), U16(record, 8))).ToArray();
             var idLength = bytes[52];
             if (idLength is 0 or > 63)
