@@ -1,4 +1,5 @@
 using Server.Services.Contracts;
+using Server.Services.Extensions;
 using System.Text.Json;
 
 namespace Server.Services.Implementation;
@@ -18,7 +19,7 @@ internal sealed class ServerFlowPointAdapter(IServiceScopeFactory scopes) : IFlo
         for (var index = 0; index < pointIds.Count; index++)
         {
             var envelope = await reader.ReadAsync(pointIds[index], cancellationToken);
-            var quality = string.Equals(envelope.Quality, "good", StringComparison.Ordinal) ? "good" : "bad";
+            var quality = string.Equals(envelope.Quality, DataQualityExtensions.Good, StringComparison.Ordinal) ? DataQualityExtensions.Good : DataQualityExtensions.Bad;
             result[index] = new FlowVmInput(pointIds[index], ParseValue(envelope.Value?.ToJsonString(), quality));
         }
 
@@ -44,7 +45,7 @@ internal sealed class ServerFlowPointAdapter(IServiceScopeFactory scopes) : IFlo
     {
         if (json is null)
         {
-            return FlowVmValue.FromBoolean(false, "bad");
+            return FlowVmValue.FromBoolean(false, DataQualityExtensions.Bad);
         }
 
         try
@@ -56,12 +57,12 @@ internal sealed class ServerFlowPointAdapter(IServiceScopeFactory scopes) : IFlo
                 JsonValueKind.False => FlowVmValue.FromBoolean(false, quality),
                 JsonValueKind.Number when document.RootElement.TryGetDouble(out var number) && double.IsFinite(number) =>
                     FlowVmValue.FromNumber(number, quality),
-                _ => FlowVmValue.FromBoolean(false, "bad")
+                _ => FlowVmValue.FromBoolean(false, DataQualityExtensions.Bad)
             };
         }
         catch (JsonException)
         {
-            return FlowVmValue.FromBoolean(false, "bad");
+            return FlowVmValue.FromBoolean(false, DataQualityExtensions.Bad);
         }
     }
 }

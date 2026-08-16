@@ -1,4 +1,3 @@
-using Server.Data;
 using Server.Data.Context;
 using Server.Services;
 using Server.Services.Contracts;
@@ -217,8 +216,8 @@ public sealed class FlowServiceTests
         {
             Nodes =
             [
-                Node("source", "output", "number"),
-                Node("target", "input", "string"),
+                Node("source", DataDirection.Output, DataType.Number),
+                Node("target", DataDirection.Input, DataType.String),
             ],
             Connections =
             [
@@ -246,7 +245,7 @@ public sealed class FlowServiceTests
             Connections = [],
             Nodes =
             [
-                Node("source", "output", "number") with
+                Node("source", DataDirection.Output, DataType.Number) with
                 {
                     Configuration = new Dictionary<string, JsonElement>
                     {
@@ -333,7 +332,7 @@ public sealed class FlowServiceTests
         return provider;
     }
 
-    private static FlowNode Node(string id, string direction, string dataType) => new()
+    private static FlowNode Node(string id, DataDirection direction, DataType dataType) => new()
     {
         Id = id,
         Kind = "and",

@@ -46,7 +46,9 @@ internal sealed class FlowImportEndpointTests
             "/api/flows/import-il",
             Request("valid-memory-feedback", "Imported feedback", save: true),
             FlowControlJson.Options);
+        
         var result = await response.Content.ReadFromJsonAsync<ImportFlowIlResponse>(FlowControlJson.Options);
+        
         var loaded = await client.GetFromJsonAsync<Flow>(
             $"/api/flows/{result!.Flow.Id}",
             FlowControlJson.Options);
@@ -56,8 +58,8 @@ internal sealed class FlowImportEndpointTests
             Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
             Assert.That(result.Saved, Is.True);
             Assert.That(result.Flow.Id, Is.EqualTo("imported-feedback"));
-            Assert.That(loaded!.Nodes, Has.Count.EqualTo(4));
-            Assert.That(loaded.Connections, Has.Count.EqualTo(4));
+            Assert.That(loaded!.Nodes, Has.Count.EqualTo(3));
+            Assert.That(loaded.Connections, Has.Count.EqualTo(2));
         });
     }
 

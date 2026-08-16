@@ -1,4 +1,4 @@
-using Server.Services.Contracts;
+using Server.Services.Extensions;
 using System.Globalization;
 
 namespace Server.Services.Implementation;
@@ -625,11 +625,11 @@ public sealed class FlowDebugService(
             "proposed",
             command.TypedValue.Quality,
             command.Value,
-            command.TypedValue.Type == "number" ? command.TypedValue.Number : null,
+            command.TypedValue.Type == DataType.Number.ToFriendlyString() ? command.TypedValue.Number : null,
             command.TypedValue))]
     };
 
-    private static DebugTypedValue DebugValue(FlowVmValue value) => value.Type == "number"
+    private static DebugTypedValue DebugValue(FlowVmValue value) => value.Type == DataType.Number.ToFriendlyString()
         ? new DebugTypedValue("number", Number: value.Number, Quality: value.Quality)
         : new DebugTypedValue("boolean", value.Boolean, Quality: value.Quality);
 

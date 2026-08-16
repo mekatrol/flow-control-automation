@@ -1,8 +1,8 @@
 namespace Server.Services.Contracts;
 
-public enum PointValueType
+public enum PointValueType : byte
 {
-    Analog,
+    Analog = 1,
     Digital,
     MultiState,
     Integer,

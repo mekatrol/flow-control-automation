@@ -11,12 +11,12 @@
   },
   "nodes": [
     {
-      "id": "constant-true",
-      "kind": "digitalConstant",
+      "id": "constant-2",
+      "kind": "numericConstant",
       "configuration": {
-        "value": true
+        "value": 2
       },
-      "label": "Digital Constant",
+      "label": "Numeric Constant",
       "x": 0,
       "y": 0,
       "zOrder": 0
@@ -25,7 +25,7 @@
       "id": "memory-1",
       "kind": "memory",
       "configuration": {
-        "value": false
+        "value": 2
       },
       "label": "Memory",
       "x": 0,
@@ -33,21 +33,12 @@
       "zOrder": 0
     },
     {
-      "id": "or-1",
-      "kind": "or",
-      "configuration": {},
-      "label": "Or",
-      "x": 0,
-      "y": 0,
-      "zOrder": 0
-    },
-    {
       "id": "output-01-node",
-      "kind": "digitalOutput",
+      "kind": "analogOutput",
       "configuration": {
         "pointId": "output-01"
       },
-      "label": "Digital Output",
+      "label": "Analog Output",
       "x": 0,
       "y": 0,
       "zOrder": 0
@@ -56,27 +47,7 @@
   "connections": [
     {
       "source": {
-        "nodeId": "constant-true",
-        "portId": "value"
-      },
-      "target": {
-        "nodeId": "or-1",
-        "portId": "a"
-      }
-    },
-    {
-      "source": {
-        "nodeId": "memory-1",
-        "portId": "value"
-      },
-      "target": {
-        "nodeId": "or-1",
-        "portId": "b"
-      }
-    },
-    {
-      "source": {
-        "nodeId": "or-1",
+        "nodeId": "constant-2",
         "portId": "value"
       },
       "target": {

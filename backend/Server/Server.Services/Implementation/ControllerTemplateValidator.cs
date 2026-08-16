@@ -1,4 +1,3 @@
-using Server.Services.Contracts;
 using System.Text.RegularExpressions;
 
 namespace Server.Services.Implementation;
@@ -213,12 +212,12 @@ public sealed partial class ControllerTemplateValidator : IControllerTemplateVal
         _ => null,
     };
 
-    private static PointDirection? ParsePointDirection(string value) => value switch
+    private static DataDirection? ParsePointDirection(string value) => value switch
     {
-        "input" => PointDirection.Input,
-        "output" => PointDirection.Output,
-        "input_output" => PointDirection.InputOutput,
-        "value" => PointDirection.Value,
+        "input" => DataDirection.Input,
+        "output" => DataDirection.Output,
+        "input_output" => DataDirection.InputOutput,
+        "value" => DataDirection.Value,
         _ => null,
     };
 

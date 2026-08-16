@@ -1,4 +1,3 @@
-using Server.Services.Contracts;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
@@ -18,9 +17,12 @@ internal static partial class FlowValidator
     ];
 
     private static readonly HashSet<string> ValidStatuses = ["draft", "deployed"];
-    private static readonly HashSet<string> ValidDirections = ["input", "output"];
-    private static readonly HashSet<string> ValidDataTypes =
-        ["any", "boolean", "event", "number", "string"];
+
+    private static readonly HashSet<DataDirection> ValidDirections = [DataDirection.Input, DataDirection.Output];
+
+    private static readonly HashSet<DataType> ValidDataTypes =
+        [DataType.Any, DataType.Boolean, DataType.Event, DataType.Number, DataType.String];
+
     private static readonly HashSet<string> ValidSides = ["left", "right", "top", "bottom"];
 
     public static void Validate(Flow flow)
@@ -114,30 +116,31 @@ internal static partial class FlowValidator
         }
 
         var connectionIds = new HashSet<string>();
+
         for (var index = 0; index < flow.Connections.Count; index++)
         {
             var connection = flow.Connections[index];
+
             if (string.IsNullOrWhiteSpace(connection.Id) || !connectionIds.Add(connection.Id))
             {
-                throw new FlowValidationException(
-                    $"connections[{index}]: id must be non-empty and unique");
+                throw new FlowValidationException($"connections[{index}]: id must be non-empty and unique");
             }
 
-            if (!TryGetConnector(nodes, connection.Start, out var start)
-                || !TryGetConnector(nodes, connection.End, out var end))
+            if (!TryGetConnector(nodes, connection.Start, out var start) ||
+                !TryGetConnector(nodes, connection.End, out var end))
             {
                 throw new FlowValidationException($"connections[{index}]: endpoint does not exist");
             }
 
-            if (start.Direction != "output" || end.Direction != "input")
+            if (start.Direction != DataDirection.Output || end.Direction != DataDirection.Input)
             {
                 throw new FlowValidationException(
                     $"connections[{index}]: connection must run from output to input");
             }
 
-            if (start.DataType != "any"
-                && end.DataType != "any"
-                && start.DataType != end.DataType)
+            if (start.DataType != DataType.Any &&
+                end.DataType != DataType.Any &&
+                start.DataType != end.DataType)
             {
                 throw new FlowValidationException(
                     $"connections[{index}]: connector data types are incompatible");
@@ -162,7 +165,7 @@ internal static partial class FlowValidator
     }
 
     private static void ValidateEntries(
-        IEnumerable<(string Id, string Name, string DataType, string? Units, JsonElement? DefaultValue)> values,
+        IEnumerable<(string Id, string Name, DataType DataType, string? Units, JsonElement? DefaultValue)> values,
         string path,
         bool inputs)
     {
@@ -175,12 +178,12 @@ internal static partial class FlowValidator
                 throw new FlowValidationException($"{path}[{index}]: id and name must be non-empty and unique");
             }
 
-            if (entry.DataType is not ("boolean" or "number" or "string" or "event"))
+            if (entry.DataType is not (DataType.Boolean or DataType.Number or DataType.String or DataType.Event))
             {
                 throw new FlowValidationException($"{path}[{index}].dataType: unsupported type");
             }
 
-            if (entry.DataType != "number" && !string.IsNullOrEmpty(entry.Units))
+            if (entry.DataType != DataType.Number && !string.IsNullOrEmpty(entry.Units))
             {
                 throw new FlowValidationException($"{path}[{index}].units: units require number data type");
             }
@@ -197,12 +200,12 @@ internal static partial class FlowValidator
         }
     }
 
-    private static bool Matches(JsonElement value, string dataType) => dataType switch
+    private static bool Matches(JsonElement value, DataType dataType) => dataType switch
     {
-        "boolean" => value.ValueKind is JsonValueKind.True or JsonValueKind.False,
-        "number" => value.ValueKind == JsonValueKind.Number && value.TryGetDouble(out var number) && double.IsFinite(number),
-        "string" => value.ValueKind == JsonValueKind.String,
-        "event" => value.ValueKind == JsonValueKind.Null,
+        DataType.Boolean => value.ValueKind is JsonValueKind.True or JsonValueKind.False,
+        DataType.Number => value.ValueKind == JsonValueKind.Number && value.TryGetDouble(out var number) && double.IsFinite(number),
+        DataType.String => value.ValueKind == JsonValueKind.String,
+        DataType.Event => value.ValueKind == JsonValueKind.Null,
         _ => false
     };
 
@@ -227,7 +230,7 @@ internal static partial class FlowValidator
             throw new FlowValidationException($"nodes[{nodeIndex}].configuration.interfaceId: unknown interface entry");
         }
 
-        var expectedDirection = node.Kind == "flowInput" ? "output" : "input";
+        var expectedDirection = node.Kind == "flowInput" ? DataDirection.Output : DataDirection.Input;
         if (node.Connectors.Count != 1 || node.Connectors[0].Direction != expectedDirection || node.Connectors[0].DataType != entry.DataType)
         {
             throw new FlowValidationException($"nodes[{nodeIndex}].connectors: terminal connector does not match interface entry");
@@ -243,12 +246,12 @@ internal static partial class FlowValidator
     };
 
     private static bool TryGetConnector(
-        IReadOnlyDictionary<string, Dictionary<string, FlowConnector>> nodes,
+        Dictionary<string, Dictionary<string, FlowConnector>> nodes,
         FlowEndpoint endpoint,
         out FlowConnector connector)
     {
-        if (nodes.TryGetValue(endpoint.NodeId, out var connectors)
-            && connectors.TryGetValue(endpoint.ConnectorId, out var found))
+        if (nodes.TryGetValue(endpoint.NodeId, out var connectors) &&
+            connectors.TryGetValue(endpoint.ConnectorId, out var found))
         {
             connector = found;
             return true;

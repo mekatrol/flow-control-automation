@@ -40,8 +40,7 @@ public sealed class FlowIlV1ContractFixtureTests
             Assert.Multiple(() =>
             {
                 Assert.That(artifact, Has.Length.EqualTo(fixture.GetProperty("artifactLength").GetInt32()));
-                Assert.That(Convert.ToHexStringLower(SHA256.HashData(artifact)),
-                    Is.EqualTo(fixture.GetProperty("artifactSha256").GetString()));
+                Assert.That(Convert.ToHexStringLower(SHA256.HashData(artifact)), Is.EqualTo(fixture.GetProperty("artifactSha256").GetString()));
                 Assert.That(result.Reason, Is.EqualTo(expected.GetProperty("reason").GetString()), id);
                 Assert.That(result.Path, Is.EqualTo(expected.GetProperty("path").GetString()), id);
             });

@@ -27,13 +27,13 @@
               />
             </template>
           </AppButton>
-          <AppButton
+          <!-- <AppButton
             v-if="definition.executable"
             v-bind="automation(`learn-${automationKind(definition.kind)}`)"
             text="Learn"
             :aria-label="`Learn ${definition.label} block`"
             @click="emit(EVENTS.LEARN, definition.kind)"
-          />
+          /> -->
         </div>
       </section>
     </div>

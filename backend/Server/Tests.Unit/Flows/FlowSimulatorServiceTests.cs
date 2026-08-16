@@ -95,7 +95,7 @@ public sealed class FlowSimulatorServiceTests
         private ulong _scan;
         public bool Disposed { get; private set; }
         public FlowVmScanResult Scan(IReadOnlyList<FlowVmInput> inputs, ulong sampledAtMilliseconds) => throw new NotSupportedException();
-        public FlowVmExecutionFrame BeginScan(IReadOnlyList<FlowVmInput> inputs, ulong sampledAtMilliseconds) => new(0, byte.MaxValue, true, [], [], [], []);
+        public FlowVmExecutionFrame BeginScan(IReadOnlyList<FlowVmInput> inputs, ulong sampledAtMilliseconds) => new(0, FlowOpcode.Commit, true, [], [], [], []);
         public FlowVmExecutionFrame StepInstruction() => throw new NotSupportedException();
         public FlowVmScanResult CommitScan() => new(++_scan, 1, [true], [new FlowVmCommand("output", true)]);
         public void AbortScan() { }

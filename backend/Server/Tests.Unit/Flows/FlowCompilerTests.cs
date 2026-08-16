@@ -3,12 +3,13 @@ using Server.Services.Contracts;
 using Server.Services.Implementation;
 using System.Text;
 using System.Text.Json;
+using Tests.Unit.Helpers;
 
 namespace Tests.Unit.Flows;
 
 public sealed class FlowCompilerTests
 {
-    private static readonly string[] TutorialKinds =
+    private static readonly string[] FlowFunctionKinds =
     [
         "add", "analogInput", "analogOutput", "and", "average", "calculator", "calendar",
         "clamp", "comparator", "delay", "digitalConstant", "digitalInput", "digitalOutput",
@@ -17,34 +18,117 @@ public sealed class FlowCompilerTests
         "qualityGood", "risingEdge", "schedule", "selector", "sequence", "split", "timer",
         "xnor", "xor"
     ];
-    private static readonly string SourceFixtureRoot = Path.Combine(
-        AppContext.BaseDirectory,
-        "ContractFixtures",
-        "flow-il-v1");
-    private static readonly string ExpectedFixtureRoot = Path.Combine(
+
+    private static readonly string FixtureSourceRoot = Path.Combine(
         AppContext.BaseDirectory,
         "ContractFixtures",
         "flow-il-v1");
 
+    private static readonly string FixtureExpectedRoot = Path.Combine(
+        AppContext.BaseDirectory,
+        "ContractFixtures",
+        "flow-il-v1");
+
+    private static readonly string FixtureUpdateRoot = Path.Combine(
+        FixtureUpdater.WorkspaceDirectory(),
+        "testdata",
+        "contracts",
+        "flow-il-v1");
+
+    private static ExecutableFlowSource GetSourceFromKind(string kind)
+    {
+        var numericInputs = kind switch
+        {
+            "add" or "comparator" or "min" or "max" or "sequence" => ["a", "b"],
+            "selector" => ["a", "b"],
+            "average" or "calculator" or "clamp" or "line" or "split" => new[] { "input" },
+            "levelShifter" => ["in"],
+            "analogOutput" => ["in"],
+            "memory" or "qualityGood" => ["in"],
+            _ => []
+        };
+
+        var booleanInputs = kind switch
+        {
+            "not" or "onDelay" or "risingEdge" => ["in"],
+            "and" or "or" or "nand" or "nor" or "xnor" or "xor" => ["a", "b"],
+            "if" => ["condition", "whenTrue", "whenFalse"],
+            "selector" => ["condition"],
+            "override" or "delay" or "timer" or "pulse" => ["input"],
+            "digitalOutput" => ["in"],
+            "flowOutput" => new[] { "value" },
+            _ => []
+        };
+
+        var configuration = kind switch
+        {
+            "digitalInput" or "digitalOutput" or "analogInput" or "analogOutput" => Config("pointId", "test-point"),
+            "digitalConstant" => Config("value", true),
+            "numericConstant" or "memory" => Config("value", 1D),
+            "comparator" => Config("operator", "gt"),
+            "levelShifter" or "line" => Config(("gain", 1D), ("offset", 0D)),
+            "onDelay" or "delay" or "timer" => Config("durationMs", 100D),
+            "clamp" => Config(("minimum", 0D), ("maximum", 100D)),
+            "schedule" or "calendar" => Config("enabled", true),
+            "flowInput" or "flowOutput" => Config("interfaceId", kind == "flowInput" ? "test-input" : "test-output"),
+            _ => []
+        };
+
+        var nodes = new List<ExecutableFlowNode>();
+        var connections = new List<ExecutableFlowConnection>();
+
+        foreach (var port in numericInputs)
+        {
+            var id = $"number-{port}";
+            nodes.Add(new ExecutableFlowNode { Id = id, Kind = "numericConstant", Configuration = Config("value", 1D) });
+            connections.Add(new ExecutableFlowConnection(new ExecutableFlowEndpoint(id, "value"), new ExecutableFlowEndpoint("test-node", port)));
+        }
+
+        foreach (var port in booleanInputs)
+        {
+            var id = $"boolean-{port}";
+            nodes.Add(new ExecutableFlowNode { Id = id, Kind = "digitalConstant", Configuration = Config("value", true) });
+            connections.Add(new ExecutableFlowConnection(new ExecutableFlowEndpoint(id, "value"), new ExecutableFlowEndpoint("test-node", port)));
+        }
+
+        nodes.Add(new ExecutableFlowNode { Id = "test-node", Kind = kind, Configuration = configuration });
+
+        return new ExecutableFlowSource
+        {
+            Id = $"test-{kind}",
+            Revision = 1,
+            ControllerTemplateId = "fixture",
+            ControllerTemplateRevision = 1,
+            Nodes = nodes,
+            Connections = connections,
+            Interface = new FlowInterface
+            {
+                Inputs = [new FlowInterfaceInput { Id = "test-input", Name = "Test input", DataType = DataType.Boolean, Required = false }],
+                Outputs = [new FlowInterfaceOutput { Id = "test-output", Name = "Test output", DataType = DataType.Boolean }]
+            }
+        };
+    }
+
     /// <summary>
-    /// Purpose: Ensures every executable tutorial function has a compiler-valid ordinary flow fixture.
+    /// Purpose: Ensures every executable function has a compiler-valid ordinary flow fixture.
     /// Description: Builds a minimal fully-driven graph for each canonical kind and compiles it through Flow IL.
     /// </summary>
-    [TestCaseSource(nameof(TutorialKinds))]
+    [TestCaseSource(nameof(FlowFunctionKinds))]
     public void EveryExecutableTutorialKindCompilesThroughTheNormalCompiler(string kind)
     {
         // Arrange: Create a current-schema fixture with typed constant drivers and canonical configuration.
-        var source = TutorialSource(kind);
+        var source = GetSourceFromKind(kind);
 
-        // Act: Compile through the production compiler rather than tutorial-specific semantics.
-        var compilation = new FlowCompiler().Compile(Request(source));
+        // Act: Compile through the production compiler rather than test-specific semantics.
+        var compilationRequest = BuildCompilationRequest(source);
+        var compilation = new FlowCompiler().Compile(compilationRequest);
 
         // Assert: A bounded current artifact and stable source identity are produced.
         Assert.Multiple(() =>
         {
             Assert.That(compilation.Artifact.Length, Is.GreaterThan(0));
             Assert.That(compilation.Artifact.Length, Is.LessThanOrEqualTo(16_384));
-            Assert.That(compilation.NodeIndices, Does.ContainKey("tutorial-node"));
+            Assert.That(compilation.NodeIndices, Does.ContainKey("test-node"));
         });
     }
 
@@ -53,16 +137,21 @@ public sealed class FlowCompilerTests
     [TestCase("valid-memory-feedback")]
     public void CompilesGoldenSourceToTheExactCanonicalArtifact(string fixture)
     {
-        var source = ReadSource(fixture);
+        var result = CompileFixture(fixture);
 
-        var result = new FlowCompiler().Compile(Request(source));
-        var expected = File.ReadAllBytes(Path.Combine(ExpectedFixtureRoot, fixture, "artifact.bin"));
+        var sourceRoot = FixtureUpdater.IsEnabled(fixture)
+            ? FixtureUpdateRoot
+            : FixtureExpectedRoot;
+
+        var expected = File.ReadAllBytes(
+            Path.Combine(sourceRoot, fixture, "artifact.bin"));
 
         Assert.Multiple(() =>
         {
             Assert.That(result.Artifact.ToArray(), Is.EqualTo(expected));
             Assert.That(result.ArtifactSha256,
-                Is.EqualTo(Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(expected))));
+                Is.EqualTo(Convert.ToHexStringLower(
+                    System.Security.Cryptography.SHA256.HashData(expected))));
             Assert.That(result.ArtifactVersion, Is.EqualTo(1));
             Assert.That(result.NodeIndices.Keys, Is.EqualTo(result.Schedule));
         });
@@ -74,20 +163,34 @@ public sealed class FlowCompilerTests
     [TestCase("xnor", 12)]
     public void LowersExpandedBooleanNodesToTheirNormativeOpcode(string kind, byte opcode)
     {
-        var source = ReadSource("valid-two-button-and");
+        const string fixture = "valid-two-button-and";
+
+        var source = ReadSource(fixture);
         source = source with
         {
-            Nodes = [.. source.Nodes.Select(node => node.Kind == "and" ? node with { Kind = kind } : node)]
+            Nodes = [.. source.Nodes.Select(node =>
+            node.Kind == "and"
+                ? node with { Kind = kind }
+                : node)]
         };
 
-        var artifact = new FlowCompiler().Compile(Request(source)).Artifact.ToArray();
-        var instructionSection = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(
-            artifact.AsSpan(128 + (3 * 48) + 4, 4));
+        var artifact = new FlowCompiler()
+            .Compile(BuildCompilationRequest(source))
+            .Artifact
+            .ToArray();
 
-        var instructionCount = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(artifact.AsSpan(32, 4));
+        var instructionSection =
+            System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(
+                artifact.AsSpan(128 + (3 * 48) + 4, 4));
+
+        var instructionCount =
+            System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(
+                artifact.AsSpan(32, 4));
+
         Assert.That(
             Enumerable.Range(0, checked((int)instructionCount))
-                .Select(index => artifact[checked((int)instructionSection) + (index * 12)]),
+                .Select(index =>
+                    artifact[checked((int)instructionSection) + (index * 12)]),
             Does.Contain(opcode));
     }
 
@@ -104,7 +207,7 @@ public sealed class FlowCompilerTests
         };
 
         AssertDiagnostic(
-            () => new FlowCompiler().Compile(Request(source)),
+            () => new FlowCompiler().Compile(BuildCompilationRequest(source)),
             "unsupported_node",
             "/nodes/0/kind");
     }
@@ -127,7 +230,7 @@ public sealed class FlowCompilerTests
         };
 
         AssertDiagnostic(
-            () => new FlowCompiler().Compile(Request(source)),
+            () => new FlowCompiler().Compile(BuildCompilationRequest(source)),
             "combinational_cycle",
             "/nodes/not-a");
     }
@@ -138,7 +241,7 @@ public sealed class FlowCompilerTests
         var source = ReadSource("valid-two-button-and") with { Connections = [] };
 
         AssertDiagnostic(
-            () => new FlowCompiler().Compile(Request(source)),
+            () => new FlowCompiler().Compile(BuildCompilationRequest(source)),
             "missing_connection",
             "/nodes/and-main/ports/a");
     }
@@ -146,19 +249,18 @@ public sealed class FlowCompilerTests
     [Test]
     public void ReportsScheduledResourceRequirementsForThePlcScan()
     {
-        var result = new FlowCompiler().Compile(Request(ReadSource("valid-memory-feedback")));
+        var result = CompileFixture("valid-memory-feedback");
 
         Assert.Multiple(() =>
         {
             Assert.That(result.Schedule, Is.EqualTo(new[]
             {
-                "constant-true",
+                "constant-2",
                 "memory-1",
-                "or-1",
                 "output-01-node"
             }));
-            Assert.That(result.MaximumWorkPerScan, Is.EqualTo(6));
-            Assert.That(result.WorkingBytes, Is.EqualTo(160));
+            Assert.That(result.MaximumWorkPerScan, Is.EqualTo(5));
+            Assert.That(result.WorkingBytes, Is.EqualTo(128));
             Assert.That(result.MaximumSnapshotBytes, Is.EqualTo(16384));
         });
     }
@@ -167,7 +269,7 @@ public sealed class FlowCompilerTests
     [TestCase(99)]
     public void RejectsEveryNonCurrentArtifactVersionWithAStablePath(int artifactVersion)
     {
-        var request = Request(ReadSource("valid-two-button-and")) with { ArtifactVersion = artifactVersion };
+        var request = BuildCompilationRequest(ReadSource("valid-two-button-and")) with { ArtifactVersion = artifactVersion };
 
         AssertDiagnostic(
             () => new FlowCompiler().Compile(request),
@@ -179,7 +281,7 @@ public sealed class FlowCompilerTests
     public void CapturesResolvedPointRevisionsInTheCanonicalArtifact()
     {
         var source = ReadSource("valid-two-button-and");
-        var firstRequest = Request(source);
+        var firstRequest = BuildCompilationRequest(source);
         var first = new FlowCompiler().Compile(firstRequest);
         var changedPoint = firstRequest.Target.Points[0] with { Revision = 2 };
         var second = new FlowCompiler().Compile(firstRequest with
@@ -200,8 +302,8 @@ public sealed class FlowCompilerTests
         {
             Interface = new FlowInterface
             {
-                Inputs = [new FlowInterfaceInput { Id = "temperature", Name = "Temperature", DataType = "number", Units = "°C", Required = true }],
-                Outputs = [new FlowInterfaceOutput { Id = "result", Name = "Result", DataType = "number", Units = "°C" }]
+                Inputs = [new FlowInterfaceInput { Id = "temperature", Name = "Temperature", DataType = DataType.Number, Units = "°C", Required = true }],
+                Outputs = [new FlowInterfaceOutput { Id = "result", Name = "Result", DataType = DataType.Number, Units = "°C" }]
             },
             Nodes =
             [
@@ -210,7 +312,7 @@ public sealed class FlowCompilerTests
             ],
             Connections = [new ExecutableFlowConnection(new ExecutableFlowEndpoint("input", "value"), new ExecutableFlowEndpoint("output", "value"))]
         };
-        var request = Request(source);
+        var request = BuildCompilationRequest(source);
 
         var first = new FlowCompiler().Compile(request);
         var second = new FlowCompiler().Compile(request);
@@ -219,7 +321,7 @@ public sealed class FlowCompilerTests
         {
             Assert.That(first.Artifact.ToArray(), Is.EqualTo(second.Artifact.ToArray()));
             Assert.That(first.Schedule, Is.EqualTo(new[] { "input", "output" }));
-            Assert.That(first.NodeIndices.Keys, Is.EquivalentTo(new[] { "input", "output" }));
+            Assert.That(first.NodeIndices.Keys, Is.EquivalentTo(["input", "output"]));
             Assert.That(Encoding.UTF8.GetString(first.Artifact.Span), Does.Contain("temperature"));
             Assert.That(Encoding.UTF8.GetString(first.Artifact.Span), Does.Contain("result"));
         });
@@ -229,7 +331,7 @@ public sealed class FlowCompilerTests
     public void RejectsAnUnresolvedPointDependencyBeforeEmission()
     {
         var source = ReadSource("valid-two-button-and");
-        var request = Request(source);
+        var request = BuildCompilationRequest(source);
         request = request with { Target = request.Target with { Points = [.. request.Target.Points.Skip(1)] } };
 
         AssertDiagnostic(
@@ -237,73 +339,6 @@ public sealed class FlowCompilerTests
             "missing_point",
             $"/points/{source.Nodes[0].Configuration["pointId"].GetString()}");
     }
-
-    private static ExecutableFlowSource TutorialSource(string kind)
-    {
-        var numericInputs = kind switch
-        {
-            "add" or "comparator" or "min" or "max" => new[] { "a", "b" },
-            "selector" => new[] { "a", "b" },
-            "average" or "calculator" or "clamp" or "line" => new[] { "input" },
-            "levelShifter" => new[] { "in" },
-            "analogOutput" => new[] { "in" },
-            _ => []
-        };
-        var booleanInputs = kind switch
-        {
-            "not" or "qualityGood" or "onDelay" or "risingEdge" or "memory" => new[] { "in" },
-            "and" or "or" or "nand" or "nor" or "xnor" or "xor" or "sequence" => new[] { "a", "b" },
-            "if" => new[] { "condition", "whenTrue", "whenFalse" },
-            "selector" => new[] { "condition" },
-            "split" or "override" or "delay" or "timer" or "pulse" => new[] { "input" },
-            "digitalOutput" => new[] { "in" },
-            "flowOutput" => new[] { "value" },
-            _ => []
-        };
-        var configuration = kind switch
-        {
-            "digitalInput" or "digitalOutput" or "analogInput" or "analogOutput" => Config("pointId", "tutorial-point"),
-            "digitalConstant" or "memory" => Config("value", true),
-            "numericConstant" => Config("value", 1D),
-            "comparator" => Config("operator", "gt"),
-            "levelShifter" or "line" => Config(("gain", 1D), ("offset", 0D)),
-            "onDelay" or "delay" or "timer" => Config("durationMs", 100D),
-            "clamp" => Config(("minimum", 0D), ("maximum", 100D)),
-            "schedule" or "calendar" => Config("enabled", true),
-            "flowInput" or "flowOutput" => Config("interfaceId", kind == "flowInput" ? "tutorial-input" : "tutorial-output"),
-            _ => new Dictionary<string, JsonElement>()
-        };
-        var nodes = new List<ExecutableFlowNode>();
-        var connections = new List<ExecutableFlowConnection>();
-        foreach (var port in numericInputs)
-        {
-            var id = $"number-{port}";
-            nodes.Add(new ExecutableFlowNode { Id = id, Kind = "numericConstant", Configuration = Config("value", 1D) });
-            connections.Add(new ExecutableFlowConnection(new ExecutableFlowEndpoint(id, "value"), new ExecutableFlowEndpoint("tutorial-node", port)));
-        }
-        foreach (var port in booleanInputs)
-        {
-            var id = $"boolean-{port}";
-            nodes.Add(new ExecutableFlowNode { Id = id, Kind = "digitalConstant", Configuration = Config("value", true) });
-            connections.Add(new ExecutableFlowConnection(new ExecutableFlowEndpoint(id, "value"), new ExecutableFlowEndpoint("tutorial-node", port)));
-        }
-        nodes.Add(new ExecutableFlowNode { Id = "tutorial-node", Kind = kind, Configuration = configuration });
-        return new ExecutableFlowSource
-        {
-            Id = "tutorial",
-            Revision = 1,
-            ControllerTemplateId = "fixture",
-            ControllerTemplateRevision = 1,
-            Nodes = nodes,
-            Connections = connections,
-            Interface = new FlowInterface
-            {
-                Inputs = [new FlowInterfaceInput { Id = "tutorial-input", Name = "Tutorial input", DataType = "boolean", Required = false }],
-                Outputs = [new FlowInterfaceOutput { Id = "tutorial-output", Name = "Tutorial output", DataType = "boolean" }]
-            }
-        };
-    }
-
     private static Dictionary<string, JsonElement> Config(string key, object value) =>
         new() { [key] = JsonSerializer.SerializeToElement(value) };
 
@@ -312,11 +347,15 @@ public sealed class FlowCompilerTests
 
     private static ExecutableFlowSource ReadSource(string fixture)
     {
-        var json = File.ReadAllText(Path.Combine(SourceFixtureRoot, fixture, "source-flow.json"));
+        var sourceRoot = FixtureUpdater.IsEnabled(fixture)
+          ? FixtureUpdateRoot
+          : FixtureSourceRoot;
+
+        var json = File.ReadAllText(Path.Combine(sourceRoot, fixture, "source-flow.json"));
         return JsonSerializer.Deserialize<ExecutableFlowSource>(json, FlowControlJson.Options)!;
     }
 
-    private static FlowCompilationRequest Request(ExecutableFlowSource source) => new()
+    private static FlowCompilationRequest BuildCompilationRequest(ExecutableFlowSource source) => new()
     {
         Source = source,
         Target = new FlowCompilationTarget
@@ -329,7 +368,7 @@ public sealed class FlowCompilerTests
                     Revision = checked((int)source.ControllerTemplateRevision)
                 },
                 new HashSet<PointValueType> { PointValueType.Digital, PointValueType.Analog },
-                new HashSet<PointDirection> { PointDirection.Input, PointDirection.Output },
+                new HashSet<DataDirection> { DataDirection.Input, DataDirection.Output },
                 new HashSet<ControllerPointFeature>(),
                 new HashSet<ConnectorDataType> { ConnectorDataType.Boolean, ConnectorDataType.Number },
                 new HashSet<string>(StringComparer.Ordinal),
@@ -362,5 +401,38 @@ public sealed class FlowCompilerTests
             Assert.That(exception!.Diagnostics[0].Code, Is.EqualTo(code));
             Assert.That(exception.Diagnostics[0].Path, Is.EqualTo(path));
         });
+    }
+
+    /// <summary>
+    /// Compiles the specified flow source for a fixture and updates its generated
+    /// artifacts when fixture regeneration is enabled.
+    /// </summary>
+    /// <param name="fixture">The name of the fixture.</param>
+    /// <param name="source">The executable flow source to compile.</param>
+    /// <returns>The compiled flow result.</returns>
+    private static FlowCompilationResult CompileFixture(
+        string fixture,
+        ExecutableFlowSource source)
+    {
+        var result = new FlowCompiler().Compile(BuildCompilationRequest(source));
+
+        FixtureUpdater.UpdateFlowCompilation(
+            fixture,
+            result,
+            FixtureUpdateRoot);
+
+        return result;
+    }
+
+    /// <summary>
+    /// Loads and compiles the specified flow fixture and updates its generated
+    /// artifacts when fixture regeneration is enabled.
+    /// </summary>
+    /// <param name="fixture">The name of the fixture to load and compile.</param>
+    /// <returns>The compiled flow result.</returns>
+    private static FlowCompilationResult CompileFixture(string fixture)
+    {
+        var source = ReadSource(fixture);
+        return CompileFixture(fixture, source);
     }
 }

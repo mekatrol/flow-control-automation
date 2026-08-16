@@ -354,6 +354,9 @@ dotnet_diagnostic.IDE1006.severity = error
 # RCS1194: Implement exception constructors
 dotnet_diagnostic.RCS1194.severity = none
 
+# RCS1214: Unnecessary interpolated string
+dotnet_diagnostic.RCS1214.severity = error
+
 # RCS1245: Remove redundant comma after last element in an initializer
 dotnet_diagnostic.RCS1245.severity = error
 

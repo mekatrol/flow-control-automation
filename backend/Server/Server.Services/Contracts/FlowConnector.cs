@@ -3,6 +3,6 @@ namespace Server.Services.Contracts;
 public sealed record FlowConnector(
     string Id,
     string Label,
-    string Direction,
-    string DataType,
+    DataDirection Direction,
+    DataType DataType,
     string Side);

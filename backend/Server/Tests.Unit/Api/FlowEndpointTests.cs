@@ -338,7 +338,7 @@ internal sealed class FlowEndpointTests
                     Id = "constant-true",
                     Kind = "digitalConstant",
                     Label = "Constant true",
-                    Connectors = [new FlowConnector("value", "Value", "output", "boolean", "right")],
+                    Connectors = [new FlowConnector("value", "Value", DataDirection.Output, DataType.Boolean, "right")],
                     Configuration = new Dictionary<string, JsonElement>
                     {
                         ["value"] = JsonSerializer.SerializeToElement(true)

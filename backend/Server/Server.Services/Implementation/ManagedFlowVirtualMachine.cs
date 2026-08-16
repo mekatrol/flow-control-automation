@@ -1,3 +1,4 @@
+using Server.Services.Extensions;
 using System.Buffers.Binary;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
@@ -13,10 +14,10 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
     private readonly Point[] _points;
     private readonly byte[] _slotTypes;
     private readonly Instruction[] _instructions;
-    private readonly bool[] _initialState;
+    private readonly FlowVmValue[] _initialState;
     private readonly ulong[] _timerDurations;
-    private bool[] _currentState;
-    private bool[] _stagedState;
+    private FlowVmValue[] _currentState;
+    private FlowVmValue[] _stagedState;
     private bool[] _stagedStateValid;
     private ulong[] _timerStartedAt;
     private ulong[] _stagedTimerStartedAt;
@@ -33,22 +34,31 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
         var image = Image.Parse(artifact.Span);
         _qualityPolicy = image.QualityPolicy;
         _constants = image.Constants;
-        _points = image.Points;
+        _points = [.. image.Points];
         _slotTypes = [.. image.Slots.Select(item => item.Type)];
         _instructions = image.Instructions;
-        var stateSlots = image.Slots.Where(item => item.Kind is 3 or 4 or 5).ToArray();
+        var stateSlots = image.Slots.Where(item => item.Kind is FlowSlotKind.MemoryState or FlowSlotKind.TimerState or FlowSlotKind.EdgeState).ToArray();
         var stateBase = stateSlots.Length == 0 ? image.Slots.Length : stateSlots.Min(item => item.Index);
+
         if (stateSlots.Select((item, index) => item.Index != stateBase + index).Any(invalid => invalid))
         {
             Fail(10, "/slots/state");
         }
 
-        _initialState = [.. stateSlots.Select(item =>
-            item.Kind == 3 && Constant(item.InitialConstant, 1).Boolean)];
-        _timerDurations = [.. stateSlots.Select(item =>
-            item.Kind == 4 ? checked((ulong)Constant(item.InitialConstant, 2).Number) : 0UL)];
+        _initialState =
+            [
+                .. stateSlots.Select(item => item.Kind switch
+                {
+                    FlowSlotKind.MemoryState => FlowVmValue.FromNumber(Constant(item.InitialConstant, DataType.Number).Number),
+                    FlowSlotKind.EdgeState => FlowVmValue.FromBoolean(false),
+                    FlowSlotKind.TimerState => FlowVmValue.FromBoolean(false),
+                    _ => throw Error(12, "/slots/state")
+                })
+            ];
+
+        _timerDurations = [.. stateSlots.Select(item => item.Kind == FlowSlotKind.TimerState ? checked((ulong)Constant(item.InitialConstant, DataType.Number).Number) : 0UL)];
         _currentState = [.. _initialState];
-        _stagedState = new bool[stateSlots.Length];
+        _stagedState = new FlowVmValue[stateSlots.Length];
         _stagedStateValid = new bool[stateSlots.Length];
         _timerStartedAt = new ulong[stateSlots.Length];
         _stagedTimerStartedAt = new ulong[stateSlots.Length];
@@ -140,7 +150,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
             Fail(16, "/lifecycle");
         }
 
-        if (inputs.Count > 64 || (_qualityPolicy == 1 && inputs.Any(item => item.TypedValue.Quality != "good")))
+        if (inputs.Count > 64 || (_qualityPolicy == 1 && inputs.Any(item => item.TypedValue.Quality != DataQualityExtensions.Good)))
         {
             Fail(17, "/inputs");
         }
@@ -162,7 +172,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
             ExecuteNext();
         }
 
-        var commands = _instructions.Where(item => item.Opcode == 7).Select(item =>
+        var commands = _instructions.Where(item => item.Opcode == FlowOpcode.PointOutput).Select(item =>
         {
             var point = _points[item.Auxiliary];
             return new FlowVmCommand(point.Id, _slots[item.Result], point.BindingKind == 1);
@@ -189,7 +199,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
         var quality = Worse(a.Quality, b.Quality);
         switch (instruction.Opcode)
         {
-            case 1:
+            case FlowOpcode.PointInput:
                 var point = _points[instruction.Auxiliary];
                 var input = _inputs.FirstOrDefault(item => item.PointId == point.Id && item.IsInterface == (point.BindingKind == 1));
                 if (input is null)
@@ -198,6 +208,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
                 }
 
                 var inputValue = input.TypedValue;
+
                 if (Type(inputValue) != point.Type)
                 {
                     Fail(17, "/inputs");
@@ -205,40 +216,61 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
 
                 _slots[instruction.Result] = inputValue;
                 break;
-            case 2: _slots[instruction.Result] = Value(Constant(instruction.Auxiliary, 1)); break;
-            case 3: _slots[instruction.Result] = FlowVmValue.FromBoolean(!a.Boolean, a.Quality); break;
-            case 4: _slots[instruction.Result] = FlowVmValue.FromBoolean(a.Boolean && b.Boolean, quality); break;
-            case 5: _slots[instruction.Result] = FlowVmValue.FromBoolean(a.Boolean || b.Boolean, quality); break;
-            case 6: _slots[instruction.Result] = FlowVmValue.FromBoolean(_currentState[State(instruction.Auxiliary)]); break;
-            case 7: _slots[instruction.Result] = a; break;
-            case 8:
+            case FlowOpcode.DigitalConstant:
+                _slots[instruction.Result] =
+                    Value(Constant(instruction.Auxiliary, DataType.Boolean));
+                break;
+            case FlowOpcode.Not: _slots[instruction.Result] = FlowVmValue.FromBoolean(!a.Boolean, a.Quality); break;
+            case FlowOpcode.And: _slots[instruction.Result] = FlowVmValue.FromBoolean(a.Boolean && b.Boolean, quality); break;
+            case FlowOpcode.Or: _slots[instruction.Result] = FlowVmValue.FromBoolean(a.Boolean || b.Boolean, quality); break;
+            case FlowOpcode.Memory:
+                _slots[instruction.Result] = _currentState[State(instruction.Auxiliary)];
+                break;
+            case FlowOpcode.PointOutput: _slots[instruction.Result] = a; break;
+            case FlowOpcode.MemoryCommit:
                 var state = State(instruction.Auxiliary);
-                _stagedState[state] = a.Boolean;
+                _stagedState[state] = a;
                 _stagedStateValid[state] = true;
                 break;
-            case 9: _slots[instruction.Result] = FlowVmValue.FromBoolean(!(a.Boolean && b.Boolean), quality); break;
-            case 10: _slots[instruction.Result] = FlowVmValue.FromBoolean(!(a.Boolean || b.Boolean), quality); break;
-            case 11: _slots[instruction.Result] = FlowVmValue.FromBoolean(a.Boolean != b.Boolean, quality); break;
-            case 12: _slots[instruction.Result] = FlowVmValue.FromBoolean(a.Boolean == b.Boolean, quality); break;
-            case 13: _slots[instruction.Result] = Value(Constant(instruction.Auxiliary, 2)); break;
-            case 14: Number(instruction, a.Number + b.Number, quality); break;
-            case 15:
+            case FlowOpcode.Nand: _slots[instruction.Result] = FlowVmValue.FromBoolean(!(a.Boolean && b.Boolean), quality); break;
+            case FlowOpcode.Nor: _slots[instruction.Result] = FlowVmValue.FromBoolean(!(a.Boolean || b.Boolean), quality); break;
+            case FlowOpcode.Xor: _slots[instruction.Result] = FlowVmValue.FromBoolean(a.Boolean != b.Boolean, quality); break;
+            case FlowOpcode.Xnor: _slots[instruction.Result] = FlowVmValue.FromBoolean(a.Boolean == b.Boolean, quality); break;
+            case FlowOpcode.NumericConstant:
+                _slots[instruction.Result] =
+                    Value(Constant(instruction.Auxiliary, DataType.Number));
+                break;
+            case FlowOpcode.Add: Number(instruction, a.Number + b.Number, quality); break;
+            case FlowOpcode.Comparator:
                 var compared = instruction.Auxiliary switch { 1 => a.Number < b.Number, 2 => a.Number <= b.Number, 3 => a.Number == b.Number, 4 => a.Number >= b.Number, 5 => a.Number > b.Number, 6 => a.Number != b.Number, _ => throw Error(12, "/instructions/comparison") };
                 _slots[instruction.Result] = FlowVmValue.FromBoolean(compared, quality);
                 break;
-            case 16: Number(instruction, a.Number * Constant(instruction.Operand1, 2).Number + Constant(instruction.Auxiliary, 2).Number, a.Quality); break;
-            case 17: _slots[instruction.Result] = FlowVmValue.FromBoolean(a.Quality == "good"); break;
-            case 18: OnDelay(instruction, a); break;
-            case 19: RisingEdge(instruction, a); break;
-            case 20: Number(instruction, Math.Min(a.Number, b.Number), quality); break;
-            case 21: Number(instruction, Math.Max(a.Number, b.Number), quality); break;
-            case 22: Number(instruction, Math.Clamp(a.Number, Constant(instruction.Operand1, 2).Number, Constant(instruction.Auxiliary, 2).Number), a.Quality); break;
-            case 23:
+            case FlowOpcode.LevelShifter:
+                Number(
+                    instruction,
+                    (a.Number * Constant(instruction.Operand1, DataType.Number).Number) + Constant(instruction.Auxiliary, DataType.Number).Number,
+                    a.Quality);
+                break;
+            case FlowOpcode.QualityGood: _slots[instruction.Result] = FlowVmValue.FromBoolean(a.Quality == DataQualityExtensions.Good); break;
+            case FlowOpcode.OnDelay: OnDelay(instruction, a); break;
+            case FlowOpcode.RisingEdge: RisingEdge(instruction, a); break;
+            case FlowOpcode.Min: Number(instruction, Math.Min(a.Number, b.Number), quality); break;
+            case FlowOpcode.Max: Number(instruction, Math.Max(a.Number, b.Number), quality); break;
+            case FlowOpcode.Clamp:
+                Number(
+                    instruction,
+                    Math.Clamp(
+                        a.Number,
+                        Constant(instruction.Operand1, DataType.Number).Number,
+                        Constant(instruction.Auxiliary, DataType.Number).Number),
+                    a.Quality);
+                break;
+            case FlowOpcode.Selector:
                 var selected = a.Boolean ? instruction.Operand1 : instruction.Auxiliary;
                 _slots[instruction.Result] = _slots[selected] with { Quality = Worse(a.Quality, _slots[selected].Quality) };
                 break;
-            case 24: _slots[instruction.Result] = a; break;
-            case 255: break;
+            case FlowOpcode.Passthrough: _slots[instruction.Result] = a; break;
+            case FlowOpcode.Commit: break;
             default: Fail(11, "/instructions"); break;
         }
     }
@@ -264,11 +296,17 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
         _stagedStateValid[state] = true;
     }
 
-    private void RisingEdge(Instruction instruction, FlowVmValue input)
+    private void RisingEdge(
+    Instruction instruction,
+    FlowVmValue input)
     {
         var state = State(instruction.Auxiliary);
-        _slots[instruction.Result] = FlowVmValue.FromBoolean(input.Boolean && !_currentState[state], input.Quality);
-        _stagedState[state] = input.Boolean;
+
+        _slots[instruction.Result] = FlowVmValue.FromBoolean(
+            input.Boolean && !_currentState[state].Boolean,
+            input.Quality);
+
+        _stagedState[state] = FlowVmValue.FromBoolean(input.Boolean);
         _stagedStateValid[state] = true;
     }
 
@@ -284,20 +322,33 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
 
     private FlowVmExecutionFrame Frame() => new(
         checked((ushort)_instructionPointer),
-        _instructionPointer >= _instructions.Length ? byte.MaxValue : _instructions[_instructionPointer].Opcode,
+        _instructionPointer >= _instructions.Length
+            ? FlowOpcode.Commit
+            : _instructions[_instructionPointer].Opcode,
         _instructionPointer >= _instructions.Length,
         [.. _slots],
-        [.. _currentState],
-        [.. _stagedState.Select((value, index) => _stagedStateValid[index] ? (bool?)value : null)],
+        [.. _currentState.Select(value => value.Boolean)],
+        [.. _stagedState.Select((value, index) =>
+        _stagedStateValid[index]
+            ? value.Boolean
+            : (bool?)null)],
         []);
 
-    private FlowVmValue[] EmptySlots() => [.. _slotTypes.Select(type =>
-        type == 2 ? FlowVmValue.FromNumber(0) : FlowVmValue.FromBoolean(false))];
-    private ConstantRecord Constant(int index, byte type) => index >= 0 && index < _constants.Length && _constants[index].Type == type ? _constants[index] : throw Error(12, "/instructions/constant");
+    private FlowVmValue[] EmptySlots() => [.. _slotTypes.Select(type => type == 2 ? FlowVmValue.FromNumber(0) : FlowVmValue.FromBoolean(false))];
+
+    private ConstantRecord Constant(int index, DataType type) => index >= 0 && index < _constants.Length && _constants[index].Type == type ? _constants[index] : throw Error(12, "/instructions/constant");
+
     private int State(int slot) => slot >= StateBase && slot - StateBase < _currentState.Length ? slot - StateBase : throw Error(12, "/instructions/state");
-    private static byte Type(FlowVmValue value) => value.Type == "number" ? (byte)2 : (byte)1;
-    private static FlowVmValue Value(ConstantRecord value) => value.Type == 2 ? FlowVmValue.FromNumber(value.Number) : FlowVmValue.FromBoolean(value.Boolean);
-    private static string Worse(string left, string right) => left == "good" && right == "good" ? "good" : "bad";
+
+    private static DataType Type(FlowVmValue value) => value.Type.Equals(nameof(DataType.Number), StringComparison.CurrentCultureIgnoreCase) ? DataType.Number : DataType.Boolean;
+
+    private static FlowVmValue Value(ConstantRecord value) =>
+        value.Type == DataType.Number
+            ? FlowVmValue.FromNumber(value.Number)
+            : FlowVmValue.FromBoolean(value.Boolean);
+
+    private static string Worse(string left, string right) => left == DataQualityExtensions.Good && right == DataQualityExtensions.Good ? DataQualityExtensions.Good : DataQualityExtensions.Bad;
+
     private void RequireExecuting()
     {
         ThrowIfDisposed(); if (!_executing)
@@ -310,10 +361,13 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
     [DoesNotReturn]
     private static void Fail(int code, string path) => throw Error(code, path);
 
-    private sealed record ConstantRecord(byte Type, bool Boolean, double Number);
-    private sealed record Point(byte Direction, byte Type, byte BindingKind, string Id);
-    private sealed record Slot(byte Kind, byte Type, ushort Index, ushort InitialConstant);
-    private sealed record Instruction(byte Opcode, ushort Result, ushort Operand0, ushort Operand1, ushort Auxiliary);
+    private sealed record ConstantRecord(DataType Type, bool Boolean, double Number);
+
+    private sealed record Point(DataDirection Direction, DataType Type, byte BindingKind, string Id);
+
+    private sealed record Slot(FlowSlotKind Kind, byte Type, ushort Index, ushort InitialConstant);
+
+    private sealed record Instruction(FlowOpcode Opcode, ushort Result, ushort Operand0, ushort Operand1, ushort Auxiliary);
 
     private sealed record Image(byte QualityPolicy, ConstantRecord[] Constants, Point[] Points, Slot[] Slots, Instruction[] Instructions)
     {
@@ -337,7 +391,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
             var sections = new Section[8];
             for (var index = 0; index < sections.Length; index++)
             {
-                var entry = bytes.Slice(128 + index * 48, 48);
+                var entry = bytes.Slice(128 + (index * 48), 48);
                 if (U16(entry, 0) != index + 1)
                 {
                     Fail(5, $"/sections/{index}");
@@ -354,8 +408,8 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
             }
             var constants = ReadConstants(bytes, sections[0]);
             var points = ReadPoints(bytes, sections[1]);
-            var slots = Fixed(bytes, sections[2], 8).Select(record => new Slot(record[0], record[1], U16(record, 4), U16(record, 6))).ToArray();
-            var instructions = Fixed(bytes, sections[3], 12).Select(record => new Instruction(record[0], U16(record, 2), U16(record, 4), U16(record, 6), U16(record, 8))).ToArray();
+            var slots = Fixed(bytes, sections[2], 8).Select(record => new Slot((FlowSlotKind)record[0], record[1], U16(record, 4), U16(record, 6))).ToArray();
+            var instructions = Fixed(bytes, sections[3], 12).Select(record => new Instruction((FlowOpcode)record[0], U16(record, 2), U16(record, 4), U16(record, 6), U16(record, 8))).ToArray();
             var idLength = bytes[52];
             if (idLength is 0 or > 63)
             {
@@ -366,28 +420,43 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
             return new(bytes[28], constants, points, slots, instructions);
         }
 
-        private static ConstantRecord[] ReadConstants(ReadOnlySpan<byte> bytes, Section section)
+        private static ConstantRecord[] ReadConstants(
+            ReadOnlySpan<byte> bytes,
+            Section section)
         {
             var result = new List<ConstantRecord>();
             var offset = section.Offset;
+
             for (var index = 0; index < section.Count; index++)
             {
-                var type = bytes[offset];
+                var type = (DataType)bytes[offset];
                 var flags = bytes[offset + 1];
+
                 offset += 4;
-                if (type == 1)
+
+                if (type == DataType.Boolean)
                 {
-                    result.Add(new(1, flags == 1, 0));
+                    result.Add(new(
+                        DataType.Boolean,
+                        flags == 1,
+                        0));
                 }
-                else if (type == 2)
+                else if (type == DataType.Number)
                 {
-                    var number = BitConverter.Int64BitsToDouble(BinaryPrimitives.ReadInt64LittleEndian(bytes.Slice(offset, 8)));
+                    var number = BitConverter.Int64BitsToDouble(
+                        BinaryPrimitives.ReadInt64LittleEndian(
+                            bytes.Slice(offset, 8)));
+
                     if (!double.IsFinite(number))
                     {
                         Fail(8, $"/constants/{index}");
                     }
 
-                    result.Add(new(2, false, number));
+                    result.Add(new(
+                        DataType.Number,
+                        false,
+                        number));
+
                     offset += 8;
                 }
                 else
@@ -395,6 +464,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
                     Fail(8, $"/constants/{index}");
                 }
             }
+
             if (offset != section.Offset + section.Length)
             {
                 Fail(3, "/constants");
@@ -409,8 +479,8 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
             var offset = section.Offset;
             for (var index = 0; index < section.Count; index++)
             {
-                var direction = bytes[offset++];
-                var type = bytes[offset++];
+                var direction = (DataDirection)bytes[offset++];
+                var type = (DataType)bytes[offset++];
                 _ = bytes[offset++];
                 var binding = bytes[offset++];
                 var id = String8(bytes, ref offset);

@@ -1,4 +1,3 @@
-using Server.Services.Contracts;
 using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text;
@@ -37,7 +36,8 @@ public sealed class FlowDecompiler : IFlowDecompiler
         {
             var instruction = instructions[index];
             var symbol = symbols[index];
-            if (instruction.Opcode == 255)
+
+            if (instruction.Opcode == FlowOpcode.Commit)
             {
                 if (index != instructions.Count - 1 || symbol.NodeId.Length != 0)
                 {
@@ -47,7 +47,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
                 continue;
             }
 
-            if (instruction.Opcode == 8)
+            if (instruction.Opcode == FlowOpcode.MemoryCommit)
             {
                 RequireSymbol(symbol, index, 1);
                 AddConnection(connections, slotOwners, instruction.Operand0, symbol.NodeId, "in", index);
@@ -56,62 +56,64 @@ public sealed class FlowDecompiler : IFlowDecompiler
 
             RequireSymbol(symbol, index, 0);
             var configuration = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+
             var kind = instruction.Opcode switch
             {
-                1 => ConfigurePoint(configuration, points, instruction.Auxiliary, 1, index),
-                2 => ConfigureBoolean("digitalConstant", configuration, constants, instruction.Auxiliary, index),
-                3 => "not",
-                4 => "and",
-                5 => "or",
-                6 => ConfigureState(configuration, slots, constants, instruction.Auxiliary, index),
-                7 => ConfigurePoint(configuration, points, instruction.Auxiliary, 2, index),
-                9 => "nand",
-                10 => "nor",
-                11 => "xor",
-                12 => "xnor",
-                13 => ConfigureNumber("numericConstant", configuration, constants, instruction.Auxiliary, index),
-                14 => "add",
-                15 => ConfigureComparator(configuration, instruction.Auxiliary, index),
-                16 => ConfigureLevelShifter(configuration, constants, instruction.Operand1, instruction.Auxiliary, index),
-                17 => "qualityGood",
-                18 => ConfigureTimer(configuration, slots, constants, instruction.Auxiliary, index),
-                19 => "risingEdge",
+                FlowOpcode.PointInput => ConfigurePoint(configuration, points, instruction.Auxiliary, DataDirection.Input, index),
+                FlowOpcode.DigitalConstant => ConfigureBoolean("digitalConstant", configuration, constants, instruction.Auxiliary, index),
+                FlowOpcode.Not => "not",
+                FlowOpcode.And => "and",
+                FlowOpcode.Or => "or",
+                FlowOpcode.Memory => ConfigureState(configuration, slots, constants, instruction.Auxiliary, index),
+                FlowOpcode.PointOutput => ConfigurePoint(configuration, points, instruction.Auxiliary, DataDirection.Output, index),
+                FlowOpcode.Nand => "nand",
+                FlowOpcode.Nor => "nor",
+                FlowOpcode.Xor => "xor",
+                FlowOpcode.Xnor => "xnor",
+                FlowOpcode.NumericConstant => ConfigureNumber("numericConstant", configuration, constants, instruction.Auxiliary, index),
+                FlowOpcode.Add => "add",
+                FlowOpcode.Comparator => ConfigureComparator(configuration, instruction.Auxiliary, index),
+                FlowOpcode.LevelShifter => ConfigureLevelShifter(configuration, constants, instruction.Operand1, instruction.Auxiliary, index),
+                FlowOpcode.QualityGood => "qualityGood",
+                FlowOpcode.OnDelay => ConfigureTimer(configuration, slots, constants, instruction.Auxiliary, index),
+                FlowOpcode.RisingEdge => "risingEdge",
                 _ => throw Error("unsupported_opcode", $"/instructions/{index}/opcode", $"Opcode {instruction.Opcode} cannot be represented by the designer.")
             };
 
             var inputs = new List<ushort>();
+
             switch (instruction.Opcode)
             {
-                case 3:
+                case FlowOpcode.Not:
                     AddConnection(connections, slotOwners, instruction.Operand0, symbol.NodeId, "in", index);
                     inputs.Add(instruction.Operand0);
                     break;
-                case 4:
-                case 5:
-                case 9:
-                case 10:
-                case 11:
-                case 12:
+                case FlowOpcode.And:
+                case FlowOpcode.Or:
+                case FlowOpcode.Nand:
+                case FlowOpcode.Nor:
+                case FlowOpcode.Xor:
+                case FlowOpcode.Xnor:
                     AddConnection(connections, slotOwners, instruction.Operand0, symbol.NodeId, "a", index);
                     AddConnection(connections, slotOwners, instruction.Operand1, symbol.NodeId, "b", index);
                     inputs.Add(instruction.Operand0);
                     inputs.Add(instruction.Operand1);
                     break;
-                case 14:
-                case 15:
+                case FlowOpcode.Add:
+                case FlowOpcode.Comparator:
                     AddConnection(connections, slotOwners, instruction.Operand0, symbol.NodeId, "a", index);
                     AddConnection(connections, slotOwners, instruction.Operand1, symbol.NodeId, "b", index);
                     inputs.Add(instruction.Operand0);
                     inputs.Add(instruction.Operand1);
                     break;
-                case 16:
-                case 17:
-                case 18:
-                case 19:
+                case FlowOpcode.LevelShifter:
+                case FlowOpcode.QualityGood:
+                case FlowOpcode.OnDelay:
+                case FlowOpcode.RisingEdge:
                     AddConnection(connections, slotOwners, instruction.Operand0, symbol.NodeId, "in", index);
                     inputs.Add(instruction.Operand0);
                     break;
-                case 7:
+                case FlowOpcode.PointOutput:
                     AddConnection(connections, slotOwners, instruction.Operand0, symbol.NodeId, "in", index);
                     inputs.Add(instruction.Operand0);
                     break;
@@ -119,7 +121,9 @@ public sealed class FlowDecompiler : IFlowDecompiler
 
             var depth = inputs.Count == 0 ? 0 : inputs.Max(slot => depths[slotOwners[slot].NodeId]) + 1;
             var row = rows.GetValueOrDefault(depth);
+
             rows[depth] = row + 1;
+
             nodes.Add(new FlowNode
             {
                 Id = symbol.NodeId,
@@ -132,7 +136,9 @@ public sealed class FlowDecompiler : IFlowDecompiler
                 Connectors = Connectors(kind),
                 Configuration = configuration
             });
+
             depths[symbol.NodeId] = depth;
+
             if (instruction.Result == Unused || slotOwners.ContainsKey(instruction.Result))
             {
                 Fail("invalid_operand", $"/instructions/{index}/result", "A node result must write one unique slot.");
@@ -142,6 +148,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
         }
 
         var templates = dependencies.Where(item => item.Kind == 1).ToArray();
+
         if (templates.Length != 1)
         {
             throw Error("invalid_dependency", "/dependencies/template", "Exactly one controller-template dependency is required.");
@@ -156,9 +163,14 @@ public sealed class FlowDecompiler : IFlowDecompiler
             Description = $"Recovered from Flow IL v1 revision {U32(bytes, 16)}.",
             UpdatedAt = "1970-01-01T00:00:00Z",
             Nodes = nodes,
-            Connections = [.. connections.Select((item, index) => new FlowConnection(
-                $"connection-{index + 1:D3}", item.Source, new FlowEndpoint(item.TargetNodeId, item.TargetPortId)))]
+            Connections = [.. connections.Select((item, index) =>
+                new FlowConnection(
+                    $"connection-{index + 1:D3}",
+                    item.Source,
+                    new FlowEndpoint(item.TargetNodeId, item.TargetPortId)))
+            ]
         };
+
         FlowValidator.Validate(flow);
 
         return new FlowDecompilationResult
@@ -229,27 +241,35 @@ public sealed class FlowDecompiler : IFlowDecompiler
         return result;
     }
 
-    private static IReadOnlyList<ConstantRecord> ReadConstants(SectionReader reader)
+    private static List<ConstantRecord> ReadConstants(SectionReader reader)
     {
         var values = new List<ConstantRecord>();
         for (var i = 0; i < reader.Count; i++)
         {
             var prefix = reader.Fixed(4, $"/constants/{i}");
-            if (prefix[0] == 1 && prefix[1] <= 1 && U16(prefix, 2) == 0)
+
+            // Boolean value?
+            if (prefix[0] == (byte)DataType.Boolean && prefix[1] <= 1 && U16(prefix, 2) == 0)
             {
-                values.Add(new ConstantRecord(1, prefix[1]));
+                values.Add(new ConstantRecord(DataType.Boolean, prefix[1]));
             }
-            else if (prefix[0] == 2 && prefix[1] == 0 && U16(prefix, 2) == 0)
+
+            // Number value?
+            else if (prefix[0] == (byte)DataType.Number && prefix[1] == 0 && U16(prefix, 2) == 0)
             {
                 var bits = BinaryPrimitives.ReadInt64LittleEndian(reader.Fixed(8, $"/constants/{i}/value"));
+
                 var number = BitConverter.Int64BitsToDouble(bits);
+
                 if (!double.IsFinite(number))
                 {
                     Fail("invalid_constant", $"/constants/{i}", "Numeric constants must be finite.");
                 }
 
-                values.Add(new ConstantRecord(2, number));
+                values.Add(new ConstantRecord(DataType.Number, number));
             }
+
+            // Data type is unsupported
             else
             {
                 Fail("invalid_constant", $"/constants/{i}", "Constant encoding is unsupported.");
@@ -259,21 +279,24 @@ public sealed class FlowDecompiler : IFlowDecompiler
         return values;
     }
 
-    private static IReadOnlyList<PointRecord> ReadPoints(SectionReader reader)
+    private static List<PointRecord> ReadPoints(SectionReader reader)
     {
         var values = new List<PointRecord>();
+
         for (var i = 0; i < reader.Count; i++)
         {
             var prefix = reader.Fixed(4, $"/points/{i}");
             var id = reader.String8($"/points/{i}/id");
             var units = reader.String8AllowEmpty($"/points/{i}/units");
-            if (prefix[0] is not (1 or 2) || prefix[1] is not (1 or 2))
+
+            if (prefix[0] is not ((byte)DataType.Boolean or (byte)DataType.Number) || prefix[1] is not (1 or 2))
             {
                 Fail("unsupported_point", $"/points/{i}", "Point binding type is unsupported.");
             }
 
-            values.Add(new PointRecord(prefix[0], prefix[1], id, units));
+            values.Add(new PointRecord((DataDirection)prefix[0], (DataType)prefix[1], id, units));
         }
+
         reader.End("/points");
         return values;
     }
@@ -284,7 +307,12 @@ public sealed class FlowDecompiler : IFlowDecompiler
         for (var i = 0; i < reader.Count; i++)
         {
             var record = reader.Fixed(8, $"/slots/{i}");
-            var slot = new SlotRecord(record[0], record[1], U16(record, 6));
+
+            var slot = new SlotRecord(
+                (FlowSlotKind)record[0],
+                record[1],
+                U16(record, 6));
+
             if (record[1] is not (1 or 2) || !values.TryAdd(U16(record, 4), slot))
             {
                 Fail("invalid_slot", $"/slots/{i}", "Slot is unsupported or duplicated.");
@@ -305,7 +333,12 @@ public sealed class FlowDecompiler : IFlowDecompiler
                 Fail("invalid_instruction", $"/instructions/{i}", "Instruction flags and reserved fields must be zero.");
             }
 
-            values.Add(new Instruction(record[0], U16(record, 2), U16(record, 4), U16(record, 6), U16(record, 8)));
+            values.Add(new Instruction(
+                (FlowOpcode)record[0],
+                U16(record, 2),
+                U16(record, 4),
+                U16(record, 6),
+                U16(record, 8)));
         }
         reader.End("/instructions");
         return values;
@@ -358,47 +391,77 @@ public sealed class FlowDecompiler : IFlowDecompiler
         return values;
     }
 
-    private static void ValidateCommitPlan(SectionReader reader) { for (var i = 0; i < reader.Count; i++) { _ = reader.Fixed(8, $"/commit/{i}"); } reader.End("/commit"); }
-    private static void ValidateDebugMap(SectionReader reader) { for (var i = 0; i < reader.Count; i++) { _ = reader.Fixed(4, $"/debugMap/{i}"); _ = reader.String8($"/debugMap/{i}/nodeId"); } reader.End("/debugMap"); }
+    private static void ValidateCommitPlan(SectionReader reader)
+    {
+        for (var i = 0; i < reader.Count; i++)
+        {
+            _ = reader.Fixed(8, $"/commit/{i}");
+        }
 
-    private static string ConfigurePoint(Dictionary<string, JsonElement> config, IReadOnlyList<PointRecord> points, ushort index, byte direction, int instruction)
+        reader.End("/commit");
+    }
+
+    private static void ValidateDebugMap(SectionReader reader)
+    {
+        for (var i = 0; i < reader.Count; i++)
+        {
+            _ = reader.Fixed(4, $"/debugMap/{i}"); _ = reader.String8($"/debugMap/{i}/nodeId");
+        }
+
+        reader.End("/debugMap");
+    }
+
+    private static string ConfigurePoint(
+        Dictionary<string, JsonElement> config,
+        IReadOnlyList<PointRecord> points,
+        ushort index,
+        DataDirection direction,
+        int instruction)
     {
         if (index >= points.Count || points[index].Direction != direction)
         {
-            Fail("invalid_operand", $"/instructions/{instruction}/auxiliary", "Point binding is missing or has the wrong direction.");
+            Fail(
+                "invalid_operand",
+                $"/instructions/{instruction}/auxiliary",
+                "Point binding is missing or has the wrong direction.");
         }
 
-        config["pointId"] = JsonSerializer.SerializeToElement(points[index].Id);
-        return points[index].Type == 2
-            ? direction == 1 ? "analogInput" : "analogOutput"
-            : direction == 1 ? "digitalInput" : "digitalOutput";
+        var point = points[index];
+
+        config["pointId"] = JsonSerializer.SerializeToElement(point.Id);
+        config["units"] = JsonSerializer.SerializeToElement(point.Units);
+
+        return point.DataType == DataType.Number
+            ? direction == DataDirection.Input ? "analogInput" : "analogOutput"
+            : direction == DataDirection.Input ? "digitalInput" : "digitalOutput";
     }
 
     private static string ConfigureBoolean(string kind, Dictionary<string, JsonElement> config, IReadOnlyList<ConstantRecord> constants, ushort index, int instruction)
     {
-        if (index >= constants.Count || constants[index].Type != 1)
+        if (index >= constants.Count || constants[index].DataType != DataType.Boolean)
         {
             Fail("invalid_operand", $"/instructions/{instruction}/auxiliary", "Boolean constant index is out of range.");
         }
 
         config["value"] = JsonSerializer.SerializeToElement(constants[index].Number != 0D);
+
         return kind;
     }
 
     private static string ConfigureState(Dictionary<string, JsonElement> config, IReadOnlyDictionary<ushort, SlotRecord> slots, IReadOnlyList<ConstantRecord> constants, ushort index, int instruction)
     {
-        if (!slots.TryGetValue(index, out var slot) || slot.Kind != 3 || slot.InitialConstant >= constants.Count || constants[slot.InitialConstant].Type != 1)
+        if (!slots.TryGetValue(index, out var slot) || slot.Kind != FlowSlotKind.MemoryState || slot.InitialConstant >= constants.Count || constants[slot.InitialConstant].DataType != DataType.Number)
         {
             throw Error("invalid_operand", $"/instructions/{instruction}/auxiliary", "State slot is invalid.");
         }
 
-        config["value"] = JsonSerializer.SerializeToElement(constants[slot.InitialConstant].Number != 0D);
+        config["value"] = JsonSerializer.SerializeToElement(constants[slot.InitialConstant].Number);
         return "memory";
     }
 
     private static string ConfigureNumber(string kind, Dictionary<string, JsonElement> config, IReadOnlyList<ConstantRecord> constants, ushort index, int instruction)
     {
-        if (index >= constants.Count || constants[index].Type != 2)
+        if (index >= constants.Count || constants[index].DataType != DataType.Number)
         {
             Fail("invalid_operand", $"/instructions/{instruction}/auxiliary", "Numeric constant index is out of range.");
         }
@@ -421,7 +484,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
 
     private static string ConfigureLevelShifter(Dictionary<string, JsonElement> config, IReadOnlyList<ConstantRecord> constants, ushort gain, ushort offset, int instruction)
     {
-        if (gain >= constants.Count || offset >= constants.Count || constants[gain].Type != 2 || constants[offset].Type != 2)
+        if (gain >= constants.Count || offset >= constants.Count || constants[gain].DataType != DataType.Number || constants[offset].DataType != DataType.Number)
         {
             Fail("invalid_operand", $"/instructions/{instruction}", "Level-shifter constants are invalid.");
         }
@@ -433,7 +496,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
 
     private static string ConfigureTimer(Dictionary<string, JsonElement> config, IReadOnlyDictionary<ushort, SlotRecord> slots, IReadOnlyList<ConstantRecord> constants, ushort state, int instruction)
     {
-        if (!slots.TryGetValue(state, out var slot) || slot.Kind != 4 || slot.InitialConstant >= constants.Count || constants[slot.InitialConstant].Type != 2)
+        if (!slots.TryGetValue(state, out var slot) || slot.Kind != FlowSlotKind.TimerState || slot.InitialConstant >= constants.Count || constants[slot.InitialConstant].DataType != DataType.Number)
         {
             Fail("invalid_operand", $"/instructions/{instruction}/timer", "Timer state is invalid.");
         }
@@ -455,26 +518,25 @@ public sealed class FlowDecompiler : IFlowDecompiler
 
     private static IReadOnlyList<FlowConnector> Connectors(string kind) => kind switch
     {
-        "digitalInput" or "digitalConstant" => [Output("value", "Value")],
+        "digitalInput" or "digitalConstant" => [BooleanOutput("value", "Value")],
         "analogInput" => [NumberOutput("value", "Value")],
-        "digitalOutput" => [Input("in", "Input")],
+        "digitalOutput" => [BooleanInput("in", "Input")],
         "analogOutput" => [NumberInput("in", "Input")],
-        "not" => [Input("in", "Input"), Output("value", "Value")],
-        "and" or "or" or "nand" or "nor" or "xor" or "xnor" =>
-            [Input("a", "A"), Input("b", "B"), Output("value", "Value")],
-        "memory" => [Input("in", "Input"), Output("value", "Previous value")],
+        "not" => [BooleanInput("in", "Input"), BooleanOutput("value", "Value")],
+        "and" or "or" or "nand" or "nor" or "xor" or "xnor" => [BooleanInput("a", "A"), BooleanInput("b", "B"), BooleanOutput("value", "Value")],
+        "memory" => [NumberInput("in", "Input"), NumberOutput("value", "Previous value")],
         "numericConstant" => [NumberOutput("value", "Value")],
         "add" => [NumberInput("a", "A"), NumberInput("b", "B"), NumberOutput("value", "Value")],
-        "comparator" => [NumberInput("a", "A"), NumberInput("b", "B"), Output("value", "Value")],
+        "comparator" => [NumberInput("a", "A"), NumberInput("b", "B"), BooleanOutput("value", "Value")],
         "levelShifter" => [NumberInput("in", "Input"), NumberOutput("value", "Value")],
-        "qualityGood" or "onDelay" or "risingEdge" => [Input("in", "Input"), Output("value", "Value")],
+        "qualityGood" or "onDelay" or "risingEdge" => [BooleanInput("in", "Input"), BooleanOutput("value", "Value")],
         _ => []
     };
 
-    private static FlowConnector Input(string id, string label) => new(id, label, "input", "boolean", "left");
-    private static FlowConnector Output(string id, string label) => new(id, label, "output", "boolean", "right");
-    private static FlowConnector NumberInput(string id, string label) => new(id, label, "input", "number", "left");
-    private static FlowConnector NumberOutput(string id, string label) => new(id, label, "output", "number", "right");
+    private static FlowConnector BooleanInput(string id, string label) => new(id, label, DataDirection.Input, DataType.Boolean, "left");
+    private static FlowConnector BooleanOutput(string id, string label) => new(id, label, DataDirection.Output, DataType.Boolean, "right");
+    private static FlowConnector NumberInput(string id, string label) => new(id, label, DataDirection.Input, DataType.Number, "left");
+    private static FlowConnector NumberOutput(string id, string label) => new(id, label, DataDirection.Output, DataType.Number, "right");
     private static string Label(string value) => string.Join(' ', value.Split(['-', '_'], StringSplitOptions.RemoveEmptyEntries).Select(word => char.ToUpperInvariant(word[0]) + word[1..]));
     private static void RequireSymbol(SymbolRecord symbol, int index, byte discriminator)
     {
@@ -484,10 +546,15 @@ public sealed class FlowDecompiler : IFlowDecompiler
         }
     }
     private static string ReadFlowId(ReadOnlySpan<byte> bytes) { var length = bytes[52]; if (length is 0 or > 63) { Fail("invalid_identifier", "/flowId", "Flow ID length is invalid."); } return Encoding.UTF8.GetString(bytes.Slice(53, length)); }
+
     private static SectionReader Section(ReadOnlySpan<byte> artifact, SectionInfo[] sections, int id) { var value = sections[id - 1]; return new SectionReader(artifact.Slice(value.Offset, value.Length).ToArray(), value.Count, value.Version); }
+
     private static ushort U16(ReadOnlySpan<byte> bytes, int offset) => BinaryPrimitives.ReadUInt16LittleEndian(bytes[offset..]);
+
     private static uint U32(ReadOnlySpan<byte> bytes, int offset) => BinaryPrimitives.ReadUInt32LittleEndian(bytes[offset..]);
+
     private static FlowDecompilationException Error(string code, string path, string message) => new(new(code, path, message));
+
     private static void Fail(string code, string path, string message) => throw Error(code, path, message);
 
     private sealed class SectionReader(byte[] bytes, int count, ushort version)
@@ -509,11 +576,18 @@ public sealed class FlowDecompiler : IFlowDecompiler
     }
 
     private sealed record SectionInfo(int Offset, int Length, int Count, ushort Version);
-    private sealed record PointRecord(byte Direction, byte Type, string Id, string Units);
-    private sealed record ConstantRecord(byte Type, double Number);
-    private sealed record SlotRecord(byte Kind, byte Type, ushort InitialConstant);
-    private sealed record Instruction(byte Opcode, ushort Result, ushort Operand0, ushort Operand1, ushort Auxiliary);
+
+    private sealed record PointRecord(DataDirection Direction, DataType DataType, string Id, string Units);
+
+    private sealed record ConstantRecord(DataType DataType, double Number);
+
+    private sealed record SlotRecord(FlowSlotKind Kind, byte Type, ushort InitialConstant);
+
+    private sealed record Instruction(FlowOpcode Opcode, ushort Result, ushort Operand0, ushort Operand1, ushort Auxiliary);
+
     private sealed record SymbolRecord(byte Discriminator, string NodeId, string Label, double X, double Y, double ZOrder, string GroupId);
+
     private sealed record Dependency(byte Kind, string Id, uint Revision);
+
     private sealed record PendingConnection(FlowEndpoint Source, string TargetNodeId, string TargetPortId);
 }

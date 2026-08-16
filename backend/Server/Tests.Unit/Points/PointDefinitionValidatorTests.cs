@@ -415,12 +415,12 @@ internal sealed class PointDefinitionValidatorTests
             // Expected outcome: `PointCompatibility.CanRead(PointDirection.Input` confirms the required condition.
             // Acceptance criteria: `PointCompatibility.CanRead(PointDirection.Input` must be true, because this condition proves that
             // compatibility predicates require exact type and numeric units.
-            Assert.That(PointCompatibility.CanRead(PointDirection.Input), Is.True);
+            Assert.That(PointCompatibility.CanRead(DataDirection.Input), Is.True);
 
             // Expected outcome: `PointCompatibility.CanCommand(PointDirection.Input` rejects the prohibited condition.
             // Acceptance criteria: `PointCompatibility.CanCommand(PointDirection.Input` must be false, because this condition proves that
             // compatibility predicates require exact type and numeric units.
-            Assert.That(PointCompatibility.CanCommand(PointDirection.Input), Is.False);
+            Assert.That(PointCompatibility.CanCommand(DataDirection.Input), Is.False);
 
             // Expected outcome: the asserted result confirms the required condition.
             // Acceptance criteria: the asserted result must be true, because this condition proves that

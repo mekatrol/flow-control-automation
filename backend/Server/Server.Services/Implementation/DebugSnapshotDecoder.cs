@@ -1,4 +1,3 @@
-using Server.Services.Contracts;
 using System.Buffers.Binary;
 using System.Text;
 
@@ -12,10 +11,12 @@ public static class DebugSnapshotDecoder
     {
         var reader = new SnapshotReader(envelope.Bytes.Span);
         var schema = reader.ReadUInt16();
+        
         if (schema != 1)
         {
             throw Protocol("unsupported snapshot schema");
         }
+        
         var sessionId = reader.ReadUInt64();
         var flowId = reader.ReadString();
         var revision = reader.ReadUInt32();
@@ -35,6 +36,7 @@ public static class DebugSnapshotDecoder
         var highWater = reader.ReadUInt32();
         var missedDeadlines = reader.ReadUInt32();
         var arbitrationLossCount = reader.ReadUInt32();
+
         if (sessionId != envelope.SessionId || tick != envelope.TickNumber || completedAt < sampledAt
             || sessionId > MaximumSafeJsonInteger || tick > MaximumSafeJsonInteger
             || sampledAt > MaximumSafeJsonInteger || completedAt > MaximumSafeJsonInteger
@@ -45,50 +47,58 @@ public static class DebugSnapshotDecoder
 
         var nodeIds = new HashSet<string>(StringComparer.Ordinal);
         var nodes = new List<DebugNodeSnapshot>(nodeCount);
+
         for (var index = 0; index < nodeCount; index++)
         {
             var nodeId = reader.ReadString();
             var nodeState = Name(NodeStateNames, reader.ReadByte(), "node state");
             var quality = Name(QualityNames, reader.ReadByte(), "quality");
-            var valueType = reader.ReadByte();
+            var dataType = (DataType)reader.ReadByte();
             var isPresent = reader.ReadBoolean();
+
             var typedValue = isPresent
-                ? valueType switch
+                ? dataType switch
                 {
-                    1 => new DebugTypedValue("boolean", reader.ReadBoolean(), Quality: quality),
-                    2 => new DebugTypedValue("number", Number: reader.ReadDouble(), Quality: quality),
-                    _ => throw Protocol("unknown snapshot value type")
+                    DataType.Boolean => new DebugTypedValue(nameof(DataType.Boolean).ToLower(), reader.ReadBoolean(), Quality: quality),
+                    DataType.Number => new DebugTypedValue(nameof(DataType.Number).ToLower(), Number: reader.ReadDouble(), Quality: quality),
+                    _ => throw Protocol("unknown snapshot point data type")
                 }
                 : null;
+
             if (!nodeIds.Add(nodeId) || (nodeState == "evaluated" && quality == "good" && typedValue is null))
             {
                 throw Protocol("node snapshot is duplicated or missing a required value");
             }
+
             nodes.Add(new(nodeId, nodeState, quality, typedValue));
         }
 
         var outputIds = new HashSet<string>(StringComparer.Ordinal);
         var outputs = new List<DebugProposedOutput>(outputCount);
+        
         for (var index = 0; index < outputCount; index++)
         {
             var pointId = reader.ReadString();
             var outputState = Name(NodeStateNames, reader.ReadByte(), "output state");
             var quality = Name(QualityNames, reader.ReadByte(), "quality");
-            var valueType = reader.ReadByte();
-            var boolean = valueType == 1 && reader.ReadBoolean();
-            var number = valueType == 2 ? reader.ReadDouble() : (double?)null;
-            if (valueType is not (1 or 2))
+            var dataType = (DataType) reader.ReadByte();
+            var boolean = dataType == DataType.Boolean && reader.ReadBoolean();
+            var number = dataType == DataType.Number ? reader.ReadDouble() : (double?)null;
+            
+            if (dataType is not (DataType.Boolean or DataType.Number))
             {
-                throw Protocol("unknown proposed-output value type");
+                throw Protocol("unknown proposed-output data type");
             }
 
             if (!outputIds.Add(pointId))
             {
                 throw Protocol("proposed output is duplicated");
             }
-            var typedValue = valueType == 2
+            
+            var typedValue = dataType == DataType.Number
                 ? FlowVmValue.FromNumber(number!.Value, quality)
                 : FlowVmValue.FromBoolean(boolean, quality);
+            
             outputs.Add(new(pointId, outputState, quality, boolean, number, typedValue));
         }
         reader.RequireEnd();

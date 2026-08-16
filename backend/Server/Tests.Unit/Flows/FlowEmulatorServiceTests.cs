@@ -1,5 +1,6 @@
 using Server.Services;
 using Server.Services.Contracts;
+using Server.Services.Extensions;
 using Server.Services.Implementation;
 using System.Text.Json;
 
@@ -78,8 +79,8 @@ public sealed class FlowEmulatorServiceTests
         Assert.Multiple(() =>
         {
             Assert.That(snapshot.OutputHistory[^1].ProposedValue.Boolean, Is.True);
-            Assert.That(snapshot.OutputHistory[^1].EffectiveValue.Quality, Is.EqualTo("bad"));
-            Assert.That(snapshot.OutputHistory[^1].Quality, Is.EqualTo("bad"));
+            Assert.That(snapshot.OutputHistory[^1].EffectiveValue.Quality, Is.EqualTo(DataQualityExtensions.Bad));
+            Assert.That(snapshot.OutputHistory[^1].Quality, Is.EqualTo(DataQualityExtensions.Bad));
         });
     }
 
@@ -95,8 +96,8 @@ public sealed class FlowEmulatorServiceTests
         {
             Interface = new FlowInterface
             {
-                Inputs = [new FlowInterfaceInput { Id = "temperature", Name = "Temperature", DataType = "number", Units = "°C", DefaultValue = JsonSerializer.SerializeToElement(12.5), Required = true }],
-                Outputs = [new FlowInterfaceOutput { Id = "result", Name = "Result", DataType = "number", Units = "°C" }]
+                Inputs = [new FlowInterfaceInput { Id = "temperature", Name = "Temperature", DataType = DataType.Number, Units = "°C", DefaultValue = JsonSerializer.SerializeToElement(12.5), Required = true }],
+                Outputs = [new FlowInterfaceOutput { Id = "result", Name = "Result", DataType = DataType.Number, Units = "°C" }]
             },
             Nodes = [new ExecutableFlowNode { Id = "input", Kind = "flowInput", Configuration = new Dictionary<string, JsonElement> { ["interfaceId"] = JsonSerializer.SerializeToElement("temperature") } }]
         };

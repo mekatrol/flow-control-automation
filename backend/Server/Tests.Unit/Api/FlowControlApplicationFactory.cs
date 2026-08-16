@@ -1,5 +1,3 @@
-using Server.Data;
-using Server.Data.Extensions;
 using Server.Services;
 using Server.Services.Contracts;
 
@@ -17,9 +15,11 @@ internal sealed class FlowControlApplicationFactory(
 
     private readonly Action<IServiceCollection>? _configureServices = configureServices;
 
-    public string DatabasePath => Path.Combine(_temporaryDirectory, "flow-control.db");
-    public string ControllerDataPath => Path.Combine(_temporaryDirectory, "controllers.json");
     private string DatabaseConnectionString => $"Data Source={DatabasePath};Pooling=False";
+
+    public string DatabasePath => Path.Combine(_temporaryDirectory, "flow-control.db");
+
+    public string ControllerDataPath => Path.Combine(_temporaryDirectory, "controllers.json");
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -28,31 +28,32 @@ internal sealed class FlowControlApplicationFactory(
         // can otherwise replace the domain exception being asserted.
         builder.ConfigureLogging(logging => logging.ClearProviders());
         Directory.CreateDirectory(_temporaryDirectory);
+
         builder.ConfigureAppConfiguration((_, configuration) =>
         {
             configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
                 [$"{DatabaseOptions.SectionName}:{DatabaseOptions.FlowControlConfigurationKey}"] = DatabaseConnectionString,
-                [nameof(global::Server.Services.ServerOptions.CredentialEncryptionKey)] = TestCredentialEncryptionKey,
-                [global::Server.Services.ServerOptions.ControllerDataFileConfigurationKey] = ControllerDataPath
+                [nameof(ServerOptions.CredentialEncryptionKey)] = TestCredentialEncryptionKey,
+                [ServerOptions.ControllerDataFileConfigurationKey] = ControllerDataPath
             });
         });
+
         builder.ConfigureServices(services =>
         {
             var configuration = new ConfigurationBuilder()
                 .AddInMemoryCollection(new Dictionary<string, string?>
                 {
-                    [$"{DatabaseOptions.SectionName}:{DatabaseOptions.FlowControlConfigurationKey}"] =
-                        DatabaseConnectionString,
-                    [nameof(global::Server.Services.ServerOptions.CredentialEncryptionKey)] =
-                        TestCredentialEncryptionKey,
-                    [global::Server.Services.ServerOptions.ControllerDataFileConfigurationKey] =
-                        ControllerDataPath
+                    [$"{DatabaseOptions.SectionName}:{DatabaseOptions.FlowControlConfigurationKey}"] = DatabaseConnectionString,
+                    [nameof(ServerOptions.CredentialEncryptionKey)] = TestCredentialEncryptionKey,
+                    [ServerOptions.ControllerDataFileConfigurationKey] = ControllerDataPath
                 })
                 .Build();
+
             services.AddFlowControlData(configuration);
             _configureServices?.Invoke(services);
         });
+
         builder.ConfigureTestServices(services =>
         {
             services.RemoveAll<IFlowVirtualMachineFactory>();

@@ -1,8 +1,8 @@
 namespace Server.Services.Contracts;
 
-public enum PointDirection
+public enum DataDirection : byte
 {
-    Input,
+    Input = 1,
     Output,
     InputOutput,
     Value

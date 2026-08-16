@@ -47,7 +47,7 @@ internal sealed class ControllerTemplateValidatorTests
             // constrained fixture parses and validates as typed capabilities.
             Assert.That(
                 validated.PointDirections,
-                Is.EquivalentTo([PointDirection.Input, PointDirection.Output]));
+                Is.EquivalentTo([DataDirection.Input, DataDirection.Output]));
 
             // Expected outcome: `validated.FlowFunctions` includes the required content.
             // Acceptance criteria: `validated.FlowFunctions` must contain `"read-point"`, because this condition proves that
@@ -101,7 +101,7 @@ internal sealed class ControllerTemplateValidatorTests
             // default is read only and exhaustive.
             Assert.That(
                 validated.PointDirections,
-                Is.EquivalentTo(Enum.GetValues<PointDirection>()));
+                Is.EquivalentTo(Enum.GetValues<DataDirection>()));
 
             // Expected outcome: `validated.PointFeatures` contains the required values.
             // Acceptance criteria: `validated.PointFeatures` must be equivalent to `Enum.GetValues<ControllerPointFeature>(`, because this condition proves that
@@ -357,7 +357,7 @@ internal sealed class ControllerTemplateValidatorTests
                 ControllerCapabilitiesSupport.SupportsPoint(
                     template,
                     PointValueType.Digital,
-                    PointDirection.Input),
+                    DataDirection.Input),
                 Is.True);
 
             // Expected outcome: the asserted result rejects the prohibited condition.
@@ -367,7 +367,7 @@ internal sealed class ControllerTemplateValidatorTests
                 ControllerCapabilitiesSupport.SupportsPoint(
                     template,
                     PointValueType.Analog,
-                    PointDirection.Input),
+                    DataDirection.Input),
                 Is.False);
 
             // Expected outcome: the asserted result confirms the required condition.

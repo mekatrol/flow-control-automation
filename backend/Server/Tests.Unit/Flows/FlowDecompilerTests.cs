@@ -1,6 +1,7 @@
 using Server.Services;
 using Server.Services.Contracts;
 using Server.Services.Implementation;
+using System.Buffers.Binary;
 
 namespace Tests.Unit.Flows;
 
@@ -11,22 +12,27 @@ public sealed class FlowDecompilerTests
         "ContractFixtures",
         "flow-il-v1");
 
-    [TestCase("valid-two-button-and")]
-    [TestCase("valid-memory-feedback")]
-    [TestCase("valid-expanded-boolean")]
-    [TestCase("valid-numeric-language")]
-    [TestCase("valid-analog-points")]
-    public void RecompilesRecoveredDesignerSemanticsToTheIdenticalArtifact(string fixture)
+    [TestCase("valid-two-button-and", null)]
+    [TestCase("valid-memory-feedback", null)]
+    [TestCase("valid-expanded-boolean", null)]
+    [TestCase("valid-numeric-language", null)]
+    [TestCase("valid-analog-points", "degC")]
+    public void RecompilesRecoveredDesignerSemanticsToTheIdenticalArtifact(
+        string fixture,
+        string? analogUnits)
     {
-        var artifact = Artifact(fixture);
+        var artifact = GetArtifact(fixture);
         var recovered = new FlowDecompiler().Decompile(artifact);
+
         var source = new ExecutableFlowSource
         {
             Id = recovered.Flow.Id,
             Revision = recovered.Provenance.FlowRevision,
             ControllerTemplateId = recovered.Provenance.ControllerTemplateId,
             ControllerTemplateRevision = recovered.Provenance.ControllerTemplateRevision,
-            Nodes = [.. recovered.Flow.Nodes.Select(node => new ExecutableFlowNode
+            Nodes =
+            [
+                .. recovered.Flow.Nodes.Select(node => new ExecutableFlowNode
             {
                 Id = node.Id,
                 Kind = node.Kind,
@@ -36,22 +42,33 @@ public sealed class FlowDecompilerTests
                 Y = node.Y,
                 ZOrder = node.ZOrder,
                 GroupId = node.GroupId
-            })],
-            Connections = [.. recovered.Flow.Connections.Select(connection => new ExecutableFlowConnection(
-                new ExecutableFlowEndpoint(connection.Start.NodeId, connection.Start.ConnectorId),
-                new ExecutableFlowEndpoint(connection.End.NodeId, connection.End.ConnectorId)))]
+            })
+            ],
+            Connections =
+            [
+                .. recovered.Flow.Connections.Select(connection =>
+                new ExecutableFlowConnection(
+                    new ExecutableFlowEndpoint(
+                        connection.Start.NodeId,
+                        connection.Start.ConnectorId),
+                    new ExecutableFlowEndpoint(
+                        connection.End.NodeId,
+                        connection.End.ConnectorId)))
+            ]
         };
 
-        var recompiled = new FlowCompiler().Compile(CompilationRequest(source));
+        var recompiled = new FlowCompiler().Compile(CompilationRequest(source, analogUnits));
 
-        Assert.That(recompiled.Artifact.ToArray(), Is.EqualTo(artifact));
+        var recompiledArtifact = recompiled.Artifact.ToArray();
+
+        AssertArtifactsEqual(artifact, recompiledArtifact);
     }
 
     [TestCase("valid-two-button-and", 4, 3)]
-    [TestCase("valid-memory-feedback", 4, 4)]
+    [TestCase("valid-memory-feedback", 3, 2)]
     public void RecoversAValidDeterministicDesignerFlow(string fixture, int nodeCount, int connectionCount)
     {
-        var artifact = Artifact(fixture);
+        var artifact = GetArtifact(fixture);
         var decompiler = new FlowDecompiler();
 
         var first = decompiler.Decompile(artifact);
@@ -73,17 +90,17 @@ public sealed class FlowDecompilerTests
     [Test]
     public void PreservesExecutableNodeIdentityConfigurationAndFeedback()
     {
-        var result = new FlowDecompiler().Decompile(Artifact("valid-memory-feedback"));
+        var artifact = GetArtifact("valid-memory-feedback");
+        var result = new FlowDecompiler().Decompile(artifact);
         var memory = result.Flow.Nodes.Single(node => node.Id == "memory-1");
 
         Assert.Multiple(() =>
         {
             Assert.That(memory.Kind, Is.EqualTo("memory"));
-            Assert.That(memory.Configuration["value"].GetBoolean(), Is.False);
-            Assert.That(result.Flow.Nodes.Single(node => node.Id == "output-01-node")
-                .Configuration["pointId"].GetString(), Is.EqualTo("output-01"));
+            Assert.That(memory.Configuration["value"].GetDouble(), Is.EqualTo(2));
+            Assert.That(result.Flow.Nodes.Single(node => node.Id == "output-01-node").Configuration["pointId"].GetString(), Is.EqualTo("output-01"));
             Assert.That(result.Flow.Connections.Any(connection =>
-                connection.Start.NodeId == "or-1"
+                connection.Start.NodeId == "constant-2"
                 && connection.End == new FlowEndpoint("memory-1", "in")), Is.True);
         });
     }
@@ -91,7 +108,7 @@ public sealed class FlowDecompilerTests
     [Test]
     public void PreservesLosslessGroupAndCanvasMetadata()
     {
-        var result = new FlowDecompiler().Decompile(Artifact("valid-analog-points"));
+        var result = new FlowDecompiler().Decompile(GetArtifact("valid-analog-points"));
 
         Assert.Multiple(() =>
         {
@@ -104,7 +121,7 @@ public sealed class FlowDecompilerTests
     [Test]
     public void RejectsCorruptArtifactsBeforeReadingInstructions()
     {
-        var artifact = Artifact("valid-two-button-and");
+        var artifact = GetArtifact("valid-two-button-and");
         artifact[^1] ^= 1;
 
         var exception = Assert.Throws<FlowDecompilationException>(
@@ -116,7 +133,7 @@ public sealed class FlowDecompilerTests
     [Test]
     public void RejectsUnsupportedArtifactVersionsWithAStablePath()
     {
-        var artifact = Artifact("valid-two-button-and");
+        var artifact = GetArtifact("valid-two-button-and");
         artifact[4] = 3;
 
         var exception = Assert.Throws<FlowDecompilationException>(
@@ -129,45 +146,154 @@ public sealed class FlowDecompilerTests
         });
     }
 
-    private static byte[] Artifact(string fixture) =>
+    private static byte[] GetArtifact(string fixture) =>
         File.ReadAllBytes(Path.Combine(FixtureRoot, fixture, "artifact.bin"));
 
-    private static FlowCompilationRequest CompilationRequest(ExecutableFlowSource source) => new()
-    {
-        Source = source,
-        Target = new FlowCompilationTarget
+    private static FlowCompilationRequest CompilationRequest(
+        ExecutableFlowSource source,
+        string? analogUnits) => new()
         {
-            ControllerTemplate = new ValidatedControllerTemplate(
+            Source = source,
+            Target = new FlowCompilationTarget
+            {
+                ControllerTemplate = new ValidatedControllerTemplate(
                 new ControllerTemplate
                 {
                     Id = source.ControllerTemplateId,
                     Name = "Recovered target",
                     Revision = checked((int)source.ControllerTemplateRevision)
                 },
-                new HashSet<PointValueType> { PointValueType.Digital, PointValueType.Analog },
-                new HashSet<PointDirection> { PointDirection.Input, PointDirection.Output },
+                new HashSet<PointValueType>
+                {
+                    PointValueType.Digital,
+                    PointValueType.Analog
+                },
+                new HashSet<DataDirection>
+                {
+                    DataDirection.Input,
+                    DataDirection.Output
+                },
                 new HashSet<ControllerPointFeature>(),
-                new HashSet<ConnectorDataType> { ConnectorDataType.Boolean, ConnectorDataType.Number },
+                new HashSet<ConnectorDataType>
+                {
+                    ConnectorDataType.Boolean,
+                    ConnectorDataType.Number
+                },
                 new HashSet<string>(StringComparer.Ordinal),
                 new HashSet<ExecutionMode>(),
                 new HashSet<ControllerRuntimeFeature>()),
-            Points = [.. source.Nodes
-                .Where(node => node.Kind is "digitalInput" or "digitalOutput" or "analogInput" or "analogOutput")
-                .Select(node => new Point
-                {
-                    Id = node.Configuration["pointId"].GetString()!,
-                    Name = node.Configuration["pointId"].GetString()!,
-                    Enabled = true,
-                    Implementation = "virtual",
-                    Direction = node.Kind.EndsWith("Input", StringComparison.Ordinal) ? "input" : "output",
-                    ValueType = node.Kind.StartsWith("analog", StringComparison.Ordinal) ? "analog" : "digital",
-                    Units = node.Kind.StartsWith("analog", StringComparison.Ordinal) ? "degC" : null,
-                    Readable = node.Kind.EndsWith("Input", StringComparison.Ordinal),
-                    Commandable = node.Kind.EndsWith("Output", StringComparison.Ordinal),
-                    Persistence = "volatile",
-                    Revision = 1
-                })
-                .DistinctBy(point => point.Id, StringComparer.Ordinal)]
+
+                Points =
+            [
+                .. source.Nodes
+                    .Where(node => node.Kind is
+                        "digitalInput" or
+                        "digitalOutput" or
+                        "analogInput" or
+                        "analogOutput")
+                    .Select(node => new Point
+                    {
+                        Id = node.Configuration["pointId"].GetString()!,
+                        Name = node.Configuration["pointId"].GetString()!,
+                        Enabled = true,
+                        Implementation = "virtual",
+                        Direction = node.Kind.EndsWith("Input", StringComparison.Ordinal)
+                            ? "input"
+                            : "output",
+                        ValueType = node.Kind.StartsWith("analog", StringComparison.Ordinal)
+                            ? "analog"
+                            : "digital",
+                        Units = node.Kind.StartsWith("analog", StringComparison.Ordinal)
+                            ? analogUnits
+                            : null,
+                        Readable = node.Kind.EndsWith("Input", StringComparison.Ordinal),
+                        Commandable = node.Kind.EndsWith("Output", StringComparison.Ordinal),
+                        Persistence = "volatile",
+                        Revision = 1
+                    })
+                    .DistinctBy(point => point.Id, StringComparer.Ordinal)
+            ]}
+        };
+
+    private static void AssertArtifactsEqual(
+        byte[] expected,
+        byte[] actual)
+    {
+        var commonLength = Math.Min(expected.Length, actual.Length);
+
+        var firstDifference = Enumerable.Range(0, commonLength)
+            .FirstOrDefault(index => expected[index] != actual[index], -1);
+
+        if (firstDifference < 0 && expected.Length == actual.Length)
+        {
+            return;
         }
-    };
+
+        if (firstDifference < 0)
+        {
+            firstDifference = commonLength;
+        }
+
+        const int context = 16;
+
+        var start = Math.Max(0, firstDifference - context);
+        var expectedCount = Math.Min(expected.Length - start, context * 2);
+        var actualCount = Math.Min(actual.Length - start, context * 2);
+
+        Assert.Fail(
+            $"""
+                Artifacts differ.
+
+                Expected length: {expected.Length} bytes
+                Actual length:   {actual.Length} bytes
+                Difference at:   {firstDifference} (0x{firstDifference:X})
+
+                Expected:
+                {Convert.ToHexString(expected.AsSpan(start, expectedCount))}
+
+                Actual:
+                {Convert.ToHexString(actual.AsSpan(start, actualCount))}
+            """);
+    }
+
+    public static void DumpSections(string name, byte[] artifact)
+    {
+        TestContext.Out.WriteLine($"{name}: {artifact.Length} bytes");
+
+        const int envelopeBytes = 128;
+        const int directoryEntryBytes = 48;
+        const int sectionCount = 8;
+
+        for (var index = 0; index < sectionCount; index++)
+        {
+            var entry = artifact.AsSpan(
+                envelopeBytes + (index * directoryEntryBytes),
+                directoryEntryBytes);
+
+            var id = BinaryPrimitives.ReadUInt16LittleEndian(entry);
+            var version = BinaryPrimitives.ReadUInt16LittleEndian(entry[2..]);
+            var offset = BinaryPrimitives.ReadUInt32LittleEndian(entry[4..]);
+            var length = BinaryPrimitives.ReadUInt32LittleEndian(entry[8..]);
+            var count = BinaryPrimitives.ReadUInt32LittleEndian(entry[12..]);
+
+            TestContext.Out.WriteLine(
+                $"Section {id}: version={version}, offset={offset}, length={length}, count={count}");
+        }
+    }
+
+    public static void DumpPointSection(string name, byte[] artifact)
+    {
+        const int envelopeBytes = 128;
+        const int directoryEntryBytes = 48;
+        const int pointSectionIndex = 1;
+
+        var entry = artifact.AsSpan(
+            envelopeBytes + (pointSectionIndex * directoryEntryBytes),
+            directoryEntryBytes);
+
+        var offset = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(entry[4..]));
+        var length = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(entry[8..]));
+
+        TestContext.Out.WriteLine($"{name} point section: {Convert.ToHexString(artifact.AsSpan(offset, length))}");
+    }
 }

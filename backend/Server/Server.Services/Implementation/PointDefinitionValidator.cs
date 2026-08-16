@@ -113,14 +113,14 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
     private static void ValidateCapabilities(
         Point point,
         PointImplementation implementation,
-        PointDirection direction)
+        DataDirection direction)
     {
-        if (implementation == PointImplementation.Virtual && direction != PointDirection.Value)
+        if (implementation == PointImplementation.Virtual && direction != DataDirection.Value)
         {
             Fail("virtual points must use value direction");
         }
 
-        if (implementation == PointImplementation.Bound && direction == PointDirection.Value)
+        if (implementation == PointImplementation.Bound && direction == DataDirection.Value)
         {
             Fail("bound points cannot use value direction");
         }
@@ -130,22 +130,22 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
             Fail($"{point.Direction} points cannot be commandable");
         }
 
-        if (direction == PointDirection.Input && (!point.Readable || point.Commandable))
+        if (direction == DataDirection.Input && (!point.Readable || point.Commandable))
         {
             Fail("input points must be readable and not commandable");
         }
 
-        if (direction == PointDirection.Output && !point.Commandable)
+        if (direction == DataDirection.Output && !point.Commandable)
         {
             Fail("output points must be commandable");
         }
 
-        if (direction == PointDirection.InputOutput && (!point.Readable || !point.Commandable))
+        if (direction == DataDirection.InputOutput && (!point.Readable || !point.Commandable))
         {
             Fail("input_output points must be readable and commandable");
         }
 
-        if (direction == PointDirection.Value && !point.Readable && !point.Commandable)
+        if (direction == DataDirection.Value && !point.Readable && !point.Commandable)
         {
             Fail("value points must be readable or commandable");
         }
@@ -673,12 +673,12 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
         _ => throw new PointDefinitionValidationException("implementation is invalid"),
     };
 
-    private static PointDirection ParseDirection(string value) => value switch
+    private static DataDirection ParseDirection(string value) => value switch
     {
-        "input" => PointDirection.Input,
-        "output" => PointDirection.Output,
-        "input_output" => PointDirection.InputOutput,
-        "value" => PointDirection.Value,
+        "input" => DataDirection.Input,
+        "output" => DataDirection.Output,
+        "input_output" => DataDirection.InputOutput,
+        "value" => DataDirection.Value,
         _ => throw new PointDefinitionValidationException("direction is invalid"),
     };
 

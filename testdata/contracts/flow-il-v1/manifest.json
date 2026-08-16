@@ -13,8 +13,8 @@
     },
     {
       "id": "valid-memory-feedback",
-      "artifactLength": 1044,
-      "artifactSha256": "a20a573a482f4f3b3b387f373e29326f80bf38161a590366d1d14ff1e5575830",
+      "artifactLength": 976,
+      "artifactSha256": "5b9d0b191e9dd23ff75a8e60742de36ff7ec2f44fb2efa01cd5f60597be89b73",
       "expected": {
         "valid": true,
         "reason": "ok",

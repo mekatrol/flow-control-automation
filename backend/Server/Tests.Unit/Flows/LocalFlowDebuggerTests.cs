@@ -118,7 +118,7 @@ public sealed class LocalFlowDebuggerTests
 
         private FlowVmExecutionFrame Frame() => new(
             _stepped ? (ushort)1 : (ushort)0,
-            _stepped ? byte.MaxValue : (byte)1,
+            _stepped ? FlowOpcode.Commit : FlowOpcode.PointInput,
             _stepped,
             [_stepped],
             [],

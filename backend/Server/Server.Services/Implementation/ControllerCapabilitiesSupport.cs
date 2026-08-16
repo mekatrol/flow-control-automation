@@ -7,7 +7,7 @@ public static class ControllerCapabilitiesSupport
     public static bool SupportsPoint(
         ValidatedControllerTemplate template,
         PointValueType valueType,
-        PointDirection direction) =>
+        DataDirection direction) =>
         template.PointTypes.Contains(valueType)
         && template.PointDirections.Contains(direction);
 

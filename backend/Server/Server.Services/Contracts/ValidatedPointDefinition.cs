@@ -3,7 +3,7 @@ namespace Server.Services.Contracts;
 public sealed record ValidatedPointDefinition(
     Point Source,
     PointImplementation Implementation,
-    PointDirection Direction,
+    DataDirection Direction,
     PointValueType ValueType,
     PointPersistence Persistence,
     PointLimits? Limits,

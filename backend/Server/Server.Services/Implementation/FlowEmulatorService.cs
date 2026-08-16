@@ -1,4 +1,4 @@
-using Server.Services.Contracts;
+using Server.Services.Extensions;
 using System.Collections.Concurrent;
 
 namespace Server.Services.Implementation;
@@ -326,13 +326,16 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
             foreach (var command in scan.Commands)
             {
                 var failed = _fault == "output_failure";
-                var quality = failed ? "bad" : command.TypedValue.Quality;
-                var effective = failed ? command.TypedValue with { Quality = "bad" } : command.TypedValue;
+                var quality = failed ? DataQualityExtensions.Bad : command.TypedValue.Quality;
+                var effective = failed ? command.TypedValue with { Quality = DataQualityExtensions.Bad } : command.TypedValue;
+
                 var previous = _outputs.LastOrDefault(output =>
                     output.OutputId == command.PointId && output.IsInterface == command.IsInterface);
+
                 var lastChange = previous is null || previous.EffectiveValue != effective
                     ? scan.ScanNumber
                     : previous.LastChangeScan;
+
                 _outputs.Add(new EmulatorOutputSample(
                     scan.ScanNumber, _clock, command.PointId, command.TypedValue, effective,
                     quality, OutputUnits(command), lastChange, command.IsInterface, "emulator", 16, null));
@@ -384,12 +387,17 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
                     throw new ArgumentException($"Input '{change.InputId}' requires type '{existing.TypedValue.Type}'.", nameof(changes));
                 }
 
-                if (change.TypedValue.Quality is not ("good" or "bad" or "stale" or "unavailable"))
+                if (change.TypedValue.Quality is not (
+                        DataQualityExtensions.Good or
+                        DataQualityExtensions.Bad or
+                        DataQualityExtensions.Stale or
+                        DataQualityExtensions.Unavailable)
+                    )
                 {
                     throw new ArgumentException($"Input '{change.InputId}' has unsupported quality.", nameof(changes));
                 }
 
-                if (change.TypedValue.Type == "number" && !double.IsFinite(change.TypedValue.Number))
+                if (change.TypedValue.Type == DataType.Number.ToFriendlyString() && !double.IsFinite(change.TypedValue.Number))
                 {
                     throw new ArgumentException($"Input '{change.InputId}' must be finite.", nameof(changes));
                 }
@@ -422,14 +430,16 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
             foreach (var entry in source.Interface.Inputs)
             {
                 var value = entry.DefaultValue is { } defaultValue
-                    ? entry.DataType == "number"
+                    ? entry.DataType == DataType.Number
                         ? FlowVmValue.FromNumber(defaultValue.GetDouble())
                         : FlowVmValue.FromBoolean(defaultValue.GetBoolean())
-                    : entry.DataType == "number"
-                        ? FlowVmValue.FromNumber(0, entry.Required ? "unavailable" : "good")
-                        : FlowVmValue.FromBoolean(false, entry.Required ? "unavailable" : "good");
+                    : entry.DataType == DataType.Number
+                        ? FlowVmValue.FromNumber(0, entry.Required ? DataQualityExtensions.Unavailable : DataQualityExtensions.Good)
+                        : FlowVmValue.FromBoolean(false, entry.Required ? DataQualityExtensions.Unavailable : DataQualityExtensions.Good);
+                
                 yield return new FlowVmInput(entry.Id, value, isInterface: true);
             }
+            
             foreach (var pointId in InputPointIds(source))
             {
                 yield return new FlowVmInput(pointId, false);

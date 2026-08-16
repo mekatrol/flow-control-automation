@@ -1,4 +1,4 @@
-using Server.Services.Contracts;
+using Server.Services.Extensions;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
@@ -218,13 +218,15 @@ internal sealed class FlowRuntimeService(
                         && slot < scan.Slots.Count
                             ? scan.Slots[slot]
                             : null,
+
                     Value = instance.Compilation.NodeIndices.TryGetValue(node.Id, out slot)
                         && slot < scan.Slots.Count
-                        && scan.Slots[slot].Type == "boolean"
+                        && scan.Slots[slot].Type == DataType.Boolean.ToFriendlyString()
                             ? scan.Slots[slot].Boolean
                             : null
                 },
                 StringComparer.Ordinal);
+
             _snapshots[instance.Flow.Id] = new RuntimeSnapshot(
                 instance.Flow.Id,
                 "running",
