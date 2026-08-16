@@ -8,7 +8,6 @@ namespace Tests.Unit.PointSources;
 [TestFixture]
 internal sealed class PointSourceEndpointTests
 {
-
     /// <summary>
     /// Purpose: Protects the behavioral contract that crud uses yaml etags and revision conflicts.
     /// Description: Arranges the inputs for crud uses yaml etags and revision conflicts, exercises the relevant operation,
@@ -34,7 +33,6 @@ internal sealed class PointSourceEndpointTests
         // crud uses yaml etags and revision conflicts.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `create.StatusCode` has the required value.
             // Acceptance criteria: `create.StatusCode` must equal `HttpStatusCode.Created`, because this condition proves that
             // crud uses yaml etags and revision conflicts.
@@ -97,7 +95,6 @@ internal sealed class PointSourceEndpointTests
         // crud uses yaml etags and revision conflicts.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `update.StatusCode` has the required value.
             // Acceptance criteria: `update.StatusCode` must equal `HttpStatusCode.OK`, because this condition proves that
             // crud uses yaml etags and revision conflicts.
@@ -141,7 +138,6 @@ internal sealed class PointSourceEndpointTests
         // crud uses yaml etags and revision conflicts.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `delete.StatusCode` has the required value.
             // Acceptance criteria: `delete.StatusCode` must equal `HttpStatusCode.NoContent`, because this condition proves that
             // crud uses yaml etags and revision conflicts.
@@ -199,7 +195,6 @@ internal sealed class PointSourceEndpointTests
         // list filters sorts paginates and persists across scopes.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `page` is available.
             // Acceptance criteria: `page` must not be null, because this condition proves that
             // list filters sorts paginates and persists across scopes.
@@ -268,7 +263,6 @@ internal sealed class PointSourceEndpointTests
         // list rejects invalid queries.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `response.StatusCode` has the required value.
             // Acceptance criteria: `response.StatusCode` must equal `HttpStatusCode.BadRequest`, because this condition proves that
             // list rejects invalid queries.
@@ -369,7 +363,6 @@ internal sealed class PointSourceEndpointTests
         // update requires if match and matching path.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `missingHeader.StatusCode` has the required value.
             // Acceptance criteria: `missingHeader.StatusCode` must equal `HttpStatusCode.BadRequest`, because this condition proves that
             // update requires if match and matching path.
@@ -424,7 +417,6 @@ internal sealed class PointSourceEndpointTests
         // strict yaml and request limit are enforced.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `oversizedResponse.StatusCode` has the required value.
             // Acceptance criteria: `oversizedResponse.StatusCode` must equal `HttpStatusCode.BadRequest`, because this condition proves that
             // strict yaml and request limit are enforced.

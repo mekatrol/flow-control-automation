@@ -1,5 +1,3 @@
-using Server.Services.Extensions;
-
 namespace Server.Services.Contracts;
 
 public sealed record FlowVmValue
@@ -10,12 +8,12 @@ public sealed record FlowVmValue
 
     public double Number { get; init; }
 
-    public string Quality { get; init; } = DataQualityExtensions.Good;
+    public DataQuality Quality { get; init; } = DataQuality.Good;
 
-    public static FlowVmValue FromBoolean(bool value, string quality = DataQualityExtensions.Good) =>
+    public static FlowVmValue FromBoolean(bool value, DataQuality quality = DataQuality.Good) =>
         new() { DataType = DataType.Boolean, Boolean = value, Quality = quality };
 
-    public static FlowVmValue FromNumber(double value, string quality = DataQualityExtensions.Good)
+    public static FlowVmValue FromNumber(double value, DataQuality quality = DataQuality.Good)
     {
         if (!double.IsFinite(value))
         {

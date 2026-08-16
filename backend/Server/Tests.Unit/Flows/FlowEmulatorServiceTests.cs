@@ -1,6 +1,5 @@
 using Server.Services;
 using Server.Services.Contracts;
-using Server.Services.Extensions;
 using Server.Services.Implementation;
 using System.Text.Json;
 
@@ -79,8 +78,8 @@ public sealed class FlowEmulatorServiceTests
         Assert.Multiple(() =>
         {
             Assert.That(snapshot.OutputHistory[^1].ProposedValue.Boolean, Is.True);
-            Assert.That(snapshot.OutputHistory[^1].EffectiveValue.Quality, Is.EqualTo(DataQualityExtensions.Bad));
-            Assert.That(snapshot.OutputHistory[^1].Quality, Is.EqualTo(DataQualityExtensions.Bad));
+            Assert.That(snapshot.OutputHistory[^1].EffectiveValue.Quality, Is.EqualTo(DataQuality.Bad));
+            Assert.That(snapshot.OutputHistory[^1].Quality, Is.EqualTo(DataQuality.Bad));
         });
     }
 
@@ -104,7 +103,7 @@ public sealed class FlowEmulatorServiceTests
         var created = await service.CreateAsync(source, default);
 
         var stepped = service.ApplyInputsAndStep(created.EmulatorId,
-            [new EmulatorInputChange("temperature", FlowVmValue.FromNumber(21.5, "stale"))]);
+            [new EmulatorInputChange("temperature", FlowVmValue.FromNumber(21.5, DataQuality.Uncertain))]);
         var reset = service.Reset(created.EmulatorId, powerCycle: false);
 
         Assert.Multiple(() =>

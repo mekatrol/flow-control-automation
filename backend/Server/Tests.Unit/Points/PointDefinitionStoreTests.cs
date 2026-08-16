@@ -10,7 +10,6 @@ namespace Tests.Unit.Points;
 [TestFixture]
 internal sealed class PointDefinitionStoreTests
 {
-
     /// <summary>
     /// Purpose: Protects the behavioral contract that empty database supports crud and deterministic listing.
     /// Description: Arranges the inputs for empty database supports crud and deterministic listing, exercises the relevant operation,
@@ -29,7 +28,6 @@ internal sealed class PointDefinitionStoreTests
         // empty database supports crud and deterministic listing.
         Assert.Multiple(async () =>
         {
-
             // Expected outcome: `await store.ListPointsAsync(default` contains no entries.
             // Acceptance criteria: `await store.ListPointsAsync(default` must be empty, because this condition proves that
             // empty database supports crud and deterministic listing.
@@ -61,7 +59,6 @@ internal sealed class PointDefinitionStoreTests
         // empty database supports crud and deterministic listing.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `created.Revision` has the required value.
             // Acceptance criteria: `created.Revision` must equal `1`, because this condition proves that
             // empty database supports crud and deterministic listing.
@@ -156,7 +153,6 @@ internal sealed class PointDefinitionStoreTests
         // duplicate names and stale revisions are rejected.
         Assert.Multiple(async () =>
         {
-
             // Expected outcome: The invalid operation is rejected.
             // Acceptance criteria: the operation must throw PointDefinitionConflictException, because this condition proves that
             // duplicate names and stale revisions are rejected.
@@ -221,7 +217,6 @@ internal sealed class PointDefinitionStoreTests
         // group deletion is blocked until members are made standalone atomically.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `standalone` contains the required number of entries.
             // Acceptance criteria: `standalone` must contain exactly 1 entries, because this condition proves that
             // group deletion is blocked until members are made standalone atomically.
@@ -307,7 +302,6 @@ internal sealed class PointDefinitionStoreTests
         // referenced sources cannot change kind or be deleted.
         Assert.Multiple(async () =>
         {
-
             // Expected outcome: The invalid operation is rejected.
             // Acceptance criteria: the operation must throw PointSourceConflictException, because this condition proves that
             // referenced sources cannot change kind or be deleted.

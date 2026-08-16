@@ -6,7 +6,7 @@ public sealed record PointRuntimeEnvelope(
     string PointId,
     JsonNode? Value,
     string? Units,
-    string Quality,
+    DataQuality Quality,
     string Reliability,
     string? SourceTimestamp,
     string? UpdatedAt,

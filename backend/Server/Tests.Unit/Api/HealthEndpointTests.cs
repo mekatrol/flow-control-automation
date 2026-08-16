@@ -5,7 +5,6 @@ namespace Tests.Unit.Api;
 
 public sealed class HealthEndpointTests
 {
-
     /// <summary>
     /// Purpose: Protects the health endpoint contract used by monitors to determine whether the API is available.
     /// Description: Requests the health resource and verifies its success status, JSON media type, and healthy payload.
@@ -23,7 +22,6 @@ public sealed class HealthEndpointTests
         // health returns compatible json.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: The health request succeeds.
             // Acceptance criteria: The response is HTTP 200 OK because a running application must expose an available health resource to monitoring clients.
             Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));

@@ -312,7 +312,7 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
                 {
                     _inputs[input.PointId] = new FlowVmInput(
                         input.PointId,
-                        input.TypedValue with { Quality = "unavailable" },
+                        input.TypedValue with { Quality = DataQuality.Unavailable },
                         input.IsInterface);
                 }
             }
@@ -326,8 +326,8 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
             foreach (var command in scan.Commands)
             {
                 var failed = _fault == "output_failure";
-                var quality = failed ? DataQualityExtensions.Bad : command.TypedValue.Quality;
-                var effective = failed ? command.TypedValue with { Quality = DataQualityExtensions.Bad } : command.TypedValue;
+                var quality = failed ? DataQuality.Bad : command.TypedValue.Quality;
+                var effective = failed ? command.TypedValue with { Quality = DataQuality.Bad } : command.TypedValue;
 
                 var previous = _outputs.LastOrDefault(output =>
                     output.OutputId == command.PointId && output.IsInterface == command.IsInterface);
@@ -388,10 +388,10 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
                 }
 
                 if (change.TypedValue.Quality is not (
-                        DataQualityExtensions.Good or
-                        DataQualityExtensions.Bad or
-                        DataQualityExtensions.Stale or
-                        DataQualityExtensions.Unavailable)
+                        DataQuality.Good or
+                        DataQuality.Bad or
+                        DataQuality.Uncertain or
+                        DataQuality.Unavailable)
                     )
                 {
                     throw new ArgumentException($"Input '{change.InputId}' has unsupported quality.", nameof(changes));
@@ -434,12 +434,12 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
                         ? FlowVmValue.FromNumber(defaultValue.GetDouble())
                         : FlowVmValue.FromBoolean(defaultValue.GetBoolean())
                     : entry.DataType == DataType.Number
-                        ? FlowVmValue.FromNumber(0, entry.Required ? DataQualityExtensions.Unavailable : DataQualityExtensions.Good)
-                        : FlowVmValue.FromBoolean(false, entry.Required ? DataQualityExtensions.Unavailable : DataQualityExtensions.Good);
-                
+                        ? FlowVmValue.FromNumber(0, entry.Required ? DataQuality.Unavailable : DataQuality.Good)
+                        : FlowVmValue.FromBoolean(false, entry.Required ? DataQuality.Unavailable : DataQuality.Good);
+
                 yield return new FlowVmInput(entry.Id, value, isInterface: true);
             }
-            
+
             foreach (var pointId in InputPointIds(source))
             {
                 yield return new FlowVmInput(pointId, false);

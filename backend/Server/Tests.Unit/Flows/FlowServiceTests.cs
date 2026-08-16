@@ -51,7 +51,6 @@ public sealed class FlowServiceTests
             // creates readable unique slugs and persists across provider restart.
             Assert.Multiple(() =>
             {
-
                 // Expected outcome: `first.Id` has the required value.
                 // Acceptance criteria: `first.Id` must equal `"heating-cooling"`, because this condition proves that
                 // creates readable unique slugs and persists across provider restart.
@@ -121,7 +120,6 @@ public sealed class FlowServiceTests
         // lists with case insensitive filtering sorting and page clamping.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `page.Items.Select(flow => flow.Id` has the required value.
             // Acceptance criteria: `page.Items.Select(flow => flow.Id` must equal `new[] { "alpha", "alpha-2", "beta", "zeta" }`, because this condition proves that
             // lists with case insensitive filtering sorting and page clamping.

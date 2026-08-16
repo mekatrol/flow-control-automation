@@ -1,4 +1,3 @@
-using Server.Data;
 using Server.Data.Context;
 using Server.Data.Entities;
 using Server.Services;
@@ -8,7 +7,6 @@ namespace Tests.Unit.Api;
 
 public sealed class RegistrationTests
 {
-
     /// <summary>
     /// Purpose: Protects the behavioral contract that public registration can be overridden through its interface.
     /// Description: Arranges the inputs for public registration can be overridden through its interface, exercises the relevant operation,
@@ -71,7 +69,6 @@ public sealed class RegistrationTests
         // registration binds configuration models.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `server.ServerAddress` has the required value.
             // Acceptance criteria: `server.ServerAddress` must equal `address`, because this condition proves that
             // registration binds configuration models.
@@ -100,7 +97,6 @@ public sealed class RegistrationTests
         public DbSet<PointGroupEntity> PointGroups => throw new NotSupportedException();
 
         public DbSet<CredentialEntity> Credentials => throw new NotSupportedException();
-
 
         public DbSet<TEntity> Set<TEntity>()
             where TEntity : class => throw new NotSupportedException();

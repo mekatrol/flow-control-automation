@@ -9,7 +9,6 @@ namespace Tests.Unit.Controllers;
 [TestFixture]
 internal sealed class ControllerTemplateEndpointTests
 {
-
     /// <summary>
     /// Purpose: Protects the behavioral contract that default is always available and read only.
     /// Description: Arranges the inputs for default is always available and read only, exercises the relevant operation,
@@ -33,7 +32,6 @@ internal sealed class ControllerTemplateEndpointTests
         // default is always available and read only.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `template?.Id` has the required value.
             // Acceptance criteria: `template?.Id` must equal `"default"`, because this condition proves that
             // default is always available and read only.
@@ -86,7 +84,6 @@ internal sealed class ControllerTemplateEndpointTests
         // custom template round trips with revision and reopens.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `create.StatusCode` has the required value.
             // Acceptance criteria: `create.StatusCode` must equal `HttpStatusCode.Created`, because this condition proves that
             // custom template round trips with revision and reopens.
@@ -195,7 +192,6 @@ internal sealed class ControllerTemplateEndpointTests
         // validation reports semantic paths and syntax locations.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `semantic.StatusCode` has the required value.
             // Acceptance criteria: `semantic.StatusCode` must equal `HttpStatusCode.OK`, because this condition proves that
             // validation reports semantic paths and syntax locations.

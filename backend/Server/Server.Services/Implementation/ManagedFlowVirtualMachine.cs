@@ -1,4 +1,3 @@
-using Server.Services.Extensions;
 using System.Buffers.Binary;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
@@ -150,7 +149,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
             Fail(FlowVirtualMachineErrorCode.InvalidLifecycleState, "/lifecycle");
         }
 
-        if (inputs.Count > 64 || (_qualityPolicy == 1 && inputs.Any(item => item.TypedValue.Quality != DataQualityExtensions.Good)))
+        if (inputs.Count > 64 || (_qualityPolicy == 1 && inputs.Any(item => item.TypedValue.Quality != DataQuality.Good)))
         {
             Fail(FlowVirtualMachineErrorCode.InvalidRuntimeInput, "/inputs");
         }
@@ -253,7 +252,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
                     (a.Number * Constant(instruction.Operand1, DataType.Number).Number) + Constant(instruction.Auxiliary, DataType.Number).Number,
                     a.Quality);
                 break;
-            case FlowOpcode.QualityGood: _slots[instruction.Result] = FlowVmValue.FromBoolean(a.Quality == DataQualityExtensions.Good); break;
+            case FlowOpcode.QualityGood: _slots[instruction.Result] = FlowVmValue.FromBoolean(a.Quality == DataQuality.Good); break;
             case FlowOpcode.OnDelay: OnDelay(instruction, a); break;
             case FlowOpcode.RisingEdge: RisingEdge(instruction, a); break;
             case FlowOpcode.Min: Number(instruction, Math.Min(a.Number, b.Number), quality); break;
@@ -312,7 +311,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
         _stagedStateValid[state] = true;
     }
 
-    private void Number(Instruction instruction, double value, string quality)
+    private void Number(Instruction instruction, double value, DataQuality quality)
     {
         if (!double.IsFinite(value))
         {
@@ -347,7 +346,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
             ? FlowVmValue.FromNumber(value.Number)
             : FlowVmValue.FromBoolean(value.Boolean);
 
-    private static string Worse(string left, string right) => left == DataQualityExtensions.Good && right == DataQualityExtensions.Good ? DataQualityExtensions.Good : DataQualityExtensions.Bad;
+    private static DataQuality Worse(DataQuality left, DataQuality right) => left == DataQuality.Good && right == DataQuality.Good ? DataQuality.Good : DataQuality.Bad;
 
     private void RequireExecuting()
     {

@@ -9,7 +9,6 @@ namespace Tests.Unit.Connectivity;
 [TestFixture]
 internal sealed class ConnectivityEndpointTests
 {
-
     /// <summary>
     /// Purpose: Protects the behavioral contract that unsaved test rejects private and loopback destinations.
     /// Description: Arranges the inputs for unsaved test rejects private and loopback destinations, exercises the relevant operation,
@@ -44,7 +43,6 @@ internal sealed class ConnectivityEndpointTests
         // unsaved test rejects private and loopback destinations.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `privateResponse.StatusCode` has the required value.
             // Acceptance criteria: `privateResponse.StatusCode` must equal `HttpStatusCode.OK`, because this condition proves that
             // unsaved test rejects private and loopback destinations.
@@ -100,7 +98,6 @@ internal sealed class ConnectivityEndpointTests
         // private network opt in passes with injected protocol checks.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `result!.Status` has the required value.
             // Acceptance criteria: `result!.Status` must equal `"passed"`, because this condition proves that
             // private network opt in passes with injected protocol checks.
@@ -155,7 +152,6 @@ internal sealed class ConnectivityEndpointTests
         // saved route uses resolved credential without returning it.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `response.StatusCode` has the required value.
             // Acceptance criteria: `response.StatusCode` must equal `HttpStatusCode.OK`, because this condition proves that
             // saved route uses resolved credential without returning it.
@@ -200,7 +196,6 @@ internal sealed class ConnectivityEndpointTests
         // eleventh test for client is rate limited.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `result!.Status` has the required value.
             // Acceptance criteria: `result!.Status` must equal `"failed"`, because this condition proves that
             // eleventh test for client is rate limited.
@@ -237,7 +232,6 @@ internal sealed class ConnectivityEndpointTests
         // cancellation produces redacted diagnostic.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `result!.Status` has the required value.
             // Acceptance criteria: `result!.Status` must equal `"failed"`, because this condition proves that
             // cancellation produces redacted diagnostic.
@@ -283,7 +277,6 @@ internal sealed class ConnectivityEndpointTests
         // invalid unsaved source returns validation stage.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `result!.Status` has the required value.
             // Acceptance criteria: `result!.Status` must equal `"failed"`, because this condition proves that
             // invalid unsaved source returns validation stage.

@@ -617,7 +617,7 @@ public sealed class FlowDebugService(
             .Select(pair => new DebugNodeSnapshot(
                 pair.Key,
                 "evaluated",
-                "good",
+                DataQuality.Good,
                 DebugValue(scan.Slots[pair.Value])))],
         ProposedOutputs = [.. scan.Commands.Select(command => new DebugProposedOutput(
             command.PointId,

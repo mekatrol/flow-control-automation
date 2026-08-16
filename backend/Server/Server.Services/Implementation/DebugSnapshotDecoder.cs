@@ -11,12 +11,12 @@ public static class DebugSnapshotDecoder
     {
         var reader = new SnapshotReader(envelope.Bytes.Span);
         var schema = reader.ReadUInt16();
-        
+
         if (schema != 1)
         {
             throw Protocol("unsupported snapshot schema");
         }
-        
+
         var sessionId = reader.ReadUInt64();
         var flowId = reader.ReadString();
         var revision = reader.ReadUInt32();
@@ -52,7 +52,7 @@ public static class DebugSnapshotDecoder
         {
             var nodeId = reader.ReadString();
             var nodeState = Name(NodeStateNames, reader.ReadByte(), "node state");
-            var quality = Name(QualityNames, reader.ReadByte(), "quality");
+            var quality = (DataQuality)reader.ReadByte();
             var dataType = (DataType)reader.ReadByte();
             var isPresent = reader.ReadBoolean();
 
@@ -65,7 +65,7 @@ public static class DebugSnapshotDecoder
                 }
                 : null;
 
-            if (!nodeIds.Add(nodeId) || (nodeState == "evaluated" && quality == "good" && typedValue is null))
+            if (!nodeIds.Add(nodeId) || (nodeState == "evaluated" && quality == DataQuality.Good && typedValue is null))
             {
                 throw Protocol("node snapshot is duplicated or missing a required value");
             }
@@ -75,16 +75,16 @@ public static class DebugSnapshotDecoder
 
         var outputIds = new HashSet<string>(StringComparer.Ordinal);
         var outputs = new List<DebugProposedOutput>(outputCount);
-        
+
         for (var index = 0; index < outputCount; index++)
         {
             var pointId = reader.ReadString();
             var outputState = Name(NodeStateNames, reader.ReadByte(), "output state");
-            var quality = Name(QualityNames, reader.ReadByte(), "quality");
-            var dataType = (DataType) reader.ReadByte();
+            var quality = (DataQuality)reader.ReadByte();
+            var dataType = (DataType)reader.ReadByte();
             var boolean = dataType == DataType.Boolean && reader.ReadBoolean();
             var number = dataType == DataType.Number ? reader.ReadDouble() : (double?)null;
-            
+
             if (dataType is not (DataType.Boolean or DataType.Number))
             {
                 throw Protocol("unknown proposed-output data type");
@@ -94,11 +94,11 @@ public static class DebugSnapshotDecoder
             {
                 throw Protocol("proposed output is duplicated");
             }
-            
+
             var typedValue = dataType == DataType.Number
                 ? FlowVmValue.FromNumber(number!.Value, quality)
                 : FlowVmValue.FromBoolean(boolean, quality);
-            
+
             outputs.Add(new(pointId, outputState, quality, boolean, number, typedValue));
         }
         reader.RequireEnd();
@@ -144,9 +144,10 @@ public static class DebugSnapshotDecoder
 
     private static readonly string[] StateNames =
         ["empty", "loading", "ready", "stepping", "paused", "fault", "stopped", "running"];
+
     private static readonly string[] NodeStateNames = ["idle", "evaluated", "fault", "unavailable"];
-    private static readonly string[] QualityNames = ["good", "uncertain", "bad", "unavailable"];
-    private static readonly string[] ReasonNames =
+
+private static readonly string[] ReasonNames =
     [
         "ok", "malformed", "unsupported_version", "length_mismatch", "non_canonical_order", "unknown_section",
         "limit_exceeded", "invalid_identifier", "invalid_constant", "invalid_binding", "invalid_slot",
@@ -154,8 +155,8 @@ public static class DebugSnapshotDecoder
         "wrong_state", "input_rejected", "capacity_exceeded"
     ];
 
-    private static string Name(IReadOnlyList<string> names, byte value, string field) =>
-        value < names.Count ? names[value] : throw Protocol($"unknown {field}");
+    private static string Name(string[] names, byte value, string field) =>
+        value < names.Length ? names[value] : throw Protocol($"unknown {field}");
 
     private static string ReasonName(ushort reason) =>
         reason < ReasonNames.Length ? ReasonNames[reason] : $"unknown_{reason}";
@@ -241,7 +242,7 @@ public static class DebugSnapshotDecoder
             return value;
         }
 
-        public void RequireEnd()
+        public readonly void RequireEnd()
         {
             if (_offset != _bytes.Length)
             {
@@ -249,7 +250,7 @@ public static class DebugSnapshotDecoder
             }
         }
 
-        private void Require(int size)
+        private readonly void Require(int size)
         {
             if (size < 0 || _offset > _bytes.Length - size)
             {

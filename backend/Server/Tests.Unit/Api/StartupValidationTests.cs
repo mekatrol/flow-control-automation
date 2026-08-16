@@ -10,7 +10,6 @@ namespace Tests.Unit.Api;
 [TestFixture]
 internal sealed class StartupValidationTests
 {
-
     /// <summary>
     /// Purpose: Protects the behavioral contract that validator rejects malformed stored flow.
     /// Description: Arranges the inputs for validator rejects malformed stored flow, exercises the relevant operation,

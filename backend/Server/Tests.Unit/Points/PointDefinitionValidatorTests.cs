@@ -60,7 +60,6 @@ internal sealed class PointDefinitionValidatorTests
         // contract fixture validates and produces typed mappings.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `validated[0].Mapping` has the required runtime type.
             // Acceptance criteria: `validated[0].Mapping` must be a HttpJsonPointMapping, because this condition proves that
             // contract fixture validates and produces typed mappings.
@@ -164,7 +163,6 @@ internal sealed class PointDefinitionValidatorTests
         // virtual retained values are type and range checked.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: The supported operation is accepted.
             // Acceptance criteria: the operation must complete without throwing an exception, because this condition proves that
             // virtual retained values are type and range checked.
@@ -229,7 +227,6 @@ internal sealed class PointDefinitionValidatorTests
         // digital and multi state labels are strict.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: The invalid operation is rejected.
             // Acceptance criteria: the operation must throw PointDefinitionValidationException, because this condition proves that
             // digital and multi state labels are strict.
@@ -254,7 +251,6 @@ internal sealed class PointDefinitionValidatorTests
     [Test]
     public void TextRequiresPositiveMaximumLength()
     {
-
         // Expected outcome: The invalid operation is rejected.
         // Acceptance criteria: the operation must throw PointDefinitionValidationException, because this condition proves that
         // text requires positive maximum length.
@@ -288,7 +284,6 @@ internal sealed class PointDefinitionValidatorTests
         // bound point resolves inherited source and rejects conflicts.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: the asserted result has the required value.
             // Acceptance criteria: the asserted result must equal `PointSourceKind.HomeAssistant`, because this condition proves that
             // bound point resolves inherited source and rejects conflicts.
@@ -338,7 +333,6 @@ internal sealed class PointDefinitionValidatorTests
         // source mappings require capabilities and reject credential literals.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: The invalid operation is rejected.
             // Acceptance criteria: the operation must throw PointDefinitionValidationException, because this condition proves that
             // source mappings require capabilities and reject credential literals.
@@ -380,7 +374,6 @@ internal sealed class PointDefinitionValidatorTests
         // document rejects duplicate names and reserved group name.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: The invalid operation is rejected.
             // Acceptance criteria: the operation must throw PointDefinitionValidationException, because this condition proves that
             // document rejects duplicate names and reserved group name.
@@ -405,13 +398,11 @@ internal sealed class PointDefinitionValidatorTests
     [Test]
     public void CompatibilityPredicates_RequireExactTypeAndNumericUnits()
     {
-
         // Expected outcome: All related outcomes satisfy their contracts.
         // Acceptance criteria: every assertion in the group must pass, because this condition proves that
         // compatibility predicates require exact type and numeric units.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `PointCompatibility.CanRead(PointDirection.Input` confirms the required condition.
             // Acceptance criteria: `PointCompatibility.CanRead(PointDirection.Input` must be true, because this condition proves that
             // compatibility predicates require exact type and numeric units.

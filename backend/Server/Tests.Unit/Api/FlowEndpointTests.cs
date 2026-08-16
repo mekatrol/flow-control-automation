@@ -9,7 +9,6 @@ namespace Tests.Unit.Api;
 [TestFixture]
 internal sealed class FlowEndpointTests
 {
-
     /// <summary>
     /// Purpose: Protects the behavioral contract that crud persists across application restart.
     /// Description: Arranges the inputs for crud persists across application restart, exercises the relevant operation,
@@ -27,7 +26,6 @@ internal sealed class FlowEndpointTests
         // crud persists across application restart.
         using (Assert.EnterMultipleScope())
         {
-
             // Expected outcome: `created.Id` has the required value.
             // Acceptance criteria: `created.Id` must equal `"climate-control"`, because this condition proves that
             // crud persists across application restart.
@@ -85,7 +83,6 @@ internal sealed class FlowEndpointTests
         // crud persists across application restart.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `loaded` is available.
             // Acceptance criteria: `loaded` must not be null, because this condition proves that
             // crud persists across application restart.
@@ -109,7 +106,6 @@ internal sealed class FlowEndpointTests
         // crud persists across application restart.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `deleteResponse.StatusCode` has the required value.
             // Acceptance criteria: `deleteResponse.StatusCode` must equal `HttpStatusCode.NoContent`, because this condition proves that
             // crud persists across application restart.
@@ -146,7 +142,6 @@ internal sealed class FlowEndpointTests
         // create makes unique readable ids.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `first.Id` has the required value.
             // Acceptance criteria: `first.Id` must equal `"heating-cooling"`, because this condition proves that
             // create makes unique readable ids.
@@ -183,7 +178,6 @@ internal sealed class FlowEndpointTests
         // list filters sorts paginates and clamps page.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `page` is available.
             // Acceptance criteria: `page` must not be null, because this condition proves that
             // list filters sorts paginates and clamps page.
@@ -252,7 +246,6 @@ internal sealed class FlowEndpointTests
         // list rejects invalid queries.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `response.StatusCode` has the required value.
             // Acceptance criteria: `response.StatusCode` must equal `HttpStatusCode.BadRequest`, because this condition proves that
             // list rejects invalid queries.
@@ -300,7 +293,6 @@ internal sealed class FlowEndpointTests
         // save rejects unknown fields trailing values and mismatched id.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `unknown.StatusCode` has the required value.
             // Acceptance criteria: `unknown.StatusCode` must equal `HttpStatusCode.BadRequest`, because this condition proves that
             // save rejects unknown fields trailing values and mismatched id.
@@ -391,7 +383,6 @@ internal sealed class FlowEndpointTests
         // runtime starts stopped deploys and honors disable enable.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `stopped!.State` has the required value.
             // Acceptance criteria: `stopped!.State` must equal `"stopped"`, because this condition proves that
             // runtime starts stopped deploys and honors disable enable.
@@ -444,7 +435,6 @@ internal sealed class FlowEndpointTests
         // runtime routes return not found for missing flow.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `get.StatusCode` has the required value.
             // Acceptance criteria: `get.StatusCode` must equal `HttpStatusCode.NotFound`, because this condition proves that
             // runtime routes return not found for missing flow.

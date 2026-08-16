@@ -9,7 +9,6 @@ namespace Tests.Unit.Points;
 [TestFixture]
 internal sealed class PointDefinitionEndpointTests
 {
-
     /// <summary>
     /// Purpose: Protects the behavioral contract that point and group crud uses canonical yaml and revisions.
     /// Description: Arranges the inputs for point and group crud uses canonical yaml and revisions, exercises the relevant operation,
@@ -42,7 +41,6 @@ internal sealed class PointDefinitionEndpointTests
         // point and group crud uses canonical yaml and revisions.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `created.GroupId` has the required value.
             // Acceptance criteria: `created.GroupId` must equal `"plant"`, because this condition proves that
             // point and group crud uses canonical yaml and revisions.
@@ -92,7 +90,6 @@ internal sealed class PointDefinitionEndpointTests
         // point and group crud uses canonical yaml and revisions.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `occupiedDelete.StatusCode` has the required value.
             // Acceptance criteria: `occupiedDelete.StatusCode` must equal `HttpStatusCode.Conflict`, because this condition proves that
             // point and group crud uses canonical yaml and revisions.
@@ -122,7 +119,6 @@ internal sealed class PointDefinitionEndpointTests
         // point and group crud uses canonical yaml and revisions.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `standalone.StatusCode` has the required value.
             // Acceptance criteria: `standalone.StatusCode` must equal `HttpStatusCode.OK`, because this condition proves that
             // point and group crud uses canonical yaml and revisions.
@@ -209,7 +205,6 @@ internal sealed class PointDefinitionEndpointTests
         // lists filter sort and paginate deterministically.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `page!.TotalItems` has the required value.
             // Acceptance criteria: `page!.TotalItems` must equal `12`, because this condition proves that
             // lists filter sort and paginate deterministically.
@@ -394,7 +389,6 @@ internal sealed class PointDefinitionEndpointTests
         // runtime envelope never fabricates an uninitialized value.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `runtime?.Value` is absent.
             // Acceptance criteria: `runtime?.Value` must be null, because this condition proves that
             // runtime envelope never fabricates an uninitialized value.
@@ -408,7 +402,7 @@ internal sealed class PointDefinitionEndpointTests
             // Expected outcome: `runtime?.Quality` has the required value.
             // Acceptance criteria: `runtime?.Quality` must equal `"unavailable"`, because this condition proves that
             // runtime envelope never fabricates an uninitialized value.
-            Assert.That(runtime?.Quality, Is.EqualTo("unavailable"));
+            Assert.That(runtime?.Quality, Is.EqualTo(DataQuality.Unavailable));
 
             // Expected outcome: `runtime?.Reliability` has the required value.
             // Acceptance criteria: `runtime?.Reliability` must equal `"not_initialized"`, because this condition proves that
@@ -468,13 +462,11 @@ internal sealed class PointDefinitionEndpointTests
         HttpStatusCode status,
         int revision)
     {
-
         // Expected outcome: All related outcomes satisfy their contracts.
         // Acceptance criteria: every assertion in the group must pass, because this condition proves that
         // assert resource.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `response.StatusCode` has the required value.
             // Acceptance criteria: `response.StatusCode` must equal `status`, because this condition proves that
             // assert resource.
@@ -508,7 +500,6 @@ internal sealed class PointDefinitionEndpointTests
         // assert error.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `response.StatusCode` has the required value.
             // Acceptance criteria: `response.StatusCode` must equal `status`, because this condition proves that
             // assert error.

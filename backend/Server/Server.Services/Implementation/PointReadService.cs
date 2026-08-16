@@ -1,5 +1,3 @@
-using Server.Services.Contracts;
-
 namespace Server.Services.Implementation;
 
 internal sealed class PointReadService(
@@ -74,7 +72,7 @@ internal sealed class PointReadService(
             point.Id,
             null,
             point.Units,
-            "unavailable",
+            DataQuality.Unavailable,
             reliability,
             null,
             null,

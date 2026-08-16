@@ -142,7 +142,6 @@ public sealed class ConfigurationFixtureTests
         {
             foreach (var (yaml, expected) in cases)
             {
-
                 // Expected outcome: The invalid operation is rejected with the required error.
                 // Acceptance criteria: the operation must throw ConfigurationYamlException, because this condition proves that
                 // parse rejects duplicate keys custom tags multiple documents and excessive depth.

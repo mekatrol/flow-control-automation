@@ -11,7 +11,6 @@ namespace Tests.Unit.Credentials;
 [TestFixture]
 internal sealed class CredentialEndpointTests
 {
-
     /// <summary>
     /// Purpose: Protects the behavioral contract that store encrypts secrets and resolver survives scope restart.
     /// Description: Arranges the inputs for store encrypts secrets and resolver survives scope restart, exercises the relevant operation,
@@ -37,7 +36,6 @@ internal sealed class CredentialEndpointTests
         // store encrypts secrets and resolver survives scope restart.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `response.StatusCode` has the required value.
             // Acceptance criteria: `response.StatusCode` must equal `HttpStatusCode.Created`, because this condition proves that
             // store encrypts secrets and resolver survives scope restart.
@@ -82,7 +80,6 @@ internal sealed class CredentialEndpointTests
             // store encrypts secrets and resolver survives scope restart.
             Assert.Multiple(() =>
             {
-
                 // Expected outcome: `row.Json.Contains("highly-secret"` rejects the prohibited condition.
                 // Acceptance criteria: `row.Json.Contains("highly-secret"` must be false, because this condition proves that
                 // store encrypts secrets and resolver survives scope restart.
@@ -107,7 +104,6 @@ internal sealed class CredentialEndpointTests
             // store encrypts secrets and resolver survives scope restart.
             Assert.Multiple(() =>
             {
-
                 // Expected outcome: `resolved` includes the required content.
                 // Acceptance criteria: `resolved` must contain `"\"username\":\"reader\""`, because this condition proves that
                 // store encrypts secrets and resolver survives scope restart.
@@ -182,7 +178,6 @@ internal sealed class CredentialEndpointTests
         // crud lists metadata and preserves secret when update omits it.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `get.StatusCode` has the required value.
             // Acceptance criteria: `get.StatusCode` must equal `HttpStatusCode.OK`, because this condition proves that
             // crud lists metadata and preserves secret when update omits it.
@@ -280,7 +275,6 @@ internal sealed class CredentialEndpointTests
         // stale revision mismatched id and duplicate name conflict.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `stale.StatusCode` has the required value.
             // Acceptance criteria: `stale.StatusCode` must equal `HttpStatusCode.Conflict`, because this condition proves that
             // stale revision mismatched id and duplicate name conflict.
@@ -339,7 +333,6 @@ internal sealed class CredentialEndpointTests
         // delete is blocked while point source references credential.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `blocked.StatusCode` has the required value.
             // Acceptance criteria: `blocked.StatusCode` must equal `HttpStatusCode.Conflict`, because this condition proves that
             // delete is blocked while point source references credential.
@@ -366,7 +359,6 @@ internal sealed class CredentialEndpointTests
         // delete is blocked while point source references credential.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `deleted.StatusCode` has the required value.
             // Acceptance criteria: `deleted.StatusCode` must equal `HttpStatusCode.NoContent`, because this condition proves that
             // delete is blocked while point source references credential.
@@ -416,7 +408,6 @@ internal sealed class CredentialEndpointTests
         // create validates kinds and secrets.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `response.StatusCode` has the required value.
             // Acceptance criteria: `response.StatusCode` must equal `HttpStatusCode.BadRequest`, because this condition proves that
             // create validates kinds and secrets.
@@ -456,7 +447,6 @@ internal sealed class CredentialEndpointTests
         // json decoder rejects unknown trailing and oversized bodies.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `unknown.StatusCode` has the required value.
             // Acceptance criteria: `unknown.StatusCode` must equal `HttpStatusCode.BadRequest`, because this condition proves that
             // json decoder rejects unknown trailing and oversized bodies.
@@ -493,7 +483,6 @@ internal sealed class CredentialEndpointTests
         // missing credential and invalid delete revision map correctly.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `missing.StatusCode` has the required value.
             // Acceptance criteria: `missing.StatusCode` must equal `HttpStatusCode.NotFound`, because this condition proves that
             // missing credential and invalid delete revision map correctly.

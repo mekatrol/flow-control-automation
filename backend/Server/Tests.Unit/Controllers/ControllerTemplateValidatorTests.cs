@@ -36,7 +36,6 @@ internal sealed class ControllerTemplateValidatorTests
         // constrained fixture parses and validates as typed capabilities.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `validated.PointTypes` contains the required values.
             // Acceptance criteria: `validated.PointTypes` must be equivalent to `[PointValueType.Digital]`, because this condition proves that
             // constrained fixture parses and validates as typed capabilities.
@@ -80,7 +79,6 @@ internal sealed class ControllerTemplateValidatorTests
         // default is read only and exhaustive.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `validated.Source.Id` has the required value.
             // Acceptance criteria: `validated.Source.Id` must equal `"default"`, because this condition proves that
             // default is read only and exhaustive.
@@ -294,7 +292,6 @@ internal sealed class ControllerTemplateValidatorTests
     [TestCase("9controller")]
     public void InvalidIds_AreRejected(string id)
     {
-
         // Expected outcome: The invalid operation is rejected.
         // Acceptance criteria: the operation must throw ControllerTemplateValidationException, because this condition proves that
         // invalid ids are rejected.
@@ -311,13 +308,11 @@ internal sealed class ControllerTemplateValidatorTests
     [Test]
     public void DefaultIdentityAndReadOnlyState_AreReserved()
     {
-
         // Expected outcome: All related outcomes satisfy their contracts.
         // Acceptance criteria: every assertion in the group must pass, because this condition proves that
         // default identity and read only state are reserved.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: The invalid operation is rejected.
             // Acceptance criteria: the operation must throw ControllerTemplateValidationException, because this condition proves that
             // default identity and read only state are reserved.
@@ -349,7 +344,6 @@ internal sealed class ControllerTemplateValidatorTests
         // capability predicates use typed validated sets.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: the asserted result confirms the required condition.
             // Acceptance criteria: the asserted result must be true, because this condition proves that
             // capability predicates use typed validated sets.
@@ -437,7 +431,6 @@ internal sealed class ControllerTemplateValidatorTests
         {
             foreach (var yaml in cases)
             {
-
                 // Expected outcome: The invalid operation is rejected.
                 // Acceptance criteria: the operation must throw ConfigurationYamlException, because this condition proves that
                 // strict yaml rejects aliases tags size and nesting.

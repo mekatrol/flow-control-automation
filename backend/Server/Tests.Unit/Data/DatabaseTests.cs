@@ -124,7 +124,6 @@ public sealed class DatabaseTests
         // trigger increments version and rejects stale updates.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `saved.RowVersion` has the required value.
             // Acceptance criteria: `saved.RowVersion` must equal `2`, because this condition proves that
             // trigger increments version and rejects stale updates.

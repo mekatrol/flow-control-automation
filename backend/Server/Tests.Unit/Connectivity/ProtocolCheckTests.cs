@@ -9,7 +9,6 @@ namespace Tests.Unit.Connectivity;
 [TestFixture]
 internal sealed class ProtocolCheckTests
 {
-
     /// <summary>
     /// Purpose: Protects the behavioral contract that http check pins address sends bearer and enforces response limit.
     /// Description: Arranges the inputs for http check pins address sends bearer and enforces response limit, exercises the relevant operation,
@@ -44,7 +43,6 @@ internal sealed class ProtocolCheckTests
         // http check pins address sends bearer and enforces response limit.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `diagnostic` has the required value.
             // Acceptance criteria: `diagnostic` must equal `"HTTP response exceeded the configured size limit"`, because this condition proves that
             // http check pins address sends bearer and enforces response limit.
@@ -125,7 +123,6 @@ internal sealed class ProtocolCheckTests
         // mqtt check authenticates subscribes and disconnects.
         Assert.Multiple(() =>
         {
-
             // Expected outcome: `diagnostic` is absent.
             // Acceptance criteria: `diagnostic` must be null, because this condition proves that
             // mqtt check authenticates subscribes and disconnects.

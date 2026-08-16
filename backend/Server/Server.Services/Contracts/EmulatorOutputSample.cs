@@ -6,7 +6,7 @@ public sealed record EmulatorOutputSample(
     string OutputId,
     FlowVmValue ProposedValue,
     FlowVmValue EffectiveValue,
-    string Quality,
+    DataQuality Quality,
     string? Units,
     ulong LastChangeScan,
     bool IsInterface,

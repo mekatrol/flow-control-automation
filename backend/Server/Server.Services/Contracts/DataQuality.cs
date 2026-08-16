@@ -2,11 +2,11 @@ namespace Server.Services.Contracts;
 
 public enum DataQuality : byte
 {
-    Good,
+    Good = 1,
 
     Bad,
 
-    Stale,
+    Uncertain,
 
     Unavailable
 }
