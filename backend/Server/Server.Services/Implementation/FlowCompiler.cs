@@ -256,7 +256,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
         Secondary = 1,
 
         /// <summary>
-        /// The instruction has no purpose or role, it is simply a placeholder value
+        /// The instruction is not associated with a source-node instruction role.
         /// </summary>
         None = byte.MaxValue
     }
@@ -2059,6 +2059,32 @@ public sealed partial class FlowCompiler : IFlowCompiler
         };
     }
 
+    /*
+     * Resolve one input port to the transient slot containing the value that
+     * drives it.
+     *
+     * Designer connections name nodes and ports:
+     *
+     *     Add.value ----> Output.in
+     *
+     * VM instructions do not follow those names at runtime. They read numbered
+     * slots, so this method translates the target port back through its single
+     * incoming connection and returns the source node's allocated slot index:
+     *
+     *     target node/port
+     *           |
+     *           v
+     *     matching connection
+     *           |
+     *           v
+     *       source node
+     *           |
+     *           v
+     *     slots[sourceId]
+     *
+     * Validation has already guaranteed that each required input has exactly
+     * one driver, which is why Single() is appropriate here.
+     */
     private static ushort InputSlot(
         ExecutableFlowSource source,
         Dictionary<string, ushort> slots,
@@ -2066,6 +2092,26 @@ public sealed partial class FlowCompiler : IFlowCompiler
         string portId) => slots[source.Connections.Single(connection =>
             connection.Target.NodeId == targetId && connection.Target.PortId == portId).Source.NodeId];
 
+    /*
+     * Return the numeric index of the canonical point/interface record used by
+     * this node. Instructions store this compact index rather than a point ID.
+     *
+     * Physical I/O nodes identify a binding with configuration["pointId"], while
+     * FlowInput/FlowOutput nodes use configuration["interfaceId"]. The lookup
+     * also includes direction, data type, and node kind so two records with the
+     * same textual ID cannot be confused when they represent different bindings.
+     *
+     *     node configuration ID
+     *              |
+     *              v
+     *       canonical points[]
+     *              |
+     *              v
+     *       zero-based index
+     *              |
+     *              v
+     *       instruction field
+     */
     private static ushort PointIndex(IReadOnlyList<PointRecord> points, ExecutableFlowNode node, DataDirection direction, DataType type)
     {
         var pointId = node.Configuration[node.Kind is FlowNodeKind.FlowInput or FlowNodeKind.FlowOutput ? "interfaceId" : "pointId"].GetString();
@@ -2104,6 +2150,27 @@ public sealed partial class FlowCompiler : IFlowCompiler
         U16(instruction.Auxiliary),
         U16(0));
 
+    /*
+     * Validate the executable graph structure before scheduling or encoding it.
+     *
+     * This pass establishes the assumptions used by later compiler code:
+     *
+     *     - every node ID is valid and unique
+     *     - every node kind is supported
+     *     - node configuration is valid for that kind
+     *     - every connection references real ports
+     *     - connections run Output -> Input
+     *     - connected ports carry the same data type
+     *     - each input has at most one driver
+     *     - every required input has a driver
+     *     - physical output points have at most one proposed-output node
+     *     - the combinational portion of the graph is acyclic
+     *
+     * 'shapes' is built per node rather than using Shapes directly because
+     * FlowInput and FlowOutput obtain their data type from the flow interface.
+     * Their effective port shape therefore depends on the selected interface
+     * entry.
+     */
     private static void ValidateGraph(ExecutableFlowSource source)
     {
         var nodes = new Dictionary<string, ExecutableFlowNode>(StringComparer.Ordinal);
@@ -2183,6 +2250,14 @@ public sealed partial class FlowCompiler : IFlowCompiler
         ValidateAcyclic(source, nodes);
     }
 
+    /*
+     * Validate the flow's externally visible input/output interface.
+     *
+     * The interface is separate from the internal node graph: it defines values
+     * that another flow or host can supply to FlowInput nodes or receive from
+     * FlowOutput nodes. This method validates the interface-level limits and then
+     * delegates validation of individual entries to ValidateInterfaceEntries().
+     */
     private static void ValidateInterface(ExecutableFlowSource source)
     {
         if (source.Interface.SchemaVersion != 1)
@@ -2199,6 +2274,15 @@ public sealed partial class FlowCompiler : IFlowCompiler
         ValidateInterfaceEntries(source.Interface.Outputs.Select(entry => new InterfaceRecord(entry.Id, entry.Name, entry.DataType, entry.Units, null)), "/interface/outputs");
     }
 
+    /*
+     * Validate one interface collection (either inputs or outputs).
+     *
+     * IDs are unique using exact ordinal comparison because they are machine
+     * identifiers. Names are unique case-insensitively because they are
+     * human-facing labels. Numeric entries may declare engineering units;
+     * Boolean entries may not. If a default value is present, its JSON type must
+     * match the declared interface data type.
+     */
     private static void ValidateInterfaceEntries(IEnumerable<InterfaceRecord> entries, string path)
     {
         var ids = new HashSet<string>(StringComparer.Ordinal);
@@ -2228,6 +2312,11 @@ public sealed partial class FlowCompiler : IFlowCompiler
         }
     }
 
+    /*
+     * Check that an interface default value can represent the declared data type.
+     * Number defaults must also be finite because NaN and infinity are not valid
+     * executable numeric defaults for this profile.
+     */
     private static bool DefaultMatches(JsonElement value, DataType type) => type switch
     {
         DataType.Boolean => value.ValueKind is JsonValueKind.True or JsonValueKind.False,
@@ -2235,6 +2324,15 @@ public sealed partial class FlowCompiler : IFlowCompiler
         _ => false
     };
 
+    /*
+     * Resolve the interface declaration referenced by a FlowInput or FlowOutput
+     * node and normalize it into the compiler's internal InterfaceRecord shape.
+     *
+     * FlowInput searches source.Interface.Inputs and preserves its optional
+     * default value. FlowOutput searches source.Interface.Outputs and has no
+     * default value. A missing reference is reported against the node's
+     * configuration rather than allowed to fail later during encoding.
+     */
     private static InterfaceRecord InterfaceEntry(ExecutableFlowSource source, ExecutableFlowNode node)
     {
         var id = node.Configuration["interfaceId"].GetString();
@@ -2244,6 +2342,11 @@ public sealed partial class FlowCompiler : IFlowCompiler
         return entry ?? throw Failure("missing_interface_reference", $"/nodes/{Escape(node.Id)}/configuration/interfaceId", "Referenced interface entry does not exist in the required direction.");
     }
 
+    /*
+     * Return the executable VM data type for the interface entry referenced by
+     * this FlowInput/FlowOutput node. The explicit switch also prevents an
+     * unsupported future interface type from silently entering Flow IL v1.
+     */
     private static DataType InterfaceDataType(ExecutableFlowSource source, ExecutableFlowNode node) => InterfaceEntry(source, node).DataType switch
     {
         DataType.Boolean => DataType.Boolean,
@@ -2251,8 +2354,23 @@ public sealed partial class FlowCompiler : IFlowCompiler
         _ => throw new UnreachableException()
     };
 
+    /*
+     * Return the engineering units declared by the interface entry referenced by
+     * this FlowInput/FlowOutput node. Null means the value is dimensionless or no
+     * units were declared.
+     */
     private static string? InterfaceUnits(ExecutableFlowSource source, ExecutableFlowNode node) => InterfaceEntry(source, node).Units;
 
+    /*
+     * Validate the configuration object for one node according to its node kind.
+     *
+     * Graph validation proves that ports and connections are structurally valid;
+     * this method proves that node-specific settings are usable. Examples include
+     * required point/interface IDs, finite numeric constants, comparator operators,
+     * timer durations, and enabled flags. Keeping these checks here means later
+     * instruction generation can read configuration values without repeatedly
+     * defending against malformed source data.
+     */
     private static void ValidateConfiguration(ExecutableFlowSource source, ExecutableFlowNode node, int index)
     {
         var path = $"/nodes/{index}/configuration";
@@ -2365,6 +2483,12 @@ public sealed partial class FlowCompiler : IFlowCompiler
         }
     }
 
+    /*
+     * Require one named configuration property to contain a finite JSON number.
+     * Finite means an ordinary numeric value: NaN and positive/negative infinity
+     * are rejected because they would make execution and canonical encoding less
+     * predictable.
+     */
     private static void ValidateFiniteNumber(ExecutableFlowNode node, string path, string key)
     {
         if (!node.Configuration.TryGetValue(key, out var value)
@@ -2376,6 +2500,16 @@ public sealed partial class FlowCompiler : IFlowCompiler
         }
     }
 
+    /*
+     * Enumerate every literal constant required to encode one source node.
+     *
+     * The compiler first gathers these values from all nodes, removes duplicates,
+     * and sorts them into the canonical constant pool. Instructions then refer to
+     * constants by pool index instead of embedding literal values directly.
+     *
+     * A node may contribute zero, one, or several constants depending on its kind;
+     * for example Clamp contributes minimum and maximum while Add contributes none.
+     */
     private static IEnumerable<ConstantRecord> ConstantsFor(ExecutableFlowNode node)
     {
         if (node.Kind == FlowNodeKind.DigitalConstant)
@@ -2410,11 +2544,25 @@ public sealed partial class FlowCompiler : IFlowCompiler
         }
     }
 
+    /*
+     * Normalize a Boolean literal into the common ConstantRecord representation.
+     * Boolean false is stored as numeric 0 and true as numeric 1; DataType keeps
+     * that representation distinct from an actual numeric constant.
+     */
     private static ConstantRecord GetBooleanConstant(bool value) => new(DataType.Boolean, value ? 1D : 0D);
 
+    /*
+     * Read one numeric configuration property and wrap it in the same internal
+     * ConstantRecord representation used to build the canonical constant pool.
+     */
     private static ConstantRecord GetNumericConstant(ExecutableFlowNode node, string key) =>
         new(DataType.Number, node.Configuration[key].GetDouble());
 
+    /*
+     * Translate a constant value into its zero-based index in the canonical
+     * constant pool. Instructions encode this 16-bit index, not the literal
+     * constant itself. ConstantsFor() populated the pool before this lookup occurs.
+     */
     private static ushort ConstantIndex(ConstantRecord[] constants, ConstantRecord value) =>
         checked((ushort)Array.IndexOf(constants, value));
 
@@ -2437,11 +2585,25 @@ public sealed partial class FlowCompiler : IFlowCompiler
         return result;
     }
 
+    /*
+     * Determine the data type stored in a node's transient result slot.
+     *
+     * FlowInput/FlowOutput are resolved from their interface declaration. Known
+     * numeric node kinds produce Number; the remaining supported executable node
+     * kinds produce Boolean. This value is written into the slot table and is also
+     * used when resolving output point bindings.
+     */
     private static DataType ResultDataType(ExecutableFlowSource source, ExecutableFlowNode node) =>
         node.Kind is FlowNodeKind.FlowInput or FlowNodeKind.FlowOutput ? InterfaceDataType(source, node)
         : node.Kind is FlowNodeKind.NumericConstant or FlowNodeKind.Add or FlowNodeKind.LevelShifter or FlowNodeKind.AnalogInput or FlowNodeKind.AnalogOutput or
             FlowNodeKind.Average or FlowNodeKind.Calculator or FlowNodeKind.Clamp or FlowNodeKind.Min or FlowNodeKind.Max or FlowNodeKind.Line or FlowNodeKind.Selector ? DataType.Number : DataType.Boolean;
 
+    /*
+     * Convert the comparator's authoring string into the compact numeric operation
+     * code stored in the instruction Auxiliary field. Validation has already
+     * restricted the string to this supported set, so any other value indicates an
+     * internal compiler inconsistency.
+     */
     private static ushort ComparatorCode(ExecutableFlowNode node) => node.Configuration["operator"].GetString() switch
     {
         "lt" => 1,
@@ -2453,6 +2615,15 @@ public sealed partial class FlowCompiler : IFlowCompiler
         _ => throw new UnreachableException()
     };
 
+    /*
+     * Resolve one connection endpoint to the FlowPort definition that describes it.
+     *
+     * An endpoint is valid only when both its node ID and port ID exist in the
+     * effective per-node shape table. Returning the FlowPort lets the caller then
+     * validate direction and data-type compatibility. The connection index and
+     * endpoint name are carried only so any failure can point at the exact source
+     * location that is invalid.
+     */
     private static FlowPort FindPort(
         Dictionary<string, ExecutableFlowNode> nodes,
         Dictionary<string, IReadOnlyDictionary<string, FlowPort>> shapes,
@@ -2472,6 +2643,14 @@ public sealed partial class FlowCompiler : IFlowCompiler
         return port;
     }
 
+    /*
+     * Ensure a physical output point has at most one node proposing its value.
+     *
+     * Multiple input nodes may read the same physical point, but two DigitalOutput
+     * or AnalogOutput nodes targeting the same point would create competing output
+     * drivers. The HashSet records each output point ID as it is encountered and
+     * rejects the second occurrence.
+     */
     private static void ValidatePointReferences(IReadOnlyList<ExecutableFlowNode> nodes)
     {
         var outputPoints = new HashSet<string>(StringComparer.Ordinal);
@@ -2488,6 +2667,18 @@ public sealed partial class FlowCompiler : IFlowCompiler
         }
     }
 
+    /*
+     * Verify that the same-scan dependency graph has a valid execution order.
+     *
+     * This is a Kahn topological-sort check. Incoming connections to Memory nodes
+     * are intentionally ignored because Memory reads previously committed state;
+     * its new input is committed after the main scan. Memory can therefore break a
+     * feedback path that would otherwise be a combinational cycle.
+     *
+     * If every node can be removed from the graph, the graph is schedulable. If
+     * nodes remain with non-zero indegree, those nodes participate in or depend on
+     * a same-scan cycle and compilation fails.
+     */
     private static void ValidateAcyclic(
         ExecutableFlowSource source,
         IReadOnlyDictionary<string, ExecutableFlowNode> nodes)
@@ -2536,6 +2727,18 @@ public sealed partial class FlowCompiler : IFlowCompiler
         }
     }
 
+    /*
+     * Build the canonical table of external point/interface bindings referenced by
+     * executable I/O nodes.
+     *
+     * Each record captures the binding ID, direction, data type, units, and whether
+     * it represents a flow-interface endpoint. Duplicate equivalent records are
+     * removed, then the table is sorted so equivalent source produces stable point
+     * indices and therefore deterministic instruction bytes.
+     *
+     * The resulting array is later encoded as section 2 and is also used by
+     * PointIndex() when instructions need to refer to a binding.
+     */
     private static PointRecord[] BuildPoints(
         ExecutableFlowSource source,
         IReadOnlyList<ExecutableFlowNode> nodes,
@@ -2602,6 +2805,17 @@ public sealed partial class FlowCompiler : IFlowCompiler
 
     // Encode a required identifier/string as [length:u8][UTF-8 bytes].
     // The length is BYTE length, not C# char count; this matters for non-ASCII text.
+    /*
+     * Encode a required string in the Flow IL string8 representation:
+     *
+     *     +-------------+-----------------------------+
+     *     | length:u8   | UTF-8 bytes                 |
+     *     +-------------+-----------------------------+
+     *
+     * The length is the number of encoded UTF-8 BYTES, not the number of C# chars.
+     * checked(byte) makes values longer than 255 encoded bytes fail rather than
+     * truncating the length field.
+     */
     private static byte[] String8(string value)
     {
         var bytes = Encoding.UTF8.GetBytes(value);
@@ -2609,6 +2823,11 @@ public sealed partial class FlowCompiler : IFlowCompiler
     }
 
     // Same physical string8 representation, but permits a zero length byte.
+    /*
+     * Encode the same string8 representation as String8(), while documenting that
+     * an empty string is meaningful at this call site. An empty value becomes one
+     * zero length byte and no following payload bytes.
+     */
     private static byte[] String8AllowEmpty(string value)
     {
         var bytes = Encoding.UTF8.GetBytes(value);
@@ -2617,6 +2836,12 @@ public sealed partial class FlowCompiler : IFlowCompiler
 
     // Materialize a u16 as two little-endian bytes. Returning byte[] makes field
     // composition via Concat visibly match the binary record diagrams above.
+    /*
+     * Materialize one unsigned 16-bit integer as exactly two little-endian bytes.
+     * Returning byte[] allows binary records to be assembled field-by-field with
+     * Concat() in the same order shown by the format diagrams. checked() prevents
+     * negative or oversized integers from silently wrapping.
+     */
     private static byte[] U16(int value)
     {
         var bytes = new byte[2];
@@ -2625,6 +2850,10 @@ public sealed partial class FlowCompiler : IFlowCompiler
     }
 
     // Materialize a u32 as four little-endian bytes.
+    /*
+     * Materialize one unsigned 32-bit integer as exactly four little-endian bytes
+     * for inclusion in an encoded Flow IL field.
+     */
     private static byte[] U32(uint value)
     {
         var bytes = new byte[4];
@@ -2632,6 +2861,19 @@ public sealed partial class FlowCompiler : IFlowCompiler
         return bytes;
     }
 
+    /*
+     * Propagate engineering units through the scheduled numeric graph and reject
+     * operations whose units are incompatible.
+     *
+     * 'units' maps node ID -> units of that node's result. Processing in schedule
+     * order means the units of every upstream source are already known when a node
+     * is examined. Operations such as Add, Comparator, Min, and Max require their
+     * two numeric inputs to have identical units; pass-through numeric operations
+     * preserve the units of their input.
+     *
+     * Physical and flow outputs are checked against the units declared by their
+     * destination binding so a value cannot be written to an incompatible endpoint.
+     */
     private static void ValidateUnits(FlowCompilationRequest request)
     {
         var source = request.Source;
@@ -2680,6 +2922,14 @@ public sealed partial class FlowCompiler : IFlowCompiler
         }
     }
 
+    /*
+     * Resolve the units arriving at two input ports and require them to match.
+     *
+     * The returned value is the common unit and can therefore become the result
+     * unit for operations such as Add, Min, and Max. Comparator also uses this
+     * check even though its own result is Boolean, because comparing unlike units
+     * would be semantically invalid.
+     */
     private static string? RequireMatchingUnits(
         ExecutableFlowSource source,
         Dictionary<string, string?> units,
@@ -2697,6 +2947,12 @@ public sealed partial class FlowCompiler : IFlowCompiler
         return left;
     }
 
+    /*
+     * Return the source-node ID connected to one target input port. Validation has
+     * already guaranteed exactly one driver, so Single() expresses that invariant.
+     * This helper is used when later passes need information about the upstream node
+     * rather than merely its slot index.
+     */
     private static string SourceNode(ExecutableFlowSource source, string nodeId, string portId) =>
         source.Connections.Single(connection =>
             connection.Target.NodeId == nodeId && connection.Target.PortId == portId).Source.NodeId;
@@ -2755,10 +3011,19 @@ public sealed partial class FlowCompiler : IFlowCompiler
     }
 
     // In-place fixed-offset envelope writer; offset is a byte offset.
+    /*
+     * Write a 16-bit unsigned value directly into an existing byte array at an
+     * exact byte offset. This is used for fixed-position envelope fields where the
+     * destination buffer already exists.
+     */
     private static void WriteU16(byte[] target, int offset, int value) =>
         BinaryPrimitives.WriteUInt16LittleEndian(target.AsSpan(offset), checked((ushort)value));
 
     // In-place fixed-offset envelope writer for four-byte little-endian fields.
+    /*
+     * Write a 32-bit unsigned value directly into an existing byte array at an
+     * exact byte offset using little-endian byte order.
+     */
     private static void WriteU32(byte[] target, int offset, uint value) =>
         BinaryPrimitives.WriteUInt32LittleEndian(target.AsSpan(offset), value);
 
@@ -2774,6 +3039,12 @@ public sealed partial class FlowCompiler : IFlowCompiler
         bytes.CopyTo(target, offset + 1);
     }
 
+    /*
+     * Validate an identifier used by the executable format. It must match the
+     * restricted identifier syntax and its UTF-8 encoded form must fit within the
+     * field-specific byte limit. The diagnostic path identifies the exact source
+     * property that supplied the invalid value.
+     */
     private static void ValidateIdentifier(string value, string path, int maximumBytes)
     {
         if (!IdentifierRegex().IsMatch(value) || Encoding.UTF8.GetByteCount(value) > maximumBytes)
@@ -2782,6 +3053,12 @@ public sealed partial class FlowCompiler : IFlowCompiler
         }
     }
 
+    /*
+     * Construct the compiler's standard exception containing one structured
+     * diagnostic. Centralizing this keeps validation failures consistent: every
+     * diagnostic carries a stable machine-readable code, a source path, and a
+     * human-readable explanation.
+     */
     private static FlowCompilationException Failure(string code, string path, string message) =>
         new([new FlowCompilationDiagnostic(code, path, message)]);
 
@@ -2853,18 +3130,29 @@ public sealed partial class FlowCompiler : IFlowCompiler
     [GeneratedRegex("^[A-Za-z0-9][A-Za-z0-9._:-]*$", RegexOptions.CultureInvariant)]
     private static partial Regex IdentifierRegex();
 
+    /* Describes the complete set of connection ports exposed by one node kind. */
     private sealed record FlowNodeShape(IReadOnlyList<FlowPort> Ports);
 
+    /* Describes one named node connection point: its ID, direction, and value type. */
     private sealed record FlowPort(string Id, DataDirection Direction, DataType DataType);
 
+    /* Uniquely identifies one input/output port on one source node. */
     private sealed record FlowPortKey(string NodeId, string PortId);
 
+    /* Canonical compiler representation of one physical-point or flow-interface binding. */
     private sealed record PointRecord(string Id, DataDirection Direction, DataType DataType, string? Units, FlowNodeKind Kind = 0);
 
+    /* Normalized representation shared by interface-input and interface-output validation. */
     private sealed record InterfaceRecord(string Id, string Name, DataType DataType, string? Units, JsonElement? DefaultValue);
 
+    /* Typed literal stored in the canonical constant pool before binary encoding. */
     private sealed record ConstantRecord(DataType DataType, double Number);
 
+    /*
+     * Logical, not-yet-serialized representation of one Flow IL v1 instruction.
+     * Slot/index fields become u16 values in section 4; NodeId and Role are compiler
+     * metadata used when producing symbol/debug information.
+     */
     private sealed record V1Instruction(
         FlowOpcode Opcode,
         ushort ResultSlotIndex,
@@ -2874,5 +3162,9 @@ public sealed partial class FlowCompiler : IFlowCompiler
         string NodeId,
         NodeInstructionRole Role);
 
+    /*
+     * One completely encoded section payload plus the metadata needed to create its
+     * 48-byte directory entry. Bytes contains payload only, not the directory record.
+     */
     private sealed record V1Section(ushort Id, uint Count, byte[] Bytes, ushort Version = 1);
 }
