@@ -1,5 +1,3 @@
-using Server.Services.Contracts;
-
 namespace Server.Services.Implementation;
 
 public static class ControllerCapabilitiesSupport
@@ -23,7 +21,7 @@ public static class ControllerCapabilitiesSupport
 
     public static bool SupportsFunction(
         ValidatedControllerTemplate template,
-        string function) =>
+        FlowFunctionKind function) =>
         template.FlowFunctions.Contains(function);
 
     public static bool SupportsExecutionMode(

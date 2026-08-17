@@ -5,7 +5,7 @@ namespace Server.Services.Contracts;
 public sealed record FlowNode
 {
     public required string Id { get; init; }
-    public required string Kind { get; init; }
+    public required FlowNodeKind Kind { get; init; }
     public string Label { get; init; } = string.Empty;
     public double X { get; init; }
     public double Y { get; init; }

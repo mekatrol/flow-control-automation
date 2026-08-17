@@ -354,6 +354,12 @@ dotnet_diagnostic.IDE1006.severity = error
 # RCS1036: Remove unnecessary blank line
 dotnet_diagnostic.RCS1036.severity = error
 
+# RCS1037: Remove trailing white-space
+dotnet_diagnostic.RCS1037.severity = error
+
+# RCS1154: Sort enum members
+dotnet_diagnostic.RCS1154.severity = error
+
 # RCS1194: Implement exception constructors
 dotnet_diagnostic.RCS1194.severity = none
 

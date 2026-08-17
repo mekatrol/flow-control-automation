@@ -434,8 +434,8 @@ internal sealed class PointDefinitionStoreTests
             Enabled = true,
             GroupId = groupId,
             Implementation = "virtual",
-            Direction = "value",
-            ValueType = "analog",
+            Direction = DataDirection.Value,
+            ValueType = PointValueType.Analog,
             Readable = true,
             Persistence = "volatile"
         };
@@ -447,8 +447,8 @@ internal sealed class PointDefinitionStoreTests
         Enabled = true,
         GroupId = groupId,
         Implementation = "bound",
-        Direction = "input",
-        ValueType = "analog",
+        Direction = DataDirection.Input,
+        ValueType = PointValueType.Analog,
         Readable = true,
         Persistence = "volatile",
         Mapping = new System.Text.Json.Nodes.JsonObject

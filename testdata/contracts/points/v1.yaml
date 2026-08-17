@@ -52,7 +52,7 @@ points:
     enabled: true
     implementation: virtual
     direction: value
-    valueType: multi_state
+    valueType: multiState
     stateLabels:
       - key: "off"
         label: "Off"

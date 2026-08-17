@@ -1,5 +1,3 @@
-using Server.Services.Contracts;
-
 namespace Server.Services.Implementation;
 
 public static class BuiltInControllerTemplate
@@ -15,20 +13,28 @@ public static class BuiltInControllerTemplate
         Revision = 1,
         Capabilities = new ControllerCapabilities
         {
-            PointTypes = ["analog", "digital", "multi_state", "integer", "text"],
-            PointDirections = ["input", "output", "input_output", "value"],
+            PointTypes = [PointValueType.Analog, PointValueType.Digital, PointValueType.MultiState, PointValueType.Integer, PointValueType.Text],
+            PointDirections = [DataDirection.Input, DataDirection.Output, DataDirection.InputOutput, DataDirection.Value],
             PointFeatures =
             [
-                "read", "command", "retain", "override", "relinquish",
-                "quality", "alarms", "trends",
+                ControllerPointFeature.Read,
+                ControllerPointFeature.Command,
+                ControllerPointFeature.Retain,
+                ControllerPointFeature.Override,
+                ControllerPointFeature.Relinquish,
+                ControllerPointFeature.Quality,
+                ControllerPointFeature.Alarms,
+                ControllerPointFeature.Trends,
             ],
-            ConnectorDataTypes = ["any", "boolean", "event", "number", "string"],
+            ConnectorDataTypes = [ConnectorDataType.Any, ConnectorDataType.Boolean, ConnectorDataType.Event, ConnectorDataType.Number, ConnectorDataType.String],
             FlowFunctions = [.. FlowNodeRegistry.Functions],
-            ExecutionModes = ["event", "interval"],
+            ExecutionModes = [ExecutionMode.Event, ExecutionMode.Interval],
             RuntimeFeatures =
             [
-                "virtual_points", "bound_points", "command_arbitration",
-                "quality_propagation",
+                ControllerRuntimeFeature.VirtualPoints,
+                ControllerRuntimeFeature.BoundPoints,
+                ControllerRuntimeFeature.CommandArbitration,
+                ControllerRuntimeFeature.QualityPropagation
             ]
         }
     };

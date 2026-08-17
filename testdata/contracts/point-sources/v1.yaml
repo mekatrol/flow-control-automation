@@ -4,7 +4,7 @@ sources:
     name: Home Assistant
     description: Building automation host
     enabled: true
-    kind: home_assistant
+    kind: homeAssistant
     connection:
       baseUrl: https://ha.example.test
       subscribeEvents: true
@@ -36,7 +36,7 @@ sources:
     name: Weather API
     description: Read-only JSON weather service
     enabled: true
-    kind: http_json
+    kind: httpJson
     connection:
       baseUrl: https://weather.example.test
       allowedReadMethods: [GET]

@@ -18,12 +18,12 @@ public sealed record FlowCompilationResult
     public required int ControllerTemplateRevision { get; init; }
 
     public IReadOnlyDictionary<string, ushort> NodeIndices { get; init; } = new Dictionary<string, ushort>(StringComparer.Ordinal);
-    
+
     public IReadOnlyList<string> Schedule { get; init; } = [];
-    
+
     public uint MaximumWorkPerScan { get; init; }
-    
+
     public uint WorkingBytes { get; init; }
-    
+
     public uint MaximumSnapshotBytes { get; init; }
 }

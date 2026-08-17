@@ -51,7 +51,7 @@ internal sealed class FlowEndpointTests
                 new FlowNode
                 {
                     Id = "pulse-1",
-                    Kind = "pulse",
+                    Kind = FlowNodeKind.Pulse,
                     Label = "Every minute",
                     X = 10,
                     Y = 20,
@@ -328,7 +328,7 @@ internal sealed class FlowEndpointTests
                 new FlowNode
                 {
                     Id = "constant-true",
-                    Kind = "digitalConstant",
+                    Kind = FlowNodeKind.DigitalConstant,
                     Label = "Constant true",
                     Connectors = [new FlowConnector("value", "Value", DataDirection.Output, DataType.Boolean, "right")],
                     Configuration = new Dictionary<string, JsonElement>

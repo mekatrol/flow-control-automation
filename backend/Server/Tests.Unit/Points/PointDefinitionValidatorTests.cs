@@ -36,9 +36,11 @@ internal sealed class PointDefinitionValidatorTests
     public void ContractFixture_ValidatesAndProducesTypedMappings()
     {
         var yaml = File.ReadAllBytes(Fixture("points", "v1.yaml"));
+
         var document = ConfigurationYaml.Parse<PointDocument>(
             yaml,
             ConfigurationKind.Points);
+
         var sources = ConfigurationYaml.Parse<PointSourceDocument>(
                 File.ReadAllBytes(Fixture("point-sources", "v1.yaml")),
                 ConfigurationKind.PointSources)
@@ -92,12 +94,12 @@ internal sealed class PointDefinitionValidatorTests
     /// Description: Arranges the inputs for bound direction capability combinations are accepted, exercises the relevant operation,
     /// and verifies the observable results required by that scenario.
     /// </summary>
-    [TestCase("input", true, false)]
-    [TestCase("output", false, true)]
-    [TestCase("output", true, true)]
-    [TestCase("input_output", true, true)]
+    [TestCase(DataDirection.Input, true, false)]
+    [TestCase(DataDirection.Output, false, true)]
+    [TestCase(DataDirection.Output, true, true)]
+    [TestCase(DataDirection.InputOutput, true, true)]
     public void BoundDirectionCapabilityCombinations_AreAccepted(
-        string direction,
+        DataDirection direction,
         bool readable,
         bool commandable)
     {
@@ -119,13 +121,13 @@ internal sealed class PointDefinitionValidatorTests
     /// Description: Arranges the inputs for invalid bound direction capability combinations are rejected, exercises the relevant operation,
     /// and verifies the observable results required by that scenario.
     /// </summary>
-    [TestCase("input", false, false)]
-    [TestCase("input", true, true)]
-    [TestCase("output", true, false)]
-    [TestCase("input_output", true, false)]
-    [TestCase("value", true, true)]
+    [TestCase(DataDirection.Input, false, false)]
+    [TestCase(DataDirection.Input, true, true)]
+    [TestCase(DataDirection.Output, true, false)]
+    [TestCase(DataDirection.InputOutput, true, false)]
+    [TestCase(DataDirection.Value, true, true)]
     public void InvalidBoundDirectionCapabilityCombinations_AreRejected(
-        string direction,
+        DataDirection direction,
         bool readable,
         bool commandable)
     {
@@ -150,7 +152,7 @@ internal sealed class PointDefinitionValidatorTests
     [Test]
     public void VirtualRetainedValues_AreTypeAndRangeChecked()
     {
-        var valid = VirtualPoint("integer") with
+        var valid = VirtualPoint(PointValueType.Integer) with
         {
             Persistence = "retained",
             RelinquishDefault = JsonValue.Create(4),
@@ -187,7 +189,7 @@ internal sealed class PointDefinitionValidatorTests
     [TestCase(double.NegativeInfinity)]
     public void AnalogNonFiniteValues_AreRejected(double value)
     {
-        var point = VirtualPoint("analog") with
+        var point = VirtualPoint(PointValueType.Analog) with
         {
             Persistence = "retained",
             RelinquishDefault = JsonValue.Create(value),
@@ -209,11 +211,11 @@ internal sealed class PointDefinitionValidatorTests
     [Test]
     public void DigitalAndMultiStateLabels_AreStrict()
     {
-        var duplicateDigital = VirtualPoint("digital") with
+        var duplicateDigital = VirtualPoint(PointValueType.Digital) with
         {
             StateLabels = new JsonObject { ["false"] = "Off", ["true"] = "off" },
         };
-        var duplicateState = VirtualPoint("multi_state") with
+        var duplicateState = VirtualPoint(PointValueType.MultiState) with
         {
             StateLabels = new JsonArray
             {
@@ -255,7 +257,7 @@ internal sealed class PointDefinitionValidatorTests
         // Acceptance criteria: the operation must throw PointDefinitionValidationException, because this condition proves that
         // text requires positive maximum length.
         Assert.That(
-            () => _validator.Validate(VirtualPoint("text"), Context()),
+            () => _validator.Validate(VirtualPoint(PointValueType.Text), Context()),
             Throws.TypeOf<PointDefinitionValidationException>());
     }
 
@@ -271,7 +273,7 @@ internal sealed class PointDefinitionValidatorTests
         {
             ["group"] = new() { Id = "group", Name = "Group", SourceId = "ha" }
         };
-        var inherited = BoundPoint("input", true, false) with
+        var inherited = BoundPoint(DataDirection.Input, true, false) with
         {
             GroupId = "group",
             SourceId = null,
@@ -312,13 +314,13 @@ internal sealed class PointDefinitionValidatorTests
     [Test]
     public void SourceMappings_RequireCapabilitiesAndRejectCredentialLiterals()
     {
-        var missingCommandTopic = BoundPoint("output", false, true) with
+        var missingCommandTopic = BoundPoint(DataDirection.Output, false, true) with
         {
             SourceId = "mqtt",
             Mapping = new JsonObject { ["stateTopic"] = "state" },
             SafeDisablePolicy = Safety(),
         };
-        var credential = BoundPoint("input", true, false) with
+        var credential = BoundPoint(DataDirection.Input, true, false) with
         {
             Mapping = new JsonObject
             {
@@ -359,8 +361,8 @@ internal sealed class PointDefinitionValidatorTests
     {
         var points = new[]
         {
-            VirtualPoint("analog"),
-            VirtualPoint("analog") with { Id = "second", Name = "POINT" }
+            VirtualPoint(PointValueType.Analog),
+            VirtualPoint(PointValueType.Analog) with { Id = "second", Name = "POINT" }
         };
         var duplicate = new PointDocument { Points = points };
         var reserved = new PointGroup
@@ -478,7 +480,7 @@ internal sealed class PointDefinitionValidatorTests
             _sources);
 
     private static Point BoundPoint(
-        string direction,
+        DataDirection direction,
         bool readable,
         bool commandable)
     {
@@ -500,7 +502,7 @@ internal sealed class PointDefinitionValidatorTests
             Enabled = true,
             Implementation = "bound",
             Direction = direction,
-            ValueType = "analog",
+            ValueType = PointValueType.Analog,
             Readable = readable,
             Commandable = commandable,
             Persistence = "volatile",
@@ -509,18 +511,18 @@ internal sealed class PointDefinitionValidatorTests
         };
     }
 
-    private static Point VirtualPoint(string valueType) => new()
+    private static Point VirtualPoint(PointValueType valueType) => new()
     {
         Id = "point",
         Name = "Point",
         Enabled = true,
         Implementation = "virtual",
-        Direction = "value",
+        Direction = DataDirection.Value,
         ValueType = valueType,
         StateLabels = valueType switch
         {
-            "digital" => new JsonObject { ["false"] = "Off", ["true"] = "On" },
-            "multi_state" => new JsonArray
+            PointValueType.Digital => new JsonObject { ["false"] = "Off", ["true"] = "On" },
+            PointValueType.MultiState => new JsonArray
             {
                 new JsonObject { ["key"] = "off", ["label"] = "Off" },
                 new JsonObject { ["key"] = "on", ["label"] = "On" }

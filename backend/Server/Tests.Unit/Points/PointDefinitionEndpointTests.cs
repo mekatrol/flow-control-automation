@@ -426,8 +426,8 @@ internal sealed class PointDefinitionEndpointTests
         Enabled = true,
         GroupId = groupId,
         Implementation = "virtual",
-        Direction = "value",
-        ValueType = "analog",
+        Direction = DataDirection.Value,
+        ValueType = PointValueType.Analog,
         Readable = true,
         Persistence = "volatile"
     };

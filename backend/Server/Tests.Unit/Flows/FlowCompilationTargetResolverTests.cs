@@ -91,13 +91,13 @@ public sealed class FlowCompilationTargetResolverTests
         Assert.That(pointStore.ListCallCount, Is.Zero);
     }
 
-    private static IFlowCompilationTargetResolver Resolver(
+    private static FlowCompilationTargetResolver Resolver(
         ControllerTemplate template,
         IReadOnlyList<Point> points) => Resolver(template, new StubPointStore(points));
 
-    private static IFlowCompilationTargetResolver Resolver(
+    private static FlowCompilationTargetResolver Resolver(
         ControllerTemplate template,
-        StubPointStore points) => new FlowCompilationTargetResolver(
+        StubPointStore points) => new(
             new StubTemplateStore(template),
             new ControllerTemplateValidator(),
             points);
@@ -110,8 +110,8 @@ public sealed class FlowCompilationTargetResolverTests
         ControllerTemplateRevision = 3,
         Nodes =
         [
-            Node("input-node", "digitalInput", "input-01"),
-            Node("output-node", "digitalOutput", "output-01")
+            Node("input-node", FlowNodeKind.DigitalInput, "input-01"),
+            Node("output-node", FlowNodeKind.DigitalOutput, "output-01")
         ],
         Connections =
         [
@@ -121,7 +121,7 @@ public sealed class FlowCompilationTargetResolverTests
         ]
     };
 
-    private static ExecutableFlowNode Node(string id, string kind, string pointId)
+    private static ExecutableFlowNode Node(string id, FlowNodeKind kind, string pointId)
     {
         using var document = JsonDocument.Parse($$"""{"pointId":"{{pointId}}"}""");
         return new ExecutableFlowNode
@@ -142,29 +142,29 @@ public sealed class FlowCompilationTargetResolverTests
         Revision = 3,
         Capabilities = new ControllerCapabilities
         {
-            PointTypes = ["digital"],
-            PointDirections = ["input", "output"],
-            PointFeatures = ["read", "command"],
-            ConnectorDataTypes = ["boolean"],
-            FlowFunctions = ["read-point", "write-point"],
-            ExecutionModes = ["interval"],
-            RuntimeFeatures = ["bound_points"]
+            PointTypes = [PointValueType.Digital],
+            PointDirections = [DataDirection.Input, DataDirection.Output],
+            PointFeatures = [ControllerPointFeature.Read, ControllerPointFeature.Command],
+            ConnectorDataTypes = [ConnectorDataType.Boolean],
+            FlowFunctions = [FlowFunctionKind.ReadPoint, FlowFunctionKind.WritePoint],
+            ExecutionModes = [ExecutionMode.Interval],
+            RuntimeFeatures = [ControllerRuntimeFeature.BoundPoints]
         }
     };
 
-    private static Point Input(string id) => Point(id, "input", readable: true);
+    private static Point Input(string id) => Point(id, DataDirection.Input, readable: true);
 
-    private static Point Output(string id) => Point(id, "output", commandable: true);
+    private static Point Output(string id) => Point(id, DataDirection.Output, commandable: true);
 
     private static Point VirtualValue(
         string id,
         bool readable = false,
         bool commandable = false) =>
-        Point(id, "value", readable, commandable) with { Implementation = "virtual" };
+        Point(id, DataDirection.Value, readable, commandable) with { Implementation = "virtual" };
 
     private static Point Point(
         string id,
-        string direction,
+        DataDirection direction,
         bool readable = false,
         bool commandable = false) => new()
         {
@@ -173,7 +173,7 @@ public sealed class FlowCompilationTargetResolverTests
             Enabled = true,
             Implementation = "bound",
             Direction = direction,
-            ValueType = "digital",
+            ValueType = PointValueType.Digital,
             Readable = readable,
             Commandable = commandable,
             Persistence = "volatile"

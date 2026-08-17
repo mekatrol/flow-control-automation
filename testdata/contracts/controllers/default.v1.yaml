@@ -5,17 +5,17 @@ description: Built-in unrestricted application target
 readOnly: true
 revision: 1
 capabilities:
-  pointTypes: [analog, digital, multi_state, integer, text]
-  pointDirections: [input, output, input_output, value]
+  pointTypes: [analog, digital, multiState, integer, text]
+  pointDirections: [input, output, inputOutput, value]
   pointFeatures: [read, command, retain, override, relinquish, quality, alarms, trends]
   connectorDataTypes: [any, boolean, event, number, string]
   flowFunctions:
     [and, average, calculator, calendar, clamp, comparator, delay, if,
-     level-shifter, line, max, min, nand, nor, not, or, override, point-changed,
-     pulse, read-point, release-point-command, schedule, selector, sequence,
-     split, timer, write-point, xnor, xor]
+     levelShifter, line, max, min, nand, nor, not, or, override, pointChanged,
+     pulse, readPoint, releasePointCommand, schedule, selector, sequence,
+     split, timer, writePoint, xnor, xor]
   executionModes: [event, interval]
-  runtimeFeatures: [virtual_points, bound_points, command_arbitration, quality_propagation]
+  runtimeFeatures: [virtualPoints, boundPoints, commandArbitration, qualityPropagation]
 limits:
   maxFlows: null
   maxNodesPerFlow: null

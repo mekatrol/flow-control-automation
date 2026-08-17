@@ -1,7 +1,6 @@
 using Server.Services;
 using Server.Services.Contracts;
 using Server.Services.Implementation;
-using System.Buffers.Binary;
 
 namespace Tests.Unit.Flows;
 
@@ -96,7 +95,7 @@ public sealed class FlowDecompilerTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(memory.Kind, Is.EqualTo("memory"));
+            Assert.That(memory.Kind, Is.EqualTo(FlowNodeKind.Memory));
             Assert.That(memory.Configuration["value"].GetDouble(), Is.EqualTo(2));
             Assert.That(result.Flow.Nodes.Single(node => node.Id == "output-01-node").Configuration["pointId"].GetString(), Is.EqualTo("output-01"));
             Assert.That(result.Flow.Connections.Any(connection =>
@@ -179,7 +178,7 @@ public sealed class FlowDecompilerTests
                     ConnectorDataType.Boolean,
                     ConnectorDataType.Number
                 },
-                new HashSet<string>(StringComparer.Ordinal),
+                new HashSet<FlowFunctionKind>(),
                 new HashSet<ExecutionMode>(),
                 new HashSet<ControllerRuntimeFeature>()),
 
@@ -187,32 +186,33 @@ public sealed class FlowDecompilerTests
             [
                 .. source.Nodes
                     .Where(node => node.Kind is
-                        "digitalInput" or
-                        "digitalOutput" or
-                        "analogInput" or
-                        "analogOutput")
+                        FlowNodeKind.DigitalInput or
+                        FlowNodeKind.DigitalOutput or
+                        FlowNodeKind.AnalogInput or
+                        FlowNodeKind.AnalogOutput)
                     .Select(node => new Point
                     {
                         Id = node.Configuration["pointId"].GetString()!,
                         Name = node.Configuration["pointId"].GetString()!,
                         Enabled = true,
                         Implementation = "virtual",
-                        Direction = node.Kind.EndsWith("Input", StringComparison.Ordinal)
-                            ? "input"
-                            : "output",
-                        ValueType = node.Kind.StartsWith("analog", StringComparison.Ordinal)
-                            ? "analog"
-                            : "digital",
-                        Units = node.Kind.StartsWith("analog", StringComparison.Ordinal)
+                        Direction = node.Kind.ToString().EndsWith("Input", StringComparison.Ordinal)
+                            ? DataDirection.Input
+                            : DataDirection.Output,
+                        ValueType = node.Kind.ToString().StartsWith("analog", StringComparison.Ordinal)
+                            ? PointValueType.Analog
+                            : PointValueType.Digital,
+                        Units = node.Kind.ToString().StartsWith("analog", StringComparison.Ordinal)
                             ? analogUnits
                             : null,
-                        Readable = node.Kind.EndsWith("Input", StringComparison.Ordinal),
-                        Commandable = node.Kind.EndsWith("Output", StringComparison.Ordinal),
+                        Readable = node.Kind.ToString().EndsWith("Input", StringComparison.Ordinal),
+                        Commandable = node.Kind.ToString().EndsWith("Output", StringComparison.Ordinal),
                         Persistence = "volatile",
                         Revision = 1
                     })
                     .DistinctBy(point => point.Id, StringComparer.Ordinal)
-            ]}
+            ]
+            }
         };
 
     private static void AssertArtifactsEqual(
@@ -254,46 +254,5 @@ public sealed class FlowDecompilerTests
                 Actual:
                 {Convert.ToHexString(actual.AsSpan(start, actualCount))}
             """);
-    }
-
-    public static void DumpSections(string name, byte[] artifact)
-    {
-        TestContext.Out.WriteLine($"{name}: {artifact.Length} bytes");
-
-        const int envelopeBytes = 128;
-        const int directoryEntryBytes = 48;
-        const int sectionCount = 8;
-
-        for (var index = 0; index < sectionCount; index++)
-        {
-            var entry = artifact.AsSpan(
-                envelopeBytes + (index * directoryEntryBytes),
-                directoryEntryBytes);
-
-            var id = BinaryPrimitives.ReadUInt16LittleEndian(entry);
-            var version = BinaryPrimitives.ReadUInt16LittleEndian(entry[2..]);
-            var offset = BinaryPrimitives.ReadUInt32LittleEndian(entry[4..]);
-            var length = BinaryPrimitives.ReadUInt32LittleEndian(entry[8..]);
-            var count = BinaryPrimitives.ReadUInt32LittleEndian(entry[12..]);
-
-            TestContext.Out.WriteLine(
-                $"Section {id}: version={version}, offset={offset}, length={length}, count={count}");
-        }
-    }
-
-    public static void DumpPointSection(string name, byte[] artifact)
-    {
-        const int envelopeBytes = 128;
-        const int directoryEntryBytes = 48;
-        const int pointSectionIndex = 1;
-
-        var entry = artifact.AsSpan(
-            envelopeBytes + (pointSectionIndex * directoryEntryBytes),
-            directoryEntryBytes);
-
-        var offset = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(entry[4..]));
-        var length = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(entry[8..]));
-
-        TestContext.Out.WriteLine($"{name} point section: {Convert.ToHexString(artifact.AsSpan(offset, length))}");
     }
 }

@@ -21,7 +21,7 @@ internal sealed class FlowDeploymentService(
             Target = target
         });
         var inputPointIds = source.Nodes
-            .Where(node => node.Kind == "digitalInput")
+            .Where(node => node.Kind == FlowNodeKind.DigitalInput)
             .Select(node => node.Configuration["pointId"].GetString()!)
             .Distinct(StringComparer.Ordinal)
             .Order(StringComparer.Ordinal)
@@ -37,7 +37,8 @@ internal sealed class FlowDeploymentService(
     private static ExecutableFlowSource ToExecutableSource(Flow flow)
     {
         var unsupported = flow.Nodes.FirstOrDefault(node => node.Kind is not (
-            "digitalInput" or "digitalConstant" or "not" or "and" or "or" or "memory" or "digitalOutput"));
+            FlowNodeKind.DigitalInput or FlowNodeKind.DigitalConstant or FlowNodeKind.Not or FlowNodeKind.And or FlowNodeKind.Or or FlowNodeKind.Memory or FlowNodeKind.DigitalOutput));
+
         if (unsupported is not null)
         {
             throw new FlowCompilationException([
@@ -68,7 +69,7 @@ internal sealed class FlowDeploymentService(
                 // owns the 100 ms interval used to invoke that program.
                 Mode = "manual",
                 IntervalMs = 0,
-                InputQualityPolicy = flow.Nodes.Any(node => node.Kind == "qualityGood") ? "propagate" : "require_good"
+                InputQualityPolicy = flow.Nodes.Any(node => node.Kind == FlowNodeKind.QualityGood) ? "propagate" : "requireGood"
             },
             Nodes = [.. flow.Nodes.Select(node => new ExecutableFlowNode
             {

@@ -5,6 +5,7 @@ namespace Server.Services.Contracts;
 /// </summary>
 public enum FlowOpcode : byte
 {
+    Line = 0,
     PointInput = 1,
     DigitalConstant = 2,
     Not = 3,
@@ -25,12 +26,13 @@ public enum FlowOpcode : byte
     OnDelay = 18,
     RisingEdge = 19,
 
-    // Your compiler also currently emits these:
     Min = 20,
     Max = 21,
     Clamp = 22,
     Selector = 23,
     Passthrough = 24,
+    If = 25,
+    Sequence = 26,
 
     Commit = byte.MaxValue
 }

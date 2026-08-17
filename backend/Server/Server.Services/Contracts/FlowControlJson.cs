@@ -18,6 +18,10 @@ public static class FlowControlJson
         options.AllowTrailingCommas = false;
         options.MaxDepth = 64;
         options.UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow;
+
+        options.Converters.Add(
+            new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false)
+        );
     }
 
     private static JsonSerializerOptions CreateOptions()

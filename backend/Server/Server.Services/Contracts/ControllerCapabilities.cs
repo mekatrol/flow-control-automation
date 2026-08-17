@@ -2,11 +2,11 @@ namespace Server.Services.Contracts;
 
 public sealed record ControllerCapabilities
 {
-    public IReadOnlyList<string> PointTypes { get; init; } = [];
-    public IReadOnlyList<string> PointDirections { get; init; } = [];
-    public IReadOnlyList<string> PointFeatures { get; init; } = [];
-    public IReadOnlyList<string> ConnectorDataTypes { get; init; } = [];
-    public IReadOnlyList<string> FlowFunctions { get; init; } = [];
-    public IReadOnlyList<string> ExecutionModes { get; init; } = [];
-    public IReadOnlyList<string> RuntimeFeatures { get; init; } = [];
+    public IReadOnlyList<PointValueType> PointTypes { get; init; } = [];
+    public IReadOnlyList<DataDirection> PointDirections { get; init; } = [];
+    public IReadOnlyList<ControllerPointFeature> PointFeatures { get; init; } = [];
+    public IReadOnlyList<ConnectorDataType> ConnectorDataTypes { get; init; } = [];
+    public IReadOnlyList<FlowFunctionKind> FlowFunctions { get; init; } = [];
+    public IReadOnlyList<ExecutionMode> ExecutionModes { get; init; } = [];
+    public IReadOnlyList<ControllerRuntimeFeature> RuntimeFeatures { get; init; } = [];
 }

@@ -1,5 +1,3 @@
-using Server.Services.Contracts;
-
 namespace Server.Services.Implementation;
 
 public sealed class FlowCompilationTargetResolver(
@@ -85,12 +83,13 @@ public sealed class FlowCompilationTargetResolver(
 
         var functions = source.Nodes
             .Select(node => RequiredFunction(node.Kind))
-            .Where(function => function is not null)
-            .Distinct(StringComparer.Ordinal)
-            .Order(StringComparer.Ordinal);
+            .OfType<FlowFunctionKind>()
+            .Distinct()
+            .Order();
+
         foreach (var function in functions)
         {
-            if (!ControllerCapabilitiesSupport.SupportsFunction(template, function!))
+            if (!ControllerCapabilitiesSupport.SupportsFunction(template, function))
             {
                 throw Failure(
                     "unsupported_target_capability",
@@ -126,28 +125,30 @@ public sealed class FlowCompilationTargetResolver(
             .Where(item => item.PointId is not null)
             .Select(item => new PointReference(
                 item.PointId!,
-                item.Node.Kind is "digitalInput" or "analogInput",
-                item.Node.Kind.StartsWith("analog", StringComparison.Ordinal)))
+                item.Node.Kind is FlowNodeKind.DigitalInput or FlowNodeKind.AnalogInput,
+                item.Node.Kind.ToString().StartsWith("Analog", StringComparison.Ordinal)))
             .Distinct()
             .OrderBy(reference => reference.PointId, StringComparer.Ordinal)
             .ThenBy(reference => reference.IsInput ? 0 : 1)];
 
     private static string? PointId(ExecutableFlowNode node) =>
-        node.Kind is "digitalInput" or "digitalOutput" or "analogInput" or "analogOutput"
-        && node.Configuration.TryGetValue("pointId", out var value)
-        && value.ValueKind == System.Text.Json.JsonValueKind.String
+        node.Kind is FlowNodeKind.DigitalInput or FlowNodeKind.DigitalOutput or FlowNodeKind.AnalogInput or FlowNodeKind.AnalogOutput &&
+        node.Configuration.TryGetValue("pointId", out var value) &&
+        value.ValueKind == System.Text.Json.JsonValueKind.String
             ? value.GetString()
             : null;
 
     private static void ValidatePoint(PointReference reference, Point point)
     {
         var virtualValue = string.Equals(point.Implementation, "virtual", StringComparison.Ordinal)
-            && string.Equals(point.Direction, "value", StringComparison.Ordinal);
+            && point.Direction == DataDirection.Value;
+
         var valid = point.Enabled
-            && string.Equals(point.ValueType, reference.IsAnalog ? "analog" : "digital", StringComparison.Ordinal)
+            && point.ValueType == (reference.IsAnalog ? PointValueType.Analog : PointValueType.Digital)
             && (reference.IsInput
-                ? point.Readable && (string.Equals(point.Direction, "input", StringComparison.Ordinal) || virtualValue)
-                : point.Commandable && (string.Equals(point.Direction, "output", StringComparison.Ordinal) || virtualValue));
+                ? point.Readable && (point.Direction == DataDirection.Input || virtualValue)
+                : point.Commandable && (point.Direction == DataDirection.Output || virtualValue));
+
         if (!valid)
         {
             throw Failure(
@@ -158,15 +159,15 @@ public sealed class FlowCompilationTargetResolver(
         }
     }
 
-    private static string? RequiredFunction(string kind) => kind switch
+    private static FlowFunctionKind? RequiredFunction(FlowNodeKind kind) => kind switch
     {
-        "digitalInput" => "read-point",
-        "analogInput" => "read-point",
-        "digitalOutput" => "write-point",
-        "analogOutput" => "write-point",
-        "not" => "not",
-        "and" => "and",
-        "or" => "or",
+        FlowNodeKind.DigitalInput => FlowFunctionKind.ReadPoint,
+        FlowNodeKind.AnalogInput => FlowFunctionKind.ReadPoint,
+        FlowNodeKind.DigitalOutput => FlowFunctionKind.WritePoint,
+        FlowNodeKind.AnalogOutput => FlowFunctionKind.WritePoint,
+        FlowNodeKind.Not => FlowFunctionKind.Not,
+        FlowNodeKind.And => FlowFunctionKind.And,
+        FlowNodeKind.Or => FlowFunctionKind.Or,
         _ => null
     };
 

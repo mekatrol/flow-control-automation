@@ -178,13 +178,13 @@ internal sealed class ControllerTemplateValidatorTests
         var capabilities = Capabilities();
         capabilities = capability switch
         {
-            "pointTypes" => capabilities with { PointTypes = ["binary"] },
-            "pointDirections" => capabilities with { PointDirections = ["sideways"] },
-            "pointFeatures" => capabilities with { PointFeatures = ["teleport"] },
-            "connectorDataTypes" => capabilities with { ConnectorDataTypes = ["object"] },
-            "flowFunctions" => capabilities with { FlowFunctions = ["unknown-node"] },
-            "executionModes" => capabilities with { ExecutionModes = ["continuous"] },
-            "runtimeFeatures" => capabilities with { RuntimeFeatures = ["magic"] },
+            "pointTypes" => capabilities with { PointTypes = [(PointValueType)byte.MaxValue] },
+            "pointDirections" => capabilities with { PointDirections = [(DataDirection)byte.MaxValue] },
+            "pointFeatures" => capabilities with { PointFeatures = [(ControllerPointFeature)byte.MaxValue] },
+            "connectorDataTypes" => capabilities with { ConnectorDataTypes = [(ConnectorDataType)byte.MaxValue] },
+            "flowFunctions" => capabilities with { FlowFunctions = [(FlowFunctionKind)byte.MaxValue] },
+            "executionModes" => capabilities with { ExecutionModes = [(ExecutionMode)byte.MaxValue] },
+            "runtimeFeatures" => capabilities with { RuntimeFeatures = [(ControllerRuntimeFeature)byte.MaxValue] },
             _ => throw new ArgumentOutOfRangeException(nameof(capability)),
         };
 
@@ -219,18 +219,18 @@ internal sealed class ControllerTemplateValidatorTests
         var capabilities = Capabilities();
         capabilities = capability switch
         {
-            "pointTypes" => capabilities with { PointTypes = ["digital", "digital"] },
-            "pointDirections" => capabilities with { PointDirections = ["input", "input"] },
-            "pointFeatures" => capabilities with { PointFeatures = ["read", "read"] },
+            "pointTypes" => capabilities with { PointTypes = [PointValueType.Digital, PointValueType.Digital] },
+            "pointDirections" => capabilities with { PointDirections = [DataDirection.Input, DataDirection.Input] },
+            "pointFeatures" => capabilities with { PointFeatures = [ControllerPointFeature.Read, ControllerPointFeature.Read] },
             "connectorDataTypes" => capabilities with
             {
-                ConnectorDataTypes = ["boolean", "boolean"],
+                ConnectorDataTypes = [ConnectorDataType.Boolean, ConnectorDataType.Boolean],
             },
-            "flowFunctions" => capabilities with { FlowFunctions = ["and", "and"] },
-            "executionModes" => capabilities with { ExecutionModes = ["interval", "interval"] },
+            "flowFunctions" => capabilities with { FlowFunctions = [FlowFunctionKind.And, FlowFunctionKind.And] },
+            "executionModes" => capabilities with { ExecutionModes = [ExecutionMode.Interval, ExecutionMode.Interval] },
             "runtimeFeatures" => capabilities with
             {
-                RuntimeFeatures = ["bound_points", "bound_points"],
+                RuntimeFeatures = [ControllerRuntimeFeature.BoundPoints, ControllerRuntimeFeature.BoundPoints],
             },
             _ => throw new ArgumentOutOfRangeException(nameof(capability)),
         };
@@ -386,7 +386,7 @@ internal sealed class ControllerTemplateValidatorTests
             // Acceptance criteria: `ControllerCapabilitiesSupport.SupportsFunction(template` must be true, because this condition proves that
             // capability predicates use typed validated sets.
             Assert.That(
-                ControllerCapabilitiesSupport.SupportsFunction(template, "and"),
+                ControllerCapabilitiesSupport.SupportsFunction(template, FlowFunctionKind.And),
                 Is.True);
 
             // Expected outcome: the asserted result rejects the prohibited condition.
@@ -494,13 +494,13 @@ internal sealed class ControllerTemplateValidatorTests
 
     private static ControllerCapabilities Capabilities() => new()
     {
-        PointTypes = ["digital"],
-        PointDirections = ["input", "output"],
-        PointFeatures = ["read", "command"],
-        ConnectorDataTypes = ["boolean"],
-        FlowFunctions = ["and", "read-point", "write-point"],
-        ExecutionModes = ["interval"],
-        RuntimeFeatures = ["bound_points"]
+        PointTypes = [PointValueType.Digital],
+        PointDirections = [DataDirection.Input, DataDirection.Output],
+        PointFeatures = [ControllerPointFeature.Read, ControllerPointFeature.Command],
+        ConnectorDataTypes = [ConnectorDataType.Boolean],
+        FlowFunctions = [FlowFunctionKind.And, FlowFunctionKind.ReadPoint, FlowFunctionKind.WritePoint],
+        ExecutionModes = [ExecutionMode.Interval],
+        RuntimeFeatures = [ControllerRuntimeFeature.BoundPoints]
     };
 
     private static string Fixture(string file) =>

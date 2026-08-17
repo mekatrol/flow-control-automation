@@ -1,6 +1,6 @@
 namespace Server.Services.Contracts;
 
-public enum ExecutionMode
+public enum ExecutionMode : byte
 {
     Event,
     Interval

@@ -125,7 +125,7 @@ public static class EndpointRouteBuilderExtensions
             request,
             jsonOptions.Value.SerializerOptions,
             cancellationToken);
-        
+
         if (decoded.Error is not null)
         {
             return decoded.Error;

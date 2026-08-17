@@ -1,4 +1,3 @@
-using Server.Services.Contracts;
 using System.Globalization;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -17,8 +16,8 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
         ValidateIdentity(point.Id, point.Name, "point");
 
         var implementation = ParseImplementation(point.Implementation);
-        var direction = ParseDirection(point.Direction);
-        var valueType = ParseValueType(point.ValueType);
+        var direction = point.Direction;
+        var valueType = point.ValueType;
         var persistence = ParsePersistence(point.Persistence);
         ValidateCapabilities(point, implementation, direction);
 
@@ -671,25 +670,6 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
         "virtual" => PointImplementation.Virtual,
         "bound" => PointImplementation.Bound,
         _ => throw new PointDefinitionValidationException("implementation is invalid"),
-    };
-
-    private static DataDirection ParseDirection(string value) => value switch
-    {
-        "input" => DataDirection.Input,
-        "output" => DataDirection.Output,
-        "input_output" => DataDirection.InputOutput,
-        "value" => DataDirection.Value,
-        _ => throw new PointDefinitionValidationException("direction is invalid"),
-    };
-
-    private static PointValueType ParseValueType(string value) => value switch
-    {
-        "analog" => PointValueType.Analog,
-        "digital" => PointValueType.Digital,
-        "multi_state" => PointValueType.MultiState,
-        "integer" => PointValueType.Integer,
-        "text" => PointValueType.Text,
-        _ => throw new PointDefinitionValidationException("valueType is invalid"),
     };
 
     private static PointPersistence ParsePersistence(string value) => value switch

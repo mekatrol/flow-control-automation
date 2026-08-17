@@ -45,37 +45,19 @@ public sealed partial class ControllerTemplateValidator : IControllerTemplateVal
                 "custom templates cannot use the default id or readOnly state");
         }
 
-        var pointTypes = Parse(
-            template.Capabilities.PointTypes,
-            "capabilities.pointTypes",
-            ParsePointType,
-            diagnostics);
-        var directions = Parse(
-            template.Capabilities.PointDirections,
-            "capabilities.pointDirections",
-            ParsePointDirection,
-            diagnostics);
-        var features = Parse(
-            template.Capabilities.PointFeatures,
-            "capabilities.pointFeatures",
-            ParsePointFeature,
-            diagnostics);
-        var connectors = Parse(
-            template.Capabilities.ConnectorDataTypes,
-            "capabilities.connectorDataTypes",
-            ParseConnectorDataType,
-            diagnostics);
+        var pointTypes = template.Capabilities.PointTypes.ToHashSet();
+
+        var directions = template.Capabilities.PointDirections.ToHashSet();
+
+        var features = template.Capabilities.PointFeatures.ToHashSet();
+
+        var connectors = template.Capabilities.ConnectorDataTypes.ToHashSet();
+
         var functions = ParseFunctions(template.Capabilities.FlowFunctions, diagnostics);
-        var modes = Parse(
-            template.Capabilities.ExecutionModes,
-            "capabilities.executionModes",
-            ParseExecutionMode,
-            diagnostics);
-        var runtime = Parse(
-            template.Capabilities.RuntimeFeatures,
-            "capabilities.runtimeFeatures",
-            ParseRuntimeFeature,
-            diagnostics);
+
+        var modes = template.Capabilities.ExecutionModes.ToHashSet();
+
+        var runtime = template.Capabilities.RuntimeFeatures.ToHashSet();
 
         ValidateLimits(template.Limits, diagnostics);
         if (diagnostics.Count != 0)
@@ -94,49 +76,16 @@ public sealed partial class ControllerTemplateValidator : IControllerTemplateVal
             runtime);
     }
 
-    private static IReadOnlySet<T> Parse<T>(
-        IReadOnlyList<string> values,
-        string path,
-        Func<string, T?> parser,
-        List<ControllerDiagnostic> diagnostics)
-        where T : struct, Enum
-    {
-        RequireValues(values, path, diagnostics);
-        var result = new HashSet<T>();
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        for (var index = 0; index < values.Count; index++)
-        {
-            var itemPath = $"{path}[{index}]";
-            if (!seen.Add(values[index]))
-            {
-                Add(diagnostics, "duplicate_capability", itemPath, "capability is duplicated");
-                continue;
-            }
-
-            var parsed = parser(values[index]);
-            if (parsed is null)
-            {
-                Add(
-                    diagnostics,
-                    "unsupported_capability",
-                    itemPath,
-                    $"unsupported capability \"{values[index]}\"");
-                continue;
-            }
-
-            result.Add(parsed.Value);
-        }
-
-        return result;
-    }
-
-    private static IReadOnlySet<string> ParseFunctions(
-        IReadOnlyList<string> values,
+    private static HashSet<FlowFunctionKind> ParseFunctions(
+        IReadOnlyList<FlowFunctionKind> values,
         List<ControllerDiagnostic> diagnostics)
     {
         const string path = "capabilities.flowFunctions";
+
         RequireValues(values, path, diagnostics);
-        var result = new HashSet<string>(StringComparer.Ordinal);
+
+        var result = new HashSet<FlowFunctionKind>();
+
         for (var index = 0; index < values.Count; index++)
         {
             if (!result.Add(values[index]))
@@ -160,8 +109,8 @@ public sealed partial class ControllerTemplateValidator : IControllerTemplateVal
         return result;
     }
 
-    private static void RequireValues(
-        IReadOnlyList<string> values,
+    private static void RequireValues<T>(
+        IReadOnlyList<T> values,
         string path,
         List<ControllerDiagnostic> diagnostics)
     {
@@ -201,64 +150,6 @@ public sealed partial class ControllerTemplateValidator : IControllerTemplateVal
         string path,
         string message) =>
         diagnostics.Add(new ControllerDiagnostic(code, path, message));
-
-    private static PointValueType? ParsePointType(string value) => value switch
-    {
-        "analog" => PointValueType.Analog,
-        "digital" => PointValueType.Digital,
-        "multi_state" => PointValueType.MultiState,
-        "integer" => PointValueType.Integer,
-        "text" => PointValueType.Text,
-        _ => null,
-    };
-
-    private static DataDirection? ParsePointDirection(string value) => value switch
-    {
-        "input" => DataDirection.Input,
-        "output" => DataDirection.Output,
-        "input_output" => DataDirection.InputOutput,
-        "value" => DataDirection.Value,
-        _ => null,
-    };
-
-    private static ControllerPointFeature? ParsePointFeature(string value) => value switch
-    {
-        "read" => ControllerPointFeature.Read,
-        "command" => ControllerPointFeature.Command,
-        "retain" => ControllerPointFeature.Retain,
-        "override" => ControllerPointFeature.Override,
-        "relinquish" => ControllerPointFeature.Relinquish,
-        "quality" => ControllerPointFeature.Quality,
-        "alarms" => ControllerPointFeature.Alarms,
-        "trends" => ControllerPointFeature.Trends,
-        _ => null,
-    };
-
-    private static ConnectorDataType? ParseConnectorDataType(string value) => value switch
-    {
-        "any" => ConnectorDataType.Any,
-        "boolean" => ConnectorDataType.Boolean,
-        "event" => ConnectorDataType.Event,
-        "number" => ConnectorDataType.Number,
-        "string" => ConnectorDataType.String,
-        _ => null,
-    };
-
-    private static ExecutionMode? ParseExecutionMode(string value) => value switch
-    {
-        "event" => ExecutionMode.Event,
-        "interval" => ExecutionMode.Interval,
-        _ => null,
-    };
-
-    private static ControllerRuntimeFeature? ParseRuntimeFeature(string value) => value switch
-    {
-        "virtual_points" => ControllerRuntimeFeature.VirtualPoints,
-        "bound_points" => ControllerRuntimeFeature.BoundPoints,
-        "command_arbitration" => ControllerRuntimeFeature.CommandArbitration,
-        "quality_propagation" => ControllerRuntimeFeature.QualityPropagation,
-        _ => null,
-    };
 
     [GeneratedRegex("^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$", RegexOptions.CultureInvariant)]
     private static partial Regex IdentifierRegex();

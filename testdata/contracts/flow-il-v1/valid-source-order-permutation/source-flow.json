@@ -7,7 +7,7 @@
   "execution": {
     "mode": "manual",
     "intervalMs": 0,
-    "inputQualityPolicy": "require_good"
+    "inputQualityPolicy": "requireGood"
   },
   "nodes": [
     {

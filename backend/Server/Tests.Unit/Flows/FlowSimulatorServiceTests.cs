@@ -61,7 +61,7 @@ public sealed class FlowSimulatorServiceTests
         Revision = 7,
         ControllerTemplateId = "controller-a",
         ControllerTemplateRevision = 1,
-        Nodes = [new ExecutableFlowNode { Id = "constant", Kind = "digitalConstant" }]
+        Nodes = [new ExecutableFlowNode { Id = "constant", Kind = FlowNodeKind.DigitalConstant }]
     };
 
     private sealed class Resolver : IFlowCompilationTargetResolver

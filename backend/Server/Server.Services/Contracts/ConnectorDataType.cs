@@ -1,6 +1,6 @@
 namespace Server.Services.Contracts;
 
-public enum ConnectorDataType
+public enum ConnectorDataType : byte
 {
     Any,
     Boolean,

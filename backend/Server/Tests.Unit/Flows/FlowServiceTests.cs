@@ -170,7 +170,7 @@ public sealed class FlowServiceTests
                     new FlowNode
                     {
                         Id = "node",
-                        Kind = "unknown",
+                        Kind = FlowNodeKind.Unknown,
                         Label = "Node"
                     },
                 ],
@@ -333,7 +333,7 @@ public sealed class FlowServiceTests
     private static FlowNode Node(string id, DataDirection direction, DataType dataType) => new()
     {
         Id = id,
-        Kind = "and",
+        Kind = FlowNodeKind.And,
         Label = id,
         Connectors =
         [

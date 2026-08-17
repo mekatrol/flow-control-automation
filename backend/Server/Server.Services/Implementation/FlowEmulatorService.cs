@@ -447,7 +447,7 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
         }
 
         private static IEnumerable<string> InputPointIds(ExecutableFlowSource source) => source.Nodes
-            .Where(node => node.Kind == "digitalInput" && node.Configuration.TryGetValue("pointId", out _))
+            .Where(node => node.Kind == FlowNodeKind.DigitalInput && node.Configuration.TryGetValue("pointId", out _))
             .Select(node => node.Configuration["pointId"].GetString())
             .Where(static id => !string.IsNullOrEmpty(id))
             .Cast<string>()

@@ -169,9 +169,10 @@ internal sealed class ControllerTemplateEndpointTests
             {
                 Capabilities = Template().Capabilities with
                 {
-                    PointTypes = ["not-a-type"],
+                    PointTypes = [(PointValueType)byte.MaxValue],
                 },
             });
+
         var semanticBody = await semantic.Content.ReadAsStringAsync();
 
         using var syntax = new HttpRequestMessage(
@@ -287,13 +288,13 @@ internal sealed class ControllerTemplateEndpointTests
         Name = "Compact",
         Capabilities = new()
         {
-            PointTypes = ["digital"],
-            PointDirections = ["input", "output"],
-            PointFeatures = ["read", "command"],
-            ConnectorDataTypes = ["boolean"],
-            FlowFunctions = ["and", "read-point", "write-point"],
-            ExecutionModes = ["interval"],
-            RuntimeFeatures = ["bound_points"]
+            PointTypes = [PointValueType.Digital],
+            PointDirections = [DataDirection.Input, DataDirection.Output],
+            PointFeatures = [ControllerPointFeature.Read, ControllerPointFeature.Command],
+            ConnectorDataTypes = [ConnectorDataType.Boolean],
+            FlowFunctions = [FlowFunctionKind.And, FlowFunctionKind.ReadPoint, FlowFunctionKind.WritePoint],
+            ExecutionModes = [ExecutionMode.Interval],
+            RuntimeFeatures = [ControllerRuntimeFeature.BoundPoints]
         },
         Limits = new()
         {

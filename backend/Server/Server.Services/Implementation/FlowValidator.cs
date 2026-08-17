@@ -7,13 +7,13 @@ namespace Server.Services.Implementation;
 
 internal static partial class FlowValidator
 {
-    private static readonly HashSet<string> ValidKinds =
+    private static readonly HashSet<FlowNodeKind> ValidKinds =
     [
-        "add", "analogInput", "analogOutput", "and", "average", "calculator", "calendar", "clamp", "comparator",
-        "delay", "digitalConstant", "digitalInput", "digitalOutput", "if",
-        "levelShifter", "line", "max", "memory", "min", "nand", "nor", "not", "numericConstant", "or", "override",
-        "pulse", "schedule", "selector", "sequence", "split", "flowInput", "flowOutput",
-        "onDelay", "qualityGood", "risingEdge", "timer", "xnor", "xor",
+        FlowNodeKind.Add, FlowNodeKind.AnalogInput, FlowNodeKind.AnalogOutput, FlowNodeKind.And, FlowNodeKind.Average, FlowNodeKind.Calculator, FlowNodeKind.Calendar, FlowNodeKind.Clamp, FlowNodeKind.Comparator,
+        FlowNodeKind.Delay, FlowNodeKind.DigitalConstant, FlowNodeKind.DigitalInput, FlowNodeKind.DigitalOutput, FlowNodeKind.If,
+        FlowNodeKind.LevelShifter, FlowNodeKind.Line, FlowNodeKind.Max, FlowNodeKind.Memory, FlowNodeKind.Min, FlowNodeKind.Nand, FlowNodeKind.Nor, FlowNodeKind.Not, FlowNodeKind.NumericConstant, FlowNodeKind.Or, FlowNodeKind.Override,
+        FlowNodeKind.Pulse, FlowNodeKind.Schedule, FlowNodeKind.Selector, FlowNodeKind.Sequence, FlowNodeKind.Split, FlowNodeKind.FlowInput, FlowNodeKind.FlowOutput,
+        FlowNodeKind.OnDelay, FlowNodeKind.QualityGood, FlowNodeKind.RisingEdge, FlowNodeKind.Timer, FlowNodeKind.Xnor, FlowNodeKind.Xor,
     ];
 
     private static readonly HashSet<string> ValidStatuses = ["draft", "deployed"];
@@ -211,7 +211,7 @@ internal static partial class FlowValidator
 
     private static void ValidateInterfaceNode(FlowInterface definition, FlowNode node, int nodeIndex)
     {
-        if (node.Kind is not ("flowInput" or "flowOutput"))
+        if (node.Kind is not (FlowNodeKind.FlowInput or FlowNodeKind.FlowOutput))
         {
             return;
         }
@@ -222,7 +222,7 @@ internal static partial class FlowValidator
         }
 
         var id = value.GetString();
-        var entry = node.Kind == "flowInput"
+        var entry = node.Kind == FlowNodeKind.FlowInput
             ? definition.Inputs.Select(item => (item.Id, item.Name, item.DataType, item.Units)).SingleOrDefault(item => item.Id == id)
             : definition.Outputs.Select(item => (item.Id, item.Name, item.DataType, item.Units)).SingleOrDefault(item => item.Id == id);
         if (entry.Id is null)
@@ -230,7 +230,7 @@ internal static partial class FlowValidator
             throw new FlowValidationException($"nodes[{nodeIndex}].configuration.interfaceId: unknown interface entry");
         }
 
-        var expectedDirection = node.Kind == "flowInput" ? DataDirection.Output : DataDirection.Input;
+        var expectedDirection = node.Kind == FlowNodeKind.FlowInput ? DataDirection.Output : DataDirection.Input;
         if (node.Connectors.Count != 1 || node.Connectors[0].Direction != expectedDirection || node.Connectors[0].DataType != entry.DataType)
         {
             throw new FlowValidationException($"nodes[{nodeIndex}].connectors: terminal connector does not match interface entry");

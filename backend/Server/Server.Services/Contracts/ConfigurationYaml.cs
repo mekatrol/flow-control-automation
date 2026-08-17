@@ -53,7 +53,7 @@ public static class ConfigurationYaml
             "minimumIntervalMilliseconds",
         ]);
 
-    public static JsonObject Parse(
+    public static JsonObject ParseToJson(
         ReadOnlySpan<byte> yaml,
         ConfigurationKind kind,
         int maximumBytes = MaximumBytes)
@@ -78,6 +78,7 @@ public static class ConfigurationYaml
                 StringComparison.OrdinalIgnoreCase)
                 ? ConfigurationYamlError.UnsupportedFeature
                 : ConfigurationYamlError.Syntax;
+
             throw new ConfigurationYamlException(
                 category,
                 "Invalid YAML.",
@@ -99,7 +100,9 @@ public static class ConfigurationYaml
         }
 
         var rootNode = stream.Documents[0].RootNode;
+
         ValidateSyntax(rootNode, 0, new HashSet<YamlNode>(ReferenceEqualityComparer.Instance));
+
         var root = ConvertNode(rootNode) as JsonObject
             ?? throw new ConfigurationYamlException(
                 ConfigurationYamlError.InvalidShape,
@@ -113,12 +116,14 @@ public static class ConfigurationYaml
         }
 
         ValidateContract(root, kind);
+
         return root;
     }
 
     public static T Parse<T>(ReadOnlySpan<byte> yaml, ConfigurationKind kind)
     {
-        var document = Parse(yaml, kind);
+        var document = ParseToJson(yaml, kind);
+
         return document.Deserialize<T>(FlowControlJson.Options)
             ?? throw new ConfigurationYamlException(
                 ConfigurationYamlError.InvalidShape,

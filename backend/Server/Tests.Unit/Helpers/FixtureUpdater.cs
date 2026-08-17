@@ -14,10 +14,10 @@ internal static class FixtureUpdater
     {
         //"valid-memory-feedback"
         //"valid-two-button-and"
-        //"valid-two-button-and",
-        //"valid-memory-feedback",
-        //"valid-expanded-boolean",
-        //"valid-numeric-language",
+        "valid-two-button-and"
+        //"valid-memory-feedback"
+        //"valid-expanded-boolean"
+        //"valid-numeric-language"
         //"valid-analog-points"
     };
 

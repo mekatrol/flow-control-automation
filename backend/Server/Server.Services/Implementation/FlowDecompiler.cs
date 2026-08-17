@@ -1,3 +1,23 @@
+/*
+ * FlowDecompiler
+ * ==========================================
+ *
+ * Think of this class as the byte-level inverse of FlowCompiler:
+ *
+ *   Flow IL byte[]
+ *       -> validate 128-byte envelope
+ *       -> validate/read eight 48-byte directory entries
+ *       -> verify each section SHA-256
+ *       -> decode section records using explicit byte widths
+ *       -> decode the scheduled 12-byte instruction stream
+ *       -> use symbols to restore authoring identity/layout
+ *       -> use result-slot ownership + operands to reconstruct graph edges
+ *       -> emit a designer Flow DTO and validate it
+ *
+ * The parser intentionally does not execute the artifact. It treats the artifact
+ * as untrusted bytes and checks bounds before converting fields into C# values.
+ */
+
 using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text;
@@ -12,18 +32,32 @@ public sealed class FlowDecompiler : IFlowDecompiler
     private const ushort SectionCount = 8;
     private const ushort Unused = ushort.MaxValue;
 
+    /*
+     * Top-level decode pipeline.
+     *
+     * No graph reconstruction begins until ValidateEnvelope() has checked the magic,
+     * version/length framing, all eight directory ranges, and every section digest.
+     * The section readers then decode typed records; only after that do instructions
+     * and symbols get translated back into designer nodes/connections.
+     */
     public FlowDecompilationResult Decompile(ReadOnlyMemory<byte> artifact, string? name = null)
     {
+        // Span gives cheap, bounds-aware views over the caller's immutable artifact.
         var bytes = artifact.Span;
+
+        // Parse the fixed 128-byte header and the 8 x 48-byte directory. The returned
+        // SectionInfo values are trusted only because ValidateEnvelope checks them.
         var sections = ValidateEnvelope(bytes);
-        var constants = ReadConstants(Section(bytes, sections, 1));
-        var points = ReadPoints(Section(bytes, sections, 2));
-        var slots = ReadSlots(Section(bytes, sections, 3));
-        var instructions = ReadInstructions(Section(bytes, sections, 4));
-        ValidateCommitPlan(Section(bytes, sections, 5));
-        var symbols = ReadSymbols(Section(bytes, sections, 6), instructions.Count);
-        ValidateDebugMap(Section(bytes, sections, 7));
-        var dependencies = ReadDependencies(Section(bytes, sections, 8));
+        // Decode sections in canonical ID order. Section() copies exactly the
+        // directory-declared payload range into a bounded SectionReader.
+        var constants = ReadConstants(Section(bytes, sections, 1));   // typed constant pool
+        var points = ReadPoints(Section(bytes, sections, 2));        // point/interface bindings
+        var slots = ReadSlots(Section(bytes, sections, 3));          // transient/state layout
+        var instructions = ReadInstructions(Section(bytes, sections, 4)); // 12-byte opcodes
+        ValidateCommitPlan(Section(bytes, sections, 5));             // commit-boundary actions
+        var symbols = ReadSymbols(Section(bytes, sections, 6), instructions.Count); // authoring metadata
+        ValidateDebugMap(Section(bytes, sections, 7));               // debugger correlation
+        var dependencies = ReadDependencies(Section(bytes, sections, 8)); // source revisions
 
         var flowId = ReadFlowId(bytes);
         var nodes = new List<FlowNode>();
@@ -32,11 +66,19 @@ public sealed class FlowDecompiler : IFlowDecompiler
         var depths = new Dictionary<string, int>(StringComparer.Ordinal);
         var rows = new Dictionary<int, int>();
 
+        // Reconstruct graph topology from the scheduled instruction stream.
+        //
+        // The binary has no designer "edge table". Instead, a producing instruction
+        // writes a result slot and later instructions name that slot in operand0/1.
+        // slotOwners records "slot N was produced by node X"; AddConnection() uses
+        // that fact to recreate each source -> target connector edge.
         for (var index = 0; index < instructions.Count; index++)
         {
             var instruction = instructions[index];
             var symbol = symbols[index];
 
+            // Commit is an execution-boundary instruction, not a designer node.
+            // It is therefore consumed/validated but never added to nodes[].
             if (instruction.Opcode == FlowOpcode.Commit)
             {
                 if (index != instructions.Count - 1 || symbol.NodeId.Length != 0)
@@ -47,6 +89,9 @@ public sealed class FlowDecompiler : IFlowDecompiler
                 continue;
             }
 
+            // MemoryCommit is an additional lowering instruction for an existing
+            // source node (symbol discriminator 1). It contributes the Memory input
+            // connection but does not create a second designer node.
             if (instruction.Opcode == FlowOpcode.MemoryCommit)
             {
                 RequireSymbol(symbol, index, 1);
@@ -57,31 +102,38 @@ public sealed class FlowDecompiler : IFlowDecompiler
             RequireSymbol(symbol, index, 0);
             var configuration = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
 
+            // Convert opcode semantics back to the closest/current designer kind.
+            // Configure* helpers also recover configuration values referenced by
+            // auxiliary indices (constant pool, point table, or state slot table).
             var kind = instruction.Opcode switch
             {
                 FlowOpcode.PointInput => ConfigurePoint(configuration, points, instruction.Auxiliary, DataDirection.Input, index),
-                FlowOpcode.DigitalConstant => ConfigureBoolean("digitalConstant", configuration, constants, instruction.Auxiliary, index),
-                FlowOpcode.Not => "not",
-                FlowOpcode.And => "and",
-                FlowOpcode.Or => "or",
+                FlowOpcode.DigitalConstant => ConfigureBoolean(FlowNodeKind.DigitalConstant, configuration, constants, instruction.Auxiliary, index),
+                FlowOpcode.Not => FlowNodeKind.Not,
+                FlowOpcode.And => FlowNodeKind.And,
+                FlowOpcode.Or => FlowNodeKind.Or,
                 FlowOpcode.Memory => ConfigureState(configuration, slots, constants, instruction.Auxiliary, index),
                 FlowOpcode.PointOutput => ConfigurePoint(configuration, points, instruction.Auxiliary, DataDirection.Output, index),
-                FlowOpcode.Nand => "nand",
-                FlowOpcode.Nor => "nor",
-                FlowOpcode.Xor => "xor",
-                FlowOpcode.Xnor => "xnor",
-                FlowOpcode.NumericConstant => ConfigureNumber("numericConstant", configuration, constants, instruction.Auxiliary, index),
-                FlowOpcode.Add => "add",
+                FlowOpcode.Nand => FlowNodeKind.Nand,
+                FlowOpcode.Nor => FlowNodeKind.Nor,
+                FlowOpcode.Xor => FlowNodeKind.Xor,
+                FlowOpcode.Xnor => FlowNodeKind.Xnor,
+                FlowOpcode.NumericConstant => ConfigureNumber(FlowNodeKind.NumericConstant, configuration, constants, instruction.Auxiliary, index),
+                FlowOpcode.Add => FlowNodeKind.Add,
                 FlowOpcode.Comparator => ConfigureComparator(configuration, instruction.Auxiliary, index),
                 FlowOpcode.LevelShifter => ConfigureLevelShifter(configuration, constants, instruction.Operand1, instruction.Auxiliary, index),
-                FlowOpcode.QualityGood => "qualityGood",
+                FlowOpcode.QualityGood => FlowNodeKind.QualityGood,
                 FlowOpcode.OnDelay => ConfigureTimer(configuration, slots, constants, instruction.Auxiliary, index),
-                FlowOpcode.RisingEdge => "risingEdge",
+                FlowOpcode.RisingEdge => FlowNodeKind.RisingEdge,
                 _ => throw Error("unsupported_opcode", $"/instructions/{index}/opcode", $"Opcode {instruction.Opcode} cannot be represented by the designer.")
             };
 
             var inputs = new List<ushort>();
 
+            // Recreate incoming graph edges from slot operands. Every operand slot
+            // must already have an owner because transient reads are scheduled after
+            // their producers. The same operands are also collected to infer a useful
+            // graph depth for recovered layout bookkeeping.
             switch (instruction.Opcode)
             {
                 case FlowOpcode.Not:
@@ -139,6 +191,9 @@ public sealed class FlowDecompiler : IFlowDecompiler
 
             depths[symbol.NodeId] = depth;
 
+            // Register this instruction as the unique producer of its result slot.
+            // Once recorded, any later operand that names this u16 can be translated
+            // back into a designer connection from this node.
             if (instruction.Result == Unused || slotOwners.ContainsKey(instruction.Result))
             {
                 Fail("invalid_operand", $"/instructions/{index}/result", "A node result must write one unique slot.");
@@ -187,6 +242,21 @@ public sealed class FlowDecompiler : IFlowDecompiler
         };
     }
 
+    /*
+     * Validate and decode the artifact framing.
+     *
+     * Byte map used by this implementation:
+     *   0..3    magic "FIL1"
+     *   4..5    IL version u16 LE
+     *   6..7    envelope size u16 LE (must be 128)
+     *   8..11   exact artifact size u32 LE
+     *   26..27  section count u16 LE (must be 8)
+     *   116..119 directory offset u32 LE (must be 128)
+     *
+     * The directory begins at byte 128 and contains eight 48-byte entries.
+     * Each entry's offset/length is checked BEFORE slicing, and SHA-256 is verified
+     * over the exact payload bytes. Contiguity is enforced by expectedOffset.
+     */
     private static SectionInfo[] ValidateEnvelope(ReadOnlySpan<byte> bytes)
     {
         if (bytes.Length < EnvelopeBytes || bytes.Length > 16384 || !bytes[..4].SequenceEqual("FIL1"u8))
@@ -205,10 +275,22 @@ public sealed class FlowDecompiler : IFlowDecompiler
         }
 
         var result = new SectionInfo[SectionCount];
+
+        // 128 + (8 * 48) = 512: canonical start of section 1 when there are 8 entries.
         var expectedOffset = EnvelopeBytes + (SectionCount * DirectoryEntryBytes);
+
         for (var index = 0; index < SectionCount; index++)
         {
+            // Directory entry N lives at 128 + N*48 and is always exactly 48 bytes.
             var entry = bytes.Slice(EnvelopeBytes + (index * DirectoryEntryBytes), DirectoryEntryBytes);
+
+            // Entry layout:
+            //   0..1   id u16 LE
+            //   2..3   section version u16 LE
+            //   4..7   absolute payload offset u32 LE
+            //   8..11  payload byte length u32 LE
+            //   12..15 logical record count u32 LE
+            //   16..47 SHA-256 digest (raw 32 bytes)
             var id = U16(entry, 0);
             var offset = checked((int)U32(entry, 4));
             var length = checked((int)U32(entry, 8));
@@ -224,6 +306,8 @@ public sealed class FlowDecompiler : IFlowDecompiler
                 Fail("invalid_section", $"/sections/{index}", "Section bounds are invalid.");
             }
 
+            // Hash only the payload range declared for this section and compare
+            // with the 32 raw digest bytes embedded in this directory entry.
             if (!SHA256.HashData(bytes.Slice(offset, length)).AsSpan().SequenceEqual(entry.Slice(16, 32)))
             {
                 Fail("invalid_digest", $"/sections/{index}/digest", "Section digest does not match its contents.");
@@ -241,6 +325,11 @@ public sealed class FlowDecompiler : IFlowDecompiler
         return result;
     }
 
+    /*
+     * SECTION 1 decoder.
+     * First consume a four-byte prefix [type, flags/value, reserved:u16].
+     * Boolean ends there (4 bytes). Number consumes an additional 8-byte f64.
+     */
     private static List<ConstantRecord> ReadConstants(SectionReader reader)
     {
         var values = new List<ConstantRecord>();
@@ -279,6 +368,11 @@ public sealed class FlowDecompiler : IFlowDecompiler
         return values;
     }
 
+    /*
+     * SECTION 2 decoder.
+     * Physical record begins with four fixed bytes, then two variable string8 fields.
+     * SectionReader advances its private byte cursor as each piece is consumed.
+     */
     private static List<PointRecord> ReadPoints(SectionReader reader)
     {
         var values = new List<PointRecord>();
@@ -301,7 +395,11 @@ public sealed class FlowDecompiler : IFlowDecompiler
         return values;
     }
 
-    private static IReadOnlyDictionary<ushort, SlotRecord> ReadSlots(SectionReader reader)
+    /*
+     * SECTION 3 decoder — fixed 8-byte records:
+     *   0 kind, 1 type, 2..3 flags, 4..5 slot index, 6..7 initial constant.
+     */
+    private static Dictionary<ushort, SlotRecord> ReadSlots(SectionReader reader)
     {
         var values = new Dictionary<ushort, SlotRecord>();
         for (var i = 0; i < reader.Count; i++)
@@ -322,7 +420,20 @@ public sealed class FlowDecompiler : IFlowDecompiler
         return values;
     }
 
-    private static IReadOnlyList<Instruction> ReadInstructions(SectionReader reader)
+    /*
+     * SECTION 4 decoder — fixed 12-byte instruction records:
+     *
+     *   0      opcode:u8
+     *   1      flags:u8 (must be zero)
+     *   2..3   result:u16 LE
+     *   4..5   operand0:u16 LE
+     *   6..7   operand1:u16 LE
+     *   8..9   auxiliary:u16 LE
+     *   10..11 reserved:u16 LE (must be zero)
+     *
+     * This is the direct inverse of FlowCompiler.EncodeV1Instruction().
+     */
+    private static List<Instruction> ReadInstructions(SectionReader reader)
     {
         var values = new List<Instruction>();
         for (var i = 0; i < reader.Count; i++)
@@ -344,7 +455,13 @@ public sealed class FlowDecompiler : IFlowDecompiler
         return values;
     }
 
-    private static IReadOnlyList<SymbolRecord> ReadSymbols(SectionReader reader, int instructionCount)
+    /*
+     * SECTION 6 decoder.
+     * Variable-length symbol records carry the source identity that section 4 does
+     * not contain: node ID, lowering discriminator, label, canvas coordinates and
+     * group ID. There must be exactly one symbol record per instruction.
+     */
+    private static List<SymbolRecord> ReadSymbols(SectionReader reader, int instructionCount)
     {
         if (reader.Count != instructionCount)
         {
@@ -372,7 +489,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
         return values;
     }
 
-    private static IReadOnlyList<Dependency> ReadDependencies(SectionReader reader)
+    private static List<Dependency> ReadDependencies(SectionReader reader)
     {
         var values = new List<Dependency>();
         for (var i = 0; i < reader.Count; i++)
@@ -411,7 +528,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
         reader.End("/debugMap");
     }
 
-    private static string ConfigurePoint(
+    private static FlowNodeKind ConfigurePoint(
         Dictionary<string, JsonElement> config,
         IReadOnlyList<PointRecord> points,
         ushort index,
@@ -432,11 +549,11 @@ public sealed class FlowDecompiler : IFlowDecompiler
         config["units"] = JsonSerializer.SerializeToElement(point.Units);
 
         return point.DataType == DataType.Number
-            ? direction == DataDirection.Input ? "analogInput" : "analogOutput"
-            : direction == DataDirection.Input ? "digitalInput" : "digitalOutput";
+            ? direction == DataDirection.Input ? FlowNodeKind.AnalogInput : FlowNodeKind.AnalogOutput
+            : direction == DataDirection.Input ? FlowNodeKind.DigitalInput : FlowNodeKind.DigitalOutput;
     }
 
-    private static string ConfigureBoolean(string kind, Dictionary<string, JsonElement> config, IReadOnlyList<ConstantRecord> constants, ushort index, int instruction)
+    private static FlowNodeKind ConfigureBoolean(FlowNodeKind kind, Dictionary<string, JsonElement> config, IReadOnlyList<ConstantRecord> constants, ushort index, int instruction)
     {
         if (index >= constants.Count || constants[index].DataType != DataType.Boolean)
         {
@@ -448,7 +565,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
         return kind;
     }
 
-    private static string ConfigureState(Dictionary<string, JsonElement> config, IReadOnlyDictionary<ushort, SlotRecord> slots, IReadOnlyList<ConstantRecord> constants, ushort index, int instruction)
+    private static FlowNodeKind ConfigureState(Dictionary<string, JsonElement> config, IReadOnlyDictionary<ushort, SlotRecord> slots, IReadOnlyList<ConstantRecord> constants, ushort index, int instruction)
     {
         if (!slots.TryGetValue(index, out var slot) || slot.Kind != FlowSlotKind.MemoryState || slot.InitialConstant >= constants.Count || constants[slot.InitialConstant].DataType != DataType.Number)
         {
@@ -456,10 +573,11 @@ public sealed class FlowDecompiler : IFlowDecompiler
         }
 
         config["value"] = JsonSerializer.SerializeToElement(constants[slot.InitialConstant].Number);
-        return "memory";
+
+        return FlowNodeKind.Memory;
     }
 
-    private static string ConfigureNumber(string kind, Dictionary<string, JsonElement> config, IReadOnlyList<ConstantRecord> constants, ushort index, int instruction)
+    private static FlowNodeKind ConfigureNumber(FlowNodeKind kind, Dictionary<string, JsonElement> config, IReadOnlyList<ConstantRecord> constants, ushort index, int instruction)
     {
         if (index >= constants.Count || constants[index].DataType != DataType.Number)
         {
@@ -467,10 +585,11 @@ public sealed class FlowDecompiler : IFlowDecompiler
         }
 
         config["value"] = JsonSerializer.SerializeToElement(constants[index].Number);
+
         return kind;
     }
 
-    private static string ConfigureComparator(Dictionary<string, JsonElement> config, ushort code, int instruction)
+    private static FlowNodeKind ConfigureComparator(Dictionary<string, JsonElement> config, ushort code, int instruction)
     {
         var value = code switch { 1 => "lt", 2 => "lte", 3 => "eq", 4 => "gte", 5 => "gt", 6 => "ne", _ => null };
         if (value is null)
@@ -479,10 +598,10 @@ public sealed class FlowDecompiler : IFlowDecompiler
         }
 
         config["operator"] = JsonSerializer.SerializeToElement(value);
-        return "comparator";
+        return FlowNodeKind.Comparator;
     }
 
-    private static string ConfigureLevelShifter(Dictionary<string, JsonElement> config, IReadOnlyList<ConstantRecord> constants, ushort gain, ushort offset, int instruction)
+    private static FlowNodeKind ConfigureLevelShifter(Dictionary<string, JsonElement> config, IReadOnlyList<ConstantRecord> constants, ushort gain, ushort offset, int instruction)
     {
         if (gain >= constants.Count || offset >= constants.Count || constants[gain].DataType != DataType.Number || constants[offset].DataType != DataType.Number)
         {
@@ -491,10 +610,10 @@ public sealed class FlowDecompiler : IFlowDecompiler
 
         config["gain"] = JsonSerializer.SerializeToElement(constants[gain].Number);
         config["offset"] = JsonSerializer.SerializeToElement(constants[offset].Number);
-        return "levelShifter";
+        return FlowNodeKind.LevelShifter;
     }
 
-    private static string ConfigureTimer(Dictionary<string, JsonElement> config, IReadOnlyDictionary<ushort, SlotRecord> slots, IReadOnlyList<ConstantRecord> constants, ushort state, int instruction)
+    private static FlowNodeKind ConfigureTimer(Dictionary<string, JsonElement> config, IReadOnlyDictionary<ushort, SlotRecord> slots, IReadOnlyList<ConstantRecord> constants, ushort state, int instruction)
     {
         if (!slots.TryGetValue(state, out var slot) || slot.Kind != FlowSlotKind.TimerState || slot.InitialConstant >= constants.Count || constants[slot.InitialConstant].DataType != DataType.Number)
         {
@@ -503,10 +622,18 @@ public sealed class FlowDecompiler : IFlowDecompiler
 
         var timer = slot!;
         config["durationMs"] = JsonSerializer.SerializeToElement(constants[timer.InitialConstant].Number);
-        return "onDelay";
+        return FlowNodeKind.OnDelay;
     }
 
-    private static void AddConnection(List<PendingConnection> result, IReadOnlyDictionary<ushort, FlowEndpoint> owners, ushort slot, string target, string port, int instruction)
+    /*
+     * Convert a binary operand slot number into a designer graph edge.
+     *
+     * Each ordinary instruction registers its result slot in 'owners'. A later
+     * instruction therefore identifies its upstream producer using only the u16
+     * operand slot encoded in section 4. A missing owner means the artifact contains
+     * a forward/invalid transient read and cannot represent a valid scheduled graph.
+     */
+    private static void AddConnection(List<PendingConnection> result, Dictionary<ushort, FlowEndpoint> owners, ushort slot, string target, string port, int instruction)
     {
         if (!owners.TryGetValue(slot, out var source))
         {
@@ -516,20 +643,20 @@ public sealed class FlowDecompiler : IFlowDecompiler
         result.Add(new PendingConnection(source, target, port));
     }
 
-    private static IReadOnlyList<FlowConnector> Connectors(string kind) => kind switch
+    private static IReadOnlyList<FlowConnector> Connectors(FlowNodeKind kind) => kind switch
     {
-        "digitalInput" or "digitalConstant" => [BooleanOutput("value", "Value")],
-        "analogInput" => [NumberOutput("value", "Value")],
-        "digitalOutput" => [BooleanInput("in", "Input")],
-        "analogOutput" => [NumberInput("in", "Input")],
-        "not" => [BooleanInput("in", "Input"), BooleanOutput("value", "Value")],
-        "and" or "or" or "nand" or "nor" or "xor" or "xnor" => [BooleanInput("a", "A"), BooleanInput("b", "B"), BooleanOutput("value", "Value")],
-        "memory" => [NumberInput("in", "Input"), NumberOutput("value", "Previous value")],
-        "numericConstant" => [NumberOutput("value", "Value")],
-        "add" => [NumberInput("a", "A"), NumberInput("b", "B"), NumberOutput("value", "Value")],
-        "comparator" => [NumberInput("a", "A"), NumberInput("b", "B"), BooleanOutput("value", "Value")],
-        "levelShifter" => [NumberInput("in", "Input"), NumberOutput("value", "Value")],
-        "qualityGood" or "onDelay" or "risingEdge" => [BooleanInput("in", "Input"), BooleanOutput("value", "Value")],
+        FlowNodeKind.DigitalInput or FlowNodeKind.DigitalConstant => [BooleanOutput("value", "Value")],
+        FlowNodeKind.AnalogInput => [NumberOutput("value", "Value")],
+        FlowNodeKind.DigitalOutput => [BooleanInput("in", "Input")],
+        FlowNodeKind.AnalogOutput => [NumberInput("in", "Input")],
+        FlowNodeKind.Not => [BooleanInput("in", "Input"), BooleanOutput("value", "Value")],
+        FlowNodeKind.And or FlowNodeKind.Or or FlowNodeKind.Nand or FlowNodeKind.Nor or FlowNodeKind.Xor or FlowNodeKind.Xnor => [BooleanInput("a", "A"), BooleanInput("b", "B"), BooleanOutput("value", "Value")],
+        FlowNodeKind.Memory => [NumberInput("in", "Input"), NumberOutput("value", "Previous value")],
+        FlowNodeKind.NumericConstant => [NumberOutput("value", "Value")],
+        FlowNodeKind.Add => [NumberInput("a", "A"), NumberInput("b", "B"), NumberOutput("value", "Value")],
+        FlowNodeKind.Comparator => [NumberInput("a", "A"), NumberInput("b", "B"), BooleanOutput("value", "Value")],
+        FlowNodeKind.LevelShifter => [NumberInput("in", "Input"), NumberOutput("value", "Value")],
+        FlowNodeKind.QualityGood or FlowNodeKind.OnDelay or FlowNodeKind.RisingEdge => [BooleanInput("in", "Input"), BooleanOutput("value", "Value")],
         _ => []
     };
 
@@ -549,6 +676,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
 
     private static SectionReader Section(ReadOnlySpan<byte> artifact, SectionInfo[] sections, int id) { var value = sections[id - 1]; return new SectionReader(artifact.Slice(value.Offset, value.Length).ToArray(), value.Count, value.Version); }
 
+    // Primitive little-endian field readers. The caller supplies a BYTE offset.
     private static ushort U16(ReadOnlySpan<byte> bytes, int offset) => BinaryPrimitives.ReadUInt16LittleEndian(bytes[offset..]);
 
     private static uint U32(ReadOnlySpan<byte> bytes, int offset) => BinaryPrimitives.ReadUInt32LittleEndian(bytes[offset..]);
@@ -557,14 +685,28 @@ public sealed class FlowDecompiler : IFlowDecompiler
 
     private static void Fail(string code, string path, string message) => throw Error(code, path, message);
 
+    /*
+     * Small bounded cursor for one section payload.
+     *
+     * The directory says how many logical records should exist (Count), while this
+     * reader tracks how many BYTES have actually been consumed (_offset). End()
+     * requires the cursor to land exactly on bytes.Length, so trailing garbage is
+     * rejected rather than silently ignored.
+     */
     private sealed class SectionReader(byte[] bytes, int count, ushort version)
     {
         private int _offset;
         public int Count { get; } = count;
         public ushort Version { get; } = version;
+        // Consume exactly 'length' bytes at the current byte cursor. The subtraction
+        // form of the check avoids relying on potentially overflowing offset+length.
         public ReadOnlySpan<byte> Fixed(int length, string path) { if (length < 0 || _offset > bytes.Length - length) { Fail("malformed_section", path, "Section record is truncated."); } var result = bytes.AsSpan(_offset, length); _offset += length; return result; }
         public string String8(string path) { var value = String8AllowEmpty(path); if (value.Length == 0) { Fail("invalid_identifier", path, "Identifier must not be empty."); } return value; }
+        // string8 has no terminator: [UTF-8 byte count:u8][exact UTF-8 bytes].
+        // The length is a byte count, not a C# character count.
         public string String8AllowEmpty(string path) { var length = Fixed(1, path)[0]; var value = Encoding.UTF8.GetString(Fixed(length, path)); if (Encoding.UTF8.GetByteCount(value) != length) { Fail("invalid_identifier", path, "Identifier is not canonical UTF-8."); } return value; }
+        // Record-count parsing is accepted only if the byte cursor also lands on
+        // the exact directory-declared section boundary. Trailing bytes are invalid.
         public void End(string path)
         {
             if (_offset != bytes.Length)

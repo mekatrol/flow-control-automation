@@ -98,7 +98,7 @@ public sealed class FlowEmulatorServiceTests
                 Inputs = [new FlowInterfaceInput { Id = "temperature", Name = "Temperature", DataType = DataType.Number, Units = "°C", DefaultValue = JsonSerializer.SerializeToElement(12.5), Required = true }],
                 Outputs = [new FlowInterfaceOutput { Id = "result", Name = "Result", DataType = DataType.Number, Units = "°C" }]
             },
-            Nodes = [new ExecutableFlowNode { Id = "input", Kind = "flowInput", Configuration = new Dictionary<string, JsonElement> { ["interfaceId"] = JsonSerializer.SerializeToElement("temperature") } }]
+            Nodes = [new ExecutableFlowNode { Id = "input", Kind = FlowNodeKind.FlowInput, Configuration = new Dictionary<string, JsonElement> { ["interfaceId"] = JsonSerializer.SerializeToElement("temperature") } }]
         };
         var created = await service.CreateAsync(source, default);
 
@@ -131,7 +131,7 @@ public sealed class FlowEmulatorServiceTests
             new ExecutableFlowNode
             {
                 Id = "input",
-                Kind = "digitalInput",
+                Kind = FlowNodeKind.DigitalInput,
                 Configuration = new Dictionary<string, JsonElement>
                 {
                     ["pointId"] = JsonSerializer.SerializeToElement("input-01")

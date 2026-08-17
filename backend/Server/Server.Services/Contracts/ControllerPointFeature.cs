@@ -1,6 +1,6 @@
 namespace Server.Services.Contracts;
 
-public enum ControllerPointFeature
+public enum ControllerPointFeature : byte
 {
     Read,
     Command,

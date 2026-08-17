@@ -6,6 +6,6 @@ public sealed record ValidatedControllerTemplate(
     IReadOnlySet<DataDirection> PointDirections,
     IReadOnlySet<ControllerPointFeature> PointFeatures,
     IReadOnlySet<ConnectorDataType> ConnectorDataTypes,
-    IReadOnlySet<string> FlowFunctions,
+    IReadOnlySet<FlowFunctionKind> FlowFunctions,
     IReadOnlySet<ExecutionMode> ExecutionModes,
     IReadOnlySet<ControllerRuntimeFeature> RuntimeFeatures);
