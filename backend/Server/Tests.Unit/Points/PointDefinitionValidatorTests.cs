@@ -21,9 +21,9 @@ internal sealed class PointDefinitionValidatorTests
             .GetRequiredService<IPointDefinitionValidator>();
         _sources = new Dictionary<string, PointSource>(StringComparer.Ordinal)
         {
-            ["ha"] = Source("ha", "home_assistant"),
+            ["ha"] = Source("ha", "homeAssistant"),
             ["mqtt"] = Source("mqtt", "mqtt"),
-            ["http"] = Source("http", "http_json")
+            ["http"] = Source("http", "httpJson")
         };
     }
 

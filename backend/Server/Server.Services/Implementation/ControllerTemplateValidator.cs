@@ -45,19 +45,37 @@ public sealed partial class ControllerTemplateValidator : IControllerTemplateVal
                 "custom templates cannot use the default id or readOnly state");
         }
 
-        var pointTypes = template.Capabilities.PointTypes.ToHashSet();
-
-        var directions = template.Capabilities.PointDirections.ToHashSet();
-
-        var features = template.Capabilities.PointFeatures.ToHashSet();
-
-        var connectors = template.Capabilities.ConnectorDataTypes.ToHashSet();
-
         var functions = ParseFunctions(template.Capabilities.FlowFunctions, diagnostics);
 
-        var modes = template.Capabilities.ExecutionModes.ToHashSet();
+        var pointTypes = ParseEnumCapabilities(
+                    template.Capabilities.PointTypes,
+                    "capabilities.pointTypes",
+                    diagnostics);
 
-        var runtime = template.Capabilities.RuntimeFeatures.ToHashSet();
+        var directions = ParseEnumCapabilities(
+            template.Capabilities.PointDirections,
+            "capabilities.pointDirections",
+            diagnostics);
+
+        var features = ParseEnumCapabilities(
+            template.Capabilities.PointFeatures,
+            "capabilities.pointFeatures",
+            diagnostics);
+
+        var connectors = ParseEnumCapabilities(
+            template.Capabilities.ConnectorDataTypes,
+            "capabilities.connectorDataTypes",
+            diagnostics);
+
+        var modes = ParseEnumCapabilities(
+            template.Capabilities.ExecutionModes,
+            "capabilities.executionModes",
+            diagnostics);
+
+        var runtime = ParseEnumCapabilities(
+            template.Capabilities.RuntimeFeatures,
+            "capabilities.runtimeFeatures",
+            diagnostics);
 
         ValidateLimits(template.Limits, diagnostics);
         if (diagnostics.Count != 0)
@@ -74,6 +92,44 @@ public sealed partial class ControllerTemplateValidator : IControllerTemplateVal
             functions,
             modes,
             runtime);
+    }
+
+    private static HashSet<T> ParseEnumCapabilities<T>(
+    IReadOnlyList<T> values,
+    string path,
+    List<ControllerDiagnostic> diagnostics)
+    where T : struct, Enum
+    {
+        RequireValues(values, path, diagnostics);
+
+        var result = new HashSet<T>();
+
+        for (var index = 0; index < values.Count; index++)
+        {
+            var value = values[index];
+
+            if (!result.Add(value))
+            {
+                Add(
+                    diagnostics,
+                    "duplicate_capability",
+                    $"{path}[{index}]",
+                    "capability is duplicated");
+
+                continue;
+            }
+
+            if (!Enum.IsDefined(value))
+            {
+                Add(
+                    diagnostics,
+                    "unsupported_capability",
+                    $"{path}[{index}]",
+                    $"unsupported capability \"{value}\"");
+            }
+        }
+
+        return result;
     }
 
     private static HashSet<FlowFunctionKind> ParseFunctions(

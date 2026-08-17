@@ -681,9 +681,9 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
 
     private static PointSourceKind ParseSourceKind(string value) => value switch
     {
-        "home_assistant" => PointSourceKind.HomeAssistant,
+        "homeAssistant" => PointSourceKind.HomeAssistant,
         "mqtt" => PointSourceKind.Mqtt,
-        "http_json" => PointSourceKind.HttpJson,
+        "httpJson" => PointSourceKind.HttpJson,
         _ => throw new PointDefinitionValidationException("source kind is invalid"),
     };
 

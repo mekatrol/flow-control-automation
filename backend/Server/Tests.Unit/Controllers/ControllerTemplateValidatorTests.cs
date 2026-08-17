@@ -10,7 +10,7 @@ namespace Tests.Unit.Controllers;
 [TestFixture]
 internal sealed class ControllerTemplateValidatorTests
 {
-    private IControllerTemplateValidator _validator = null!;
+    private ControllerTemplateValidator _validator = null!;
 
     [SetUp]
     public void SetUp()
@@ -49,9 +49,9 @@ internal sealed class ControllerTemplateValidatorTests
                 Is.EquivalentTo([DataDirection.Input, DataDirection.Output]));
 
             // Expected outcome: `validated.FlowFunctions` includes the required content.
-            // Acceptance criteria: `validated.FlowFunctions` must contain `"read-point"`, because this condition proves that
+            // Acceptance criteria: `validated.FlowFunctions` must contain `"readPoint"`, because this condition proves that
             // constrained fixture parses and validates as typed capabilities.
-            Assert.That(validated.FlowFunctions, Does.Contain("read-point"));
+            Assert.That(validated.FlowFunctions, Does.Contain(FlowFunctionKind.ReadPoint));
 
             // Expected outcome: `validated.ExecutionModes` contains the required values.
             // Acceptance criteria: `validated.ExecutionModes` must be equivalent to `[ExecutionMode.Interval]`, because this condition proves that
