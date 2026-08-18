@@ -1,6 +1,8 @@
 using Server.Services;
 using Server.Services.Contracts;
 using Server.Services.Implementation;
+using System.Text.Json;
+using Tests.Unit.Helpers;
 
 namespace Tests.Unit.Flows;
 
@@ -11,24 +13,31 @@ public sealed class FlowDecompilerTests
         "ContractFixtures",
         "flow-il-v1");
 
-    [TestCase("valid-two-button-and", null)]
-    [TestCase("valid-memory-feedback", null)]
-    [TestCase("valid-expanded-boolean", null)]
-    [TestCase("valid-numeric-language", null)]
-    [TestCase("valid-analog-points", "degC")]
-    public void RecompilesRecoveredDesignerSemanticsToTheIdenticalArtifact(
-        string fixture,
-        string? analogUnits)
-    {
-        var artifact = GetArtifact(fixture);
-        var recovered = new FlowDecompiler().Decompile(artifact);
+    private static readonly string FixtureUpdateRoot = Path.Combine(
+        FixtureUpdater.WorkspaceDirectory(),
+        "testdata",
+        "contracts",
+        "flow-il-v1");
 
-        var source = new ExecutableFlowSource
+    private static readonly (string Fixture, string? AnalogUnits)[] DecompilerFixtures =
+        [
+            ("valid-two-button-and", null),
+            ("valid-memory-feedback", null),
+            ("valid-expanded-boolean", null),
+            ("valid-numeric-language", null),
+            ("valid-analog-points", "degC")
+        ];
+
+    private static ExecutableFlowSource RecoveredSource(
+        FlowDecompilationResult recovered)
+    {
+        return new ExecutableFlowSource
         {
             Id = recovered.Flow.Id,
             Revision = recovered.Provenance.FlowRevision,
             ControllerTemplateId = recovered.Provenance.ControllerTemplateId,
             ControllerTemplateRevision = recovered.Provenance.ControllerTemplateRevision,
+
             Nodes =
             [
                 .. recovered.Flow.Nodes.Select(node => new ExecutableFlowNode
@@ -43,6 +52,7 @@ public sealed class FlowDecompilerTests
                 GroupId = node.GroupId
             })
             ],
+
             Connections =
             [
                 .. recovered.Flow.Connections.Select(connection =>
@@ -55,12 +65,78 @@ public sealed class FlowDecompilerTests
                         connection.End.ConnectorId)))
             ]
         };
+    }
 
-        var recompiled = new FlowCompiler().Compile(CompilationRequest(source, analogUnits));
+    private static ExecutableFlowSource ReadSourceFixture(string fixture)
+    {
+        var path = Path.Combine(
+            FixtureUpdateRoot,
+            fixture,
+            "source-flow.json");
 
-        var recompiledArtifact = recompiled.Artifact.ToArray();
+        var json = File.ReadAllText(path);
 
-        AssertArtifactsEqual(artifact, recompiledArtifact);
+        return JsonSerializer.Deserialize<ExecutableFlowSource>(
+            json,
+            FlowControlJson.Options)!;
+    }
+
+    [OneTimeSetUp]
+    public void UpdateEnabledDecompilerFixtures()
+    {
+        foreach (var (fixture, analogUnits) in DecompilerFixtures)
+        {
+            if (!FixtureUpdater.IsEnabled(fixture))
+            {
+                continue;
+            }
+
+            var source = ReadSourceFixture(fixture);
+
+            var compilation = new FlowCompiler().Compile(
+                CompilationRequest(source, analogUnits));
+
+            // Write source-controlled artifacts.
+            FixtureUpdater.UpdateFlowCompilation(
+                fixture,
+                compilation,
+                FixtureUpdateRoot);
+
+            // Write the runtime copy used by this test process.
+            var runtimeFixtureDirectory =
+                Path.Combine(FixtureRoot, fixture);
+
+            Directory.CreateDirectory(runtimeFixtureDirectory);
+
+            FlowCompiler.WriteBinary(
+                compilation,
+                Path.Combine(runtimeFixtureDirectory, "artifact.bin"));
+
+            FlowCompiler.WriteIntelHex(
+                compilation,
+                Path.Combine(runtimeFixtureDirectory, "artifact.hex"));
+        }
+    }
+
+    [TestCase("valid-two-button-and", null)]
+    [TestCase("valid-memory-feedback", null)]
+    [TestCase("valid-expanded-boolean", null)]
+    [TestCase("valid-numeric-language", null)]
+    [TestCase("valid-analog-points", "degC")]
+    public void RecompilesRecoveredDesignerSemanticsToTheIdenticalArtifact(
+        string fixture,
+        string? analogUnits)
+    {
+        var artifact = GetArtifact(fixture);
+        var recovered = new FlowDecompiler().Decompile(artifact);
+        var source = RecoveredSource(recovered);
+
+        var recompiled = new FlowCompiler().Compile(
+            CompilationRequest(source, analogUnits));
+
+        AssertArtifactsEqual(
+            artifact,
+            recompiled.Artifact.ToArray());
     }
 
     [TestCase("valid-two-button-and", 4, 3)]

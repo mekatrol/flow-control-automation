@@ -57,7 +57,7 @@
       "id": "compare-1",
       "kind": "comparator",
       "configuration": {
-        "operator": 5
+        "operator": "gt"
       },
       "label": "Comparator",
       "x": 0,

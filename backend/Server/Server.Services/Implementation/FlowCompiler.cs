@@ -1369,7 +1369,11 @@ public sealed partial class FlowCompiler : IFlowCompiler
         };
 
         dependencyRecords.AddRange(model.Points
-            .Where(point => point.Kind == 0)
+            .Where(point => point.Kind is
+                FlowNodeKind.DigitalInput or
+                FlowNodeKind.DigitalOutput or
+                FlowNodeKind.AnalogInput or
+                FlowNodeKind.AnalogOutput)
             .Select(point => point.Id)
             .Distinct(StringComparer.Ordinal)
             .Select(pointId =>
