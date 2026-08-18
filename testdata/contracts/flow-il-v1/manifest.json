@@ -4,7 +4,7 @@
     {
       "id": "valid-two-button-and",
       "artifactLength": 1030,
-      "artifactSha256": "2a19fa8ee42b3ff83007147b3bd86e857c45bea646b8ab1f7ff93c112b92b568",
+      "artifactSha256": "67f51c2044051c365d83ad09bf39f5e8c54776fa3121eb61a5458b4e2c23390b",
       "expected": {
         "valid": true,
         "reason": "ok",
@@ -14,7 +14,7 @@
     {
       "id": "valid-memory-feedback",
       "artifactLength": 976,
-      "artifactSha256": "5b9d0b191e9dd23ff75a8e60742de36ff7ec2f44fb2efa01cd5f60597be89b73",
+      "artifactSha256": "581e72e866e75a891d948c82e131b12f6529f1a0e9d12523607a5fc6c51099b9",
       "expected": {
         "valid": true,
         "reason": "ok",
@@ -24,7 +24,7 @@
     {
       "id": "valid-expanded-boolean",
       "artifactLength": 1583,
-      "artifactSha256": "e8b34a09582057d529b513b25575a05defb1b37c8205f85b5b11a8e11514eb09",
+      "artifactSha256": "38899239eb518b7f9d803f35748c2e5223e2a2ca7827e209091ad4e5ca89f9ad",
       "expected": {
         "valid": true,
         "reason": "ok",
@@ -34,7 +34,7 @@
     {
       "id": "valid-numeric-language",
       "artifactLength": 1028,
-      "artifactSha256": "a876f97ec6455ae92603d55d7cf7c63d42d203d9788b6466ac00950a2ff4a5db",
+      "artifactSha256": "cc6a17339dee2a2d31134a2a20317f254640cd0c3bcc7ffe26d17ab8c4fb326f",
       "expected": {
         "valid": true,
         "reason": "ok",
@@ -53,8 +53,8 @@
     },
     {
       "id": "valid-analog-points",
-      "artifactLength": 940,
-      "artifactSha256": "e8ce30acba9c4bac8d5399275fc81132c78de1d64b8493958b45d334146dd6b0",
+      "artifactLength": 932,
+      "artifactSha256": "1b30c417b96008fc4aae720c7c20ab9a5d32763feb75d7d12b7c64517a2e62fa",
       "expected": {
         "valid": true,
         "reason": "ok",
@@ -64,7 +64,7 @@
     {
       "id": "valid-source-order-permutation",
       "artifactLength": 1030,
-      "artifactSha256": "2a19fa8ee42b3ff83007147b3bd86e857c45bea646b8ab1f7ff93c112b92b568",
+      "artifactSha256": "67f51c2044051c365d83ad09bf39f5e8c54776fa3121eb61a5458b4e2c23390b",
       "expected": {
         "valid": true,
         "reason": "ok",

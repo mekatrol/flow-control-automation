@@ -603,7 +603,12 @@ public sealed partial class FlowCompiler : IFlowCompiler
             Schedule = model.Schedule,
             MaximumWorkPerScan = checked((uint)model.Instructions.Count),
             WorkingBytes = workingBytes,
-            MaximumSnapshotBytes = 16384
+            MaximumSnapshotBytes = 16384,
+            SectionCount = checked((uint)sections.Length),
+            InstructionCount = checked((uint)model.Instructions.Count),
+            SlotCount = checked((uint)(model.Schedule.Count + model.StateIds.Length)),
+            PointCount = checked((uint)model.Points.Length),
+            StateCount = checked((uint)model.StateIds.Length)
         };
     }
 

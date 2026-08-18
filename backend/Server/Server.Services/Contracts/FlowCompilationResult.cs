@@ -26,4 +26,14 @@ public sealed record FlowCompilationResult
     public uint WorkingBytes { get; init; }
 
     public uint MaximumSnapshotBytes { get; init; }
+
+    public uint SectionCount { get; init; }
+
+    public uint InstructionCount { get; init; }
+
+    public uint SlotCount { get; init; }
+
+    public uint PointCount { get; init; }
+
+    public uint StateCount { get; init; }
 }

@@ -1,5 +1,5 @@
 {
-  "flowId": "analog-points",
+  "flowId": "valid-analog-points",
   "flowRevision": 1,
   "sectionCount": 8,
   "instructionCount": 4,
@@ -16,5 +16,5 @@
     "shift": 1,
     "analog-out": 2
   },
-  "artifactLength": 940
+  "artifactLength": 932
 }

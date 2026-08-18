@@ -1,6 +1,7 @@
 ﻿using Server.Services.Contracts;
 using Server.Services.Implementation;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 
 namespace Tests.Unit.Helpers;
 
@@ -10,6 +11,11 @@ namespace Tests.Unit.Helpers;
 /// </summary>
 internal static class FixtureUpdater
 {
+    private static readonly JsonSerializerOptions serializerOptions = new()
+    {
+        WriteIndented = true
+    };
+
     private static readonly HashSet<string> EnabledFixtures = new(StringComparer.Ordinal)
     {
         //"valid-memory-feedback"
@@ -77,7 +83,10 @@ internal static class FixtureUpdater
                 $"Unable to determine workspace directory from project directory '{projectDirectory.FullName}'.");
     }
 
-    public static void UpdateFlowCompilation(string fixture, FlowCompilationResult result, string fixtureRoot)
+    public static void UpdateFlowCompilation(
+        string fixture,
+        FlowCompilationResult result,
+        string fixtureRoot)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fixture);
         ArgumentNullException.ThrowIfNull(result);
@@ -87,6 +96,8 @@ internal static class FixtureUpdater
         {
             var fixtureDirectory = Path.Combine(fixtureRoot, fixture);
 
+            Directory.CreateDirectory(fixtureDirectory);
+
             FlowCompiler.WriteBinary(
                 result,
                 Path.Combine(fixtureDirectory, "artifact.bin"));
@@ -94,6 +105,89 @@ internal static class FixtureUpdater
             FlowCompiler.WriteIntelHex(
                 result,
                 Path.Combine(fixtureDirectory, "artifact.hex"));
+
+            UpdateMetadata(
+                fixture,
+                result,
+                fixtureDirectory);
+
+            UpdateManifest(
+                fixture,
+                result,
+                fixtureRoot);
         });
+    }
+
+    private static void UpdateMetadata(string fixture, FlowCompilationResult result, string fixtureDirectory)
+    {
+        var metadata = new
+        {
+            flowId = fixture,
+            flowRevision = result.FlowRevision,
+            sectionCount = 8,
+            instructionCount = result.MaximumWorkPerScan,
+            slotCount = result.NodeIndices.Count,
+            pointCount = result.PointCount,
+            stateCount = result.StateCount,
+            schedule = result.Schedule,
+            slots = result.NodeIndices,
+            artifactLength = result.Artifact.Length
+        };
+
+        File.WriteAllText(
+            Path.Combine(fixtureDirectory, "metadata.json"),
+            JsonSerializer.Serialize(
+                metadata,
+                serializerOptions));
+    }
+
+    private static void UpdateManifest(
+        string fixture,
+        FlowCompilationResult result,
+        string fixtureRoot)
+    {
+        var manifestPath = Path.Combine(
+            fixtureRoot,
+            "manifest.json");
+
+        using var document = JsonDocument.Parse(
+            File.ReadAllText(manifestPath));
+
+        var root = document.RootElement;
+
+        var fixtures = root.GetProperty("fixtures")
+            .EnumerateArray()
+            .Select(item =>
+            {
+                var id = item.GetProperty("id").GetString()!;
+
+                if (!string.Equals(id, fixture, StringComparison.Ordinal))
+                {
+                    return JsonSerializer.Deserialize<object>(
+                        item.GetRawText())!;
+                }
+
+                return new
+                {
+                    id,
+                    artifactLength = result.Artifact.Length,
+                    artifactSha256 = result.ArtifactSha256,
+                    expected = JsonSerializer.Deserialize<object>(
+                        item.GetProperty("expected").GetRawText())!
+                };
+            })
+            .ToArray();
+
+        var manifest = new
+        {
+            contract = root.GetProperty("contract").GetString(),
+            fixtures
+        };
+
+        File.WriteAllText(
+            manifestPath,
+            JsonSerializer.Serialize(
+                manifest,
+                serializerOptions));
     }
 }
