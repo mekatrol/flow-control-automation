@@ -4,7 +4,7 @@
     {
       "id": "valid-two-button-and",
       "artifactLength": 1030,
-      "artifactSha256": "67f51c2044051c365d83ad09bf39f5e8c54776fa3121eb61a5458b4e2c23390b",
+      "artifactSha256": "6288f6b99d6776cc3838921dca62d6c834d14a5996d624b219ebbc1aba2d1a1e",
       "expected": {
         "valid": true,
         "reason": "ok",
@@ -14,7 +14,7 @@
     {
       "id": "valid-memory-feedback",
       "artifactLength": 976,
-      "artifactSha256": "581e72e866e75a891d948c82e131b12f6529f1a0e9d12523607a5fc6c51099b9",
+      "artifactSha256": "a694d514c44c7fd20bc3bc962ad7101f81963bdabfcf2f600448ce543596c667",
       "expected": {
         "valid": true,
         "reason": "ok",
@@ -24,7 +24,7 @@
     {
       "id": "valid-expanded-boolean",
       "artifactLength": 1583,
-      "artifactSha256": "38899239eb518b7f9d803f35748c2e5223e2a2ca7827e209091ad4e5ca89f9ad",
+      "artifactSha256": "888ab73d6eb1f6eafc393281b6d1490a2e2e0188001ad3f9e86b0324da5cf41c",
       "expected": {
         "valid": true,
         "reason": "ok",
@@ -54,7 +54,7 @@
     {
       "id": "valid-analog-points",
       "artifactLength": 932,
-      "artifactSha256": "1b30c417b96008fc4aae720c7c20ab9a5d32763feb75d7d12b7c64517a2e62fa",
+      "artifactSha256": "ad226610f74ae86988e6932c7a4d88ccc8157b0b00f89d52f9f524695795b4ce",
       "expected": {
         "valid": true,
         "reason": "ok",
@@ -64,7 +64,7 @@
     {
       "id": "valid-source-order-permutation",
       "artifactLength": 1030,
-      "artifactSha256": "67f51c2044051c365d83ad09bf39f5e8c54776fa3121eb61a5458b4e2c23390b",
+      "artifactSha256": "6288f6b99d6776cc3838921dca62d6c834d14a5996d624b219ebbc1aba2d1a1e",
       "expected": {
         "valid": true,
         "reason": "ok",

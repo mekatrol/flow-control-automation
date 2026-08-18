@@ -502,9 +502,9 @@ public sealed partial class FlowCompiler : IFlowCompiler
                 "Resolved target revision does not match source.");
         }
 
-        if (source.Execution.Mode != "manual"
+        if (source.Execution.Mode != FlowExecutionMode.Manual
             || source.Execution.IntervalMs != 0
-            || source.Execution.InputQualityPolicy is not ("requireGood" or "propagate"))
+            || source.Execution.InputQualityPolicy is not (InputQualityPolicy.RequireGood or InputQualityPolicy.Propagate))
         {
             throw Failure("unsupported_execution", "/execution", "Schema 1 supports manual require-good execution only.");
         }
@@ -1129,7 +1129,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
     private static V1Section[] BuildSections(FlowCompilationRequest request, CompilationModel model)
     {
         var constantSection = BuildConstantSection(model.Constants);
-        var pointSection = BuildPointSection(model.Points);
+        var pointSection = BuildPointSection(model.Points, request.Source.Execution.InputQualityPolicy);
         var slotSection = BuildSlotSection(model, out var slotRecordCount);
         var instructionSection = BuildInstructionSection(model.Instructions);
         var commitSection = BuildCommitSection(model, out var commitRecordCount);
@@ -1166,7 +1166,9 @@ public sealed partial class FlowCompiler : IFlowCompiler
         return Concat([.. constants.Select(EncodeConstant)]);
     }
 
-    private static byte[] BuildPointSection(IEnumerable<PointRecord> points)
+    private static byte[] BuildPointSection(
+        IEnumerable<PointRecord> points,
+        InputQualityPolicy qualityPolicy)
     {
         // ---------------------------------------------------------------------
         // SECTION 2 — point/interface bindings
@@ -1177,7 +1179,12 @@ public sealed partial class FlowCompiler : IFlowCompiler
         // Because string8 is variable length, section 2 is parsed record-by-record,
         // not by multiplying count by a fixed record width.
         return Concat([.. points.Select(point => Concat(
-            [(byte)point.Direction, (byte)point.DataType, 1, (byte)point.Kind],
+            [
+                (byte)point.Direction,
+                (byte)point.DataType,
+                (byte)qualityPolicy,
+                (byte)point.BindingKind
+            ],
             String8(point.Id),
             String8AllowEmpty(point.Units ?? string.Empty)))]);
     }
@@ -1557,7 +1564,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
         // bytes 26..27 : section count (8).
         WriteU16(envelope, 26, sectionCount);
         // byte 28      : input-quality policy. bytes 29..31 stay zero.
-        envelope[28] = source.Execution.InputQualityPolicy == "requireGood" ? (byte)1 : (byte)2;
+        envelope[28] = (byte)source.Execution.InputQualityPolicy;
         // bytes 32..35 : bounded maximum work per scan.
         WriteU32(envelope, 32, checked((uint)instructionCount));
         // bytes 36..43 : required-capability bitmap, u64 LE.
@@ -3210,6 +3217,10 @@ public sealed partial class FlowCompiler : IFlowCompiler
                     ? InterfaceUnits(source, node)
                     : PointUnits(node, resolvedPoints),
 
+                node.Kind is FlowNodeKind.FlowInput or FlowNodeKind.FlowOutput
+                    ? PointBindingKind.FlowInterface
+                    : PointBindingKind.ControllerPoint,
+
                 // Kind
                 node.Kind))
             .Distinct()
@@ -3612,7 +3623,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
     private sealed record FlowPortKey(string NodeId, string PortId);
 
     /* Canonical compiler representation of one physical-point or flow-interface binding. */
-    private sealed record PointRecord(string Id, DataDirection Direction, DataType DataType, string? Units, FlowNodeKind Kind);
+    private sealed record PointRecord(string Id, DataDirection Direction, DataType DataType, string? Units, PointBindingKind BindingKind, FlowNodeKind Kind);
 
     /* Normalized representation shared by interface-input and interface-output validation. */
     private sealed record InterfaceRecord(string Id, string Name, DataType DataType, string? Units, JsonElement? DefaultValue);

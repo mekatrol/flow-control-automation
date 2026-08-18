@@ -1,4 +1,3 @@
-using Server.Services.Contracts;
 using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -67,9 +66,9 @@ internal sealed class FlowDeploymentService(
             {
                 // The artifact is a deterministic single-scan program. The server host
                 // owns the 100 ms interval used to invoke that program.
-                Mode = "manual",
+                Mode = FlowExecutionMode.Manual,
                 IntervalMs = 0,
-                InputQualityPolicy = flow.Nodes.Any(node => node.Kind == FlowNodeKind.QualityGood) ? "propagate" : "requireGood"
+                InputQualityPolicy = flow.Nodes.Any(node => node.Kind == FlowNodeKind.QualityGood) ? InputQualityPolicy.Propagate : InputQualityPolicy.RequireGood
             },
             Nodes = [.. flow.Nodes.Select(node => new ExecutableFlowNode
             {
