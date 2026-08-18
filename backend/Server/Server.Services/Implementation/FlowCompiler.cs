@@ -3166,7 +3166,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
                         : "pointId"].GetString()!,
 
                 // Direction
-                checked(node.Kind.ToString().EndsWith("anput", StringComparison.OrdinalIgnoreCase)
+                checked(node.Kind.ToString().EndsWith("input", StringComparison.OrdinalIgnoreCase)
                     ? DataDirection.Input
                     : DataDirection.Output),
 

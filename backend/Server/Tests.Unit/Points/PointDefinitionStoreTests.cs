@@ -192,7 +192,7 @@ internal sealed class PointDefinitionStoreTests
     {
         await using var factory = new FlowControlApplicationFactory();
         _ = factory.CreateClient();
-        await InsertSource(factory, Source("http", "http_json"));
+        await InsertSource(factory, Source("http", "httpJson"));
         await using var scope = factory.Services.CreateAsyncScope();
         var store = scope.ServiceProvider.GetRequiredService<IPointDefinitionStore>();
         var group = await store.CreateGroupAsync(
@@ -250,7 +250,7 @@ internal sealed class PointDefinitionStoreTests
     {
         await using var factory = new FlowControlApplicationFactory();
         _ = factory.CreateClient();
-        await InsertSource(factory, Source("http", "http_json"));
+        await InsertSource(factory, Source("http", "httpJson"));
         await InsertSource(factory, Source("mqtt", "mqtt"));
         await using var scope = factory.Services.CreateAsyncScope();
         var store = scope.ServiceProvider.GetRequiredService<IPointDefinitionStore>();
@@ -288,7 +288,7 @@ internal sealed class PointDefinitionStoreTests
     {
         await using var factory = new FlowControlApplicationFactory();
         _ = factory.CreateClient();
-        var source = Source("http", "http_json");
+        var source = Source("http", "httpJson");
         await InsertSource(factory, source);
         await using var scope = factory.Services.CreateAsyncScope();
         var store = scope.ServiceProvider.GetRequiredService<IPointDefinitionStore>();

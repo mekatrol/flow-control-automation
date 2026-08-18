@@ -42,11 +42,11 @@ internal sealed partial class PointSourceValidator : IPointSourceValidator
 
         var address = source.Kind switch
         {
-            "home_assistant" => RequireBaseUrl(source),
-            "http_json" => ValidateHttpJson(source),
+            "homeAssistant" => RequireBaseUrl(source),
+            "httpJson" => ValidateHttpJson(source),
             "mqtt" => ValidateMqtt(source),
             _ => throw new PointSourceValidationException(
-                "kind must be home_assistant, mqtt, or http_json"),
+                "kind must be homeAssistant, mqtt, or httpJson"),
         };
         ValidateAddress(source, address);
     }

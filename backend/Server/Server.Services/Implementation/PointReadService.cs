@@ -82,9 +82,9 @@ internal sealed class PointReadService(
 
     private static string SourceLabel(string kind) => kind switch
     {
-        "home_assistant" => "Home Assistant",
+        "homeAssistant" => "Home Assistant",
         "mqtt" => "MQTT",
-        "http_json" => "HTTP/JSON",
+        "httpJson" => "HTTP/JSON",
         _ => "Point source",
     };
 }

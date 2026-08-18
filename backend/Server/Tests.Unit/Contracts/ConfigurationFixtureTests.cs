@@ -144,7 +144,7 @@ public sealed class ConfigurationFixtureTests
             ($"schemaVersion: 1{Environment.NewLine}sources: !custom []{Environment.NewLine}", ConfigurationYamlError.UnsupportedFeature),
             ($"schemaVersion: 1{Environment.NewLine}sources: []{Environment.NewLine}---\nschemaVersion: 1\nsources: []{Environment.NewLine}", ConfigurationYamlError.MultipleDocuments),
             (
-                $"schemaVersion: 1{Environment.NewLine}sources:{Environment.NewLine}  - id: source{Environment.NewLine}    name: source{Environment.NewLine}    enabled: true{Environment.NewLine}    kind: http_json{Environment.NewLine}    connection:{Environment.NewLine}{new string(' ', 8)}nested: [{string.Concat(Enumerable.Repeat("[", 21))}0{string.Concat(Enumerable.Repeat("]", 21))}]{Environment.NewLine}    tls: {{verifyServerCertificate: true}}{Environment.NewLine}    timeouts: {{connectMilliseconds: 100}}{Environment.NewLine}",
+                $"schemaVersion: 1{Environment.NewLine}sources:{Environment.NewLine}  - id: source{Environment.NewLine}    name: source{Environment.NewLine}    enabled: true{Environment.NewLine}    kind: httpJson{Environment.NewLine}    connection:{Environment.NewLine}{new string(' ', 8)}nested: [{string.Concat(Enumerable.Repeat("[", 21))}0{string.Concat(Enumerable.Repeat("]", 21))}]{Environment.NewLine}    tls: {{verifyServerCertificate: true}}{Environment.NewLine}    timeouts: {{connectMilliseconds: 100}}{Environment.NewLine}",
                 ConfigurationYamlError.ExcessiveNesting)
         };
 

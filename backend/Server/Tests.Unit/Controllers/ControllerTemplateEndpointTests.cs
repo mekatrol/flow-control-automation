@@ -169,7 +169,10 @@ internal sealed class ControllerTemplateEndpointTests
             {
                 Capabilities = Template().Capabilities with
                 {
-                    PointTypes = [(PointValueType)byte.MaxValue],
+                    PointTypes = [
+                        PointValueType.Analog,
+                        PointValueType.Analog
+                    ],
                 },
             });
 
@@ -184,9 +187,10 @@ internal sealed class ControllerTemplateEndpointTests
                 Encoding.UTF8,
                 "application/yaml")
         };
+
         using var syntaxResponse = await client.SendAsync(syntax);
-        var syntaxError = await syntaxResponse.Content.ReadFromJsonAsync<DefinitionErrorResponse>(
-            FlowControlJson.Options);
+
+        var syntaxError = await syntaxResponse.Content.ReadFromJsonAsync<DefinitionErrorResponse>(FlowControlJson.Options);
 
         // Expected outcome: All related outcomes satisfy their contracts.
         // Acceptance criteria: every assertion in the group must pass, because this condition proves that
@@ -201,7 +205,7 @@ internal sealed class ControllerTemplateEndpointTests
             // Expected outcome: `semanticBody` includes the required content.
             // Acceptance criteria: `semanticBody` must contain `"capabilities.pointTypes[0]"`, because this condition proves that
             // validation reports semantic paths and syntax locations.
-            Assert.That(semanticBody, Does.Contain("capabilities.pointTypes[0]"));
+            Assert.That(semanticBody, Does.Contain("capabilities.pointTypes[1]"));
 
             // Expected outcome: `syntaxResponse.StatusCode` has the required value.
             // Acceptance criteria: `syntaxResponse.StatusCode` must equal `HttpStatusCode.BadRequest`, because this condition proves that

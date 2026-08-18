@@ -392,7 +392,7 @@ internal sealed class PointSourceEndpointTests
                 name: Weather
                 name: Duplicate
                 enabled: true
-                kind: http_json
+                kind: httpJson
                 connection:
                   baseUrl: https://example.test
                   allowedReadMethods: [GET]
@@ -434,7 +434,7 @@ internal sealed class PointSourceEndpointTests
         Id = "weather",
         Name = "Weather",
         Enabled = true,
-        Kind = "http_json",
+        Kind = "httpJson",
         Connection = new PointSourceConnection
         {
             BaseUrl = "https://example.test",

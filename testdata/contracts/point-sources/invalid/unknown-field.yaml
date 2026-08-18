@@ -4,7 +4,7 @@ sources:
     name: Invalid source
     description: Contains an unknown field
     enabled: true
-    kind: http_json
+    kind: httpJson
     connection:
       baseUrl: https://example.test
       allowedReadMethods: [GET]

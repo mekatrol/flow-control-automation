@@ -103,6 +103,7 @@ internal sealed class PointSourceDatabaseService(
     {
         var entity = await FindTracked(id, cancellationToken);
         var previous = Deserialize(entity);
+
         if (source.Id != id)
         {
             throw new PointSourceValidationException("source id must match request path");
@@ -116,8 +117,7 @@ internal sealed class PointSourceDatabaseService(
         if (!string.Equals(source.Kind, previous.Kind, StringComparison.Ordinal)
             && await IsReferenced(id, cancellationToken))
         {
-            throw new PointSourceConflictException(
-                "source kind cannot change while points or groups reference it");
+            throw new PointSourceConflictException("source kind cannot change while points or groups reference it");
         }
 
         validator.Validate(source);

@@ -213,7 +213,7 @@ internal sealed class ProtocolCheckTests
     {
         Id = "http-check",
         Name = "HTTP check",
-        Kind = "http_json",
+        Kind = "httpJson",
         Connection = new PointSourceConnection
         {
             BaseUrl = uri.ToString(),

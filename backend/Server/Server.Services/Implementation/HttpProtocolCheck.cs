@@ -19,7 +19,7 @@ internal sealed class HttpProtocolCheck(IDnsLookup dns) : IHttpProtocolCheck
         CancellationToken cancellationToken)
     {
         var endpoint = new Uri(source.Connection.BaseUrl!);
-        if (source.Kind == "home_assistant")
+        if (source.Kind == "homeAssistant")
         {
             endpoint = new Uri(
                 endpoint,

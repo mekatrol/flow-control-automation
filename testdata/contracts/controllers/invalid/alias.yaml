@@ -8,8 +8,8 @@ capabilities: &capabilities
   pointDirections: [input]
   pointFeatures: [read]
   connectorDataTypes: [boolean]
-  flowFunctions: [read-point]
+  flowFunctions: [readPoint]
   executionModes: [interval]
-  runtimeFeatures: [bound_points]
+  runtimeFeatures: [boundPoints]
 limits: *capabilities
 
