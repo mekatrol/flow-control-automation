@@ -79,7 +79,7 @@ public sealed class FlowCompilerBoundaryTests
         {
             Assert.That(source, Is.Not.Null);
             Assert.That(source!.SchemaVersion, Is.EqualTo(1));
-            Assert.That(source.Id, Is.EqualTo("valid-two-button-and"));
+            Assert.That(source.Id, Is.EqualTo("two-button-and"));
             Assert.That(source.Revision, Is.EqualTo(7));
             Assert.That(source.Execution.Mode, Is.EqualTo(FlowExecutionMode.Manual));
             Assert.That(source.Nodes, Has.Count.EqualTo(4));
