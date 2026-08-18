@@ -27,11 +27,6 @@ namespace Server.Services.Implementation;
 
 public sealed class FlowDecompiler : IFlowDecompiler
 {
-    private const int EnvelopeBytes = 128;
-    private const int DirectoryEntryBytes = 48;
-    private const ushort SectionCount = 8;
-    private const ushort Unused = ushort.MaxValue;
-
     /*
      * Top-level decode pipeline.
      *
@@ -68,7 +63,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
             RecoveryLevel = "lossless",
             Warnings = [],
             Provenance = new FlowDecompilationProvenance(
-                1,
+                FlowILV1Format.Version,
                 Convert.ToHexStringLower(SHA256.HashData(decoded.Bytes)),
                 U32(decoded.Bytes, 16),
                 decoded.Template.Id,
@@ -92,16 +87,16 @@ public sealed class FlowDecompiler : IFlowDecompiler
 
         // Decode sections in canonical ID order. Section() copies exactly the
         // directory-declared payload range into a bounded SectionReader.
-        var constants = ReadConstants(Section(bytes, sections, 1));
-        var points = ReadPoints(Section(bytes, sections, 2));
-        var slots = ReadSlots(Section(bytes, sections, 3));
-        var instructions = ReadInstructions(Section(bytes, sections, 4));
-        ValidateCommitPlan(Section(bytes, sections, 5));
-        var symbols = ReadSymbols(Section(bytes, sections, 6), instructions.Count);
-        ValidateDebugMap(Section(bytes, sections, 7));
-        var dependencies = ReadDependencies(Section(bytes, sections, 8));
+        var constants = ReadConstants(Section(bytes, sections, FlowILSectionId.Constants));
+        var points = ReadPoints(Section(bytes, sections, FlowILSectionId.Points));
+        var slots = ReadSlots(Section(bytes, sections, FlowILSectionId.Slots));
+        var instructions = ReadInstructions(Section(bytes, sections, FlowILSectionId.Instructions));
+        ValidateCommitPlan(Section(bytes, sections, FlowILSectionId.CommitPlan));
+        var symbols = ReadSymbols(Section(bytes, sections, FlowILSectionId.Symbols), instructions.Count);
+        ValidateDebugMap(Section(bytes, sections, FlowILSectionId.DebugMap));
+        var dependencies = ReadDependencies(Section(bytes, sections, FlowILSectionId.Dependencies));
 
-        var templates = dependencies.Where(item => item.Kind == 1).ToArray();
+        var templates = dependencies.Where(item => item.Kind == FlowDependencyKind.ControllerTemplate).ToArray();
 
         if (templates.Length != 1)
         {
@@ -368,7 +363,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
         string nodeId,
         int instructionIndex)
     {
-        if (instruction.ResultSlotIndex == Unused || slotOwners.ContainsKey(instruction.ResultSlotIndex))
+        if (instruction.ResultSlotIndex == FlowILV1Format.Unused || slotOwners.ContainsKey(instruction.ResultSlotIndex))
         {
             Fail(
                 "invalid_operand",
@@ -416,30 +411,33 @@ public sealed class FlowDecompiler : IFlowDecompiler
      */
     private static SectionInfo[] ValidateEnvelope(ReadOnlySpan<byte> bytes)
     {
-        if (bytes.Length < EnvelopeBytes || bytes.Length > 16384 || !bytes[..4].SequenceEqual("FIL1"u8))
+        if (bytes.Length < FlowILV1Format.EnvelopeLength || bytes.Length > 16384 || !bytes[..4].SequenceEqual("FIL1"u8))
         {
             Fail("malformed_artifact", "/", "The artifact is not a bounded Flow IL v1 envelope.");
         }
 
-        if (U16(bytes, 4) != 1)
+        if (U16(bytes, 4) != FlowILV1Format.Version)
         {
             Fail("unsupported_version", "/version", "Only Flow IL v1 can be decompiled.");
         }
 
-        if (U16(bytes, 6) != EnvelopeBytes || U32(bytes, 8) != bytes.Length || U16(bytes, 26) != SectionCount || U32(bytes, 116) != EnvelopeBytes)
+        if (U16(bytes, 6) != FlowILV1Format.EnvelopeLength ||
+            U32(bytes, 8) != bytes.Length ||
+            U16(bytes, 26) != FlowILV1Format.SectionCount||
+            U32(bytes, 116) != FlowILV1Format.EnvelopeLength)
         {
             Fail("malformed_artifact", "/envelope", "Envelope lengths or section count are invalid.");
         }
 
-        var result = new SectionInfo[SectionCount];
+        var result = new SectionInfo[FlowILV1Format.SectionCount];
 
         // 128 + (8 * 48) = 512: canonical start of section 1 when there are 8 entries.
-        var expectedOffset = EnvelopeBytes + (SectionCount * DirectoryEntryBytes);
+        var expectedOffset = FlowILV1Format.EnvelopeLength + (FlowILV1Format.SectionCount * FlowILV1Format.DirectoryEntryLength);
 
-        for (var index = 0; index < SectionCount; index++)
+        for (var index = 0; index < FlowILV1Format.SectionCount; index++)
         {
             // Directory entry N lives at 128 + N*48 and is always exactly 48 bytes.
-            var entry = bytes.Slice(EnvelopeBytes + (index * DirectoryEntryBytes), DirectoryEntryBytes);
+            var entry = bytes.Slice(FlowILV1Format.EnvelopeLength + (index * FlowILV1Format.DirectoryEntryLength), FlowILV1Format.DirectoryEntryLength);
 
             // Entry layout:
             //   0..1   id u16 LE
@@ -672,7 +670,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
         var values = new List<Dependency>();
         for (var i = 0; i < reader.Count; i++)
         {
-            var kind = reader.Fixed(1, $"/dependencies/{i}")[0];
+            var kind = (FlowDependencyKind)reader.Fixed(1, $"/dependencies/{i}")[0];
             var id = reader.String8($"/dependencies/{i}/id");
             var revision = U32(reader.Fixed(4, $"/dependencies/{i}/revision"), 0);
             if (revision == 0)
@@ -1064,9 +1062,9 @@ public sealed class FlowDecompiler : IFlowDecompiler
      * Copying the payload gives SectionReader an isolated byte range whose End()
      * check can reliably reject trailing bytes.
      */
-    private static SectionReader Section(ReadOnlySpan<byte> artifact, SectionInfo[] sections, int id)
+    private static SectionReader Section(ReadOnlySpan<byte> artifact, SectionInfo[] sections, FlowILSectionId id)
     {
-        var section = sections[id - 1];
+        var section = sections[(int)id - 1];
 
         return new SectionReader(
             artifact.Slice(section.Offset, section.Length).ToArray(),
@@ -1232,7 +1230,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
     private sealed record SymbolRecord(byte Discriminator, string NodeId, string Label, double X, double Y, double ZOrder, string GroupId);
 
     /* Source dependency record used to recover controller-template provenance. */
-    private sealed record Dependency(byte Kind, string Id, uint Revision);
+    private sealed record Dependency(FlowDependencyKind Kind, string Id, uint Revision);
 
     /* Graph edge held until stable recovered connection IDs are assigned. */
     private sealed record PendingConnection(FlowEndpoint Source, string TargetNodeId, string TargetPortId);

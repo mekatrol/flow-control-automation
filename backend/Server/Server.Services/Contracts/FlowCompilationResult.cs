@@ -5,7 +5,7 @@ namespace Server.Services.Contracts;
 /// </summary>
 public sealed record FlowCompilationResult
 {
-    public int ArtifactVersion { get; init; } = 2;
+    public int ArtifactVersion { get; init; } = FlowILV1Format.Version;
 
     public required ReadOnlyMemory<byte> Artifact { get; init; }
 

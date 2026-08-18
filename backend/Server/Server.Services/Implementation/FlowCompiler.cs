@@ -235,17 +235,6 @@ namespace Server.Services.Implementation;
 
 public sealed partial class FlowCompiler : IFlowCompiler
 {
-    private const int MaximumArtifactBytes = 16384;
-    private const int EnvelopeLength = 128;
-    private const int DirectoryEntryLength = 48;
-    private const ulong ExpandedBooleanCapability = 1UL << 5;
-    private const ulong NumericCapability = 1UL << 6;
-    private const ulong ComparisonCapability = 1UL << 7;
-    private const ulong LevelShifterCapability = 1UL << 8;
-    private const ulong QualityCapability = 1UL << 9;
-    private const ulong TimerCapability = 1UL << 10;
-    private const ulong EventCapability = 1UL << 11;
-
     /*
      * NODE PORT SHAPES
      * ================
@@ -335,7 +324,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (request.ArtifactVersion != 1)
+        if (request.ArtifactVersion != FlowILV1Format.Version)
         {
             throw Failure(
                 "unsupported_artifact_version",
@@ -398,7 +387,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
                 WriteIntelHexRecord(
                     writer,
                     0,
-                    0x04,
+                    (byte)IntelHexRecordType.ExtendedLinearAddress,
                     upper);
 
                 currentUpperAddress = upperAddress;
@@ -418,7 +407,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
             WriteIntelHexRecord(
                 writer,
                 address,
-                0x00,
+                (byte)IntelHexRecordType.Data,
                 artifact.Slice(offset, count));
 
             offset += count;
@@ -590,6 +579,12 @@ public sealed partial class FlowCompiler : IFlowCompiler
             envelope,
             Concat([.. directory]),
             Concat([.. sections.Select(section => section.Bytes)]));
+
+        if (sections.Length != FlowILV1Format.SectionCount)
+        {
+            throw new InvalidOperationException(
+                $"Flow IL v1 requires exactly {FlowILV1Format.SectionCount} sections.");
+        }
 
         return new FlowCompilationResult
         {
@@ -1261,10 +1256,13 @@ public sealed partial class FlowCompiler : IFlowCompiler
         // boundary, rather than changing state/output during instruction execution.
         var commitRecords = model.MemoryIds
             .Select(id => Concat(
-                [1, 0],
+                [
+                    (byte)FlowCommitAction.StateCommit,
+                    FlowILV1Format.ReservedByte
+                ],
                 U16(model.StateSlots[id]),
                 U16(InputSlot(model.Source, model.Slots, id, "in")),
-                U16(0)))
+                U16(FlowILV1Format.ReservedUInt16)))
             .ToList();
 
         commitRecords.AddRange(model.Schedule
@@ -1375,7 +1373,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
         var dependencyRecords = new List<byte[]>
         {
             Concat(
-                [1],
+                [(byte)FlowDependencyKind.ControllerTemplate],
                 String8(model.Source.ControllerTemplateId),
                 U32(model.Source.ControllerTemplateRevision))
         };
@@ -1422,7 +1420,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
         // First section payload begins immediately after:
         //   128-byte envelope + 8 * 48-byte directory = byte offset 512.
         // 'offset' always means an absolute byte position in the final artifact.
-        var offset = checked((uint)(EnvelopeLength + (sections.Length * DirectoryEntryLength)));
+        var offset = checked((uint)(FlowILV1Format.EnvelopeLength + (sections.Length * FlowILV1Format.DirectoryEntryLength)));
         var directory = new List<byte[]>();
 
         foreach (var section in sections)
@@ -1444,7 +1442,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
 
         // After the loop, offset is no longer a section start: it is exactly the
         // computed final artifact length.
-        if (offset > MaximumArtifactBytes)
+        if (offset > FlowILV1Format.MaximumArtifactBytes)
         {
             throw Failure("limit_exceeded", "/artifactLength", "Encoded Flow IL exceeds 16384 bytes.");
         }
@@ -1453,31 +1451,38 @@ public sealed partial class FlowCompiler : IFlowCompiler
         return directory;
     }
 
-    private static ulong DetermineRequiredCapabilities(
+    private static FlowILCapability DetermineRequiredCapabilities(
         ExecutableFlowSource source,
         IReadOnlyCollection<PointRecord> points,
         string[] memoryIds)
     {
-        var capabilities = 1UL | 16UL;
+        var capabilities =
+            FlowILCapability.Base |
+            FlowILCapability.Boolean;
 
         if (points.Any(point => point.Direction == DataDirection.Input))
         {
-            capabilities |= 2UL;
+            capabilities |= FlowILCapability.Inputs;
         }
 
         if (points.Any(point => point.Direction == DataDirection.Output))
         {
-            capabilities |= 4UL;
+            capabilities |= FlowILCapability.Outputs;
         }
 
         if (memoryIds.Length > 0)
         {
-            capabilities |= 8UL;
+            capabilities |= FlowILCapability.State;
         }
 
-        if (source.Nodes.Any(node => node.Kind is FlowNodeKind.Nand or FlowNodeKind.Nor or FlowNodeKind.Xor or FlowNodeKind.Xnor))
+        if (source.Nodes.Any(node =>
+            node.Kind is
+                FlowNodeKind.Nand or
+                FlowNodeKind.Nor or
+                FlowNodeKind.Xor or
+                FlowNodeKind.Xnor))
         {
-            capabilities |= ExpandedBooleanCapability;
+            capabilities |= FlowILCapability.ExpandedBoolean;
         }
 
         if (source.Nodes.Any(node =>
@@ -1495,32 +1500,32 @@ public sealed partial class FlowCompiler : IFlowCompiler
                     FlowNodeKind.Selector)
             || points.Any(point => point.DataType == DataType.Number))
         {
-            capabilities |= NumericCapability;
+            capabilities |= FlowILCapability.Numeric;
         }
 
         if (source.Nodes.Any(node => node.Kind == FlowNodeKind.Comparator))
         {
-            capabilities |= ComparisonCapability;
+            capabilities |= FlowILCapability.Comparison;
         }
 
         if (source.Nodes.Any(node => node.Kind == FlowNodeKind.LevelShifter))
         {
-            capabilities |= LevelShifterCapability;
+            capabilities |= FlowILCapability.LevelShifter;
         }
 
         if (source.Nodes.Any(node => node.Kind == FlowNodeKind.QualityGood))
         {
-            capabilities |= QualityCapability;
+            capabilities |= FlowILCapability.Quality;
         }
 
         if (source.Nodes.Any(node => node.Kind is FlowNodeKind.OnDelay or FlowNodeKind.Delay or FlowNodeKind.Timer))
         {
-            capabilities |= TimerCapability;
+            capabilities |= FlowILCapability.Timer;
         }
 
         if (source.Nodes.Any(node => node.Kind is FlowNodeKind.RisingEdge or FlowNodeKind.Pulse))
         {
-            capabilities |= EventCapability;
+            capabilities |= FlowILCapability.Event;
         }
 
         return capabilities;
@@ -1531,7 +1536,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
         int sectionCount,
         int instructionCount,
         uint artifactLength,
-        ulong capabilities,
+        FlowILCapability capabilities,
         uint workingBytes)
     {
         // ---------------------------------------------------------------------
@@ -1539,14 +1544,14 @@ public sealed partial class FlowCompiler : IFlowCompiler
         // ---------------------------------------------------------------------
         // New byte[] is zero-initialized, which is important: every reserved byte
         // that is not explicitly written below remains canonical zero.
-        var envelope = new byte[EnvelopeLength];
+        var envelope = new byte[FlowILV1Format.EnvelopeLength];
 
         // bytes 0..3: ASCII magic 46 49 4C 31 ("FIL1").
         "FIL1"u8.CopyTo(envelope);
         // bytes 4..5   : IL version, u16 LE.
         WriteU16(envelope, 4, 1);
         // bytes 6..7   : envelope length = 128, u16 LE.
-        WriteU16(envelope, 6, EnvelopeLength);
+        WriteU16(envelope, 6, FlowILV1Format.EnvelopeLength);
         // bytes 8..11  : exact final artifact length, u32 LE.
         WriteU32(envelope, 8, artifactLength);
         // bytes 12..15 : flags. This implementation writes bit 0 = 1.
@@ -1564,7 +1569,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
         // bytes 32..35 : bounded maximum work per scan.
         WriteU32(envelope, 32, checked((uint)instructionCount));
         // bytes 36..43 : required-capability bitmap, u64 LE.
-        BinaryPrimitives.WriteUInt64LittleEndian(envelope.AsSpan(36), capabilities);
+        BinaryPrimitives.WriteUInt64LittleEndian(envelope.AsSpan(36), (ulong)capabilities);
         // bytes 44..47 : VM working-byte estimate.
         WriteU32(envelope, 44, workingBytes);
         // bytes 48..51 : maximum snapshot bytes.
@@ -1573,7 +1578,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
         WritePaddedIdentifier(envelope, 52, source.Id);
         // bytes 116..119: directory absolute offset (= 128).
         // bytes 120..127 remain zero from array initialization.
-        WriteU32(envelope, 116, EnvelopeLength);
+        WriteU32(envelope, 116, FlowILV1Format.EnvelopeLength);
 
         return envelope;
     }
