@@ -3163,19 +3163,38 @@ public sealed partial class FlowCompiler : IFlowCompiler
                 node.Configuration[
                     node.Kind is FlowNodeKind.FlowInput or FlowNodeKind.FlowOutput
                         ? "interfaceId"
-                        : "pointId"].GetString()!,
+                        : "pointId"]
+                    .GetString()!,
 
                 // Direction
-                checked(node.Kind.ToString().EndsWith("input", StringComparison.OrdinalIgnoreCase)
-                    ? DataDirection.Input
-                    : DataDirection.Output),
+                node.Kind switch
+                {
+                    FlowNodeKind.DigitalInput => DataDirection.Input,
+                    FlowNodeKind.AnalogInput => DataDirection.Input,
+                    FlowNodeKind.FlowInput => DataDirection.Input,
+
+                    FlowNodeKind.DigitalOutput => DataDirection.Output,
+                    FlowNodeKind.AnalogOutput => DataDirection.Output,
+                    FlowNodeKind.FlowOutput => DataDirection.Output,
+                },
 
                 // Type
-                node.Kind is FlowNodeKind.FlowInput or FlowNodeKind.FlowOutput
-                    ? InterfaceDataType(source, node)
-                    : node.Kind.ToString().StartsWith("analog", StringComparison.OrdinalIgnoreCase)
-                        ? DataType.Number
-                        : DataType.Boolean,
+                node.Kind switch
+                {
+                    FlowNodeKind.DigitalInput or
+                    FlowNodeKind.DigitalOutput
+                        => DataType.Boolean,
+
+                    FlowNodeKind.AnalogInput or
+                    FlowNodeKind.AnalogOutput
+                        => DataType.Number,
+
+                    FlowNodeKind.FlowInput or
+                    FlowNodeKind.FlowOutput
+                        => InterfaceDataType(source, node),
+
+                    _ => DataType.Any
+                },
 
                 // Units
                 node.Kind is FlowNodeKind.FlowInput or FlowNodeKind.FlowOutput
@@ -3183,7 +3202,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
                     : PointUnits(node, resolvedPoints),
 
                 // Kind
-                node.Kind is FlowNodeKind.FlowInput or FlowNodeKind.FlowOutput ? node.Kind : FlowNodeKind.Unknown))
+                node.Kind))
             .Distinct()
             .OrderBy(point => point.Kind)
             .ThenBy(point => point.Id, StringComparer.Ordinal)
@@ -3584,7 +3603,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
     private sealed record FlowPortKey(string NodeId, string PortId);
 
     /* Canonical compiler representation of one physical-point or flow-interface binding. */
-    private sealed record PointRecord(string Id, DataDirection Direction, DataType DataType, string? Units, FlowNodeKind Kind = 0);
+    private sealed record PointRecord(string Id, DataDirection Direction, DataType DataType, string? Units, FlowNodeKind Kind);
 
     /* Normalized representation shared by interface-input and interface-output validation. */
     private sealed record InterfaceRecord(string Id, string Name, DataType DataType, string? Units, JsonElement? DefaultValue);

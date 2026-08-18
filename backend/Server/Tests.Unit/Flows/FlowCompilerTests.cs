@@ -182,8 +182,9 @@ public sealed class FlowCompilerTests
                 : node)]
         };
 
+        var compilationRequest = BuildCompilationRequest(source);
         var artifact = new FlowCompiler()
-            .Compile(BuildCompilationRequest(source))
+            .Compile(compilationRequest)
             .Artifact
             .ToArray();
 

@@ -309,6 +309,9 @@ dotnet_diagnostic.CA1861.severity = none
 # CA1050: Declare types in namespaces
 dotnet_diagnostic.CA1050.severity = error
 
+# CS8509: The switch expression does not handle all possible values of its input type.
+dotnet_diagnostic.CS8509.severity = none
+
 # CS8618: Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 dotnet_diagnostic.CS8618.severity = none
 
