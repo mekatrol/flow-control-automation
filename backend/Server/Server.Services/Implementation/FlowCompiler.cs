@@ -506,7 +506,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
             || source.Execution.IntervalMs != 0
             || source.Execution.InputQualityPolicy is not (InputQualityPolicy.RequireGood or InputQualityPolicy.Propagate))
         {
-            throw Failure("unsupported_execution", "/execution", "Schema 1 supports manual require-good execution only.");
+            throw Failure("unsupported_execution", "/execution", "Schema 1 supports manual execution with require-good or propagate input quality.");
         }
 
         if (source.Nodes.Count is < 1 or > 128)
@@ -1381,11 +1381,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
         };
 
         dependencyRecords.AddRange(model.Points
-            .Where(point => point.Kind is
-                FlowNodeKind.DigitalInput or
-                FlowNodeKind.DigitalOutput or
-                FlowNodeKind.AnalogInput or
-                FlowNodeKind.AnalogOutput)
+            .Where(point => point.BindingKind == PointBindingKind.ControllerPoint)
             .Select(point => point.Id)
             .Distinct(StringComparer.Ordinal)
             .Select(pointId =>

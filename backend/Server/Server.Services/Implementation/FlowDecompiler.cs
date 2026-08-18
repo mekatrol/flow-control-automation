@@ -540,12 +540,33 @@ public sealed class FlowDecompiler : IFlowDecompiler
             var id = reader.String8($"/points/{i}/id");
             var units = reader.String8AllowEmpty($"/points/{i}/units");
 
-            if (prefix[0] is not ((byte)DataType.Boolean or (byte)DataType.Number) || prefix[1] is not (1 or 2))
+            var direction = (DataDirection)prefix[0];
+            var dataType = (DataType)prefix[1];
+            var qualityPolicy = (InputQualityPolicy)prefix[2];
+            var bindingKind = (PointBindingKind)prefix[3];
+
+            if (direction is not (DataDirection.Input or DataDirection.Output)
+                || dataType is not (DataType.Boolean or DataType.Number)
+                || qualityPolicy is not (
+                    InputQualityPolicy.RequireGood or
+                    InputQualityPolicy.Propagate)
+                || bindingKind is not (
+                    PointBindingKind.ControllerPoint or
+                    PointBindingKind.FlowInterface))
             {
-                Fail("unsupported_point", $"/points/{i}", "Point binding type is unsupported.");
+                Fail(
+                    "unsupported_point",
+                    $"/points/{i}",
+                    "Point binding type is unsupported.");
             }
 
-            values.Add(new PointRecord((DataDirection)prefix[0], (DataType)prefix[1], id, units));
+            values.Add(new PointRecord(
+                direction,
+                dataType,
+                qualityPolicy,
+                bindingKind,
+                id,
+                units));
         }
 
         reader.End("/points");
@@ -708,12 +729,55 @@ public sealed class FlowDecompiler : IFlowDecompiler
 
         var point = points[pointIndex];
 
-        configuration["pointId"] = JsonSerializer.SerializeToElement(point.Id);
-        configuration["units"] = JsonSerializer.SerializeToElement(point.Units);
+        return point.BindingKind switch
+        {
+            PointBindingKind.FlowInterface =>
+                ConfigureInterface(),
 
-        return point.DataType == DataType.Number
-            ? direction == DataDirection.Input ? FlowNodeKind.AnalogInput : FlowNodeKind.AnalogOutput
-            : direction == DataDirection.Input ? FlowNodeKind.DigitalInput : FlowNodeKind.DigitalOutput;
+            PointBindingKind.ControllerPoint =>
+                ConfigureControllerPoint(),
+
+            _ => throw Error(
+                "unsupported_point",
+                $"/instructions/{instructionIndex}/auxiliary",
+                "Point binding kind is unsupported.")
+        };
+
+        FlowNodeKind ConfigureInterface()
+        {
+            configuration["interfaceId"] =
+                JsonSerializer.SerializeToElement(point.Id);
+
+            if (!string.IsNullOrEmpty(point.Units))
+            {
+                configuration["units"] =
+                    JsonSerializer.SerializeToElement(point.Units);
+            }
+
+            return direction == DataDirection.Input
+                ? FlowNodeKind.FlowInput
+                : FlowNodeKind.FlowOutput;
+        }
+
+        FlowNodeKind ConfigureControllerPoint()
+        {
+            configuration["pointId"] =
+                JsonSerializer.SerializeToElement(point.Id);
+
+            if (!string.IsNullOrEmpty(point.Units))
+            {
+                configuration["units"] =
+                    JsonSerializer.SerializeToElement(point.Units);
+            }
+
+            return point.DataType == DataType.Number
+                ? direction == DataDirection.Input
+                    ? FlowNodeKind.AnalogInput
+                    : FlowNodeKind.AnalogOutput
+                : direction == DataDirection.Input
+                    ? FlowNodeKind.DigitalInput
+                    : FlowNodeKind.DigitalOutput;
+        }
     }
 
     /*
@@ -1142,7 +1206,13 @@ public sealed class FlowDecompiler : IFlowDecompiler
     private sealed record SectionInfo(int Offset, int Length, int Count, ushort Version);
 
     /* Decoded point/interface binding from section 2. */
-    private sealed record PointRecord(DataDirection Direction, DataType DataType, string Id, string Units);
+    private sealed record PointRecord(
+        DataDirection Direction,
+        DataType DataType,
+        InputQualityPolicy QualityPolicy,
+        PointBindingKind BindingKind,
+        string Id,
+        string Units);
 
     /* Decoded typed constant from section 1. */
     private sealed record ConstantRecord(DataType DataType, double Number);

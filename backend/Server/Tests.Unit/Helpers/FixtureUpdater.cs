@@ -18,12 +18,23 @@ internal static class FixtureUpdater
 
     private static readonly HashSet<string> EnabledFixtures = new(StringComparer.Ordinal)
     {
-        //"valid-memory-feedback"
-        //"valid-two-button-and"
-        //"valid-memory-feedback"
-        //"valid-expanded-boolean"
-        //"valid-numeric-language"
-        //"valid-analog-points"
+        // Canonical valid compiler fixtures.
+        //"valid-two-button-and",
+        //"valid-memory-feedback",
+        //"valid-expanded-boolean",
+        //"valid-numeric-language",
+        //"valid-quality-timer-event",
+        //"valid-analog-points",
+        //"valid-source-order-permutation",
+        //"maximum-boolean",
+
+        // Deliberately invalid/corrupted contract fixtures.
+        // Do not regenerate these as normal valid artifacts; their malformed bytes are intentional.
+
+        //"malformed-truncated",
+        //"invalid-operand",
+        //"unknown-section",
+        //"noncanonical-section-order",
     };
 
     /// <summary>
@@ -123,9 +134,9 @@ internal static class FixtureUpdater
         {
             flowId = fixture,
             flowRevision = result.FlowRevision,
-            sectionCount = 8,
-            instructionCount = result.MaximumWorkPerScan,
-            slotCount = result.NodeIndices.Count,
+            sectionCount = result.SectionCount,
+            instructionCount = result.InstructionCount,
+            slotCount = result.SlotCount,
             pointCount = result.PointCount,
             stateCount = result.StateCount,
             schedule = result.Schedule,
