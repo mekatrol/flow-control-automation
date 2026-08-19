@@ -17,7 +17,7 @@ public sealed class FlowCompilerBoundaryTests
         var diagnostics = new[]
         {
             new FlowCompilationDiagnostic(
-                FlowCompilerCode.UnsupportedNode,
+                "unsupported_node",
                 "/nodes/example",
                 "The node is outside the current Flow IL language.")
         };
@@ -28,7 +28,7 @@ public sealed class FlowCompilerBoundaryTests
         {
             Assert.That(exception.Diagnostics, Is.SameAs(diagnostics));
             Assert.That(exception.Message,
-                Is.EqualTo("Flow compilation failed: UnsupportedNode at /nodes/example"));
+                Is.EqualTo("Flow compilation failed: unsupported_node at /nodes/example"));
         });
     }
 

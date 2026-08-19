@@ -45,7 +45,7 @@ public sealed class FlowCompilationTargetResolverTests
 
         AssertDiagnostic(
             async () => await resolver.ResolveAsync(Source(), default),
-            FlowCompilerCode.TargetMismatch,
+            "target_mismatch",
             "/controllerTemplateRevision");
         Assert.That(pointStore.ListCallCount, Is.Zero);
     }
@@ -57,7 +57,7 @@ public sealed class FlowCompilationTargetResolverTests
 
         AssertDiagnostic(
             async () => await resolver.ResolveAsync(Source(), default),
-            FlowCompilerCode.MissingPoint,
+            "missing_point",
             "/points/output-01");
     }
 
@@ -70,7 +70,7 @@ public sealed class FlowCompilationTargetResolverTests
 
         AssertDiagnostic(
             async () => await resolver.ResolveAsync(Source(), default),
-            FlowCompilerCode.PointDirectionMismatch,
+            "point_direction_mismatch",
             "/points/output-01");
     }
 
@@ -86,7 +86,7 @@ public sealed class FlowCompilationTargetResolverTests
 
         AssertDiagnostic(
             async () => await resolver.ResolveAsync(Source(), default),
-            FlowCompilerCode.LimitExceeded,
+            "limit_exceeded",
             "/nodes");
         Assert.That(pointStore.ListCallCount, Is.Zero);
     }
@@ -181,7 +181,7 @@ public sealed class FlowCompilationTargetResolverTests
 
     private static void AssertDiagnostic(
         AsyncTestDelegate action,
-        FlowCompilerCode code,
+        string code,
         string path)
     {
         var exception = Assert.ThrowsAsync<FlowCompilationException>(action);

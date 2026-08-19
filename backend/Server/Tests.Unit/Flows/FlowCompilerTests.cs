@@ -217,7 +217,7 @@ public sealed class FlowCompilerTests
 
         AssertDiagnostic(
             () => new FlowCompiler().Compile(BuildCompilationRequest(source)),
-            FlowCompilerCode.UnsupportedNode,
+            "unsupported_node",
             "/nodes/0/kind");
     }
 
@@ -240,7 +240,7 @@ public sealed class FlowCompilerTests
 
         AssertDiagnostic(
             () => new FlowCompiler().Compile(BuildCompilationRequest(source)),
-            FlowCompilerCode.CombinationalCycle,
+            "combinational_cycle",
             "/nodes/not-a");
     }
 
@@ -251,7 +251,7 @@ public sealed class FlowCompilerTests
 
         AssertDiagnostic(
             () => new FlowCompiler().Compile(BuildCompilationRequest(source)),
-            FlowCompilerCode.MissingConnection,
+            "missing_connection",
             "/nodes/and-main/ports/a");
     }
 
@@ -282,7 +282,7 @@ public sealed class FlowCompilerTests
 
         AssertDiagnostic(
             () => new FlowCompiler().Compile(request),
-            FlowCompilerCode.UnsupportedArtifactVersion,
+            "unsupported_artifact_version",
             "/artifactVersion");
     }
 
@@ -345,7 +345,7 @@ public sealed class FlowCompilerTests
 
         AssertDiagnostic(
             () => new FlowCompiler().Compile(request),
-            FlowCompilerCode.MissingPoint,
+            "missing_point",
             $"/points/{source.Nodes[0].Configuration["pointId"].GetString()}");
     }
     private static Dictionary<string, JsonElement> Config(string key, object value) =>
@@ -402,7 +402,7 @@ public sealed class FlowCompilerTests
         }
     };
 
-    private static void AssertDiagnostic(TestDelegate action, FlowCompilerCode code, string path)
+    private static void AssertDiagnostic(TestDelegate action, string code, string path)
     {
         var exception = Assert.Throws<FlowCompilationException>(action);
         Assert.Multiple(() =>

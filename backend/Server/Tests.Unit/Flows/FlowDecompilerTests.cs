@@ -203,7 +203,7 @@ public sealed class FlowDecompilerTests
         var exception = Assert.Throws<FlowDecompilationException>(
             () => new FlowDecompiler().Decompile(artifact));
 
-        Assert.That(exception!.Diagnostic.Code, Is.EqualTo(FlowCompilerCode.InvalidDigest));
+        Assert.That(exception!.Diagnostic.Code, Is.EqualTo("invalid_digest"));
     }
 
     [Test]
@@ -217,7 +217,7 @@ public sealed class FlowDecompilerTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(exception!.Diagnostic.Code, Is.EqualTo(FlowCompilerCode.UnsupportedVersion));
+            Assert.That(exception!.Diagnostic.Code, Is.EqualTo("unsupported_version"));
             Assert.That(exception.Diagnostic.Path, Is.EqualTo("/version"));
         });
     }
