@@ -45,7 +45,7 @@ public sealed class FlowCompilationTargetResolverTests
 
         AssertDiagnostic(
             async () => await resolver.ResolveAsync(Source(), default),
-            FlowCompilationDiagnosticCode.TargetMismatch,
+            FlowCompilationDiagnosticCode.ControllerTemplateRevisionMismatch,
             "/controllerTemplateRevision");
         Assert.That(pointStore.ListCallCount, Is.Zero);
     }
@@ -86,7 +86,7 @@ public sealed class FlowCompilationTargetResolverTests
 
         AssertDiagnostic(
             async () => await resolver.ResolveAsync(Source(), default),
-            FlowCompilationDiagnosticCode.LimitExceeded,
+            FlowCompilationDiagnosticCode.TargetNodeLimitExceeded,
             "/nodes");
         Assert.That(pointStore.ListCallCount, Is.Zero);
     }

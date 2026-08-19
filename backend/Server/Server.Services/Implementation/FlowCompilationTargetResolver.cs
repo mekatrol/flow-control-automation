@@ -20,19 +20,17 @@ public sealed class FlowCompilationTargetResolver(
         }
         catch (ControllerTemplateNotFoundException)
         {
-            throw Failure(
-                FlowCompilationDiagnosticCode.TargetMismatch,
-                "/controllerTemplateId",
-                $"Controller template \"{source.ControllerTemplateId}\" was not found.");
+            throw Failure(FlowCompilationDiagnosticCode.ControllerTemplateNotFound, "/controllerTemplateId", source.ControllerTemplateId);
         }
 
         if (template.Revision < 0 || (uint)template.Revision != source.ControllerTemplateRevision)
         {
             throw Failure(
-                FlowCompilationDiagnosticCode.TargetMismatch,
+                FlowCompilationDiagnosticCode.ControllerTemplateRevisionMismatch,
                 "/controllerTemplateRevision",
-                $"Expected controller template revision {source.ControllerTemplateRevision}, "
-                    + $"but resolved revision {template.Revision}.");
+                source.ControllerTemplateRevision,
+                template.Revision
+            );
         }
 
         var validated = controllerTemplateValidator.Validate(
@@ -51,10 +49,7 @@ public sealed class FlowCompilationTargetResolver(
         {
             if (!pointsById.TryGetValue(reference.PointId, out var point))
             {
-                throw Failure(
-                    FlowCompilationDiagnosticCode.MissingPoint,
-                    $"/points/{Escape(reference.PointId)}",
-                    $"Point \"{reference.PointId}\" was not found.");
+                throw Failure(FlowCompilationDiagnosticCode.MissingPoint, $"/points/{Escape(reference.PointId)}", reference.PointId);
             }
 
             ValidatePoint(reference, point);
@@ -75,10 +70,7 @@ public sealed class FlowCompilationTargetResolver(
         if (!ControllerCapabilitiesSupport.SupportsConnector(template, ConnectorDataType.Boolean)
             || !template.PointTypes.Contains(PointValueType.Digital))
         {
-            throw Failure(
-                FlowCompilationDiagnosticCode.UnsupportedTargetCapability,
-                "/controllerTemplateId",
-                "The target must support Boolean connectors and digital points.");
+            throw Failure(FlowCompilationDiagnosticCode.UnsupportedTargetConnectorCapability, "/controllerTemplateId");
         }
 
         var functions = source.Nodes
@@ -91,10 +83,7 @@ public sealed class FlowCompilationTargetResolver(
         {
             if (!ControllerCapabilitiesSupport.SupportsFunction(template, function))
             {
-                throw Failure(
-                    FlowCompilationDiagnosticCode.UnsupportedTargetCapability,
-                    "/controllerTemplateId",
-                    $"The target does not support flow function \"{function}\".");
+                throw Failure(FlowCompilationDiagnosticCode.UnsupportedTargetFunction, "/controllerTemplateId", function);
             }
         }
     }
@@ -103,19 +92,13 @@ public sealed class FlowCompilationTargetResolver(
     {
         if (limits.MaxNodesPerFlow is int maxNodes && source.Nodes.Count > maxNodes)
         {
-            throw Failure(
-                FlowCompilationDiagnosticCode.LimitExceeded,
-                "/nodes",
-                $"The target permits at most {maxNodes} nodes per flow.");
+            throw Failure(FlowCompilationDiagnosticCode.TargetNodeLimitExceeded, "/nodes", maxNodes);
         }
 
         if (limits.MaxConnectionsPerFlow is int maxConnections
             && source.Connections.Count > maxConnections)
         {
-            throw Failure(
-                FlowCompilationDiagnosticCode.LimitExceeded,
-                "/connections",
-                $"The target permits at most {maxConnections} connections per flow.");
+            throw Failure(FlowCompilationDiagnosticCode.TargetConnectionLimitExceeded, "/connections", maxConnections);
         }
     }
 
@@ -154,8 +137,10 @@ public sealed class FlowCompilationTargetResolver(
             throw Failure(
                 FlowCompilationDiagnosticCode.PointDirectionMismatch,
                 $"/points/{Escape(reference.PointId)}",
-                $"Point \"{reference.PointId}\" is not a compatible enabled {(reference.IsAnalog ? "analog" : "digital")} "
-                    + (reference.IsInput ? "input." : "output."));
+                reference.PointId,
+                reference.IsAnalog ? "analog" : "digital",
+                reference.IsInput ? "input" : "output"
+            );
         }
     }
 
@@ -171,8 +156,11 @@ public sealed class FlowCompilationTargetResolver(
         _ => null
     };
 
-    private static FlowCompilationException Failure(FlowCompilationDiagnosticCode code, string path, string message) =>
-        new([new FlowCompilationDiagnostic(code, path, message)]);
+    private static FlowCompilationException Failure(
+        FlowCompilationDiagnosticCode code,
+        string path,
+        params object?[] arguments) =>
+        new([FlowCompilationDiagnostics.Create(code, path, arguments)]);
 
     private static string Escape(string value) => value.Replace("~", "~0", StringComparison.Ordinal)
         .Replace("/", "~1", StringComparison.Ordinal);

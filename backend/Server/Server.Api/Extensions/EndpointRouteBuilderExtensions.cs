@@ -248,7 +248,9 @@ public static class EndpointRouteBuilderExtensions
         catch (FlowVmException exception)
         {
             return Results.Json(
-                new FlowCompilationDiagnostic(FlowCompilationDiagnosticCode.VmPrepareFailed, exception.Path, exception.Message),
+                FlowCompilationDiagnostics.Create(
+                    FlowCompilationDiagnosticCode.VmPrepareFailed,
+                    exception.Path),
                 statusCode: StatusCodes.Status422UnprocessableEntity);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)

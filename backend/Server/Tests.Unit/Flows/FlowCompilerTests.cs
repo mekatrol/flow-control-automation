@@ -251,7 +251,7 @@ public sealed class FlowCompilerTests
 
         AssertDiagnostic(
             () => new FlowCompiler().Compile(BuildCompilationRequest(source)),
-            FlowCompilationDiagnosticCode.MissingConnection,
+            FlowCompilationDiagnosticCode.MissingInputDriver,
             "/nodes/and-main/ports/a");
     }
 

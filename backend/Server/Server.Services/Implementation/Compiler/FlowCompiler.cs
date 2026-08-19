@@ -326,10 +326,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
 
         if (request.ArtifactVersion != FlowILV1Format.Version)
         {
-            throw Failure(
-                FlowCompilationDiagnosticCode.UnsupportedArtifactVersion,
-                "/artifactVersion",
-                "Only Flow IL version 1 is supported.");
+            throw Failure(FlowCompilationDiagnosticCode.UnsupportedArtifactVersion, "/artifactVersion", FlowILV1Format.Version);
         }
 
         Validate(request);
@@ -458,7 +455,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
 
         if (source.SchemaVersion != 1)
         {
-            throw Failure(FlowCompilationDiagnosticCode.UnsupportedSourceSchema, "/schemaVersion", "Only source schema 1 is supported.");
+            throw Failure(FlowCompilationDiagnosticCode.UnsupportedSourceSchema, "/schemaVersion", 1);
         }
 
         ValidateIdentifier(source.Id, "/id", 63);
@@ -466,46 +463,50 @@ public sealed partial class FlowCompiler : IFlowCompiler
 
         if (source.Revision == 0)
         {
-            throw Failure(FlowCompilationDiagnosticCode.InvalidSource, "/revision", "Revision must be greater than zero.");
+            throw Failure(FlowCompilationDiagnosticCode.InvalidFlowRevision, "/revision");
         }
 
         if (source.ControllerTemplateRevision == 0)
         {
-            throw Failure(
-                FlowCompilationDiagnosticCode.InvalidSource,
-                "/controllerTemplateRevision",
-                "Controller template revision must be greater than zero.");
+            throw Failure(FlowCompilationDiagnosticCode.InvalidControllerTemplateRevision, "/controllerTemplateRevision");
         }
 
         var target = request.Target.ControllerTemplate.Source;
         if (!string.Equals(source.ControllerTemplateId, target.Id, StringComparison.Ordinal))
         {
-            throw Failure(FlowCompilationDiagnosticCode.TargetMismatch, "/controllerTemplateId", "Resolved target ID does not match source.");
+            throw Failure(
+                FlowCompilationDiagnosticCode.ControllerTemplateIdMismatch,
+                "/controllerTemplateId",
+                target.Id,
+                source.ControllerTemplateId
+            );
         }
 
         if (target.Revision < 0 || (uint)target.Revision != source.ControllerTemplateRevision)
         {
             throw Failure(
-                FlowCompilationDiagnosticCode.TargetMismatch,
+                FlowCompilationDiagnosticCode.ControllerTemplateRevisionMismatch,
                 "/controllerTemplateRevision",
-                "Resolved target revision does not match source.");
+                source.ControllerTemplateRevision,
+                target.Revision
+            );
         }
 
         if (source.Execution.Mode != FlowExecutionMode.Manual
             || source.Execution.IntervalMs != 0
             || source.Execution.InputQualityPolicy is not (InputQualityPolicy.RequireGood or InputQualityPolicy.Propagate))
         {
-            throw Failure(FlowCompilationDiagnosticCode.UnsupportedExecution, "/execution", "Schema 1 supports manual execution with require-good or propagate input quality.");
+            throw Failure(FlowCompilationDiagnosticCode.UnsupportedExecution, "/execution", 1);
         }
 
         if (source.Nodes.Count is < 1 or > 128)
         {
-            throw Failure(FlowCompilationDiagnosticCode.LimitExceeded, "/nodes", "Node count must be between 1 and 128.");
+            throw Failure(FlowCompilationDiagnosticCode.NodeCountOutOfRange, "/nodes", 1, 128);
         }
 
         if (source.Connections.Count > 384)
         {
-            throw Failure(FlowCompilationDiagnosticCode.LimitExceeded, "/connections", "Connection count exceeds 384.");
+            throw Failure(FlowCompilationDiagnosticCode.ConnectionCountLimitExceeded, "/connections", 384);
         }
 
         ValidateInterface(source);
@@ -1385,19 +1386,13 @@ public sealed partial class FlowCompiler : IFlowCompiler
             .Select(pointId =>
             {
                 var resolved = resolvedPoints.SingleOrDefault(candidate => candidate.Id == pointId)
-                    ?? throw Failure(
-                        FlowCompilationDiagnosticCode.MissingPoint,
-                        $"/points/{Escape(pointId)}",
-                        "Resolved point dependency is missing.");
+                    ?? throw Failure(FlowCompilationDiagnosticCode.MissingPoint, $"/points/{Escape(pointId)}", pointId);
 
                 var revision = resolved.Revision;
 
                 if (revision <= 0)
                 {
-                    throw Failure(
-                        FlowCompilationDiagnosticCode.InvalidDependency,
-                        $"/points/{Escape(pointId)}/revision",
-                        "Point revision must be positive.");
+                    throw Failure(FlowCompilationDiagnosticCode.InvalidDependencyRevision, $"/points/{Escape(pointId)}/revision");
                 }
 
                 return Concat([2], String8(pointId), U32(checked((uint)revision)));
@@ -1444,7 +1439,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
         // computed final artifact length.
         if (offset > FlowILV1Format.MaximumArtifactBytes)
         {
-            throw Failure(FlowCompilationDiagnosticCode.LimitExceeded, "/artifactLength", "Encoded Flow IL exceeds 16384 bytes.");
+            throw Failure(FlowCompilationDiagnosticCode.ArtifactSizeLimitExceeded, "/artifactLength", 16384);
         }
 
         artifactLength = offset;
@@ -1903,10 +1898,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
          */
         if (result.Count != nodes.Count)
         {
-            throw Failure(
-                FlowCompilationDiagnosticCode.CyclicDependency,
-                "/connections",
-                "Flow contains a cyclic dependency.");
+            throw Failure(FlowCompilationDiagnosticCode.CyclicDependency, "/connections");
         }
 
         /*
@@ -2564,7 +2556,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
             ValidateIdentifier(node.Id, $"/nodes/{index}/id", 63);
             if (Encoding.UTF8.GetByteCount(node.Label) > 255 || !double.IsFinite(node.X) || !double.IsFinite(node.Y) || !double.IsFinite(node.ZOrder))
             {
-                throw Failure(FlowCompilationDiagnosticCode.InvalidAuthoringMetadata, $"/nodes/{index}", "Label and canvas coordinates exceed authoring metadata bounds.");
+                throw Failure(FlowCompilationDiagnosticCode.InvalidAuthoringMetadata, $"/nodes/{index}");
             }
 
             if (node.GroupId is { Length: > 0 } groupId)
@@ -2573,12 +2565,12 @@ public sealed partial class FlowCompiler : IFlowCompiler
             }
             if (!nodes.TryAdd(node.Id, node))
             {
-                throw Failure(FlowCompilationDiagnosticCode.DuplicateNode, $"/nodes/{index}/id", $"Node ID \"{node.Id}\" is duplicated.");
+                throw Failure(FlowCompilationDiagnosticCode.DuplicateNode, $"/nodes/{index}/id", node.Id);
             }
 
             if (!Shapes.TryGetValue(node.Kind, out var shape))
             {
-                throw Failure(FlowCompilationDiagnosticCode.UnsupportedNode, $"/nodes/{index}/kind", $"Node kind \"{node.Kind}\" is unsupported.");
+                throw Failure(FlowCompilationDiagnosticCode.UnsupportedNode, $"/nodes/{index}/kind", node.Kind);
             }
 
             ValidateConfiguration(source, node, index);
@@ -2600,17 +2592,17 @@ public sealed partial class FlowCompiler : IFlowCompiler
 
             if (sourcePort.Direction != DataDirection.Output || targetPort.Direction != DataDirection.Input)
             {
-                throw Failure(FlowCompilationDiagnosticCode.InvalidEndpoint, $"/connections/{index}", "Connection must run from output to input.");
+                throw Failure(FlowCompilationDiagnosticCode.InvalidConnectionDirection, $"/connections/{index}");
             }
 
             if (sourcePort.DataType != targetPort.DataType)
             {
-                throw Failure(FlowCompilationDiagnosticCode.TypeMismatch, $"/connections/{index}", "Connected ports require the same value type.");
+                throw Failure(FlowCompilationDiagnosticCode.ConnectionTypeMismatch, $"/connections/{index}");
             }
 
             if (!drivers.Add(new(connection.Target.NodeId, connection.Target.PortId)))
             {
-                throw Failure(FlowCompilationDiagnosticCode.DuplicateDriver, $"/connections/{index}/target", "Input already has a driver.");
+                throw Failure(FlowCompilationDiagnosticCode.DuplicateInputDriver, $"/connections/{index}/target");
             }
         }
 
@@ -2620,10 +2612,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
             {
                 if (!drivers.Contains(new(node.Id, input.Id)))
                 {
-                    throw Failure(
-                        FlowCompilationDiagnosticCode.MissingConnection,
-                        $"/nodes/{Escape(node.Id)}/ports/{Escape(input.Id)}",
-                        "Input has no driver.");
+                    throw Failure(FlowCompilationDiagnosticCode.MissingInputDriver, $"/nodes/{Escape(node.Id)}/ports/{Escape(input.Id)}");
                 }
             }
         }
@@ -2644,12 +2633,12 @@ public sealed partial class FlowCompiler : IFlowCompiler
     {
         if (source.Interface.SchemaVersion != 1)
         {
-            throw Failure(FlowCompilationDiagnosticCode.UnsupportedInterfaceSchema, "/interface/schemaVersion", "Only interface schema 1 is supported.");
+            throw Failure(FlowCompilationDiagnosticCode.UnsupportedInterfaceSchema, "/interface/schemaVersion", 1);
         }
 
         if (source.Interface.Inputs.Count > 64 || source.Interface.Outputs.Count > 64)
         {
-            throw Failure(FlowCompilationDiagnosticCode.LimitExceeded, "/interface", "At most 64 interface inputs and outputs are supported.");
+            throw Failure(FlowCompilationDiagnosticCode.InterfaceLimitExceeded, "/interface", 64);
         }
 
         ValidateInterfaceEntries(source.Interface.Inputs.Select(entry => new InterfaceRecord(entry.Id, entry.Name, entry.DataType, entry.Units, entry.DefaultValue)), "/interface/inputs");
@@ -2674,22 +2663,22 @@ public sealed partial class FlowCompiler : IFlowCompiler
             ValidateIdentifier(entry.Id, $"{path}/{index}/id", 63);
             if (string.IsNullOrWhiteSpace(entry.Name) || Encoding.UTF8.GetByteCount(entry.Name) > 255 || !ids.Add(entry.Id) || !names.Add(entry.Name))
             {
-                throw Failure(FlowCompilationDiagnosticCode.InvalidInterface, $"{path}/{index}", "Interface IDs and names must be non-empty, bounded, and unique.");
+                throw Failure(FlowCompilationDiagnosticCode.InvalidInterfaceEntry, $"{path}/{index}");
             }
 
             if (entry.DataType is not (DataType.Boolean or DataType.Number))
             {
-                throw Failure(FlowCompilationDiagnosticCode.UnsupportedInterfaceType, $"{path}/{index}/dataType", "The current executable profile supports Boolean and number interfaces.");
+                throw Failure(FlowCompilationDiagnosticCode.UnsupportedInterfaceType, $"{path}/{index}/dataType");
             }
 
             if (entry.DataType != DataType.Number && !string.IsNullOrEmpty(entry.Units))
             {
-                throw Failure(FlowCompilationDiagnosticCode.IncompatibleUnits, $"{path}/{index}/units", "Only number interfaces may declare units.");
+                throw Failure(FlowCompilationDiagnosticCode.IncompatibleInterfaceUnits, $"{path}/{index}/units");
             }
 
             if (entry.DefaultValue is { } value && !DefaultMatches(value, entry.DataType))
             {
-                throw Failure(FlowCompilationDiagnosticCode.InvalidInterfaceDefault, $"{path}/{index}/defaultValue", "Default value does not match the interface type.");
+                throw Failure(FlowCompilationDiagnosticCode.InvalidInterfaceDefault, $"{path}/{index}/defaultValue");
             }
         }
     }
@@ -2724,7 +2713,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
         var entry = node.Kind == FlowNodeKind.FlowInput
             ? source.Interface.Inputs.Where(item => item.Id == id).Select(item => new InterfaceRecord(item.Id, item.Name, item.DataType, item.Units, item.DefaultValue)).SingleOrDefault()
             : source.Interface.Outputs.Where(item => item.Id == id).Select(item => new InterfaceRecord(item.Id, item.Name, item.DataType, item.Units, null)).SingleOrDefault();
-        return entry ?? throw Failure(FlowCompilationDiagnosticCode.MissingInterfaceReference, $"/nodes/{Escape(node.Id)}/configuration/interfaceId", "Referenced interface entry does not exist in the required direction.");
+        return entry ?? throw Failure(FlowCompilationDiagnosticCode.MissingInterfaceReference, $"/nodes/{Escape(node.Id)}/configuration/interfaceId");
     }
 
     /*
@@ -2772,7 +2761,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
                 || reference.ValueKind != JsonValueKind.String
                 || reference.GetString() is not string interfaceId)
             {
-                throw Failure(FlowCompilationDiagnosticCode.MissingInterfaceReference, $"{path}/interfaceId", "An interfaceId string is required.");
+                throw Failure(FlowCompilationDiagnosticCode.MissingInterfaceId, $"{path}/interfaceId");
             }
 
             ValidateIdentifier(interfaceId, $"{path}/interfaceId", 63);
@@ -2784,21 +2773,18 @@ public sealed partial class FlowCompiler : IFlowCompiler
                 || point.ValueKind != JsonValueKind.String
                 || point.GetString() is not string pointId)
             {
-                throw Failure(FlowCompilationDiagnosticCode.InvalidConfiguration, path, "A pointId string is required.");
+                throw Failure(FlowCompilationDiagnosticCode.MissingPointId, path);
             }
 
             if (node.Configuration.Keys.Any(key => key is not ("pointId" or "units")))
             {
-                throw Failure(FlowCompilationDiagnosticCode.InvalidConfiguration, path, "Only pointId and optional units are supported.");
+                throw Failure(FlowCompilationDiagnosticCode.UnexpectedPointConfigurationProperty, path);
             }
 
             if (node.Configuration.TryGetValue("units", out var units) &&
                 units.ValueKind != JsonValueKind.String)
             {
-                throw Failure(
-                    FlowCompilationDiagnosticCode.InvalidConfiguration,
-                    $"{path}/units",
-                    "Units must be a string.");
+                throw Failure(FlowCompilationDiagnosticCode.InvalidPointUnits, $"{path}/units");
             }
 
             const int MaxIdentifierBytes = 63;
@@ -2810,7 +2796,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
                 || !node.Configuration.TryGetValue("value", out var value)
                 || value.ValueKind is not (JsonValueKind.True or JsonValueKind.False))
             {
-                throw Failure(FlowCompilationDiagnosticCode.InvalidConfiguration, path, "A Boolean value is required.");
+                throw Failure(FlowCompilationDiagnosticCode.InvalidBooleanConfiguration, path);
             }
         }
         else if (node.Kind is FlowNodeKind.NumericConstant or FlowNodeKind.Memory)
@@ -2824,14 +2810,14 @@ public sealed partial class FlowCompiler : IFlowCompiler
                 || comparison.ValueKind != JsonValueKind.String
                 || comparison.GetString() is not ("lt" or "lte" or "eq" or "gte" or "gt" or "ne"))
             {
-                throw Failure(FlowCompilationDiagnosticCode.InvalidConfiguration, path, "A supported comparison operator is required.");
+                throw Failure(FlowCompilationDiagnosticCode.InvalidComparisonOperator, path);
             }
         }
         else if (node.Kind is FlowNodeKind.LevelShifter or FlowNodeKind.Line)
         {
             if (node.Configuration.Count != 2)
             {
-                throw Failure(FlowCompilationDiagnosticCode.InvalidConfiguration, path, "Finite gain and offset values are required.");
+                throw Failure(FlowCompilationDiagnosticCode.InvalidGainOffsetConfiguration, path);
             }
 
             ValidateFiniteNumber(node, path, "gain");
@@ -2843,21 +2829,21 @@ public sealed partial class FlowCompiler : IFlowCompiler
             var duration = node.Configuration["durationMs"].GetDouble();
             if (node.Configuration.Count != 1 || duration < 0D || duration > uint.MaxValue)
             {
-                throw Failure(FlowCompilationDiagnosticCode.InvalidConfiguration, path, "Timer duration must be from 0 through 4294967295 milliseconds.");
+                throw Failure(FlowCompilationDiagnosticCode.InvalidTimerDuration, path, 0, uint.MaxValue);
             }
         }
         else if (node.Kind == FlowNodeKind.Clamp)
         {
             if (node.Configuration.Count != 2)
             {
-                throw Failure(FlowCompilationDiagnosticCode.InvalidConfiguration, path, "Finite minimum and maximum values are required.");
+                throw Failure(FlowCompilationDiagnosticCode.InvalidClampConfiguration, path);
             }
 
             ValidateFiniteNumber(node, path, "minimum");
             ValidateFiniteNumber(node, path, "maximum");
             if (node.Configuration["minimum"].GetDouble() > node.Configuration["maximum"].GetDouble())
             {
-                throw Failure(FlowCompilationDiagnosticCode.InvalidConfiguration, path, "Minimum must not exceed maximum.");
+                throw Failure(FlowCompilationDiagnosticCode.InvalidClampRange, path);
             }
         }
         else if (node.Kind is FlowNodeKind.Schedule or FlowNodeKind.Calendar)
@@ -2865,12 +2851,12 @@ public sealed partial class FlowCompiler : IFlowCompiler
             if (node.Configuration.Count != 1 || !node.Configuration.TryGetValue("enabled", out var enabled) ||
                 enabled.ValueKind is not (JsonValueKind.True or JsonValueKind.False))
             {
-                throw Failure(FlowCompilationDiagnosticCode.InvalidConfiguration, path, "An enabled Boolean is required.");
+                throw Failure(FlowCompilationDiagnosticCode.InvalidEnabledConfiguration, path);
             }
         }
         else if (node.Configuration.Count != 0)
         {
-            throw Failure(FlowCompilationDiagnosticCode.InvalidConfiguration, path, "This node requires empty configuration.");
+            throw Failure(FlowCompilationDiagnosticCode.UnexpectedNodeConfiguration, path);
         }
     }
 
@@ -2887,7 +2873,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
             || !value.TryGetDouble(out var number)
             || !double.IsFinite(number))
         {
-            throw Failure(FlowCompilationDiagnosticCode.InvalidConfiguration, $"{path}/{key}", "A finite number is required.");
+            throw Failure(FlowCompilationDiagnosticCode.InvalidFiniteNumber, $"{path}/{key}");
         }
     }
 
@@ -3057,10 +3043,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
         if (!nodes.ContainsKey(endpoint.NodeId)
             || !shapes[endpoint.NodeId].TryGetValue(endpoint.PortId, out var port))
         {
-            throw Failure(
-                FlowCompilationDiagnosticCode.InvalidEndpoint,
-                $"/connections/{connectionIndex}/{endpointName}",
-                "Endpoint does not exist.");
+            throw Failure(FlowCompilationDiagnosticCode.EndpointNotFound, $"/connections/{connectionIndex}/{endpointName}");
         }
 
         return port;
@@ -3082,10 +3065,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
             var pointId = node.Configuration["pointId"].GetString()!;
             if (!outputPoints.Add(pointId))
             {
-                throw Failure(
-                    FlowCompilationDiagnosticCode.DuplicateDriver,
-                    $"/points/{Escape(pointId)}",
-                    "Only one proposed-output node may target a point.");
+                throw Failure(FlowCompilationDiagnosticCode.DuplicatePointOutputDriver, $"/points/{Escape(pointId)}", pointId);
             }
         }
     }
@@ -3146,7 +3126,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
             var first = indegree.Where(item => item.Value > 0)
                 .Select(item => item.Key)
                 .Min(StringComparer.Ordinal)!;
-            throw Failure(FlowCompilationDiagnosticCode.CombinationalCycle, $"/nodes/{Escape(first)}", "Graph contains a combinational cycle.");
+            throw Failure(FlowCompilationDiagnosticCode.CombinationalCycle, $"/nodes/{Escape(first)}", first);
         }
     }
 
@@ -3353,7 +3333,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
 
                 if (!string.Equals(inputUnits, pointUnits, StringComparison.Ordinal))
                 {
-                    throw Failure(FlowCompilationDiagnosticCode.UnitMismatch, $"/nodes/{Escape(id)}", "Analog output units do not match its point binding.");
+                    throw Failure(FlowCompilationDiagnosticCode.AnalogOutputUnitMismatch, $"/nodes/{Escape(id)}");
                 }
             }
 
@@ -3362,7 +3342,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
                 var inputUnits = units[SourceNode(source, id, "value")];
                 if (!string.Equals(inputUnits, InterfaceUnits(source, node), StringComparison.Ordinal))
                 {
-                    throw Failure(FlowCompilationDiagnosticCode.UnitMismatch, $"/nodes/{Escape(id)}/ports/value", "Flow output units do not match its input.");
+                    throw Failure(FlowCompilationDiagnosticCode.FlowOutputUnitMismatch, $"/nodes/{Escape(id)}/ports/value");
                 }
             }
         }
@@ -3387,7 +3367,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
         var right = units[SourceNode(source, nodeId, rightPort)];
         if (!string.Equals(left, right, StringComparison.Ordinal))
         {
-            throw Failure(FlowCompilationDiagnosticCode.UnitMismatch, $"/nodes/{Escape(nodeId)}", "Numeric operands require identical units.");
+            throw Failure(FlowCompilationDiagnosticCode.NumericOperandUnitMismatch, $"/nodes/{Escape(nodeId)}");
         }
 
         return left;
@@ -3501,7 +3481,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
     {
         if (!IdentifierRegex().IsMatch(value) || Encoding.UTF8.GetByteCount(value) > maximumBytes)
         {
-            throw Failure(FlowCompilationDiagnosticCode.InvalidIdentifier, path, "Identifier has invalid syntax or length.");
+            throw Failure(FlowCompilationDiagnosticCode.InvalidIdentifier, path);
         }
     }
 
@@ -3511,9 +3491,12 @@ public sealed partial class FlowCompiler : IFlowCompiler
      * diagnostic carries a stable machine-readable code, a source path, and a
      * human-readable explanation.
      */
-    private static FlowCompilationException Failure(FlowCompilationDiagnosticCode code, string path, string message)
+    private static FlowCompilationException Failure(
+        FlowCompilationDiagnosticCode code,
+        string path,
+        params object?[] arguments)
     {
-        return new([new FlowCompilationDiagnostic(code, path, message)]);
+        return new([FlowCompilationDiagnostics.Create(code, path, arguments)]);
     }
 
     /*
