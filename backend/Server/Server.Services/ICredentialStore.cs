@@ -1,5 +1,3 @@
-using Server.Services.Contracts;
-
 namespace Server.Services;
 
 /// <summary>Stores encrypted credentials while exposing only non-secret metadata to callers.</summary>

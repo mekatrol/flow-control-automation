@@ -1,4 +1,3 @@
-using Server.Services.Contracts;
 using System.Net;
 
 namespace Server.Services;

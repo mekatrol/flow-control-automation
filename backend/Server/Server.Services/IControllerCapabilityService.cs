@@ -1,5 +1,3 @@
-using Server.Services.Contracts;
-
 namespace Server.Services;
 
 /// <summary>Negotiates versioned protocol capabilities with a discovered controller.</summary>

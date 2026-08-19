@@ -1,5 +1,3 @@
-using Server.Services.Contracts;
-
 namespace Server.Services;
 
 /// <summary>Performs the bounded MQTT protocol stage of a read-only point-source connectivity test.</summary>

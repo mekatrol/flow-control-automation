@@ -1,5 +1,3 @@
-using Server.Services.Contracts;
-
 namespace Server.Services.Implementation;
 
 internal sealed class StartupDataValidator(

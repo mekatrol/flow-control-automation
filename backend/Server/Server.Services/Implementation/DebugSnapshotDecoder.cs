@@ -148,13 +148,13 @@ public static class DebugSnapshotDecoder
 
     private static readonly string[] NodeStateNames = ["idle", "evaluated", "fault", "unavailable"];
 
-private static readonly string[] ReasonNames =
-    [
-        "ok", "malformed", "unsupported_version", "length_mismatch", "non_canonical_order", "unknown_section",
+    private static readonly string[] ReasonNames =
+        [
+            "ok", "malformed", "unsupported_version", "length_mismatch", "non_canonical_order", "unknown_section",
         "limit_exceeded", "invalid_identifier", "invalid_constant", "invalid_binding", "invalid_slot",
         "unknown_opcode", "invalid_operand", "invalid_commit_plan", "unsupported_requirement", "snapshot_too_large",
         "wrong_state", "input_rejected", "capacity_exceeded"
-    ];
+        ];
 
     private static string Name(string[] names, byte value, string field) =>
         value < names.Length ? names[value] : throw Protocol($"unknown {field}");

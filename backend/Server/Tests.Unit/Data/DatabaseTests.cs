@@ -1,7 +1,5 @@
-using Server.Data;
 using Server.Data.Context;
 using Server.Data.Entities;
-using Server.Data.Extensions;
 
 namespace Tests.Unit.Data;
 
