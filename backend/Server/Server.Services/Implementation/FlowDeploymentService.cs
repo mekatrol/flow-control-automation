@@ -42,7 +42,7 @@ internal sealed class FlowDeploymentService(
         {
             throw new FlowCompilationException([
                 new FlowCompilationDiagnostic(
-                    "unsupported_node",
+                    FlowCompilerCode.UnsupportedNode,
                     $"/nodes/{unsupported.Id}",
                     $"Node kind \"{unsupported.Kind}\" is not supported by the current IL compiler.")]);
         }

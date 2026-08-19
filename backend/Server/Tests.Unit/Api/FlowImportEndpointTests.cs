@@ -80,7 +80,7 @@ internal sealed class FlowImportEndpointTests
         Assert.Multiple(() =>
         {
             Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.UnprocessableEntity));
-            Assert.That(diagnostic!.Code, Is.EqualTo("invalid_digest"));
+            Assert.That(diagnostic!.Code, Is.EqualTo(FlowCompilerCode.InvalidDigest));
         });
     }
 

@@ -101,7 +101,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
         if (templates.Length != 1)
         {
             throw Error(
-                "invalid_dependency",
+                FlowCompilerCode.InvalidDependency,
                 "/dependencies/template",
                 "Exactly one controller-template dependency is required.");
         }
@@ -213,7 +213,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
         if (instructionIndex != instructions.Count - 1 || symbol.NodeId.Length != 0)
         {
             Fail(
-                "invalid_instruction",
+                FlowCompilerCode.InvalidInstruction,
                 $"/instructions/{instructionIndex}",
                 "Commit must be the final anonymous instruction.");
         }
@@ -289,7 +289,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
                 instructionIndex),
             FlowOpcode.RisingEdge => FlowNodeKind.RisingEdge,
             _ => throw Error(
-                "unsupported_opcode",
+                FlowCompilerCode.UnsupportedOpcode,
                 $"/instructions/{instructionIndex}/opcode",
                 $"Opcode {instruction.Opcode} cannot be represented by the designer.")
         };
@@ -366,7 +366,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
         if (instruction.ResultSlotIndex == FlowILV1Format.Unused || slotOwners.ContainsKey(instruction.ResultSlotIndex))
         {
             Fail(
-                "invalid_operand",
+                FlowCompilerCode.InvalidOperand,
                 $"/instructions/{instructionIndex}/result",
                 "A node result must write one unique slot.");
         }
@@ -413,12 +413,12 @@ public sealed class FlowDecompiler : IFlowDecompiler
     {
         if (bytes.Length < FlowILV1Format.EnvelopeLength || bytes.Length > 16384 || !bytes[..4].SequenceEqual("FIL1"u8))
         {
-            Fail("malformed_artifact", "/", "The artifact is not a bounded Flow IL v1 envelope.");
+            Fail(FlowCompilerCode.MalformedArtifact, "/", "The artifact is not a bounded Flow IL v1 envelope.");
         }
 
         if (U16(bytes, 4) != FlowILV1Format.Version)
         {
-            Fail("unsupported_version", "/version", "Only Flow IL v1 can be decompiled.");
+            Fail(FlowCompilerCode.UnsupportedVersion, "/version", "Only Flow IL v1 can be decompiled.");
         }
 
         if (U16(bytes, 6) != FlowILV1Format.EnvelopeLength ||
@@ -426,7 +426,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
             U16(bytes, 26) != FlowILV1Format.SectionCount||
             U32(bytes, 116) != FlowILV1Format.EnvelopeLength)
         {
-            Fail("malformed_artifact", "/envelope", "Envelope lengths or section count are invalid.");
+            Fail(FlowCompilerCode.MalformedArtifact, "/envelope", "Envelope lengths or section count are invalid.");
         }
 
         var result = new SectionInfo[FlowILV1Format.SectionCount];
@@ -453,19 +453,19 @@ public sealed class FlowDecompiler : IFlowDecompiler
             var version = U16(entry, 2);
             if (id != index + 1 || version != 1)
             {
-                Fail("invalid_section", $"/sections/{index}", "Sections must use canonical IDs, order, and version.");
+                Fail(FlowCompilerCode.InvalidSection, $"/sections/{index}", "Sections must use canonical IDs, order, and version.");
             }
 
             if (offset != expectedOffset || length < 0 || offset > bytes.Length || length > bytes.Length - offset)
             {
-                Fail("invalid_section", $"/sections/{index}", "Section bounds are invalid.");
+                Fail(FlowCompilerCode.InvalidSection, $"/sections/{index}", "Section bounds are invalid.");
             }
 
             // Hash only the payload range declared for this section and compare
             // with the 32 raw digest bytes embedded in this directory entry.
             if (!SHA256.HashData(bytes.Slice(offset, length)).AsSpan().SequenceEqual(entry.Slice(16, 32)))
             {
-                Fail("invalid_digest", $"/sections/{index}/digest", "Section digest does not match its contents.");
+                Fail(FlowCompilerCode.InvalidDigest, $"/sections/{index}/digest", "Section digest does not match its contents.");
             }
 
             result[index] = new SectionInfo(offset, length, count, version);
@@ -474,7 +474,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
 
         if (expectedOffset != bytes.Length)
         {
-            Fail("malformed_artifact", "/artifactLength", "The final section must end at artifact length.");
+            Fail(FlowCompilerCode.MalformedArtifact, "/artifactLength", "The final section must end at artifact length.");
         }
 
         return result;
@@ -507,7 +507,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
 
                 if (!double.IsFinite(number))
                 {
-                    Fail("invalid_constant", $"/constants/{i}", "Numeric constants must be finite.");
+                    Fail(FlowCompilerCode.InvalidConstant, $"/constants/{i}", "Numeric constants must be finite.");
                 }
 
                 values.Add(new ConstantRecord(DataType.Number, number));
@@ -516,7 +516,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
             // Data type is unsupported
             else
             {
-                Fail("invalid_constant", $"/constants/{i}", "Constant encoding is unsupported.");
+                Fail(FlowCompilerCode.InvalidConstant, $"/constants/{i}", "Constant encoding is unsupported.");
             }
         }
         reader.End("/constants");
@@ -553,7 +553,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
                     PointBindingKind.FlowInterface))
             {
                 Fail(
-                    "unsupported_point",
+                    FlowCompilerCode.InvalidPoint,
                     $"/points/{i}",
                     "Point binding type is unsupported.");
             }
@@ -589,7 +589,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
 
             if (record[1] is not (1 or 2) || !values.TryAdd(U16(record, 4), slot))
             {
-                Fail("invalid_slot", $"/slots/{i}", "Slot is unsupported or duplicated.");
+                Fail(FlowCompilerCode.InvalidSlot, $"/slots/{i}", "Slot is unsupported or duplicated.");
             }
         }
         reader.End("/slots");
@@ -617,7 +617,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
             var record = reader.Fixed(12, $"/instructions/{i}");
             if (record[1] != 0 || U16(record, 10) != 0)
             {
-                Fail("invalid_instruction", $"/instructions/{i}", "Instruction flags and reserved fields must be zero.");
+                Fail(FlowCompilerCode.InvalidInstruction, $"/instructions/{i}", "Instruction flags and reserved fields must be zero.");
             }
 
             values.Add(new Instruction(
@@ -641,7 +641,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
     {
         if (reader.Count != instructionCount)
         {
-            Fail("invalid_symbols", "/symbols", "Every instruction requires one symbol record.");
+            Fail(FlowCompilerCode.InvalidSymbol, "/symbols", "Every instruction requires one symbol record.");
         }
 
         var values = new List<SymbolRecord>();
@@ -650,7 +650,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
             var prefix = reader.Fixed(3, $"/symbols/{i}");
             if (U16(prefix, 0) != i)
             {
-                Fail("invalid_symbols", $"/symbols/{i}", "Symbol indices must be canonical.");
+                Fail(FlowCompilerCode.InvalidSymbol, $"/symbols/{i}", "Symbol indices must be canonical.");
             }
 
             var nodeId = reader.String8AllowEmpty($"/symbols/{i}/nodeId");
@@ -675,7 +675,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
             var revision = U32(reader.Fixed(4, $"/dependencies/{i}/revision"), 0);
             if (revision == 0)
             {
-                Fail("invalid_dependency", $"/dependencies/{i}/revision", "Dependency revision must be positive.");
+                Fail(FlowCompilerCode.InvalidDependency, $"/dependencies/{i}/revision", "Dependency revision must be positive.");
             }
 
             values.Add(new Dependency(kind, id, revision));
@@ -720,7 +720,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
         if (pointIndex >= points.Count || points[pointIndex].Direction != direction)
         {
             Fail(
-                "invalid_operand",
+                FlowCompilerCode.InvalidOperand,
                 $"/instructions/{instructionIndex}/auxiliary",
                 "Point binding is missing or has the wrong direction.");
         }
@@ -736,7 +736,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
                 ConfigureControllerPoint(),
 
             _ => throw Error(
-                "unsupported_point",
+                FlowCompilerCode.UnsupportedBindingKind,
                 $"/instructions/{instructionIndex}/auxiliary",
                 "Point binding kind is unsupported.")
         };
@@ -792,7 +792,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
         if (constantIndex >= constants.Count || constants[constantIndex].DataType != DataType.Boolean)
         {
             Fail(
-                "invalid_operand",
+                FlowCompilerCode.InvalidOperand,
                 $"/instructions/{instructionIndex}/auxiliary",
                 "Boolean constant index is out of range.");
         }
@@ -820,7 +820,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
             || constants[slot.InitialConstant].DataType != DataType.Number)
         {
             throw Error(
-                "invalid_operand",
+                FlowCompilerCode.InvalidOperand,
                 $"/instructions/{instructionIndex}/auxiliary",
                 "State slot is invalid.");
         }
@@ -843,7 +843,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
         if (constantIndex >= constants.Count || constants[constantIndex].DataType != DataType.Number)
         {
             Fail(
-                "invalid_operand",
+                FlowCompilerCode.InvalidOperand,
                 $"/instructions/{instructionIndex}/auxiliary",
                 "Numeric constant index is out of range.");
         }
@@ -876,7 +876,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
         if (comparator is null)
         {
             Fail(
-                "invalid_operand",
+                FlowCompilerCode.InvalidOperand,
                 $"/instructions/{instructionIndex}/auxiliary",
                 "Comparison operator is invalid.");
         }
@@ -904,7 +904,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
             || constants[offsetConstantIndex].DataType != DataType.Number)
         {
             Fail(
-                "invalid_operand",
+                FlowCompilerCode.InvalidOperand,
                 $"/instructions/{instructionIndex}",
                 "Level-shifter constants are invalid.");
         }
@@ -932,7 +932,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
             || constants[slot.InitialConstant].DataType != DataType.Number)
         {
             Fail(
-                "invalid_operand",
+                FlowCompilerCode.InvalidOperand,
                 $"/instructions/{instructionIndex}/timer",
                 "Timer state is invalid.");
         }
@@ -966,7 +966,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
         if (!slotOwners.TryGetValue(sourceSlotIndex, out var source))
         {
             throw Error(
-                "invalid_operand",
+                FlowCompilerCode.InvalidOperand,
                 $"/instructions/{instructionIndex}",
                 "An input does not reference an earlier node result.");
         }
@@ -1037,7 +1037,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
     {
         if (symbol.NodeId.Length == 0 || symbol.Discriminator != discriminator)
         {
-            Fail("invalid_symbols", $"/symbols/{index}", "Instruction symbol cannot be represented as a designer node.");
+            Fail(FlowCompilerCode.InvalidSymbol, $"/symbols/{index}", "Instruction symbol cannot be represented as a designer node.");
         }
     }
 
@@ -1051,7 +1051,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
 
         if (length is 0 or > 63)
         {
-            Fail("invalid_identifier", "/flowId", "Flow ID length is invalid.");
+            Fail(FlowCompilerCode.InvalidIdentifier, "/flowId", "Flow ID length is invalid.");
         }
 
         return Encoding.UTF8.GetString(bytes.Slice(53, length));
@@ -1083,12 +1083,12 @@ public sealed class FlowDecompiler : IFlowDecompiler
         return BinaryPrimitives.ReadUInt32LittleEndian(bytes[offset..]);
     }
 
-    private static FlowDecompilationException Error(string code, string path, string message)
+    private static FlowDecompilationException Error(FlowCompilerCode code, string path, string message)
     {
         return new(new(code, path, message));
     }
 
-    private static void Fail(string code, string path, string message)
+    private static void Fail(FlowCompilerCode code, string path, string message)
     {
         throw Error(code, path, message);
     }
@@ -1115,7 +1115,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
         {
             if (length < 0 || _offset > bytes.Length - length)
             {
-                Fail("malformed_section", path, "Section record is truncated.");
+                Fail(FlowCompilerCode.MalformedSection, path, "Section record is truncated.");
             }
 
             var result = bytes.AsSpan(_offset, length);
@@ -1130,7 +1130,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
 
             if (value.Length == 0)
             {
-                Fail("invalid_identifier", path, "Identifier must not be empty.");
+                Fail(FlowCompilerCode.InvalidIdentifier, path, "Identifier must not be empty.");
             }
 
             return value;
@@ -1145,7 +1145,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
 
             if (Encoding.UTF8.GetByteCount(value) != length)
             {
-                Fail("invalid_identifier", path, "Identifier is not canonical UTF-8.");
+                Fail(FlowCompilerCode.InvalidIdentifier, path, "Identifier is not canonical UTF-8.");
             }
 
             return value;
@@ -1157,7 +1157,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
         {
             if (_offset != bytes.Length)
             {
-                Fail("malformed_section", path, "Section has trailing bytes.");
+                Fail(FlowCompilerCode.MalformedSection, path, "Section has trailing bytes.");
             }
         }
 
@@ -1168,7 +1168,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
 
             if (!double.IsFinite(value))
             {
-                Fail("invalid_authoring_metadata", path, "Authoring coordinates must be finite.");
+                Fail(FlowCompilerCode.InvalidAuthoringMetadata, path, "Authoring coordinates must be finite.");
             }
 
             return value;
