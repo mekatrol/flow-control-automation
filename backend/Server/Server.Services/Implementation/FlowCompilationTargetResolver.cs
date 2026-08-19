@@ -21,7 +21,7 @@ public sealed class FlowCompilationTargetResolver(
         catch (ControllerTemplateNotFoundException)
         {
             throw Failure(
-                "target_mismatch",
+                FlowCompilerCode.TargetMismatch,
                 "/controllerTemplateId",
                 $"Controller template \"{source.ControllerTemplateId}\" was not found.");
         }
@@ -29,7 +29,7 @@ public sealed class FlowCompilationTargetResolver(
         if (template.Revision < 0 || (uint)template.Revision != source.ControllerTemplateRevision)
         {
             throw Failure(
-                "target_mismatch",
+                FlowCompilerCode.TargetMismatch,
                 "/controllerTemplateRevision",
                 $"Expected controller template revision {source.ControllerTemplateRevision}, "
                     + $"but resolved revision {template.Revision}.");
@@ -52,7 +52,7 @@ public sealed class FlowCompilationTargetResolver(
             if (!pointsById.TryGetValue(reference.PointId, out var point))
             {
                 throw Failure(
-                    "missing_point",
+                    FlowCompilerCode.MissingPoint,
                     $"/points/{Escape(reference.PointId)}",
                     $"Point \"{reference.PointId}\" was not found.");
             }
@@ -76,7 +76,7 @@ public sealed class FlowCompilationTargetResolver(
             || !template.PointTypes.Contains(PointValueType.Digital))
         {
             throw Failure(
-                "unsupported_target_capability",
+                FlowCompilerCode.UnsupportedTargetCapability,
                 "/controllerTemplateId",
                 "The target must support Boolean connectors and digital points.");
         }
@@ -92,7 +92,7 @@ public sealed class FlowCompilationTargetResolver(
             if (!ControllerCapabilitiesSupport.SupportsFunction(template, function))
             {
                 throw Failure(
-                    "unsupported_target_capability",
+                    FlowCompilerCode.UnsupportedTargetCapability,
                     "/controllerTemplateId",
                     $"The target does not support flow function \"{function}\".");
             }
@@ -104,7 +104,7 @@ public sealed class FlowCompilationTargetResolver(
         if (limits.MaxNodesPerFlow is int maxNodes && source.Nodes.Count > maxNodes)
         {
             throw Failure(
-                "limit_exceeded",
+                FlowCompilerCode.LimitExceeded,
                 "/nodes",
                 $"The target permits at most {maxNodes} nodes per flow.");
         }
@@ -113,7 +113,7 @@ public sealed class FlowCompilationTargetResolver(
             && source.Connections.Count > maxConnections)
         {
             throw Failure(
-                "limit_exceeded",
+                FlowCompilerCode.LimitExceeded,
                 "/connections",
                 $"The target permits at most {maxConnections} connections per flow.");
         }
@@ -152,7 +152,7 @@ public sealed class FlowCompilationTargetResolver(
         if (!valid)
         {
             throw Failure(
-                "point_direction_mismatch",
+                FlowCompilerCode.PointDirectionMismatch,
                 $"/points/{Escape(reference.PointId)}",
                 $"Point \"{reference.PointId}\" is not a compatible enabled {(reference.IsAnalog ? "analog" : "digital")} "
                     + (reference.IsInput ? "input." : "output."));
@@ -171,7 +171,7 @@ public sealed class FlowCompilationTargetResolver(
         _ => null
     };
 
-    private static FlowCompilationException Failure(string code, string path, string message) =>
+    private static FlowCompilationException Failure(FlowCompilerCode code, string path, string message) =>
         new([new FlowCompilationDiagnostic(code, path, message)]);
 
     private static string Escape(string value) => value.Replace("~", "~0", StringComparison.Ordinal)
