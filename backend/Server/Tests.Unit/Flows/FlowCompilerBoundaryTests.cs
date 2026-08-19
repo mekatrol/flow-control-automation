@@ -17,7 +17,7 @@ public sealed class FlowCompilerBoundaryTests
         var diagnostics = new[]
         {
             new FlowCompilationDiagnostic(
-                FlowCompilerCode.UnsupportedNode,
+                FlowCompilationDiagnosticCode.UnsupportedNode,
                 "/nodes/example",
                 "The node is outside the current Flow IL language.")
         };

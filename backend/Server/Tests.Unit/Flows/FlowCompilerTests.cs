@@ -217,7 +217,7 @@ public sealed class FlowCompilerTests
 
         AssertDiagnostic(
             () => new FlowCompiler().Compile(BuildCompilationRequest(source)),
-            FlowCompilerCode.UnsupportedNode,
+            FlowCompilationDiagnosticCode.UnsupportedNode,
             "/nodes/0/kind");
     }
 
@@ -240,7 +240,7 @@ public sealed class FlowCompilerTests
 
         AssertDiagnostic(
             () => new FlowCompiler().Compile(BuildCompilationRequest(source)),
-            FlowCompilerCode.CombinationalCycle,
+            FlowCompilationDiagnosticCode.CombinationalCycle,
             "/nodes/not-a");
     }
 
@@ -251,7 +251,7 @@ public sealed class FlowCompilerTests
 
         AssertDiagnostic(
             () => new FlowCompiler().Compile(BuildCompilationRequest(source)),
-            FlowCompilerCode.MissingConnection,
+            FlowCompilationDiagnosticCode.MissingConnection,
             "/nodes/and-main/ports/a");
     }
 
@@ -282,7 +282,7 @@ public sealed class FlowCompilerTests
 
         AssertDiagnostic(
             () => new FlowCompiler().Compile(request),
-            FlowCompilerCode.UnsupportedArtifactVersion,
+            FlowCompilationDiagnosticCode.UnsupportedArtifactVersion,
             "/artifactVersion");
     }
 
@@ -345,7 +345,7 @@ public sealed class FlowCompilerTests
 
         AssertDiagnostic(
             () => new FlowCompiler().Compile(request),
-            FlowCompilerCode.MissingPoint,
+            FlowCompilationDiagnosticCode.MissingPoint,
             $"/points/{source.Nodes[0].Configuration["pointId"].GetString()}");
     }
     private static Dictionary<string, JsonElement> Config(string key, object value) =>
@@ -402,7 +402,7 @@ public sealed class FlowCompilerTests
         }
     };
 
-    private static void AssertDiagnostic(TestDelegate action, FlowCompilerCode code, string path)
+    private static void AssertDiagnostic(TestDelegate action, FlowCompilationDiagnosticCode code, string path)
     {
         var exception = Assert.Throws<FlowCompilationException>(action);
         Assert.Multiple(() =>
