@@ -1,5 +1,6 @@
 using Server.Data.Extensions;
 using Server.Services.Implementation;
+using Server.Services.Implementation.Compiler;
 
 namespace Server.Services.Extensions;
 

@@ -229,7 +229,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using static Server.Services.Implementation.FlowDecompiler;
+using static Server.Services.Implementation.Compiler.FlowDecompiler;
 
 namespace Server.Services.Implementation;
 

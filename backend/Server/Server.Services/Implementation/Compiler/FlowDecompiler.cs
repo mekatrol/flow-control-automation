@@ -23,7 +23,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
-namespace Server.Services.Implementation;
+namespace Server.Services.Implementation.Compiler;
 
 public sealed class FlowDecompiler : IFlowDecompiler
 {
