@@ -1,12 +1,13 @@
 using Server.Common.Contracts;
+using Server.Common.Services;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-namespace Server.Services.Implementation;
+namespace Server.Compiler.Services.Implementation;
 
-internal static partial class FlowValidator
+internal partial class FlowValidator : IFlowValidator
 {
     private static readonly HashSet<FlowNodeKind> ValidKinds =
     [
@@ -26,7 +27,7 @@ internal static partial class FlowValidator
 
     private static readonly HashSet<string> ValidSides = ["left", "right", "top", "bottom"];
 
-    public static void Validate(Flow flow)
+    public void Validate(Flow flow)
     {
         if (string.IsNullOrWhiteSpace(flow.Id) || string.IsNullOrWhiteSpace(flow.Name))
         {

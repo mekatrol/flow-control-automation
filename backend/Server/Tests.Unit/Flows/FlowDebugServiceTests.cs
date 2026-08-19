@@ -147,6 +147,16 @@ public sealed class FlowDebugServiceTests
             ControllerTemplateId = request.Source.ControllerTemplateId,
             ControllerTemplateRevision = checked((int)request.Source.ControllerTemplateRevision)
         };
+
+        public void WriteBinary(FlowCompilationResult compilation, string path)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void WriteIntelHex(FlowCompilationResult compilation, string path, uint baseAddress = 0, int bytesPerRecord = 16)
+        {
+            throw new NotImplementedException();
+        }
     }
 
     private sealed class StubTransport(byte[] snapshot) : IControllerDebugTransport

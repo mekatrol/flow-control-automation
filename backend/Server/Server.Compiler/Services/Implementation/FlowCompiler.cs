@@ -225,17 +225,17 @@
 
 using Server.Common.Contracts;
 using Server.Common.Services;
+using Server.Compiler.Contracts;
 using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using static Server.Services.Implementation.Compiler.FlowDecompiler;
 
-namespace Server.Services.Implementation;
+namespace Server.Compiler.Services.Implementation;
 
-public sealed partial class FlowCompiler : IFlowCompiler
+internal sealed partial class FlowCompiler : IFlowCompiler
 {
     /*
      * NODE PORT SHAPES
@@ -336,7 +336,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
         return CompileFlowIlV1(request);
     }
 
-    public static void WriteBinary(FlowCompilationResult compilation, string path)
+    public void WriteBinary(FlowCompilationResult compilation, string path)
     {
         ArgumentNullException.ThrowIfNull(compilation);
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -344,7 +344,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
         File.WriteAllBytes(path, compilation.Artifact.Span);
     }
 
-    public static void WriteIntelHex(
+    public void WriteIntelHex(
         FlowCompilationResult compilation,
         string path,
         uint baseAddress = 0,
@@ -3093,6 +3093,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
             id => id,
             _ => new List<string>(),
             StringComparer.Ordinal);
+
         foreach (var connection in source.Connections)
         {
             if (nodes[connection.Target.NodeId].Kind == FlowNodeKind.Memory)
@@ -3108,6 +3109,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
             indegree.Where(item => item.Value == 0).Select(item => item.Key),
             StringComparer.Ordinal);
         var visited = 0;
+
         while (ready.Count > 0)
         {
             var id = ready.Min!;

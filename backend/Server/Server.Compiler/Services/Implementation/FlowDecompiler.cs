@@ -20,14 +20,15 @@
 
 using Server.Common.Contracts;
 using Server.Common.Services;
+using Server.Compiler.Contracts;
 using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
-namespace Server.Services.Implementation.Compiler;
+namespace Server.Compiler.Services.Implementation;
 
-public sealed class FlowDecompiler : IFlowDecompiler
+internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecompiler
 {
     /*
      * Top-level decode pipeline.
@@ -57,7 +58,7 @@ public sealed class FlowDecompiler : IFlowDecompiler
         var graph = ReconstructGraph(decoded);
         var flow = BuildRecoveredFlow(decoded, graph, name);
 
-        FlowValidator.Validate(flow);
+        flowValidator.Validate(flow);
 
         return new FlowDecompilationResult
         {
@@ -1183,14 +1184,6 @@ public sealed class FlowDecompiler : IFlowDecompiler
 
     /* Decoded state/transient slot layout record from section 3. */
     private sealed record SlotRecord(FlowSlotKind Kind, byte Type, ushort InitialConstant);
-
-    /* Logical decoded form of one fixed 12-byte VM instruction record. */
-    internal sealed record Instruction(
-        FlowOpcode Opcode,
-        ushort ResultSlotIndex,
-        ushort Operand0,
-        ushort Operand1,
-        ushort Auxiliary);
 
     /* Authoring identity/layout metadata associated with one instruction. */
     private sealed record SymbolRecord(byte Discriminator, string NodeId, string Label, double X, double Y, double ZOrder, string GroupId);

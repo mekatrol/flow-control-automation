@@ -1,6 +1,8 @@
+using Server.Common;
 using Server.Common.Contracts;
-using Server.Services;
-using Server.Services.Contracts;
+using Server.Common.Services;
+using Server.Compiler;
+using Server.Compiler.Extensions;
 using Server.Services.Implementation;
 using System.Text.Json;
 
@@ -11,16 +13,17 @@ public sealed class FlowCompilationTargetResolverTests
     [Test]
     public async Task ResolvesMatchingTemplateAndReferencedPointsInCanonicalOrder()
     {
-        var resolver = Resolver(
+        using var context = Resolver(
             Template(),
             [Output("output-01"), Input("input-01")]);
 
-        var target = await resolver.ResolveAsync(Source(), default);
+        var target = await context.Resolver.ResolveAsync(Source(), default);
 
         Assert.Multiple(() =>
         {
             Assert.That(target.ControllerTemplate.Source.Id, Is.EqualTo("controller-a"));
-            Assert.That(target.Points.Select(point => point.Id),
+            Assert.That(
+                target.Points.Select(point => point.Id),
                 Is.EqualTo(new[] { "input-01", "output-01" }));
         });
     }
@@ -28,13 +31,17 @@ public sealed class FlowCompilationTargetResolverTests
     [Test]
     public async Task ResolvesReadableAndCommandableVirtualValuesAsFlowIo()
     {
-        var resolver = Resolver(
+        using var context = Resolver(
             Template(),
-            [VirtualValue("input-01", readable: true), VirtualValue("output-01", commandable: true)]);
+            [
+                VirtualValue("input-01", readable: true),
+                VirtualValue("output-01", commandable: true)
+            ]);
 
-        var target = await resolver.ResolveAsync(Source(), default);
+        var target = await context.Resolver.ResolveAsync(Source(), default);
 
-        Assert.That(target.Points.Select(point => point.Id),
+        Assert.That(
+            target.Points.Select(point => point.Id),
             Is.EqualTo(new[] { "input-01", "output-01" }));
     }
 
@@ -42,22 +49,28 @@ public sealed class FlowCompilationTargetResolverTests
     public void RejectsAStaleTemplateRevisionBeforeReadingPoints()
     {
         var pointStore = new StubPointStore([]);
-        var resolver = Resolver(Template() with { Revision = 4 }, pointStore);
+
+        using var context = Resolver(
+            Template() with { Revision = 4 },
+            pointStore);
 
         AssertDiagnostic(
-            async () => await resolver.ResolveAsync(Source(), default),
+            async () => await context.Resolver.ResolveAsync(Source(), default),
             FlowCompilationDiagnosticCode.ControllerTemplateRevisionMismatch,
             "/controllerTemplateRevision");
+
         Assert.That(pointStore.ListCallCount, Is.Zero);
     }
 
     [Test]
     public void RejectsAMissingReferencedPoint()
     {
-        var resolver = Resolver(Template(), [Input("input-01")]);
+        using var context = Resolver(
+            Template(),
+            [Input("input-01")]);
 
         AssertDiagnostic(
-            async () => await resolver.ResolveAsync(Source(), default),
+            async () => await context.Resolver.ResolveAsync(Source(), default),
             FlowCompilationDiagnosticCode.MissingPoint,
             "/points/output-01");
     }
@@ -65,12 +78,12 @@ public sealed class FlowCompilationTargetResolverTests
     [Test]
     public void RejectsAnIncompatiblePointDirection()
     {
-        var resolver = Resolver(
+        using var context = Resolver(
             Template(),
             [Input("input-01"), Input("output-01")]);
 
         AssertDiagnostic(
-            async () => await resolver.ResolveAsync(Source(), default),
+            async () => await context.Resolver.ResolveAsync(Source(), default),
             FlowCompilationDiagnosticCode.PointDirectionMismatch,
             "/points/output-01");
     }
@@ -78,30 +91,50 @@ public sealed class FlowCompilationTargetResolverTests
     [Test]
     public void RejectsTargetNodeLimitsBeforeReadingPoints()
     {
-        var pointStore = new StubPointStore([Input("input-01"), Output("output-01")]);
+        var pointStore = new StubPointStore(
+            [Input("input-01"), Output("output-01")]);
+
         var template = Template() with
         {
-            Limits = new ControllerLimits { MaxNodesPerFlow = 1 }
+            Limits = new ControllerLimits
+            {
+                MaxNodesPerFlow = 1
+            }
         };
-        var resolver = Resolver(template, pointStore);
+
+        using var context = Resolver(template, pointStore);
 
         AssertDiagnostic(
-            async () => await resolver.ResolveAsync(Source(), default),
+            async () => await context.Resolver.ResolveAsync(Source(), default),
             FlowCompilationDiagnosticCode.TargetNodeLimitExceeded,
             "/nodes");
+
         Assert.That(pointStore.ListCallCount, Is.Zero);
     }
 
-    private static FlowCompilationTargetResolver Resolver(
+    private static ResolverContext Resolver(
         ControllerTemplate template,
-        IReadOnlyList<FlowPoint> points) => Resolver(template, new StubPointStore(points));
+        IReadOnlyList<FlowPoint> points) =>
+        Resolver(template, new StubPointStore(points));
 
-    private static FlowCompilationTargetResolver Resolver(
+    private static ResolverContext Resolver(
         ControllerTemplate template,
-        StubPointStore points) => new(
-            new StubTemplateStore(template),
-            new ControllerTemplateValidator(),
-            points);
+        StubPointStore points)
+    {
+        var services = new ServiceCollection();
+
+        services.AddFlowCompilerServices();
+
+        services.AddSingleton<IControllerTemplateStore>(
+            new StubTemplateStore(template));
+
+        services.AddSingleton<IControllerTemplateValidator,
+            ControllerTemplateValidator>();
+
+        services.AddSingleton<IPointDefinitionStore>(points);
+
+        return new ResolverContext(services.BuildServiceProvider());
+    }
 
     private static ExecutableFlowSource Source() => new()
     {
@@ -122,16 +155,23 @@ public sealed class FlowCompilationTargetResolverTests
         ]
     };
 
-    private static ExecutableFlowNode Node(string id, FlowNodeKind kind, string pointId)
+    private static ExecutableFlowNode Node(
+        string id,
+        FlowNodeKind kind,
+        string pointId)
     {
-        using var document = JsonDocument.Parse($$"""{"pointId":"{{pointId}}"}""");
+        using var document =
+            JsonDocument.Parse($$"""{"pointId":"{{pointId}}"}""");
+
         return new ExecutableFlowNode
         {
             Id = id,
             Kind = kind,
             Configuration = new Dictionary<string, JsonElement>
             {
-                ["pointId"] = document.RootElement.GetProperty("pointId").Clone()
+                ["pointId"] = document.RootElement
+                    .GetProperty("pointId")
+                    .Clone()
             }
         };
     }
@@ -143,25 +183,64 @@ public sealed class FlowCompilationTargetResolverTests
         Revision = 3,
         Capabilities = new ControllerCapabilities
         {
-            PointTypes = [FlowPointValueType.Digital],
-            PointDirections = [DataDirection.Input, DataDirection.Output],
-            PointFeatures = [ControllerPointFeature.Read, ControllerPointFeature.Command],
-            ConnectorDataTypes = [ConnectorDataType.Boolean],
-            FlowFunctions = [FlowFunctionKind.ReadPoint, FlowFunctionKind.WritePoint],
-            ExecutionModes = [ExecutionMode.Interval],
-            RuntimeFeatures = [ControllerRuntimeFeature.BoundPoints]
+            PointTypes =
+            [
+                FlowPointValueType.Digital
+            ],
+            PointDirections =
+            [
+                DataDirection.Input,
+                DataDirection.Output
+            ],
+            PointFeatures =
+            [
+                ControllerPointFeature.Read,
+                ControllerPointFeature.Command
+            ],
+            ConnectorDataTypes =
+            [
+                ConnectorDataType.Boolean
+            ],
+            FlowFunctions =
+            [
+                FlowFunctionKind.ReadPoint,
+                FlowFunctionKind.WritePoint
+            ],
+            ExecutionModes =
+            [
+                ExecutionMode.Interval
+            ],
+            RuntimeFeatures =
+            [
+                ControllerRuntimeFeature.BoundPoints
+            ]
         }
     };
 
-    private static FlowPoint Input(string id) => Point(id, DataDirection.Input, readable: true);
+    private static FlowPoint Input(string id) =>
+        Point(
+            id,
+            DataDirection.Input,
+            readable: true);
 
-    private static FlowPoint Output(string id) => Point(id, DataDirection.Output, commandable: true);
+    private static FlowPoint Output(string id) =>
+        Point(
+            id,
+            DataDirection.Output,
+            commandable: true);
 
     private static FlowPoint VirtualValue(
         string id,
         bool readable = false,
         bool commandable = false) =>
-        Point(id, DataDirection.Value, readable, commandable) with { Implementation = "virtual" };
+        Point(
+            id,
+            DataDirection.Value,
+            readable,
+            commandable) with
+        {
+            Implementation = "virtual"
+        };
 
     private static FlowPoint Point(
         string id,
@@ -185,91 +264,143 @@ public sealed class FlowCompilationTargetResolverTests
         FlowCompilationDiagnosticCode code,
         string path)
     {
-        var exception = Assert.ThrowsAsync<FlowCompilationException>(action);
+        var exception =
+            Assert.ThrowsAsync<FlowCompilationException>(action);
+
         Assert.Multiple(() =>
         {
-            Assert.That(exception!.Diagnostics[0].Code, Is.EqualTo(code));
-            Assert.That(exception.Diagnostics[0].Path, Is.EqualTo(path));
+            Assert.That(
+                exception!.Diagnostics[0].Code,
+                Is.EqualTo(code));
+
+            Assert.That(
+                exception.Diagnostics[0].Path,
+                Is.EqualTo(path));
         });
     }
 
-    private sealed class StubTemplateStore(ControllerTemplate template) : IControllerTemplateStore
+    private sealed class ResolverContext : IDisposable
     {
-        public Task<ControllerTemplate> GetAsync(string id, CancellationToken cancellationToken) =>
+        private readonly ServiceProvider _provider;
+        private readonly IServiceScope _scope;
+
+        public ResolverContext(ServiceProvider provider)
+        {
+            _provider = provider;
+            _scope = provider.CreateScope();
+
+            Resolver = _scope.ServiceProvider
+                .GetRequiredService<IFlowCompilationTargetResolver>();
+        }
+
+        public IFlowCompilationTargetResolver Resolver { get; }
+
+        public void Dispose()
+        {
+            _scope.Dispose();
+            _provider.Dispose();
+        }
+    }
+
+    private sealed class StubTemplateStore(
+        ControllerTemplate template) : IControllerTemplateStore
+    {
+        public Task<ControllerTemplate> GetAsync(
+            string id,
+            CancellationToken cancellationToken) =>
             id == template.Id
                 ? Task.FromResult(template)
                 : throw new ControllerTemplateNotFoundException(id);
 
-        public Task<IReadOnlyList<ControllerTemplate>> ListAsync(CancellationToken cancellationToken) =>
+        public Task<IReadOnlyList<ControllerTemplate>> ListAsync(
+            CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
         public Task<ControllerTemplate> CreateAsync(
             ControllerTemplate value,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
 
         public Task<ControllerTemplate> UpdateAsync(
             string id,
             ControllerTemplate value,
             int revision,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
 
         public Task DeleteAsync(
             string id,
             int revision,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
     }
 
-    private sealed class StubPointStore(IReadOnlyList<FlowPoint> points) : IPointDefinitionStore
+    private sealed class StubPointStore(
+        IReadOnlyList<FlowPoint> points) : IPointDefinitionStore
     {
         public int ListCallCount { get; private set; }
 
-        public Task<IReadOnlyList<FlowPoint>> ListPointsAsync(CancellationToken cancellationToken)
+        public Task<IReadOnlyList<FlowPoint>> ListPointsAsync(
+            CancellationToken cancellationToken)
         {
             ListCallCount++;
             return Task.FromResult(points);
         }
 
-        public Task<FlowPoint> GetPointAsync(string id, CancellationToken cancellationToken) =>
+        public Task<FlowPoint> GetPointAsync(
+            string id,
+            CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
-        public Task<FlowPoint> CreatePointAsync(FlowPoint point, CancellationToken cancellationToken) =>
+        public Task<FlowPoint> CreatePointAsync(
+            FlowPoint point,
+            CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
         public Task<FlowPoint> UpdatePointAsync(
             string id,
             FlowPoint point,
             int revision,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
 
         public Task DeletePointAsync(
             string id,
             int revision,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
-
-        public Task<IReadOnlyList<PointGroup>> ListGroupsAsync(CancellationToken cancellationToken) =>
+            CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
-        public Task<PointGroup> GetGroupAsync(string id, CancellationToken cancellationToken) =>
+        public Task<IReadOnlyList<PointGroup>> ListGroupsAsync(
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        public Task<PointGroup> GetGroupAsync(
+            string id,
+            CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
         public Task<PointGroup> CreateGroupAsync(
             PointGroup group,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
 
         public Task<PointGroup> UpdateGroupAsync(
             string id,
             PointGroup group,
             int revision,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
 
         public Task DeleteGroupAsync(
             string id,
             int revision,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
 
         public Task<IReadOnlyList<FlowPoint>> MakePointsStandaloneAsync(
             string groupId,
             int groupRevision,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
     }
 }

@@ -1,4 +1,4 @@
-namespace Server.Services.Contracts;
+namespace Server.Compiler.Contracts;
 
 /// <summary>
 /// Identifies the record type used by an Intel HEX record.

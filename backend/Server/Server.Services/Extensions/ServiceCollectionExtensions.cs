@@ -1,7 +1,6 @@
 using Server.Common.Services;
 using Server.Data.Extensions;
 using Server.Services.Implementation;
-using Server.Services.Implementation.Compiler;
 
 namespace Server.Services.Extensions;
 
@@ -46,7 +45,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IFlowPointAdapter, ServerFlowPointAdapter>();
         services.AddSingleton<FlowRuntimeService>();
         services.AddSingleton<IFlowRuntimeService>(provider => provider.GetRequiredService<FlowRuntimeService>());
-        services.AddSingleton<FlowEmulatorService>(provider => new FlowEmulatorService(
+        services.AddSingleton(provider => new FlowEmulatorService(
             provider.GetRequiredService<IServiceScopeFactory>(),
             provider.GetRequiredService<IFlowCompiler>(),
             provider.GetRequiredService<IFlowVirtualMachineFactory>(),
@@ -63,9 +62,6 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IControllerTemplateValidator, ControllerTemplateValidator>();
         services.AddSingleton<IControllerTemplateStore, ControllerTemplateFileStore>();
         services.AddScoped<IPointDefinitionStore, PointDefinitionDatabaseStore>();
-        services.AddScoped<IFlowCompilationTargetResolver, FlowCompilationTargetResolver>();
-        services.AddSingleton<IFlowCompiler, FlowCompiler>();
-        services.AddSingleton<IFlowDecompiler, FlowDecompiler>();
         services.AddSingleton<IFcpClient, UnavailableFcpClient>();
         services.AddSingleton<IControllerDebugTransport, FcpControllerDebugTransport>();
         services.AddSingleton<FlowDebugSessionRegistry>();

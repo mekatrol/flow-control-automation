@@ -1,4 +1,4 @@
-namespace Server.Services.Contracts;
+namespace Server.Compiler.Contracts;
 
 /// <summary>
 /// Identifies an operation in the Flow IL commit-plan section.

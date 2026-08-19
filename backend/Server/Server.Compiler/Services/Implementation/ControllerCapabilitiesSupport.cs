@@ -1,6 +1,6 @@
 using Server.Common.Contracts;
 
-namespace Server.Services.Implementation;
+namespace Server.Compiler.Services.Implementation;
 
 public static class ControllerCapabilitiesSupport
 {

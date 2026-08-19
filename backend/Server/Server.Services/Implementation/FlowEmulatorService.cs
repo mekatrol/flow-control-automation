@@ -15,7 +15,7 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
     private readonly IFlowCompiler _compiler;
     private readonly IFlowVirtualMachineFactory _machines;
     private readonly TimeProvider _timeProvider;
-    private readonly object _instancesGate = new();
+    private readonly Lock _gate = new();
 
     [ActivatorUtilitiesConstructor]
     public FlowEmulatorService(
@@ -71,7 +71,7 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
         var compilation = _compiler.Compile(new FlowCompilationRequest { Source = source, Target = target });
         var id = Guid.NewGuid().ToString("N");
         var instance = new Instance(id, source, _machines.Create(compilation.Artifact), _timeProvider.GetUtcNow());
-        lock (_instancesGate)
+        lock (_gate)
         {
             RemoveExpiredCore();
             if (_instances.Count >= MaximumInstances)
@@ -142,7 +142,7 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
 
     private void RemoveExpired()
     {
-        lock (_instancesGate)
+        lock (_gate)
         {
             RemoveExpiredCore();
         }

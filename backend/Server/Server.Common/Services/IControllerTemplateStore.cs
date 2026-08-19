@@ -1,6 +1,6 @@
 using Server.Common.Contracts;
 
-namespace Server.Services;
+namespace Server.Common.Services;
 
 /// <summary>Persists validated controller templates with revision safety and built-in-template protection.</summary>
 public interface IControllerTemplateStore

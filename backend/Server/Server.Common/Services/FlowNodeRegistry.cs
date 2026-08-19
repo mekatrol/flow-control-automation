@@ -1,6 +1,6 @@
 using Server.Common.Contracts;
 
-namespace Server.Services.Implementation;
+namespace Server.Common.Services;
 
 public static class FlowNodeRegistry
 {

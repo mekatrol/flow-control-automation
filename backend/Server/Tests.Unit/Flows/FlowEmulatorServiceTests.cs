@@ -162,6 +162,16 @@ public sealed class FlowEmulatorServiceTests
             ControllerTemplateId = request.Source.ControllerTemplateId,
             ControllerTemplateRevision = 1
         };
+
+        public void WriteBinary(FlowCompilationResult compilation, string path)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void WriteIntelHex(FlowCompilationResult compilation, string path, uint baseAddress = 0, int bytesPerRecord = 16)
+        {
+            throw new NotImplementedException();
+        }
     }
 
     private sealed class MachineFactory : IFlowVirtualMachineFactory

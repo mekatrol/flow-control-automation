@@ -1,5 +1,5 @@
 ﻿using Server.Common.Contracts;
-using Server.Services.Implementation;
+using Server.Common.Services;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 
@@ -96,11 +96,13 @@ internal static class FixtureUpdater
     public static void UpdateFlowCompilation(
         string fixture,
         FlowCompilationResult result,
-        string fixtureRoot)
+        string fixtureRoot,
+        IFlowCompiler compiler)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fixture);
         ArgumentNullException.ThrowIfNull(result);
         ArgumentException.ThrowIfNullOrWhiteSpace(fixtureRoot);
+        ArgumentNullException.ThrowIfNull(compiler);
 
         Update(fixture, () =>
         {
@@ -108,11 +110,11 @@ internal static class FixtureUpdater
 
             Directory.CreateDirectory(fixtureDirectory);
 
-            FlowCompiler.WriteBinary(
+            compiler.WriteBinary(
                 result,
                 Path.Combine(fixtureDirectory, "artifact.bin"));
 
-            FlowCompiler.WriteIntelHex(
+            compiler.WriteIntelHex(
                 result,
                 Path.Combine(fixtureDirectory, "artifact.hex"));
 

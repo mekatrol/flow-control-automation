@@ -1,4 +1,6 @@
 using Server.Common.Contracts;
+using Server.Compiler;
+using Server.Compiler.Extensions;
 using Server.Data.Context;
 using Server.Services;
 using Server.Services.Extensions;
@@ -319,14 +321,20 @@ public sealed class FlowServiceTests
                     _connectionString
             })
             .Build();
+
         var services = new ServiceCollection();
         services.AddLogging();
+        services.AddFlowCompilerServices();
         services.AddFlowControlServer(configuration);
+
         var provider = services.BuildServiceProvider();
+
         await using var scope = provider.CreateAsyncScope();
+
         await scope.ServiceProvider
             .GetRequiredService<IFlowControlDbContext>()
             .InitializeDatabase();
+
         return provider;
     }
 

@@ -1,9 +1,10 @@
+using Server.Common;
 using Server.Common.Contracts;
 using Server.Common.Services;
 
-namespace Server.Services.Implementation;
+namespace Server.Compiler.Services.Implementation;
 
-public sealed class FlowCompilationTargetResolver(
+internal sealed class FlowCompilationTargetResolver(
     IControllerTemplateStore controllerTemplates,
     IControllerTemplateValidator controllerTemplateValidator,
     IPointDefinitionStore pointDefinitions) : IFlowCompilationTargetResolver
@@ -42,6 +43,7 @@ public sealed class FlowCompilationTargetResolver(
                 template.Id,
                 BuiltInControllerTemplate.Id,
                 StringComparison.Ordinal));
+
         ValidateCapabilities(source, validated);
         ValidateLimits(source, template.Limits);
 

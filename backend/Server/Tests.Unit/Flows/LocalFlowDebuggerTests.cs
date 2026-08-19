@@ -73,6 +73,16 @@ public sealed class LocalFlowDebuggerTests
             Schedule = ["constant"],
             NodeIndices = new Dictionary<string, ushort> { ["constant"] = 0 }
         };
+
+        public void WriteBinary(FlowCompilationResult compilation, string path)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void WriteIntelHex(FlowCompilationResult compilation, string path, uint baseAddress = 0, int bytesPerRecord = 16)
+        {
+            throw new NotImplementedException();
+        }
     }
 
     private sealed class MachineFactory : IFlowVirtualMachineFactory

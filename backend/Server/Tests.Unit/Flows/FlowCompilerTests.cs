@@ -1,7 +1,8 @@
 using Server.Common.Contracts;
-using Server.Services;
+using Server.Common.Services;
+using Server.Compiler;
+using Server.Compiler.Extensions;
 using Server.Services.Contracts;
-using Server.Services.Implementation;
 using System.Text;
 using System.Text.Json;
 using Tests.Unit.Helpers;
@@ -10,6 +11,25 @@ namespace Tests.Unit.Flows;
 
 public sealed class FlowCompilerTests
 {
+    private ServiceProvider _serviceProvider = null!;
+    private IFlowCompiler _compiler = null!;
+
+    [OneTimeSetUp]
+    public void OneTimeSetUp()
+    {
+        var services = new ServiceCollection();
+        services.AddFlowCompilerServices();
+
+        _serviceProvider = services.BuildServiceProvider();
+        _compiler = _serviceProvider.GetRequiredService<IFlowCompiler>();
+    }
+
+    [OneTimeTearDown]
+    public void OneTimeTearDown()
+    {
+        _serviceProvider.Dispose();
+    }
+
     private static readonly FlowNodeKind[] FlowFunctionKinds =
     [
         FlowNodeKind.Add, FlowNodeKind.AnalogInput, FlowNodeKind.AnalogOutput, FlowNodeKind.And, FlowNodeKind.Average, FlowNodeKind.Calculator, FlowNodeKind.Calendar,
@@ -130,7 +150,7 @@ public sealed class FlowCompilerTests
 
         // Act: Compile through the production compiler rather than test-specific semantics.
         var compilationRequest = BuildCompilationRequest(source);
-        var compilation = new FlowCompiler().Compile(compilationRequest);
+        var compilation = _compiler.Compile(compilationRequest);
 
         // Assert: A bounded current artifact and stable source identity are produced.
         Assert.Multiple(() =>
@@ -184,7 +204,7 @@ public sealed class FlowCompilerTests
         };
 
         var compilationRequest = BuildCompilationRequest(source);
-        var artifact = new FlowCompiler()
+        var artifact = _compiler
             .Compile(compilationRequest)
             .Artifact
             .ToArray();
@@ -217,7 +237,7 @@ public sealed class FlowCompilerTests
         };
 
         AssertDiagnostic(
-            () => new FlowCompiler().Compile(BuildCompilationRequest(source)),
+            () => _compiler.Compile(BuildCompilationRequest(source)),
             FlowCompilationDiagnosticCode.UnsupportedNode,
             "/nodes/0/kind");
     }
@@ -240,7 +260,7 @@ public sealed class FlowCompilerTests
         };
 
         AssertDiagnostic(
-            () => new FlowCompiler().Compile(BuildCompilationRequest(source)),
+            () => _compiler.Compile(BuildCompilationRequest(source)),
             FlowCompilationDiagnosticCode.CombinationalCycle,
             "/nodes/not-a");
     }
@@ -251,7 +271,7 @@ public sealed class FlowCompilerTests
         var source = ReadSource("valid-two-button-and") with { Connections = [] };
 
         AssertDiagnostic(
-            () => new FlowCompiler().Compile(BuildCompilationRequest(source)),
+            () => _compiler.Compile(BuildCompilationRequest(source)),
             FlowCompilationDiagnosticCode.MissingInputDriver,
             "/nodes/and-main/ports/a");
     }
@@ -282,7 +302,7 @@ public sealed class FlowCompilerTests
         var request = BuildCompilationRequest(ReadSource("valid-two-button-and")) with { ArtifactVersion = artifactVersion };
 
         AssertDiagnostic(
-            () => new FlowCompiler().Compile(request),
+            () => _compiler.Compile(request),
             FlowCompilationDiagnosticCode.UnsupportedArtifactVersion,
             "/artifactVersion");
     }
@@ -292,9 +312,9 @@ public sealed class FlowCompilerTests
     {
         var source = ReadSource("valid-two-button-and");
         var firstRequest = BuildCompilationRequest(source);
-        var first = new FlowCompiler().Compile(firstRequest);
+        var first = _compiler.Compile(firstRequest);
         var changedPoint = firstRequest.Target.Points[0] with { Revision = 2 };
-        var second = new FlowCompiler().Compile(firstRequest with
+        var second = _compiler.Compile(firstRequest with
         {
             Target = firstRequest.Target with
             {
@@ -324,8 +344,8 @@ public sealed class FlowCompilerTests
         };
         var request = BuildCompilationRequest(source);
 
-        var first = new FlowCompiler().Compile(request);
-        var second = new FlowCompiler().Compile(request);
+        var first = _compiler.Compile(request);
+        var second = _compiler.Compile(request);
 
         Assert.Multiple(() =>
         {
@@ -345,7 +365,7 @@ public sealed class FlowCompilerTests
         request = request with { Target = request.Target with { Points = [.. request.Target.Points.Skip(1)] } };
 
         AssertDiagnostic(
-            () => new FlowCompiler().Compile(request),
+            () => _compiler.Compile(request),
             FlowCompilationDiagnosticCode.MissingPoint,
             $"/points/{source.Nodes[0].Configuration["pointId"].GetString()}");
     }
@@ -420,17 +440,18 @@ public sealed class FlowCompilerTests
     /// <param name="fixture">The name of the fixture.</param>
     /// <param name="source">The executable flow source to compile.</param>
     /// <returns>The compiled flow result.</returns>
-    private static FlowCompilationResult CompileFixture(
+    private FlowCompilationResult CompileFixture(
         string fixture,
         ExecutableFlowSource source)
     {
         var request = BuildCompilationRequest(source);
-        var result = new FlowCompiler().Compile(request);
+        var result = _compiler.Compile(request);
 
         FixtureUpdater.UpdateFlowCompilation(
             fixture,
             result,
-            FixtureUpdateRoot);
+            FixtureUpdateRoot,
+            _compiler);
 
         return result;
     }
@@ -441,7 +462,7 @@ public sealed class FlowCompilerTests
     /// </summary>
     /// <param name="fixture">The name of the fixture to load and compile.</param>
     /// <returns>The compiled flow result.</returns>
-    private static FlowCompilationResult CompileFixture(string fixture)
+    private FlowCompilationResult CompileFixture(string fixture)
     {
         var source = ReadSource(fixture);
         return CompileFixture(fixture, source);

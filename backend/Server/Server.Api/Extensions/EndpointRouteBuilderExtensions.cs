@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using Server.Api.Contracts;
 using Server.Common.Contracts;
 using Server.Common.Services;
+using Server.Compiler;
 using Server.Services;
 using Server.Services.Contracts;
 using System.Text.Json;

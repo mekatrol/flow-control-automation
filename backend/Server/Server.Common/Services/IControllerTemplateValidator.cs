@@ -1,6 +1,6 @@
 using Server.Common.Contracts;
 
-namespace Server.Services;
+namespace Server.Common.Services;
 
 /// <summary>Validates controller-template syntax and compiles its capability sets for efficient compatibility checks.</summary>
 public interface IControllerTemplateValidator

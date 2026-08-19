@@ -19,6 +19,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Server.Api\Server.Api.csproj" />
+    <ProjectReference Include="..\Server.Common\Server.Common.csproj" />
+    <ProjectReference Include="..\Server.Compiler\Server.Compiler.csproj" />
     <ProjectReference Include="..\Server.Data\Server.Data.csproj" />
     <ProjectReference Include="..\Server.Services\Server.Services.csproj" />
   </ItemGroup>

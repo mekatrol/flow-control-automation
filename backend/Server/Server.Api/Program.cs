@@ -1,4 +1,5 @@
 using Server.Api.Extensions;
+using Server.Compiler.Extensions;
 using Server.Services;
 using Server.Services.Contracts;
 using Server.Services.Extensions;
@@ -24,6 +25,7 @@ public partial class Program
             builder.WebHost.UseUrls(serverOptions.ServerAddress);
         }
 
+        builder.Services.AddFlowCompilerServices();
         builder.Services.AddFlowControlServer(builder.Configuration);
         builder.Services.ConfigureHttpJsonOptions(
             options => FlowControlJson.Configure(options.SerializerOptions));

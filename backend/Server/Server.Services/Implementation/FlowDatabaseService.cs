@@ -1,4 +1,6 @@
 using Server.Common.Contracts;
+using Server.Common.Services;
+using Server.Compiler;
 using Server.Data.Context;
 using Server.Data.Entities;
 using System.Globalization;
@@ -9,6 +11,7 @@ namespace Server.Services.Implementation;
 
 internal sealed class FlowDatabaseService(
     IFlowControlDbContext context,
+    IFlowValidator flowValidator,
     TimeProvider timeProvider) : IFlowStore
 {
     public async Task<PaginatedResult<Flow>> ListAsync(
@@ -102,7 +105,9 @@ internal sealed class FlowDatabaseService(
             Name = trimmedName,
             UpdatedAt = now
         };
-        FlowValidator.Validate(flow);
+
+        flowValidator.Validate(flow);
+
         context.Flows.Add(new FlowEntity
         {
             Id = id,
@@ -138,7 +143,9 @@ internal sealed class FlowDatabaseService(
         }
 
         var saved = flow with { UpdatedAt = Timestamp() };
-        FlowValidator.Validate(saved);
+
+        flowValidator.Validate(saved);
+
         entity.Json = Serialize(saved);
         entity.Updated = timeProvider.GetUtcNow();
         await SaveWithConcurrencyMapping(id, entity, cancellationToken);

@@ -1,4 +1,4 @@
-namespace Server.Services.Contracts;
+namespace Server.Compiler.Contracts;
 
 /// <summary>
 /// Identifies the type of external dependency recorded in the Flow IL dependency section.

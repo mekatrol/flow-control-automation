@@ -1,4 +1,4 @@
-namespace Server.Services.Contracts;
+namespace Server.Common.Contracts;
 
 public enum PointBindingKind : byte
 {

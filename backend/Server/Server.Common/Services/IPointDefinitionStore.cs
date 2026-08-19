@@ -1,6 +1,6 @@
 using Server.Common.Contracts;
 
-namespace Server.Services;
+namespace Server.Common.Services;
 
 public interface IPointDefinitionStore
 {

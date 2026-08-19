@@ -1,6 +1,7 @@
 using Server.Common.Contracts;
+using Server.Common.Services;
 
-namespace Server.Services.Implementation;
+namespace Server.Common;
 
 public static class BuiltInControllerTemplate
 {

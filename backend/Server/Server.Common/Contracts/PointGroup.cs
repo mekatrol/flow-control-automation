@@ -1,7 +1,7 @@
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
-namespace Server.Services.Contracts;
+namespace Server.Common.Contracts;
 
 public sealed record PointGroup
 {
