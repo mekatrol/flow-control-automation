@@ -18,6 +18,8 @@
  * as untrusted bytes and checks bounds before converting fields into C# values.
  */
 
+using Server.Common.Contracts;
+using Server.Common.Services;
 using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text;

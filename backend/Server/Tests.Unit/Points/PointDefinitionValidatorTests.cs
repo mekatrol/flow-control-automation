@@ -1,3 +1,4 @@
+using Server.Common.Contracts;
 using Server.Services;
 using Server.Services.Contracts;
 using Server.Services.Implementation;
@@ -152,7 +153,7 @@ internal sealed class PointDefinitionValidatorTests
     [Test]
     public void VirtualRetainedValues_AreTypeAndRangeChecked()
     {
-        var valid = VirtualPoint(PointValueType.Integer) with
+        var valid = VirtualPoint(FlowPointValueType.Integer) with
         {
             Persistence = "retained",
             RelinquishDefault = JsonValue.Create(4),
@@ -189,7 +190,7 @@ internal sealed class PointDefinitionValidatorTests
     [TestCase(double.NegativeInfinity)]
     public void AnalogNonFiniteValues_AreRejected(double value)
     {
-        var point = VirtualPoint(PointValueType.Analog) with
+        var point = VirtualPoint(FlowPointValueType.Analog) with
         {
             Persistence = "retained",
             RelinquishDefault = JsonValue.Create(value),
@@ -211,11 +212,11 @@ internal sealed class PointDefinitionValidatorTests
     [Test]
     public void DigitalAndMultiStateLabels_AreStrict()
     {
-        var duplicateDigital = VirtualPoint(PointValueType.Digital) with
+        var duplicateDigital = VirtualPoint(FlowPointValueType.Digital) with
         {
             StateLabels = new JsonObject { ["false"] = "Off", ["true"] = "off" },
         };
-        var duplicateState = VirtualPoint(PointValueType.MultiState) with
+        var duplicateState = VirtualPoint(FlowPointValueType.MultiState) with
         {
             StateLabels = new JsonArray
             {
@@ -257,7 +258,7 @@ internal sealed class PointDefinitionValidatorTests
         // Acceptance criteria: the operation must throw PointDefinitionValidationException, because this condition proves that
         // text requires positive maximum length.
         Assert.That(
-            () => _validator.Validate(VirtualPoint(PointValueType.Text), Context()),
+            () => _validator.Validate(VirtualPoint(FlowPointValueType.Text), Context()),
             Throws.TypeOf<PointDefinitionValidationException>());
     }
 
@@ -361,8 +362,8 @@ internal sealed class PointDefinitionValidatorTests
     {
         var points = new[]
         {
-            VirtualPoint(PointValueType.Analog),
-            VirtualPoint(PointValueType.Analog) with { Id = "second", Name = "POINT" }
+            VirtualPoint(FlowPointValueType.Analog),
+            VirtualPoint(FlowPointValueType.Analog) with { Id = "second", Name = "POINT" }
         };
         var duplicate = new PointDocument { Points = points };
         var reserved = new PointGroup
@@ -420,7 +421,7 @@ internal sealed class PointDefinitionValidatorTests
             // compatibility predicates require exact type and numeric units.
             Assert.That(
                 PointCompatibility.ValuesAreCompatible(
-                    PointValueType.Analog, "degC", PointValueType.Analog, "degC"),
+                    FlowPointValueType.Analog, "degC", FlowPointValueType.Analog, "degC"),
                 Is.True);
 
             // Expected outcome: the asserted result rejects the prohibited condition.
@@ -428,7 +429,7 @@ internal sealed class PointDefinitionValidatorTests
             // compatibility predicates require exact type and numeric units.
             Assert.That(
                 PointCompatibility.ValuesAreCompatible(
-                    PointValueType.Analog, "degC", PointValueType.Analog, "degF"),
+                    FlowPointValueType.Analog, "degC", FlowPointValueType.Analog, "degF"),
                 Is.False);
 
             // Expected outcome: the asserted result rejects the prohibited condition.
@@ -436,7 +437,7 @@ internal sealed class PointDefinitionValidatorTests
             // compatibility predicates require exact type and numeric units.
             Assert.That(
                 PointCompatibility.ValuesAreCompatible(
-                    PointValueType.Digital, null, PointValueType.Analog, null),
+                    FlowPointValueType.Digital, null, FlowPointValueType.Analog, null),
                 Is.False);
         });
     }
@@ -479,7 +480,7 @@ internal sealed class PointDefinitionValidatorTests
             new Dictionary<string, PointGroup>(StringComparer.Ordinal),
             _sources);
 
-    private static Point BoundPoint(
+    private static FlowPoint BoundPoint(
         DataDirection direction,
         bool readable,
         bool commandable)
@@ -495,14 +496,14 @@ internal sealed class PointDefinitionValidatorTests
             mqttMapping["commandTopic"] = "point/command";
         }
 
-        return new Point
+        return new FlowPoint
         {
             Id = "point",
             Name = "Point",
             Enabled = true,
             Implementation = "bound",
             Direction = direction,
-            ValueType = PointValueType.Analog,
+            ValueType = FlowPointValueType.Analog,
             Readable = readable,
             Commandable = commandable,
             Persistence = "volatile",
@@ -511,7 +512,7 @@ internal sealed class PointDefinitionValidatorTests
         };
     }
 
-    private static Point VirtualPoint(PointValueType valueType) => new()
+    private static FlowPoint VirtualPoint(FlowPointValueType valueType) => new()
     {
         Id = "point",
         Name = "Point",
@@ -521,8 +522,8 @@ internal sealed class PointDefinitionValidatorTests
         ValueType = valueType,
         StateLabels = valueType switch
         {
-            PointValueType.Digital => new JsonObject { ["false"] = "Off", ["true"] = "On" },
-            PointValueType.MultiState => new JsonArray
+            FlowPointValueType.Digital => new JsonObject { ["false"] = "Off", ["true"] = "On" },
+            FlowPointValueType.MultiState => new JsonArray
             {
                 new JsonObject { ["key"] = "off", ["label"] = "Off" },
                 new JsonObject { ["key"] = "on", ["label"] = "On" }

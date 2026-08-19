@@ -223,6 +223,8 @@
  * ahead of time and the VM executes using compact numeric slot references.
  */
 
+using Server.Common.Contracts;
+using Server.Common.Services;
 using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Security.Cryptography;
@@ -3145,7 +3147,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
     private static PointRecord[] BuildPoints(
         ExecutableFlowSource source,
         IReadOnlyList<ExecutableFlowNode> nodes,
-        IReadOnlyList<Point> resolvedPoints) =>
+        IReadOnlyList<FlowPoint> resolvedPoints) =>
     [
         .. nodes
             .Where(node => node.Kind is
@@ -3216,7 +3218,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
     /// </summary>
     private static string? PointUnits(
         ExecutableFlowNode node,
-        IReadOnlyList<Point> resolvedPoints)
+        IReadOnlyList<FlowPoint> resolvedPoints)
     {
         if (node.Configuration.TryGetValue("units", out var units))
         {

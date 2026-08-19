@@ -6,4 +6,14 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Folder Include="Contracts\" />
+    <Folder Include="Extensions\" />
+    <Folder Include="Services\Implementation\Compiler\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Server.Common\Server.Common.csproj" />
+  </ItemGroup>
+
 </Project>

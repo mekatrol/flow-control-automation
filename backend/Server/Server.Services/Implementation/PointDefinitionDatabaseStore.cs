@@ -1,6 +1,6 @@
+using Server.Common.Contracts;
 using Server.Data.Context;
 using Server.Data.Entities;
-using Server.Services.Contracts;
 using System.Globalization;
 using System.Text.Json;
 
@@ -11,14 +11,14 @@ internal sealed class PointDefinitionDatabaseStore(
     TimeProvider timeProvider,
     IPointDefinitionValidator validator) : IPointDefinitionStore
 {
-    public async Task<IReadOnlyList<Point>> ListPointsAsync(
+    public async Task<IReadOnlyList<FlowPoint>> ListPointsAsync(
         CancellationToken cancellationToken) =>
         [.. (await context.Points.AsNoTracking().ToListAsync(cancellationToken))
         .Select(DeserializePoint)
         .OrderBy(point => point.Name, StringComparer.OrdinalIgnoreCase)
         .ThenBy(point => point.Id, StringComparer.Ordinal)];
 
-    public async Task<Point> GetPointAsync(
+    public async Task<FlowPoint> GetPointAsync(
         string id,
         CancellationToken cancellationToken)
     {
@@ -30,8 +30,8 @@ internal sealed class PointDefinitionDatabaseStore(
             : DeserializePoint(entity);
     }
 
-    public async Task<Point> CreatePointAsync(
-        Point point,
+    public async Task<FlowPoint> CreatePointAsync(
+        FlowPoint point,
         CancellationToken cancellationToken)
     {
         validator.Validate(point, await Context(cancellationToken));
@@ -47,9 +47,9 @@ internal sealed class PointDefinitionDatabaseStore(
         return created;
     }
 
-    public async Task<Point> UpdatePointAsync(
+    public async Task<FlowPoint> UpdatePointAsync(
         string id,
-        Point point,
+        FlowPoint point,
         int revision,
         CancellationToken cancellationToken)
     {
@@ -190,7 +190,7 @@ internal sealed class PointDefinitionDatabaseStore(
         await SaveUpdate(entity: null, "unable to delete group", cancellationToken);
     }
 
-    public async Task<IReadOnlyList<Point>> MakePointsStandaloneAsync(
+    public async Task<IReadOnlyList<FlowPoint>> MakePointsStandaloneAsync(
         string groupId,
         int groupRevision,
         CancellationToken cancellationToken)
@@ -204,7 +204,7 @@ internal sealed class PointDefinitionDatabaseStore(
             .ToDictionary(item => item.Id, StringComparer.Ordinal);
         var validationContext = new PointValidationContext(groups, sources);
         var now = timeProvider.GetUtcNow();
-        var updates = new List<(PointEntity Entity, Point Point)>();
+        var updates = new List<(PointEntity Entity, FlowPoint Point)>();
         foreach (var entity in entities)
         {
             var point = DeserializePoint(entity);
@@ -308,7 +308,7 @@ internal sealed class PointDefinitionDatabaseStore(
         }
     }
 
-    private static PointEntity Entity(Point point, DateTimeOffset now) => new()
+    private static PointEntity Entity(FlowPoint point, DateTimeOffset now) => new()
     {
         Id = point.Id,
         Key = NormalizeName(point.Name),
@@ -326,7 +326,7 @@ internal sealed class PointDefinitionDatabaseStore(
         Updated = now
     };
 
-    private static void Update(PointEntity entity, Point point, DateTimeOffset now)
+    private static void Update(PointEntity entity, FlowPoint point, DateTimeOffset now)
     {
         entity.Key = NormalizeName(point.Name);
         entity.Json = JsonSerializer.Serialize(point, FlowControlJson.Options);
@@ -343,8 +343,8 @@ internal sealed class PointDefinitionDatabaseStore(
         entity.Updated = now;
     }
 
-    private static Point DeserializePoint(PointEntity entity) =>
-        JsonSerializer.Deserialize<Point>(entity.Json, FlowControlJson.Options)
+    private static FlowPoint DeserializePoint(PointEntity entity) =>
+        JsonSerializer.Deserialize<FlowPoint>(entity.Json, FlowControlJson.Options)
         ?? throw new InvalidOperationException($"Stored point {entity.Id} is null.");
 
     private static PointGroup DeserializeGroup(PointGroupEntity entity) =>

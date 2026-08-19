@@ -1,3 +1,5 @@
+using Server.Common.Contracts;
+
 namespace Server.Services.Implementation;
 
 public static class FlowNodeRegistry

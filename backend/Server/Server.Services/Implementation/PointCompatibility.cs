@@ -1,4 +1,4 @@
-using Server.Services.Contracts;
+using Server.Common.Contracts;
 
 namespace Server.Services.Implementation;
 
@@ -15,13 +15,13 @@ public static class PointCompatibility
             or DataDirection.InputOutput
             or DataDirection.Value;
 
-    public static bool SupportsUnits(PointValueType valueType) =>
-        valueType is PointValueType.Analog or PointValueType.Integer;
+    public static bool SupportsUnits(FlowPointValueType valueType) =>
+        valueType is FlowPointValueType.Analog or FlowPointValueType.Integer;
 
     public static bool ValuesAreCompatible(
-        PointValueType source,
+        FlowPointValueType source,
         string? sourceUnits,
-        PointValueType target,
+        FlowPointValueType target,
         string? targetUnits) =>
         source == target
         && (!SupportsUnits(source)

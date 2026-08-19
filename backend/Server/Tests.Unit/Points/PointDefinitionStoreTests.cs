@@ -1,3 +1,4 @@
+using Server.Common.Contracts;
 using Server.Data.Context;
 using Server.Data.Entities;
 using Server.Services;
@@ -20,6 +21,7 @@ internal sealed class PointDefinitionStoreTests
     {
         await using var factory = new FlowControlApplicationFactory();
         _ = factory.CreateClient();
+
         await using var scope = factory.Services.CreateAsyncScope();
         var store = scope.ServiceProvider.GetRequiredService<IPointDefinitionStore>();
 
@@ -82,7 +84,7 @@ internal sealed class PointDefinitionStoreTests
             // Expected outcome: The observed result satisfies the required contract.
             // Acceptance criteria: the asserted condition must hold, because this condition proves that
             // empty database supports crud and deterministic listing.
-            Assert.That(updated.UpdatedAt, Is.Not.EqualTo(null));
+            Assert.That(updated.UpdatedAt, Is.Not.Null);
 
             // Expected outcome: `second.Revision` has the required value.
             // Acceptance criteria: `second.Revision` must equal `1`, because this condition proves that
@@ -332,7 +334,7 @@ internal sealed class PointDefinitionStoreTests
     {
         await using var factory = new FlowControlApplicationFactory();
         _ = factory.CreateClient();
-        Point created;
+        FlowPoint created;
         await using (var setupScope = factory.Services.CreateAsyncScope())
         {
             created = await setupScope.ServiceProvider
@@ -424,7 +426,7 @@ internal sealed class PointDefinitionStoreTests
         Name = name
     };
 
-    private static Point VirtualPoint(
+    private static FlowPoint VirtualPoint(
         string id,
         string name,
         string? groupId = null) => new()
@@ -435,12 +437,12 @@ internal sealed class PointDefinitionStoreTests
             GroupId = groupId,
             Implementation = "virtual",
             Direction = DataDirection.Value,
-            ValueType = PointValueType.Analog,
+            ValueType = FlowPointValueType.Analog,
             Readable = true,
             Persistence = "volatile"
         };
 
-    private static Point BoundPoint(string id, string? groupId) => new()
+    private static FlowPoint BoundPoint(string id, string? groupId) => new()
     {
         Id = id,
         Name = id,
@@ -448,7 +450,7 @@ internal sealed class PointDefinitionStoreTests
         GroupId = groupId,
         Implementation = "bound",
         Direction = DataDirection.Input,
-        ValueType = PointValueType.Analog,
+        ValueType = FlowPointValueType.Analog,
         Readable = true,
         Persistence = "volatile",
         Mapping = new System.Text.Json.Nodes.JsonObject

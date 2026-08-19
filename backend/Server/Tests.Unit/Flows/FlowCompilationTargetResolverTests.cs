@@ -1,3 +1,4 @@
+using Server.Common.Contracts;
 using Server.Services;
 using Server.Services.Contracts;
 using Server.Services.Implementation;
@@ -93,7 +94,7 @@ public sealed class FlowCompilationTargetResolverTests
 
     private static FlowCompilationTargetResolver Resolver(
         ControllerTemplate template,
-        IReadOnlyList<Point> points) => Resolver(template, new StubPointStore(points));
+        IReadOnlyList<FlowPoint> points) => Resolver(template, new StubPointStore(points));
 
     private static FlowCompilationTargetResolver Resolver(
         ControllerTemplate template,
@@ -142,7 +143,7 @@ public sealed class FlowCompilationTargetResolverTests
         Revision = 3,
         Capabilities = new ControllerCapabilities
         {
-            PointTypes = [PointValueType.Digital],
+            PointTypes = [FlowPointValueType.Digital],
             PointDirections = [DataDirection.Input, DataDirection.Output],
             PointFeatures = [ControllerPointFeature.Read, ControllerPointFeature.Command],
             ConnectorDataTypes = [ConnectorDataType.Boolean],
@@ -152,17 +153,17 @@ public sealed class FlowCompilationTargetResolverTests
         }
     };
 
-    private static Point Input(string id) => Point(id, DataDirection.Input, readable: true);
+    private static FlowPoint Input(string id) => Point(id, DataDirection.Input, readable: true);
 
-    private static Point Output(string id) => Point(id, DataDirection.Output, commandable: true);
+    private static FlowPoint Output(string id) => Point(id, DataDirection.Output, commandable: true);
 
-    private static Point VirtualValue(
+    private static FlowPoint VirtualValue(
         string id,
         bool readable = false,
         bool commandable = false) =>
         Point(id, DataDirection.Value, readable, commandable) with { Implementation = "virtual" };
 
-    private static Point Point(
+    private static FlowPoint Point(
         string id,
         DataDirection direction,
         bool readable = false,
@@ -173,7 +174,7 @@ public sealed class FlowCompilationTargetResolverTests
             Enabled = true,
             Implementation = "bound",
             Direction = direction,
-            ValueType = PointValueType.Digital,
+            ValueType = FlowPointValueType.Digital,
             Readable = readable,
             Commandable = commandable,
             Persistence = "volatile"
@@ -218,25 +219,25 @@ public sealed class FlowCompilationTargetResolverTests
             CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 
-    private sealed class StubPointStore(IReadOnlyList<Point> points) : IPointDefinitionStore
+    private sealed class StubPointStore(IReadOnlyList<FlowPoint> points) : IPointDefinitionStore
     {
         public int ListCallCount { get; private set; }
 
-        public Task<IReadOnlyList<Point>> ListPointsAsync(CancellationToken cancellationToken)
+        public Task<IReadOnlyList<FlowPoint>> ListPointsAsync(CancellationToken cancellationToken)
         {
             ListCallCount++;
             return Task.FromResult(points);
         }
 
-        public Task<Point> GetPointAsync(string id, CancellationToken cancellationToken) =>
+        public Task<FlowPoint> GetPointAsync(string id, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
-        public Task<Point> CreatePointAsync(Point point, CancellationToken cancellationToken) =>
+        public Task<FlowPoint> CreatePointAsync(FlowPoint point, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
-        public Task<Point> UpdatePointAsync(
+        public Task<FlowPoint> UpdatePointAsync(
             string id,
-            Point point,
+            FlowPoint point,
             int revision,
             CancellationToken cancellationToken) => throw new NotSupportedException();
 
@@ -266,7 +267,7 @@ public sealed class FlowCompilationTargetResolverTests
             int revision,
             CancellationToken cancellationToken) => throw new NotSupportedException();
 
-        public Task<IReadOnlyList<Point>> MakePointsStandaloneAsync(
+        public Task<IReadOnlyList<FlowPoint>> MakePointsStandaloneAsync(
             string groupId,
             int groupRevision,
             CancellationToken cancellationToken) => throw new NotSupportedException();

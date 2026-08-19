@@ -1,3 +1,5 @@
+using Server.Common.Contracts;
+
 namespace Server.Services.Implementation;
 
 internal sealed class PointReadService(
@@ -65,7 +67,7 @@ internal sealed class PointReadService(
     }
 
     private static PointRuntimeEnvelope Unavailable(
-        Point point,
+        FlowPoint point,
         string reliability,
         string diagnostic) =>
         new(

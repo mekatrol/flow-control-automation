@@ -1,10 +1,12 @@
+using Server.Common.Contracts;
+
 namespace Server.Services.Implementation;
 
 public static class ControllerCapabilitiesSupport
 {
     public static bool SupportsPoint(
         ValidatedControllerTemplate template,
-        PointValueType valueType,
+        FlowPointValueType valueType,
         DataDirection direction) =>
         template.PointTypes.Contains(valueType)
         && template.PointDirections.Contains(direction);

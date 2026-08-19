@@ -1,3 +1,5 @@
+using Server.Common.Contracts;
+
 namespace Server.Api.Contracts;
 
 /// <summary>Returns a validated flow recovered from a portable Flow IL artifact.</summary>
@@ -7,8 +9,8 @@ namespace Server.Api.Contracts;
 /// <param name="Provenance">Artifact identity and revision metadata used to explain where the recovered flow originated.</param>
 /// <param name="Saved">Whether the recovered flow was durably persisted; <see langword="false"/> identifies a preview result.</param>
 public sealed record ImportFlowIlResponse(
-    Server.Services.Contracts.Flow Flow,
+    Flow Flow,
     string RecoveryLevel,
     IReadOnlyList<string> Warnings,
-    Server.Services.Contracts.FlowDecompilationProvenance Provenance,
+    FlowDecompilationProvenance Provenance,
     bool Saved);

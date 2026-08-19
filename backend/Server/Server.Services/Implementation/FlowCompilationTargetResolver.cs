@@ -1,3 +1,6 @@
+using Server.Common.Contracts;
+using Server.Common.Services;
+
 namespace Server.Services.Implementation;
 
 public sealed class FlowCompilationTargetResolver(
@@ -44,7 +47,7 @@ public sealed class FlowCompilationTargetResolver(
 
         var allPoints = await pointDefinitions.ListPointsAsync(cancellationToken);
         var pointsById = allPoints.ToDictionary(point => point.Id, StringComparer.Ordinal);
-        var resolvedPoints = new List<Point>();
+        var resolvedPoints = new List<FlowPoint>();
         foreach (var reference in PointReferences(source))
         {
             if (!pointsById.TryGetValue(reference.PointId, out var point))
@@ -68,7 +71,7 @@ public sealed class FlowCompilationTargetResolver(
         ValidatedControllerTemplate template)
     {
         if (!ControllerCapabilitiesSupport.SupportsConnector(template, ConnectorDataType.Boolean)
-            || !template.PointTypes.Contains(PointValueType.Digital))
+            || !template.PointTypes.Contains(FlowPointValueType.Digital))
         {
             throw Failure(FlowCompilationDiagnosticCode.UnsupportedTargetConnectorCapability, "/controllerTemplateId");
         }
@@ -121,13 +124,13 @@ public sealed class FlowCompilationTargetResolver(
             ? value.GetString()
             : null;
 
-    private static void ValidatePoint(PointReference reference, Point point)
+    private static void ValidatePoint(PointReference reference, FlowPoint point)
     {
         var virtualValue = string.Equals(point.Implementation, "virtual", StringComparison.Ordinal)
             && point.Direction == DataDirection.Value;
 
         var valid = point.Enabled
-            && point.ValueType == (reference.IsAnalog ? PointValueType.Analog : PointValueType.Digital)
+            && point.ValueType == (reference.IsAnalog ? FlowPointValueType.Analog : FlowPointValueType.Digital)
             && (reference.IsInput
                 ? point.Readable && (point.Direction == DataDirection.Input || virtualValue)
                 : point.Commandable && (point.Direction == DataDirection.Output || virtualValue));

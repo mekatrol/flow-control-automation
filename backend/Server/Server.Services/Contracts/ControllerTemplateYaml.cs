@@ -1,3 +1,4 @@
+using Server.Common.Contracts;
 using System.Text.Json;
 
 namespace Server.Services.Contracts;

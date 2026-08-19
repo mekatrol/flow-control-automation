@@ -4,6 +4,7 @@
     <File Path="Directory.Build.props" />
   </Folder>
   <Project Path="Server.Api/Server.Api.csproj" />
+  <Project Path="Server.Common/Server.Common.csproj" Id="4c12c9b4-26be-41bf-9e62-98549ffe7b34" />
   <Project Path="Server.Compiler/Server.Compiler.csproj" Id="25c35ade-e067-4aaf-bdaf-381564262e51" />
   <Project Path="Server.Data/Server.Data.csproj" />
   <Project Path="Server.Services/Server.Services.csproj" />

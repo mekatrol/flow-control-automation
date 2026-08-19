@@ -1,4 +1,4 @@
-using Server.Services.Contracts;
+using Server.Common.Contracts;
 
 namespace Server.Services;
 
@@ -10,7 +10,7 @@ public interface IPointDefinitionValidator
     /// <param name="context">The resolved source and capability context used for mapping and compatibility checks.</param>
     /// <returns>The point paired with parsed domain enums and normalized mapping data.</returns>
     ValidatedPointDefinition Validate(
-        Point point,
+        FlowPoint point,
         PointValidationContext context);
 
     /// <summary>Validates one group and every source reference it declares.</summary>

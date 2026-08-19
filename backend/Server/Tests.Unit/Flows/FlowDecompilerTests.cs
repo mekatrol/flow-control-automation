@@ -1,3 +1,4 @@
+using Server.Common.Contracts;
 using Server.Services;
 using Server.Services.Contracts;
 using Server.Services.Implementation;
@@ -239,10 +240,10 @@ public sealed class FlowDecompilerTests
                     Name = "Recovered target",
                     Revision = checked((int)source.ControllerTemplateRevision)
                 },
-                new HashSet<PointValueType>
+                new HashSet<FlowPointValueType>
                 {
-                    PointValueType.Digital,
-                    PointValueType.Analog
+                    FlowPointValueType.Digital,
+                    FlowPointValueType.Analog
                 },
                 new HashSet<DataDirection>
                 {
@@ -267,7 +268,7 @@ public sealed class FlowDecompilerTests
                         FlowNodeKind.DigitalOutput or
                         FlowNodeKind.AnalogInput or
                         FlowNodeKind.AnalogOutput)
-                    .Select(node => new Point
+                    .Select(node => new FlowPoint
                     {
                         Id = node.Configuration["pointId"].GetString()!,
                         Name = node.Configuration["pointId"].GetString()!,
@@ -277,8 +278,8 @@ public sealed class FlowDecompilerTests
                             ? DataDirection.Input
                             : DataDirection.Output,
                         ValueType = node.Kind.ToString().StartsWith("analog", StringComparison.Ordinal)
-                            ? PointValueType.Analog
-                            : PointValueType.Digital,
+                            ? FlowPointValueType.Analog
+                            : FlowPointValueType.Digital,
                         Units = node.Kind.ToString().StartsWith("analog", StringComparison.Ordinal)
                             ? analogUnits
                             : null,

@@ -4,7 +4,7 @@ public sealed class FlowSimulatorSessionRegistry(TimeProvider timeProvider) : ID
 {
     public const int MaximumSessions = 32;
     public static readonly TimeSpan Lease = TimeSpan.FromMinutes(15);
-    private readonly object _gate = new();
+    private readonly Lock _gate = new();
     private readonly Dictionary<string, Entry> _entries = new(StringComparer.Ordinal);
 
     internal Entry? Get(string flowId)

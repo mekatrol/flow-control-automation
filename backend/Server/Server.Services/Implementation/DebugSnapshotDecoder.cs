@@ -1,3 +1,4 @@
+using Server.Common.Contracts;
 using System.Buffers.Binary;
 using System.Text;
 

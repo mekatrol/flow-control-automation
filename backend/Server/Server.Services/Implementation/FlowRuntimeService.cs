@@ -1,3 +1,4 @@
+using Server.Common.Contracts;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;

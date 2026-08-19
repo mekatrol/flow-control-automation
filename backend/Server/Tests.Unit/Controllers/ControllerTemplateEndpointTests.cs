@@ -1,4 +1,5 @@
 using Server.Api.Contracts;
+using Server.Common.Contracts;
 using Server.Services.Contracts;
 using System.Net;
 using System.Net.Http.Json;
@@ -170,8 +171,8 @@ internal sealed class ControllerTemplateEndpointTests
                 Capabilities = Template().Capabilities with
                 {
                     PointTypes = [
-                        PointValueType.Analog,
-                        PointValueType.Analog
+                        FlowPointValueType.Analog,
+                        FlowPointValueType.Analog
                     ],
                 },
             });
@@ -292,7 +293,7 @@ internal sealed class ControllerTemplateEndpointTests
         Name = "Compact",
         Capabilities = new()
         {
-            PointTypes = [PointValueType.Digital],
+            PointTypes = [FlowPointValueType.Digital],
             PointDirections = [DataDirection.Input, DataDirection.Output],
             PointFeatures = [ControllerPointFeature.Read, ControllerPointFeature.Command],
             ConnectorDataTypes = [ConnectorDataType.Boolean],

@@ -1,3 +1,4 @@
+using Server.Common.Contracts;
 using System.Globalization;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -10,7 +11,7 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
     private const long MaximumSafeInteger = 9_007_199_254_740_991;
 
     public ValidatedPointDefinition Validate(
-        Point point,
+        FlowPoint point,
         PointValidationContext context)
     {
         ValidateIdentity(point.Id, point.Name, "point");
@@ -110,7 +111,7 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
     }
 
     private static void ValidateCapabilities(
-        Point point,
+        FlowPoint point,
         PointImplementation implementation,
         DataDirection direction)
     {
@@ -151,7 +152,7 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
     }
 
     private static (PointSourceKind? Kind, PointMapping? Mapping) ValidateBinding(
-        Point point,
+        FlowPoint point,
         PointImplementation implementation,
         PointValidationContext context)
     {
@@ -216,7 +217,7 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
     }
 
     private static PointMapping ParseMapping(
-        Point point,
+        FlowPoint point,
         PointSourceKind kind,
         JsonObject mapping) =>
         kind switch
@@ -232,7 +233,7 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
             _ => throw new InvalidOperationException("Unsupported source kind."),
         };
 
-    private static MqttPointMapping ParseMqttMapping(Point point, JsonObject mapping)
+    private static MqttPointMapping ParseMqttMapping(FlowPoint point, JsonObject mapping)
     {
         var stateTopic = point.Readable
             ? RequiredString(mapping, "stateTopic")
@@ -254,7 +255,7 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
             OptionalString(mapping, "jsonPointer"));
     }
 
-    private static HttpJsonPointMapping ParseHttpMapping(Point point, JsonObject mapping)
+    private static HttpJsonPointMapping ParseHttpMapping(FlowPoint point, JsonObject mapping)
     {
         var path = RequiredString(mapping, "path");
         if (!path.StartsWith('/')
@@ -278,11 +279,11 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
         return new HttpJsonPointMapping(path, method, OptionalString(mapping, "jsonPointer"));
     }
 
-    private static PointLimits? ParseLimits(JsonObject? value, PointValueType type)
+    private static PointLimits? ParseLimits(JsonObject? value, FlowPointValueType type)
     {
         if (value is null)
         {
-            if (type == PointValueType.Text)
+            if (type == FlowPointValueType.Text)
             {
                 Fail("text points require limits.maximumLength");
             }
@@ -298,24 +299,24 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
             Fail("limits.minimum cannot exceed limits.maximum");
         }
 
-        if (type == PointValueType.Integer)
+        if (type == FlowPointValueType.Integer)
         {
             ValidateSafeWholeNumber(minimum, "limits.minimum");
             ValidateSafeWholeNumber(maximum, "limits.maximum");
         }
 
-        if (type is not PointValueType.Analog and not PointValueType.Integer
+        if (type is not FlowPointValueType.Analog and not FlowPointValueType.Integer
             && (minimum is not null || maximum is not null))
         {
             Fail("limits.minimum and limits.maximum apply only to numeric points");
         }
 
-        if (type == PointValueType.Text && maximumLength is not > 0)
+        if (type == FlowPointValueType.Text && maximumLength is not > 0)
         {
             Fail("text points require a positive limits.maximumLength");
         }
 
-        if (type != PointValueType.Text && maximumLength is not null)
+        if (type != FlowPointValueType.Text && maximumLength is not null)
         {
             Fail("limits.maximumLength applies only to text points");
         }
@@ -325,9 +326,9 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
 
     private static (DigitalStateLabels?, IReadOnlyList<MultiStateLabel>?) ParseLabels(
         JsonNode? value,
-        PointValueType type)
+        FlowPointValueType type)
     {
-        if (type == PointValueType.Digital)
+        if (type == FlowPointValueType.Digital)
         {
             var labels = value as JsonObject
                 ?? throw new PointDefinitionValidationException(
@@ -343,7 +344,7 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
             return (new DigitalStateLabels(falseLabel, trueLabel), null);
         }
 
-        if (type == PointValueType.MultiState)
+        if (type == FlowPointValueType.MultiState)
         {
             var items = value as JsonArray
                 ?? throw new PointDefinitionValidationException(
@@ -377,7 +378,7 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
 
     private static void ValidateValue(
         JsonNode? value,
-        PointValueType type,
+        FlowPointValueType type,
         PointLimits? limits,
         IReadOnlyList<MultiStateLabel>? states,
         string path,
@@ -397,7 +398,7 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
         {
             switch (type)
             {
-                case PointValueType.Analog:
+                case FlowPointValueType.Analog:
                     var analog = ReadNumber(value, path);
                     if (!double.IsFinite(analog))
                     {
@@ -405,22 +406,22 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
                     }
                     ValidateRange(analog, limits, path);
                     break;
-                case PointValueType.Integer:
+                case FlowPointValueType.Integer:
                     var integer = ReadNumber(value, path);
                     ValidateSafeWholeNumber(integer, path);
                     ValidateRange(integer, limits, path);
                     break;
-                case PointValueType.Digital:
+                case FlowPointValueType.Digital:
                     _ = value.GetValue<bool>();
                     break;
-                case PointValueType.MultiState:
+                case FlowPointValueType.MultiState:
                     var key = value.GetValue<string>();
                     if (states?.Any(state => state.Key == key) != true)
                     {
                         Fail($"{path} must match a state key");
                     }
                     break;
-                case PointValueType.Text:
+                case FlowPointValueType.Text:
                     var text = value.GetValue<string>();
                     if (text.Length > limits!.MaximumLength)
                     {
@@ -471,7 +472,7 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
         return policy;
     }
 
-    private static void ValidateUnits(string? units, PointValueType type)
+    private static void ValidateUnits(string? units, FlowPointValueType type)
     {
         if (units is null)
         {

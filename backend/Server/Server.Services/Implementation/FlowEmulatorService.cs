@@ -1,4 +1,5 @@
-using Server.Services.Extensions;
+using Server.Common.Contracts;
+using Server.Common.Services;
 using System.Collections.Concurrent;
 
 namespace Server.Services.Implementation;
@@ -161,7 +162,7 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
 
     internal sealed class Instance : IDisposable
     {
-        private readonly object _gate = new();
+        private readonly Lock _gate = new();
         private readonly ExecutableFlowSource _source;
         private readonly IFlowVirtualMachine _machine;
         private readonly Dictionary<string, FlowVmInput> _inputs = new(StringComparer.Ordinal);

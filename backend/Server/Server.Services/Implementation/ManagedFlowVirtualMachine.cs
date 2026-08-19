@@ -1,3 +1,4 @@
+using Server.Common.Contracts;
 using System.Buffers.Binary;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;

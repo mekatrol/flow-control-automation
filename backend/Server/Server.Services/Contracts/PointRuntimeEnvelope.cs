@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using Server.Common.Contracts;
 
 namespace Server.Services.Contracts;
 

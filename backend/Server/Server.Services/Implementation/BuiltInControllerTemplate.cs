@@ -1,3 +1,5 @@
+using Server.Common.Contracts;
+
 namespace Server.Services.Implementation;
 
 public static class BuiltInControllerTemplate
@@ -13,7 +15,7 @@ public static class BuiltInControllerTemplate
         Revision = 1,
         Capabilities = new ControllerCapabilities
         {
-            PointTypes = [PointValueType.Analog, PointValueType.Digital, PointValueType.MultiState, PointValueType.Integer, PointValueType.Text],
+            PointTypes = [FlowPointValueType.Analog, FlowPointValueType.Digital, FlowPointValueType.MultiState, FlowPointValueType.Integer, FlowPointValueType.Text],
             PointDirections = [DataDirection.Input, DataDirection.Output, DataDirection.InputOutput, DataDirection.Value],
             PointFeatures =
             [

@@ -1,3 +1,4 @@
+using Server.Common.Contracts;
 using Server.Services;
 using Server.Services.Contracts;
 using Server.Services.Implementation;
@@ -376,7 +377,7 @@ public sealed class FlowCompilerTests
                     Name = "Fixture target",
                     Revision = checked((int)source.ControllerTemplateRevision)
                 },
-                new HashSet<PointValueType> { PointValueType.Digital, PointValueType.Analog },
+                new HashSet<FlowPointValueType> { FlowPointValueType.Digital, FlowPointValueType.Analog },
                 new HashSet<DataDirection> { DataDirection.Input, DataDirection.Output },
                 new HashSet<ControllerPointFeature>(),
                 new HashSet<ConnectorDataType> { ConnectorDataType.Boolean, ConnectorDataType.Number },
@@ -385,14 +386,14 @@ public sealed class FlowCompilerTests
                 new HashSet<ControllerRuntimeFeature>()),
             Points = [.. source.Nodes
                 .Where(node => node.Kind is FlowNodeKind.DigitalInput or FlowNodeKind.DigitalOutput or FlowNodeKind.AnalogInput or FlowNodeKind.AnalogOutput)
-                .Select(node => new Point
+                .Select(node => new FlowPoint
                 {
                     Id = node.Configuration["pointId"].GetString()!,
                     Name = node.Configuration["pointId"].GetString()!,
                     Enabled = true,
                     Implementation = "virtual",
                     Direction = node.Kind is FlowNodeKind.DigitalInput or FlowNodeKind.AnalogInput ? DataDirection.Input : DataDirection.Output,
-                    ValueType = node.Kind is FlowNodeKind.AnalogInput or FlowNodeKind.AnalogOutput ? PointValueType.Analog : PointValueType.Digital,
+                    ValueType = node.Kind is FlowNodeKind.AnalogInput or FlowNodeKind.AnalogOutput ? FlowPointValueType.Analog : FlowPointValueType.Digital,
                     Readable = node.Kind is FlowNodeKind.DigitalInput or FlowNodeKind.AnalogInput,
                     Commandable = node.Kind is FlowNodeKind.DigitalOutput or FlowNodeKind.AnalogOutput,
                     Persistence = "volatile",

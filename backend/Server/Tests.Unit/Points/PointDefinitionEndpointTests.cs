@@ -1,3 +1,4 @@
+using Server.Common.Contracts;
 using Server.Services.Contracts;
 using System.Net;
 using System.Net.Http.Json;
@@ -190,13 +191,13 @@ internal sealed class PointDefinitionEndpointTests
             Assert.That(created.StatusCode, Is.EqualTo(HttpStatusCode.Created));
         }
 
-        var page = await client.GetFromJsonAsync<PaginatedResult<Point>>(
+        var page = await client.GetFromJsonAsync<PaginatedResult<FlowPoint>>(
             "/api/points?page=2&pageSize=10&filter=TEMPERATURE&sort=descending",
             FlowControlJson.Options);
-        var grouped = await client.GetFromJsonAsync<PaginatedResult<Point>>(
+        var grouped = await client.GetFromJsonAsync<PaginatedResult<FlowPoint>>(
             "/api/points?pageSize=10&groupId=plant",
             FlowControlJson.Options);
-        var standalone = await client.GetFromJsonAsync<PaginatedResult<Point>>(
+        var standalone = await client.GetFromJsonAsync<PaginatedResult<FlowPoint>>(
             "/api/points?pageSize=10&groupId=",
             FlowControlJson.Options);
 
@@ -419,7 +420,7 @@ internal sealed class PointDefinitionEndpointTests
         await AssertError(missing, HttpStatusCode.NotFound, "not_found");
     }
 
-    private static Point Point(string id, string name, string? groupId = null) => new()
+    private static FlowPoint Point(string id, string name, string? groupId = null) => new()
     {
         Id = id,
         Name = name,
@@ -427,7 +428,7 @@ internal sealed class PointDefinitionEndpointTests
         GroupId = groupId,
         Implementation = "virtual",
         Direction = DataDirection.Value,
-        ValueType = PointValueType.Analog,
+        ValueType = FlowPointValueType.Analog,
         Readable = true,
         Persistence = "volatile"
     };

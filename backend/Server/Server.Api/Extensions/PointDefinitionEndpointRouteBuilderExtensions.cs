@@ -1,4 +1,5 @@
 using Server.Api.Contracts;
+using Server.Common.Contracts;
 using Server.Services;
 using Server.Services.Contracts;
 using System.Globalization;
@@ -55,7 +56,7 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
         }
 
         var all = await definitions.ListPointsAsync(cancellationToken);
-        IEnumerable<Point> filtered = all;
+        IEnumerable<FlowPoint> filtered = all;
         if (!string.IsNullOrWhiteSpace(options.Value!.Filter))
         {
             filtered = filtered.Where(point =>
@@ -135,12 +136,7 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
         CancellationToken cancellationToken)
     {
         var decoded = await Decode(request, PointYaml.Parse, cancellationToken);
-        if (decoded.Error is not null)
-        {
-            return decoded.Error;
-        }
-
-        return TryRevision(request.Headers.IfMatch.ToString(), "If-Match", out var revision)
+        return decoded.Error ?? (TryRevision(request.Headers.IfMatch.ToString(), "If-Match", out var revision)
             ? await Write(
                 response,
                 () => definitions.UpdatePointAsync(
@@ -150,7 +146,7 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
                     cancellationToken),
                 PointYaml.Render,
                 StatusCodes.Status200OK)
-            : Error(400, "invalid_revision", "If-Match must contain the last observed revision");
+            : Error(400, "invalid_revision", "If-Match must contain the last observed revision"));
     }
 
     private static async Task<IResult> DeletePoint(
@@ -202,12 +198,7 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
         CancellationToken cancellationToken)
     {
         var decoded = await Decode(request, PointGroupYaml.Parse, cancellationToken);
-        if (decoded.Error is not null)
-        {
-            return decoded.Error;
-        }
-
-        return TryRevision(request.Headers.IfMatch.ToString(), "If-Match", out var revision)
+        return decoded.Error ?? (TryRevision(request.Headers.IfMatch.ToString(), "If-Match", out var revision)
             ? await Write(
                 response,
                 () => definitions.UpdateGroupAsync(
@@ -217,7 +208,7 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
                     cancellationToken),
                 PointGroupYaml.Render,
                 StatusCodes.Status200OK)
-            : Error(400, "invalid_revision", "If-Match must contain the last observed revision");
+            : Error(400, "invalid_revision", "If-Match must contain the last observed revision"));
     }
 
     private static async Task<IResult> DeleteGroup(
@@ -329,7 +320,7 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
             var value = await operation();
             var revision = value switch
             {
-                Point point => point.Revision,
+                FlowPoint point => point.Revision,
                 PointGroup group => group.Revision,
                 _ => throw new InvalidOperationException("Unsupported point resource."),
             };
