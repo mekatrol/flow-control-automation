@@ -1000,10 +1000,10 @@ public sealed partial class FlowCompiler : IFlowCompiler
         instructions.Add(new CompiledInstructionV1(
             new Instruction(
                 FlowOpcode.Commit,
-                ushort.MaxValue,
-                ushort.MaxValue,
-                ushort.MaxValue,
-                ushort.MaxValue),
+                FlowILV1Format.Unused,
+                FlowILV1Format.Unused,
+                FlowILV1Format.Unused,
+                FlowILV1Format.Unused),
             string.Empty,
             NodeInstructionRole.None));
 
@@ -1107,9 +1107,9 @@ public sealed partial class FlowCompiler : IFlowCompiler
             instructions.Add(new CompiledInstructionV1(
                 new Instruction(
                     FlowOpcode.MemoryCommit,
-                    ushort.MaxValue,
+                    FlowILV1Format.Unused,
                     InputSlot(source, slots, id, "in"),
-                    ushort.MaxValue,
+                    FlowILV1Format.Unused,
                     stateSlots[id]),
                 id,
                 NodeInstructionRole.Secondary));
@@ -1203,7 +1203,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
                 [2, (byte)ResultDataType(model.Source, model.Nodes[id])],
                 U16(0),
                 U16(index),
-                U16(ushort.MaxValue)))
+                U16(FlowILV1Format.Unused)))
             .ToList();
 
         slotRecords.AddRange(model.StateIds.Select(id => model.Nodes[id].Kind switch
@@ -1940,7 +1940,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
  * NodeId and Role are compiler metadata used when building symbols/debug
  * information; they are not encoded into the instruction record itself.
  *
- * ushort.MaxValue (0xFFFF) represents an unused slot/index field.
+ * FlowILV1Format.Unused (0xFFFF) represents an unused slot/index field.
  */
     private static CompiledInstructionV1 CreatePrimaryInstruction(
         ExecutableFlowSource source,
@@ -1961,7 +1961,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
         //   NodeId        -> NOT encoded in section 4; used to build symbols/debug
         //   Role          -> NOT encoded in section 4; stored in symbol metadata
         //
-        // ushort.MaxValue (0xFFFF) is used wherever an index field is unused.
+        // FlowILV1Format.Unused (0xFFFF) is used wherever an index field is unused.
         var context = new InstructionCreationContext(
             source,
             slots,
@@ -2035,8 +2035,8 @@ public sealed partial class FlowCompiler : IFlowCompiler
                     new(
                         FlowOpcode.PointInput,
                         context.ResultSlotIndex,
-                        ushort.MaxValue,
-                        ushort.MaxValue,
+                        FlowILV1Format.Unused,
+                        FlowILV1Format.Unused,
                         PointIndex(context.Points, node, DataDirection.Input, DataType.Boolean)
                     ),
                     context.NodeId,
@@ -2047,8 +2047,8 @@ public sealed partial class FlowCompiler : IFlowCompiler
                     new(
                         FlowOpcode.PointInput,
                         context.ResultSlotIndex,
-                        ushort.MaxValue,
-                        ushort.MaxValue,
+                        FlowILV1Format.Unused,
+                        FlowILV1Format.Unused,
                         PointIndex(context.Points, node, DataDirection.Input, DataType.Number)
                     ),
                     context.NodeId,
@@ -2059,8 +2059,8 @@ public sealed partial class FlowCompiler : IFlowCompiler
                     new(
                         FlowOpcode.PointInput,
                         context.ResultSlotIndex,
-                        ushort.MaxValue,
-                        ushort.MaxValue,
+                        FlowILV1Format.Unused,
+                        FlowILV1Format.Unused,
                         PointIndex(
                             context.Points,
                             node,
@@ -2075,8 +2075,8 @@ public sealed partial class FlowCompiler : IFlowCompiler
                     new(
                         FlowOpcode.DigitalConstant,
                         context.ResultSlotIndex,
-                        ushort.MaxValue,
-                        ushort.MaxValue,
+                        FlowILV1Format.Unused,
+                        FlowILV1Format.Unused,
                         ConstantIndex(
                             context.Constants,
                             GetBooleanConstant(node.Configuration["value"].GetBoolean()))
@@ -2089,8 +2089,8 @@ public sealed partial class FlowCompiler : IFlowCompiler
                     new(
                         FlowOpcode.NumericConstant,
                         context.ResultSlotIndex,
-                        ushort.MaxValue,
-                        ushort.MaxValue,
+                        FlowILV1Format.Unused,
+                        FlowILV1Format.Unused,
                         ConstantIndex(context.Constants, GetNumericConstant(node, "value"))
                     ),
                     context.NodeId,
@@ -2101,8 +2101,8 @@ public sealed partial class FlowCompiler : IFlowCompiler
                     new(
                         FlowOpcode.DigitalConstant,
                         context.ResultSlotIndex,
-                        ushort.MaxValue,
-                        ushort.MaxValue,
+                        FlowILV1Format.Unused,
+                        FlowILV1Format.Unused,
                         ConstantIndex(
                             context.Constants,
                             GetBooleanConstant(node.Configuration["enabled"].GetBoolean()))
@@ -2130,8 +2130,8 @@ public sealed partial class FlowCompiler : IFlowCompiler
                         FlowOpcode.Not,
                         context.ResultSlotIndex,
                         InputSlot(context.Source, context.Slots, context.NodeId, "in"),
-                        ushort.MaxValue,
-                        ushort.MaxValue
+                        FlowILV1Format.Unused,
+                        FlowILV1Format.Unused
                     ),
                     context.NodeId,
                     NodeInstructionRole.Primary),
@@ -2156,7 +2156,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
                 context.ResultSlotIndex,
                 InputSlot(context.Source, context.Slots, context.NodeId, "a"),
                 InputSlot(context.Source, context.Slots, context.NodeId, "b"),
-                ushort.MaxValue
+                FlowILV1Format.Unused
             ),
             context.NodeId,
             NodeInstructionRole.Primary);
@@ -2180,7 +2180,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
                         context.ResultSlotIndex,
                         InputSlot(context.Source, context.Slots, context.NodeId, "a"),
                         InputSlot(context.Source, context.Slots, context.NodeId, "b"),
-                        ushort.MaxValue
+                        FlowILV1Format.Unused
                     ),
                     context.NodeId,
                     NodeInstructionRole.Primary),
@@ -2215,8 +2215,8 @@ public sealed partial class FlowCompiler : IFlowCompiler
                         FlowOpcode.QualityGood,
                         context.ResultSlotIndex,
                         InputSlot(context.Source, context.Slots, context.NodeId, "in"),
-                        ushort.MaxValue,
-                        ushort.MaxValue
+                        FlowILV1Format.Unused,
+                        FlowILV1Format.Unused
                     ),
                     context.NodeId,
                     NodeInstructionRole.Primary),
@@ -2230,8 +2230,8 @@ public sealed partial class FlowCompiler : IFlowCompiler
                         FlowOpcode.Passthrough,
                         context.ResultSlotIndex,
                         InputSlot(context.Source, context.Slots, context.NodeId, "input"),
-                        ushort.MaxValue,
-                        ushort.MaxValue
+                        FlowILV1Format.Unused,
+                        FlowILV1Format.Unused
                     ),
                     context.NodeId,
                     NodeInstructionRole.Primary),
@@ -2302,7 +2302,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
                 context.ResultSlotIndex,
                 InputSlot(context.Source, context.Slots, context.NodeId, "a"),
                 InputSlot(context.Source, context.Slots, context.NodeId, "b"),
-                ushort.MaxValue
+                FlowILV1Format.Unused
             ),
             context.NodeId,
             NodeInstructionRole.Primary);
@@ -2325,7 +2325,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
                         FlowOpcode.OnDelay,
                         context.ResultSlotIndex,
                         InputSlot(context.Source, context.Slots, context.NodeId, "in"),
-                        ushort.MaxValue,
+                        FlowILV1Format.Unused,
                         context.StateSlots[context.NodeId]
                     ),
                     context.NodeId,
@@ -2337,7 +2337,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
                         FlowOpcode.RisingEdge,
                         context.ResultSlotIndex,
                         InputSlot(context.Source, context.Slots, context.NodeId, "in"),
-                        ushort.MaxValue,
+                        FlowILV1Format.Unused,
                         context.StateSlots[context.NodeId]
                     ),
                     context.NodeId,
@@ -2348,8 +2348,8 @@ public sealed partial class FlowCompiler : IFlowCompiler
                     new(
                         FlowOpcode.Memory,
                         context.ResultSlotIndex,
-                        ushort.MaxValue,
-                        ushort.MaxValue,
+                        FlowILV1Format.Unused,
+                        FlowILV1Format.Unused,
                         context.StateSlots[context.NodeId]
                     ),
                     context.NodeId,
@@ -2361,7 +2361,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
                         FlowOpcode.OnDelay,
                         context.ResultSlotIndex,
                         InputSlot(context.Source, context.Slots, context.NodeId, "input"),
-                        ushort.MaxValue,
+                        FlowILV1Format.Unused,
                         context.StateSlots[context.NodeId]
                     ),
                     context.NodeId,
@@ -2373,7 +2373,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
                         FlowOpcode.RisingEdge,
                         context.ResultSlotIndex,
                         InputSlot(context.Source, context.Slots, context.NodeId, "input"),
-                        ushort.MaxValue,
+                        FlowILV1Format.Unused,
                         context.StateSlots[context.NodeId]
                     ),
                     context.NodeId,
@@ -2400,7 +2400,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
                         FlowOpcode.PointOutput,
                         context.ResultSlotIndex,
                         InputSlot(context.Source, context.Slots, context.NodeId, "in"),
-                        ushort.MaxValue,
+                        FlowILV1Format.Unused,
                         PointIndex(context.Points, node, DataDirection.Output, DataType.Boolean)
                     ),
                     context.NodeId,
@@ -2412,7 +2412,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
                         FlowOpcode.PointOutput,
                         context.ResultSlotIndex,
                         InputSlot(context.Source, context.Slots, context.NodeId, "in"),
-                        ushort.MaxValue,
+                        FlowILV1Format.Unused,
                         PointIndex(context.Points, node, DataDirection.Output, DataType.Number)
                     ),
                     context.NodeId,
@@ -2424,7 +2424,7 @@ public sealed partial class FlowCompiler : IFlowCompiler
                         FlowOpcode.PointOutput,
                         context.ResultSlotIndex,
                         InputSlot(context.Source, context.Slots, context.NodeId, "value"),
-                        ushort.MaxValue,
+                        FlowILV1Format.Unused,
                         PointIndex(
                             context.Points,
                             node,
