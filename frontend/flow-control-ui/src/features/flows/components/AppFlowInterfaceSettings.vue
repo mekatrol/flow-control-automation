@@ -5,8 +5,18 @@
         <h2 id="flow-interface-title">Flow inputs and outputs</h2>
         <p>Portable terminals for simulation and reusable flows.</p>
       </div>
-      <AppButton v-bind="automation('add-input')" text="Add input" @click="addInput" />
-      <AppButton v-bind="automation('add-output')" text="Add output" @click="addOutput" />
+      <AppButton
+        v-bind="automation('add-input')"
+        text="Add input"
+        :icon="addIcon"
+        @click="addInput"
+      />
+      <AppButton
+        v-bind="automation('add-output')"
+        text="Add output"
+        :icon="addIcon"
+        @click="addOutput"
+      />
     </div>
     <p v-if="error" role="alert" class="error">{{ error }}</p>
     <div class="entries">
@@ -40,18 +50,21 @@
         <AppButton
           v-bind="automation(`move-up-${entry.id}`)"
           text="Move input up"
+          :icon="moveUpIcon"
           :disabled="draft.inputs[0]?.id === entry.id"
           @click="moveInput(entry.id, -1)"
         />
         <AppButton
           v-bind="automation(`move-down-${entry.id}`)"
           text="Move input down"
+          :icon="moveDownIcon"
           :disabled="draft.inputs.at(-1)?.id === entry.id"
           @click="moveInput(entry.id, 1)"
         />
         <AppButton
           v-bind="automation(`remove-${entry.id}`)"
           text="Remove input"
+          :icon="removeIcon"
           @click="removeInput(entry.id)"
         />
       </fieldset>
@@ -70,18 +83,21 @@
         <AppButton
           v-bind="automation(`move-up-${entry.id}`)"
           text="Move output up"
+          :icon="moveUpIcon"
           :disabled="draft.outputs[0]?.id === entry.id"
           @click="moveOutput(entry.id, -1)"
         />
         <AppButton
           v-bind="automation(`move-down-${entry.id}`)"
           text="Move output down"
+          :icon="moveDownIcon"
           :disabled="draft.outputs.at(-1)?.id === entry.id"
           @click="moveOutput(entry.id, 1)"
         />
         <AppButton
           v-bind="automation(`remove-${entry.id}`)"
           text="Remove output"
+          :icon="removeIcon"
           @click="removeOutput(entry.id)"
         />
       </fieldset>
@@ -91,6 +107,10 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue';
+import addIcon from '@/assets/icons/new-flow-icon.svg';
+import moveDownIcon from '@/assets/icons/chevron-down-icon.svg';
+import moveUpIcon from '@/assets/icons/chevron-up-icon.svg';
+import removeIcon from '@/assets/icons/delete-flow-icon.svg';
 import AppButton from '@/components/AppButton.vue';
 import { useAutomation } from '@/composables/useAutomation';
 import { EVENTS } from '@/constants/events';

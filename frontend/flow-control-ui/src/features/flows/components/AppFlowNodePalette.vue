@@ -31,6 +31,7 @@
             v-if="definition.executable"
             v-bind="automation(`learn-${automationKind(definition.kind)}`)"
             text="Learn"
+            :icon="learnIcon"
             :aria-label="`Learn ${definition.label} block`"
             @click="emit(EVENTS.LEARN, definition.kind)"
           />
@@ -79,6 +80,7 @@ export const groupNodeKinds = (
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 
+import learnIcon from '@/assets/icons/info-notice-icon.svg';
 import AppButton from '@/components/AppButton.vue';
 import AppFilter from '@/components/AppFilter.vue';
 import AppSvg from '@/components/AppSvg.vue';

@@ -8,55 +8,70 @@
       <AppButton
         v-bind="automation('load')"
         text="Load"
+        :icon="loadIcon"
         :disabled="!canLoad"
         @click="emit('load')"
       />
       <AppButton
         v-bind="automation('step')"
         text="Step tick"
+        :icon="stepIcon"
         :disabled="!canStepTick"
         @click="emit('stepTick')"
       />
       <AppButton
         v-bind="automation('run-to-boundary')"
         text="Run to tick boundary"
+        :icon="stepIcon"
         :disabled="!canStepTick"
         @click="emit(EVENTS.RUN_TO_BOUNDARY)"
       />
       <AppButton
         v-bind="automation('step-node')"
         text="Step node"
+        :icon="stepNodeIcon"
         :disabled="!canStepNode"
         @click="emit('stepNode')"
       />
       <AppButton
         v-bind="automation('step-instruction')"
         text="Step instruction"
+        :icon="stepInstructionIcon"
         :disabled="!canStepInstruction"
         @click="emit('stepInstruction')"
       />
-      <AppButton v-bind="automation('run')" text="Run" :disabled="!canRun" @click="emit('run')" />
+      <AppButton
+        v-bind="automation('run')"
+        text="Run"
+        :icon="playIcon"
+        :disabled="!canRun"
+        @click="emit('run')"
+      />
       <AppButton
         v-bind="automation('run-to')"
         text="Run to breakpoint"
+        :icon="breakpointIcon"
         :disabled="!canRunTo"
         @click="emit('runTo')"
       />
       <AppButton
         v-bind="automation('pause')"
         text="Pause"
+        :icon="pauseIcon"
         :disabled="!canPause"
         @click="emit('pause')"
       />
       <AppButton
         v-bind="automation('stop')"
         text="Stop"
+        :icon="stopIcon"
         :disabled="!canStop"
         @click="emit('stop')"
       />
       <AppButton
         v-bind="automation('restart')"
         text="Restart"
+        :icon="refreshIcon"
         :disabled="!canRestart"
         @click="emit('restart')"
       />
@@ -73,6 +88,7 @@
         <AppButton
           v-bind="automation('enable-live-output')"
           text="Enable live outputs"
+          :icon="enableFlowIcon"
           :disabled="!canEnableLiveOutput"
           @click="emit('enableLiveOutput', affectedOutputPoints)"
         />
@@ -130,6 +146,9 @@
         class="diagnostic-link"
         @click="emit(EVENTS.SELECT_DIAGNOSTIC, diagnosticNodeId)"
       >
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+          <path d="M4 12h14M14 8l4 4-4 4M20 5v14" />
+        </svg>
         Go to affected node {{ diagnosticNodeId }}
       </button>
       <ul v-if="snapshot.proposedOutputs.length" aria-label="Proposed non-physical outputs">
@@ -143,6 +162,16 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import breakpointIcon from '@/assets/icons/breakpoint-icon.svg';
+import enableFlowIcon from '@/assets/icons/enable-flow-icon.svg';
+import loadIcon from '@/assets/icons/flow-debug-icon.svg';
+import pauseIcon from '@/assets/icons/pause-icon.svg';
+import playIcon from '@/assets/icons/play-icon.svg';
+import refreshIcon from '@/assets/icons/refresh-icon.svg';
+import stepIcon from '@/assets/icons/step-icon.svg';
+import stepInstructionIcon from '@/assets/icons/step-instruction-icon.svg';
+import stepNodeIcon from '@/assets/icons/step-node-icon.svg';
+import stopIcon from '@/assets/icons/stop-icon.svg';
 import AppButton from '@/components/AppButton.vue';
 import { useAutomation } from '@/composables/useAutomation';
 import { EVENTS } from '@/constants/events';
@@ -288,5 +317,19 @@ const diagnosticNodeId = computed(() => {
 .snapshot ul {
   width: 100%;
   margin: 0;
+}
+.diagnostic-link {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+.diagnostic-link svg {
+  width: 1.125rem;
+  height: 1.125rem;
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: var(--stroke-width-standard);
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 </style>

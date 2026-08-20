@@ -54,9 +54,13 @@
           type="text"
           placeholder="Use artifact flow ID"
         />
-        <button data-app-button type="button" :disabled="!importArtifact || importing" @click="previewIl">
-          {{ importing ? 'Validating…' : 'Preview recovery' }}
-        </button>
+        <AppButton
+          v-bind="automation('preview-il')"
+          :text="importing ? 'Validating…' : 'Preview recovery'"
+          :icon="previewIcon"
+          :disabled="!importArtifact || importing"
+          @click="previewIl"
+        />
       </div>
       <div v-if="importPreview" class="il-import-preview" role="status">
         <p>
@@ -68,9 +72,13 @@
         <ul v-if="importPreview.warnings.length">
           <li v-for="warning in importPreview.warnings" :key="warning">{{ warning }}</li>
         </ul>
-        <button data-app-button type="button" :disabled="importing" @click="saveIlImport">
-          Save as new editable flow
-        </button>
+        <AppButton
+          v-bind="automation('save-il-import')"
+          text="Save as new editable flow"
+          :icon="saveIcon"
+          :disabled="importing"
+          @click="saveIlImport"
+        />
       </div>
     </section>
 
@@ -147,6 +155,8 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import newFlowIcon from '@/assets/icons/new-flow-icon.svg';
+import previewIcon from '@/assets/icons/visibility-icon.svg';
+import saveIcon from '@/assets/icons/save-icon.svg';
 import AppButton from '@/components/AppButton.vue';
 import AppErrorNotice from '@/components/AppErrorNotice.vue';
 import AppFilter from '@/components/AppFilter.vue';

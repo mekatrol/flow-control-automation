@@ -16,6 +16,7 @@
           <AppButton
             v-bind="automation('reset-inputs')"
             text="Restore defaults"
+            :icon="refreshIcon"
             :disabled="!snapshot"
             @click="emit(EVENTS.RESET_INPUTS)"
           />
@@ -52,11 +53,13 @@
           <AppButton
             v-bind="automation('apply-step')"
             text="Apply inputs and run one scan"
+            :icon="stepIcon"
             :disabled="!snapshot"
             @click="applyAndStep"
           /><AppButton
             v-bind="automation('advance')"
             text="Advance 100 ms and scan"
+            :icon="advanceIcon"
             :disabled="!snapshot"
             @click="emit(EVENTS.ADVANCE, 100)"
           />
@@ -77,11 +80,13 @@
           <AppButton
             v-bind="automation('reset')"
             text="Reset state"
+            :icon="refreshIcon"
             :disabled="!snapshot"
             @click="emit(EVENTS.RESET, false)"
           /><AppButton
             v-bind="automation('power-cycle')"
             text="Power cycle"
+            :icon="powerCycleIcon"
             :disabled="!snapshot"
             @click="emit(EVENTS.RESET, true)"
           />
@@ -112,6 +117,10 @@
 </template>
 
 <script setup lang="ts">
+import advanceIcon from '@/assets/icons/chevron-right-icon.svg';
+import powerCycleIcon from '@/assets/icons/power-cycle-icon.svg';
+import refreshIcon from '@/assets/icons/refresh-icon.svg';
+import stepIcon from '@/assets/icons/step-icon.svg';
 import AppButton from '@/components/AppButton.vue';
 import { useAutomation } from '@/composables/useAutomation';
 import { computed, reactive, ref, watch } from 'vue';

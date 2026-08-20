@@ -55,21 +55,25 @@
         <AppButton
           v-bind="automation('breakpoint-before')"
           text="Breakpoint before"
+          :icon="breakpointIcon"
           @click="setSelectedBreakpoint('before')"
         />
         <AppButton
           v-bind="automation('breakpoint-after')"
           text="Breakpoint after"
+          :icon="breakpointIcon"
           @click="setSelectedBreakpoint('after')"
         />
         <AppButton
           v-bind="automation('breakpoint-clear')"
           text="Clear breakpoints"
+          :icon="cancelIcon"
           @click="setSelectedBreakpoint(null)"
         />
         <AppButton
           v-bind="automation('run-to-node')"
           text="Run to selected node"
+          :icon="playIcon"
           @click="emit(EVENTS.RUN_TO_NODE, selectedNodeId)"
         />
       </div>
@@ -200,6 +204,9 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue';
 
+import breakpointIcon from '@/assets/icons/breakpoint-icon.svg';
+import cancelIcon from '@/assets/icons/cancel-icon.svg';
+import playIcon from '@/assets/icons/play-icon.svg';
 import AppButton from '@/components/AppButton.vue';
 import { useAutomation } from '@/composables/useAutomation';
 import { EVENTS } from '@/constants/events';

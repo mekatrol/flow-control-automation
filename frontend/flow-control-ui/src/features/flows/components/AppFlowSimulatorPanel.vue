@@ -26,17 +26,20 @@
                 : 'Start simulation'
           "
           :disabled="!canStart"
+          :icon="loadIcon"
           @click="emit(EVENTS.START_SIMULATION)"
         />
         <AppButton
           v-bind="automation('run')"
           text="Run continuously"
+          :icon="playIcon"
           :disabled="!canExecute"
           @click="emit(EVENTS.RUN)"
         />
         <AppButton
           v-bind="automation('pause')"
           text="Pause"
+          :icon="pauseIcon"
           :disabled="lifecycle !== 'running'"
           @click="emit(EVENTS.PAUSE)"
         />
@@ -46,18 +49,21 @@
         <AppButton
           v-bind="automation('step-tick')"
           text="One scan"
+          :icon="stepIcon"
           :disabled="!canExecute"
           @click="emit(EVENTS.STEP_TICK)"
         />
         <AppButton
           v-bind="automation('step-mode')"
           text="Node"
+          :icon="stepNodeIcon"
           :disabled="!canStepNode"
           @click="emit(EVENTS.STEP_NODE)"
         />
         <AppButton
           v-bind="automation('step-instruction')"
           text="Instruction"
+          :icon="stepInstructionIcon"
           :disabled="!canStepInstruction"
           @click="emit(EVENTS.STEP_INSTRUCTION)"
         />
@@ -66,12 +72,14 @@
         <AppButton
           v-bind="automation('restart')"
           text="Restart"
+          :icon="refreshIcon"
           :disabled="!active || lifecycle === 'running'"
           @click="emit(EVENTS.RESTART)"
         />
         <AppButton
           v-bind="automation('stop')"
           text="Stop"
+          :icon="stopIcon"
           :disabled="!active"
           @click="emit(EVENTS.STOP_SIMULATION)"
         />
@@ -122,6 +130,14 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import loadIcon from '@/assets/icons/flow-simulate-icon.svg';
+import pauseIcon from '@/assets/icons/pause-icon.svg';
+import playIcon from '@/assets/icons/play-icon.svg';
+import refreshIcon from '@/assets/icons/refresh-icon.svg';
+import stepIcon from '@/assets/icons/step-icon.svg';
+import stepInstructionIcon from '@/assets/icons/step-instruction-icon.svg';
+import stepNodeIcon from '@/assets/icons/step-node-icon.svg';
+import stopIcon from '@/assets/icons/stop-icon.svg';
 import AppButton from '@/components/AppButton.vue';
 import AppFlowEmulatorPanel from '@/features/flows/components/AppFlowEmulatorPanel.vue';
 import { useAutomation } from '@/composables/useAutomation';

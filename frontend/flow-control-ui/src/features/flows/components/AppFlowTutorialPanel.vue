@@ -6,7 +6,12 @@
         <h2 id="tutorial-title">{{ tutorial.title }}</h2>
         <p>{{ tutorial.objective }}</p>
       </div>
-      <AppButton v-bind="automation('close')" text="Close tutorial" @click="emit(EVENTS.CLOSE)" />
+      <AppButton
+        v-bind="automation('close')"
+        text="Close tutorial"
+        :icon="closeIcon"
+        @click="emit(EVENTS.CLOSE)"
+      />
     </header>
     <ol>
       <li v-for="step in tutorial.guidance" :key="step.title">
@@ -19,11 +24,13 @@
       <AppButton
         v-bind="automation('open-example')"
         text="Open disposable example"
+        :icon="openIcon"
         @click="emit(EVENTS.OPEN_TUTORIAL, tutorial)"
       />
       <AppButton
         v-bind="automation('copy-example')"
         text="Copy to my flows"
+        :icon="copyIcon"
         @click="emit(EVENTS.COPY_TUTORIAL, tutorial)"
       />
     </div>
@@ -31,6 +38,9 @@
 </template>
 
 <script setup lang="ts">
+import closeIcon from '@/assets/icons/cancel-icon.svg';
+import copyIcon from '@/assets/icons/copy-icon.svg';
+import openIcon from '@/assets/icons/flow-design-icon.svg';
 import AppButton from '@/components/AppButton.vue';
 import { useAutomation } from '@/composables/useAutomation';
 import { EVENTS } from '@/constants/events';
