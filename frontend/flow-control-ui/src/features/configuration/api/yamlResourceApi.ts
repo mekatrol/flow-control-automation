@@ -42,7 +42,7 @@ export class YamlResourceError extends Error {
 }
 
 const request = async (url: string, init?: RequestInit): Promise<Response> => {
-  const response = await fetch(url, init);
+  const response = await waitForFetch(url, init);
   if (response.ok) return response;
   let message = `Request failed (${response.status})`;
   let details: unknown;
@@ -152,3 +152,4 @@ export const controllerTemplateConfigurationApi = {
     return body.diagnostics ?? [];
   }
 };
+import { waitForFetch } from '@/api/waitForFetch';

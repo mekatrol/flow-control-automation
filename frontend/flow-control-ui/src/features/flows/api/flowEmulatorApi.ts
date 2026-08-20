@@ -34,7 +34,7 @@ export interface EmulatorInputChange {
 }
 
 const json = async <T>(url: string, init?: RequestInit): Promise<T> => {
-  const response = await fetch(url, init);
+  const response = await waitForFetch(url, init);
   if (!response.ok) throw new Error(`Emulator request failed with status ${response.status}.`);
   return (await response.json()) as T;
 };
@@ -81,3 +81,4 @@ export const flowEmulatorApi = {
       method: 'POST'
     })
 };
+import { waitForFetch } from '@/api/waitForFetch';

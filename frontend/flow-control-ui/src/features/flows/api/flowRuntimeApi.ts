@@ -87,7 +87,7 @@ export const parseFlowRuntimeSnapshot = (payload: unknown): FlowRuntimeSnapshot 
 
 const requestRuntime = async (url: string, init: RequestInit): Promise<FlowRuntimeSnapshot> => {
   try {
-    const response = await fetch(url, init);
+    const response = await waitForFetch(url, init);
     if (!response.ok) {
       let message = `Runtime request failed with status ${response.status}.`;
       try {
@@ -131,3 +131,4 @@ export const flowRuntimeApi: FlowRuntimeApiClient = {
   getRuntime: (flowId, signal) =>
     requestRuntime(`/api/flows/${encodeURIComponent(flowId)}/runtime`, { method: 'GET', signal })
 };
+import { waitForFetch } from '@/api/waitForFetch';

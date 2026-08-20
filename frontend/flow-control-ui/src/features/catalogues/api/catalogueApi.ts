@@ -36,7 +36,7 @@ const queryString = (query: CatalogueQuery): string => {
 };
 
 const getJson = async (url: string, signal?: AbortSignal): Promise<unknown> => {
-  const response = await fetch(url, { signal });
+  const response = await waitForFetch(url, { signal });
   if (!response.ok) {
     let message = `Request failed (${response.status})`;
     try {
@@ -64,3 +64,4 @@ export const catalogueApi = {
     return parseControllerTemplateList(await getJson('/api/controller-templates', signal));
   }
 };
+import { waitForFetch } from '@/api/waitForFetch';

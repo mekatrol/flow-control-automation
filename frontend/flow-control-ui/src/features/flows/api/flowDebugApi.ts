@@ -1,4 +1,5 @@
 import { FlowApiError } from './flowApi';
+import { waitForFetch } from '@/api/waitForFetch';
 import type { FlowInterface } from '@/features/flows/types';
 
 export type DebugLifecycleState =
@@ -304,7 +305,7 @@ const request = async <T>(
   parse: (value: unknown) => T
 ): Promise<T> => {
   try {
-    const response = await fetch(url, init);
+    const response = await waitForFetch(url, init);
     if (!response.ok) {
       const body = (await response.json().catch(() => ({}))) as { message?: unknown };
       throw new FlowApiError(
@@ -444,7 +445,7 @@ export const flowDebugApi = {
       parseSession
     ),
   stop: async (flowId: string, sessionId: string, keepalive = false): Promise<void> => {
-    const response = await fetch(`${base(flowId)}/${encodeURIComponent(sessionId)}/stop`, {
+    const response = await waitForFetch(`${base(flowId)}/${encodeURIComponent(sessionId)}/stop`, {
       method: 'POST',
       keepalive
     });

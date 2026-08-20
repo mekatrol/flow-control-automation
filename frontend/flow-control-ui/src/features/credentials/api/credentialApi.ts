@@ -21,7 +21,7 @@ export interface CredentialInput {
 }
 
 const request = async (url: string, init?: RequestInit): Promise<Response> => {
-  const response = await fetch(url, init);
+  const response = await waitForFetch(url, init);
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as { message?: string };
     throw new Error(body.message ?? `Request failed (${response.status})`);
@@ -56,3 +56,4 @@ export const credentialApi = {
     });
   }
 };
+import { waitForFetch } from '@/api/waitForFetch';

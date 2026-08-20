@@ -1,4 +1,5 @@
 import { FlowDtoValidationError, parseFlowDto, type FlowDto } from './flowDto';
+import { waitForFetch } from '@/api/waitForFetch';
 
 export type FlowApiErrorKind = 'cancelled' | 'http' | 'network' | 'validation';
 
@@ -43,7 +44,7 @@ const httpError = async (response: Response): Promise<FlowApiError> => {
 // it can reach Pinia or any editing component.
 const requestFlow = async (url: string, init: RequestInit): Promise<FlowDto> => {
   try {
-    const response = await fetch(url, init);
+    const response = await waitForFetch(url, init);
     if (!response.ok) {
       throw await httpError(response);
     }
@@ -134,7 +135,7 @@ const positiveIntegerField = (payload: Record<string, unknown>, key: string): nu
 
 const requestFlows = async (url: string, init: RequestInit): Promise<FlowPage> => {
   try {
-    const response = await fetch(url, init);
+    const response = await waitForFetch(url, init);
     if (!response.ok) {
       throw await httpError(response);
     }
@@ -180,7 +181,7 @@ const requestEmpty = async (url: string, init: RequestInit): Promise<void> => {
   // Delete responses intentionally have no JSON body, so parsing them like a flow
   // would turn a valid 204 No Content response into a validation error.
   try {
-    const response = await fetch(url, init);
+    const response = await waitForFetch(url, init);
     if (!response.ok) {
       throw await httpError(response);
     }
@@ -244,7 +245,7 @@ export const flowApi: FlowApiClient = {
     requestEmpty(`/api/flows/${encodeURIComponent(flowId)}`, { method: 'DELETE', signal }),
   importFlowIl: async (artifactBase64, name, save, signal) => {
     try {
-      const response = await fetch('/api/flows/import-il', {
+      const response = await waitForFetch('/api/flows/import-il', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ artifactBase64, name, save }),

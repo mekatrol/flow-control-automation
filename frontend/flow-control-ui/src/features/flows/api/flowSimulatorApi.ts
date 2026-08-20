@@ -1,4 +1,5 @@
 import { FlowApiError } from './flowApi';
+import { waitForFetch } from '@/api/waitForFetch';
 import type {
   DebugRuntimeSnapshot,
   ExecutableFlowSource,
@@ -88,7 +89,7 @@ const request = async (
   signal?: AbortSignal
 ): Promise<SimulatorSession> => {
   try {
-    const response = await fetch(url, { ...init, signal });
+    const response = await waitForFetch(url, { ...init, signal });
     if (!response.ok) {
       const body: unknown = await response.json().catch(() => undefined);
       throw new FlowApiError('http', errorMessage(body, response.status), response.status);
@@ -188,7 +189,10 @@ export const flowSimulatorApi = {
   pause: (flowId: string, sessionId: string, signal?: AbortSignal) =>
     request(`${sessionUrl(flowId, sessionId)}/pause`, { method: 'POST' }, signal),
   stop: async (flowId: string, sessionId: string, keepalive = false): Promise<void> => {
-    const response = await fetch(sessionUrl(flowId, sessionId), { method: 'DELETE', keepalive });
+    const response = await waitForFetch(sessionUrl(flowId, sessionId), {
+      method: 'DELETE',
+      keepalive
+    });
     if (!response.ok && response.status !== 404)
       throw new FlowApiError(
         'http',

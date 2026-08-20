@@ -42,7 +42,7 @@ const messageFrom = async (response: Response): Promise<string> => {
 };
 
 const request = async (url: string, init?: RequestInit): Promise<Response> => {
-  const response = await fetch(url, init);
+  const response = await waitForFetch(url, init);
   if (!response.ok) throw new Error(await messageFrom(response));
   return response;
 };
@@ -94,3 +94,4 @@ export const pointSourceApi = {
     return response.json() as Promise<ConnectionTestResult>;
   }
 };
+import { waitForFetch } from '@/api/waitForFetch';

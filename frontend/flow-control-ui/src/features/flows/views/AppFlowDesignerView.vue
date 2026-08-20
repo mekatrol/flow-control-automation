@@ -282,7 +282,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
-import { useWait } from '@/composables/useWait';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
 import { ROUTE_NAMES } from '@/router';
 
@@ -343,7 +342,6 @@ const props = defineProps<{
   workspaceMode: 'design' | 'simulator' | 'debugger';
 }>();
 const automation = useAutomation('flow-designer');
-const { wait, endWait } = useWait();
 
 const flowStore = useFlowsStore();
 const runtimeStore = useFlowRuntimeStore();
@@ -910,7 +908,6 @@ const setFlowDisabled = async (disabled: boolean): Promise<void> => {
 const saveFlow = async (): Promise<void> => {
   const payload = flowStore.flowPayload(props.flowId);
   if (!payload) return;
-  wait();
   saving.value = true;
   saveError.value = undefined;
   try {
@@ -922,7 +919,6 @@ const saveFlow = async (): Promise<void> => {
     saveError.value = error instanceof Error ? error.message : 'Unable to save this flow.';
   } finally {
     saving.value = false;
-    endWait();
   }
 };
 
