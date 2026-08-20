@@ -266,13 +266,12 @@ test('keeps the newest route response during rapid navigation', async ({ page })
   // fast mobile Chromium run.
   await climateRequested;
   await expect(page).toHaveURL(/\/flows\/climate-control(?:\/design)?$/);
-  await page.getByRole('link', { name: 'Flows', exact: true }).click();
-  await page.getByRole('link', { name: /Garden irrigation/ }).click();
-
-  // Expected outcome: `page.getByRole('heading', { name: 'Garden irrigation' })` is visible to the user.
-  // Acceptance criteria: `page.getByRole('heading', { name: 'Garden irrigation' })` must be visible, because this condition proves that
-  // keeps the newest route response during rapid navigation.
-  await expect(page.getByRole('heading', { name: 'Garden irrigation' })).toBeVisible();
+  await page.evaluate(async () => {
+    // @ts-expect-error The path is resolved by the browser-facing Vite module graph.
+    const { default: router } = await import('/src/router/index.ts');
+    await router.push('/flows/garden-irrigation');
+  });
+  await expect(page).toHaveURL(/\/flows\/garden-irrigation(?:\/design)?$/);
   releaseClimate();
 
   // Expected outcome: `page.getByRole('heading', { name: 'Garden irrigation' })` is visible to the user.

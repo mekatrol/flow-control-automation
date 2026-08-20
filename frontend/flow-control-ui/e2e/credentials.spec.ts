@@ -110,6 +110,7 @@ test('creates a write-only credential and never displays its secret again', asyn
 test('requires an explicit action to close the credential dialog', async ({ page }) => {
   await page.route('/api/credentials', (route) => route.fulfill({ json: { items: [] } }));
   await page.goto('/credentials');
+  await expect(page.locator('.spinner-overlay')).toBeHidden();
 
   const dialog = page.getByRole('dialog', { name: 'Create new credential' });
   await page.getByRole('button', { name: 'New credential' }).click();
