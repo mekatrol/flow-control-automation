@@ -1,6 +1,6 @@
 using Server.Common.Contracts;
 
-namespace Server.Common.Services;
+namespace Server.Compiler.Services;
 
 /// <summary>
 /// Compiles an editable flow for an already-resolved controller target.

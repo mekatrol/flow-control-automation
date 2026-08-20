@@ -1,5 +1,6 @@
 using Server.Common.Contracts;
 using Server.Common.Services;
+using Server.Compiler.Services;
 using System.Collections.Concurrent;
 
 namespace Server.Services.Implementation;

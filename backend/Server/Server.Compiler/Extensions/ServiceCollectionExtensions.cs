@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Server.Common.Services;
+using Server.Compiler.Services;
 using Server.Compiler.Services.Implementation;
 
 namespace Server.Compiler.Extensions;

@@ -1,6 +1,6 @@
 using Server.Common.Contracts;
 
-namespace Server.Common.Services;
+namespace Server.Compiler.Services;
 
 /// <summary>Validates portable Flow IL and recovers the current authoring-flow representation.</summary>
 public interface IFlowDecompiler

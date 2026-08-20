@@ -1,6 +1,6 @@
 using Server.Common.Contracts;
 
-namespace Server.Common.Services;
+namespace Server.Compiler.Services;
 
 /// <summary>Resolves an executable flow's pinned dependencies into one immutable compilation target.</summary>
 public interface IFlowCompilationTargetResolver
