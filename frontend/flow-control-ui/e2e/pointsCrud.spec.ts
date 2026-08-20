@@ -4,8 +4,8 @@ import { expect, test } from '@playwright/test';
 const pointYaml = `schemaVersion: 1
 groups: []
 points:
-  - id: room-value
-    name: Room value
+  - id: new-digital
+    name: New digital point
     enabled: true
     implementation: virtual
     direction: value
@@ -17,10 +17,10 @@ points:
 `;
 
 test.beforeEach(async ({ page }) => {
-  await page.route('**/api/points/room-value/runtime', async (route) => {
+  await page.route('**/api/points/new-digital/runtime', async (route) => {
     await route.fulfill({
       json: {
-        pointId: 'room-value',
+        pointId: 'new-digital',
         value: null,
         units: 'percent',
         quality: 'unavailable',
@@ -33,7 +33,7 @@ test.beforeEach(async ({ page }) => {
       }
     });
   });
-  await page.route('**/api/points/room-value', async (route) => {
+  await page.route('**/api/points/new-digital', async (route) => {
     await route.fulfill({
       status: 200,
       body: pointYaml,
@@ -73,7 +73,7 @@ test('creates, reloads and honestly presents an unavailable point value', async 
   // Expected outcome: Navigation reaches the required route.
   // Acceptance criteria: the page URL must match `'/points/room-value'`, because this condition proves that
   // creates, reloads and honestly presents an unavailable point value.
-  await expect(page).toHaveURL('/points/room-value');
+  await expect(page).toHaveURL('/points/new-digital');
 
   // Expected outcome: `page.getByRole('heading', { name: 'Live point value' })` is visible to the user.
   // Acceptance criteria: `page.getByRole('heading', { name: 'Live point value' })` must be visible, because this condition proves that

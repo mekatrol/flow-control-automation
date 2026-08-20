@@ -9,7 +9,7 @@ sources:
   - id: weather
     name: Weather API
     enabled: true
-    kind: http_json
+    kind: httpJson
     connection:
       baseUrl: https://weather.example.test
       allowedReadMethods: [GET]
@@ -118,9 +118,9 @@ test('catalogue and YAML editor support create, test, retry, and keyboard use', 
   await page.getByRole('button', { name: 'Use this example' }).click();
 
   // Expected outcome: Loading the selected HTTP example replaces the editor configuration.
-  // Acceptance criteria: The rendered YAML contains `kind: http_json` because the selected
+  // Acceptance criteria: The rendered YAML contains `kind: httpJson` because the selected
   // example must become the active configuration before it can be tested or saved.
-  await expect(page.locator('.monaco-editor .view-lines')).toContainText('kind: http_json');
+  await expect(page.locator('.monaco-editor .view-lines')).toContainText('kind: httpJson');
 
   // Expected outcome: A valid loaded example is eligible for persistence.
   // Acceptance criteria: Save is enabled because the HTTP example satisfies the point-source

@@ -151,6 +151,20 @@ const string = (value: unknown, path: string): string => {
   if (typeof value !== 'string') throw new TypeError(`${path} must be a string.`);
   return value;
 };
+const parseTypedValue = (value: unknown, path: string): DebugTypedValue => {
+  if (!isRecord(value)) throw new TypeError(`${path} is invalid.`);
+  const dataType = text(value.dataType, `${path}.dataType`);
+  if (value.value !== null && value.value !== undefined && typeof value.value !== 'boolean')
+    throw new TypeError(`${path}.value is invalid.`);
+  if (value.number !== null && value.number !== undefined && typeof value.number !== 'number')
+    throw new TypeError(`${path}.number is invalid.`);
+  return {
+    type: dataType,
+    ...(typeof value.value === 'boolean' ? { value: value.value } : {}),
+    ...(typeof value.number === 'number' ? { number: value.number } : {}),
+    ...(typeof value.quality === 'string' ? { quality: value.quality } : {})
+  };
+};
 const lifecycle = (value: unknown): DebugLifecycleState => {
   const state = text(value, 'lifecycleState') as DebugLifecycleState;
   if (
@@ -166,12 +180,7 @@ const parseNode = (value: unknown, index: number): DebugNodeSnapshot => {
   if (!isRecord(value)) throw new TypeError(`nodes[${index}] must be an object.`);
   let typedValue: DebugTypedValue | undefined;
   if (value.typedValue !== null && value.typedValue !== undefined) {
-    if (!isRecord(value.typedValue) || typeof value.typedValue.value !== 'boolean')
-      throw new TypeError(`nodes[${index}].typedValue is invalid.`);
-    typedValue = {
-      type: text(value.typedValue.type, `nodes[${index}].typedValue.type`),
-      value: value.typedValue.value
-    };
+    typedValue = parseTypedValue(value.typedValue, `nodes[${index}].typedValue`);
   }
   return {
     nodeId: text(value.nodeId, `nodes[${index}].nodeId`),

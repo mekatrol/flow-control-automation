@@ -9,7 +9,8 @@ const snapshot = {
   nodes: {
     'temperature-average': {
       state: 'running' as const,
-      value: '22.4 C',
+      value: true,
+      typedValue: { dataType: 'number', boolean: false, number: 22.4, quality: 'good' },
       updatedAt: '2026-07-14T08:00:00+10:00'
     }
   }

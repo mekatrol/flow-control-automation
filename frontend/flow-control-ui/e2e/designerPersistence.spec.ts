@@ -246,19 +246,26 @@ test('keeps the newest route response during rapid navigation', async ({ page })
   const climateReady = new Promise<void>((resolve) => {
     releaseClimate = resolve;
   });
+  let markClimateRequested!: () => void;
+  const climateRequested = new Promise<void>((resolve) => {
+    markClimateRequested = resolve;
+  });
   await page.route('**/api/flows/*', async (route) => {
     const id = new URL(route.request().url()).pathname.split('/').at(-1);
-    if (id === 'climate-control') await climateReady;
+    if (id === 'climate-control') {
+      markClimateRequested();
+      await climateReady;
+    }
     const flow = sampleFlows.find((candidate) => candidate.id === id);
     await route.fulfill({ status: flow ? 200 : 404, json: flow ?? {} });
   });
 
   await page.goto('/flows/climate-control');
-
-  // Expected outcome: `page.getByText('Loading latest flow…')` is visible to the user.
-  // Acceptance criteria: `page.getByText('Loading latest flow…')` must be visible, because this condition proves that
-  // keeps the newest route response during rapid navigation.
-  await expect(page.getByText('Loading latest flow…')).toBeVisible();
+  // Synchronize with the deliberately delayed request itself. The loading text
+  // is transient and can be painted between Playwright polling intervals on a
+  // fast mobile Chromium run.
+  await climateRequested;
+  await expect(page).toHaveURL(/\/flows\/climate-control(?:\/design)?$/);
   await page.getByRole('link', { name: 'Flows', exact: true }).click();
   await page.getByRole('link', { name: /Garden irrigation/ }).click();
 

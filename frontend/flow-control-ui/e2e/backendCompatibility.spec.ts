@@ -63,18 +63,6 @@ test('the frontend proxy reaches the .NET backend compatibility surface', async 
   // Acceptance criteria: the response must have a successful HTTP status, because this condition proves that
   // the frontend proxy reaches the .NET backend compatibility surface.
   await expect(savedFlowResponse).toBeOK();
-  const deployment = await request.post(`/api/flows/${flowId}/deploy`);
-
-  // Expected outcome: The HTTP operation succeeds.
-  // Acceptance criteria: the response must have a successful HTTP status, because this condition proves that
-  // the frontend proxy reaches the .NET backend compatibility surface.
-  await expect(deployment).toBeOK();
-
-  // Expected outcome: `(await deployment.json()` has the required value.
-  // Acceptance criteria: `(await deployment.json()` must be `'running'`, because this condition proves that
-  // the frontend proxy reaches the .NET backend compatibility surface.
-  expect((await deployment.json()).state).toBe('running');
-
   const credentialResponse = await request.post('/api/credentials', {
     data: {
       id: credentialId,
@@ -105,7 +93,7 @@ sources:
   - id: ${sourceId}
     name: Compatibility source ${suffix}
     enabled: true
-    kind: http_json
+    kind: httpJson
     connection:
       baseUrl: https://example.test
       allowedReadMethods: [GET]

@@ -156,7 +156,11 @@
               :node="node"
               :selected="node.id === selectedNodeId"
               :status="runtime?.nodes[node.id]?.state ?? flow.status"
-              :status-value="runtime?.nodes[node.id]?.value"
+              :status-value="
+                runtime?.nodes[node.id]?.value === undefined
+                  ? undefined
+                  : String(runtime.nodes[node.id]?.value)
+              "
               :connection-start="connectionStart"
               :compatible-connector-keys="compatibleConnectorKeys"
               :current="node.id === currentNodeId"

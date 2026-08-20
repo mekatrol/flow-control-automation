@@ -5,8 +5,17 @@ export type NodeRuntimeState = 'idle' | 'running' | 'stopped' | 'error';
 
 export interface NodeRuntimeSnapshot {
   state: NodeRuntimeState;
-  value?: string;
+  // String values are retained for locally synthesized debugger snapshots; HTTP parsing only accepts the backend's boolean value.
+  value?: boolean | string;
+  typedValue?: RuntimeTypedValue;
   updatedAt: string;
+}
+
+export interface RuntimeTypedValue {
+  dataType: 'any' | 'boolean' | 'number' | 'string' | 'event';
+  boolean: boolean;
+  number: number;
+  quality: 'good' | 'bad' | 'uncertain' | 'unavailable';
 }
 
 export interface FlowRuntimeSnapshot {
@@ -44,11 +53,27 @@ export const parseFlowRuntimeSnapshot = (payload: unknown): FlowRuntimeSnapshot 
       throw new TypeError(`Runtime node ${nodeId} has an invalid state.`);
     if (!isDate(candidate.updatedAt))
       throw new TypeError(`Runtime node ${nodeId} has an invalid timestamp.`);
-    if (candidate.value !== undefined && typeof candidate.value !== 'string')
+    if (candidate.value !== undefined && candidate.value !== null && typeof candidate.value !== 'boolean')
       throw new TypeError(`Runtime node ${nodeId} has an invalid value.`);
+    if (candidate.typedValue !== undefined && candidate.typedValue !== null) {
+      if (!isRecord(candidate.typedValue))
+        throw new TypeError(`Runtime node ${nodeId} has an invalid typed value.`);
+      const typed = candidate.typedValue;
+      if (
+        !['any', 'boolean', 'number', 'string', 'event'].includes(String(typed.dataType)) ||
+        typeof typed.boolean !== 'boolean' ||
+        typeof typed.number !== 'number' ||
+        !Number.isFinite(typed.number) ||
+        !['good', 'bad', 'uncertain', 'unavailable'].includes(String(typed.quality))
+      )
+        throw new TypeError(`Runtime node ${nodeId} has an invalid typed value.`);
+    }
     nodes[nodeId] = {
       state: candidate.state as NodeRuntimeState,
-      ...(candidate.value === undefined ? {} : { value: candidate.value }),
+      ...(typeof candidate.value === 'boolean' ? { value: candidate.value } : {}),
+      ...(isRecord(candidate.typedValue)
+        ? { typedValue: candidate.typedValue as unknown as RuntimeTypedValue }
+        : {}),
       updatedAt: candidate.updatedAt
     };
   }

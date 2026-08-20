@@ -15,9 +15,9 @@ const template = (
     pointDirections: ['input', 'output'],
     pointFeatures: ['read', 'command'],
     connectorDataTypes: ['boolean'],
-    flowFunctions: ['and', 'not', 'or', 'read-point', 'write-point'],
+    flowFunctions: ['and', 'not', 'or', 'readPoint', 'writePoint'],
     executionModes: ['interval'],
-    runtimeFeatures: ['bound_points']
+    runtimeFeatures: ['boundPoints']
   },
   limits: {},
   revision: 3,
@@ -68,7 +68,7 @@ describe('flow debug targets', () => {
         template({
           capabilities: {
             ...template().capabilities,
-            flowFunctions: ['and', 'not', 'or', 'read-point']
+            flowFunctions: ['and', 'not', 'or', 'readPoint']
           }
         })
       )

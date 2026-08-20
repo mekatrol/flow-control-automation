@@ -118,9 +118,9 @@ capabilities:
   pointDirections: [input, output]
   pointFeatures: [read, command]
   connectorDataTypes: [boolean]
-  flowFunctions: [and, read-point, write-point]
+  flowFunctions: [and, readPoint, writePoint]
   executionModes: [interval]
-  runtimeFeatures: [bound_points]
+  runtimeFeatures: [boundPoints]
 limits:
   maxFlows: 8
   maxNodesPerFlow: 64

@@ -173,7 +173,7 @@ interface SourceExample {
 }
 const sourceExamples: SourceExample[] = [
   {
-    kind: 'home_assistant',
+    kind: 'homeAssistant',
     name: 'Home Assistant',
     summary: 'Read entities and subscribe to Home Assistant events.',
     yaml: `schemaVersion: 1
@@ -182,7 +182,7 @@ sources:
     name: Home Assistant
     description: Home automation server
     enabled: true
-    kind: home_assistant
+    kind: homeAssistant
     connection:
       baseUrl: https://homeassistant.local:8123
       subscribeEvents: true
@@ -221,7 +221,7 @@ sources:
 `
   },
   {
-    kind: 'http_json',
+    kind: 'httpJson',
     name: 'HTTP / JSON',
     summary: 'Poll a read-only web API that returns JSON.',
     yaml: `schemaVersion: 1
@@ -230,7 +230,7 @@ sources:
     name: HTTP JSON API
     description: Read-only web API
     enabled: true
-    kind: http_json
+    kind: httpJson
     connection:
       baseUrl: https://api.example.com
       allowedReadMethods: [GET]
@@ -245,7 +245,7 @@ sources:
 `
   }
 ];
-const selectedExampleKind = ref<PointSourceKind>('http_json');
+const selectedExampleKind = ref<PointSourceKind>('httpJson');
 const selectedExample = computed(
   () => sourceExamples.find(({ kind }) => kind === selectedExampleKind.value) ?? sourceExamples[2]!
 );

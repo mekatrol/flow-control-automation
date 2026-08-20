@@ -1,11 +1,14 @@
 import { defineConfig, devices } from '@playwright/test';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 // Allow parallel worktrees or a developer's existing preview server to coexist
 // with an isolated test run while preserving the usual local default.
 const port = Number(process.env.FLOW_UI_E2E_PORT ?? 5174);
 const baseURL = `http://127.0.0.1:${port}`;
 const useDotnetBackend = process.env.FLOW_UI_E2E_BACKEND === 'dotnet';
-const backendURL = 'http://127.0.0.1:5008';
+const externalBackendURL = process.env.FLOW_UI_E2E_BACKEND_URL;
+const backendURL = externalBackendURL ?? 'http://127.0.0.1:5008';
 const testEncryptionKey = 'AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=';
 const isHeaded = process.argv.includes('--headed');
 
@@ -43,7 +46,7 @@ export default defineConfig({
     }
   ],
   webServer: [
-    ...(useDotnetBackend
+    ...(useDotnetBackend && !externalBackendURL
       ? [
           {
             command:
@@ -54,7 +57,7 @@ export default defineConfig({
             env: {
               SERVER_ADDRESS: backendURL,
               CREDENTIAL_ENCRYPTION_KEY: testEncryptionKey,
-              ConnectionStrings__FlowControl: `Data Source=/tmp/flow-control-e2e-${process.pid}.db`
+              ConnectionStrings__FlowControl: `Data Source=${join(tmpdir(), `flow-control-e2e-${process.pid}.db`)}`
             }
           }
         ]

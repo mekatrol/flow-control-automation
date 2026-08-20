@@ -110,7 +110,9 @@ const rangeEnd = computed(() =>
   Math.min(store.result.page * store.result.pageSize, store.result.totalItems)
 );
 const list = (values: string[]): string =>
-  values.map((value) => value.replaceAll('_', ' ')).join(', ');
+  values
+    .map((value) => value.replaceAll('_', ' ').replaceAll(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase())
+    .join(', ');
 const limits = (value: ControllerTemplateSummary['limits']): string => {
   const configured = [
     value.maxFlows && `${value.maxFlows} flows`,

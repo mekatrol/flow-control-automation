@@ -1,4 +1,4 @@
-export type PointSourceKind = 'home_assistant' | 'mqtt' | 'http_json';
+export type PointSourceKind = 'homeAssistant' | 'mqtt' | 'httpJson';
 
 export interface PointSourceSummary {
   id: string;

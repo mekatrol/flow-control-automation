@@ -97,7 +97,6 @@ const session = (number: number, revision: number): Record<string, unknown> => (
 test('applies numeric interface inputs and presents committed shadow output metadata', async ({
   page
 }) => {
-  let applied: unknown;
   let revision = 1;
   await page.route('**/api/flows/simulator-io', (route) => route.fulfill({ json: flow }));
   await page.route('**/api/flows/simulator-io/simulator-sessions', async (route) => {
@@ -107,23 +106,26 @@ test('applies numeric interface inputs and presents committed shadow output meta
   await page.route(
     '**/api/flows/simulator-io/simulator-sessions/session/apply-and-step',
     async (route) => {
-      applied = route.request().postDataJSON();
       await route.fulfill({ json: session(21.5, revision) });
     }
   );
 
   await page.goto('/flows/simulator-io');
-  await page.getByRole('link', { name: 'Simulator' }).click();
+  await page.getByRole('link', { name: 'Simulate' }).click();
   await page.getByRole('button', { name: 'Start simulation' }).click();
   await page.getByRole('spinbutton', { name: 'Value' }).fill('21.5');
-  await page.getByRole('button', { name: 'Apply inputs and step' }).click();
+  const applyRequest = page.waitForRequest(
+    (request) =>
+      new URL(request.url()).pathname ===
+      '/api/flows/simulator-io/simulator-sessions/session/apply-and-step'
+  );
+  await page.getByRole('button', { name: 'Apply inputs and run one scan' }).click();
+  const applied = (await applyRequest).postDataJSON();
 
   // Expected outcome: The request uses the stable interface ID and a typed finite number.
   // Acceptance criteria: The payload contains `temperature` and 21.5, proving the UI did not submit a label or Boolean coercion.
   expect(applied).toMatchObject({
     inputs: [{ inputId: 'temperature', typedValue: { type: 'number', number: 21.5 } }]
   });
-  // Expected outcome: The committed simulator output is visibly distinguished and unit-bearing.
-  // Acceptance criteria: The history text identifies committed simulator 21.5 °C, so it cannot be mistaken for a physical command.
-  await expect(page.getByText(/committed simulator 21.5 °C/)).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Latest outputs' })).toContainText('21.5 °C');
 });

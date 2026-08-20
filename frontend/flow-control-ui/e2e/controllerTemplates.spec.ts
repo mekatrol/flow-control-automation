@@ -13,13 +13,13 @@ test.beforeEach(async ({ page }) => {
             description: 'Built-in unrestricted application target',
             readOnly: true,
             capabilities: {
-              pointTypes: ['analog', 'digital', 'multi_state', 'integer', 'text'],
-              pointDirections: ['input', 'output', 'input_output', 'value'],
+              pointTypes: ['analog', 'digital', 'multiState', 'integer', 'text'],
+              pointDirections: ['input', 'output', 'inputOutput', 'value'],
               pointFeatures: ['read', 'command', 'quality'],
               connectorDataTypes: ['any', 'boolean', 'event', 'number', 'string'],
-              flowFunctions: ['and', 'read-point', 'write-point'],
+              flowFunctions: ['and', 'readPoint', 'writePoint'],
               executionModes: ['event', 'interval'],
-              runtimeFeatures: ['virtual_points', 'bound_points']
+              runtimeFeatures: ['virtualPoints', 'boundPoints']
             },
             limits: {
               maxFlows: null,

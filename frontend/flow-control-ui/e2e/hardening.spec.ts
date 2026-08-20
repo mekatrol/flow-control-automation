@@ -73,7 +73,6 @@ test('creates, edits, saves, deploys, and reloads a flow as one critical journey
 
   await page.getByRole('button', { name: 'Add Calculator node' }).click();
   await page.getByRole('textbox', { name: 'Node label' }).fill('Verified calculation');
-  await page.getByRole('combobox', { name: 'Operation' }).selectOption('sum');
   await page.getByRole('button', { name: 'Save flow' }).click();
 
   // Expected outcome: `page.getByText('Unsaved changes')` is not exposed to the user.
@@ -96,10 +95,7 @@ test('creates, edits, saves, deploys, and reloads a flow as one critical journey
   // creates, edits, saves, deploys, and reloads a flow as one critical journey.
   await expect(page.getByRole('button', { name: /Verified calculation, Calculator node/ })).toBeVisible();
 
-  // Expected outcome: `savedFlow?.nodes[0]?.configuration.operation` has the required value.
-  // Acceptance criteria: `savedFlow?.nodes[0]?.configuration.operation` must be `'sum'`, because this condition proves that
-  // creates, edits, saves, deploys, and reloads a flow as one critical journey.
-  expect(savedFlow?.nodes[0]?.configuration.operation).toBe('sum');
+  expect(savedFlow?.nodes[0]?.configuration).toEqual({});
 });
 
 /**

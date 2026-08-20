@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { parseDebugSnapshot, type DebugRuntimeSnapshot } from '@/features/flows/api/flowDebugApi';
+import { parseDebugSnapshot } from '@/features/flows/api/flowDebugApi';
 
-const snapshot = (): DebugRuntimeSnapshot => ({
+const snapshot = () => ({
   debugSessionId: '42',
   flowId: 'flow-a',
   revision: 7,
@@ -17,7 +17,7 @@ const snapshot = (): DebugRuntimeSnapshot => ({
       nodeId: 'not-1',
       state: 'ready',
       quality: 'good',
-      typedValue: { type: 'digital', value: true }
+      typedValue: { dataType: 'boolean', value: true, number: null, quality: 'good' }
     }
   ],
   proposedOutputs: [
@@ -33,7 +33,7 @@ const snapshot = (): DebugRuntimeSnapshot => ({
 describe('flow debug API contract', () => {
   it('parses typed node values and proposed outputs', () => {
     const parsed = parseDebugSnapshot(snapshot());
-    expect(parsed.nodes[0]?.typedValue).toEqual({ type: 'digital', value: true });
+    expect(parsed.nodes[0]?.typedValue).toEqual({ type: 'boolean', value: true, quality: 'good' });
     expect(parsed.proposedOutputs[0]?.proposedValue).toBe(false);
     expect(parsed.tickNumber).toBe(3);
   });

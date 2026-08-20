@@ -54,7 +54,7 @@
           type="text"
           placeholder="Use artifact flow ID"
         />
-        <button type="button" :disabled="!importArtifact || importing" @click="previewIl">
+        <button data-app-button type="button" :disabled="!importArtifact || importing" @click="previewIl">
           {{ importing ? 'Validating…' : 'Preview recovery' }}
         </button>
       </div>
@@ -68,7 +68,7 @@
         <ul v-if="importPreview.warnings.length">
           <li v-for="warning in importPreview.warnings" :key="warning">{{ warning }}</li>
         </ul>
-        <button type="button" :disabled="importing" @click="saveIlImport">
+        <button data-app-button type="button" :disabled="importing" @click="saveIlImport">
           Save as new editable flow
         </button>
       </div>

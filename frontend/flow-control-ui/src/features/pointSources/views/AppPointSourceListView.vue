@@ -90,7 +90,7 @@ const applyFilter = (): void => {
   appliedFilter.value = filter.value;
 };
 const kindLabel = (kind: PointSourceKind): string =>
-  ({ home_assistant: 'Home Assistant', mqtt: 'MQTT', http_json: 'HTTP/JSON' })[kind];
+  ({ homeAssistant: 'Home Assistant', mqtt: 'MQTT', httpJson: 'HTTP/JSON' })[kind];
 const formatDate = (value: string): string =>
   value
     ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(

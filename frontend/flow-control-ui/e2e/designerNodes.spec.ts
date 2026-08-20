@@ -25,7 +25,7 @@ test('selects and clears a node with pointer and keyboard controls', async ({ pa
   // selects and clears a node with pointer and keyboard controls.
   await expect(page.getByRole('complementary', { name: 'Node configuration' })).toBeVisible();
 
-  await page.locator('[data-canvas-background]').click({ position: { x: 20, y: 20 } });
+  await page.keyboard.press('Escape');
 
   // Expected outcome: `page.getByRole('complementary', { name: 'Node configuration' })` is not exposed to the user.
   // Acceptance criteria: `page.getByRole('complementary', { name: 'Node configuration' })` must be hidden, because this condition proves that

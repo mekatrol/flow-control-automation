@@ -305,6 +305,7 @@ test('enables and disables a flow from the table with matching text and icons', 
  * verifies the observable results required by the scenario.
  */
 test('filters, sorts, and paginates the semantic flow table', async ({ page }) => {
+  test.setTimeout(60_000);
   await page.unroute(flowsCollectionPattern);
   const manyFlows = Array.from({ length: 25 }, (_, index) => ({
     ...structuredClone(sampleFlows[0]!),
@@ -322,7 +323,7 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
 
   // Expected outcome: The shared filter exposes a stable automation hook on a semantic search form.
   // Acceptance criteria: The search landmark has data-automation "flows-filter" because every page filter must use the reusable AppFilter contract.
-  await expect(page.getByRole('search')).toHaveAttribute('data-automation', 'flows-filter');
+  await expect(page.getByRole('search')).toHaveAttribute('data-automation', 'flows.filter');
 
   // Expected outcome: The apply action remains on one line at the current viewport.
   // Acceptance criteria: The button text uses nowrap because wrapping made catalogue filters taller than the approved flows layout.
@@ -470,11 +471,17 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
   const statusDropdown = page.getByRole('button', {
     name: 'Deployment status: All'
   });
-  await statusDropdown.click();
+  await expect(statusDropdown).toHaveAttribute('aria-expanded', 'false');
+  await statusDropdown.focus();
+  await page.keyboard.press('Enter');
+  await expect(statusDropdown).toHaveAttribute('aria-expanded', 'true');
   // Keep the filter controls interactive while the previous debounced list
   // request settles. FlowListView deliberately retains this DOM during refresh.
   const draftStatus = page.getByRole('checkbox', { name: 'Draft' });
-  await draftStatus.uncheck();
+  await expect(draftStatus).toBeVisible();
+  await draftStatus.focus();
+  await page.keyboard.press('Space');
+  await expect(draftStatus).not.toBeChecked();
   const deployedStatusDropdown = page.getByRole('button', {
     name: 'Deployment status: Deployed'
   });
@@ -483,7 +490,8 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
   // Acceptance criteria: `deployedStatusDropdown` must be visible, because this condition proves that
   // filters, sorts, and paginates the semantic flow table.
   await expect(deployedStatusDropdown).toBeVisible();
-  await deployedStatusDropdown.click();
+  await page.keyboard.press('Escape');
+  await expect(deployedStatusDropdown).toHaveAttribute('aria-expanded', 'false');
   await applyFilterButton.click();
 
   // Expected outcome: Navigation reaches the required route.
@@ -520,9 +528,12 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
   // filters, sorts, and paginates the semantic flow table.
   await expect(page.getByText('11–13 of 13')).toBeVisible();
 
-  await deployedStatusDropdown.click();
+  await deployedStatusDropdown.focus();
+  await page.keyboard.press('Enter');
+  await expect(deployedStatusDropdown).toHaveAttribute('aria-expanded', 'true');
   const allStatuses = page.getByRole('checkbox', { name: 'All' });
-  await allStatuses.check();
+  await allStatuses.focus();
+  await page.keyboard.press('Space');
   await expect(allStatuses).toBeChecked();
   await expect(page.getByRole('checkbox', { name: 'Draft' })).toBeChecked();
   await expect(page.getByRole('checkbox', { name: 'Deployed' })).toBeChecked();

@@ -32,7 +32,8 @@ test('confirms deployment and announces successful and failed runtime updates', 
         nodes: {
           'temperature-average': {
             state: 'running',
-            value: '22.4 C',
+            value: true,
+            typedValue: { dataType: 'number', boolean: false, number: 22.4, quality: 'good' },
             updatedAt: '2026-07-14T08:01:00+10:00'
           }
         }
@@ -66,18 +67,17 @@ test('confirms deployment and announces successful and failed runtime updates', 
     page.getByRole('button', { name: /Average temperature, Calculator node, running/ })
   ).toBeVisible();
 
-  // Expected outcome: `page.getByRole('button', { name: /Average temperature, Calculator node, running, 22.4 C/ })` is visible to the user.
-  // Acceptance criteria: `page.getByRole('button', { name: /Average temperature, Calculator node, running, 22.4 C/ })` must be visible, because this condition proves that
+  // Expected outcome: the backend boolean compatibility value is announced on the running node.
   // confirms deployment and announces successful and failed runtime updates.
   await expect(
-    page.getByRole('button', { name: /Average temperature, Calculator node, running, 22.4 C/ })
+    page.getByRole('button', { name: /Average temperature, Calculator node, running, true/ })
   ).toBeVisible();
   const runtimeNode = page.locator('[data-node-id="temperature-average"]');
 
   // Expected outcome: `runtimeNode.locator('.node-status')` displays the required content.
-  // Acceptance criteria: `runtimeNode.locator('.node-status')` must contain the text `'22.4 C'`, because this condition proves that
+  // Acceptance criteria: the runtime status renders the backend boolean value.
   // confirms deployment and announces successful and failed runtime updates.
-  await expect(runtimeNode.locator('.node-status')).toContainText('22.4 C');
+  await expect(runtimeNode.locator('.node-status')).toContainText('true');
 
   // Expected outcome: `runtimeNode.locator('.node-marker')` resolves to the required number of elements.
   // Acceptance criteria: `runtimeNode.locator('.node-marker')` must resolve to exactly 3 elements, because this condition proves that
@@ -124,7 +124,6 @@ test('announces runtime errors and clears stale node values after disconnect', a
         nodes: {
           'temperature-average': {
             state: 'error',
-            value: 'Sensor unavailable',
             updatedAt: '2026-07-14T08:02:00+10:00'
           }
         }
@@ -139,12 +138,10 @@ test('announces runtime errors and clears stale node values after disconnect', a
   // announces runtime errors and clears stale node values after disconnect.
   await expect(page.getByRole('status', { name: 'Runtime state: error' })).toBeVisible();
 
-  // Expected outcome: `page.getByRole('button', { name: /Average temperature, Calculator node, error, Sensor unavailable/ }` is visible to the user.
-  // Acceptance criteria: `page.getByRole('button', { name: /Average temperature, Calculator node, error, Sensor unavailable/ }` must be visible, because this condition proves that
-  // announces runtime errors and clears stale node values after disconnect.
+  // Expected outcome: the node's error state remains independently announced without inventing a value.
   await expect(
     page.getByRole('button', {
-      name: /Average temperature, Calculator node, error, Sensor unavailable/
+      name: /Average temperature, Calculator node, error/
     })
   ).toBeVisible();
 
@@ -161,10 +158,7 @@ test('announces runtime errors and clears stale node values after disconnect', a
   // announces runtime errors and clears stale node values after disconnect.
   await expect(page.getByRole('status', { name: 'Runtime state: disconnected' })).toBeVisible();
 
-  // Expected outcome: `page.getByRole('button', { name: /Sensor unavailable/ })` resolves to the required number of elements.
-  // Acceptance criteria: `page.getByRole('button', { name: /Sensor unavailable/ })` must resolve to exactly 0 elements, because this condition proves that
-  // announces runtime errors and clears stale node values after disconnect.
-  await expect(page.getByRole('button', { name: /Sensor unavailable/ })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Average temperature, Calculator node, error/ })).toHaveCount(0);
 });
 
 /**

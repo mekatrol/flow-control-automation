@@ -34,9 +34,9 @@ const template = {
     pointDirections: ['input'],
     pointFeatures: ['read'],
     connectorDataTypes: ['number'],
-    flowFunctions: ['read-point'],
+    flowFunctions: ['readPoint'],
     executionModes: ['event'],
-    runtimeFeatures: ['bound_points']
+    runtimeFeatures: ['boundPoints']
   },
   limits: {
     maxFlows: null,
@@ -62,6 +62,9 @@ describe('catalogue DTO parsing', () => {
       groupId: 'room',
       valueType: 'analog'
     });
+    expect(parsePoint({ ...point, direction: 'inputOutput', valueType: 'multiState' })).toMatchObject(
+      { direction: 'inputOutput', valueType: 'multiState' }
+    );
 
     // Expected outcome: `parsePointGroup({ id: 'room', name: 'Room', sourceId: null, revision: 1 })` matches the required structure.
     // Acceptance criteria: `parsePointGroup({ id: 'room', name: 'Room', sourceId: null, revision: 1 })` must equal `{ id: 'room', name: 'Room', description: undefined, sourceId: undefined, revision: 1, updatedAt: undefined }`, because this condition proves that

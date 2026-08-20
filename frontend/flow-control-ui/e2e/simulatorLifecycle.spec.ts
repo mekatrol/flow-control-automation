@@ -34,17 +34,17 @@ test('starts, steps, restarts, and stops a draft simulation with keyboard-operab
     (route) => route.fulfill({ status: 204 }));
 
   await page.goto('/flows/simulator-lifecycle');
-  await page.getByRole('link', { name: 'Simulator' }).click();
+  await page.getByRole('link', { name: 'Simulate' }).click();
   await expect(page).toHaveURL(/\/flows\/simulator-lifecycle\/simulator$/);
   await page.reload();
-  await expect(page.getByRole('link', { name: 'Simulator' })).toHaveAttribute(
+  await expect(page.getByRole('link', { name: 'Simulate' })).toHaveAttribute(
     'aria-current',
     'page'
   );
   await page.getByRole('button', { name: 'Start simulation' }).click();
   await expect(page.getByRole('status', { name: undefined }).filter({ hasText: 'Ready' })).toBeVisible();
-  await page.getByRole('button', { name: 'Step tick' }).click();
-  await expect(page.getByText('Tick', { exact: true }).locator('..')).toContainText('1');
+  await page.getByRole('button', { name: 'One scan' }).click();
+  await expect(page.getByText('Scan', { exact: true }).locator('..')).toContainText('1');
 
   await page.getByRole('button', { name: 'Restart' }).focus();
   await page.keyboard.press('Enter');

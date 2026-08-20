@@ -30,6 +30,8 @@ import systemThemeIcon from '@/assets/icons/system-mode-toggle-icon.svg';
 import AppButton from '@/components/AppButton.vue';
 import { useAutomation } from '@/composables/useAutomation';
 
+defineOptions({ inheritAttrs: false });
+
 const props = defineProps<{
   automation: string;
 }>();

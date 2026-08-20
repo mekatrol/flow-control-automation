@@ -8,7 +8,7 @@ export interface FlowDebugTarget {
   controllerTemplateRevision?: number;
 }
 
-const requiredFunctions = ['and', 'not', 'or', 'read-point', 'write-point'];
+const requiredFunctions = ['and', 'not', 'or', 'readPoint', 'writePoint'];
 
 export const isControllerDebugCompatible = (template: ControllerTemplateSummary): boolean =>
   template.id !== 'default' &&
@@ -17,7 +17,7 @@ export const isControllerDebugCompatible = (template: ControllerTemplateSummary)
   template.capabilities.pointDirections.includes('input') &&
   template.capabilities.pointDirections.includes('output') &&
   template.capabilities.connectorDataTypes.includes('boolean') &&
-  template.capabilities.runtimeFeatures.includes('bound_points') &&
+  template.capabilities.runtimeFeatures.includes('boundPoints') &&
   requiredFunctions.every((kind) => template.capabilities.flowFunctions.includes(kind));
 
 export const getFlowDebugTargets = (

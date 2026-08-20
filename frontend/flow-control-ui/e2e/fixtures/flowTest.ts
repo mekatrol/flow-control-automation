@@ -46,6 +46,12 @@ export const pagedFlows = (flows: FlowDefinition[], requestUrl: string): {
 export const test = base.extend<{ mockFlowsApi: void }>({
   mockFlowsApi: [
     async ({ page }, use) => {
+      // Flow-designer pages load controller capabilities alongside the flow.
+      // Keep mocked-flow tests isolated from the live backend; specs that need
+      // controller data register a more specific route after this fixture.
+      await page.route('**/api/controller-templates', async (route) => {
+        await route.fulfill({ json: { items: [] } });
+      });
       await page.route(flowsCollectionPattern, async (route) => {
         if (route.request().method() === 'POST') {
           const { name } = route.request().postDataJSON() as { name: string };

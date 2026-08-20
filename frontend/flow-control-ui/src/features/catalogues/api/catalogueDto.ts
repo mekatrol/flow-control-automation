@@ -1,6 +1,6 @@
 export type PointImplementation = 'virtual' | 'bound';
-export type PointDirection = 'input' | 'output' | 'input_output' | 'value';
-export type PointValueType = 'analog' | 'digital' | 'multi_state' | 'integer' | 'text';
+export type PointDirection = 'input' | 'output' | 'inputOutput' | 'value';
+export type PointValueType = 'analog' | 'digital' | 'multiState' | 'integer' | 'text';
 
 export interface PointSummary {
   id: string;
@@ -132,12 +132,12 @@ export const parsePoint = (value: unknown, path = 'point'): PointSummary => {
     ),
     direction: enumeration(
       item.direction,
-      ['input', 'output', 'input_output', 'value'],
+      ['input', 'output', 'inputOutput', 'value'],
       `${path}.direction`
     ),
     valueType: enumeration(
       item.valueType,
-      ['analog', 'digital', 'multi_state', 'integer', 'text'],
+      ['analog', 'digital', 'multiState', 'integer', 'text'],
       `${path}.valueType`
     ),
     units: optionalString(item.units, `${path}.units`),

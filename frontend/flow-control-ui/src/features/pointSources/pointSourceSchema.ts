@@ -55,7 +55,7 @@ export const pointSourceSchema: JSONSchema = {
           name: { type: 'string', minLength: 1 },
           description: { type: 'string' },
           enabled: { type: 'boolean' },
-          kind: { enum: ['home_assistant', 'mqtt', 'http_json'] },
+          kind: { enum: ['homeAssistant', 'mqtt', 'httpJson'] },
           connection: {
             type: 'object',
             additionalProperties: false,
@@ -95,7 +95,7 @@ export const pointSourceSchema: JSONSchema = {
           },
           {
             if: {
-              properties: { kind: { enum: ['home_assistant', 'http_json'] } },
+              properties: { kind: { enum: ['homeAssistant', 'httpJson'] } },
               required: ['kind']
             },
             then: {
@@ -107,7 +107,7 @@ export const pointSourceSchema: JSONSchema = {
             }
           },
           {
-            if: { properties: { kind: { const: 'http_json' } }, required: ['kind'] },
+            if: { properties: { kind: { const: 'httpJson' } }, required: ['kind'] },
             then: {
               properties: {
                 connection: {

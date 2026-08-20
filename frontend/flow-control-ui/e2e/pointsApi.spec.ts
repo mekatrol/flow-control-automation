@@ -35,7 +35,7 @@ sources:
   - id: ${sourceId}
     name: Points source ${suffix}
     enabled: true
-    kind: http_json
+    kind: httpJson
     connection:
       baseUrl: https://example.test
       allowedReadMethods: [GET]

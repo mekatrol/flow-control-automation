@@ -70,7 +70,7 @@ const session = (
         nodeId: 'constant',
         state: 'evaluated',
         quality: 'good',
-        typedValue: { type: 'boolean', value: true, quality: 'good' }
+        typedValue: { dataType: 'boolean', value: true, number: null, quality: 'good' }
       }
     ],
     proposedOutputs: [],
@@ -114,7 +114,9 @@ test('shows connector frame values and keyboard-accessible breakpoint positions'
   await page.goto('/flows/visual-debug');
   await page.getByRole('link', { name: 'Debug' }).click();
   await page.getByRole('button', { name: 'Load' }).click();
-  await page.locator('[data-node-id="constant"]').click();
+  const constantNode = page.getByRole('button', { name: /Enabled, Digital Constant node/ });
+  await constantNode.focus();
+  await page.keyboard.press('Enter');
   await page.getByRole('button', { name: 'Breakpoint after' }).click();
   await expect(page.getByLabel('Execution and breakpoint summary')).toContainText('after constant');
   await page.getByRole('button', { name: 'Step instruction' }).click();
