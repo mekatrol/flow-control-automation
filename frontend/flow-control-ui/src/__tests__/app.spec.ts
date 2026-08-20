@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 
 import App from '@/App.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { useWait } from '@/composables/useWait';
 
 const FlowListStub = { template: '<h1>Flows</h1>' };
 
@@ -60,5 +61,29 @@ describe('App', () => {
     // Acceptance criteria: `wrapper.get('main h1'` must be `'Flows'`, because this condition proves that
     // renders the current route inside the application shell.
     expect(wrapper.get('main h1').text()).toBe('Flows');
+  });
+
+  it('blocks the application while any operation is waiting', async () => {
+    const pinia = createPinia();
+    const wrapper = mount(App, {
+      global: { plugins: [pinia], stubs: { RouterView: true } }
+    });
+    const { wait, endWait } = useWait();
+
+    wait();
+    wait();
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.get('.spinner-overlay').attributes('role')).toBe('status');
+    expect(wrapper.get('.app-content').attributes()).toHaveProperty('inert');
+
+    endWait();
+    await wrapper.vm.$nextTick();
+    expect(wrapper.find('.spinner-overlay').exists()).toBe(true);
+
+    endWait();
+    await wrapper.vm.$nextTick();
+    expect(wrapper.find('.spinner-overlay').exists()).toBe(false);
+    expect(wrapper.get('.app-content').attributes()).not.toHaveProperty('inert');
   });
 });
