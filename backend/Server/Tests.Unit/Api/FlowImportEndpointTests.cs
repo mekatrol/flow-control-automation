@@ -1,5 +1,6 @@
 using Server.Api.Contracts;
 using Server.Common.Contracts;
+using Server.Compiler.Contracts;
 using Server.Services.Contracts;
 using System.Net;
 using System.Net.Http.Json;

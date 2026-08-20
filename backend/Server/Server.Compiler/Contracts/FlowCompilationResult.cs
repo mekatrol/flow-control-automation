@@ -1,4 +1,6 @@
-namespace Server.Common.Contracts;
+using Server.Common.Contracts;
+
+namespace Server.Compiler.Contracts;
 
 /// <summary>
 /// Canonical executable artifact and the stable identifiers used to correlate snapshots.

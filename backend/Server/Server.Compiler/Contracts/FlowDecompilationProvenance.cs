@@ -1,4 +1,4 @@
-namespace Server.Common.Contracts;
+namespace Server.Compiler.Contracts;
 
 public sealed record FlowDecompilationProvenance(
     int ArtifactVersion,

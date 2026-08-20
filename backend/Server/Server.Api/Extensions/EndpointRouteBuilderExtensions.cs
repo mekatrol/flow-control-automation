@@ -7,6 +7,7 @@ using Server.Compiler;
 using Server.Services;
 using Server.Services.Contracts;
 using System.Text.Json;
+using Server.Compiler.Contracts;
 
 namespace Server.Api.Extensions;
 

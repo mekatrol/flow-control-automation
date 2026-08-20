@@ -1,7 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using System.Globalization;
 
-namespace Server.Common.Contracts;
+namespace Server.Compiler.Contracts;
 
 public static class FlowCompilationDiagnostics
 {

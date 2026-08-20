@@ -1,4 +1,4 @@
-﻿namespace Server.Common.Contracts;
+﻿namespace Server.Compiler.Contracts;
 
 /// <summary>
 /// Stable machine-readable Flow compiler diagnostic codes.

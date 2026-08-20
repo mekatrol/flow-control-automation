@@ -1,4 +1,6 @@
-namespace Server.Common.Contracts;
+using Server.Common.Contracts;
+
+namespace Server.Compiler.Contracts;
 
 /// <summary>
 /// Controller metadata resolved before compilation begins.

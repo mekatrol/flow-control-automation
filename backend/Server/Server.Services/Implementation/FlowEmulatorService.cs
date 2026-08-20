@@ -1,5 +1,5 @@
 using Server.Common.Contracts;
-using Server.Common.Services;
+using Server.Compiler.Contracts;
 using Server.Compiler.Services;
 using System.Collections.Concurrent;
 
@@ -57,7 +57,7 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
     {
         ArgumentNullException.ThrowIfNull(source);
         RemoveExpired();
-        FlowCompilationTarget target;
+        Compiler.Contracts.FlowCompilationTarget target;
         if (_scopeFactory is not null)
         {
             using var scope = _scopeFactory.CreateScope();

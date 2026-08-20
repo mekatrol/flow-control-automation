@@ -2,6 +2,7 @@ using Server.Common;
 using Server.Common.Contracts;
 using Server.Common.Services;
 using Server.Compiler;
+using Server.Compiler.Contracts;
 using Server.Compiler.Extensions;
 using Server.Compiler.Services;
 using Server.Services.Implementation;

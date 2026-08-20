@@ -1,4 +1,6 @@
-namespace Server.Common.Contracts;
+using Server.Common.Contracts;
+
+namespace Server.Compiler.Contracts;
 
 /// <summary>
 /// Complete, resolved input to executable-flow compilation.

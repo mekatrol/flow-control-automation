@@ -1,4 +1,4 @@
-﻿using Server.Common.Contracts;
+﻿using Server.Compiler.Contracts;
 using Server.Compiler.Services;
 using System.Runtime.CompilerServices;
 using System.Text.Json;

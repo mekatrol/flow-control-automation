@@ -1,4 +1,4 @@
-using Server.Common.Contracts;
+using Server.Compiler.Contracts;
 
 namespace Server.Compiler.Services;
 

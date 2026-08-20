@@ -1,7 +1,8 @@
 using Server.Common.Contracts;
-using Server.Compiler.Services;
 using Server.Compiler;
+using Server.Compiler.Contracts;
 using Server.Compiler.Extensions;
+using Server.Compiler.Services;
 using Server.Services.Contracts;
 using System.Text.Json;
 using Tests.Unit.Helpers;

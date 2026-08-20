@@ -1,4 +1,4 @@
-﻿namespace Server.Common.Contracts;
+﻿namespace Server.Compiler.Contracts;
 
 /// <summary>
 /// <para>Describes one stable diagnostic.</para>
