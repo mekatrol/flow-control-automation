@@ -18,16 +18,6 @@
     <p v-if="loading" role="status">Loading source…</p>
     <div v-else class="source-editor-layout" :class="{ 'has-guidance': isNew }">
       <form @submit.prevent="save">
-        <AppYamlEditor
-          v-model="yaml"
-          v-bind="automation('yaml-editor')"
-          label="Point source YAML"
-          help="Errors and suggestions use the point-source schema. The server validates again when you test or save."
-          :schema="pointSourceSchema"
-          schema-uri="app://schemas/point-source-v1.json"
-          min-height="650px"
-          @[EVENTS.DIAGNOSTICS]="setEditorDiagnostics"
-        />
         <div class="editor-actions">
           <AppButton
             v-bind="automation('save')"
@@ -58,6 +48,16 @@
             @click="remove"
           />
         </div>
+        <AppYamlEditor
+          v-model="yaml"
+          v-bind="automation('yaml-editor')"
+          label="Point source YAML"
+          help="Errors and suggestions use the point-source schema. The server validates again when you test or save."
+          :schema="pointSourceSchema"
+          schema-uri="app://schemas/point-source-v1.json"
+          min-height="650px"
+          @[EVENTS.DIAGNOSTICS]="setEditorDiagnostics"
+        />
       </form>
 
       <aside v-if="isNew" class="source-guidance" aria-labelledby="source-guidance-heading">

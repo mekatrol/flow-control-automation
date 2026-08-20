@@ -45,17 +45,6 @@
           </option>
         </select>
       </div>
-      <AppYamlEditor
-        v-model="yaml"
-        v-bind="automation('editor')"
-        :label="`${singularLabel} YAML`"
-        :help="editorHelp"
-        :schema="schema"
-        :schema-uri="schemaUri"
-        min-height="620px"
-        :read-only="readOnly"
-        @[EVENTS.DIAGNOSTICS]="setEditorDiagnostics"
-      />
       <div class="editor-actions">
         <AppButton
           v-if="!readOnly"
@@ -97,6 +86,17 @@
           Create custom template from example
         </RouterLink>
       </div>
+      <AppYamlEditor
+        v-model="yaml"
+        v-bind="automation('editor')"
+        :label="`${singularLabel} YAML`"
+        :help="editorHelp"
+        :schema="schema"
+        :schema-uri="schemaUri"
+        min-height="620px"
+        :read-only="readOnly"
+        @[EVENTS.DIAGNOSTICS]="setEditorDiagnostics"
+      />
     </form>
 
     <section
@@ -231,9 +231,8 @@ const helpText = computed(() =>
       : 'Define the capabilities and limits supported by this deployment target.'
 );
 const editorHelp = computed(() =>
-  readOnly.value
-    ? 'This built-in example is read-only. Its YAML remains selectable and can be copied.'
-    : 'The editor provides schema feedback; the server performs authoritative validation.'
+  // Empty for now, but could be used to provide additional context or guidance in the editor.
+  readOnly.value ? '' : ''
 );
 
 const pointExamples = [
