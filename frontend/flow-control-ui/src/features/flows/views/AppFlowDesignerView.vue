@@ -281,6 +281,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
 import { ROUTE_NAMES } from '@/router';
 
@@ -920,6 +921,8 @@ const saveFlow = async (): Promise<void> => {
     saving.value = false;
   }
 };
+
+useSaveShortcut(saveFlow, () => !saving.value);
 
 watch(
   () => props.flowId,

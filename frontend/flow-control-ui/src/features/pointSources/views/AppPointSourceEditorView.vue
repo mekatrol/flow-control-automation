@@ -143,6 +143,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
 import cancelIcon from '@/assets/icons/cancel-icon.svg';
 import checkIcon from '@/assets/icons/check-icon.svg';
@@ -315,6 +316,7 @@ const save = async (): Promise<void> => {
     saving.value = false;
   }
 };
+useSaveShortcut(save, () => !loading.value && !saving.value && !hasEditorErrors.value);
 const testConnection = async (): Promise<void> => {
   testController?.abort();
   testController = new AbortController();

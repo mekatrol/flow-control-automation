@@ -158,6 +158,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
 import checkIcon from '@/assets/icons/check-icon.svg';
 import deleteIcon from '@/assets/icons/delete-flow-icon.svg';
@@ -461,6 +462,10 @@ const save = async (): Promise<void> => {
     saving.value = false;
   }
 };
+useSaveShortcut(
+  save,
+  () => !loading.value && !busy.value && !readOnly.value && !hasEditorErrors.value
+);
 const validateTemplate = async (): Promise<void> => {
   apiError.value = '';
   validating.value = true;
