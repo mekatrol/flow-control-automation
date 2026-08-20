@@ -142,7 +142,55 @@ export const useFlowsStore = defineStore('flows', () => {
     if (!flow || flow.nodes.some(({ id }) => id === node.id)) return false;
     // The browser's structured clone copies nested connectors and settings, so
     // caller-owned palette or drag data cannot mutate the stored node later.
-    flow.nodes.push(structuredClone(node));
+    const nextNode = structuredClone(node);
+    if (nextNode.kind === 'flowInput' || nextNode.kind === 'flowOutput') {
+      const entries =
+        nextNode.kind === 'flowInput' ? flow.interface.inputs : flow.interface.outputs;
+      const configuredId = String(nextNode.configuration.interfaceId ?? '');
+      let entry = entries.find((candidate) => candidate.id === configuredId) ?? entries[0];
+
+      // A palette node has no interface context, so its registry default is empty.
+      // Make the authoring action atomic: bind the first compatible entry when one
+      // exists, or create a matching boundary entry when this is the first terminal.
+      if (!entry) {
+        const prefix = nextNode.kind === 'flowInput' ? 'input' : 'output';
+        const usedIds = new Set(
+          [...flow.interface.inputs, ...flow.interface.outputs].map((candidate) => candidate.id)
+        );
+        let suffix = 1;
+        while (usedIds.has(`${prefix}-${suffix}`)) suffix += 1;
+        const id = `${prefix}-${suffix}`;
+        const usedNames = new Set(
+          [...flow.interface.inputs, ...flow.interface.outputs].map((candidate) =>
+            candidate.name.toLocaleLowerCase()
+          )
+        );
+        let nameSuffix = 1;
+        let name = `New ${prefix}`;
+        while (usedNames.has(name.toLocaleLowerCase())) {
+          nameSuffix += 1;
+          name = `New ${prefix} ${nameSuffix}`;
+        }
+        if (nextNode.kind === 'flowInput') {
+          const input = {
+            id,
+            name,
+            dataType: 'boolean' as const,
+            defaultValue: false,
+            required: false
+          };
+          flow.interface.inputs.push(input);
+          entry = input;
+        } else {
+          const output = { id, name, dataType: 'boolean' as const };
+          flow.interface.outputs.push(output);
+          entry = output;
+        }
+      }
+      nextNode.configuration.interfaceId = entry.id;
+    }
+    flow.nodes.push(nextNode);
+    synchronizeInterfaceNodes(flow);
     return true;
   };
 
