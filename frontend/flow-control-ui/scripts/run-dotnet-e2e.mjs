@@ -2,21 +2,19 @@ import { spawnSync } from 'node:child_process';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
-const playwrightCli = fileURLToPath(
-  new URL('../node_modules/@playwright/test/cli.js', import.meta.url)
-);
+const runner = fileURLToPath(new URL('./run-e2e.mjs', import.meta.url));
 const result = spawnSync(
   process.execPath,
   [
-    playwrightCli,
-    'test',
+    runner,
+    '--dotnet',
     'e2e/backendCompatibility.spec.ts',
     'e2e/pointsApi.spec.ts',
     'e2e/controllerTemplatesApi.spec.ts',
     '--project=desktop-chromium'
   ],
   {
-    env: { ...process.env, FLOW_UI_E2E_BACKEND: 'dotnet' },
+    env: process.env,
     stdio: 'inherit'
   }
 );

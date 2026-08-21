@@ -19,8 +19,8 @@ internal sealed partial class ExecutionConfigurationService(
     IFlowCompilationTargetResolver targetResolver,
     IFlowCompiler compiler) : IExecutionConfigurationService
 {
-    internal const int MaximumVirtualPointsPerContext = 128;
-    internal const int MaximumRetainedVirtualPointsPerContext = 64;
+    internal static int MaximumVirtualPointsPerContext => 128;
+    private const int _maximumRetainedVirtualPointsPerContext = 64;
     public async Task<IReadOnlyList<ExecutionContextDefinition>> ListContextsAsync(CancellationToken cancellationToken) =>
         [.. (await context.ExecutionContexts.AsNoTracking().OrderBy(item => item.Key).ToListAsync(cancellationToken)).Select(Deserialize<ExecutionContextDefinition>)];
 
@@ -385,13 +385,13 @@ internal sealed partial class ExecutionConfigurationService(
                 new { limit = MaximumVirtualPointsPerContext, actual = result.Count });
         }
         var retainedCount = result.Values.Count(item => item.Persistence == VirtualPointPersistence.Retained);
-        if (retainedCount > MaximumRetainedVirtualPointsPerContext)
+        if (retainedCount > _maximumRetainedVirtualPointsPerContext)
         {
             throw new ExecutionConfigurationException(
-                $"execution context exceeds the {MaximumRetainedVirtualPointsPerContext} retained virtual-point limit",
+                $"execution context exceeds the {_maximumRetainedVirtualPointsPerContext} retained virtual-point limit",
                 422,
                 "retained_storage_limit_exceeded",
-                new { limit = MaximumRetainedVirtualPointsPerContext, actual = retainedCount });
+                new { limit = _maximumRetainedVirtualPointsPerContext, actual = retainedCount });
         }
         return [.. result.Values.OrderBy(item => item.Key, StringComparer.Ordinal)];
     }
@@ -469,7 +469,7 @@ internal sealed partial class ExecutionConfigurationService(
             .ToList();
         _ = MergeContracts(activeDefinitions.SelectMany(item => item.PointContracts).Concat(definition.PointContracts));
 
-        var writers = new Dictionary<string, string>(StringComparer.Ordinal);
+        var writers = new Dictionary<string, WriterOwner>(StringComparer.Ordinal);
         foreach (var active in activeDefinitions)
         {
             foreach (var flow in await LoadProgramsAsync(active, cancellationToken))
@@ -594,7 +594,7 @@ internal sealed partial class ExecutionConfigurationService(
     }
 
     private static void AddWriters(
-        IDictionary<string, string> writers,
+        IDictionary<string, WriterOwner> writers,
         Flow flow,
         string executionInstanceId,
         string? deploymentId)
@@ -608,24 +608,26 @@ internal sealed partial class ExecutionConfigurationService(
                 continue;
             }
 
-            if (writers.TryGetValue(key, out var owner) && owner != flow.Id)
+            if (writers.TryGetValue(key, out var owner) && owner.FlowId != flow.Id)
             {
                 throw new ExecutionConfigurationException(
-                    $"virtual point '{key}' already has writer flow '{owner}' on this execution instance",
+                    $"virtual point '{key}' already has writer flow '{owner.FlowId}' on this execution instance",
                     409,
                     "writer_conflict",
                     new
                     {
                         executionInstanceId,
                         pointKey = key,
-                        conflictingFlowId = owner,
-                        conflictingDeploymentId = deploymentId
+                        conflictingFlowId = owner.FlowId,
+                        conflictingDeploymentId = owner.DeploymentId
                     });
             }
 
-            writers[key] = flow.Id;
+            writers[key] = new WriterOwner(flow.Id, deploymentId);
         }
     }
+
+    private sealed record WriterOwner(string FlowId, string? DeploymentId);
 
     private static void ValidateTemplateCapabilities(ControllerTemplate template, IReadOnlyList<VirtualPointDeclaration> contracts)
     {

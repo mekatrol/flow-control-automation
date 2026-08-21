@@ -3,7 +3,7 @@
 import { createPinia } from 'pinia';
 import { mount } from '@vue/test-utils';
 import { createMemoryHistory, createRouter } from 'vue-router';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import App from '@/App.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -12,6 +12,7 @@ import { useWait } from '@/composables/useWait';
 const FlowListStub = { template: '<h1>Flows</h1>' };
 
 describe('App', () => {
+  beforeEach(() => sessionStorage.setItem('flow-control-api-key', 'unit-test-key'));
   /**
    * Purpose: Protects the application-shell contract that provides navigation, theme
    * control, skip navigation, and the active route without blocking page content.

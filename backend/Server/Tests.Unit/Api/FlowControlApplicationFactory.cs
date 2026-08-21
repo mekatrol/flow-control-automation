@@ -4,7 +4,8 @@ using Server.Services.Contracts;
 namespace Tests.Unit.Api;
 
 internal sealed class FlowControlApplicationFactory(
-    Action<IServiceCollection>? configureServices = null) : WebApplicationFactory<Server.Api.Program>
+    Action<IServiceCollection>? configureServices = null,
+    string environment = "Testing") : WebApplicationFactory<Server.Api.Program>
 {
     private const string TestCredentialEncryptionKey =
         "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=";
@@ -23,6 +24,7 @@ internal sealed class FlowControlApplicationFactory(
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        builder.UseEnvironment(environment);
         // Tests assert expected persistence failures directly. Avoid the Windows
         // Event Log provider, which requires machine-level write permission and
         // can otherwise replace the domain exception being asserted.
@@ -35,7 +37,9 @@ internal sealed class FlowControlApplicationFactory(
             {
                 [$"{DatabaseOptions.SectionName}:{DatabaseOptions.FlowControlConfigurationKey}"] = DatabaseConnectionString,
                 [nameof(ServerOptions.CredentialEncryptionKey)] = TestCredentialEncryptionKey,
-                [ServerOptions.ControllerDataFileConfigurationKey] = ControllerDataPath
+                [ServerOptions.ControllerDataFileConfigurationKey] = ControllerDataPath,
+                ["ApiAccess:Identities:test:Key"] = "test-api-key",
+                ["ApiAccess:Identities:test:Permissions:0"] = "*"
             });
         });
 
@@ -46,7 +50,9 @@ internal sealed class FlowControlApplicationFactory(
                 {
                     [$"{DatabaseOptions.SectionName}:{DatabaseOptions.FlowControlConfigurationKey}"] = DatabaseConnectionString,
                     [nameof(ServerOptions.CredentialEncryptionKey)] = TestCredentialEncryptionKey,
-                    [ServerOptions.ControllerDataFileConfigurationKey] = ControllerDataPath
+                    [ServerOptions.ControllerDataFileConfigurationKey] = ControllerDataPath,
+                    ["ApiAccess:Identities:test:Key"] = "test-api-key",
+                    ["ApiAccess:Identities:test:Permissions:0"] = "*"
                 })
                 .Build();
 

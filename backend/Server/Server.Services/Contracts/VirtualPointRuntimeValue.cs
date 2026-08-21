@@ -11,5 +11,7 @@ public sealed record VirtualPointRuntimeValue
     public DataQuality Quality { get; init; } = DataQuality.Unavailable;
     public string? Timestamp { get; init; }
     public string? WriterFlowId { get; init; }
+    public IReadOnlyList<string> ReaderFlowIds { get; init; } = [];
+    public bool Retained { get; init; }
     public ulong Version { get; init; }
 }

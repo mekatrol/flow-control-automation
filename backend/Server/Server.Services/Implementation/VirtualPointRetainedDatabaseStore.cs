@@ -8,6 +8,31 @@ internal sealed class VirtualPointRetainedDatabaseStore(
     IServiceScopeFactory scopeFactory,
     TimeProvider timeProvider) : IVirtualPointRetainedStore
 {
+    public async Task<IReadOnlyDictionary<string, RetainedVirtualPointValue>> ListAsync(string executionInstanceId, CancellationToken cancellationToken)
+    {
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<IFlowControlDbContext>();
+        return (await context.VirtualPointRetainedStates.AsNoTracking()
+            .Where(item => item.ExecutionInstanceId == executionInstanceId)
+            .ToListAsync(cancellationToken))
+            .ToDictionary(item => item.PointKey, item => JsonSerializer.Deserialize<RetainedVirtualPointValue>(item.Json, FlowControlJson.Options)
+                ?? throw new InvalidOperationException("Stored retained virtual-point value is null."), StringComparer.Ordinal);
+    }
+
+    public async Task ClearAsync(string executionInstanceId, CancellationToken cancellationToken)
+    {
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<IFlowControlDbContext>();
+        var entities = await context.VirtualPointRetainedStates.Where(item => item.ExecutionInstanceId == executionInstanceId).ToListAsync(cancellationToken);
+        context.VirtualPointRetainedStates.RemoveRange(entities);
+        await context.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task ReplaceAsync(string executionInstanceId, IReadOnlyDictionary<string, RetainedVirtualPointValue> values, CancellationToken cancellationToken)
+    {
+        await ClearAsync(executionInstanceId, cancellationToken);
+        await WriteAsync(executionInstanceId, values, cancellationToken);
+    }
     public async Task<RetainedVirtualPointValue?> ReadAsync(
         string executionInstanceId,
         string pointKey,

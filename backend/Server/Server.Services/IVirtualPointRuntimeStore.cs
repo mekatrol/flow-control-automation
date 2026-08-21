@@ -9,4 +9,6 @@ public interface IVirtualPointRuntimeStore
     bool TrySnapshot(string executionInstanceId, string pointKey, out VirtualPointRuntimeValue value);
     Task CommitAsync(string executionInstanceId, string flowId, IReadOnlyList<FlowVmCommand> commands, CancellationToken cancellationToken);
     IReadOnlyList<VirtualPointRuntimeValue> List(string executionInstanceId);
+    Task ClearRetainedAsync(string executionInstanceId, CancellationToken cancellationToken);
+    Task RestoreRetainedAsync(string executionInstanceId, IReadOnlyDictionary<string, RetainedVirtualPointValue> values, CancellationToken cancellationToken);
 }

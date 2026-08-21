@@ -21,6 +21,7 @@ internal sealed class FlowControlDbContextModelSnapshot : ModelSnapshot
         BuildEntity<ExecutionInstanceEntity>(modelBuilder, "ExecutionInstances");
         BuildEntity<ExecutionContextDeploymentEntity>(modelBuilder, "ExecutionContextDeployments");
         BuildEntity<VirtualPointRetainedStateEntity>(modelBuilder, "VirtualPointRetainedStates");
+        BuildEntity<AuditRecordEntity>(modelBuilder, "AuditRecords");
         modelBuilder.Entity<ExecutionContextDeploymentEntity>(entity =>
         {
             entity.Property(item => item.ExecutionContextId).IsRequired().HasColumnType("TEXT");

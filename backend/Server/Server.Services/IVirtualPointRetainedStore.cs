@@ -11,4 +11,8 @@ public interface IVirtualPointRetainedStore
         string executionInstanceId,
         IReadOnlyDictionary<string, RetainedVirtualPointValue> values,
         CancellationToken cancellationToken);
+
+    Task<IReadOnlyDictionary<string, RetainedVirtualPointValue>> ListAsync(string executionInstanceId, CancellationToken cancellationToken);
+    Task ReplaceAsync(string executionInstanceId, IReadOnlyDictionary<string, RetainedVirtualPointValue> values, CancellationToken cancellationToken);
+    Task ClearAsync(string executionInstanceId, CancellationToken cancellationToken);
 }

@@ -1236,6 +1236,12 @@ h1 {
   .designer-page {
     width: calc(100% - 28px);
     padding-top: var(--space-10);
+    overflow-y: auto;
+  }
+
+  .designer-page :deep(.canvas-frame) {
+    min-height: 24rem;
+    flex: 0 0 24rem;
   }
 
   .designer-heading {

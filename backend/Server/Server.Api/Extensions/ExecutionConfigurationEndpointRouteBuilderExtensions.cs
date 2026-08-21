@@ -24,7 +24,27 @@ public static class ExecutionConfigurationEndpointRouteBuilderExtensions
         endpoints.MapGet("/api/execution-instances/{id}/virtual-points", async (string id, IExecutionConfigurationService service, CancellationToken token) => await Map(() => service.ListAllocationsAsync(id, token)));
         endpoints.MapGet("/api/execution-instances/{id}/virtual-points/runtime", (string id, IVirtualPointRuntimeStore store) => Results.Json(store.List(id)));
         endpoints.MapGet("/api/execution-instances/{id}/virtual-points/{pointKey}/runtime", (string id, string pointKey, IVirtualPointRuntimeStore store) =>
-            store.TrySnapshot(id, pointKey, out var value) ? Results.Json(value) : Results.NotFound(new { error = "virtual point runtime value not found" }));
+            store.TrySnapshot(id, pointKey, out var value) ? Results.Json(value) : Error(404, "not_found", "virtual point runtime value not found"));
+        endpoints.MapGet("/api/execution-instances/{id}/virtual-points/retained-backup", async (string id, IExecutionConfigurationService configurations, IVirtualPointRetainedStore retained, CancellationToken token) =>
+        {
+            _ = await configurations.GetInstanceAsync(id, token);
+            return Results.Json(new { schemaVersion = 1, executionInstanceId = id, values = await retained.ListAsync(id, token) });
+        });
+        endpoints.MapDelete("/api/execution-instances/{id}/virtual-points/retained", async (string id, IExecutionConfigurationService configurations, IVirtualPointRuntimeStore runtime, CancellationToken token) => await MapAction(async () =>
+        {
+            _ = await configurations.GetInstanceAsync(id, token);
+            await runtime.ClearRetainedAsync(id, token);
+        }));
+        endpoints.MapPut("/api/execution-instances/{id}/virtual-points/retained-backup", async (string id, VirtualPointRetainedBackup backup, IExecutionConfigurationService configurations, IVirtualPointRuntimeStore runtime, CancellationToken token) => await MapAction(async () =>
+        {
+            _ = await configurations.GetInstanceAsync(id, token);
+            if (backup.SchemaVersion != 1 || backup.ExecutionInstanceId != id)
+            {
+                throw new ExecutionConfigurationException("retained backup identity or schema version is invalid", 400, "invalid_retained_backup");
+            }
+
+            await runtime.RestoreRetainedAsync(id, backup.Values, token);
+        }));
         endpoints.MapGet("/api/point-resolution/{pointKey}", async (string pointKey, string? executionContextId, string? executionInstanceId, IExecutionConfigurationService service, CancellationToken token) =>
             await Map(() => service.ResolvePointAsync(pointKey, executionContextId, executionInstanceId, token)));
 
@@ -32,8 +52,11 @@ public static class ExecutionConfigurationEndpointRouteBuilderExtensions
         endpoints.MapPost("/api/execution-contexts/{contextId}/deployments", async (string contextId, HttpRequest request, IExecutionConfigurationService service, IOptions<JsonOptions> options, CancellationToken token) => await DecodeAndMap<ExecutionContextDeployment>(request, options, value => EnsureId(contextId, value.ExecutionContextId, () => service.SaveDeploymentAsync(value, true, token)), 201, token));
         endpoints.MapPut("/api/execution-contexts/{contextId}/deployments/{id}", async (string contextId, string id, HttpRequest request, IExecutionConfigurationService service, IOptions<JsonOptions> options, CancellationToken token) => await DecodeAndMap<ExecutionContextDeployment>(request, options, value => EnsureId(id, value.Id, () => EnsureId(contextId, value.ExecutionContextId, () => service.SaveDeploymentAsync(value, false, token))), 200, token));
         endpoints.MapDelete("/api/execution-contexts/{contextId}/deployments/{id}", async (string contextId, string id, IExecutionConfigurationService service, CancellationToken token) => await MapDelete(() => service.DeleteDeploymentAsync(contextId, id, token)));
-        endpoints.MapGet("/api/migrations/virtual-points/report", async (IVirtualPointMigrationService service, CancellationToken token) => Results.Json(await service.RunAsync(false, token)));
-        endpoints.MapPost("/api/migrations/virtual-points/apply", async (IVirtualPointMigrationService service, CancellationToken token) => Results.Json(await service.RunAsync(true, token)));
+        endpoints.MapGet("/api/audit-records", async (IAuditService service, CancellationToken token) =>
+        {
+            var records = await service.ListAsync(token);
+            return Results.Text($"[{string.Join(',', records)}]", "application/json");
+        });
         return endpoints;
     }
 
@@ -57,6 +80,12 @@ public static class ExecutionConfigurationEndpointRouteBuilderExtensions
     }
 
     private static async Task<IResult> MapDelete(Func<Task> operation)
+    {
+        try { await operation(); return Results.NoContent(); }
+        catch (ExecutionConfigurationException exception) { return Error(exception.StatusCode, exception.Code, exception.Message, exception.Details); }
+    }
+
+    private static async Task<IResult> MapAction(Func<Task> operation)
     {
         try { await operation(); return Results.NoContent(); }
         catch (ExecutionConfigurationException exception) { return Error(exception.StatusCode, exception.Code, exception.Message, exception.Details); }

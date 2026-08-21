@@ -91,6 +91,25 @@ public sealed class VirtualPointRuntimeStoreTests
     }
 
     [Test]
+    public async Task ClearsAndRestoresOnlyCompatibleInstanceQualifiedRetainedBackups()
+    {
+        var persistence = new RetainedStore();
+        var contract = Analog("retained") with { Persistence = VirtualPointPersistence.Retained };
+        var store = new VirtualPointRuntimeStore(TimeProvider.System, persistence);
+        await store.ActivateFlowAsync("east", "writer", [contract], new HashSet<string> { contract.Key }, default);
+        await store.CommitAsync("east", "writer", [new FlowVmCommand(contract.Key, FlowVmValue.FromNumber(7.5))], default);
+        var backup = await persistence.ListAsync("east", default);
+
+        await store.ClearRetainedAsync("east", default);
+        Assert.That(store.List("east").Single().Quality, Is.EqualTo(DataQuality.Unavailable));
+        await store.RestoreRetainedAsync("east", backup, default);
+        Assert.That(store.List("east").Single().Value?.Number, Is.EqualTo(7.5));
+
+        var incompatible = backup.ToDictionary(item => item.Key, item => item.Value with { Contract = Digital(item.Key) with { Persistence = VirtualPointPersistence.Retained } });
+        Assert.ThrowsAsync<ExecutionConfigurationException>(() => store.RestoreRetainedAsync("east", incompatible, default));
+    }
+
+    [Test]
     public async Task ReleasesTheLastVolatileAllocationWithItsOwningFlow()
     {
         var store = new VirtualPointRuntimeStore(TimeProvider.System);
@@ -161,6 +180,27 @@ public sealed class VirtualPointRuntimeStoreTests
             }
 
             return Task.CompletedTask;
+        }
+
+        public Task<IReadOnlyDictionary<string, RetainedVirtualPointValue>> ListAsync(string executionInstanceId, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyDictionary<string, RetainedVirtualPointValue>>(_values
+                .Where(item => item.Key.Instance == executionInstanceId)
+                .ToDictionary(item => item.Key.Point, item => item.Value, StringComparer.Ordinal));
+
+        public Task ClearAsync(string executionInstanceId, CancellationToken cancellationToken)
+        {
+            foreach (var key in _values.Keys.Where(key => key.Instance == executionInstanceId).ToArray())
+            {
+                _values.Remove(key);
+            }
+
+            return Task.CompletedTask;
+        }
+
+        public async Task ReplaceAsync(string executionInstanceId, IReadOnlyDictionary<string, RetainedVirtualPointValue> values, CancellationToken cancellationToken)
+        {
+            await ClearAsync(executionInstanceId, cancellationToken);
+            await WriteAsync(executionInstanceId, values, cancellationToken);
         }
     }
 }

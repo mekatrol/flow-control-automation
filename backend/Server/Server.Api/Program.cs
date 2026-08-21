@@ -1,4 +1,5 @@
 using Server.Api.Extensions;
+using Server.Api.Security;
 using Server.Compiler.Extensions;
 using Server.Services;
 using Server.Services.Contracts;
@@ -29,8 +30,15 @@ public partial class Program
         builder.Services.AddFlowControlServer(builder.Configuration);
         builder.Services.ConfigureHttpJsonOptions(
             options => FlowControlJson.Configure(options.SerializerOptions));
+        builder.Services.AddOptions<ApiAccessOptions>().Bind(builder.Configuration.GetSection(ApiAccessOptions.SectionName))
+            .Validate(options => builder.Environment.IsEnvironment("Testing") || options.Identities.Count > 0, "At least one API identity is required.")
+            .Validate(options => options.Identities.Values.All(identity => !string.IsNullOrWhiteSpace(identity.Key) && identity.Permissions.Length > 0), "Every API identity requires a key and permissions.")
+            .ValidateOnStart();
 
         var app = builder.Build();
+
+        app.UseMiddleware<ApiAccessMiddleware>();
+        app.UseMiddleware<MutationAuditMiddleware>();
 
         await using (var scope = app.Services.CreateAsyncScope())
         {

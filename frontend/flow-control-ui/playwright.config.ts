@@ -10,7 +10,10 @@ const useDotnetBackend = process.env.FLOW_UI_E2E_BACKEND === 'dotnet';
 const externalBackendURL = process.env.FLOW_UI_E2E_BACKEND_URL;
 const backendURL = externalBackendURL ?? 'http://127.0.0.1:5008';
 const testEncryptionKey = 'AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=';
+const testApiKey = 'flow-control-e2e-administrator-key';
 const isHeaded = process.argv.includes('--headed');
+const runFirefox = process.env.FLOW_UI_E2E_FIREFOX === '1';
+const managedServers = process.env.FLOW_UI_E2E_MANAGED_SERVERS === '1';
 
 export default defineConfig({
   testDir: './e2e',
@@ -25,6 +28,7 @@ export default defineConfig({
   reporter: process.env.CI ? 'github' : 'list',
   use: {
     baseURL,
+    extraHTTPHeaders: { 'X-Api-Key': testApiKey },
     trace: 'on-first-retry'
   },
   projects: [
@@ -32,10 +36,9 @@ export default defineConfig({
       name: 'desktop-chromium',
       use: { ...devices['Desktop Chrome'] }
     },
-    {
-      name: 'desktop-firefox',
-      use: { ...devices['Desktop Firefox'] }
-    },
+    ...(runFirefox
+      ? [{ name: 'desktop-firefox', use: { ...devices['Desktop Firefox'] } }]
+      : []),
     {
       name: 'desktop-edge',
       use: { ...devices['Desktop Edge'], channel: 'msedge' }
@@ -45,18 +48,22 @@ export default defineConfig({
       use: { ...devices['Pixel 7'] }
     }
   ],
-  webServer: [
+  webServer: managedServers ? [] : ([
     ...(useDotnetBackend && !externalBackendURL
       ? [
           {
             command:
-              'dotnet run --no-build --no-launch-profile --project ../../backend/Server/Server.Api/Server.Api.csproj',
+              'dotnet ../../backend/Server/Server.Api/bin/Debug/net10.0/Server.Api.dll',
             url: `${backendURL}/api/health`,
             reuseExistingServer: false,
             timeout: 60_000,
+            stdout: 'ignore' as const,
+            stderr: 'ignore' as const,
             env: {
               SERVER_ADDRESS: backendURL,
               CREDENTIAL_ENCRYPTION_KEY: testEncryptionKey,
+              ApiAccess__Identities__e2e__Key: testApiKey,
+              ApiAccess__Identities__e2e__Permissions__0: '*',
               ConnectionStrings__FlowControl: `Data Source=${join(tmpdir(), `flow-control-e2e-${process.pid}.db`)}`
             }
           }
@@ -69,10 +76,13 @@ export default defineConfig({
       // proxy target. Backend runs must start their own correctly configured proxy.
       reuseExistingServer: !process.env.CI && !useDotnetBackend,
       timeout: 30_000,
+      stdout: 'ignore' as const,
+      stderr: 'ignore' as const,
       env: {
         FLOW_UI_E2E: '1',
+        VITE_FLOW_CONTROL_API_KEY: testApiKey,
         ...(useDotnetBackend ? { VITE_API_PROXY: backendURL } : {})
       }
     }
-  ]
+  ])
 });

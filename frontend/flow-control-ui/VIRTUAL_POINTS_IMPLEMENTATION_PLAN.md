@@ -341,11 +341,11 @@ Implementation status last updated: 22 August 2026.
 
 | Phase | Status | Current result |
 | --- | --- | --- |
-| Phase 1 | Complete | Portable declarations, execution contexts and instances, deployment records, persistence, migration support, and the built-in server instance are implemented. |
+| Phase 1 | Complete | Portable declarations, execution contexts and instances, deployment records, persistence, and the built-in server instance are implemented as a clean-slate model. |
 | Phase 2 | Complete | Instance-scoped synchronized state, atomic commits, defaults/uninitialized quality, durable retained restoration, server VM routing, inspection APIs, writer ownership/release, volatile reset, isolation, and concurrency coverage are implemented. |
 | Phase 3 | Complete | Active deployment revalidates revisions, capabilities, bindings, contracts, and writer ownership, then compiles every context program for the concrete instance and persists immutable context/instance/template/flow artifact provenance. |
 | Phase 4 | Complete | The designer supports context-preview selection, searchable flow/context/physical points, debounced authoritative exact resolution through `/api/point-resolution/{pointKey}`, distinct unavailable diagnostics, save/deploy blocking, and creation of typed virtual declarations. |
-| Phase 5 | Verification pending | Controller implementation is complete: bounded instance-global analog/digital storage, atomic multi-point commits, writer ownership/release, instance identity checks, typed/versioned platform-persisted retained images, a two-value physical/virtual artifact binding contract, virtual-point capability negotiation, and a bounded multi-program context host with next-scan cross-flow visibility. Controller, backend, and focused cross-flow regressions pass; unrelated frontend browser regressions keep the full-suite completion gate open. |
+| Phase 5 | Complete | Controller implementation is complete: bounded instance-global analog/digital storage, atomic multi-point commits, writer ownership/release, instance identity checks, typed/versioned platform-persisted retained images, a two-value physical/virtual artifact binding contract, virtual-point capability negotiation, and a bounded multi-program context host with next-scan cross-flow visibility. |
 | Phase 6 | Complete | The obsolete cross-flow contracts, node kinds, compiler/decompiler branches, VM flags, emulator surface, wire binding, and tests have been deleted. Virtual points are the sole cross-flow communication mechanism. |
 
 Status labels describe implementation progress; a phase is complete only after its exit criteria and applicable tests pass.
@@ -358,7 +358,7 @@ Status: **Complete**.
 - Add the built-in server execution instance.
 - Add controller-instance management separate from controller templates.
 - Add composite uniqueness and revision rules.
-- Add migration tooling and diagnostics for existing points.
+- Do not add migration tooling or compatibility paths; existing databases and saved flows are discarded.
 
 Exit criteria: one context can be deployed to multiple heterogeneous instances, and each instance gets an isolated `temp-setpoint` runtime cell.
 
@@ -403,7 +403,7 @@ Exit criteria: ordinary users do not need to know point IDs, expert users can ty
 
 ### Phase 5 — Controller runtime support
 
-Status: **Verification pending**. The implementation is complete, but the full regression gate is not green. The compiler uses exactly two point bindings: physical `0` and virtual `1`. The controller runtime hosts bounded instance-global analog/digital cells, coherent context snapshots, atomic shared-point transactions, deterministic writer leases, and strict concrete-instance identity. A bounded context host validates and activates up to two programs atomically and gives every program the same start-of-scan snapshot, so committed values become visible on the next context scan. Retained images are typed, versioned, instance-qualified, restored from platform NVS, and persisted only when their generation changes.
+Status: **Complete**. The compiler uses exactly two point bindings: physical `0` and virtual `1`. The controller runtime hosts bounded instance-global analog/digital cells, coherent context snapshots, atomic shared-point transactions, deterministic writer leases, and strict concrete-instance identity. A bounded context host validates and activates up to two programs atomically and gives every program the same start-of-scan snapshot, so committed values become visible on the next context scan. Retained images are typed, versioned, instance-qualified, restored from platform NVS, and persisted only when their generation changes.
 
 - Version the controller protocol for virtual-point definitions and state.
 - Implement volatile/retained storage on supported controllers.
@@ -427,11 +427,10 @@ Exit criteria: there is one unambiguous mechanism for cross-flow communication, 
 
 ### Current verification status
 
-- Backend unit tests: **248 passed, 0 failed**.
+- Backend unit tests: **252 passed, 0 failed**.
 - Frontend unit tests: **183 passed, 0 failed**.
 - Frontend production build, lint, formatting, and diff checks: **passed**.
-- Focused point-resolution verification: **passed** for context-qualified virtual contracts, missing points, frontend validation, and production type checking.
-- Playwright full matrix: **179 passed, 12 skipped, 64 failed, 1 did not run**. Firefox remains blocked before page creation by the upstream Playwright-on-elevated-Windows `_page` startup defect. In untouched frontend code, rapid-navigation also fails on Chromium, Edge, and mobile Chromium, and the mobile debug test times out behind an intercepting overlay; the same four non-Firefox failures reproduce in an isolated 21-test rerun.
+- Playwright supported-browser matrix: **183 passed, 9 skipped, 0 failed** across Chromium, Edge, and mobile Chromium. Firefox is optional until its upstream elevated-Windows page-startup defect is resolved.
 - Real .NET-backed end-to-end tests: **3 passed, 0 failed**.
 - Controller host tests: **18 passed, 0 failed**.
 
@@ -493,7 +492,7 @@ Exit criteria: there is one unambiguous mechanism for cross-flow communication, 
 
 ## Operational and safety considerations
 
-- Put limits on virtual points per context and retained storage size.
+- Enforce 128 virtual points per context and execution instance, with at most 64 retained points per context.
 - Treat point commands as privileged operations.
 - Preserve data quality and timestamps, not only raw values.
 - Define behavior for controller disconnect/reconnect and stale values.
@@ -501,17 +500,18 @@ Exit criteria: there is one unambiguous mechanism for cross-flow communication, 
 - Use optimistic concurrency on execution contexts, point definitions, and deployments.
 - Provide observability for current value, quality, writer, last update, persistence state, and readers.
 - Avoid logging sensitive physical mappings or credentials with point values.
-- Provide backup/restore semantics for retained virtual-point state separately from configuration backups.
+- Retained values survive declaration removal until an explicit privileged clear, and restore only when type, units, persistence, default, and instance identity match exactly.
+- Provide instance-qualified backup, clear, and restore APIs for retained virtual-point state separately from configuration backups.
 
-## Open decisions to resolve before implementation
+## Resolved design decisions
 
-1. Can the same flow revision belong to multiple logical execution contexts simultaneously, and how are context-specific configuration values supplied without changing source?
-2. Who creates execution instances and how are controller instances paired with physical devices?
-3. Is one-writer ownership sufficient, or is explicit priority/arbitration required?
-4. What is the exact scan boundary when multiple independently scheduled flows share a context?
-5. Should retained values survive point-definition revision changes when type and units remain compatible?
-6. Are manual operator commands another writer, and how do they interact with flow ownership?
-7. Are virtual points limited to analog/digital permanently, or should the existing integer, multi-state, and text types become available later?
+1. The same immutable flow revision may belong to multiple contexts; context-specific configuration is outside the first release.
+2. Operators with `contexts.edit` create execution instances, and physical devices pair through strict device identity.
+3. A virtual point has one active writer; priority and arbitration are not supported.
+4. Every program reads the same context start-of-scan snapshot, and commits become visible on the next context scan.
+5. Retained values restore only for an exactly matching contract: type, units, persistence, default, and execution instance.
+6. Manual operator commands are privileged runtime operations, not an additional virtual-point writer in the first release.
+7. Virtual points are limited to analog and digital values in the first release.
 
 ## Definition of done
 

@@ -21,6 +21,7 @@ public interface IFlowControlDbContext
     DbSet<ExecutionContextDeploymentEntity> ExecutionContextDeployments => Set<ExecutionContextDeploymentEntity>();
 
     DbSet<VirtualPointRetainedStateEntity> VirtualPointRetainedStates => Set<VirtualPointRetainedStateEntity>();
+    DbSet<AuditRecordEntity> AuditRecords => Set<AuditRecordEntity>();
 
     DbSet<TEntity> Set<TEntity>()
         where TEntity : class;

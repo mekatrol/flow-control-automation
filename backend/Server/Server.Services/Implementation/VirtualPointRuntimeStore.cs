@@ -75,7 +75,7 @@ public sealed class VirtualPointRuntimeStore(
                     if (retained.GetValueOrDefault(declaration.Key) is { } restored)
                     {
                         var expected = declaration.ValueType == FlowPointValueType.Analog ? DataType.Number : DataType.Boolean;
-                        if (restored.Value.DataType == expected)
+                        if (restored.Value.DataType == expected && Compatible(declaration, restored.Contract))
                         {
                             cell.Value = restored.Value;
                             cell.Timestamp = restored.Timestamp;
@@ -176,7 +176,7 @@ public sealed class VirtualPointRuntimeStore(
                         command =>
                         {
                             var cell = _cells[(executionInstanceId, command.PointId)];
-                            return new RetainedVirtualPointValue(command.TypedValue, timestamp, checked(cell.Version + 1));
+                            return new RetainedVirtualPointValue(command.TypedValue, timestamp, checked(cell.Version + 1), cell.Contract);
                         },
                         StringComparer.Ordinal);
                 foreach (var command in proposed)
@@ -208,6 +208,73 @@ public sealed class VirtualPointRuntimeStore(
         finally { _gate.ExitReadLock(); }
     }
 
+    public async Task ClearRetainedAsync(string executionInstanceId, CancellationToken cancellationToken)
+    {
+        await _commitGate.WaitAsync(cancellationToken);
+        try
+        {
+            if (retainedStore is not null)
+            {
+                await retainedStore.ClearAsync(executionInstanceId, cancellationToken);
+            }
+
+            _gate.EnterWriteLock();
+            try
+            {
+                foreach (var cell in _cells.Values.Where(item => item.ExecutionInstanceId == executionInstanceId && item.Contract.Persistence == VirtualPointPersistence.Retained))
+                {
+                    cell.Value = null;
+                    cell.Timestamp = null;
+                    cell.Version++;
+                }
+            }
+            finally { _gate.ExitWriteLock(); }
+        }
+        finally { _commitGate.Release(); }
+    }
+
+    public async Task RestoreRetainedAsync(string executionInstanceId, IReadOnlyDictionary<string, RetainedVirtualPointValue> values, CancellationToken cancellationToken)
+    {
+        await _commitGate.WaitAsync(cancellationToken);
+        try
+        {
+            _gate.EnterWriteLock();
+            try
+            {
+                foreach (var (pointKey, retained) in values)
+                {
+                    if (!_cells.TryGetValue((executionInstanceId, pointKey), out var cell)
+                        || cell.Contract.Persistence != VirtualPointPersistence.Retained)
+                    {
+                        throw new ExecutionConfigurationException($"retained backup point '{pointKey}' is not allocated as retained", 422, "incompatible_retained_backup");
+                    }
+
+                    var expected = cell.Contract.ValueType == FlowPointValueType.Analog ? DataType.Number : DataType.Boolean;
+                    if (retained.Value.DataType != expected || !Compatible(cell.Contract, retained.Contract))
+                    {
+                        throw new ExecutionConfigurationException($"retained backup point '{pointKey}' has the wrong type", 422, "incompatible_retained_backup");
+                    }
+                }
+                foreach (var cell in _cells.Values.Where(item => item.ExecutionInstanceId == executionInstanceId && item.Contract.Persistence == VirtualPointPersistence.Retained))
+                {
+                    if (values.TryGetValue(cell.PointKey, out var retained))
+                    {
+                        cell.Value = retained.Value;
+                        cell.Timestamp = retained.Timestamp;
+                        cell.Version = retained.Version;
+                    }
+                    else { cell.Value = null; cell.Timestamp = null; cell.Version++; }
+                }
+            }
+            finally { _gate.ExitWriteLock(); }
+            if (retainedStore is not null)
+            {
+                await retainedStore.ReplaceAsync(executionInstanceId, values, cancellationToken);
+            }
+        }
+        finally { _commitGate.Release(); }
+    }
+
     private static VirtualPointRuntimeValue Snapshot(Cell cell) => new()
     {
         ExecutionInstanceId = cell.ExecutionInstanceId,
@@ -217,6 +284,8 @@ public sealed class VirtualPointRuntimeStore(
         Quality = cell.Value is not null || cell.Contract.RelinquishDefault is not null ? DataQuality.Good : DataQuality.Unavailable,
         Timestamp = cell.Timestamp,
         WriterFlowId = cell.WriterFlowId,
+        ReaderFlowIds = [.. cell.Readers.Order(StringComparer.Ordinal)],
+        Retained = cell.Contract.Persistence == VirtualPointPersistence.Retained,
         Version = cell.Version
     };
 

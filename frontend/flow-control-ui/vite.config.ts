@@ -45,7 +45,10 @@ export default defineConfig({
     // than requiring cross-origin URLs or development-only CORS permissions.
     proxy: {
       '/api': process.env.VITE_API_PROXY || 'http://localhost:8080'
-    }
+    },
+    // Runtime stores use atomic temporary files. Watching them on Windows can
+    // surface transient EBUSY errors and terminate the development server.
+    watch: { ignored: ['**/data/**', '**/test-results/**'] }
   },
   plugins: [vue(), ...(process.env.FLOW_UI_E2E ? [] : [vueDevTools()]), chunkSizeBudgetPlugin()],
   optimizeDeps: {
