@@ -342,7 +342,7 @@ describe('flows store', () => {
     expect(() => store.flowPayload(flow.id)).not.toThrow();
   });
 
-  it('binds a new flow input node to an existing interface entry', () => {
+  it('creates a distinct interface entry for each new flow input node', () => {
     const store = useFlowsStore();
     const flow = store.findFlow('climate-control')!;
     flow.interface.inputs = [
@@ -351,10 +351,11 @@ describe('flows store', () => {
     const node = createDefaultNode('flowInput', { x: 48, y: 72 }, 4, 'new-input');
 
     expect(store.addNode(flow.id, node)).toBe(true);
+    expect(flow.interface.inputs).toHaveLength(2);
     expect(flow.nodes.at(-1)).toMatchObject({
-      label: 'Temperature',
-      configuration: { interfaceId: 'temperature' },
-      connectors: [{ label: 'Temperature (°C)', dataType: 'number' }]
+      label: 'New input',
+      configuration: { interfaceId: 'input-1' },
+      connectors: [{ label: 'New input', dataType: 'boolean' }]
     });
   });
 

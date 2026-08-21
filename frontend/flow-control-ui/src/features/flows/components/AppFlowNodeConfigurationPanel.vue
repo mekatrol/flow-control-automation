@@ -9,7 +9,7 @@
     </div>
 
     <div class="fields">
-      <label>
+      <label v-if="!interfaceEntry">
         <span>Node label</span>
         <input
           :value="node.label"
@@ -20,7 +20,56 @@
         <small v-if="errors.label" role="alert">{{ errors.label }}</small>
       </label>
 
-      <label v-for="field in definition.editor" :key="field.key">
+      <template v-if="interfaceEntry">
+        <label>
+          <span>{{ node.kind === 'flowInput' ? 'Input name' : 'Output name' }}</span>
+          <input :value="interfaceEntry.name" type="text" @change="updateInterfaceName" />
+        </label>
+        <label>
+          <span>Data type</span>
+          <select :value="interfaceEntry.dataType" @change="updateInterfaceType">
+            <option v-for="type in interfaceDataTypes" :key="type" :value="type">{{ type }}</option>
+          </select>
+        </label>
+        <label v-if="interfaceEntry.dataType === 'number'">
+          <span>Units</span>
+          <input :value="interfaceEntry.units ?? ''" type="text" @change="updateInterfaceUnits" />
+        </label>
+        <label v-if="node.kind === 'flowInput' && interfaceInput">
+          <span>Default value</span>
+          <select
+            v-if="interfaceInput.dataType === 'boolean'"
+            :value="String(interfaceInput.defaultValue ?? false)"
+            @change="updateBooleanDefault"
+          >
+            <option value="false">False</option>
+            <option value="true">True</option>
+          </select>
+          <input
+            v-else-if="interfaceInput.dataType === 'number'"
+            :value="interfaceInput.defaultValue ?? 0"
+            type="number"
+            @change="updateNumberDefault"
+          />
+          <input
+            v-else-if="interfaceInput.dataType === 'string'"
+            :value="interfaceInput.defaultValue ?? ''"
+            type="text"
+            @change="updateStringDefault"
+          />
+          <span v-else>Events do not have a default value.</span>
+        </label>
+        <label v-if="node.kind === 'flowInput' && interfaceInput" class="checkbox-field">
+          <input
+            type="checkbox"
+            :checked="interfaceInput.required"
+            @change="updateInterfaceRequired"
+          />
+          <span>Required input</span>
+        </label>
+      </template>
+
+      <label v-for="field in nodeEditorFields" :key="field.key">
         <span>{{ field.label }}</span>
         <select
           v-if="field.key === 'interfaceId'"
@@ -105,12 +154,20 @@ import { useAutomation } from '@/composables/useAutomation';
 import { EVENTS } from '@/constants/events';
 import { getNodeIconUrl, getNodeKind } from '@/features/flows/nodeKinds';
 import type { NodeEditorField } from '@/features/flows/nodeKinds';
-import type { FlowConfigurationValue, FlowInterface, FlowNode } from '@/features/flows/types';
+import type {
+  FlowConfigurationValue,
+  FlowInterface,
+  FlowInterfaceDataType,
+  FlowInterfaceInput,
+  FlowInterfaceOutput,
+  FlowNode
+} from '@/features/flows/types';
 
 const props = defineProps<{ automation: string; node: FlowNode; flowInterface?: FlowInterface }>();
 const emit = defineEmits<{
   (event: typeof EVENTS.UPDATE_LABEL, label: string): void;
   (event: typeof EVENTS.UPDATE_CONFIGURATION, key: string, value: FlowConfigurationValue): void;
+  (event: typeof EVENTS.UPDATE_INTERFACE, value: FlowInterface): void;
 }>();
 
 const automation = useAutomation(props.automation);
@@ -120,7 +177,80 @@ const interfaceEntries = computed(() =>
     ? (props.flowInterface?.inputs ?? [])
     : (props.flowInterface?.outputs ?? [])
 );
+const interfaceEntry = computed(() =>
+  interfaceEntries.value.find((entry) => entry.id === props.node.configuration.interfaceId)
+);
+const interfaceInput = computed((): FlowInterfaceInput | undefined =>
+  props.node.kind === 'flowInput'
+    ? (interfaceEntry.value as FlowInterfaceInput | undefined)
+    : undefined
+);
+const nodeEditorFields = computed(() =>
+  definition.value.editor.filter((field) => field.key !== 'interfaceId')
+);
+const interfaceDataTypes: FlowInterfaceDataType[] = ['boolean', 'number', 'string', 'event'];
 const errors = ref<Record<string, string>>({});
+
+const updateInterfaceEntry = (
+  update: (entry: FlowInterfaceInput | FlowInterfaceOutput) => void
+): void => {
+  if (!props.flowInterface || !interfaceEntry.value) return;
+  const next: FlowInterface = {
+    schemaVersion: props.flowInterface.schemaVersion,
+    inputs: props.flowInterface.inputs.map((entry) => ({ ...entry })),
+    outputs: props.flowInterface.outputs.map((entry) => ({ ...entry }))
+  };
+  const entries = props.node.kind === 'flowInput' ? next.inputs : next.outputs;
+  const entry = entries.find((candidate) => candidate.id === interfaceEntry.value?.id);
+  if (!entry) return;
+  update(entry);
+  emit(EVENTS.UPDATE_INTERFACE, next);
+};
+
+const updateInterfaceName = (event: Event): void => {
+  const name = (event.target as HTMLInputElement).value.trim();
+  if (name) updateInterfaceEntry((entry) => (entry.name = name));
+};
+const updateInterfaceType = (event: Event): void => {
+  const dataType = (event.target as HTMLSelectElement).value as FlowInterfaceDataType;
+  updateInterfaceEntry((entry) => {
+    entry.dataType = dataType;
+    if (dataType !== 'number') delete entry.units;
+    if ('required' in entry)
+      entry.defaultValue =
+        dataType === 'boolean'
+          ? false
+          : dataType === 'number'
+            ? 0
+            : dataType === 'string'
+              ? ''
+              : null;
+  });
+};
+const updateInterfaceUnits = (event: Event): void => {
+  const units = (event.target as HTMLInputElement).value.trim();
+  updateInterfaceEntry((entry) => {
+    if (units) entry.units = units;
+    else delete entry.units;
+  });
+};
+const updateBooleanDefault = (event: Event): void =>
+  updateInterfaceEntry((entry) => {
+    if ('required' in entry)
+      entry.defaultValue = (event.target as HTMLSelectElement).value === 'true';
+  });
+const updateNumberDefault = (event: Event): void =>
+  updateInterfaceEntry((entry) => {
+    if ('required' in entry) entry.defaultValue = Number((event.target as HTMLInputElement).value);
+  });
+const updateStringDefault = (event: Event): void =>
+  updateInterfaceEntry((entry) => {
+    if ('required' in entry) entry.defaultValue = (event.target as HTMLInputElement).value;
+  });
+const updateInterfaceRequired = (event: Event): void =>
+  updateInterfaceEntry((entry) => {
+    if ('required' in entry) entry.required = (event.target as HTMLInputElement).checked;
+  });
 
 const updateLabel = (event: Event): void => {
   const label = (event.target as HTMLInputElement).value;
@@ -186,6 +316,11 @@ label {
   color: var(--color-text-secondary);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-bold);
+}
+
+.checkbox-field {
+  display: flex;
+  align-items: center;
 }
 
 input:not([type='checkbox']),

@@ -106,13 +106,29 @@ export const useFlowsStore = defineStore('flows', () => {
 
   const deleteNode = (flowId: string, nodeId: string): boolean => {
     const flow = findFlow(flowId);
-    if (!flow || !flow.nodes.some((node) => node.id === nodeId)) return false;
+    const deletedNode = flow?.nodes.find((node) => node.id === nodeId);
+    if (!flow || !deletedNode) return false;
     flow.nodes = flow.nodes.filter((node) => node.id !== nodeId);
     // A connection cannot survive without both endpoints. Removing these links
     // here keeps every store state valid, even before the next save.
     flow.connections = flow.connections.filter(
       (connection) => connection.start.nodeId !== nodeId && connection.end.nodeId !== nodeId
     );
+    if (deletedNode.kind === 'flowInput' || deletedNode.kind === 'flowOutput') {
+      const interfaceId = String(deletedNode.configuration.interfaceId);
+      const stillUsed = flow.nodes.some(
+        (node) =>
+          node.kind === deletedNode.kind && String(node.configuration.interfaceId) === interfaceId
+      );
+      if (!stillUsed) {
+        if (deletedNode.kind === 'flowInput')
+          flow.interface.inputs = flow.interface.inputs.filter((entry) => entry.id !== interfaceId);
+        else
+          flow.interface.outputs = flow.interface.outputs.filter(
+            (entry) => entry.id !== interfaceId
+          );
+      }
+    }
     return true;
   };
 
@@ -147,11 +163,11 @@ export const useFlowsStore = defineStore('flows', () => {
       const entries =
         nextNode.kind === 'flowInput' ? flow.interface.inputs : flow.interface.outputs;
       const configuredId = String(nextNode.configuration.interfaceId ?? '');
-      let entry = entries.find((candidate) => candidate.id === configuredId) ?? entries[0];
+      let entry = entries.find((candidate) => candidate.id === configuredId);
 
       // A palette node has no interface context, so its registry default is empty.
-      // Make the authoring action atomic: bind the first compatible entry when one
-      // exists, or create a matching boundary entry when this is the first terminal.
+      // Make the authoring action atomic: each new terminal gets its own interface
+      // entry, while imported nodes with an explicit valid ID retain that binding.
       if (!entry) {
         const prefix = nextNode.kind === 'flowInput' ? 'input' : 'output';
         const usedIds = new Set(
