@@ -117,6 +117,9 @@ test('navigates, filters, pages and remains keyboard usable after reload', async
   // Acceptance criteria: `page.getByRole('heading', { name: 'Points' })` must be visible, because this condition proves that
   // navigates, filters, pages and remains keyboard usable after reload.
   await expect(page.getByRole('heading', { name: 'Points' })).toBeVisible();
+  // Edge can restore focus to the control that was active before a reload. Clear
+  // that browser-managed state so Tab starts at the document's first focusable item.
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
   await page.keyboard.press('Tab');
 
   // Expected outcome: `page.getByRole('link', { name: 'Skip to main content' })` owns keyboard focus.
