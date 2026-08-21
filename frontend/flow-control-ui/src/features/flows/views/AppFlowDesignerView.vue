@@ -264,6 +264,7 @@
         :debugging="workspaceMode === 'debugger' && Boolean(debugSessionId)"
         :focus-node-id="diagnosticNodeId"
         :context-point-contracts="selectedContext?.pointContracts"
+        :execution-context-id="selectedContextId || undefined"
         @point-validation="setPointValidation"
         @create-virtual-point="createVirtualPoint"
         @[EVENTS.SET_BREAKPOINT]="setBreakpoint"
@@ -849,7 +850,12 @@ const validateAllPointReferences = async (): Promise<boolean> => {
   for (const node of nodes) pointValidation.value[node.id] = 'pending';
   const results = await Promise.all(
     nodes.map((node) =>
-      validatePointReference(node, mergedPointDeclarations.value, controller.signal)
+      validatePointReference(
+        node,
+        mergedPointDeclarations.value,
+        controller.signal,
+        selectedContextId.value || undefined
+      )
     )
   ).catch(() => undefined);
   if (!results || controller.signal.aborted) return false;

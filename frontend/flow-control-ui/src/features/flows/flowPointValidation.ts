@@ -1,4 +1,4 @@
-import { catalogueApi } from '@/features/catalogues/api/catalogueApi';
+import { executionContextApi } from '@/features/flows/api/executionContextApi';
 import type { PointSummary } from '@/features/catalogues/api/catalogueDto';
 import type { FlowNode, VirtualPointDeclaration } from '@/features/flows/types';
 
@@ -37,7 +37,9 @@ export const pointCompatibilityError = (
 export const validatePointReference = async (
   node: FlowNode,
   declarations: VirtualPointDeclaration[],
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  executionContextId?: string,
+  executionInstanceId?: string
 ): Promise<PointValidationResult> => {
   const key = String(node.configuration.pointId ?? '').trim();
   if (!key) return { state: 'invalid', message: 'Point ID is required.' };
@@ -51,8 +53,12 @@ export const validatePointReference = async (
       : { state: 'valid', point: declared };
   }
   try {
-    const page = await catalogueApi.points({ filter: key, page: 1, pageSize: 50 }, signal);
-    const point = page.items.find((candidate) => candidate.id === key);
+    const point = await executionContextApi.resolvePoint(
+      key,
+      executionContextId,
+      executionInstanceId,
+      signal
+    );
     if (!point) return { state: 'invalid', message: `Point “${key}” does not exist.` };
     const message = pointCompatibilityError(node, point);
     return message ? { state: 'invalid', message, point } : { state: 'valid', point };

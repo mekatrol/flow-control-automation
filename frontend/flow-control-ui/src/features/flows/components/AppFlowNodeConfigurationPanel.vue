@@ -168,6 +168,7 @@ const props = defineProps<{
   node: FlowNode;
   virtualPointDeclarations?: VirtualPointDeclaration[];
   contextPointContracts?: VirtualPointDeclaration[];
+  executionContextId?: string;
 }>();
 const emit = defineEmits<{
   (event: typeof EVENTS.UPDATE_LABEL, label: string): void;
@@ -239,7 +240,8 @@ const validatePointId = async (): Promise<void> => {
       const result = await validatePointReference(
         props.node,
         declarations.value,
-        lookupController.signal
+        lookupController.signal,
+        props.executionContextId
       );
       validationState.value = result.state;
       if (result.message) errors.value.pointId = result.message;

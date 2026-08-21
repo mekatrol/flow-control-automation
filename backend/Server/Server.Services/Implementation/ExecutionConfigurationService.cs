@@ -22,6 +22,61 @@ internal sealed partial class ExecutionConfigurationService(
     public async Task<IReadOnlyList<ExecutionContextDefinition>> ListContextsAsync(CancellationToken cancellationToken) =>
         [.. (await context.ExecutionContexts.AsNoTracking().OrderBy(item => item.Key).ToListAsync(cancellationToken)).Select(Deserialize<ExecutionContextDefinition>)];
 
+    public async Task<PointResolution> ResolvePointAsync(string pointKey, string? contextId, string? instanceId, CancellationToken cancellationToken)
+    {
+        ValidateId(pointKey, "pointKey");
+        ExecutionContextDefinition? definition = null;
+        if (!string.IsNullOrWhiteSpace(contextId))
+        {
+            definition = await GetContextAsync(contextId, cancellationToken);
+        }
+
+        if (!string.IsNullOrWhiteSpace(instanceId))
+        {
+            _ = await GetInstanceAsync(instanceId, cancellationToken);
+        }
+
+        var contract = definition?.PointContracts.SingleOrDefault(item => item.Key == pointKey);
+        if (contract is not null)
+        {
+            return new PointResolution
+            {
+                ExecutionContextId = contextId,
+                ExecutionInstanceId = instanceId,
+                PointKey = pointKey,
+                Exists = true,
+                Implementation = "virtual",
+                ValueType = contract.ValueType,
+                Readable = contract.Readable,
+                Commandable = contract.Commandable,
+                Units = contract.Units,
+                Revision = definition!.Revision,
+                Enabled = true
+            };
+        }
+
+        FlowPoint? point = null;
+        try { point = await pointDefinitions.GetPointAsync(pointKey, cancellationToken); }
+        catch (PointDefinitionNotFoundException) { }
+
+        return point is null
+            ? new PointResolution { ExecutionContextId = contextId, ExecutionInstanceId = instanceId, PointKey = pointKey }
+            : new PointResolution
+            {
+                ExecutionContextId = contextId,
+                ExecutionInstanceId = instanceId,
+                PointKey = pointKey,
+                Exists = true,
+                Implementation = point.Implementation,
+                ValueType = point.ValueType,
+                Readable = point.Readable,
+                Commandable = point.Commandable,
+                Units = point.Units,
+                Revision = point.Revision,
+                Enabled = point.Enabled
+            };
+    }
+
     public async Task<ExecutionContextDefinition> GetContextAsync(string id, CancellationToken cancellationToken) =>
         Deserialize<ExecutionContextDefinition>(await Find(context.ExecutionContexts, id, "execution context", cancellationToken));
 

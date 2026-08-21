@@ -303,7 +303,7 @@ This is an enhancement after lookup and validation are working; it must not be r
 
 1. Add execution-context CRUD and catalogue endpoints.
 2. Separate portable program declarations, logical context contracts, instance physical catalogues, and instance runtime-value APIs.
-3. Add a lightweight point-resolution endpoint suitable for manual-ID validation.
+3. Add a lightweight point-resolution endpoint suitable for manual-ID validation. **Complete:** `GET /api/point-resolution/{pointKey}` performs exact resolution and accepts optional `executionContextId` and `executionInstanceId` qualifiers.
 4. Return stable machine-readable validation codes in addition to messages.
 5. Extend flow save validation to check syntax and known local shape, while deployment performs authoritative context/revision validation.
 6. Return cross-flow writer conflicts with execution-instance ID, point key, and conflicting flow/deployment ID.
@@ -337,14 +337,14 @@ Suggested resolution response:
 
 ## Delivery phases
 
-Implementation status last updated: 21 August 2026.
+Implementation status last updated: 22 August 2026.
 
 | Phase | Status | Current result |
 | --- | --- | --- |
 | Phase 1 | Complete | Portable declarations, execution contexts and instances, deployment records, persistence, migration support, and the built-in server instance are implemented. |
 | Phase 2 | Complete | Instance-scoped synchronized state, atomic commits, defaults/uninitialized quality, durable retained restoration, server VM routing, inspection APIs, writer ownership/release, volatile reset, isolation, and concurrency coverage are implemented. |
 | Phase 3 | Complete | Active deployment revalidates revisions, capabilities, bindings, contracts, and writer ownership, then compiles every context program for the concrete instance and persists immutable context/instance/template/flow artifact provenance. |
-| Phase 4 | Complete | The designer supports context-preview selection, searchable flow/context/physical points, debounced authoritative existence checks, distinct unavailable diagnostics, save/deploy blocking, and creation of typed virtual declarations. |
+| Phase 4 | Complete | The designer supports context-preview selection, searchable flow/context/physical points, debounced authoritative exact resolution through `/api/point-resolution/{pointKey}`, distinct unavailable diagnostics, save/deploy blocking, and creation of typed virtual declarations. |
 | Phase 5 | Verification pending | Controller implementation is complete: bounded instance-global analog/digital storage, atomic multi-point commits, writer ownership/release, instance identity checks, typed/versioned platform-persisted retained images, a two-value physical/virtual artifact binding contract, virtual-point capability negotiation, and a bounded multi-program context host with next-scan cross-flow visibility. Controller, backend, and focused cross-flow regressions pass; unrelated frontend browser regressions keep the full-suite completion gate open. |
 | Phase 6 | Complete | The obsolete cross-flow contracts, node kinds, compiler/decompiler branches, VM flags, emulator surface, wire binding, and tests have been deleted. Virtual points are the sole cross-flow communication mechanism. |
 
@@ -390,7 +390,7 @@ Exit criteria: invalid or stale mappings cannot be deployed, and deployment diag
 
 ### Phase 4 — Designer lookup and validation
 
-Status: **Complete**. The designer provides a searchable editable point selector across flow declarations, selected context contracts, and physical points. Manual IDs receive debounced authoritative existence and compatibility validation; context changes revalidate the graph; unavailable lookup is distinct from a missing point; invalid references block save and deployment; and missing IDs can be added as typed virtual declarations.
+Status: **Complete**. The designer provides a searchable editable point selector across flow declarations, selected context contracts, and physical points. Manual IDs receive debounced authoritative exact resolution and compatibility validation through `GET /api/point-resolution/{pointKey}`, qualified by the selected execution context and optionally by execution instance. Context changes revalidate the graph; unavailable lookup is distinct from a missing point; invalid references block save and deployment; and missing IDs can be added as typed virtual declarations.
 
 - Add execution-context selection/display.
 - Implement the searchable, editable point combobox.
@@ -430,6 +430,7 @@ Exit criteria: there is one unambiguous mechanism for cross-flow communication, 
 - Backend unit tests: **248 passed, 0 failed**.
 - Frontend unit tests: **183 passed, 0 failed**.
 - Frontend production build, lint, formatting, and diff checks: **passed**.
+- Focused point-resolution verification: **passed** for context-qualified virtual contracts, missing points, frontend validation, and production type checking.
 - Playwright full matrix: **179 passed, 12 skipped, 64 failed, 1 did not run**. Firefox remains blocked before page creation by the upstream Playwright-on-elevated-Windows `_page` startup defect. In untouched frontend code, rapid-navigation also fails on Chromium, Edge, and mobile Chromium, and the mobile debug test times out behind an intercepting overlay; the same four non-Firefox failures reproduce in an isolated 21-test rerun.
 - Real .NET-backed end-to-end tests: **3 passed, 0 failed**.
 - Controller host tests: **18 passed, 0 failed**.
@@ -442,6 +443,7 @@ Exit criteria: there is one unambiguous mechanism for cross-flow communication, 
 - Virtual analog/digital definitions validate correctly.
 - Virtual points reject source mappings and non-value directions.
 - Context-qualified lookup cannot return a point from another context.
+- Exact point resolution distinguishes missing points from unavailable validation and validates supplied context and execution-instance identities.
 - Authorization and audit records cover point and context mutations.
 
 ### Compiler and deployment tests
@@ -459,8 +461,8 @@ Exit criteria: there is one unambiguous mechanism for cross-flow communication, 
 - Flow A writes and Flow B reads the committed value on the next scan.
 - Analog and digital values preserve their types and quality.
 - Uninitialized points report unavailable unless a default exists.
-- Volatile values reset only with their owning context.
-- Retained values restore only in their owning context.
+- Volatile values reset only with their owning execution instance.
+- Retained values restore only in their owning execution instance.
 - Failed flow execution does not partially commit outputs.
 - Disabling or undeploying a writer releases ownership.
 - Server and controller execution instances with the same point key remain isolated.

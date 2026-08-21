@@ -1,5 +1,6 @@
 import { waitForFetch } from '@/api/waitForFetch';
 import type { VirtualPointDeclaration } from '@/features/flows/types';
+import type { PointSummary } from '@/features/catalogues/api/catalogueDto';
 
 export interface ExecutionContextSummary {
   id: string;
@@ -34,5 +35,42 @@ export const executionContextApi = {
     const body: unknown = await response.json();
     if (!Array.isArray(body)) throw new Error('Execution context catalogue is malformed.');
     return body.map(parseContext);
+  },
+  async resolvePoint(
+    pointKey: string,
+    executionContextId?: string,
+    executionInstanceId?: string,
+    signal?: AbortSignal
+  ): Promise<PointSummary | undefined> {
+    const query = new URLSearchParams();
+    if (executionContextId) query.set('executionContextId', executionContextId);
+    if (executionInstanceId) query.set('executionInstanceId', executionInstanceId);
+    const suffix = query.size ? `?${query}` : '';
+    const response = await waitForFetch(
+      `/api/point-resolution/${encodeURIComponent(pointKey)}${suffix}`,
+      { signal }
+    );
+    if (!response.ok) throw new Error(`Unable to resolve point (${response.status}).`);
+    const body = (await response.json()) as Record<string, unknown>;
+    if (body.exists === false) return undefined;
+    if (
+      body.exists !== true ||
+      typeof body.pointKey !== 'string' ||
+      (body.implementation !== 'virtual' && body.implementation !== 'bound') ||
+      !['analog', 'digital', 'multiState', 'integer', 'text'].includes(String(body.valueType))
+    )
+      throw new Error('Point resolution is malformed.');
+    return {
+      id: body.pointKey,
+      name: body.pointKey,
+      enabled: body.enabled === true,
+      implementation: body.implementation,
+      direction: body.implementation === 'virtual' ? 'value' : 'inputOutput',
+      valueType: body.valueType as PointSummary['valueType'],
+      units: typeof body.units === 'string' ? body.units : undefined,
+      readable: body.readable === true,
+      commandable: body.commandable === true,
+      revision: typeof body.revision === 'number' ? body.revision : 0
+    };
   }
 };

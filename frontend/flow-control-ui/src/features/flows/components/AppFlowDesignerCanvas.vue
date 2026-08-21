@@ -191,6 +191,7 @@
         :node="selectedNode"
         :virtual-point-declarations="flow.virtualPointDeclarations"
         :context-point-contracts="contextPointContracts"
+        :execution-context-id="executionContextId"
         @validation="(nodeId, state) => emit('pointValidation', nodeId, state)"
         @create-virtual-point="(declaration) => emit('createVirtualPoint', declaration)"
         @[EVENTS.UPDATE_LABEL]="handleNodeLabelUpdate"
@@ -256,6 +257,7 @@ const props = defineProps<{
   debugging?: boolean;
   focusNodeId?: string;
   contextPointContracts?: VirtualPointDeclaration[];
+  executionContextId?: string;
 }>();
 
 const automation = useAutomation(props.automation);

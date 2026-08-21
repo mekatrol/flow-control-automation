@@ -46,11 +46,8 @@ describe('flow point validation', () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
       new Response(
         JSON.stringify({
-          items: [],
-          totalItems: 0,
-          page: 1,
-          pageSize: 50,
-          pageCount: 0
+          pointKey: 'missing',
+          exists: false
         }),
         { status: 200 }
       )

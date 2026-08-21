@@ -74,6 +74,23 @@ internal sealed class ExecutionConfigurationEndpointTests
         var createdContext = (await contextResponse.Content.ReadFromJsonAsync<ExecutionContextDefinition>(FlowControlJson.Options))!;
         Assert.That(createdContext.PointContracts, Has.Count.EqualTo(1));
 
+        var resolution = await client.GetFromJsonAsync<PointResolution>(
+            "/api/point-resolution/temp-setpoint?executionContextId=climate&executionInstanceId=server",
+            FlowControlJson.Options);
+        Assert.Multiple(() =>
+        {
+            Assert.That(resolution!.Exists, Is.True);
+            Assert.That(resolution.Implementation, Is.EqualTo("virtual"));
+            Assert.That(resolution.ValueType, Is.EqualTo(FlowPointValueType.Analog));
+            Assert.That(resolution.ExecutionContextId, Is.EqualTo("climate"));
+            Assert.That(resolution.ExecutionInstanceId, Is.EqualTo("server"));
+        });
+
+        var missingResolution = await client.GetFromJsonAsync<PointResolution>(
+            "/api/point-resolution/missing?executionContextId=climate",
+            FlowControlJson.Options);
+        Assert.That(missingResolution!.Exists, Is.False);
+
         var deployments = new List<ExecutionContextDeployment>();
         foreach (var instanceId in new[] { "east", "west" })
         {
