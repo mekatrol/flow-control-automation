@@ -155,7 +155,11 @@ public sealed class VirtualPointRuntimeStoreTests
 
         public Task WriteAsync(string executionInstanceId, IReadOnlyDictionary<string, RetainedVirtualPointValue> values, CancellationToken cancellationToken)
         {
-            foreach (var (pointKey, value) in values) _values[(executionInstanceId, pointKey)] = value;
+            foreach (var (pointKey, value) in values)
+            {
+                _values[(executionInstanceId, pointKey)] = value;
+            }
+
             return Task.CompletedTask;
         }
     }

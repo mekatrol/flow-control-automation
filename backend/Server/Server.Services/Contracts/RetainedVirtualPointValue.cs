@@ -1,5 +1,3 @@
-using Server.Common.Contracts;
-
 namespace Server.Services.Contracts;
 
 public sealed record RetainedVirtualPointValue(

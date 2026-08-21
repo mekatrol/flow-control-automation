@@ -1,5 +1,4 @@
 using Server.Common.Contracts;
-using Server.Services.Contracts;
 using System.Globalization;
 
 namespace Server.Services.Implementation;
@@ -25,7 +24,9 @@ public sealed class VirtualPointRuntimeStore(
         if (retainedStore is not null)
         {
             foreach (var declaration in merged.Where(item => item.Persistence == VirtualPointPersistence.Retained))
+            {
                 retained[declaration.Key] = await retainedStore.ReadAsync(executionInstanceId, declaration.Key, cancellationToken);
+            }
         }
         _gate.EnterWriteLock();
         try
@@ -36,14 +37,22 @@ public sealed class VirtualPointRuntimeStore(
                 if (_cells.TryGetValue(identity, out var existing))
                 {
                     if (!Compatible(existing.Contract, declaration))
+                    {
                         throw new ExecutionConfigurationException($"virtual point '{declaration.Key}' conflicts with the instance-global contract", 409);
+                    }
+
                     if (writerKeys.Contains(declaration.Key) && existing.WriterFlowId is not null && existing.WriterFlowId != flowId)
+                    {
                         throw new VirtualPointWriterConflictException(executionInstanceId, declaration.Key, existing.WriterFlowId);
+                    }
                 }
             }
 
             foreach (var cell in _cells.Values.Where(item => item.ExecutionInstanceId == executionInstanceId && item.WriterFlowId == flowId && !writerKeys.Contains(item.PointKey)))
+            {
                 cell.WriterFlowId = null;
+            }
+
             foreach (var declaration in merged)
             {
                 var identity = (executionInstanceId, declaration.Key);
@@ -63,7 +72,10 @@ public sealed class VirtualPointRuntimeStore(
                     _cells.Add(identity, cell);
                 }
                 cell.Readers.Add(flowId);
-                if (writerKeys.Contains(declaration.Key)) cell.WriterFlowId = flowId;
+                if (writerKeys.Contains(declaration.Key))
+                {
+                    cell.WriterFlowId = flowId;
+                }
             }
         }
         finally { _gate.ExitWriteLock(); }
@@ -77,7 +89,10 @@ public sealed class VirtualPointRuntimeStore(
             foreach (var cell in _cells.Values.Where(item => item.ExecutionInstanceId == executionInstanceId))
             {
                 cell.Readers.Remove(flowId);
-                if (cell.WriterFlowId == flowId) cell.WriterFlowId = null;
+                if (cell.WriterFlowId == flowId)
+                {
+                    cell.WriterFlowId = null;
+                }
             }
             foreach (var identity in _cells
                 .Where(item => item.Key.InstanceId == executionInstanceId
@@ -86,7 +101,9 @@ public sealed class VirtualPointRuntimeStore(
                     && item.Value.Readers.Count == 0)
                 .Select(item => item.Key)
                 .ToArray())
+            {
                 _cells.Remove(identity);
+            }
         }
         finally { _gate.ExitWriteLock(); }
     }
@@ -120,12 +137,21 @@ public sealed class VirtualPointRuntimeStore(
             {
                 foreach (var command in proposed)
                 {
-                    if (!_cells.TryGetValue((executionInstanceId, command.PointId), out var cell)) continue;
+                    if (!_cells.TryGetValue((executionInstanceId, command.PointId), out var cell))
+                    {
+                        continue;
+                    }
+
                     if (cell.WriterFlowId != flowId)
+                    {
                         throw new VirtualPointWriterConflictException(executionInstanceId, command.PointId, cell.WriterFlowId ?? "none");
+                    }
+
                     var expected = cell.Contract.ValueType == FlowPointValueType.Analog ? DataType.Number : DataType.Boolean;
                     if (command.TypedValue.DataType != expected)
+                    {
                         throw new InvalidOperationException($"Command for virtual point '{command.PointId}' has the wrong value type.");
+                    }
                 }
 
                 var timestamp = timeProvider.GetUtcNow().ToString("O", CultureInfo.InvariantCulture);
@@ -142,7 +168,11 @@ public sealed class VirtualPointRuntimeStore(
                         StringComparer.Ordinal);
                 foreach (var command in proposed)
                 {
-                    if (!_cells.TryGetValue((executionInstanceId, command.PointId), out var cell)) continue;
+                    if (!_cells.TryGetValue((executionInstanceId, command.PointId), out var cell))
+                    {
+                        continue;
+                    }
+
                     cell.Value = command.TypedValue;
                     cell.Timestamp = timestamp;
                     cell.Version++;
@@ -151,7 +181,9 @@ public sealed class VirtualPointRuntimeStore(
             finally { _gate.ExitWriteLock(); }
 
             if (retainedStore is not null && retainedWrites.Count > 0)
+            {
                 await retainedStore.WriteAsync(executionInstanceId, retainedWrites, cancellationToken);
+            }
         }
         finally { _commitGate.Release(); }
     }
@@ -159,7 +191,7 @@ public sealed class VirtualPointRuntimeStore(
     public IReadOnlyList<VirtualPointRuntimeValue> List(string executionInstanceId)
     {
         _gate.EnterReadLock();
-        try { return _cells.Values.Where(item => item.ExecutionInstanceId == executionInstanceId).OrderBy(item => item.PointKey).Select(Snapshot).ToList(); }
+        try { return [.. _cells.Values.Where(item => item.ExecutionInstanceId == executionInstanceId).OrderBy(item => item.PointKey).Select(Snapshot)]; }
         finally { _gate.ExitReadLock(); }
     }
 

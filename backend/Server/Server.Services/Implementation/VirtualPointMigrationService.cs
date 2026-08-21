@@ -1,6 +1,5 @@
 using Server.Common.Contracts;
 using Server.Data.Context;
-using Server.Services.Contracts;
 using System.Text.Json;
 
 namespace Server.Services.Implementation;
@@ -35,14 +34,21 @@ internal sealed class VirtualPointMigrationService(
                 if (node.Kind is not (FlowNodeKind.AnalogInput or FlowNodeKind.AnalogOutput or FlowNodeKind.DigitalInput or FlowNodeKind.DigitalOutput)
                     || !node.Configuration.TryGetValue("pointId", out var pointIdValue)
                     || pointIdValue.ValueKind != JsonValueKind.String)
+                {
                     continue;
+                }
+
                 var pointId = pointIdValue.GetString()!;
                 if (!points.TryGetValue(pointId, out var point))
                 {
                     diagnostics.Add(new(flow.Id, "point_not_found", "error", $"Point '{pointId}' does not exist.", node.Id, pointId));
                     continue;
                 }
-                if (!string.Equals(point.Implementation, "virtual", StringComparison.OrdinalIgnoreCase)) continue;
+                if (!string.Equals(point.Implementation, "virtual", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
                 var expected = node.Kind is FlowNodeKind.AnalogInput or FlowNodeKind.AnalogOutput ? FlowPointValueType.Analog : FlowPointValueType.Digital;
                 if (point.ValueType != expected)
                 {
@@ -71,7 +77,11 @@ internal sealed class VirtualPointMigrationService(
             }
 
             var count = declarations.Count - before;
-            if (count == 0) continue;
+            if (count == 0)
+            {
+                continue;
+            }
+
             changed++;
             added += count;
             diagnostics.Add(new(flow.Id, "declarations_inferred", "info", $"Inferred {count} virtual point declaration(s)."));
@@ -80,14 +90,18 @@ internal sealed class VirtualPointMigrationService(
                 var migrated = flow with
                 {
                     Revision = checked(flow.Revision + 1),
-                    VirtualPointDeclarations = declarations.Values.OrderBy(item => item.Key, StringComparer.Ordinal).ToList()
+                    VirtualPointDeclarations = [.. declarations.Values.OrderBy(item => item.Key, StringComparer.Ordinal)]
                 };
                 entity.Json = JsonSerializer.Serialize(migrated, FlowControlJson.Options);
                 entity.Updated = timeProvider.GetUtcNow();
             }
         }
 
-        if (apply && changed > 0) await context.SaveChangesAsync(cancellationToken);
+        if (apply && changed > 0)
+        {
+            await context.SaveChangesAsync(cancellationToken);
+        }
+
         return new(apply, flows.Count, changed, added, diagnostics);
     }
 

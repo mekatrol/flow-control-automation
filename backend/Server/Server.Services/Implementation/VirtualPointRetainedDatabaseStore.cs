@@ -1,6 +1,5 @@
 using Server.Data.Context;
 using Server.Data.Entities;
-using Server.Services.Contracts;
 using System.Text.Json;
 
 namespace Server.Services.Implementation;
@@ -30,7 +29,11 @@ internal sealed class VirtualPointRetainedDatabaseStore(
         IReadOnlyDictionary<string, RetainedVirtualPointValue> values,
         CancellationToken cancellationToken)
     {
-        if (values.Count == 0) return;
+        if (values.Count == 0)
+        {
+            return;
+        }
+
         await using var scope = scopeFactory.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<IFlowControlDbContext>();
         var pointKeys = values.Keys.ToArray();

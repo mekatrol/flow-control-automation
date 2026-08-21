@@ -1,7 +1,7 @@
-using System.Net;
-using System.Net.Http.Json;
 using Server.Common.Contracts;
 using Server.Services.Contracts;
+using System.Net;
+using System.Net.Http.Json;
 
 namespace Tests.Unit.Api;
 
