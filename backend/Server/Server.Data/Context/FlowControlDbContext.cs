@@ -6,7 +6,8 @@ internal sealed class FlowControlDbContext(DbContextOptions<FlowControlDbContext
     : DbContext(options), IFlowControlDbContext
 {
     private static readonly string[] TableNames =
-        [nameof(Flows), nameof(PointSources), nameof(Points), nameof(PointGroups), nameof(Credentials)];
+        [nameof(Flows), nameof(PointSources), nameof(Points), nameof(PointGroups), nameof(Credentials),
+            nameof(ExecutionContexts), nameof(ExecutionInstances), nameof(ExecutionContextDeployments)];
 
     public DbSet<FlowEntity> Flows => Set<FlowEntity>();
 
@@ -17,6 +18,12 @@ internal sealed class FlowControlDbContext(DbContextOptions<FlowControlDbContext
     public DbSet<PointGroupEntity> PointGroups => Set<PointGroupEntity>();
 
     public DbSet<CredentialEntity> Credentials => Set<CredentialEntity>();
+
+    public DbSet<ExecutionContextEntity> ExecutionContexts => Set<ExecutionContextEntity>();
+
+    public DbSet<ExecutionInstanceEntity> ExecutionInstances => Set<ExecutionInstanceEntity>();
+
+    public DbSet<ExecutionContextDeploymentEntity> ExecutionContextDeployments => Set<ExecutionContextDeploymentEntity>();
 
     public Task ReloadAsync<TEntity>(TEntity entity, CancellationToken cancellationToken)
         where TEntity : class =>
@@ -50,6 +57,12 @@ internal sealed class FlowControlDbContext(DbContextOptions<FlowControlDbContext
         ConfigureEntity(modelBuilder.Entity<PointEntity>());
         ConfigureEntity(modelBuilder.Entity<PointGroupEntity>());
         ConfigureEntity(modelBuilder.Entity<CredentialEntity>());
+        ConfigureEntity(modelBuilder.Entity<ExecutionContextEntity>());
+        ConfigureEntity(modelBuilder.Entity<ExecutionInstanceEntity>());
+        ConfigureEntity(modelBuilder.Entity<ExecutionContextDeploymentEntity>());
+        modelBuilder.Entity<ExecutionContextDeploymentEntity>()
+            .HasIndex(item => new { item.ExecutionContextId, item.ExecutionInstanceId })
+            .IsUnique();
     }
 
     private static void ConfigureEntity<TEntity>(

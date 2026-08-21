@@ -39,6 +39,12 @@ internal partial class FlowValidator : IFlowValidator
         }
 
         ValidateInterface(flow.Interface);
+        ValidateVirtualPoints(flow.VirtualPointDeclarations);
+
+        if (flow.Revision < 1)
+        {
+            throw new FlowValidationException("revision must be positive");
+        }
 
         if (!Rfc3339Regex().IsMatch(flow.UpdatedAt)
             || !DateTimeOffset.TryParse(
@@ -163,6 +169,41 @@ internal partial class FlowValidator : IFlowValidator
 
         ValidateEntries(definition.Inputs.Select(entry => (entry.Id, entry.Name, entry.DataType, entry.Units, entry.DefaultValue)), "interface.inputs", true);
         ValidateEntries(definition.Outputs.Select(entry => (entry.Id, entry.Name, entry.DataType, entry.Units, (JsonElement?)null)), "interface.outputs", false);
+    }
+
+    private static void ValidateVirtualPoints(IReadOnlyList<VirtualPointDeclaration> declarations)
+    {
+        var keys = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var (item, index) in declarations.Select((item, index) => (item, index)))
+        {
+            if (string.IsNullOrWhiteSpace(item.Key) || !keys.Add(item.Key))
+            {
+                throw new FlowValidationException($"virtualPointDeclarations[{index}].key must be non-empty and unique");
+            }
+
+            if (item.ValueType is not (FlowPointValueType.Analog or FlowPointValueType.Digital))
+            {
+                throw new FlowValidationException($"virtualPointDeclarations[{index}].valueType must be analog or digital");
+            }
+
+            if (!item.Readable && !item.Commandable)
+            {
+                throw new FlowValidationException($"virtualPointDeclarations[{index}] must be readable or commandable");
+            }
+
+            if (item.ValueType == FlowPointValueType.Digital && item.Units is not null)
+            {
+                throw new FlowValidationException($"virtualPointDeclarations[{index}].units are only valid for analog points");
+            }
+
+            if (item.RelinquishDefault is { } value &&
+                (item.ValueType == FlowPointValueType.Analog
+                    ? value.ValueKind != JsonValueKind.Number || !value.TryGetDouble(out var number) || !double.IsFinite(number)
+                    : value.ValueKind is not (JsonValueKind.True or JsonValueKind.False)))
+            {
+                throw new FlowValidationException($"virtualPointDeclarations[{index}].relinquishDefault does not match valueType");
+            }
+        }
     }
 
     private static void ValidateEntries(

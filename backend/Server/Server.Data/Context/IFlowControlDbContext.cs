@@ -14,6 +14,12 @@ public interface IFlowControlDbContext
 
     DbSet<CredentialEntity> Credentials { get; }
 
+    DbSet<ExecutionContextEntity> ExecutionContexts => Set<ExecutionContextEntity>();
+
+    DbSet<ExecutionInstanceEntity> ExecutionInstances => Set<ExecutionInstanceEntity>();
+
+    DbSet<ExecutionContextDeploymentEntity> ExecutionContextDeployments => Set<ExecutionContextDeploymentEntity>();
+
     DbSet<TEntity> Set<TEntity>()
         where TEntity : class;
 

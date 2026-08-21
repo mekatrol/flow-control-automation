@@ -1,4 +1,4 @@
 namespace Server.Services;
 
-public sealed class FlowConcurrencyException(string id, Exception innerException)
+public sealed class FlowConcurrencyException(string id, Exception? innerException = null)
     : Exception($"Flow {id} was changed by another request.", innerException);

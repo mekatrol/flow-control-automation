@@ -142,7 +142,13 @@ internal sealed class FlowDatabaseService(
             throw new FlowValidationException("flow id must match the request path");
         }
 
-        var saved = flow with { UpdatedAt = Timestamp() };
+        var current = Deserialize(entity);
+        if (flow.Revision != current.Revision)
+        {
+            throw new FlowConcurrencyException(id);
+        }
+
+        var saved = flow with { UpdatedAt = Timestamp(), Revision = checked(current.Revision + 1) };
 
         flowValidator.Validate(saved);
 

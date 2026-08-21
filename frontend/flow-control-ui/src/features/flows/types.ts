@@ -57,6 +57,18 @@ export type ConnectorSide = 'left' | 'right' | 'top' | 'bottom';
 
 export type FlowConfigurationValue = boolean | number | string | null;
 export type FlowInterfaceDataType = 'boolean' | 'number' | 'string' | 'event';
+export type VirtualPointValueType = 'analog' | 'digital';
+export type VirtualPointPersistence = 'volatile' | 'retained';
+
+export interface VirtualPointDeclaration {
+  key: string;
+  valueType: VirtualPointValueType;
+  units?: string;
+  readable: boolean;
+  commandable: boolean;
+  persistence: VirtualPointPersistence;
+  relinquishDefault?: boolean | number | null;
+}
 
 /** Defines one externally supplied value in a reusable flow interface. */
 export interface FlowInterfaceInput {
@@ -173,4 +185,6 @@ export interface FlowDefinition {
   connections: FlowConnection[];
   /** Versioned callable boundary for composing this flow into other flows. */
   interface: FlowInterface;
+  revision?: number;
+  virtualPointDeclarations?: VirtualPointDeclaration[];
 }

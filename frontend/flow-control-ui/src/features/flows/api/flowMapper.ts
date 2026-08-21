@@ -6,6 +6,10 @@ import type { FlowDto } from './flowDto';
 // dirty-state comparison and explicit discard.
 const copyFlow = (flow: FlowDefinition | FlowDto): FlowDto => ({
   ...flow,
+  ...(flow.revision !== undefined ? { revision: flow.revision } : {}),
+  ...(flow.virtualPointDeclarations !== undefined
+    ? { virtualPointDeclarations: flow.virtualPointDeclarations.map((entry) => ({ ...entry })) }
+    : {}),
   interface: {
     schemaVersion: 1,
     inputs: flow.interface.inputs.map((entry) => ({ ...entry })),

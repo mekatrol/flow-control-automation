@@ -85,6 +85,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IMqttProtocolCheck, MqttProtocolCheck>();
         services.AddScoped<IConnectivityService, ConnectivityService>();
         services.AddScoped<IStartupDataValidator, StartupDataValidator>();
+        services.AddScoped<IExecutionConfigurationService, ExecutionConfigurationService>();
+        services.AddScoped<IVirtualPointMigrationService, VirtualPointMigrationService>();
         return services;
     }
 }

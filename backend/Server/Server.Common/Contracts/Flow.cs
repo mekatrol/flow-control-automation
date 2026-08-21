@@ -11,4 +11,6 @@ public sealed record Flow
     public IReadOnlyList<FlowNode> Nodes { get; init; } = [];
     public IReadOnlyList<FlowConnection> Connections { get; init; } = [];
     public FlowInterface Interface { get; init; } = new();
+    public int Revision { get; init; } = 1;
+    public IReadOnlyList<VirtualPointDeclaration> VirtualPointDeclarations { get; init; } = [];
 }

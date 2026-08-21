@@ -37,6 +37,7 @@ public static class EndpointRouteBuilderExtensions
         endpoints.MapPointDefinitionEndpoints();
         endpoints.MapControllerTemplateEndpoints();
         endpoints.MapCredentialEndpoints();
+        endpoints.MapExecutionConfigurationEndpoints();
         return endpoints;
     }
 

@@ -17,6 +17,15 @@ internal sealed class FlowControlDbContextModelSnapshot : ModelSnapshot
         BuildEntity<PointSourceEntity>(modelBuilder, "PointSources");
         BuildEntity<PointEntity>(modelBuilder, "Points");
         BuildEntity<PointGroupEntity>(modelBuilder, "PointGroups");
+        BuildEntity<ExecutionContextEntity>(modelBuilder, "ExecutionContexts");
+        BuildEntity<ExecutionInstanceEntity>(modelBuilder, "ExecutionInstances");
+        BuildEntity<ExecutionContextDeploymentEntity>(modelBuilder, "ExecutionContextDeployments");
+        modelBuilder.Entity<ExecutionContextDeploymentEntity>(entity =>
+        {
+            entity.Property(item => item.ExecutionContextId).IsRequired().HasColumnType("TEXT");
+            entity.Property(item => item.ExecutionInstanceId).IsRequired().HasColumnType("TEXT");
+            entity.HasIndex(item => new { item.ExecutionContextId, item.ExecutionInstanceId }).IsUnique();
+        });
     }
 
     private static void BuildEntity<TEntity>(ModelBuilder modelBuilder, string tableName)
