@@ -30,6 +30,11 @@ state layout, and resource manifest.
 - Preserve stable flow/node/point IDs for diagnostics and UI correlation.
 - Use the strict PLC Scan Cycle—Read Inputs, Execute Logic, Write Outputs—as
   the identical execution model on the server, emulator, and every controller.
+- Keep flow programs portable: one immutable flow revision may participate in
+  multiple logical execution contexts and be deployed to many compatible server
+  or controller execution instances.
+- Provide instance-global, thread-safe virtual points so independently compiled
+  programs on one execution instance can exchange committed values by key.
 
 ## Non-goals
 
@@ -81,6 +86,108 @@ The backend decompiler is a tooling boundary, not part of the VM or a target.
 It validates an artifact before translating its scheduled instructions, typed
 storage, state, point bindings, symbols, and authoring metadata back into an
 editable graph accepted by the current designer schema.
+
+## Programs, contexts, instances, and shared virtual points
+
+The architecture distinguishes four identities that must not be collapsed:
+
+- A **flow program** is portable source plus declared point requirements. It is
+  not owned by a controller type, controller installation, or server VM.
+- A **logical execution context** is a portable application composition. It
+  selects immutable flow revisions, merges their virtual-point declarations,
+  and defines target-independent scheduling and configuration.
+- An **execution instance** is one concrete VM host: the server VM or one
+  installed controller. A controller template describes capabilities and limits
+  but is neither an instance nor a runtime namespace.
+- A **context deployment** materializes one logical context on one execution
+  instance. It supplies instance-specific physical-point bindings and records
+  the exact program, context, template, mapping, compiler, and artifact revisions.
+
+```text
+flow program A -----+
+                    +--> logical execution context --+--> server instance
+flow program B -----+                                +--> controller instance 1
+                                                     +--> controller instance 2
+
+on each instance:
+  program VMs <--> host-owned shared virtual-point store
+```
+
+One logical context may therefore be deployed to multiple controller types and
+the server when every target satisfies its declared requirements. Compilation
+and physical binding may produce different artifacts for different target
+instances, but stable program behavior and virtual-point keys remain portable.
+The same flow revision may also participate in more than one logical context.
+
+### Point declarations and binding
+
+A flow program declares every virtual point it uses by stable key, analog or
+digital type, units where applicable, read/write capability, persistence, and
+optional relinquish default. Declarations allocate no memory during authoring.
+When programs are composed, declarations with the same key are unified. Type,
+units, persistence, default, or capability conflicts are rejected before
+deployment.
+
+Physical points are resolved by each context deployment because different
+controller types and installations expose different hardware. Virtual points
+require no physical mapping. Activating a deployment allocates or attaches its
+declarations to the execution instance's global virtual-point namespace.
+
+Runtime virtual-point identity is:
+
+```text
+(executionInstanceId, pointKey)
+```
+
+It is never keyed by flow ID, logical context ID, or controller-template ID.
+Every program running on one execution instance and referencing a compatible
+key observes the same shared value. The same key on another server/controller
+instance is an independent value. If an instance permits deployments from more
+than one logical context, equal compatible keys still share the instance-global
+cell.
+
+Multiple readers are allowed. The initial arbitration policy permits one active
+program writer per virtual point per execution instance. Deployment preparation
+checks writer ownership against every active program on the instance, not only
+the programs in the context currently being deployed. Last-writer-wins behavior
+is forbidden unless introduced later as an explicit, versioned arbitration
+policy.
+
+### Thread safety and atomic visibility
+
+An execution instance may schedule multiple program VMs concurrently. API
+readers, debuggers, persistence workers, and device tasks may access point state
+at the same time. The host therefore owns synchronization; portable VM programs
+never receive mutable references to shared cells.
+
+At Read Inputs, the host captures an immutable, versioned snapshot of every
+shared point needed by that program. The VM executes without holding a shared
+store lock and stages all writes privately. At Write Outputs, the host acquires
+the required synchronization, revalidates writer ownership, and commits the
+program's complete virtual-point output set atomically. Other programs observe
+either the state before that commit or the complete state after it, never a
+torn analog value, mixed metadata, or a partially published output set.
+
+The value, data quality, timestamp, writer identity, and monotonically
+increasing version form one atomic logical record. Allocation, declaration
+reconciliation, ownership changes, commit, reset, and retained-state restoration
+are synchronized with the same store invariants. A thread-safe dictionary alone
+is insufficient because ownership checks and multi-point commits span records.
+
+The managed host uses a dedicated instance-scoped store with a reader/writer
+lock, short critical section, or equivalent transactional mechanism. Controller
+hosts use an RTOS mutex/critical section or a single-owner point-store task with
+message passing. No host holds the shared-store lock while executing Flow IL,
+performing network or flash I/O, publishing telemetry, or invoking callbacks.
+All interacting locks have one documented acquisition order. Interrupt handlers
+must not directly mutate multiword point records.
+
+Committed retained values are persisted asynchronously with their instance ID,
+point key, contract identity, and committed version. Restore is synchronized and
+occurs before affected programs activate. Volatile values reset with their
+execution instance. Concurrency conformance tests must force scan, deployment,
+reset, persistence, debugger, and API-read interleavings and prove freedom from
+torn reads, partial commits, deadlocks, and cross-instance leakage.
 
 ## Flow IL v1 contract
 
@@ -311,10 +418,13 @@ normative in [`flow-simulator-contract.md`](flow-simulator-contract.md).
 
 ## Deployment model
 
-Deployment resolves an immutable source snapshot, compiles it, validates the IL
-against the selected execution target, prepares a replacement VM, and swaps it
-into service only after preparation succeeds. A failed compile or prepare leaves
-the prior deployment running.
+Deployment resolves an immutable logical-context snapshot and all referenced
+flow-program revisions, merges their virtual-point contracts, resolves physical
+bindings for the selected execution instance, compiles each program, validates
+the IL against that instance, prepares the complete replacement program set and
+shared-point allocation, and swaps the context generation into service only
+after every preparation succeeds. A failed merge, bind, compile, allocation, or
+prepare leaves the prior complete deployment generation running.
 
 The built-in `default` target means the server VM. Hardware templates advertise
 the same vocabulary plus limits and supported Flow IL/ABI versions. A compiled
@@ -323,10 +433,14 @@ requirements match. Artifact persistence stores compiler version, source digest,
 IL digest, dependency revisions, and optional symbols separately from editable
 flow JSON.
 
-Server deployment is the baseline path behind the existing
-`POST /api/flows/{flowId}/deploy` and runtime endpoint. Controller transfer and
-debug sessions become alternate hosts for the same compilation result rather
-than a separate compiler pipeline.
+Server deployment is the baseline host. The existing
+`POST /api/flows/{flowId}/deploy` endpoint is transitional and is replaced or
+supplemented by context-to-instance deployment APIs. Controller transfer and
+debug sessions remain alternate hosts in the same compiler pipeline. An
+artifact may be reused across execution instances only when the complete
+template capabilities, physical bindings, merged virtual-point contracts, and
+dependency revisions match; otherwise the same portable source is compiled into
+a separate target-resolved artifact.
 
 ## Verification gates
 
