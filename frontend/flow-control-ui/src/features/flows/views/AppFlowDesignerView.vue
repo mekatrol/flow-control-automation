@@ -998,17 +998,15 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', handleBeforeUnl
 <style scoped>
 .designer-page {
   display: flex;
-  height: calc(100dvh - 72px);
   width: calc(100% - 40px);
-  min-height: 0;
+  min-height: calc(100dvh - 72px);
   margin: var(--space-0) auto;
   padding: var(--space-17) var(--space-0) var(--space-12);
-  overflow: hidden;
   flex-direction: column;
 }
 
 .designer-page :deep(.canvas-frame) {
-  min-height: 0;
+  min-height: 100dvh;
   flex: 1;
 }
 

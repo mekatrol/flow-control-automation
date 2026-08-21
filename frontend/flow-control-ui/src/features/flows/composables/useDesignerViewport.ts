@@ -81,9 +81,8 @@ export const useDesignerViewport = (element: Ref<HTMLElement | undefined>): Desi
 
   const measureViewport = (): void => {
     if (!element.value) return;
-    const rect = element.value.getBoundingClientRect();
     width.value = element.value.clientWidth;
-    height.value = Math.max(0, window.innerHeight - rect.top);
+    height.value = element.value.clientHeight;
   };
 
   onMounted(() => {
