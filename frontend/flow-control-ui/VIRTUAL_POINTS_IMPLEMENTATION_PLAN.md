@@ -344,7 +344,7 @@ Implementation status last updated: 21 August 2026.
 | Phase 1 | Complete | Portable declarations, execution contexts and instances, deployment records, persistence, migration support, and the built-in server instance are implemented. |
 | Phase 2 | Complete | Instance-scoped synchronized state, atomic commits, defaults/uninitialized quality, durable retained restoration, server VM routing, inspection APIs, writer ownership/release, volatile reset, isolation, and concurrency coverage are implemented. |
 | Phase 3 | Complete | Active deployment revalidates revisions, capabilities, bindings, contracts, and writer ownership, then compiles every context program for the concrete instance and persists immutable context/instance/template/flow artifact provenance. |
-| Phase 4 | In progress | The point field is searchable and editable, uses flow virtual declarations, filters by data type/capability, and reports inline incompatibility and syntax errors. Context selection, service-backed/debounced existence validation, save/deploy blocking, and create-point workflow remain. |
+| Phase 4 | Complete | The designer supports context-preview selection, searchable flow/context/physical points, debounced authoritative existence checks, distinct unavailable diagnostics, save/deploy blocking, and creation of typed virtual declarations. |
 | Phase 5 | In progress | The controller VM now supports correctly typed numeric Memory state and typed retained-state import/export, and all host tests pass. Multi-program instance-global storage, protocol identity/versioning, and ownership negotiation remain. |
 | Phase 6 | Complete | Flow Input/Output node kinds have been removed from authoring and are rejected by backend validation. Virtual points are the sole cross-flow communication mechanism. |
 
@@ -390,7 +390,7 @@ Exit criteria: invalid or stale mappings cannot be deployed, and deployment diag
 
 ### Phase 4 — Designer lookup and validation
 
-Status: **In progress**. The designer provides a searchable editable point selector, manual ID entry, virtual declaration options, type/capability filtering, and inline syntax/incompatibility errors. Service-backed existence checks, context switching behavior, invalid save/deploy blocking, and create-virtual-point workflow are outstanding.
+Status: **Complete**. The designer provides a searchable editable point selector across flow declarations, selected context contracts, and physical points. Manual IDs receive debounced authoritative existence and compatibility validation; context changes revalidate the graph; unavailable lookup is distinct from a missing point; invalid references block save and deployment; and missing IDs can be added as typed virtual declarations.
 
 - Add execution-context selection/display.
 - Implement the searchable, editable point combobox.
@@ -428,7 +428,7 @@ Exit criteria: there is one unambiguous mechanism for cross-flow communication, 
 ### Current verification status
 
 - Backend unit tests: **250 passed, 0 failed**.
-- Frontend unit tests: **182 passed, 0 failed**.
+- Frontend unit tests: **183 passed, 0 failed**.
 - Frontend production build, lint, formatting, and diff checks: **passed**.
 - Playwright Chromium, Edge, and mobile Chromium projects pass. Firefox is currently blocked before page creation by the upstream Playwright-on-elevated-Windows `_page` startup defect; it does not reach application assertions.
 - Real .NET-backed end-to-end tests: **3 passed, 0 failed**.

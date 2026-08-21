@@ -190,6 +190,9 @@
         v-bind="automation('node-configuration')"
         :node="selectedNode"
         :virtual-point-declarations="flow.virtualPointDeclarations"
+        :context-point-contracts="contextPointContracts"
+        @validation="(nodeId, state) => emit('pointValidation', nodeId, state)"
+        @create-virtual-point="(declaration) => emit('createVirtualPoint', declaration)"
         @[EVENTS.UPDATE_LABEL]="handleNodeLabelUpdate"
         @[EVENTS.UPDATE_CONFIGURATION]="handleNodeConfigurationUpdate"
       />
@@ -234,8 +237,10 @@ import type {
   FlowConnectionEndpoint,
   FlowDefinition,
   FlowNodeConnector,
-  FlowNode as FlowNodeModel
+  FlowNode as FlowNodeModel,
+  VirtualPointDeclaration
 } from '@/features/flows/types';
+import type { PointValidationState } from '@/features/flows/flowPointValidation';
 import { flowNodeKinds } from '@/features/flows/nodeKinds';
 import type { FlowRuntimeSnapshot } from '@/features/flows/api/flowRuntimeApi';
 import type { ConnectorRuntimeValue } from '@/features/flows/api/flowRuntimeApi';
@@ -250,6 +255,7 @@ const props = defineProps<{
   connectorValues?: Record<string, Record<string, ConnectorRuntimeValue>>;
   debugging?: boolean;
   focusNodeId?: string;
+  contextPointContracts?: VirtualPointDeclaration[];
 }>();
 
 const automation = useAutomation(props.automation);
@@ -273,6 +279,8 @@ const emit = defineEmits<{
     key: string,
     value: FlowNodeModel['configuration'][string]
   ): void;
+  (event: 'pointValidation', nodeId: string, state: PointValidationState): void;
+  (event: 'createVirtualPoint', declaration: VirtualPointDeclaration): void;
 }>();
 
 const handleNodeLabelUpdate = (label: string): void => {

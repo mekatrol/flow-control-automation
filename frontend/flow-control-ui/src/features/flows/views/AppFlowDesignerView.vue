@@ -100,14 +100,14 @@
             v-bind="automation('save')"
             :text="saving ? 'Saving…' : 'Save flow'"
             :icon="saveIcon"
-            :disabled="saving"
+            :disabled="saving || !pointReferencesValid"
             @click="saveFlow"
           />
           <AppButton
             v-bind="automation('deploy')"
             :text="deploying ? 'Deploying…' : 'Deploy flow'"
             :icon="deployIcon"
-            :disabled="dirty || deploying"
+            :disabled="dirty || deploying || !pointReferencesValid"
             @click="showDeployConfirmation = true"
           />
           <AppButton
@@ -164,6 +164,23 @@
           @click="saveFlow"
         />
       </nav>
+
+      <section class="context-preview" aria-label="Execution context validation preview">
+        <label>
+          <span>Validate against execution context</span>
+          <select v-model="selectedContextId" :disabled="contextsLoading">
+            <option value="">Flow declarations and global points</option>
+            <option v-for="context in executionContexts" :key="context.id" :value="context.id">
+              {{ context.name }} ({{ context.id }})
+            </option>
+          </select>
+        </label>
+        <small v-if="contextsLoading" role="status">Loading execution contexts…</small>
+        <small v-else-if="contextsError" role="status">{{ contextsError }}</small>
+        <small v-else-if="!pointReferencesValid" role="alert">
+          Save and deploy are blocked until every point reference is valid.
+        </small>
+      </section>
 
       <AppFlowTutorialPanel
         v-if="activeTutorial"
@@ -246,6 +263,9 @@
         :connector-values="debugConnectorValues"
         :debugging="workspaceMode === 'debugger' && Boolean(debugSessionId)"
         :focus-node-id="diagnosticNodeId"
+        :context-point-contracts="selectedContext?.pointContracts"
+        @point-validation="setPointValidation"
+        @create-virtual-point="createVirtualPoint"
         @[EVENTS.SET_BREAKPOINT]="setBreakpoint"
         @[EVENTS.RUN_TO_NODE]="runToNode"
         @[EVENTS.MOVE_NODE]="moveNode"
@@ -322,6 +342,16 @@ import type {
 } from '@/features/flows/types';
 import type { FlowTutorial } from '@/features/flows/tutorialCatalogue';
 import { flowDomainToDto } from '@/features/flows/api/flowMapper';
+import {
+  executionContextApi,
+  type ExecutionContextSummary
+} from '@/features/flows/api/executionContextApi';
+import {
+  isPointNode,
+  validatePointReference,
+  type PointValidationState
+} from '@/features/flows/flowPointValidation';
+import type { VirtualPointDeclaration } from '@/features/flows/types';
 
 const props = defineProps<{
   flowId: string;
@@ -338,6 +368,28 @@ const controllerTemplates = useControllerTemplatesCatalogueStore();
 const router = useRouter();
 const flow = computed(() => flowStore.findFlow(props.flowId));
 const dirty = computed(() => flowStore.isFlowDirty(props.flowId));
+const executionContexts = ref<ExecutionContextSummary[]>([]);
+const selectedContextId = ref('');
+const contextsLoading = ref(false);
+const contextsError = ref('');
+const pointValidation = ref<Record<string, PointValidationState>>({});
+let pointValidationController: AbortController | undefined;
+const selectedContext = computed(() =>
+  executionContexts.value.find(({ id }) => id === selectedContextId.value)
+);
+const mergedPointDeclarations = computed(() => {
+  const result = new Map<string, VirtualPointDeclaration>();
+  for (const declaration of [
+    ...(selectedContext.value?.pointContracts ?? []),
+    ...(flow.value?.virtualPointDeclarations ?? [])
+  ])
+    result.set(declaration.key, declaration);
+  return [...result.values()];
+});
+const pointReferencesValid = computed(() => {
+  const nodes = flow.value?.nodes.filter(isPointNode) ?? [];
+  return nodes.every((node) => pointValidation.value[node.id] === 'valid');
+});
 const loading = ref(false);
 const saving = ref(false);
 const togglingDisabled = ref(false);
@@ -786,6 +838,45 @@ const updateNodeConfiguration = (
   flowStore.updateNodeConfiguration(props.flowId, nodeId, key, value);
 };
 
+const setPointValidation = (nodeId: string, state: PointValidationState): void => {
+  pointValidation.value[nodeId] = state;
+};
+const validateAllPointReferences = async (): Promise<boolean> => {
+  pointValidationController?.abort();
+  const controller = new AbortController();
+  pointValidationController = controller;
+  const nodes = flow.value?.nodes.filter(isPointNode) ?? [];
+  for (const node of nodes) pointValidation.value[node.id] = 'pending';
+  const results = await Promise.all(
+    nodes.map((node) =>
+      validatePointReference(node, mergedPointDeclarations.value, controller.signal)
+    )
+  ).catch(() => undefined);
+  if (!results || controller.signal.aborted) return false;
+  nodes.forEach((node, index) => (pointValidation.value[node.id] = results[index]!.state));
+  return results.every(({ state }) => state === 'valid');
+};
+const createVirtualPoint = (declaration: VirtualPointDeclaration): void => {
+  flowStore.addVirtualPointDeclaration(props.flowId, declaration);
+  void validateAllPointReferences();
+};
+const loadExecutionContexts = async (): Promise<void> => {
+  contextsLoading.value = true;
+  contextsError.value = '';
+  try {
+    executionContexts.value = await executionContextApi.list();
+    const containing = executionContexts.value.find((context) =>
+      context.programs.some(({ flowId }) => flowId === props.flowId)
+    );
+    if (!selectedContextId.value && containing) selectedContextId.value = containing.id;
+  } catch (error) {
+    contextsError.value =
+      error instanceof Error ? error.message : 'Unable to load execution contexts.';
+  } finally {
+    contextsLoading.value = false;
+  }
+};
+
 const loadFlow = async (flowId: string): Promise<void> => {
   // Route parameters can change before a request finishes. Abort the old fetch
   // and also use a generation guard so a late response cannot replace the new flow.
@@ -801,6 +892,7 @@ const loadFlow = async (flowId: string): Promise<void> => {
     if (!loadGuard.isCurrent(requestGeneration)) return;
     flowStore.replaceFlowFromPayload(payload);
     flowStore.selectFlow(flowId);
+    await validateAllPointReferences();
     void refreshRuntime(flowId);
   } catch (error) {
     if (
@@ -866,6 +958,10 @@ const setFlowDisabled = async (disabled: boolean): Promise<void> => {
 };
 
 const saveFlow = async (): Promise<void> => {
+  if (!(await validateAllPointReferences())) {
+    saveError.value = 'Resolve every invalid or unavailable point reference before saving.';
+    return;
+  }
   const payload = flowStore.flowPayload(props.flowId);
   if (!payload) return;
   saving.value = true;
@@ -892,10 +988,13 @@ watch(
   },
   { immediate: true }
 );
+watch(selectedContextId, () => void validateAllPointReferences());
+onMounted(() => void loadExecutionContexts());
 onBeforeUnmount(() => {
   loadGuard.invalidate();
   loadController?.abort();
   controllerTemplates.cancel();
+  pointValidationController?.abort();
   void simulator.stop(true);
   void stopDebugSession(true);
 });

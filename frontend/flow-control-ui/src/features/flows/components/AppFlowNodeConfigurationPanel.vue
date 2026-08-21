@@ -34,14 +34,48 @@
             @blur="validatePointId"
           />
           <datalist :id="`${node.id}-compatible-points`">
-            <option v-for="point in compatibleVirtualPoints" :key="point.key" :value="point.key">
-              {{ point.key }} · virtual · {{ point.valueType
+            <option v-for="point in compatiblePoints" :key="point.id" :value="point.id">
+              {{ point.name }} · {{ point.implementation }} · {{ point.valueType
               }}{{ point.units ? ` · ${point.units}` : '' }}
             </option>
           </datalist>
-          <small v-if="!errors.pointId" id="point-lookup-help" class="field-help">
+          <small v-if="validationState === 'pending'" role="status" class="field-help"
+            >Validating point…</small
+          >
+          <small v-else-if="!errors.pointId" id="point-lookup-help" class="field-help">
             Search declared compatible points or enter a point ID manually.
           </small>
+          <button
+            v-if="canCreateVirtualPoint"
+            type="button"
+            class="create-point-button"
+            @click="showCreatePoint = true"
+          >
+            Create virtual point “{{ pointDraft.trim() }}”
+          </button>
+          <fieldset v-if="showCreatePoint" class="create-point-form">
+            <legend>Create virtual point</legend>
+            <label><span>Display name</span><input v-model="createName" type="text" /></label>
+            <label v-if="requirement.valueType === 'analog'"
+              ><span>Units</span><input v-model="createUnits" type="text"
+            /></label>
+            <label
+              ><span>Persistence</span
+              ><select v-model="createPersistence">
+                <option value="volatile">volatile</option>
+                <option value="retained">retained</option>
+              </select></label
+            >
+            <label
+              ><span>Optional default</span><input v-model="createDefault" type="text"
+            /></label>
+            <div class="create-point-actions">
+              <button type="button" @click="showCreatePoint = false">Cancel</button>
+              <button type="button" :disabled="!createName.trim()" @click="createVirtualPoint">
+                Create
+              </button>
+            </div>
+          </fieldset>
         </template>
         <input
           v-else-if="field.input === 'checkbox'"
@@ -108,7 +142,7 @@ export const editorValueFromInput = (
 </script>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 
 import AppSvg from '@/components/AppSvg.vue';
 import { useAutomation } from '@/composables/useAutomation';
@@ -120,58 +154,177 @@ import type {
   FlowNode,
   VirtualPointDeclaration
 } from '@/features/flows/types';
+import type { PointSummary } from '@/features/catalogues/api/catalogueDto';
+import { catalogueApi } from '@/features/catalogues/api/catalogueApi';
+import {
+  pointCompatibilityError,
+  pointRequirement,
+  validatePointReference,
+  type PointValidationState
+} from '@/features/flows/flowPointValidation';
 
 const props = defineProps<{
   automation: string;
   node: FlowNode;
   virtualPointDeclarations?: VirtualPointDeclaration[];
+  contextPointContracts?: VirtualPointDeclaration[];
 }>();
 const emit = defineEmits<{
   (event: typeof EVENTS.UPDATE_LABEL, label: string): void;
   (event: typeof EVENTS.UPDATE_CONFIGURATION, key: string, value: FlowConfigurationValue): void;
+  (event: 'validation', nodeId: string, state: PointValidationState): void;
+  (event: 'createVirtualPoint', declaration: VirtualPointDeclaration): void;
 }>();
 
 const automation = useAutomation(props.automation);
 const definition = computed(() => getNodeKind(props.node.kind));
 const nodeEditorFields = computed(() => definition.value.editor);
 const errors = ref<Record<string, string>>({});
-const compatibleVirtualPoints = computed(() => {
-  const analog = props.node.kind === 'analogInput' || props.node.kind === 'analogOutput';
-  const input = props.node.kind === 'analogInput' || props.node.kind === 'digitalInput';
-  return (props.virtualPointDeclarations ?? []).filter(
-    (point) =>
-      point.valueType === (analog ? 'analog' : 'digital') &&
-      (input ? point.readable : point.commandable)
-  );
+const requirement = computed(() => pointRequirement(props.node));
+const declarations = computed(() => {
+  const merged = new Map<string, VirtualPointDeclaration>();
+  for (const point of [
+    ...(props.contextPointContracts ?? []),
+    ...(props.virtualPointDeclarations ?? [])
+  ])
+    merged.set(point.key, point);
+  return [...merged.values()];
 });
+const remotePoints = ref<PointSummary[]>([]);
+const pointDraft = ref(String(props.node.configuration.pointId ?? ''));
+const validationState = ref<PointValidationState>('idle');
+const showCreatePoint = ref(false);
+const createName = ref('');
+const createUnits = ref('');
+const createPersistence = ref<'volatile' | 'retained'>('volatile');
+const createDefault = ref('');
+let debounceTimer: number | undefined;
+let lookupController: AbortController | undefined;
+const compatiblePoints = computed(() =>
+  [
+    ...declarations.value.map((point) => ({
+      ...point,
+      id: point.key,
+      name: point.key,
+      implementation: 'virtual' as const,
+      enabled: true,
+      direction: 'value' as const,
+      revision: 0
+    })),
+    ...remotePoints.value
+  ].filter((point) => !pointCompatibilityError(props.node, point))
+);
 
 const pointIdError = (value: string): string | undefined => {
   const key = value.trim();
   if (!key) return 'Point ID is required.';
   if (!/^[a-zA-Z0-9](?:[a-zA-Z0-9._-]{0,126}[a-zA-Z0-9])?$/.test(key))
     return 'Point ID contains unsupported characters.';
-  const declared = (props.virtualPointDeclarations ?? []).find((point) => point.key === key);
+  const declared = declarations.value.find((point) => point.key === key);
   if (!declared) return undefined;
-  return compatibleVirtualPoints.value.includes(declared)
-    ? undefined
-    : `Virtual point “${key}” is incompatible with this ${definition.value.label.toLocaleLowerCase()}.`;
+  return pointCompatibilityError(props.node, declared);
 };
 
-const validatePointId = (): void => {
-  const error = pointIdError(String(props.node.configuration.pointId ?? ''));
-  if (error) errors.value.pointId = error;
-  else delete errors.value.pointId;
+const validatePointId = async (): Promise<void> => {
+  const localError = pointIdError(pointDraft.value);
+  if (localError) {
+    errors.value.pointId = localError;
+    validationState.value = 'invalid';
+  } else {
+    validationState.value = 'pending';
+    emit('validation', props.node.id, 'pending');
+    lookupController?.abort();
+    lookupController = new AbortController();
+    try {
+      const result = await validatePointReference(
+        props.node,
+        declarations.value,
+        lookupController.signal
+      );
+      validationState.value = result.state;
+      if (result.message) errors.value.pointId = result.message;
+      else delete errors.value.pointId;
+    } catch {
+      return;
+    }
+  }
+  emit('validation', props.node.id, validationState.value);
 };
 
 const updatePointId = (field: NodeEditorField, event: Event): void => {
   const target = event.target as HTMLInputElement;
+  pointDraft.value = target.value;
   const error = pointIdError(target.value);
-  if (error) errors.value.pointId = error;
-  else {
+  if (error) {
+    errors.value.pointId = error;
+    validationState.value = 'invalid';
+    emit('validation', props.node.id, 'invalid');
+  } else {
     delete errors.value.pointId;
     emit(EVENTS.UPDATE_CONFIGURATION, field.key, target.value.trim());
+    validationState.value = 'pending';
+    emit('validation', props.node.id, 'pending');
   }
+  window.clearTimeout(debounceTimer);
+  debounceTimer = window.setTimeout(async () => {
+    try {
+      remotePoints.value = (
+        await catalogueApi.points({ filter: target.value, page: 1, pageSize: 20 })
+      ).items;
+    } catch {
+      remotePoints.value = [];
+    }
+    await validatePointId();
+  }, 350);
 };
+
+const canCreateVirtualPoint = computed(
+  () =>
+    validationState.value === 'invalid' &&
+    pointDraft.value.trim() !== '' &&
+    errors.value.pointId?.includes('does not exist')
+);
+const createVirtualPoint = (): void => {
+  const rawDefault = createDefault.value.trim();
+  const relinquishDefault =
+    rawDefault === ''
+      ? undefined
+      : requirement.value.valueType === 'digital'
+        ? rawDefault.toLowerCase() === 'true'
+        : Number(rawDefault);
+  if (typeof relinquishDefault === 'number' && !Number.isFinite(relinquishDefault)) {
+    errors.value.pointId = 'The default must be a number.';
+    return;
+  }
+  emit('createVirtualPoint', {
+    key: pointDraft.value.trim(),
+    valueType: requirement.value.valueType,
+    ...(createUnits.value.trim() ? { units: createUnits.value.trim() } : {}),
+    readable: true,
+    commandable: true,
+    persistence: createPersistence.value,
+    ...(relinquishDefault !== undefined ? { relinquishDefault } : {})
+  });
+  createName.value = '';
+  showCreatePoint.value = false;
+  validationState.value = 'valid';
+  delete errors.value.pointId;
+  emit('validation', props.node.id, 'valid');
+};
+
+watch(
+  () => props.node.id,
+  () => {
+    pointDraft.value = String(props.node.configuration.pointId ?? '');
+    void validatePointId();
+  },
+  { immediate: true }
+);
+watch(declarations, () => void validatePointId());
+onBeforeUnmount(() => {
+  window.clearTimeout(debounceTimer);
+  lookupController?.abort();
+});
 
 const updateLabel = (event: Event): void => {
   const label = (event.target as HTMLInputElement).value;
@@ -265,5 +418,19 @@ label small {
 .field-help {
   color: var(--color-text-subtle);
   font-weight: var(--font-weight-regular);
+}
+.create-point-button {
+  justify-self: start;
+}
+.create-point-form {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: var(--border-width-default) solid var(--color-border-subtle);
+}
+.create-point-actions {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: flex-end;
 }
 </style>
