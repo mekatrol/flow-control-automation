@@ -65,7 +65,9 @@ export default defineConfig({
     {
       command: `node ./node_modules/vite/bin/vite.js --host 127.0.0.1 --port ${port} --strictPort`,
       url: baseURL,
-      reuseExistingServer: !process.env.CI,
+      // A normal mocked run may leave a reusable Vite process without the .NET
+      // proxy target. Backend runs must start their own correctly configured proxy.
+      reuseExistingServer: !process.env.CI && !useDotnetBackend,
       timeout: 30_000,
       env: {
         FLOW_UI_E2E: '1',

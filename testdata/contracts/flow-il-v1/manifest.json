@@ -14,7 +14,7 @@
     {
       "id": "valid-memory-feedback",
       "artifactLength": 976,
-      "artifactSha256": "a694d514c44c7fd20bc3bc962ad7101f81963bdabfcf2f600448ce543596c667",
+      "artifactSha256": "5e8fbc080458be5931d4c87f920f3ed3958972046a4a82c373fb04df9a8c7988",
       "expected": {
         "valid": true,
         "reason": "ok",

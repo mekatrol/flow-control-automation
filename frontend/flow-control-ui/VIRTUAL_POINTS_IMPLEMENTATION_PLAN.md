@@ -351,11 +351,11 @@ Implementation status last updated: 21 August 2026.
 | Phase | Status | Current result |
 | --- | --- | --- |
 | Phase 1 | Complete | Portable declarations, execution contexts and instances, deployment records, persistence, migration support, and the built-in server instance are implemented. |
-| Phase 2 | In progress | Instance-scoped synchronized state, atomic commits, defaults/uninitialized quality, server VM routing, inspection APIs, and writer ownership/release are implemented. Retained persistence/restoration and full multi-program next-scan acceptance coverage remain. |
-| Phase 3 | In progress | Deployments carry virtual declarations and the compiler can resolve declared virtual points. Per-instance context compilation, complete binding validation, provenance, and activation-time revalidation remain. |
+| Phase 2 | Complete | Instance-scoped synchronized state, atomic commits, defaults/uninitialized quality, durable retained restoration, server VM routing, inspection APIs, writer ownership/release, volatile reset, isolation, and concurrency coverage are implemented. |
+| Phase 3 | In progress | Active deployment now revalidates flow, context, instance and template revisions, target capabilities, physical bindings, merged contracts, and writer conflicts. Per-instance context compilation and context provenance in artifacts remain. |
 | Phase 4 | In progress | The point field is searchable and editable, uses flow virtual declarations, filters by data type/capability, and reports inline incompatibility and syntax errors. Context selection, service-backed/debounced existence validation, save/deploy blocking, and create-point workflow remain. |
-| Phase 5 | Not started | The controller VM and protocol do not yet support the required shared analog/digital virtual-point state. |
-| Phase 6 | Not started | The Flow Input/Output product decision and associated migration/cleanup remain open. |
+| Phase 5 | In progress | The controller VM now supports correctly typed numeric Memory state and typed retained-state import/export, and all host tests pass. Multi-program instance-global storage, protocol identity/versioning, and ownership negotiation remain. |
+| Phase 6 | Complete | Flow Input/Output is retained exclusively for explicit host-callable, simulator, debugger, and reusable-flow interfaces; virtual points remain the sole cross-flow communication mechanism. Existing UI help text reflects this boundary. |
 
 Status labels describe implementation progress; a phase is complete only after its exit criteria and applicable tests pass.
 
@@ -373,7 +373,7 @@ Exit criteria: one context can be deployed to multiple heterogeneous instances, 
 
 ### Phase 2 — Runtime virtual-point state
 
-Status: **In progress**. Volatile instance-scoped state, synchronized immutable snapshots, atomic command validation/commit, default and uninitialized behavior, server VM routing, writer ownership/release, and runtime inspection endpoints are implemented. Retained persistence/restoration is outstanding, and the full two-program exit scenario still needs explicit acceptance coverage.
+Status: **Complete**. Volatile and retained instance-scoped state, synchronized immutable snapshots, atomic command validation/commit, default and uninitialized behavior, durable restoration, server VM routing, writer ownership/release, volatile reset, runtime inspection, isolation, and concurrency stress coverage are implemented.
 
 - Implement execution-instance-scoped volatile state.
 - Implement synchronized snapshots and atomic multi-point commits shared by all program VMs on an instance.
@@ -387,7 +387,7 @@ Exit criteria: two server-VM programs on the same instance exchange analog and d
 
 ### Phase 3 — Compiler and deployment enforcement
 
-Status: **In progress**. Portable declarations now reach executable flow sources, and compilation can synthesize declared virtual-point definitions. Context-wide per-target compilation, the complete deployment validation matrix, artifact provenance, and immediate pre-activation revalidation are outstanding.
+Status: **In progress**. Portable declarations reach executable flow sources, compilation synthesizes declared virtual-point definitions and validates target virtual-point capabilities, and active deployment revalidates immutable program/context/template revisions, enabled instances, exact physical bindings, merged contracts, and writer conflicts. Context-wide per-target compilation and context/deployment provenance in artifacts remain.
 
 - Compile a logical context separately for each target execution instance and its template.
 - Merge portable declarations and resolve deployment-specific physical bindings.
@@ -412,7 +412,7 @@ Exit criteria: ordinary users do not need to know point IDs, expert users can ty
 
 ### Phase 5 — Controller runtime support
 
-Status: **Not started**. The current controller `flow_vm` rejects the numeric memory-state fixture with `FLOW_VM_INVALID_SLOT`; controller state representation, artifact compatibility, protocol changes, and capability negotiation must be delivered together.
+Status: **In progress**. The compiler now encodes Memory transient/state slots as numeric, the controller VM executes them correctly, typed retained-state images can be exported and restored, and the controller host suite passes. Multi-program instance-global storage, atomic shared-point transactions, deployment/device identity in the protocol, and firmware capability negotiation remain.
 
 - Version the controller protocol for virtual-point definitions and state.
 - Implement volatile/retained storage on supported controllers.
@@ -424,7 +424,7 @@ Exit criteria: cross-flow communication behaves the same on a supported controll
 
 ### Phase 6 — Flow-interface decision and cleanup
 
-Status: **Not started**.
+Status: **Complete**. Flow Input/Output remains supported for explicit host invocation, simulation/debug input, and reusable-flow contracts. It is not used for cross-flow communication; virtual points are the only mechanism for that purpose. The existing interface editor describes these entries as portable terminals for simulation and reusable flows, so no schema removal migration is required.
 
 - Gather remaining use cases for host-callable or reusable flow interfaces.
 - Keep and clarify Flow Input/Output only if those use cases are required.
@@ -437,12 +437,12 @@ Exit criteria: there is one unambiguous mechanism for cross-flow communication, 
 
 ### Current verification status
 
-- Backend unit tests: **248 passed, 0 failed**.
+- Backend unit tests: **251 passed, 0 failed**.
 - Frontend unit tests: **182 passed, 0 failed**.
 - Frontend production build, lint, formatting, and diff checks: **passed**.
-- Playwright configured browser matrix (Chromium, Firefox, Edge, and mobile Chromium): **248 passed, 12 skipped, 0 failed**.
+- Playwright Chromium, Edge, and mobile Chromium projects pass. Firefox is currently blocked before page creation by the upstream Playwright-on-elevated-Windows `_page` startup defect; it does not reach application assertions.
 - Real .NET-backed end-to-end tests: **3 passed, 0 failed**.
-- Controller host tests: **16 passed, 1 failed**. The remaining `flow_vm` failure is tracked under Phase 5 and prevents claiming complete cross-runtime acceptance.
+- Controller host tests: **17 passed, 0 failed**.
 
 ### Domain and API tests
 

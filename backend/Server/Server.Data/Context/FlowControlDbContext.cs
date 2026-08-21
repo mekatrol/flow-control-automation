@@ -7,7 +7,8 @@ internal sealed class FlowControlDbContext(DbContextOptions<FlowControlDbContext
 {
     private static readonly string[] TableNames =
         [nameof(Flows), nameof(PointSources), nameof(Points), nameof(PointGroups), nameof(Credentials),
-            nameof(ExecutionContexts), nameof(ExecutionInstances), nameof(ExecutionContextDeployments)];
+            nameof(ExecutionContexts), nameof(ExecutionInstances), nameof(ExecutionContextDeployments),
+            nameof(VirtualPointRetainedStates)];
 
     public DbSet<FlowEntity> Flows => Set<FlowEntity>();
 
@@ -24,6 +25,8 @@ internal sealed class FlowControlDbContext(DbContextOptions<FlowControlDbContext
     public DbSet<ExecutionInstanceEntity> ExecutionInstances => Set<ExecutionInstanceEntity>();
 
     public DbSet<ExecutionContextDeploymentEntity> ExecutionContextDeployments => Set<ExecutionContextDeploymentEntity>();
+
+    public DbSet<VirtualPointRetainedStateEntity> VirtualPointRetainedStates => Set<VirtualPointRetainedStateEntity>();
 
     public Task ReloadAsync<TEntity>(TEntity entity, CancellationToken cancellationToken)
         where TEntity : class =>
@@ -60,8 +63,12 @@ internal sealed class FlowControlDbContext(DbContextOptions<FlowControlDbContext
         ConfigureEntity(modelBuilder.Entity<ExecutionContextEntity>());
         ConfigureEntity(modelBuilder.Entity<ExecutionInstanceEntity>());
         ConfigureEntity(modelBuilder.Entity<ExecutionContextDeploymentEntity>());
+        ConfigureEntity(modelBuilder.Entity<VirtualPointRetainedStateEntity>());
         modelBuilder.Entity<ExecutionContextDeploymentEntity>()
             .HasIndex(item => new { item.ExecutionContextId, item.ExecutionInstanceId })
+            .IsUnique();
+        modelBuilder.Entity<VirtualPointRetainedStateEntity>()
+            .HasIndex(item => new { item.ExecutionInstanceId, item.PointKey })
             .IsUnique();
     }
 

@@ -20,6 +20,8 @@ public interface IFlowControlDbContext
 
     DbSet<ExecutionContextDeploymentEntity> ExecutionContextDeployments => Set<ExecutionContextDeploymentEntity>();
 
+    DbSet<VirtualPointRetainedStateEntity> VirtualPointRetainedStates => Set<VirtualPointRetainedStateEntity>();
+
     DbSet<TEntity> Set<TEntity>()
         where TEntity : class;
 

@@ -39,6 +39,7 @@ enum
     OPCODE_SELECT            = 23,
     OPCODE_COPY              = 24,
     OPCODE_COMMIT            = 255,
+    RETAINED_STATE_RECORD_BYTES = 9,
 };
 
 typedef struct
@@ -88,6 +89,18 @@ static double get_f64(const uint8_t *bytes)
     memcpy(&value, &bits, sizeof(value));
 
     return value;
+}
+
+/* Writes one canonical IEEE-754 binary64 value without alignment assumptions. */
+static void put_f64(uint8_t *bytes, double value)
+{
+    uint64_t bits;
+    memcpy(&bits, &value, sizeof(bits));
+
+    for (size_t index = 0U; index < sizeof(bits); index++)
+    {
+        bytes[index] = (uint8_t)(bits >> (index * 8U));
+    }
 }
 
 /* Constructs a bounded stable result path for host correlation. */
@@ -425,6 +438,7 @@ flow_vm_result_t flow_vm_prepare(const uint8_t *artifact, size_t artifact_size, 
             }
 
             vm->state_kinds[state_index] = record[0];
+            vm->state_types[state_index] = record[1];
 
             if (record[0] == 4U)
             {
@@ -438,6 +452,7 @@ flow_vm_result_t flow_vm_prepare(const uint8_t *artifact, size_t artifact_size, 
             else
             {
                 vm->initial_state[state_index] = vm->constants[constant];
+                vm->initial_numeric_state[state_index] = vm->numeric_constants[constant];
             }
 
             state_index++;
@@ -496,15 +511,51 @@ flow_vm_result_t flow_vm_prepare(const uint8_t *artifact, size_t artifact_size, 
     return get_result(FLOW_VM_OK, "");
 }
 
-/* Initializes current state from canonical constants and rejects unsupported retained-state input. */
+/* Initializes current state from canonical constants or one typed retained-state image. */
 flow_vm_result_t flow_vm_initialize(flow_vm_t *vm, const uint8_t *retained_state, size_t retained_state_size)
 {
-    if (vm == NULL || vm->lifecycle != FLOW_VM_PREPARED || retained_state != NULL || retained_state_size != 0U)
+    const size_t expected_size = vm == NULL ? 0U : vm->state_count * RETAINED_STATE_RECORD_BYTES;
+
+    if (vm == NULL || vm->lifecycle != FLOW_VM_PREPARED ||
+        ((retained_state == NULL) != (retained_state_size == 0U)) ||
+        (retained_state != NULL && retained_state_size != expected_size))
     {
         return get_result(FLOW_VM_WRONG_STATE, "/lifecycle");
     }
 
     memcpy(vm->current_state, vm->initial_state, sizeof(vm->current_state));
+    memcpy(vm->current_numeric_state, vm->initial_numeric_state, sizeof(vm->current_numeric_state));
+
+    for (uint16_t index = 0U; retained_state != NULL && index < vm->state_count; index++)
+    {
+        const uint8_t *record = &retained_state[index * RETAINED_STATE_RECORD_BYTES];
+
+        if (record[0] != vm->state_types[index])
+        {
+            return get_result(FLOW_VM_INVALID_SLOT, "/retainedState/type");
+        }
+
+        if (record[0] == 1U)
+        {
+            if (record[1] > 1U)
+            {
+                return get_result(FLOW_VM_INVALID_SLOT, "/retainedState/value");
+            }
+
+            vm->current_state[index] = record[1] == 1U;
+        }
+        else
+        {
+            const double value = get_f64(&record[1]);
+
+            if (!isfinite(value))
+            {
+                return get_result(FLOW_VM_INVALID_SLOT, "/retainedState/value");
+            }
+
+            vm->current_numeric_state[index] = value;
+        }
+    }
     vm->lifecycle = FLOW_VM_INITIALIZED;
 
     return get_result(FLOW_VM_OK, "");
@@ -537,6 +588,7 @@ flow_vm_result_t flow_vm_begin_tick(flow_vm_t *vm, const flow_vm_input_frame_t *
     memset(vm->staged_state_valid, 0, sizeof(vm->staged_state_valid));
     memset(vm->staged_outputs, 0, sizeof(vm->staged_outputs));
     memcpy(vm->staged_state, vm->current_state, sizeof(vm->staged_state));
+    memcpy(vm->staged_numeric_state, vm->current_numeric_state, sizeof(vm->staged_numeric_state));
     memcpy(vm->staged_timer_started_at_ms, vm->timer_started_at_ms, sizeof(vm->staged_timer_started_at_ms));
     memcpy(vm->captured_inputs, input->samples, input->sample_count * sizeof(input->samples[0]));
     vm->captured_input_count = input->sample_count;
@@ -803,6 +855,8 @@ flow_vm_result_t flow_vm_step_instruction(flow_vm_t *vm, flow_vm_execution_view_
             }
 
             vm->working_slots[instruction->result] = vm->current_state[instruction->auxiliary - vm->state_slot_base];
+            vm->numeric_slots[instruction->result] =
+                vm->current_numeric_state[instruction->auxiliary - vm->state_slot_base];
             break;
         case OPCODE_PROPOSE_OUTPUT:
 
@@ -828,6 +882,8 @@ flow_vm_result_t flow_vm_step_instruction(flow_vm_t *vm, flow_vm_execution_view_
             }
 
             vm->staged_state[instruction->auxiliary - vm->state_slot_base]       = vm->working_slots[instruction->operand0];
+            vm->staged_numeric_state[instruction->auxiliary - vm->state_slot_base] =
+                vm->numeric_slots[instruction->operand0];
             vm->staged_state_valid[instruction->auxiliary - vm->state_slot_base] = true;
             break;
         case OPCODE_COMMIT:
@@ -870,6 +926,10 @@ flow_vm_result_t flow_vm_get_debug_frame(const flow_vm_t *vm, flow_vm_debug_fram
     memcpy(frame->slot_qualities, vm->slot_qualities, vm->slot_count * sizeof(frame->slot_qualities[0]));
     memcpy(frame->current_state, vm->current_state, vm->state_count * sizeof(frame->current_state[0]));
     memcpy(frame->staged_state, vm->staged_state, vm->state_count * sizeof(frame->staged_state[0]));
+    memcpy(frame->current_numeric_state, vm->current_numeric_state,
+           vm->state_count * sizeof(frame->current_numeric_state[0]));
+    memcpy(frame->staged_numeric_state, vm->staged_numeric_state,
+           vm->state_count * sizeof(frame->staged_numeric_state[0]));
     memcpy(frame->staged_state_valid, vm->staged_state_valid, vm->state_count * sizeof(frame->staged_state_valid[0]));
 
     /* Copy only proposed commands produced by instructions already executed in this frame. */
@@ -921,6 +981,7 @@ flow_vm_result_t flow_vm_commit_tick(flow_vm_t *vm, flow_vm_command_t *commands,
 
     /* This group is the sole Write Outputs publication boundary for one PLC scan. */
     memcpy(vm->current_state, vm->staged_state, sizeof(vm->current_state));
+    memcpy(vm->current_numeric_state, vm->staged_numeric_state, sizeof(vm->current_numeric_state));
     memcpy(vm->timer_started_at_ms, vm->staged_timer_started_at_ms, sizeof(vm->timer_started_at_ms));
     vm->scan_number++;
     vm->snapshot = (flow_vm_snapshot_t){.flow_revision = vm->flow_revision,
@@ -970,6 +1031,7 @@ flow_vm_result_t flow_vm_reset(flow_vm_t *vm)
     }
 
     memcpy(vm->current_state, vm->initial_state, sizeof(vm->current_state));
+    memcpy(vm->current_numeric_state, vm->initial_numeric_state, sizeof(vm->current_numeric_state));
     memset(&vm->snapshot, 0, sizeof(vm->snapshot));
     vm->scan_number = 0U;
 
@@ -979,7 +1041,9 @@ flow_vm_result_t flow_vm_reset(flow_vm_t *vm)
 /* Exports only committed state; an in-progress scan never leaks its staged next-state image. */
 flow_vm_result_t flow_vm_export_retained_state(const flow_vm_t *vm, uint8_t *output, size_t capacity, size_t *written)
 {
-    if (vm == NULL || written == NULL || vm->lifecycle == FLOW_VM_EMPTY || capacity < vm->state_count ||
+    const size_t required = vm == NULL ? 0U : vm->state_count * RETAINED_STATE_RECORD_BYTES;
+
+    if (vm == NULL || written == NULL || vm->lifecycle == FLOW_VM_EMPTY || capacity < required ||
         (vm->state_count > 0U && output == NULL))
     {
         return get_result(FLOW_VM_CAPACITY_EXCEEDED, "/retainedState");
@@ -987,10 +1051,21 @@ flow_vm_result_t flow_vm_export_retained_state(const flow_vm_t *vm, uint8_t *out
 
     for (uint16_t index = 0; index < vm->state_count; index++)
     {
-        output[index] = vm->current_state[index] ? 1U : 0U;
+        uint8_t *record = &output[index * RETAINED_STATE_RECORD_BYTES];
+        record[0] = vm->state_types[index];
+        memset(&record[1], 0, RETAINED_STATE_RECORD_BYTES - 1U);
+
+        if (record[0] == 1U)
+        {
+            record[1] = vm->current_state[index] ? 1U : 0U;
+        }
+        else
+        {
+            put_f64(&record[1], vm->current_numeric_state[index]);
+        }
     }
 
-    *written = vm->state_count;
+    *written = required;
 
     return get_result(FLOW_VM_OK, "");
 }

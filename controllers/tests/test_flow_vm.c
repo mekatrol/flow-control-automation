@@ -81,10 +81,10 @@ static void test_memory_scans(void)
     flow_vm_snapshot_t snapshot;
     assert(flow_vm_begin_tick(&vm, &input).code == FLOW_VM_OK);
     assert(flow_vm_commit_tick(&vm, &command, 1U, &command_count, &snapshot).code == FLOW_VM_OK);
-    assert(command_count == 1U && !command.value);
+    assert(command_count == 1U && command.type == 2U && command.number == 2.0);
     assert(flow_vm_begin_tick(&vm, &input).code == FLOW_VM_OK);
     assert(flow_vm_commit_tick(&vm, &command, 1U, &command_count, &snapshot).code == FLOW_VM_OK);
-    assert(command.value);
+    assert(command.type == 2U && command.number == 2.0);
 }
 
 /* Checks every expanded Boolean opcode has the normative truth-table result in the portable host. */
@@ -178,10 +178,15 @@ static void test_step_and_abort(void)
     assert(flow_vm_step_instruction(&vm, &view).code == FLOW_VM_OK);
     assert(view.instruction_index == 0U && !view.is_at_commit);
     assert(flow_vm_abort_tick(&vm).code == FLOW_VM_OK);
-    uint8_t retained[FLOW_VM_MAX_STATES];
+    uint8_t retained[FLOW_VM_MAX_RETAINED_STATE_BYTES];
     size_t retained_size = 0U;
     assert(flow_vm_export_retained_state(&vm, retained, sizeof(retained), &retained_size).code == FLOW_VM_OK);
-    assert(retained_size == 1U && retained[0] == 0U);
+    assert(retained_size == 9U && retained[0] == 2U);
+    uint8_t artifact[FLOW_VM_MAX_ARTIFACT];
+    const size_t artifact_size = get_artifact("valid-memory-feedback", artifact, sizeof(artifact));
+    flow_vm_t restored;
+    assert(flow_vm_prepare(artifact, artifact_size, &TARGET, &restored).code == FLOW_VM_OK);
+    assert(flow_vm_initialize(&restored, retained, retained_size).code == FLOW_VM_OK);
     flow_vm_snapshot_t snapshot;
     assert(flow_vm_get_snapshot(&vm, &snapshot).code == FLOW_VM_WRONG_STATE);
 
@@ -190,7 +195,7 @@ static void test_step_and_abort(void)
     assert(flow_vm_begin_tick(&vm, &input).code == FLOW_VM_OK);
     assert(flow_vm_step_instruction(&vm, &view).code == FLOW_VM_OK);
     assert(flow_vm_commit_tick(&vm, &command, 1U, &command_count, &snapshot).code == FLOW_VM_OK);
-    assert(!command.value && snapshot.scan_number == 1U);
+    assert(command.type == 2U && command.number == 2.0 && snapshot.scan_number == 1U);
 }
 
 /* Checks invalid fixtures fail before initialization and cannot disturb an existing initialized VM. */

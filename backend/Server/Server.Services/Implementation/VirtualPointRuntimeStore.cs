@@ -4,12 +4,15 @@ using System.Globalization;
 
 namespace Server.Services.Implementation;
 
-public sealed class VirtualPointRuntimeStore(TimeProvider timeProvider) : IVirtualPointRuntimeStore
+public sealed class VirtualPointRuntimeStore(
+    TimeProvider timeProvider,
+    IVirtualPointRetainedStore? retainedStore = null) : IVirtualPointRuntimeStore
 {
     private readonly ReaderWriterLockSlim _gate = new(LockRecursionPolicy.NoRecursion);
+    private readonly SemaphoreSlim _commitGate = new(1, 1);
     private readonly Dictionary<(string InstanceId, string PointKey), Cell> _cells = [];
 
-    public Task ActivateFlowAsync(
+    public async Task ActivateFlowAsync(
         string executionInstanceId,
         string flowId,
         IReadOnlyList<VirtualPointDeclaration> declarations,
@@ -18,6 +21,12 @@ public sealed class VirtualPointRuntimeStore(TimeProvider timeProvider) : IVirtu
     {
         cancellationToken.ThrowIfCancellationRequested();
         var merged = ExecutionConfigurationService.MergeContracts(declarations);
+        var retained = new Dictionary<string, RetainedVirtualPointValue?>(StringComparer.Ordinal);
+        if (retainedStore is not null)
+        {
+            foreach (var declaration in merged.Where(item => item.Persistence == VirtualPointPersistence.Retained))
+                retained[declaration.Key] = await retainedStore.ReadAsync(executionInstanceId, declaration.Key, cancellationToken);
+        }
         _gate.EnterWriteLock();
         try
         {
@@ -41,6 +50,16 @@ public sealed class VirtualPointRuntimeStore(TimeProvider timeProvider) : IVirtu
                 if (!_cells.TryGetValue(identity, out var cell))
                 {
                     cell = new Cell(executionInstanceId, declaration);
+                    if (retained.GetValueOrDefault(declaration.Key) is { } restored)
+                    {
+                        var expected = declaration.ValueType == FlowPointValueType.Analog ? DataType.Number : DataType.Boolean;
+                        if (restored.Value.DataType == expected)
+                        {
+                            cell.Value = restored.Value;
+                            cell.Timestamp = restored.Timestamp;
+                            cell.Version = restored.Version;
+                        }
+                    }
                     _cells.Add(identity, cell);
                 }
                 cell.Readers.Add(flowId);
@@ -48,7 +67,6 @@ public sealed class VirtualPointRuntimeStore(TimeProvider timeProvider) : IVirtu
             }
         }
         finally { _gate.ExitWriteLock(); }
-        return Task.CompletedTask;
     }
 
     public void ReleaseFlow(string executionInstanceId, string flowId)
@@ -61,6 +79,14 @@ public sealed class VirtualPointRuntimeStore(TimeProvider timeProvider) : IVirtu
                 cell.Readers.Remove(flowId);
                 if (cell.WriterFlowId == flowId) cell.WriterFlowId = null;
             }
+            foreach (var identity in _cells
+                .Where(item => item.Key.InstanceId == executionInstanceId
+                    && item.Value.Contract.Persistence == VirtualPointPersistence.Volatile
+                    && item.Value.WriterFlowId is null
+                    && item.Value.Readers.Count == 0)
+                .Select(item => item.Key)
+                .ToArray())
+                _cells.Remove(identity);
         }
         finally { _gate.ExitWriteLock(); }
     }
@@ -81,34 +107,53 @@ public sealed class VirtualPointRuntimeStore(TimeProvider timeProvider) : IVirtu
         finally { _gate.ExitReadLock(); }
     }
 
-    public Task CommitAsync(string executionInstanceId, string flowId, IReadOnlyList<FlowVmCommand> commands, CancellationToken cancellationToken)
+    public async Task CommitAsync(string executionInstanceId, string flowId, IReadOnlyList<FlowVmCommand> commands, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var proposed = commands.Where(item => !item.IsInterface).ToList();
-        _gate.EnterWriteLock();
+        await _commitGate.WaitAsync(cancellationToken);
         try
         {
-            foreach (var command in proposed)
+            IReadOnlyDictionary<string, RetainedVirtualPointValue> retainedWrites;
+            _gate.EnterWriteLock();
+            try
             {
-                if (!_cells.TryGetValue((executionInstanceId, command.PointId), out var cell)) continue;
-                if (cell.WriterFlowId != flowId)
-                    throw new VirtualPointWriterConflictException(executionInstanceId, command.PointId, cell.WriterFlowId ?? "none");
-                var expected = cell.Contract.ValueType == FlowPointValueType.Analog ? DataType.Number : DataType.Boolean;
-                if (command.TypedValue.DataType != expected)
-                    throw new InvalidOperationException($"Command for virtual point '{command.PointId}' has the wrong value type.");
-            }
+                foreach (var command in proposed)
+                {
+                    if (!_cells.TryGetValue((executionInstanceId, command.PointId), out var cell)) continue;
+                    if (cell.WriterFlowId != flowId)
+                        throw new VirtualPointWriterConflictException(executionInstanceId, command.PointId, cell.WriterFlowId ?? "none");
+                    var expected = cell.Contract.ValueType == FlowPointValueType.Analog ? DataType.Number : DataType.Boolean;
+                    if (command.TypedValue.DataType != expected)
+                        throw new InvalidOperationException($"Command for virtual point '{command.PointId}' has the wrong value type.");
+                }
 
-            var timestamp = timeProvider.GetUtcNow().ToString("O", CultureInfo.InvariantCulture);
-            foreach (var command in proposed)
-            {
-                if (!_cells.TryGetValue((executionInstanceId, command.PointId), out var cell)) continue;
-                cell.Value = command.TypedValue;
-                cell.Timestamp = timestamp;
-                cell.Version++;
+                var timestamp = timeProvider.GetUtcNow().ToString("O", CultureInfo.InvariantCulture);
+                retainedWrites = proposed
+                    .Where(command => _cells.TryGetValue((executionInstanceId, command.PointId), out var cell)
+                        && cell.Contract.Persistence == VirtualPointPersistence.Retained)
+                    .ToDictionary(
+                        command => command.PointId,
+                        command =>
+                        {
+                            var cell = _cells[(executionInstanceId, command.PointId)];
+                            return new RetainedVirtualPointValue(command.TypedValue, timestamp, checked(cell.Version + 1));
+                        },
+                        StringComparer.Ordinal);
+                foreach (var command in proposed)
+                {
+                    if (!_cells.TryGetValue((executionInstanceId, command.PointId), out var cell)) continue;
+                    cell.Value = command.TypedValue;
+                    cell.Timestamp = timestamp;
+                    cell.Version++;
+                }
             }
+            finally { _gate.ExitWriteLock(); }
+
+            if (retainedStore is not null && retainedWrites.Count > 0)
+                await retainedStore.WriteAsync(executionInstanceId, retainedWrites, cancellationToken);
         }
-        finally { _gate.ExitWriteLock(); }
-        return Task.CompletedTask;
+        finally { _commitGate.Release(); }
     }
 
     public IReadOnlyList<VirtualPointRuntimeValue> List(string executionInstanceId)

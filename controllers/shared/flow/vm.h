@@ -26,6 +26,7 @@ enum
     FLOW_VM_MAX_SLOTS        = 256,
     FLOW_VM_MAX_POINTS       = 64,
     FLOW_VM_MAX_STATES       = 128,
+    FLOW_VM_MAX_RETAINED_STATE_BYTES = FLOW_VM_MAX_STATES * 9,
     FLOW_VM_MAX_OUTPUTS      = 64,
     FLOW_VM_MAX_CONSTANTS    = 256,
     FLOW_VM_MAX_ID_BYTES     = 63,
@@ -179,6 +180,8 @@ typedef struct
     bool slots[FLOW_VM_MAX_SLOTS];
     bool current_state[FLOW_VM_MAX_STATES];
     bool staged_state[FLOW_VM_MAX_STATES];
+    double current_numeric_state[FLOW_VM_MAX_STATES];
+    double staged_numeric_state[FLOW_VM_MAX_STATES];
     bool staged_state_valid[FLOW_VM_MAX_STATES];
     flow_vm_command_t outputs[FLOW_VM_MAX_OUTPUTS];
     uint8_t slot_types[FLOW_VM_MAX_SLOTS];
@@ -208,6 +211,10 @@ typedef struct
     bool initial_state[FLOW_VM_MAX_STATES];
     bool current_state[FLOW_VM_MAX_STATES];
     bool staged_state[FLOW_VM_MAX_STATES];
+    double initial_numeric_state[FLOW_VM_MAX_STATES];
+    double current_numeric_state[FLOW_VM_MAX_STATES];
+    double staged_numeric_state[FLOW_VM_MAX_STATES];
+    uint8_t state_types[FLOW_VM_MAX_STATES];
     uint8_t state_kinds[FLOW_VM_MAX_STATES];
     uint64_t timer_durations_ms[FLOW_VM_MAX_STATES];
     uint64_t timer_started_at_ms[FLOW_VM_MAX_STATES];

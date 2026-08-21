@@ -113,6 +113,23 @@ internal sealed class FlowCompilationTargetResolver(
                 throw Failure(FlowCompilationDiagnosticCode.UnsupportedTargetFunction, "/controllerTemplateId", function);
             }
         }
+
+        if (source.VirtualPointDeclarations.Count == 0) return;
+        if (!template.RuntimeFeatures.Contains(ControllerRuntimeFeature.VirtualPoints))
+            throw Failure(FlowCompilationDiagnosticCode.UnsupportedTargetPointCapability, "/virtualPointDeclarations", ControllerRuntimeFeature.VirtualPoints);
+
+        foreach (var declaration in source.VirtualPointDeclarations)
+        {
+            if (!template.PointTypes.Contains(declaration.ValueType))
+                throw Failure(FlowCompilationDiagnosticCode.UnsupportedTargetPointCapability, $"/virtualPointDeclarations/{Escape(declaration.Key)}/valueType", declaration.ValueType);
+            if (declaration.Readable && !template.PointFeatures.Contains(ControllerPointFeature.Read))
+                throw Failure(FlowCompilationDiagnosticCode.UnsupportedTargetPointCapability, $"/virtualPointDeclarations/{Escape(declaration.Key)}/readable", ControllerPointFeature.Read);
+            if (declaration.Commandable && !template.PointFeatures.Contains(ControllerPointFeature.Command))
+                throw Failure(FlowCompilationDiagnosticCode.UnsupportedTargetPointCapability, $"/virtualPointDeclarations/{Escape(declaration.Key)}/commandable", ControllerPointFeature.Command);
+            if (declaration.Persistence == VirtualPointPersistence.Retained
+                && !template.PointFeatures.Contains(ControllerPointFeature.Retain))
+                throw Failure(FlowCompilationDiagnosticCode.UnsupportedTargetPointCapability, $"/virtualPointDeclarations/{Escape(declaration.Key)}/persistence", ControllerPointFeature.Retain);
+        }
     }
 
     private static void ValidateLimits(ExecutableFlowSource source, ControllerLimits limits)

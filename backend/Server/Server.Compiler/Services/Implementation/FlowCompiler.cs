@@ -1211,7 +1211,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         slotRecords.AddRange(model.StateIds.Select(id => model.Nodes[id].Kind switch
         {
             FlowNodeKind.Memory => Concat(
-                [3, 1],
+                [3, (byte)DataType.Number],
                 U16(0),
                 U16(model.StateSlots[id]),
                 U16(ConstantIndex(model.Constants, GetNumericConstant(model.Nodes[id], "value")))),
@@ -2991,6 +2991,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             FlowNodeKind.LevelShifter or
             FlowNodeKind.AnalogInput or
             FlowNodeKind.AnalogOutput or
+            FlowNodeKind.Memory or
             FlowNodeKind.Average or
             FlowNodeKind.Calculator or
             FlowNodeKind.Clamp or

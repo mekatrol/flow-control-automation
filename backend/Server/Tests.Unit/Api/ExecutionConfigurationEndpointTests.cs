@@ -55,7 +55,7 @@ internal sealed class ExecutionConfigurationEndpointTests
                 Id = instanceId,
                 Name = instanceId,
                 Kind = ExecutionInstanceKind.Controller,
-                ControllerTemplateId = "kc868",
+                ControllerTemplateId = "default",
                 ControllerTemplateRevision = 1
             }, FlowControlJson.Options);
             Assert.That(instanceResponse.StatusCode, Is.EqualTo(HttpStatusCode.Created));

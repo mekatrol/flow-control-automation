@@ -1,4 +1,4 @@
-﻿namespace Server.Compiler.Contracts;
+namespace Server.Compiler.Contracts;
 
 /// <summary>
 /// Stable machine-readable Flow compiler diagnostic codes.
@@ -76,6 +76,7 @@ public enum FlowCompilationDiagnosticCode
     TargetNodeLimitExceeded = 2007,
     TargetConnectionLimitExceeded = 2008,
     PointDirectionMismatch = 2009,
+    UnsupportedTargetPointCapability = 2010,
 
     // 3xxx - Flow IL artifact/envelope/section validation
     MalformedArtifact = 3001,
