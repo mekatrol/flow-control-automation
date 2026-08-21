@@ -9,6 +9,54 @@ namespace Tests.Unit.Api;
 internal sealed class ExecutionConfigurationEndpointTests
 {
     [Test]
+    public async Task SavingFlowReconcilesEveryContainingContextAtomically()
+    {
+        await using var factory = new FlowControlApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var createdFlowResponse = await client.PostAsJsonAsync("/api/flows", new { name = "Shared declarations" });
+        var flow = (await createdFlowResponse.Content.ReadFromJsonAsync<Flow>(FlowControlJson.Options))!;
+        foreach (var contextId in new[] { "first-context", "second-context" })
+        {
+            var response = await client.PostAsJsonAsync("/api/execution-contexts", new ExecutionContextDefinition
+            {
+                Id = contextId,
+                Name = contextId,
+                Programs = [new(flow.Id, flow.Revision)]
+            }, FlowControlJson.Options);
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+        }
+
+        var saveResponse = await client.PutAsJsonAsync($"/api/flows/{flow.Id}", flow with
+        {
+            VirtualPointDeclarations =
+            [
+                new VirtualPointDeclaration
+                {
+                    Key = "shared-temperature",
+                    ValueType = FlowPointValueType.Analog,
+                    Readable = true,
+                    Commandable = true,
+                    Persistence = VirtualPointPersistence.Volatile
+                }
+            ]
+        }, FlowControlJson.Options);
+        Assert.That(saveResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK), await saveResponse.Content.ReadAsStringAsync());
+        var saved = (await saveResponse.Content.ReadFromJsonAsync<Flow>(FlowControlJson.Options))!;
+
+        foreach (var contextId in new[] { "first-context", "second-context" })
+        {
+            var definition = await client.GetFromJsonAsync<ExecutionContextDefinition>($"/api/execution-contexts/{contextId}", FlowControlJson.Options);
+            Assert.Multiple(() =>
+            {
+                Assert.That(definition!.Programs.Single().FlowRevision, Is.EqualTo(saved.Revision));
+                Assert.That(definition.PointContracts.Single().Key, Is.EqualTo("shared-temperature"));
+                Assert.That(definition.Revision, Is.EqualTo(2));
+            });
+        }
+    }
+
+    [Test]
     public async Task ContextDeploysToTwoInstancesWithIsolatedAllocations()
     {
         await using var factory = new FlowControlApplicationFactory();

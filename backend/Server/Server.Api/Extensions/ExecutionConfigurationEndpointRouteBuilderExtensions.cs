@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.Extensions.Options;
+using Server.Api.Contracts;
 using Server.Common.Contracts;
 using Server.Services;
 
@@ -43,7 +44,7 @@ public static class ExecutionConfigurationEndpointRouteBuilderExtensions
             var value = await request.ReadFromJsonAsync<T>(options.Value.SerializerOptions, token);
             return value is null ? Results.BadRequest(new { error = "request body must contain JSON" }) : await Map(() => operation(value), status);
         }
-        catch (System.Text.Json.JsonException exception) { return Results.BadRequest(new { error = exception.Message }); }
+        catch (System.Text.Json.JsonException exception) { return Error(400, "invalid_json", exception.Message); }
     }
 
     private static Task<T> EnsureId<T>(string pathId, string bodyId, Func<Task<T>> operation) =>
@@ -52,12 +53,15 @@ public static class ExecutionConfigurationEndpointRouteBuilderExtensions
     private static async Task<IResult> Map<T>(Func<Task<T>> operation, int status = 200)
     {
         try { return Results.Json(await operation(), statusCode: status); }
-        catch (ExecutionConfigurationException exception) { return Results.Json(new { error = exception.Message }, statusCode: exception.StatusCode); }
+        catch (ExecutionConfigurationException exception) { return Error(exception.StatusCode, exception.Code, exception.Message, exception.Details); }
     }
 
     private static async Task<IResult> MapDelete(Func<Task> operation)
     {
         try { await operation(); return Results.NoContent(); }
-        catch (ExecutionConfigurationException exception) { return Results.Json(new { error = exception.Message }, statusCode: exception.StatusCode); }
+        catch (ExecutionConfigurationException exception) { return Error(exception.StatusCode, exception.Code, exception.Message, exception.Details); }
     }
+
+    private static IResult Error(int status, string code, string message, object? details = null) =>
+        Results.Json(new DefinitionErrorResponse(message, code, details), statusCode: status);
 }

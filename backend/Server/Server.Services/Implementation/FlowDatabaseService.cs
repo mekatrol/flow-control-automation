@@ -154,6 +154,7 @@ internal sealed class FlowDatabaseService(
 
         entity.Json = Serialize(saved);
         entity.Updated = timeProvider.GetUtcNow();
+        await ReconcileContainingContextsAsync(saved, cancellationToken);
         await SaveWithConcurrencyMapping(id, entity, cancellationToken);
         return saved;
     }
@@ -188,6 +189,61 @@ internal sealed class FlowDatabaseService(
 
     private static string Serialize(Flow flow) =>
         JsonSerializer.Serialize(flow, FlowControlJson.Options);
+
+    private async Task ReconcileContainingContextsAsync(Flow saved, CancellationToken cancellationToken)
+    {
+        var contextEntities = await context.ExecutionContexts.ToListAsync(cancellationToken);
+        var containing = contextEntities
+            .Select(entity => (Entity: entity, Definition: JsonSerializer.Deserialize<ExecutionContextDefinition>(entity.Json, FlowControlJson.Options)
+                ?? throw new InvalidOperationException($"Stored execution context {entity.Id} is null.")))
+            .Where(item => item.Definition.Programs.Any(program => program.FlowId == saved.Id))
+            .ToList();
+        if (containing.Count == 0)
+        {
+            return;
+        }
+
+        var requiredFlowIds = containing.SelectMany(item => item.Definition.Programs)
+            .Select(program => program.FlowId)
+            .Where(flowId => flowId != saved.Id)
+            .ToHashSet(StringComparer.Ordinal);
+        var otherFlows = (await context.Flows.AsNoTracking().ToListAsync(cancellationToken))
+            .Where(item => requiredFlowIds.Contains(item.Id))
+            .ToDictionary(item => item.Id, Deserialize, StringComparer.Ordinal);
+
+        foreach (var (contextEntity, definition) in containing)
+        {
+            var programs = definition.Programs
+                .Select(program => program.FlowId == saved.Id
+                    ? program with { FlowRevision = saved.Revision }
+                    : program)
+                .ToArray();
+            var declarations = programs.SelectMany(program =>
+                program.FlowId == saved.Id
+                    ? saved.VirtualPointDeclarations
+                    : otherFlows.TryGetValue(program.FlowId, out var flow)
+                        ? flow.VirtualPointDeclarations
+                        : throw new FlowValidationException($"execution context '{definition.Id}' references missing flow '{program.FlowId}'"));
+            IReadOnlyList<VirtualPointDeclaration> contracts;
+            try
+            {
+                contracts = ExecutionConfigurationService.MergeContracts(declarations);
+            }
+            catch (ExecutionConfigurationException exception)
+            {
+                throw new FlowValidationException($"execution context '{definition.Id}' cannot accept the flow declarations: {exception.Message}");
+            }
+
+            var updated = definition with
+            {
+                Programs = programs,
+                PointContracts = contracts,
+                Revision = checked(definition.Revision + 1)
+            };
+            contextEntity.Json = JsonSerializer.Serialize(updated, FlowControlJson.Options);
+            contextEntity.Updated = timeProvider.GetUtcNow();
+        }
+    }
 
     private async Task<FlowEntity> FindTrackedAsync(
         string id,

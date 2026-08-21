@@ -19,6 +19,8 @@ internal sealed partial class ExecutionConfigurationService(
     IFlowCompilationTargetResolver targetResolver,
     IFlowCompiler compiler) : IExecutionConfigurationService
 {
+    internal const int MaximumVirtualPointsPerContext = 128;
+    internal const int MaximumRetainedVirtualPointsPerContext = 64;
     public async Task<IReadOnlyList<ExecutionContextDefinition>> ListContextsAsync(CancellationToken cancellationToken) =>
         [.. (await context.ExecutionContexts.AsNoTracking().OrderBy(item => item.Key).ToListAsync(cancellationToken)).Select(Deserialize<ExecutionContextDefinition>)];
 
@@ -374,6 +376,23 @@ internal sealed partial class ExecutionConfigurationService(
                 result.Add(declaration.Key, declaration);
             }
         }
+        if (result.Count > MaximumVirtualPointsPerContext)
+        {
+            throw new ExecutionConfigurationException(
+                $"execution context exceeds the {MaximumVirtualPointsPerContext} virtual-point limit",
+                422,
+                "virtual_point_limit_exceeded",
+                new { limit = MaximumVirtualPointsPerContext, actual = result.Count });
+        }
+        var retainedCount = result.Values.Count(item => item.Persistence == VirtualPointPersistence.Retained);
+        if (retainedCount > MaximumRetainedVirtualPointsPerContext)
+        {
+            throw new ExecutionConfigurationException(
+                $"execution context exceeds the {MaximumRetainedVirtualPointsPerContext} retained virtual-point limit",
+                422,
+                "retained_storage_limit_exceeded",
+                new { limit = MaximumRetainedVirtualPointsPerContext, actual = retainedCount });
+        }
         return [.. result.Values.OrderBy(item => item.Key, StringComparer.Ordinal)];
     }
 
@@ -455,12 +474,16 @@ internal sealed partial class ExecutionConfigurationService(
         {
             foreach (var flow in await LoadProgramsAsync(active, cancellationToken))
             {
-                AddWriters(writers, flow);
+                AddWriters(
+                    writers,
+                    flow,
+                    instance.Id,
+                    otherDeployments.FirstOrDefault(item => item.ExecutionContextId == active.Id)?.Id);
             }
         }
         foreach (var flow in programs)
         {
-            AddWriters(writers, flow);
+            AddWriters(writers, flow, instance.Id, deployment.Id);
         }
 
         var templateId = instance.Kind == ExecutionInstanceKind.Controller
@@ -570,7 +593,11 @@ internal sealed partial class ExecutionConfigurationService(
         }
     }
 
-    private static void AddWriters(IDictionary<string, string> writers, Flow flow)
+    private static void AddWriters(
+        IDictionary<string, string> writers,
+        Flow flow,
+        string executionInstanceId,
+        string? deploymentId)
     {
         var virtualKeys = flow.VirtualPointDeclarations.Select(item => item.Key).ToHashSet(StringComparer.Ordinal);
         foreach (var node in flow.Nodes.Where(item => item.Kind is FlowNodeKind.AnalogOutput or FlowNodeKind.DigitalOutput))
@@ -583,7 +610,17 @@ internal sealed partial class ExecutionConfigurationService(
 
             if (writers.TryGetValue(key, out var owner) && owner != flow.Id)
             {
-                throw new ExecutionConfigurationException($"virtual point '{key}' already has writer flow '{owner}' on this execution instance", 409);
+                throw new ExecutionConfigurationException(
+                    $"virtual point '{key}' already has writer flow '{owner}' on this execution instance",
+                    409,
+                    "writer_conflict",
+                    new
+                    {
+                        executionInstanceId,
+                        pointKey = key,
+                        conflictingFlowId = owner,
+                        conflictingDeploymentId = deploymentId
+                    });
             }
 
             writers[key] = flow.Id;

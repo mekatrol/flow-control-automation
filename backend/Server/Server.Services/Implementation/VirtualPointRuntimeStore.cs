@@ -31,6 +31,19 @@ public sealed class VirtualPointRuntimeStore(
         _gate.EnterWriteLock();
         try
         {
+            var existingKeys = _cells.Keys
+                .Where(identity => identity.InstanceId == executionInstanceId)
+                .Select(identity => identity.PointKey)
+                .ToHashSet(StringComparer.Ordinal);
+            var allocatedCount = existingKeys.Union(merged.Select(item => item.Key), StringComparer.Ordinal).Count();
+            if (allocatedCount > ExecutionConfigurationService.MaximumVirtualPointsPerContext)
+            {
+                throw new ExecutionConfigurationException(
+                    $"execution instance exceeds the {ExecutionConfigurationService.MaximumVirtualPointsPerContext} virtual-point limit",
+                    422,
+                    "virtual_point_limit_exceeded",
+                    new { limit = ExecutionConfigurationService.MaximumVirtualPointsPerContext, actual = allocatedCount });
+            }
             foreach (var declaration in merged)
             {
                 var identity = (executionInstanceId, declaration.Key);

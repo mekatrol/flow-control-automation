@@ -10,6 +10,33 @@ export interface ExecutionContextSummary {
   pointContracts: VirtualPointDeclaration[];
 }
 
+export class ExecutionConfigurationApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly code: string,
+    readonly details?: unknown
+  ) {
+    super(message);
+  }
+}
+
+const requireOk = async (response: Response, fallback: string): Promise<Response> => {
+  if (response.ok) return response;
+  let message = `${fallback} (${response.status}).`;
+  let code = 'request_failed';
+  let details: unknown;
+  try {
+    const body = (await response.json()) as Record<string, unknown>;
+    if (typeof body.message === 'string') message = body.message;
+    if (typeof body.code === 'string') code = body.code;
+    details = body.details;
+  } catch {
+    // Preserve the stable fallback for non-JSON proxy and transport responses.
+  }
+  throw new ExecutionConfigurationApiError(message, response.status, code, details);
+};
+
 const parseContext = (value: unknown): ExecutionContextSummary => {
   if (!value || typeof value !== 'object') throw new Error('Execution context is malformed.');
   const item = value as Record<string, unknown>;
@@ -31,7 +58,7 @@ const parseContext = (value: unknown): ExecutionContextSummary => {
 export const executionContextApi = {
   async list(signal?: AbortSignal): Promise<ExecutionContextSummary[]> {
     const response = await waitForFetch('/api/execution-contexts', { signal });
-    if (!response.ok) throw new Error(`Unable to load execution contexts (${response.status}).`);
+    await requireOk(response, 'Unable to load execution contexts');
     const body: unknown = await response.json();
     if (!Array.isArray(body)) throw new Error('Execution context catalogue is malformed.');
     return body.map(parseContext);
@@ -50,7 +77,7 @@ export const executionContextApi = {
       `/api/point-resolution/${encodeURIComponent(pointKey)}${suffix}`,
       { signal }
     );
-    if (!response.ok) throw new Error(`Unable to resolve point (${response.status}).`);
+    await requireOk(response, 'Unable to resolve point');
     const body = (await response.json()) as Record<string, unknown>;
     if (body.exists === false) return undefined;
     if (
