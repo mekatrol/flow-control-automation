@@ -50,6 +50,10 @@ internal sealed class FlowCompilationTargetResolver(
 
         var allPoints = await pointDefinitions.ListPointsAsync(cancellationToken);
         var pointsById = allPoints.ToDictionary(point => point.Id, StringComparer.Ordinal);
+        foreach (var declaration in source.VirtualPointDeclarations)
+        {
+            pointsById.TryAdd(declaration.Key, VirtualPoint(declaration));
+        }
         var resolvedPoints = new List<FlowPoint>();
         foreach (var reference in PointReferences(source))
         {
@@ -68,6 +72,23 @@ internal sealed class FlowCompilationTargetResolver(
             Points = resolvedPoints
         };
     }
+
+    private static FlowPoint VirtualPoint(VirtualPointDeclaration declaration) => new()
+    {
+        Id = declaration.Key,
+        Name = declaration.Key,
+        Enabled = true,
+        Implementation = "virtual",
+        Direction = DataDirection.Value,
+        ValueType = declaration.ValueType,
+        Units = declaration.Units,
+        Readable = declaration.Readable,
+        Commandable = declaration.Commandable,
+        Persistence = declaration.Persistence == VirtualPointPersistence.Retained ? "retained" : "volatile",
+        RelinquishDefault = declaration.RelinquishDefault is { } value
+            ? System.Text.Json.Nodes.JsonNode.Parse(value.GetRawText()) : null,
+        Revision = 1
+    };
 
     private static void ValidateCapabilities(
         ExecutableFlowSource source,

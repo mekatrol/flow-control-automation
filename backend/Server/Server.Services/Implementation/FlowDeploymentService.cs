@@ -131,7 +131,8 @@ internal sealed class FlowDeploymentService(
                             connection.End.ConnectorId)))
             ],
 
-            Interface = flow.Interface
+            Interface = flow.Interface,
+            VirtualPointDeclarations = flow.VirtualPointDeclarations
         };
     }
 

@@ -5,7 +5,8 @@ namespace Server.Services.Implementation;
 
 internal sealed class PointReadService(
     IPointDefinitionStore definitions,
-    IPointSourceService sources) : IPointReadService
+    IPointSourceService sources,
+    IVirtualPointRuntimeStore? virtualPoints = null) : IPointReadService
 {
     public async Task<PointRuntimeEnvelope> ReadAsync(
         string pointId,
@@ -24,6 +25,23 @@ internal sealed class PointReadService(
 
         if (point.Implementation == "virtual")
         {
+            if (virtualPoints is not null && virtualPoints.TrySnapshot("server", point.Id, out var snapshot))
+            {
+                var value = snapshot.Value;
+                return new PointRuntimeEnvelope(
+                    point.Id,
+                    value is null ? null : value.DataType == DataType.Number
+                        ? System.Text.Json.Nodes.JsonValue.Create(value.Number)
+                        : System.Text.Json.Nodes.JsonValue.Create(value.Boolean),
+                    point.Units,
+                    snapshot.Quality,
+                    value is null ? "not_initialized" : "reliable",
+                    snapshot.Timestamp,
+                    snapshot.Timestamp,
+                    "connected",
+                    value is null ? "unavailable" : "ok",
+                    value is null ? "Virtual point has no commissioned runtime value." : string.Empty);
+            }
             return Unavailable(
                 point,
                 "not_initialized",

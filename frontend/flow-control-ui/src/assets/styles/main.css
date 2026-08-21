@@ -23,6 +23,12 @@ body {
   margin: var(--space-0);
 }
 
+html:has(.designer-page),
+body:has(.designer-page) {
+  height: 100dvh;
+  overflow: hidden;
+}
+
 button,
 input,
 textarea {

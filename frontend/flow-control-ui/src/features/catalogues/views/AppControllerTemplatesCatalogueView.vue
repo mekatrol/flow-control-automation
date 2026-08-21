@@ -111,7 +111,12 @@ const rangeEnd = computed(() =>
 );
 const list = (values: string[]): string =>
   values
-    .map((value) => value.replaceAll('_', ' ').replaceAll(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase())
+    .map((value) =>
+      value
+        .replaceAll('_', ' ')
+        .replaceAll(/([a-z0-9])([A-Z])/g, '$1 $2')
+        .toLowerCase()
+    )
     .join(', ');
 const limits = (value: ControllerTemplateSummary['limits']): string => {
   const configured = [

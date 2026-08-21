@@ -53,7 +53,11 @@ export const parseFlowRuntimeSnapshot = (payload: unknown): FlowRuntimeSnapshot 
       throw new TypeError(`Runtime node ${nodeId} has an invalid state.`);
     if (!isDate(candidate.updatedAt))
       throw new TypeError(`Runtime node ${nodeId} has an invalid timestamp.`);
-    if (candidate.value !== undefined && candidate.value !== null && typeof candidate.value !== 'boolean')
+    if (
+      candidate.value !== undefined &&
+      candidate.value !== null &&
+      typeof candidate.value !== 'boolean'
+    )
       throw new TypeError(`Runtime node ${nodeId} has an invalid value.`);
     if (candidate.typedValue !== undefined && candidate.typedValue !== null) {
       if (!isRecord(candidate.typedValue))

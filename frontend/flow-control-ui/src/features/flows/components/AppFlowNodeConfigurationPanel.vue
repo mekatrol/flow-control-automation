@@ -82,6 +82,27 @@
             {{ entry.name }} · {{ entry.dataType }}{{ entry.units ? ` · ${entry.units}` : '' }}
           </option>
         </select>
+        <template v-else-if="field.key === 'pointId'">
+          <input
+            type="text"
+            :value="node.configuration.pointId"
+            :list="`${node.id}-compatible-points`"
+            autocomplete="off"
+            :aria-invalid="Boolean(errors.pointId)"
+            aria-describedby="point-lookup-help"
+            @input="updatePointId(field, $event)"
+            @blur="validatePointId"
+          />
+          <datalist :id="`${node.id}-compatible-points`">
+            <option v-for="point in compatibleVirtualPoints" :key="point.key" :value="point.key">
+              {{ point.key }} · virtual · {{ point.valueType
+              }}{{ point.units ? ` · ${point.units}` : '' }}
+            </option>
+          </datalist>
+          <small v-if="!errors.pointId" id="point-lookup-help" class="field-help">
+            Search declared compatible points or enter a point ID manually.
+          </small>
+        </template>
         <input
           v-else-if="field.input === 'checkbox'"
           type="checkbox"
@@ -160,10 +181,16 @@ import type {
   FlowInterfaceDataType,
   FlowInterfaceInput,
   FlowInterfaceOutput,
-  FlowNode
+  FlowNode,
+  VirtualPointDeclaration
 } from '@/features/flows/types';
 
-const props = defineProps<{ automation: string; node: FlowNode; flowInterface?: FlowInterface }>();
+const props = defineProps<{
+  automation: string;
+  node: FlowNode;
+  flowInterface?: FlowInterface;
+  virtualPointDeclarations?: VirtualPointDeclaration[];
+}>();
 const emit = defineEmits<{
   (event: typeof EVENTS.UPDATE_LABEL, label: string): void;
   (event: typeof EVENTS.UPDATE_CONFIGURATION, key: string, value: FlowConfigurationValue): void;
@@ -190,6 +217,43 @@ const nodeEditorFields = computed(() =>
 );
 const interfaceDataTypes: FlowInterfaceDataType[] = ['boolean', 'number', 'string', 'event'];
 const errors = ref<Record<string, string>>({});
+const compatibleVirtualPoints = computed(() => {
+  const analog = props.node.kind === 'analogInput' || props.node.kind === 'analogOutput';
+  const input = props.node.kind === 'analogInput' || props.node.kind === 'digitalInput';
+  return (props.virtualPointDeclarations ?? []).filter(
+    (point) =>
+      point.valueType === (analog ? 'analog' : 'digital') &&
+      (input ? point.readable : point.commandable)
+  );
+});
+
+const pointIdError = (value: string): string | undefined => {
+  const key = value.trim();
+  if (!key) return 'Point ID is required.';
+  if (!/^[a-zA-Z0-9](?:[a-zA-Z0-9._-]{0,126}[a-zA-Z0-9])?$/.test(key))
+    return 'Point ID contains unsupported characters.';
+  const declared = (props.virtualPointDeclarations ?? []).find((point) => point.key === key);
+  if (!declared) return undefined;
+  return compatibleVirtualPoints.value.includes(declared)
+    ? undefined
+    : `Virtual point “${key}” is incompatible with this ${definition.value.label.toLocaleLowerCase()}.`;
+};
+
+const validatePointId = (): void => {
+  const error = pointIdError(String(props.node.configuration.pointId ?? ''));
+  if (error) errors.value.pointId = error;
+  else delete errors.value.pointId;
+};
+
+const updatePointId = (field: NodeEditorField, event: Event): void => {
+  const target = event.target as HTMLInputElement;
+  const error = pointIdError(target.value);
+  if (error) errors.value.pointId = error;
+  else {
+    delete errors.value.pointId;
+    emit(EVENTS.UPDATE_CONFIGURATION, field.key, target.value.trim());
+  }
+};
 
 const updateInterfaceEntry = (
   update: (entry: FlowInterfaceInput | FlowInterfaceOutput) => void
@@ -339,5 +403,10 @@ select {
 
 label small {
   color: var(--color-danger-strong);
+}
+
+.field-help {
+  color: var(--color-text-subtle);
+  font-weight: var(--font-weight-regular);
 }
 </style>

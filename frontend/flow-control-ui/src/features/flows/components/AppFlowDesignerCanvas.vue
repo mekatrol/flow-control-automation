@@ -190,6 +190,7 @@
         v-bind="automation('node-configuration')"
         :node="selectedNode"
         :flow-interface="flow.interface"
+        :virtual-point-declarations="flow.virtualPointDeclarations"
         @[EVENTS.UPDATE_LABEL]="handleNodeLabelUpdate"
         @[EVENTS.UPDATE_CONFIGURATION]="handleNodeConfigurationUpdate"
         @[EVENTS.UPDATE_INTERFACE]="handleInterfaceUpdate"

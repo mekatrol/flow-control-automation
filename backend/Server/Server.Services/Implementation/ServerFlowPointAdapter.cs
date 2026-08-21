@@ -3,7 +3,9 @@ using System.Text.Json;
 
 namespace Server.Services.Implementation;
 
-internal sealed class ServerFlowPointAdapter(IServiceScopeFactory scopes) : IFlowPointAdapter
+internal sealed class ServerFlowPointAdapter(
+    IServiceScopeFactory scopes,
+    IVirtualPointRuntimeStore virtualPoints) : IFlowPointAdapter
 {
     private readonly Lock _gate = new();
     private readonly Dictionary<string, IReadOnlyList<FlowVmCommand>> _latestCommands = new(StringComparer.Ordinal);
@@ -17,6 +19,13 @@ internal sealed class ServerFlowPointAdapter(IServiceScopeFactory scopes) : IFlo
         var result = new FlowVmInput[pointIds.Count];
         for (var index = 0; index < pointIds.Count; index++)
         {
+            if (virtualPoints.TrySnapshot("server", pointIds[index], out var snapshot))
+            {
+                result[index] = new FlowVmInput(
+                    pointIds[index],
+                    snapshot.Value ?? FlowVmValue.FromBoolean(false, DataQuality.Unavailable));
+                continue;
+            }
             var envelope = await reader.ReadAsync(pointIds[index], cancellationToken);
             result[index] = new FlowVmInput(pointIds[index], ParseValue(envelope.Value?.ToJsonString(), envelope.Quality));
         }
@@ -24,19 +33,18 @@ internal sealed class ServerFlowPointAdapter(IServiceScopeFactory scopes) : IFlo
         return result;
     }
 
-    public Task PublishAsync(
+    public async Task PublishAsync(
         string flowId,
         IReadOnlyList<FlowVmCommand> commands,
         CancellationToken cancellationToken)
     {
         commands = [.. commands.Where(command => !command.IsInterface)];
         cancellationToken.ThrowIfCancellationRequested();
+        await virtualPoints.CommitAsync("server", flowId, commands, cancellationToken);
         lock (_gate)
         {
             _latestCommands[flowId] = [.. commands];
         }
-
-        return Task.CompletedTask;
     }
 
     private static FlowVmValue ParseValue(string? json, DataQuality quality)

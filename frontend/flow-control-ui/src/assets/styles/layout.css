@@ -11,6 +11,17 @@
   background-color: var(--color-bg);
 }
 
+.primary-aside:empty,
+.secondary-aside:empty,
+.footer:empty {
+  display: none;
+}
+
+.page-layout-content:has(.designer-page) {
+  min-height: 0;
+  overflow: hidden;
+}
+
 /* Desktop breakpoint (64rem): reduces wide-screen layout constraints for smaller desktops. */
 @media (max-width: 64rem) {
   :root {

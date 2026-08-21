@@ -9,8 +9,17 @@ namespace Server.Services.Implementation;
 internal sealed class FlowRuntimeService(
     TimeProvider timeProvider,
     IFlowVirtualMachineFactory machines,
-    IFlowPointAdapter points) : IFlowRuntimeService, IDisposable
+    IFlowPointAdapter points,
+    IVirtualPointRuntimeStore virtualPoints) : IFlowRuntimeService, IDisposable
 {
+    public FlowRuntimeService(
+        TimeProvider timeProvider,
+        IFlowVirtualMachineFactory machines,
+        IFlowPointAdapter points)
+        : this(timeProvider, machines, points, new VirtualPointRuntimeStore(timeProvider))
+    {
+    }
+
     private readonly ConcurrentDictionary<string, RuntimeInstance> _instances = [];
     private readonly ConcurrentDictionary<string, RuntimeSnapshot> _snapshots = [];
     private readonly CancellationTokenSource _shutdown = new();
@@ -48,6 +57,13 @@ internal sealed class FlowRuntimeService(
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
+            var writerKeys = flow.Nodes
+                .Where(node => node.Kind is FlowNodeKind.AnalogOutput or FlowNodeKind.DigitalOutput)
+                .Select(node => node.Configuration.TryGetValue("pointId", out var value) ? value.GetString() : null)
+                .Where(key => key is not null && flow.VirtualPointDeclarations.Any(item => item.Key == key))
+                .Select(key => key!)
+                .ToHashSet(StringComparer.Ordinal);
+            await virtualPoints.ActivateFlowAsync("server", flow.Id, flow.VirtualPointDeclarations, writerKeys, cancellationToken);
             var machine = machines.Create(compilation.Artifact);
             var replacement = new RuntimeInstance(
                 flow,
@@ -101,6 +117,8 @@ internal sealed class FlowRuntimeService(
                 }
             }
 
+            virtualPoints.ReleaseFlow("server", flow.Id);
+
             return _snapshots[flow.Id] = Snapshot(flow, "stopped");
         }
         finally
@@ -134,6 +152,7 @@ internal sealed class FlowRuntimeService(
             instance.DrainScans(TimeSpan.FromSeconds(5));
             instance.Dispose();
         }
+        virtualPoints.ReleaseFlow("server", flowId);
         _snapshots.TryRemove(flowId, out _);
     }
 
@@ -164,6 +183,7 @@ internal sealed class FlowRuntimeService(
         {
             instance.DrainScans(TimeSpan.FromSeconds(5));
             instance.Dispose();
+            virtualPoints.ReleaseFlow("server", instance.Flow.Id);
         }
         _shutdown.Dispose();
         _deploymentGate.Dispose();

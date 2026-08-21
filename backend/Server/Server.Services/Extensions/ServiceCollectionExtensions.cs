@@ -43,6 +43,7 @@ public static class ServiceCollectionExtensions
         services.AddFlowControlData(configuration);
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<IFlowVirtualMachineFactory, ManagedFlowVirtualMachineFactory>();
+        services.AddSingleton<IVirtualPointRuntimeStore, VirtualPointRuntimeStore>();
         services.AddSingleton<IFlowPointAdapter, ServerFlowPointAdapter>();
         services.AddSingleton<FlowRuntimeService>();
         services.AddSingleton<IFlowRuntimeService>(provider => provider.GetRequiredService<FlowRuntimeService>());

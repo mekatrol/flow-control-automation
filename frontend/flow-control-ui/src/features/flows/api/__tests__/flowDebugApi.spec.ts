@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { parseDebugSnapshot } from '@/features/flows/api/flowDebugApi';
 
+// The fixture deliberately preserves its inferred nested shape for mutation tests.
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 const snapshot = () => ({
   debugSessionId: '42',
   flowId: 'flow-a',

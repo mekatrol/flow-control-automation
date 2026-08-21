@@ -974,14 +974,15 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', handleBeforeUnl
 .designer-page {
   display: flex;
   width: calc(100% - 40px);
-  min-height: calc(100dvh - 72px);
+  height: calc(100dvh - 72px);
+  min-height: 0;
   margin: var(--space-0) auto;
   padding: var(--space-17) var(--space-0) var(--space-12);
   flex-direction: column;
 }
 
 .designer-page :deep(.canvas-frame) {
-  min-height: 100dvh;
+  min-height: 0;
   flex: 1;
 }
 
