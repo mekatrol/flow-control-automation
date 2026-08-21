@@ -7,6 +7,7 @@ public sealed record ExecutionContextDeployment
     public required int ExecutionContextRevision { get; init; }
     public required string ExecutionInstanceId { get; init; }
     public IReadOnlyList<PhysicalPointBinding> PhysicalPointBindings { get; init; } = [];
+    public IReadOnlyList<CompiledContextProgram> CompiledPrograms { get; init; } = [];
     public ExecutionContextDeploymentStatus Status { get; init; } = ExecutionContextDeploymentStatus.Draft;
     public int Generation { get; init; } = 1;
     public int Revision { get; init; } = 1;

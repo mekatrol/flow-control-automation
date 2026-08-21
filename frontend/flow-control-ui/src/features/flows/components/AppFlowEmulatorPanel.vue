@@ -130,11 +130,9 @@ import type {
   EmulatorSnapshot,
   EmulatorValue
 } from '@/features/flows/api/flowEmulatorApi';
-import type { FlowInterface, FlowInterfaceInput } from '@/features/flows/types';
 const props = defineProps<{
   automation: string;
   snapshot?: EmulatorSnapshot;
-  flowInterface: FlowInterface;
 }>();
 const emit = defineEmits<{
   (event: typeof EVENTS.APPLY_INPUTS_STEP, inputs: EmulatorInputChange[]): void;
@@ -159,12 +157,9 @@ watch(
   (inputs) => inputs?.forEach((input) => (draft[input.pointId] = { ...input.typedValue })),
   { immediate: true, deep: true }
 );
-const inputEntry = (id: string): FlowInterfaceInput | undefined =>
-  props.flowInterface.inputs.find((entry) => entry.id === id);
-const inputLabel = (id: string): string => inputEntry(id)?.name ?? id;
-const inputUnits = (id: string): string => inputEntry(id)?.units ?? '';
-const outputLabel = (id: string): string =>
-  props.flowInterface.outputs.find((entry) => entry.id === id)?.name ?? id;
+const inputLabel = (id: string): string => id;
+const inputUnits = (_id: string): string => '';
+const outputLabel = (id: string): string => id;
 const displayValue = (value: EmulatorValue): string =>
   value.type === 'number' ? String(value.number) : value.boolean ? 'On' : 'Off';
 const applyAndStep = (): void => {

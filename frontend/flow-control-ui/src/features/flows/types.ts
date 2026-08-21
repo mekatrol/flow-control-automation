@@ -17,8 +17,6 @@ export enum FlowNodeFunctionType {
   DigitalConstant = 'digitalConstant',
   DigitalInput = 'digitalInput',
   DigitalOutput = 'digitalOutput',
-  FlowInput = 'flowInput',
-  FlowOutput = 'flowOutput',
   If = 'if',
   Line = 'line',
   LevelShifter = 'levelShifter',
@@ -56,7 +54,6 @@ export type ConnectorDataType = 'any' | 'boolean' | 'event' | 'number' | 'string
 export type ConnectorSide = 'left' | 'right' | 'top' | 'bottom';
 
 export type FlowConfigurationValue = boolean | number | string | null;
-export type FlowInterfaceDataType = 'boolean' | 'number' | 'string' | 'event';
 export type VirtualPointValueType = 'analog' | 'digital';
 export type VirtualPointPersistence = 'volatile' | 'retained';
 
@@ -68,44 +65,6 @@ export interface VirtualPointDeclaration {
   commandable: boolean;
   persistence: VirtualPointPersistence;
   relinquishDefault?: boolean | number | null;
-}
-
-/** Defines one externally supplied value in a reusable flow interface. */
-export interface FlowInterfaceInput {
-  /** Stable non-empty identifier unique among the interface inputs. */
-  id: string;
-  /** User-visible non-empty label; it need not be globally unique. */
-  name: string;
-  /** Wire data type accepted at the flow boundary. */
-  dataType: FlowInterfaceDataType;
-  /** Engineering-unit symbol for numeric values, or absent for unitless/non-numeric values. */
-  units?: string;
-  /** Value used when no caller value is supplied; it must match `dataType`, while `null` means no default. */
-  defaultValue?: boolean | number | string | null;
-  /** Whether execution must reject a call that omits this input. */
-  required: boolean;
-}
-
-/** Defines one value published by a reusable flow interface. */
-export interface FlowInterfaceOutput {
-  /** Stable non-empty identifier unique among the interface outputs. */
-  id: string;
-  /** User-visible non-empty label; it need not be globally unique. */
-  name: string;
-  /** Wire data type produced at the flow boundary. */
-  dataType: FlowInterfaceDataType;
-  /** Engineering-unit symbol for numeric values, or absent for unitless/non-numeric values. */
-  units?: string;
-}
-
-/** Defines the versioned ordered input and output boundary of one flow. */
-export interface FlowInterface {
-  /** Current interface contract version; only version `1` is supported before release. */
-  schemaVersion: 1;
-  /** Inputs in stable author-defined display order; IDs must be unique and the array may be empty. */
-  inputs: FlowInterfaceInput[];
-  /** Outputs in stable author-defined display order; IDs must be unique and the array may be empty. */
-  outputs: FlowInterfaceOutput[];
 }
 
 // These interfaces describe persisted flow data only. Selection, pointer
@@ -183,8 +142,6 @@ export interface FlowDefinition {
   nodes: FlowNode[];
   /** Directed edges in stable persisted order; connection IDs must be unique. */
   connections: FlowConnection[];
-  /** Versioned callable boundary for composing this flow into other flows. */
-  interface: FlowInterface;
   revision?: number;
   virtualPointDeclarations?: VirtualPointDeclaration[];
 }

@@ -330,6 +330,17 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             throw Failure(FlowCompilationDiagnosticCode.UnsupportedArtifactVersion, "/artifactVersion", FlowILV1Format.Version);
         }
 
+        var obsoleteNodeIndex = request.Source.Nodes
+            .Select((node, index) => (node, index))
+            .FirstOrDefault(item => item.node.Kind is FlowNodeKind.FlowInput or FlowNodeKind.FlowOutput);
+        if (obsoleteNodeIndex.node is not null)
+        {
+            throw Failure(
+                FlowCompilationDiagnosticCode.UnsupportedNode,
+                $"/nodes/{obsoleteNodeIndex.index}/kind",
+                obsoleteNodeIndex.node.Kind);
+        }
+
         Validate(request);
 
         return CompileFlowIlV1(request);

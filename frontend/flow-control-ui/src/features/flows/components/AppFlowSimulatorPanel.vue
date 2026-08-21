@@ -111,7 +111,6 @@
       v-if="session?.io"
       v-bind="automation('io')"
       :snapshot="session.io"
-      :flow-interface="flowInterface"
       @[EVENTS.APPLY_INPUTS_STEP]="forwardInputs"
       @[EVENTS.ADVANCE]="forwardAdvance"
       @[EVENTS.FAULT]="forwardFault"
@@ -144,7 +143,6 @@ import { useAutomation } from '@/composables/useAutomation';
 import { EVENTS } from '@/constants/events';
 import type { SimulatorLifecycle, SimulatorSession } from '@/features/flows/api/flowSimulatorApi';
 import type { EmulatorInputChange } from '@/features/flows/api/flowEmulatorApi';
-import type { FlowInterface } from '@/features/flows/types';
 
 const props = withDefaults(
   defineProps<{
@@ -152,9 +150,8 @@ const props = withDefaults(
     lifecycle: SimulatorLifecycle;
     session?: SimulatorSession;
     error?: string;
-    flowInterface?: FlowInterface;
   }>(),
-  { session: undefined, error: undefined, flowInterface: undefined }
+  { session: undefined, error: undefined }
 );
 const emit = defineEmits<{
   (
@@ -175,9 +172,6 @@ const emit = defineEmits<{
   (event: typeof EVENTS.RESET, powerCycle: boolean): void;
 }>();
 const automation = useAutomation(props.automation);
-const flowInterface = computed<FlowInterface>(
-  () => props.flowInterface ?? { schemaVersion: 1, inputs: [], outputs: [] }
-);
 const forwardInputs = (inputs: EmulatorInputChange[]): void =>
   emit(EVENTS.APPLY_INPUTS_STEP, inputs);
 const forwardAdvance = (milliseconds: number): void => emit(EVENTS.ADVANCE, milliseconds);

@@ -479,8 +479,9 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
   // request settles. FlowListView deliberately retains this DOM during refresh.
   const draftStatus = page.getByRole('checkbox', { name: 'Draft' });
   await expect(draftStatus).toBeVisible();
-  await draftStatus.focus();
-  await page.keyboard.press('Space');
+  // Send the keyboard action through the locator so a concurrent Firefox
+  // repaint cannot move document focus between focus() and page.keyboard.
+  await draftStatus.press('Space');
   await expect(draftStatus).not.toBeChecked();
   const deployedStatusDropdown = page.getByRole('button', {
     name: 'Deployment status: Deployed'

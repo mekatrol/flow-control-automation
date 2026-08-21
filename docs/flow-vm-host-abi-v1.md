@@ -37,12 +37,10 @@ Here `bytes` is pointer plus `size_t`; every output adds capacity and written
 length. `target` contains only version, capability, and capacity values plus a
 logical point-contract table. `input_frame` is an immutable array of typed
 values/quality captured at one monotonic instant. Each input sample and command
-also carries a binding-kind discriminator: zero for automation points and one
-for persisted flow-interface terminals. The discriminator occupies previously
-reserved structure padding, so ABI 1 sizes and offsets remain unchanged.
-Commands and snapshots are serialized into host-owned buffers. Hosts expose
-interface commands as simulator or reusable-flow outputs and must not forward
-them to a physical point adapter.
+also carries a binding-kind discriminator. New artifacts use automation-point
+bindings. The discriminator occupies structure padding, so ABI 1 sizes and
+offsets remain unchanged.
+Commands and snapshots are serialized into host-owned buffers.
 
 ## Lifecycle
 

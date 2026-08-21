@@ -1,6 +1,5 @@
 using Server.Common;
 using Server.Common.Contracts;
-using Server.Compiler;
 using Server.Compiler.Contracts;
 using Server.Compiler.Services;
 using System.Buffers.Binary;
@@ -47,25 +46,12 @@ internal sealed class FlowDeploymentService(
             cancellationToken);
     }
 
-    private static ExecutableFlowSource ToExecutableSource(Flow flow)
+    internal static ExecutableFlowSource ToExecutableSource(
+        Flow flow,
+        string? controllerTemplateId = null,
+        int? controllerTemplateRevision = null,
+        IReadOnlyDictionary<string, string>? physicalPointBindings = null)
     {
-        var unsupported = flow.Nodes.FirstOrDefault(node => node.Kind is not (
-            FlowNodeKind.DigitalInput or
-            FlowNodeKind.DigitalConstant or
-            FlowNodeKind.Not or
-            FlowNodeKind.And or
-            FlowNodeKind.Or or
-            FlowNodeKind.Memory or
-            FlowNodeKind.DigitalOutput));
-
-        if (unsupported is not null)
-        {
-            throw Failure(
-                FlowCompilationDiagnosticCode.UnsupportedNode,
-                $"/nodes/{Escape(unsupported.Id)}",
-                unsupported.Kind);
-        }
-
         var graph = JsonSerializer.SerializeToUtf8Bytes(
             new
             {
@@ -88,9 +74,9 @@ internal sealed class FlowDeploymentService(
             Id = flow.Id,
             Revision = revision,
 
-            ControllerTemplateId = BuiltInControllerTemplate.Id,
+            ControllerTemplateId = controllerTemplateId ?? BuiltInControllerTemplate.Id,
             ControllerTemplateRevision =
-                checked((uint)BuiltInControllerTemplate.Default.Revision),
+                checked((uint)(controllerTemplateRevision ?? BuiltInControllerTemplate.Default.Revision)),
 
             Execution = new ExecutableFlowExecution
             {
@@ -110,7 +96,7 @@ internal sealed class FlowDeploymentService(
                 {
                     Id = node.Id,
                     Kind = node.Kind,
-                    Configuration = node.Configuration,
+                    Configuration = BindConfiguration(node, physicalPointBindings),
                     Label = node.Label,
                     X = node.X,
                     Y = node.Y,
@@ -136,19 +122,23 @@ internal sealed class FlowDeploymentService(
         };
     }
 
-    private static FlowCompilationException Failure(
-        FlowCompilationDiagnosticCode code,
-        string path,
-        params object?[] arguments) =>
-        new([
-            FlowCompilationDiagnostics.Create(
-                code,
-                path,
-                arguments)
-        ]);
+    private static IReadOnlyDictionary<string, JsonElement> BindConfiguration(
+        FlowNode node,
+        IReadOnlyDictionary<string, string>? bindings)
+    {
+        if (bindings is null
+            || !node.Configuration.TryGetValue("pointId", out var pointId)
+            || pointId.ValueKind != JsonValueKind.String
+            || pointId.GetString() is not { } role
+            || !bindings.TryGetValue(role, out var resolvedPointId))
+        {
+            return node.Configuration;
+        }
 
-    private static string Escape(string value) =>
-        value
-            .Replace("~", "~0", StringComparison.Ordinal)
-            .Replace("/", "~1", StringComparison.Ordinal);
+        var result = new Dictionary<string, JsonElement>(node.Configuration, StringComparer.Ordinal)
+        {
+            ["pointId"] = JsonSerializer.SerializeToElement(resolvedPointId)
+        };
+        return result;
+    }
 }

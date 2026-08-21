@@ -317,48 +317,6 @@ describe('flows store', () => {
     expect(store.addNode('missing', node)).toBe(false);
   });
 
-  it('adds a valid interface entry with a new flow input node', () => {
-    const store = useFlowsStore();
-    const flow = store.findFlow('climate-control')!;
-    flow.interface.inputs = [];
-    const node = createDefaultNode('flowInput', { x: 48, y: 72 }, 4, 'new-input');
-
-    expect(store.addNode(flow.id, node)).toBe(true);
-    expect(flow.interface.inputs).toEqual([
-      {
-        id: 'input-1',
-        name: 'New input',
-        dataType: 'boolean',
-        defaultValue: false,
-        required: false
-      }
-    ]);
-    expect(flow.nodes.at(-1)).toMatchObject({
-      id: 'new-input',
-      label: 'New input',
-      configuration: { interfaceId: 'input-1' },
-      connectors: [{ id: 'value', dataType: 'boolean', direction: 'output' }]
-    });
-    expect(() => store.flowPayload(flow.id)).not.toThrow();
-  });
-
-  it('creates a distinct interface entry for each new flow input node', () => {
-    const store = useFlowsStore();
-    const flow = store.findFlow('climate-control')!;
-    flow.interface.inputs = [
-      { id: 'temperature', name: 'Temperature', dataType: 'number', units: '°C', required: true }
-    ];
-    const node = createDefaultNode('flowInput', { x: 48, y: 72 }, 4, 'new-input');
-
-    expect(store.addNode(flow.id, node)).toBe(true);
-    expect(flow.interface.inputs).toHaveLength(2);
-    expect(flow.nodes.at(-1)).toMatchObject({
-      label: 'New input',
-      configuration: { interfaceId: 'input-1' },
-      connectors: [{ label: 'New input', dataType: 'boolean' }]
-    });
-  });
-
   /**
    * Purpose: Protects the behavioral contract that updates validated node labels and known configuration fields.
    * Description: Exercises updates validated node labels and known configuration fields from its arranged starting state and

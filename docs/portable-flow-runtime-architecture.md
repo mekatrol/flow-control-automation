@@ -390,14 +390,11 @@ fault, and server shutdown discard any uncommitted execution frame and dispose
 the VM. Simulator outputs are always shadow outputs: no simulator endpoint can
 activate controller live output or issue a physical point command.
 
-### Flow interfaces
+### Point boundaries
 
-Each flow declares a versioned interface containing bounded typed inputs and
-outputs with stable IDs. `flowInput` and `flowOutput` nodes reference those IDs
-and form portable boundaries for simulation, tutorials, tests, and reusable
-flows. They never resolve to physical points. Point nodes remain the explicit
-boundary for virtual, external, or hardware I/O. Interface definition data is
-persisted with the flow; live values and quality belong only to a session.
+Flow Input and Flow Output are not valid node kinds. Analog/Digital Input and
+Output nodes form the portable boundary for virtual, external, and hardware
+I/O, including simulation and debugging.
 
 ### Tutorials
 

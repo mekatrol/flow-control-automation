@@ -4,7 +4,6 @@ using Server.Compiler.Contracts;
 using Server.Compiler.Extensions;
 using Server.Compiler.Services;
 using Server.Services.Contracts;
-using System.Text;
 using System.Text.Json;
 using Tests.Unit.Helpers;
 
@@ -35,7 +34,7 @@ public sealed class FlowCompilerTests
     [
         FlowNodeKind.Add, FlowNodeKind.AnalogInput, FlowNodeKind.AnalogOutput, FlowNodeKind.And, FlowNodeKind.Average, FlowNodeKind.Calculator, FlowNodeKind.Calendar,
         FlowNodeKind.Clamp, FlowNodeKind.Comparator, FlowNodeKind.Delay, FlowNodeKind.DigitalConstant, FlowNodeKind.DigitalInput, FlowNodeKind.DigitalOutput,
-        FlowNodeKind.FlowInput, FlowNodeKind.FlowOutput, FlowNodeKind.If, FlowNodeKind.Line, FlowNodeKind.LevelShifter, FlowNodeKind.Max, FlowNodeKind.Memory, FlowNodeKind.Min,
+        FlowNodeKind.If, FlowNodeKind.Line, FlowNodeKind.LevelShifter, FlowNodeKind.Max, FlowNodeKind.Memory, FlowNodeKind.Min,
         FlowNodeKind.Nand, FlowNodeKind.Nor, FlowNodeKind.Not, FlowNodeKind.NumericConstant, FlowNodeKind.OnDelay, FlowNodeKind.Or, FlowNodeKind.Override, FlowNodeKind.Pulse,
         FlowNodeKind.QualityGood, FlowNodeKind.RisingEdge, FlowNodeKind.Schedule, FlowNodeKind.Selector, FlowNodeKind.Sequence, FlowNodeKind.Split ,FlowNodeKind.Timer,
         FlowNodeKind.Xnor, FlowNodeKind.Xor
@@ -70,7 +69,7 @@ public sealed class FlowCompilerTests
             _ => []
         };
 
-        var booleanInputs = kind switch
+        string[] booleanInputs = kind switch
         {
             FlowNodeKind.Not or FlowNodeKind.OnDelay or FlowNodeKind.RisingEdge => ["in"],
             FlowNodeKind.And or FlowNodeKind.Or or FlowNodeKind.Nand or FlowNodeKind.Nor or FlowNodeKind.Xnor or FlowNodeKind.Xor => ["a", "b"],
@@ -78,7 +77,6 @@ public sealed class FlowCompilerTests
             FlowNodeKind.Selector => ["condition"],
             FlowNodeKind.Override or FlowNodeKind.Delay or FlowNodeKind.Timer or FlowNodeKind.Pulse => ["input"],
             FlowNodeKind.DigitalOutput => ["in"],
-            FlowNodeKind.FlowOutput => new[] { "value" },
             _ => []
         };
 
@@ -99,8 +97,6 @@ public sealed class FlowCompilerTests
             FlowNodeKind.Clamp => Config(("minimum", 0D), ("maximum", 100D)),
             FlowNodeKind.Schedule or FlowNodeKind.Calendar =>
                 Config("enabled", true),
-            FlowNodeKind.FlowInput or FlowNodeKind.FlowOutput =>
-                Config("interfaceId", kind == FlowNodeKind.FlowInput ? "test-input" : "test-output"),
             _ => []
         };
 
@@ -326,8 +322,9 @@ public sealed class FlowCompilerTests
         Assert.That(second.Artifact.ToArray(), Is.Not.EqualTo(first.Artifact.ToArray()));
     }
 
-    [Test]
-    public void InterfaceTerminalsCompileDeterministicallyWithStableSourceIdentity()
+    [TestCase(FlowNodeKind.FlowInput)]
+    [TestCase(FlowNodeKind.FlowOutput)]
+    public void RejectsObsoleteFlowInterfaceNodes(FlowNodeKind kind)
     {
         var source = ReadSource("valid-two-button-and") with
         {
@@ -336,26 +333,15 @@ public sealed class FlowCompilerTests
                 Inputs = [new FlowInterfaceInput { Id = "temperature", Name = "Temperature", DataType = DataType.Number, Units = "°C", Required = true }],
                 Outputs = [new FlowInterfaceOutput { Id = "result", Name = "Result", DataType = DataType.Number, Units = "°C" }]
             },
-            Nodes =
-            [
-                new ExecutableFlowNode { Id = "input", Kind = FlowNodeKind.FlowInput, Configuration = new Dictionary<string, JsonElement> { ["interfaceId"] = JsonSerializer.SerializeToElement("temperature") } },
-                new ExecutableFlowNode { Id = "output", Kind = FlowNodeKind.FlowOutput, Configuration = new Dictionary<string, JsonElement> { ["interfaceId"] = JsonSerializer.SerializeToElement("result") } }
-            ],
-            Connections = [new ExecutableFlowConnection(new ExecutableFlowEndpoint("input", "value"), new ExecutableFlowEndpoint("output", "value"))]
+            Nodes = [new ExecutableFlowNode { Id = "obsolete", Kind = kind, Configuration = new Dictionary<string, JsonElement> { ["interfaceId"] = JsonSerializer.SerializeToElement("temperature") } }],
+            Connections = []
         };
         var request = BuildCompilationRequest(source);
 
-        var first = _compiler.Compile(request);
-        var second = _compiler.Compile(request);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(first.Artifact.ToArray(), Is.EqualTo(second.Artifact.ToArray()));
-            Assert.That(first.Schedule, Is.EqualTo(new[] { "input", "output" }));
-            Assert.That(first.NodeIndices.Keys, Is.EquivalentTo(["input", "output"]));
-            Assert.That(Encoding.UTF8.GetString(first.Artifact.Span), Does.Contain("temperature"));
-            Assert.That(Encoding.UTF8.GetString(first.Artifact.Span), Does.Contain("result"));
-        });
+        AssertDiagnostic(
+            () => _compiler.Compile(request),
+            FlowCompilationDiagnosticCode.UnsupportedNode,
+            "/nodes/0/kind");
     }
 
     [Test]

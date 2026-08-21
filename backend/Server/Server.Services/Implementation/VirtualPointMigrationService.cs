@@ -25,12 +25,6 @@ internal sealed class VirtualPointMigrationService(
             var before = declarations.Count;
             foreach (var node in flow.Nodes)
             {
-                if (node.Kind is FlowNodeKind.FlowInput or FlowNodeKind.FlowOutput)
-                {
-                    diagnostics.Add(new(flow.Id, "flow_interface_requires_review", "warning", "Flow Input/Output is not converted automatically.", node.Id));
-                    continue;
-                }
-
                 if (node.Kind is not (FlowNodeKind.AnalogInput or FlowNodeKind.AnalogOutput or FlowNodeKind.DigitalInput or FlowNodeKind.DigitalOutput)
                     || !node.Configuration.TryGetValue("pointId", out var pointIdValue)
                     || pointIdValue.ValueKind != JsonValueKind.String)

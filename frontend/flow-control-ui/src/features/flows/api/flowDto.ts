@@ -4,9 +4,7 @@ import type {
   ConnectorSide,
   FlowConfigurationValue,
   FlowNodeKind,
-  FlowStatus,
-  FlowInterface,
-  FlowInterfaceDataType
+  FlowStatus
 } from '@/features/flows/types';
 import type { VirtualPointDeclaration } from '@/features/flows/types';
 import { flowNodeKinds } from '@/features/flows/nodeKinds';
@@ -50,7 +48,6 @@ export interface FlowDto {
   updatedAt: string;
   nodes: FlowNodeDto[];
   connections: FlowConnectionDto[];
-  interface: FlowInterface;
   revision?: number;
   virtualPointDeclarations?: VirtualPointDeclaration[];
 }
@@ -69,7 +66,6 @@ const statuses = new Set<FlowStatus>(['draft', 'deployed']);
 const directions = new Set<ConnectorDirection>(['input', 'output']);
 const dataTypes = new Set<ConnectorDataType>(['any', 'boolean', 'event', 'number', 'string']);
 const sides = new Set<ConnectorSide>(['left', 'right', 'top', 'bottom']);
-const interfaceTypes = new Set<FlowInterfaceDataType>(['boolean', 'number', 'string', 'event']);
 const virtualPointTypes = new Set<'analog' | 'digital'>(['analog', 'digital']);
 const virtualPointPersistence = new Set<'volatile' | 'retained'>(['volatile', 'retained']);
 
@@ -117,11 +113,6 @@ const assertUnique = (ids: string[], path: string): void => {
     if (seen.has(id)) fail(path, `duplicate id “${id}”`);
     seen.add(id);
   }
-};
-
-const assertUniqueNames = (names: string[], path: string): void => {
-  const normalized = names.map((name) => name.toLocaleLowerCase());
-  assertUnique(normalized, path);
 };
 
 const parseConfiguration = (
@@ -194,72 +185,6 @@ const parseConnection = (value: unknown, path: string): FlowConnectionDto => {
   };
 };
 
-const parseInterface = (value: unknown): FlowInterface => {
-  const source = asRecord(value, 'flow.interface');
-  if (source.schemaVersion !== 1)
-    fail('flow.interface.schemaVersion', 'only version 1 is supported');
-  const inputs = asArray(source.inputs, 'flow.interface.inputs').map((value, index) => {
-    const item = asRecord(value, `flow.interface.inputs[${index}]`);
-    const dataType = asEnum(
-      item.dataType,
-      interfaceTypes,
-      `flow.interface.inputs[${index}].dataType`
-    );
-    const defaultValue = item.defaultValue;
-    if (defaultValue !== undefined) {
-      const valid =
-        (dataType === 'boolean' && typeof defaultValue === 'boolean') ||
-        (dataType === 'number' &&
-          typeof defaultValue === 'number' &&
-          Number.isFinite(defaultValue)) ||
-        (dataType === 'string' && typeof defaultValue === 'string') ||
-        (dataType === 'event' && defaultValue === null);
-      if (!valid)
-        fail(`flow.interface.inputs[${index}].defaultValue`, 'value does not match dataType');
-    }
-    if (item.required !== true && item.required !== false)
-      fail(`flow.interface.inputs[${index}].required`, 'expected a boolean');
-    return {
-      id: asString(item.id, `flow.interface.inputs[${index}].id`),
-      name: asString(item.name, `flow.interface.inputs[${index}].name`),
-      dataType,
-      ...(typeof item.units === 'string' && item.units ? { units: item.units } : {}),
-      ...(defaultValue !== undefined
-        ? { defaultValue: defaultValue as boolean | number | string | null }
-        : {}),
-      required: item.required as boolean
-    };
-  });
-  const outputs = asArray(source.outputs, 'flow.interface.outputs').map((value, index) => {
-    const item = asRecord(value, `flow.interface.outputs[${index}]`);
-    return {
-      id: asString(item.id, `flow.interface.outputs[${index}].id`),
-      name: asString(item.name, `flow.interface.outputs[${index}].name`),
-      dataType: asEnum(item.dataType, interfaceTypes, `flow.interface.outputs[${index}].dataType`),
-      ...(typeof item.units === 'string' && item.units ? { units: item.units } : {})
-    };
-  });
-  if (inputs.length > 64 || outputs.length > 64)
-    fail('flow.interface', 'at most 64 inputs and outputs are supported');
-  assertUnique(
-    inputs.map((item) => item.id),
-    'flow.interface.inputs'
-  );
-  assertUnique(
-    outputs.map((item) => item.id),
-    'flow.interface.outputs'
-  );
-  assertUniqueNames(
-    [...inputs, ...outputs].map((item) => item.name),
-    'flow.interface'
-  );
-  [...inputs, ...outputs].forEach((item, index) => {
-    if (item.units && item.dataType !== 'number')
-      fail(`flow.interface.entries[${index}].units`, 'units require the number dataType');
-  });
-  return { schemaVersion: 1, inputs, outputs };
-};
-
 const parseVirtualPointDeclaration = (value: unknown, path: string): VirtualPointDeclaration => {
   const item = asRecord(value, path);
   const valueType = asEnum(item.valueType, virtualPointTypes, `${path}.valueType`);
@@ -292,31 +217,6 @@ const parseVirtualPointDeclaration = (value: unknown, path: string): VirtualPoin
       ? { relinquishDefault: defaultValue as boolean | number | null }
       : {})
   };
-};
-
-const validateInterfaceNodes = (nodes: FlowNodeDto[], flowInterface: FlowInterface): void => {
-  nodes.forEach((node, index) => {
-    if (node.kind !== 'flowInput' && node.kind !== 'flowOutput') return;
-    const path = `flow.nodes[${index}]`;
-    const interfaceId = asString(
-      node.configuration.interfaceId,
-      `${path}.configuration.interfaceId`
-    );
-    const entries = node.kind === 'flowInput' ? flowInterface.inputs : flowInterface.outputs;
-    const entry = entries.find((candidate) => candidate.id === interfaceId);
-    if (!entry)
-      fail(`${path}.configuration.interfaceId`, `unknown interface entry “${interfaceId}”`);
-    if (node.connectors.length !== 1) fail(`${path}.connectors`, 'expected one derived connector');
-    const connector = node.connectors[0];
-    if (!connector) return;
-    const direction = node.kind === 'flowInput' ? 'output' : 'input';
-    if (
-      connector.id !== 'value' ||
-      connector.direction !== direction ||
-      connector.dataType !== entry?.dataType
-    )
-      fail(`${path}.connectors[0]`, 'does not match the referenced interface entry');
-  });
 };
 
 const findConnector = (
@@ -367,7 +267,6 @@ export const parseFlowDto = (value: unknown): FlowDto => {
   const updatedAt = asString(source.updatedAt, 'flow.updatedAt');
   if (Number.isNaN(Date.parse(updatedAt))) fail('flow.updatedAt', 'expected an ISO date-time');
 
-  const flowInterface = parseInterface(source.interface);
   const revision =
     source.revision === undefined ? undefined : asFiniteNumber(source.revision, 'flow.revision');
   if (revision !== undefined && (!Number.isInteger(revision) || revision < 1))
@@ -384,7 +283,6 @@ export const parseFlowDto = (value: unknown): FlowDto => {
       virtualPointDeclarations.map((item) => item.key),
       'flow.virtualPointDeclarations'
     );
-  validateInterfaceNodes(nodes, flowInterface);
   return {
     id: asString(source.id, 'flow.id'),
     name: asString(source.name, 'flow.name'),
@@ -402,7 +300,6 @@ export const parseFlowDto = (value: unknown): FlowDto => {
     updatedAt,
     nodes,
     connections,
-    interface: flowInterface,
     ...(revision !== undefined ? { revision } : {}),
     ...(virtualPointDeclarations !== undefined ? { virtualPointDeclarations } : {})
   };

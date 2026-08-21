@@ -49,27 +49,15 @@ The cross-cutting tests are `FlowCompilerTests`, `FlowDecompilerTests`,
 `FlowDebugServiceTests`, `LocalFlowDebuggerTests`,
 `FlowEmulatorServiceTests`, and `controllers/tests/test_flow_vm.c`.
 
-Canonical portable profiles cover the former 16 authoring-only kinds. All 38
+Canonical portable profiles cover the former authoring-only kinds. All 36
 registered kinds are advertised as executable.
 
-## 2. Flow interface decision
+## 2. Point boundary decision
 
-The current flow source schema has one required, versioned `interface` object
-with `inputs` and `outputs` arrays. Entries use stable IDs and the types
-`boolean`, `number`, `string`, or `event`. Names are user-facing and unique
-within their direction. Units and defaults are definition data; live values are
-session data and are never persisted in a flow.
-
-`flowInput` and `flowOutput` are canonical portable boundary nodes. Each stores
-only an `interfaceId`; its label, units, connector direction, and connector type
-are derived from the referenced entry. Interface terminals do not resolve to
-automation points and interface outputs never enter the physical point-command
-path. Point nodes remain the explicit integration boundary for virtual,
-external, and physical I/O.
-
-Deleting a referenced interface entry is rejected until the referencing nodes
-are removed or rebound. Invalid and missing references remain visible to the
-author and produce path- and node-addressed diagnostics.
+Flow Input and Flow Output are not valid node kinds. Analog/Digital Input and
+Output nodes are the portable integration boundary for virtual, external, and
+physical I/O. Simulation supplies and observes values through those point
+contracts rather than through callable flow terminals.
 
 ## 3. Simulation and live-output boundary
 

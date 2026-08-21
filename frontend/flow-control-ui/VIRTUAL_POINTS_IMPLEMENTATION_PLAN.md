@@ -30,7 +30,7 @@ Flow authors use the existing Analog Input, Digital Input, Analog Output, and Di
 12. Multiple flows may read a virtual point. Output-driver ownership must be deterministic; the initial implementation permits one active writer per point per execution instance.
 13. `volatile` values reset when their execution instance restarts. `retained` values survive restarts using instance-scoped persistence.
 14. Shared virtual-point access must be thread-safe. Individual flow scans may execute concurrently, but no program may observe a torn value or another program's uncommitted working state.
-15. Flow Input and Flow Output are not the mechanism for cross-flow communication. After virtual points are complete, review whether callable flow interfaces are still required. If not, deprecate and remove those node kinds and their interface schema in a separate migration.
+15. Flow Input and Flow Output are not valid node kinds. Analog/Digital Input and Output nodes backed by virtual points provide cross-flow communication.
 
 ## Existing implementation we can reuse
 
@@ -327,22 +327,13 @@ Suggested resolution response:
 }
 ```
 
-## Migration from the current model
+## Clean-slate transition
 
 1. Create the built-in `server` execution instance.
-2. Create an execution instance for each actual installed controller. Do not create instances merely for templates.
-3. Convert existing flow virtual-point references into portable flow declarations.
-4. Create logical execution-context definitions and associate immutable flow revisions with them.
-5. Create one context-deployment record for each intended execution instance and move physical point mappings into those records. Require operator input when ownership cannot be inferred safely.
-6. Revalidate existing `pointId` references against program declarations, merged context contracts, and deployment-instance mappings.
-7. Preserve existing bound point mappings and revisions during migration.
-8. Initially keep Flow Input/Output data readable for backward compatibility.
-9. Provide diagnostics and a migration report for flows that use Flow Input/Output.
-10. After virtual-point communication is proven, decide whether callable external flow interfaces remain a requirement:
-   - If yes, keep Flow Input/Output strictly for host/subflow invocation and rename/help-text them accordingly.
-   - If no, migrate applicable interface endpoints to virtual points and remove the interface feature in a versioned schema migration.
-
-Do not automatically convert a Flow Input/Output to a virtual point unless its logical context, intended execution instances, type, persistence, and writer ownership are unambiguous.
+2. Create an execution instance for each installed controller.
+3. Author new flows using point nodes and portable virtual-point declarations.
+4. Create logical execution contexts and deployments from the new definitions.
+5. Do not import, diagnose, or convert Flow Input/Output nodes. Existing databases and saved flows are intentionally discarded.
 
 ## Delivery phases
 
@@ -352,10 +343,10 @@ Implementation status last updated: 21 August 2026.
 | --- | --- | --- |
 | Phase 1 | Complete | Portable declarations, execution contexts and instances, deployment records, persistence, migration support, and the built-in server instance are implemented. |
 | Phase 2 | Complete | Instance-scoped synchronized state, atomic commits, defaults/uninitialized quality, durable retained restoration, server VM routing, inspection APIs, writer ownership/release, volatile reset, isolation, and concurrency coverage are implemented. |
-| Phase 3 | In progress | Active deployment now revalidates flow, context, instance and template revisions, target capabilities, physical bindings, merged contracts, and writer conflicts. Per-instance context compilation and context provenance in artifacts remain. |
+| Phase 3 | Complete | Active deployment revalidates revisions, capabilities, bindings, contracts, and writer ownership, then compiles every context program for the concrete instance and persists immutable context/instance/template/flow artifact provenance. |
 | Phase 4 | In progress | The point field is searchable and editable, uses flow virtual declarations, filters by data type/capability, and reports inline incompatibility and syntax errors. Context selection, service-backed/debounced existence validation, save/deploy blocking, and create-point workflow remain. |
 | Phase 5 | In progress | The controller VM now supports correctly typed numeric Memory state and typed retained-state import/export, and all host tests pass. Multi-program instance-global storage, protocol identity/versioning, and ownership negotiation remain. |
-| Phase 6 | Complete | Flow Input/Output is retained exclusively for explicit host-callable, simulator, debugger, and reusable-flow interfaces; virtual points remain the sole cross-flow communication mechanism. Existing UI help text reflects this boundary. |
+| Phase 6 | Complete | Flow Input/Output node kinds have been removed from authoring and are rejected by backend validation. Virtual points are the sole cross-flow communication mechanism. |
 
 Status labels describe implementation progress; a phase is complete only after its exit criteria and applicable tests pass.
 
@@ -387,7 +378,7 @@ Exit criteria: two server-VM programs on the same instance exchange analog and d
 
 ### Phase 3 — Compiler and deployment enforcement
 
-Status: **In progress**. Portable declarations reach executable flow sources, compilation synthesizes declared virtual-point definitions and validates target virtual-point capabilities, and active deployment revalidates immutable program/context/template revisions, enabled instances, exact physical bindings, merged contracts, and writer conflicts. Context-wide per-target compilation and context/deployment provenance in artifacts remain.
+Status: **Complete**. Portable declarations reach executable flow sources; active deployment revalidates immutable program/context/instance/template revisions, enabled instances, exact physical bindings, merged contracts, and writer conflicts. It resolves each program for the concrete target, compiles the complete context before persistence, and records the artifact together with context, instance, template, and flow provenance.
 
 - Compile a logical context separately for each target execution instance and its template.
 - Merge portable declarations and resolve deployment-specific physical bindings.
@@ -424,12 +415,11 @@ Exit criteria: cross-flow communication behaves the same on a supported controll
 
 ### Phase 6 — Flow-interface decision and cleanup
 
-Status: **Complete**. Flow Input/Output remains supported for explicit host invocation, simulation/debug input, and reusable-flow contracts. It is not used for cross-flow communication; virtual points are the only mechanism for that purpose. The existing interface editor describes these entries as portable terminals for simulation and reusable flows, so no schema removal migration is required.
+Status: **Complete**. Flow Input/Output node kinds are no longer valid. The frontend schema does not expose or serialize them and backend validation/compiler boundaries do not accept them. No migration path is provided. Virtual points are the only mechanism for cross-flow communication.
 
-- Gather remaining use cases for host-callable or reusable flow interfaces.
-- Keep and clarify Flow Input/Output only if those use cases are required.
-- Otherwise migrate/remove the interface editor, node kinds, compiler binding kind, simulator inputs, and schema fields.
-- Version all persisted-flow and compiled-artifact changes.
+- Remove the interface editor and node kinds from authoring.
+- Reject unsupported nodes in backend validation and before server/controller artifact compilation.
+- Do not provide data migration or compatibility behavior.
 
 Exit criteria: there is one unambiguous mechanism for cross-flow communication, with no duplicate configuration UI.
 
@@ -437,7 +427,7 @@ Exit criteria: there is one unambiguous mechanism for cross-flow communication, 
 
 ### Current verification status
 
-- Backend unit tests: **251 passed, 0 failed**.
+- Backend unit tests: **250 passed, 0 failed**.
 - Frontend unit tests: **182 passed, 0 failed**.
 - Frontend production build, lint, formatting, and diff checks: **passed**.
 - Playwright Chromium, Edge, and mobile Chromium projects pass. Firefox is currently blocked before page creation by the upstream Playwright-on-elevated-Windows `_page` startup defect; it does not reach application assertions.
@@ -520,7 +510,6 @@ Exit criteria: there is one unambiguous mechanism for cross-flow communication, 
 5. Should retained values survive point-definition revision changes when type and units remain compatible?
 6. Are manual operator commands another writer, and how do they interact with flow ownership?
 7. Are virtual points limited to analog/digital permanently, or should the existing integer, multi-state, and text types become available later?
-8. Are Flow Input/Output still required for external API invocation, testing, or reusable subflows?
 
 ## Definition of done
 

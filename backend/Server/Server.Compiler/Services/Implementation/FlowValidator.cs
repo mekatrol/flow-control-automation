@@ -13,7 +13,7 @@ internal partial class FlowValidator : IFlowValidator
         FlowNodeKind.Add, FlowNodeKind.AnalogInput, FlowNodeKind.AnalogOutput, FlowNodeKind.And, FlowNodeKind.Average, FlowNodeKind.Calculator, FlowNodeKind.Calendar, FlowNodeKind.Clamp, FlowNodeKind.Comparator,
         FlowNodeKind.Delay, FlowNodeKind.DigitalConstant, FlowNodeKind.DigitalInput, FlowNodeKind.DigitalOutput, FlowNodeKind.If,
         FlowNodeKind.LevelShifter, FlowNodeKind.Line, FlowNodeKind.Max, FlowNodeKind.Memory, FlowNodeKind.Min, FlowNodeKind.Nand, FlowNodeKind.Nor, FlowNodeKind.Not, FlowNodeKind.NumericConstant, FlowNodeKind.Or, FlowNodeKind.Override,
-        FlowNodeKind.Pulse, FlowNodeKind.Schedule, FlowNodeKind.Selector, FlowNodeKind.Sequence, FlowNodeKind.Split, FlowNodeKind.FlowInput, FlowNodeKind.FlowOutput,
+        FlowNodeKind.Pulse, FlowNodeKind.Schedule, FlowNodeKind.Selector, FlowNodeKind.Sequence, FlowNodeKind.Split,
         FlowNodeKind.OnDelay, FlowNodeKind.QualityGood, FlowNodeKind.RisingEdge, FlowNodeKind.Timer, FlowNodeKind.Xnor, FlowNodeKind.Xor,
     ];
 

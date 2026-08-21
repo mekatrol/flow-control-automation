@@ -189,11 +189,9 @@
         v-if="selectedNode"
         v-bind="automation('node-configuration')"
         :node="selectedNode"
-        :flow-interface="flow.interface"
         :virtual-point-declarations="flow.virtualPointDeclarations"
         @[EVENTS.UPDATE_LABEL]="handleNodeLabelUpdate"
         @[EVENTS.UPDATE_CONFIGURATION]="handleNodeConfigurationUpdate"
-        @[EVENTS.UPDATE_INTERFACE]="handleInterfaceUpdate"
       />
     </div>
   </div>
@@ -269,7 +267,6 @@ const emit = defineEmits<{
   (event: typeof EVENTS.DELETE_CONNECTION, connectionId: string): void;
   (event: typeof EVENTS.ADD_NODE, node: FlowNodeModel): void;
   (event: typeof EVENTS.UPDATE_NODE_LABEL, nodeId: string, label: string): void;
-  (event: typeof EVENTS.UPDATE_INTERFACE, value: FlowDefinition['interface']): void;
   (
     event: typeof EVENTS.UPDATE_NODE_CONFIGURATION,
     nodeId: string,
@@ -289,9 +286,6 @@ const handleNodeConfigurationUpdate = (
   if (selectedNode.value) {
     emit(EVENTS.UPDATE_NODE_CONFIGURATION, selectedNode.value.id, key, value);
   }
-};
-const handleInterfaceUpdate = (value: FlowDefinition['interface']): void => {
-  emit(EVENTS.UPDATE_INTERFACE, value);
 };
 const breakpointPositions = (nodeId: string): ('before' | 'after')[] =>
   (props.breakpoints ?? [])

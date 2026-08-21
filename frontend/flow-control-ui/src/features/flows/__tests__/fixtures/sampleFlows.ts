@@ -2,7 +2,6 @@ import type { FlowDefinition } from '@/features/flows/types';
 
 export const sampleFlows: FlowDefinition[] = [
   {
-    interface: { schemaVersion: 1, inputs: [], outputs: [] },
     id: 'climate-control',
     name: 'Climate control',
     description: 'Balances temperature inputs and applies the configured override.',
@@ -83,7 +82,6 @@ export const sampleFlows: FlowDefinition[] = [
     ]
   },
   {
-    interface: { schemaVersion: 1, inputs: [], outputs: [] },
     id: 'garden-irrigation',
     name: 'Garden irrigation',
     description: 'Runs watering zones from a schedule and moisture readings.',

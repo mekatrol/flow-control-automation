@@ -22,8 +22,7 @@ const tutorialFlow = (kind: FlowNodeKind): FlowDefinition => ({
   disabled: false,
   updatedAt: '2026-08-15T00:00:00.000Z',
   nodes: [createDefaultNode(kind, { x: 240, y: 160 }, 0, `tutorial-${kind}-node`)],
-  connections: [],
-  interface: { schemaVersion: 1, inputs: [], outputs: [] }
+  connections: []
 });
 
 const createTutorial = (kind: FlowNodeKind): FlowTutorial => {

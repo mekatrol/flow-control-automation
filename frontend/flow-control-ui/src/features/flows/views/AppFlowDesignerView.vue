@@ -180,7 +180,6 @@
         :lifecycle="simulator.lifecycle"
         :session="simulator.session"
         :error="simulator.error"
-        :flow-interface="flow.interface"
         @[EVENTS.START_SIMULATION]="startSimulation"
         @[EVENTS.STEP_TICK]="simulator.stepTick"
         @[EVENTS.STEP_NODE]="simulator.stepNode"
@@ -231,7 +230,6 @@
         v-if="workspaceMode === 'debugger' && selectedDebugTarget?.kind === 'emulator'"
         v-bind="automation('emulator')"
         :snapshot="emulatorSnapshot"
-        :flow-interface="flow.interface"
         @[EVENTS.APPLY_INPUTS_STEP]="applyEmulatorInputsAndStep"
         @[EVENTS.ADVANCE]="advanceEmulator"
         @[EVENTS.FAULT]="setEmulatorFault"
@@ -258,7 +256,6 @@
         @[EVENTS.ADD_NODE]="addNode"
         @[EVENTS.UPDATE_NODE_LABEL]="updateNodeLabel"
         @[EVENTS.UPDATE_NODE_CONFIGURATION]="updateNodeConfiguration"
-        @[EVENTS.UPDATE_INTERFACE]="updateFlowInterface"
       />
     </template>
 
@@ -321,7 +318,6 @@ import { useModalFocus } from '@/features/flows/composables/useModalFocus';
 import type {
   FlowConfigurationValue,
   FlowConnectionEndpoint,
-  FlowDefinition,
   FlowNode
 } from '@/features/flows/types';
 import type { FlowTutorial } from '@/features/flows/tutorialCatalogue';
@@ -405,9 +401,6 @@ watch(debugTargetId, () => {
 });
 
 const flowRevision = computed(() => (flow.value ? graphRevision(flow.value) : 1));
-const updateFlowInterface = (value: FlowDefinition['interface']): void => {
-  flowStore.updateFlowInterface(props.flowId, value);
-};
 watch(flowRevision, (revision, previous) => {
   if (previous !== undefined && revision !== previous) simulator.markStale();
 });
@@ -448,15 +441,7 @@ const debugConnectorValues = computed(() => {
     if (!node || !nodeSnapshot.typedValue) continue;
     const typed = nodeSnapshot.typedValue;
     const text = typed.type === 'number' ? String(typed.number) : String(typed.value);
-    const units =
-      node.kind === 'flowInput'
-        ? currentFlow.interface.inputs.find((entry) => entry.id === node.configuration.interfaceId)
-            ?.units
-        : node.kind === 'flowOutput'
-          ? currentFlow.interface.outputs.find(
-              (entry) => entry.id === node.configuration.interfaceId
-            )?.units
-          : undefined;
+    const units = undefined;
     values[node.id] = {};
     for (const connector of node.connectors.filter((candidate) => candidate.direction === 'output'))
       values[node.id]![connector.id] = {

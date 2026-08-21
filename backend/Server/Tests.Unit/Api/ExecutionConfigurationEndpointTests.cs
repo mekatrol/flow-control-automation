@@ -21,13 +21,38 @@ internal sealed class ExecutionConfigurationEndpointTests
         var createdFlowResponse = await client.PostAsJsonAsync("/api/flows", new { name = "Virtual writer" });
         var flow = (await createdFlowResponse.Content.ReadFromJsonAsync<Flow>(FlowControlJson.Options))! with
         {
+            Nodes =
+            [
+                new FlowNode
+                {
+                    Id = "constant",
+                    Kind = FlowNodeKind.NumericConstant,
+                    Label = "Setpoint",
+                    Connectors = [new FlowConnector("value", "Value", DataDirection.Output, DataType.Number, "right")],
+                    Configuration = new Dictionary<string, System.Text.Json.JsonElement>
+                    {
+                        ["value"] = System.Text.Json.JsonSerializer.SerializeToElement(21.5)
+                    }
+                },
+                new FlowNode
+                {
+                    Id = "output",
+                    Kind = FlowNodeKind.AnalogOutput,
+                    Label = "Temperature setpoint",
+                    Connectors = [new FlowConnector("in", "Input", DataDirection.Input, DataType.Number, "left")],
+                    Configuration = new Dictionary<string, System.Text.Json.JsonElement>
+                    {
+                        ["pointId"] = System.Text.Json.JsonSerializer.SerializeToElement("temp-setpoint")
+                    }
+                }
+            ],
+            Connections = [new FlowConnection("write", new FlowEndpoint("constant", "value"), new FlowEndpoint("output", "in"))],
             VirtualPointDeclarations =
             [
                 new VirtualPointDeclaration
                 {
                     Key = "temp-setpoint",
                     ValueType = FlowPointValueType.Analog,
-                    Units = "degC",
                     Readable = true,
                     Commandable = true,
                     Persistence = VirtualPointPersistence.Retained
@@ -35,6 +60,7 @@ internal sealed class ExecutionConfigurationEndpointTests
             ]
         };
         var savedResponse = await client.PutAsJsonAsync($"/api/flows/{flow.Id}", flow, FlowControlJson.Options);
+        Assert.That(savedResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK), await savedResponse.Content.ReadAsStringAsync());
         var saved = (await savedResponse.Content.ReadFromJsonAsync<Flow>(FlowControlJson.Options))!;
 
         var definition = new ExecutionContextDefinition
@@ -48,6 +74,7 @@ internal sealed class ExecutionConfigurationEndpointTests
         var createdContext = (await contextResponse.Content.ReadFromJsonAsync<ExecutionContextDefinition>(FlowControlJson.Options))!;
         Assert.That(createdContext.PointContracts, Has.Count.EqualTo(1));
 
+        var deployments = new List<ExecutionContextDeployment>();
         foreach (var instanceId in new[] { "east", "west" })
         {
             var instanceResponse = await client.PostAsJsonAsync("/api/execution-instances", new ExecutionInstance
@@ -67,7 +94,8 @@ internal sealed class ExecutionConfigurationEndpointTests
                 ExecutionInstanceId = instanceId,
                 Status = ExecutionContextDeploymentStatus.Active
             }, FlowControlJson.Options);
-            Assert.That(deploymentResponse.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+            Assert.That(deploymentResponse.StatusCode, Is.EqualTo(HttpStatusCode.Created), await deploymentResponse.Content.ReadAsStringAsync());
+            deployments.Add((await deploymentResponse.Content.ReadFromJsonAsync<ExecutionContextDeployment>(FlowControlJson.Options))!);
         }
 
         var east = await client.GetFromJsonAsync<List<VirtualPointAllocation>>("/api/execution-instances/east/virtual-points", FlowControlJson.Options);
@@ -80,6 +108,12 @@ internal sealed class ExecutionConfigurationEndpointTests
             Assert.That(west![0].ExecutionInstanceId, Is.EqualTo("west"));
             Assert.That(east[0].PointKey, Is.EqualTo("temp-setpoint"));
             Assert.That(west[0].PointKey, Is.EqualTo("temp-setpoint"));
+            Assert.That(deployments, Has.All.Matches<ExecutionContextDeployment>(item => item.CompiledPrograms.Count == 1));
+            Assert.That(deployments[0].CompiledPrograms[0].ExecutionInstanceId, Is.EqualTo("east"));
+            Assert.That(deployments[1].CompiledPrograms[0].ExecutionInstanceId, Is.EqualTo("west"));
+            Assert.That(deployments[0].CompiledPrograms[0].ExecutionContextId, Is.EqualTo("climate"));
+            Assert.That(deployments[0].CompiledPrograms[0].ArtifactBase64, Is.Not.Empty);
+            Assert.That(deployments[0].CompiledPrograms[0].ArtifactSha256, Has.Length.EqualTo(64));
         });
     }
 }

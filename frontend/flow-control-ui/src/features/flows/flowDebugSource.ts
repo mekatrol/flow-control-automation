@@ -23,8 +23,6 @@ const supportedKinds = new Set([
   'risingEdge',
   'memory',
   'digitalOutput',
-  'flowInput',
-  'flowOutput',
   'average',
   'calculator',
   'calendar',
@@ -56,8 +54,7 @@ export class FlowDebugSourceError extends Error {
 export const graphRevision = (flow: FlowDefinition): number => {
   const graph = JSON.stringify({
     nodes: flow.nodes,
-    connections: flow.connections,
-    interface: flow.interface
+    connections: flow.connections
   });
   let hash = 2166136261;
   for (let index = 0; index < graph.length; index += 1) {
@@ -68,15 +65,6 @@ export const graphRevision = (flow: FlowDefinition): number => {
 };
 
 const configurationFor = (node: FlowNode): Record<string, unknown> => {
-  if (node.kind === 'flowInput' || node.kind === 'flowOutput') {
-    const interfaceId = node.configuration.interfaceId;
-    if (typeof interfaceId !== 'string' || !interfaceId.trim())
-      throw new FlowDebugSourceError(
-        `${node.label} (${node.id}) requires an interface entry.`,
-        node.id
-      );
-    return { interfaceId: interfaceId.trim() };
-  }
   if (
     node.kind === 'digitalInput' ||
     node.kind === 'digitalOutput' ||
@@ -149,11 +137,6 @@ export const createExecutableFlowSource = (
     connections: flow.connections.map((connection) => ({
       source: { nodeId: connection.start.nodeId, portId: connection.start.connectorId },
       target: { nodeId: connection.end.nodeId, portId: connection.end.connectorId }
-    })),
-    interface: {
-      schemaVersion: flow.interface.schemaVersion,
-      inputs: flow.interface.inputs.map((entry) => ({ ...entry })),
-      outputs: flow.interface.outputs.map((entry) => ({ ...entry }))
-    }
+    }))
   };
 };

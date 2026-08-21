@@ -1,6 +1,9 @@
 using Server.Common;
 using Server.Common.Contracts;
 using Server.Common.Services;
+using Server.Compiler;
+using Server.Compiler.Contracts;
+using Server.Compiler.Services;
 using Server.Data.Context;
 using Server.Data.Entities;
 using System.Text.Json;
@@ -12,7 +15,9 @@ internal sealed partial class ExecutionConfigurationService(
     IFlowControlDbContext context,
     TimeProvider timeProvider,
     IControllerTemplateStore controllerTemplates,
-    IPointDefinitionStore pointDefinitions) : IExecutionConfigurationService
+    IPointDefinitionStore pointDefinitions,
+    IFlowCompilationTargetResolver targetResolver,
+    IFlowCompiler compiler) : IExecutionConfigurationService
 {
     public async Task<IReadOnlyList<ExecutionContextDefinition>> ListContextsAsync(CancellationToken cancellationToken) =>
         [.. (await context.ExecutionContexts.AsNoTracking().OrderBy(item => item.Key).ToListAsync(cancellationToken)).Select(Deserialize<ExecutionContextDefinition>)];
@@ -168,7 +173,12 @@ internal sealed partial class ExecutionConfigurationService(
 
         if (deployment.Status == ExecutionContextDeploymentStatus.Active)
         {
-            await ValidateActiveDeploymentAsync(deployment, definition, instance, cancellationToken);
+            var compiledPrograms = await ValidateAndCompileActiveDeploymentAsync(deployment, definition, instance, cancellationToken);
+            deployment = deployment with { CompiledPrograms = compiledPrograms };
+        }
+        else if (deployment.CompiledPrograms.Count > 0)
+        {
+            deployment = deployment with { CompiledPrograms = [] };
         }
 
         var entity = new ExecutionContextDeploymentEntity
@@ -341,7 +351,7 @@ internal sealed partial class ExecutionConfigurationService(
         }
     }
 
-    private async Task ValidateActiveDeploymentAsync(
+    private async Task<IReadOnlyList<CompiledContextProgram>> ValidateAndCompileActiveDeploymentAsync(
         ExecutionContextDeployment deployment,
         ExecutionContextDefinition definition,
         ExecutionInstance instance,
@@ -397,6 +407,48 @@ internal sealed partial class ExecutionConfigurationService(
         {
             AddWriters(writers, flow);
         }
+
+        var templateId = instance.Kind == ExecutionInstanceKind.Controller
+            ? instance.ControllerTemplateId!
+            : BuiltInControllerTemplate.Id;
+        var templateRevision = instance.Kind == ExecutionInstanceKind.Controller
+            ? instance.ControllerTemplateRevision!.Value
+            : BuiltInControllerTemplate.Default.Revision;
+        var bindings = deployment.PhysicalPointBindings.ToDictionary(item => item.Role, item => item.PointId, StringComparer.Ordinal);
+        var compiled = new List<CompiledContextProgram>(programs.Count);
+        foreach (var flow in programs)
+        {
+            var source = FlowDeploymentService.ToExecutableSource(flow, templateId, templateRevision, bindings);
+            FlowCompilationResult result;
+            try
+            {
+                var target = await targetResolver.ResolveAsync(source, cancellationToken);
+                result = compiler.Compile(new FlowCompilationRequest { Source = source, Target = target });
+            }
+            catch (FlowCompilationException exception)
+            {
+                var diagnostic = exception.Diagnostics[0];
+                throw new ExecutionConfigurationException(
+                    $"execution context '{definition.Id}' flow '{flow.Id}' failed compilation: {diagnostic.Code} at {diagnostic.Path}",
+                    422);
+            }
+            compiled.Add(new CompiledContextProgram
+            {
+                FlowId = flow.Id,
+                FlowRevision = flow.Revision,
+                ExecutionContextId = definition.Id,
+                ExecutionContextRevision = definition.Revision,
+                ExecutionInstanceId = instance.Id,
+                ExecutionInstanceRevision = instance.Revision,
+                ControllerTemplateId = templateId,
+                ControllerTemplateRevision = templateRevision,
+                ArtifactBase64 = Convert.ToBase64String(result.Artifact.Span),
+                ArtifactSha256 = result.ArtifactSha256,
+                ArtifactVersion = result.ArtifactVersion
+            });
+        }
+
+        return compiled;
     }
 
     private async Task<IReadOnlyList<Flow>> LoadProgramsAsync(ExecutionContextDefinition definition, CancellationToken cancellationToken)
@@ -509,7 +561,9 @@ internal sealed partial class ExecutionConfigurationService(
             }
         }
     }
-    private static void ValidateId(string id, string path) { if (string.IsNullOrWhiteSpace(id) || !Identifier().IsMatch(id))
+    private static void ValidateId(string id, string path)
+    {
+        if (string.IsNullOrWhiteSpace(id) || !Identifier().IsMatch(id))
         {
             Fail($"{path} has invalid syntax");
         }

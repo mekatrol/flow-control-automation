@@ -8,8 +8,7 @@ import { addConnection as addGraphConnection } from '@/features/flows/graph/conn
 import type {
   FlowConfigurationValue,
   FlowConnectionEndpoint,
-  FlowNode,
-  FlowInterface
+  FlowNode
 } from '@/features/flows/types';
 import type { FlowDefinition } from '@/features/flows/types';
 
@@ -114,21 +113,6 @@ export const useFlowsStore = defineStore('flows', () => {
     flow.connections = flow.connections.filter(
       (connection) => connection.start.nodeId !== nodeId && connection.end.nodeId !== nodeId
     );
-    if (deletedNode.kind === 'flowInput' || deletedNode.kind === 'flowOutput') {
-      const interfaceId = String(deletedNode.configuration.interfaceId);
-      const stillUsed = flow.nodes.some(
-        (node) =>
-          node.kind === deletedNode.kind && String(node.configuration.interfaceId) === interfaceId
-      );
-      if (!stillUsed) {
-        if (deletedNode.kind === 'flowInput')
-          flow.interface.inputs = flow.interface.inputs.filter((entry) => entry.id !== interfaceId);
-        else
-          flow.interface.outputs = flow.interface.outputs.filter(
-            (entry) => entry.id !== interfaceId
-          );
-      }
-    }
     return true;
   };
 
@@ -159,54 +143,7 @@ export const useFlowsStore = defineStore('flows', () => {
     // The browser's structured clone copies nested connectors and settings, so
     // caller-owned palette or drag data cannot mutate the stored node later.
     const nextNode = structuredClone(node);
-    if (nextNode.kind === 'flowInput' || nextNode.kind === 'flowOutput') {
-      const entries =
-        nextNode.kind === 'flowInput' ? flow.interface.inputs : flow.interface.outputs;
-      const configuredId = String(nextNode.configuration.interfaceId ?? '');
-      let entry = entries.find((candidate) => candidate.id === configuredId);
-
-      // A palette node has no interface context, so its registry default is empty.
-      // Make the authoring action atomic: each new terminal gets its own interface
-      // entry, while imported nodes with an explicit valid ID retain that binding.
-      if (!entry) {
-        const prefix = nextNode.kind === 'flowInput' ? 'input' : 'output';
-        const usedIds = new Set(
-          [...flow.interface.inputs, ...flow.interface.outputs].map((candidate) => candidate.id)
-        );
-        let suffix = 1;
-        while (usedIds.has(`${prefix}-${suffix}`)) suffix += 1;
-        const id = `${prefix}-${suffix}`;
-        const usedNames = new Set(
-          [...flow.interface.inputs, ...flow.interface.outputs].map((candidate) =>
-            candidate.name.toLocaleLowerCase()
-          )
-        );
-        let nameSuffix = 1;
-        let name = `New ${prefix}`;
-        while (usedNames.has(name.toLocaleLowerCase())) {
-          nameSuffix += 1;
-          name = `New ${prefix} ${nameSuffix}`;
-        }
-        if (nextNode.kind === 'flowInput') {
-          const input = {
-            id,
-            name,
-            dataType: 'boolean' as const,
-            defaultValue: false,
-            required: false
-          };
-          flow.interface.inputs.push(input);
-          entry = input;
-        } else {
-          const output = { id, name, dataType: 'boolean' as const };
-          flow.interface.outputs.push(output);
-          entry = output;
-        }
-      }
-      nextNode.configuration.interfaceId = entry.id;
-    }
     flow.nodes.push(nextNode);
-    synchronizeInterfaceNodes(flow);
     return true;
   };
 
@@ -216,28 +153,6 @@ export const useFlowsStore = defineStore('flows', () => {
     if (!node || !trimmed) return false;
     node.label = trimmed;
     return true;
-  };
-
-  const synchronizeInterfaceNodes = (flow: FlowDefinition): void => {
-    for (const node of flow.nodes) {
-      if (node.kind !== 'flowInput' && node.kind !== 'flowOutput') continue;
-      const id = node.configuration.interfaceId;
-      const entry =
-        node.kind === 'flowInput'
-          ? flow.interface.inputs.find((candidate) => candidate.id === id)
-          : flow.interface.outputs.find((candidate) => candidate.id === id);
-      if (!entry) continue;
-      node.label = entry.name;
-      node.connectors = [
-        {
-          id: 'value',
-          label: entry.units ? `${entry.name} (${entry.units})` : entry.name,
-          direction: node.kind === 'flowInput' ? 'output' : 'input',
-          dataType: entry.dataType,
-          side: node.kind === 'flowInput' ? 'right' : 'left'
-        }
-      ];
-    }
   };
 
   const updateNodeConfiguration = (
@@ -252,30 +167,6 @@ export const useFlowsStore = defineStore('flows', () => {
     // schema with an unknown key produced by stale UI metadata.
     if (!node || !(key in node.configuration)) return false;
     node.configuration[key] = value;
-    if (flow && key === 'interfaceId') synchronizeInterfaceNodes(flow);
-    return true;
-  };
-
-  const updateFlowInterface = (flowId: string, definition: FlowInterface): boolean => {
-    const flow = findFlow(flowId);
-    if (!flow) return false;
-    const inputIds = new Set(definition.inputs.map((entry) => entry.id));
-    const outputIds = new Set(definition.outputs.map((entry) => entry.id));
-    if (
-      flow.nodes.some(
-        (node) => node.kind === 'flowInput' && !inputIds.has(String(node.configuration.interfaceId))
-      )
-    )
-      return false;
-    if (
-      flow.nodes.some(
-        (node) =>
-          node.kind === 'flowOutput' && !outputIds.has(String(node.configuration.interfaceId))
-      )
-    )
-      return false;
-    flow.interface = structuredClone(definition);
-    synchronizeInterfaceNodes(flow);
     return true;
   };
 
@@ -299,7 +190,6 @@ export const useFlowsStore = defineStore('flows', () => {
     deleteConnection,
     addNode,
     updateNodeLabel,
-    updateNodeConfiguration,
-    updateFlowInterface
+    updateNodeConfiguration
   };
 });
