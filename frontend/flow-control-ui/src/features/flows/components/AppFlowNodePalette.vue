@@ -13,6 +13,7 @@
         <div v-for="definition in definitions" :key="definition.kind" class="palette-item">
           <AppButton
             v-bind="automation(`add-${automationKind(definition.kind)}`)"
+            class="palette-add-button"
             :text="definition.label"
             draggable="true"
             :aria-label="`Add ${definition.label} node`"
@@ -132,6 +133,15 @@ section {
 }
 .palette-item {
   display: grid;
+  min-width: 0;
+}
+
+.palette-add-button {
+  width: 100%;
+  min-width: 0;
+  padding-inline: var(--space-4);
+  justify-content: flex-start;
+  text-align: left;
 }
 
 h3 {

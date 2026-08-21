@@ -16,9 +16,9 @@ describe('node palette filtering and grouping', () => {
     });
 
     expect(wrapper.find('[data-automation^="node-palette.learn-"]').exists()).toBe(false);
-    expect(wrapper.findAll('button[data-automation^="node-palette.add-"]')).toHaveLength(
-      flowNodeKinds.length
-    );
+    const addActions = wrapper.findAll('button[data-automation^="node-palette.add-"]');
+    expect(addActions).toHaveLength(flowNodeKinds.length);
+    expect(addActions.every((action) => action.classes('palette-add-button'))).toBe(true);
     expect(wrapper.text()).not.toContain('Learn');
   });
 
