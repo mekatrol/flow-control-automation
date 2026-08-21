@@ -1091,11 +1091,13 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                 break;
             }
 
-            static const size_t CAPABILITY_PAYLOAD_SIZE = 24;
+            static const size_t BASE_CAPABILITY_PAYLOAD_SIZE = 24;
+            static const size_t VIRTUAL_POINT_CAPABILITY_PAYLOAD_SIZE = 30;
             static const uint8_t ARTIFACT_VERSION_COUNT    = 1;
             static const uint8_t FLOW_IL_VERSION           = 1;
             static const uint8_t DEBUGGER_FEATURES         = UINT8_C(0x7f);
-            response.payload_size                          = CAPABILITY_PAYLOAD_SIZE;
+            response.payload_size = protocol->config.virtual_points == NULL ? BASE_CAPABILITY_PAYLOAD_SIZE
+                                                                             : VIRTUAL_POINT_CAPABILITY_PAYLOAD_SIZE;
             response.payload[0]                            = PROTOCOL_CAPABILITY_MINOR;
             put_u16(&response.payload[1], CONTROLLER_PROTOCOL_FRAME_CAPACITY);
             put_u16(&response.payload[3], CONTROLLER_PROTOCOL_PAYLOAD_CAPACITY);
@@ -1118,6 +1120,15 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
             response.payload[21] = FLOW_VM_ABI_VERSION;
             response.payload[22] = DEBUGGER_FEATURES;
             response.payload[23] = FLOW_VM_MAX_OUTPUTS;
+
+            if (protocol->config.virtual_points != NULL)
+            {
+                /* This append-only extension keeps the original capability prefix stable for older hosts. */
+                response.payload[24] = 1U;
+                response.payload[25] = FLOW_VIRTUAL_POINT_CAPACITY;
+                put_u32(&response.payload[26], protocol->config.virtual_points->protocol_version);
+            }
+
             send_response(protocol, &response);
             break;
         case CONTROLLER_PROTOCOL_OPERATION_GET_DEVICE_INFO:

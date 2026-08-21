@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "controller/protocol.h"
+#include "flow/virtual_points.h"
 
 /* Fixture limits and identities make version-one wire expectations explicit. */
 enum
@@ -20,6 +21,10 @@ static const char FIRMWARE_VERSION[]     = "1.2.3";
 static const char TEST_SUCCESS_MESSAGE[] = "Controller protocol tests passed";
 static uint16_t commanded_outputs;
 static uint8_t auth_random_seed = 1;
+
+/* Encodes one request into caller storage; implemented after dispatcher fixture construction. */
+static size_t encode_request(uint16_t destination, uint8_t operation, const uint8_t *payload, size_t payload_size,
+                             uint8_t *frame);
 
 /* Supplies deterministic nonzero session material for dispatcher authentication tests. */
 static bool get_auth_random(void *context, uint8_t *output, size_t size)
@@ -97,17 +102,34 @@ static bool capture_send(void *context, const uint8_t *data, size_t size)
 static controller_protocol_t get_protocol(void)
 {
     controller_protocol_t protocol;
+    static flow_virtual_point_store_t virtual_points;
+    assert(flow_virtual_points_init(&virtual_points, DEVICE_ID, 1U));
     const controller_protocol_config_t config = {.address          = CONTROLLER_ADDRESS,
                                                  .device_id        = DEVICE_ID,
                                                  .hardware_model   = HARDWARE_MODEL,
                                                  .firmware_version = FIRMWARE_VERSION,
                                                  .get_io_block     = get_io_block,
                                                  .set_output       = set_output,
-                                                 .set_output_block = set_output_block};
+                                                 .set_output_block = set_output_block,
+                                                 .virtual_points = &virtual_points};
     assert(controller_protocol_init(&protocol, &config, capture_send, NULL));
     sent_size = 0;
 
     return protocol;
+}
+
+/* Verifies capability negotiation advertises the append-only virtual-point contract and bounded capacity. */
+static void test_virtual_point_capabilities(void)
+{
+    controller_protocol_t protocol = get_protocol();
+    uint8_t frame[CONTROLLER_PROTOCOL_FRAME_CAPACITY];
+    const size_t size =
+        encode_request(CONTROLLER_ADDRESS, CONTROLLER_PROTOCOL_OPERATION_GET_CAPABILITIES, NULL, 0, frame);
+    controller_protocol_receive(&protocol, frame, size, 0U);
+    controller_protocol_message_t response;
+    assert(controller_protocol_decode(sent_frame, sent_size, &response) == CONTROLLER_PROTOCOL_DECODE_OK);
+    assert(response.payload_size == 30U && response.payload[24] == 1U &&
+           response.payload[25] == FLOW_VIRTUAL_POINT_CAPACITY && response.payload[26] == 1U);
 }
 
 /* Encodes one request into local frame storage for dispatcher tests. */
@@ -364,6 +386,7 @@ int main(void)
     test_unavailable_point_provider();
     test_discovery_delay();
     test_io_block_and_output_write();
+    test_virtual_point_capabilities();
     test_authentication_dispatch();
     puts(TEST_SUCCESS_MESSAGE);
 

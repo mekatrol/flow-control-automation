@@ -43,6 +43,7 @@ add_executable(controller_protocol_tests
     ../shared/flow/debug.c
     ../shared/flow/vm.c
     ../shared/flow/sha256.c
+    ../shared/flow/virtual_points.c
     ../shared/controller/points.c)
 target_include_directories(controller_protocol_tests PRIVATE ../shared)
 add_test(NAME controller_protocol COMMAND controller_protocol_tests)
@@ -59,6 +60,12 @@ add_executable(controller_flow_tests
 target_include_directories(controller_flow_tests PRIVATE ../shared)
 add_test(NAME controller_flow COMMAND controller_flow_tests)
 
+add_executable(flow_virtual_point_tests
+    test_flow_virtual_points.c
+    ../shared/flow/virtual_points.c)
+target_include_directories(flow_virtual_point_tests PRIVATE ../shared)
+add_test(NAME flow_virtual_points COMMAND flow_virtual_point_tests)
+
 add_executable(flow_il_v1_contract_tests
     test_flow_il_v1_contract.c
     ../shared/flow/sha256.c)
@@ -72,6 +79,7 @@ add_library(flow_vm_static STATIC
     ../shared/flow/host.c
     ../shared/flow/service.c
     ../shared/flow/sha256.c)
+target_sources(flow_vm_static PRIVATE ../shared/flow/virtual_points.c)
 target_include_directories(flow_vm_static PUBLIC ../shared)
 
 add_executable(flow_vm_tests

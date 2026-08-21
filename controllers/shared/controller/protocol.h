@@ -9,6 +9,7 @@
 #include "flow/debug.h"
 #include "flow/service.h"
 #include "flow/vm.h"
+#include "flow/virtual_points.h"
 
 /* Version-one wire limits preserve the 256-byte RS485 transport bound. */
 enum
@@ -216,6 +217,8 @@ typedef struct
     controller_flow_t *flow;
     flow_debug_t *debug;
     controller_points_t *points;
+    /** Optional instance-global store; non-NULL advertises atomic virtual-point protocol support. */
+    flow_virtual_point_store_t *virtual_points;
 } controller_protocol_config_t;
 
 typedef struct

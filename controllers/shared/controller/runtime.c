@@ -14,6 +14,7 @@
 #include "ethernet/link.h"
 #include "flow/host.h"
 #include "flow/service.h"
+#include "flow/virtual_points.h"
 #include "network/manager.h"
 #include "platform/auth.h"
 #include "platform/core.h"
@@ -108,6 +109,7 @@ static controller_auth_t controller_auth;
 static controller_flow_t controller_flow;
 static flow_debug_t controller_debug;
 static flow_host_t controller_flow_host;
+static flow_virtual_point_store_t controller_virtual_points;
 static uint64_t next_flow_scan_ms;
 static flow_vm_target_t debug_target;
 static controller_points_t controller_points;
@@ -164,6 +166,7 @@ static void initialize_controller_protocol(void)
     config.flow                         = is_flow_ready ? &controller_flow : NULL;
     config.debug                        = is_debug_ready ? &controller_debug : NULL;
     config.points                       = is_io_ready ? &controller_points : NULL;
+    config.virtual_points = controller_virtual_points.protocol_version != 0U ? &controller_virtual_points : NULL;
     controller_protocol_init(&controller_protocol, &config, send_protocol_frame, &controller_rs485_service);
 }
 
@@ -171,8 +174,11 @@ static void initialize_controller_protocol(void)
 static void initialize_flow(void)
 {
     controller_flow_store_t store;
+    static const uint32_t VIRTUAL_POINT_PROTOCOL_VERSION = 1U;
+    platform_get_device_id(protocol_device_id, sizeof(protocol_device_id));
     is_flow_ready = platform_flow_initialize(&store) && controller_flow_init(&controller_flow, platform_flow_get_digest,
                                                                              platform_flow_is_artifact_valid, NULL, &store);
+    flow_virtual_points_init(&controller_virtual_points, protocol_device_id, VIRTUAL_POINT_PROTOCOL_VERSION);
 }
 
 /* Captures the physical digital inputs into the VM's coherent input frame. */
@@ -240,6 +246,15 @@ static void process_flow(uint64_t now_ms)
 {
     if (!is_flow_ready || !is_flow_host_ready || now_ms < next_flow_scan_ms)
     {
+        return;
+    }
+
+    if (controller_flow.has_committed &&
+        !flow_host_set_virtual_points(&controller_flow_host, &controller_virtual_points, protocol_device_id,
+                                      controller_flow.committed.id))
+    {
+        next_flow_scan_ms = now_ms + CONTROLLER_TICK_MS;
+
         return;
     }
 

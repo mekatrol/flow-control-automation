@@ -345,7 +345,7 @@ Implementation status last updated: 21 August 2026.
 | Phase 2 | Complete | Instance-scoped synchronized state, atomic commits, defaults/uninitialized quality, durable retained restoration, server VM routing, inspection APIs, writer ownership/release, volatile reset, isolation, and concurrency coverage are implemented. |
 | Phase 3 | Complete | Active deployment revalidates revisions, capabilities, bindings, contracts, and writer ownership, then compiles every context program for the concrete instance and persists immutable context/instance/template/flow artifact provenance. |
 | Phase 4 | Complete | The designer supports context-preview selection, searchable flow/context/physical points, debounced authoritative existence checks, distinct unavailable diagnostics, save/deploy blocking, and creation of typed virtual declarations. |
-| Phase 5 | In progress | The controller VM now supports correctly typed numeric Memory state and typed retained-state import/export, and all host tests pass. Multi-program instance-global storage, protocol identity/versioning, and ownership negotiation remain. |
+| Phase 5 | In progress | The controller now has bounded instance-global analog/digital storage, atomic multi-point commits, writer ownership/release, instance identity checks, typed versioned retained images, VM host routing, and append-only capability negotiation. The host suite passes 18 tests. A multi-program deployment envelope and platform retained-image persistence remain. |
 | Phase 6 | Complete | Flow Input/Output node kinds have been removed from authoring and are rejected by backend validation. Virtual points are the sole cross-flow communication mechanism. |
 
 Status labels describe implementation progress; a phase is complete only after its exit criteria and applicable tests pass.
@@ -403,7 +403,7 @@ Exit criteria: ordinary users do not need to know point IDs, expert users can ty
 
 ### Phase 5 — Controller runtime support
 
-Status: **In progress**. The compiler now encodes Memory transient/state slots as numeric, the controller VM executes them correctly, typed retained-state images can be exported and restored, and the controller host suite passes. Multi-program instance-global storage, atomic shared-point transactions, deployment/device identity in the protocol, and firmware capability negotiation remain.
+Status: **In progress**. The compiler encodes Memory transient/state slots as numeric and the controller VM executes them correctly. A single-owner controller task now hosts bounded instance-global analog/digital cells, coherent snapshots, atomic shared-point transactions, deterministic writer leases, strict concrete-instance identity, typed versioned retained images, VM virtual-binding routing, and append-only capability negotiation. The remaining production boundary is replacing the controller's single-flow deployment record with a multi-program context deployment and persisting retained images through the platform store.
 
 - Version the controller protocol for virtual-point definitions and state.
 - Implement volatile/retained storage on supported controllers.
@@ -432,7 +432,7 @@ Exit criteria: there is one unambiguous mechanism for cross-flow communication, 
 - Frontend production build, lint, formatting, and diff checks: **passed**.
 - Playwright Chromium, Edge, and mobile Chromium projects pass. Firefox is currently blocked before page creation by the upstream Playwright-on-elevated-Windows `_page` startup defect; it does not reach application assertions.
 - Real .NET-backed end-to-end tests: **3 passed, 0 failed**.
-- Controller host tests: **17 passed, 0 failed**.
+- Controller host tests: **18 passed, 0 failed**.
 
 ### Domain and API tests
 
