@@ -1,11 +1,27 @@
-import { describe, expect, it } from 'vitest';
+// @vitest-environment jsdom
 
-import {
+import { describe, expect, it } from 'vitest';
+import { mount } from '@vue/test-utils';
+
+import AppFlowNodePalette, {
   filterNodeKinds,
   groupNodeKinds
 } from '@/features/flows/components/AppFlowNodePalette.vue';
+import { flowNodeKinds } from '@/features/flows/nodeKinds';
 
 describe('node palette filtering and grouping', () => {
+  it('offers one add action per function without learn actions', () => {
+    const wrapper = mount(AppFlowNodePalette, {
+      props: { automation: 'node-palette' }
+    });
+
+    expect(wrapper.find('[data-automation^="node-palette.learn-"]').exists()).toBe(false);
+    expect(wrapper.findAll('button[data-automation^="node-palette.add-"]')).toHaveLength(
+      flowNodeKinds.length
+    );
+    expect(wrapper.text()).not.toContain('Learn');
+  });
+
   /**
    * Purpose: Protects the behavioral contract that filters by label and category without case sensitivity.
    * Description: Exercises filters by label and category without case sensitivity from its arranged starting state and

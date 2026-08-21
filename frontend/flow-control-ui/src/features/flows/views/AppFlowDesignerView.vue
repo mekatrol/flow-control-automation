@@ -265,7 +265,6 @@
         @[EVENTS.ADD_CONNECTION]="addConnection"
         @[EVENTS.DELETE_CONNECTION]="deleteConnection"
         @[EVENTS.ADD_NODE]="addNode"
-        @[EVENTS.LEARN]="showTutorial"
         @[EVENTS.UPDATE_NODE_LABEL]="updateNodeLabel"
         @[EVENTS.UPDATE_NODE_CONFIGURATION]="updateNodeConfiguration"
       />
@@ -334,7 +333,7 @@ import type {
   FlowDefinition,
   FlowNode
 } from '@/features/flows/types';
-import { tutorialForKind, type FlowTutorial } from '@/features/flows/tutorialCatalogue';
+import type { FlowTutorial } from '@/features/flows/tutorialCatalogue';
 import { flowDomainToDto } from '@/features/flows/api/flowMapper';
 
 const props = defineProps<{
@@ -789,9 +788,6 @@ const deleteConnection = (connectionId: string): void => {
 
 const addNode = (node: FlowNode): void => {
   flowStore.addNode(props.flowId, node);
-};
-const showTutorial = (kind: FlowNode['kind']): void => {
-  activeTutorial.value = tutorialForKind(kind);
 };
 const openTutorialExample = (tutorial: FlowTutorial): void => {
   activeTutorial.value = tutorial;
