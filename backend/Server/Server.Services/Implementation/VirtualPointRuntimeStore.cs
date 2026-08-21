@@ -127,7 +127,7 @@ public sealed class VirtualPointRuntimeStore(
     public async Task CommitAsync(string executionInstanceId, string flowId, IReadOnlyList<FlowVmCommand> commands, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var proposed = commands.Where(item => !item.IsInterface).ToList();
+        var proposed = commands.ToList();
         await _commitGate.WaitAsync(cancellationToken);
         try
         {

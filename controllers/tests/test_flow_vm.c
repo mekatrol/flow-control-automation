@@ -1,3 +1,4 @@
+#include "flow/context_host.h"
 #include "flow/vm.h"
 
 #include <assert.h>
@@ -13,6 +14,46 @@ static const flow_vm_target_t TARGET = {.abi_version            = FLOW_VM_ABI_VE
                                         .maximum_artifact_bytes = FLOW_VM_MAX_ARTIFACT,
                                         .maximum_work_per_scan  = FLOW_VM_MAX_INSTRUCTIONS,
                                         .maximum_snapshot_bytes = 16384};
+
+/* Supplies coherent digital and analog samples used by the multi-program context scheduler test. */
+static bool read_context_inputs(void *context, flow_vm_input_sample_t *samples, size_t capacity, size_t *count,
+                                uint64_t *sampled_at_ms)
+{
+    assert(context == NULL && capacity >= 3U);
+    samples[0] = (flow_vm_input_sample_t){.point_id = "input-01", .value = true, .quality = 0U, .type = 1U};
+    samples[1] = (flow_vm_input_sample_t){.point_id = "input-08", .value = true, .quality = 0U, .type = 1U};
+    samples[2] = (flow_vm_input_sample_t){.point_id = "temperature", .quality = 0U, .type = 2U, .number = 10.0};
+
+    *count         = 3U;
+    *sampled_at_ms = 100U;
+
+    return true;
+}
+
+/* Accepts physical program outputs after each program's successful VM commit. */
+static bool publish_context_commands(void *context, const flow_vm_command_t *commands, size_t count, uint64_t now_ms)
+{
+    assert(context == NULL && commands != NULL && count == 1U && now_ms == 100U);
+
+    return true;
+}
+
+static bool last_reader_output;
+static size_t reader_publish_count;
+
+/* Captures only the reader's physical output; the writer publishes an empty physical batch. */
+static bool publish_cross_flow_commands(void *context, const flow_vm_command_t *commands, size_t count, uint64_t now_ms)
+{
+    assert(context == NULL && commands != NULL && count <= 1U && now_ms > 0U);
+
+    if (count == 1U)
+    {
+        last_reader_output = commands[0].value;
+        reader_publish_count++;
+    }
+
+    return true;
+}
 
 /* Loads one Flow IL artifact fixture into bounded caller storage. */
 static size_t get_artifact(const char *fixture_id, uint8_t *artifact, size_t capacity)
@@ -102,8 +143,8 @@ static void test_expanded_boolean_scans(void)
 
     for (size_t index = 0U; index < command_count; index++)
     {
-        const bool expected = strcmp(commands[index].point_id, "output-nand") == 0 ||
-                              strcmp(commands[index].point_id, "output-xor") == 0;
+        const bool expected =
+            strcmp(commands[index].point_id, "output-nand") == 0 || strcmp(commands[index].point_id, "output-xor") == 0;
         assert(commands[index].value == expected);
     }
 }
@@ -114,7 +155,7 @@ static void test_numeric_scans(void)
     flow_vm_t vm;
     get_vm("valid-numeric-language", &vm);
     const flow_vm_input_frame_t input = {.sampled_at_ms = 1U, .is_coherent = true};
-    size_t command_count = 0U;
+    size_t command_count              = 0U;
     flow_vm_snapshot_t snapshot;
     assert(flow_vm_begin_tick(&vm, &input).code == FLOW_VM_OK);
     assert(flow_vm_commit_tick(&vm, NULL, 0U, &command_count, &snapshot).code == FLOW_VM_OK);
@@ -130,8 +171,8 @@ static void test_quality_timer_event_scans(void)
     flow_vm_t vm;
     get_vm("valid-quality-timer-event", &vm);
     flow_vm_input_sample_t sample = {.point_id = "input-01", .value = true, .quality = 1U, .type = 1U};
-    flow_vm_input_frame_t input = {.samples = &sample, .sample_count = 1U, .sampled_at_ms = 10U, .is_coherent = true};
-    size_t command_count = 0U;
+    flow_vm_input_frame_t input   = {.samples = &sample, .sample_count = 1U, .sampled_at_ms = 10U, .is_coherent = true};
+    size_t command_count          = 0U;
     flow_vm_snapshot_t snapshot;
     assert(flow_vm_begin_tick(&vm, &input).code == FLOW_VM_OK);
     assert(flow_vm_commit_tick(&vm, NULL, 0U, &command_count, &snapshot).code == FLOW_VM_OK);
@@ -139,7 +180,7 @@ static void test_quality_timer_event_scans(void)
     assert(!snapshot.slots[2]);
     assert(!snapshot.slots[3]);
 
-    sample.quality = 0U;
+    sample.quality      = 0U;
     input.sampled_at_ms = 110U;
     assert(flow_vm_begin_tick(&vm, &input).code == FLOW_VM_OK);
     assert(flow_vm_commit_tick(&vm, NULL, 0U, &command_count, &snapshot).code == FLOW_VM_OK);
@@ -153,10 +194,8 @@ static void test_analog_point_scan(void)
 {
     flow_vm_t vm;
     get_vm("valid-analog-points", &vm);
-    const flow_vm_input_sample_t sample = {
-        .point_id = "temperature", .quality = 0U, .type = 2U, .number = 10.0};
-    const flow_vm_input_frame_t input = {
-        .samples = &sample, .sample_count = 1U, .sampled_at_ms = 1U, .is_coherent = true};
+    const flow_vm_input_sample_t sample = {.point_id = "temperature", .quality = 0U, .type = 2U, .number = 10.0};
+    const flow_vm_input_frame_t input   = {.samples = &sample, .sample_count = 1U, .sampled_at_ms = 1U, .is_coherent = true};
     flow_vm_command_t command;
     size_t command_count = 0U;
     flow_vm_snapshot_t snapshot;
@@ -226,7 +265,7 @@ static void test_loader_rejections_are_transactional(void)
 static void test_payload_fuzz_rejections(void)
 {
     uint8_t artifact[FLOW_VM_MAX_ARTIFACT];
-    const size_t size = get_artifact("valid-two-button-and", artifact, sizeof(artifact));
+    const size_t size          = get_artifact("valid-two-button-and", artifact, sizeof(artifact));
     const size_t first_payload = 128U + 8U * 48U;
 
     for (size_t index = first_payload; index < size; index += 7U)
@@ -260,6 +299,77 @@ static void test_maximum_fixture(void)
     assert(vm.slot_count == 128U);
 }
 
+/* Loads and scans two immutable program artifacts as one bounded execution-context generation. */
+static void test_multi_program_context(void)
+{
+    uint8_t boolean_artifact[FLOW_VM_MAX_ARTIFACT];
+    uint8_t analog_artifact[FLOW_VM_MAX_ARTIFACT];
+    const size_t boolean_size = get_artifact("valid-two-button-and", boolean_artifact, sizeof(boolean_artifact));
+    const size_t analog_size  = get_artifact("valid-analog-points", analog_artifact, sizeof(analog_artifact));
+    flow_virtual_point_store_t virtual_points;
+    assert(flow_virtual_points_init(&virtual_points, "controller-east", 1U));
+    flow_context_host_t context;
+    assert(flow_context_host_init(&context, &virtual_points, "controller-east", "climate-deployment", read_context_inputs,
+                                  publish_context_commands, NULL));
+    const flow_context_program_t programs[] = {
+        {.program_id = "boolean", .revision = 1U, .artifact = boolean_artifact, .artifact_size = boolean_size},
+        {.program_id = "analog", .revision = 1U, .artifact = analog_artifact, .artifact_size = analog_size},
+    };
+    assert(flow_context_host_load(&context, programs, 2U));
+    flow_vm_snapshot_t snapshots[FLOW_CONTEXT_MAX_PROGRAMS];
+    assert(flow_context_host_scan(&context, 100U, snapshots));
+    assert(snapshots[0].scan_number == 1U && snapshots[1].scan_number == 1U);
+    flow_context_host_stop(&context);
+    assert(context.program_count == 0U);
+}
+
+/* Proves two controller VMs exchange one shared key with deterministic next-context-scan visibility. */
+static void test_cross_flow_virtual_point(void)
+{
+    uint8_t writer_artifact[FLOW_VM_MAX_ARTIFACT];
+    uint8_t reader_artifact[FLOW_VM_MAX_ARTIFACT];
+    const size_t writer_size = get_artifact("valid-two-button-and", writer_artifact, sizeof(writer_artifact));
+    const size_t reader_size = get_artifact("valid-two-button-and", reader_artifact, sizeof(reader_artifact));
+    flow_virtual_point_store_t virtual_points;
+    assert(flow_virtual_points_init(&virtual_points, "controller-east", 1U));
+    flow_context_host_t context;
+    assert(flow_context_host_init(&context, &virtual_points, "controller-east", "shared-deployment", read_context_inputs,
+                                  publish_cross_flow_commands, NULL));
+    const flow_context_program_t programs[] = {
+        {.program_id = "writer", .revision = 1U, .artifact = writer_artifact, .artifact_size = writer_size},
+        {.program_id = "reader", .revision = 1U, .artifact = reader_artifact, .artifact_size = reader_size},
+    };
+    assert(flow_context_host_load(&context, programs, 2U));
+    flow_vm_t *writer = &context.programs[0].instances[context.programs[0].active_instance];
+    flow_vm_t *reader = &context.programs[1].instances[context.programs[1].active_instance];
+    assert(writer->point_count == 3U && reader->point_count == 3U);
+    writer->points[2].binding_kind = 1U;
+    snprintf(writer->points[2].id, sizeof(writer->points[2].id), "%s", "shared-enabled");
+    reader->points[0].binding_kind = 1U;
+    snprintf(reader->points[0].id, sizeof(reader->points[0].id), "%s", "shared-enabled");
+    const flow_virtual_point_declaration_t writer_declaration = {.key             = "shared-enabled",
+                                                                 .type            = FLOW_VIRTUAL_POINT_DIGITAL,
+                                                                 .persistence     = FLOW_VIRTUAL_POINT_VOLATILE,
+                                                                 .is_writer       = true,
+                                                                 .has_default     = true,
+                                                                 .digital_default = false};
+    const flow_virtual_point_declaration_t reader_declaration = {.key             = "shared-enabled",
+                                                                 .type            = FLOW_VIRTUAL_POINT_DIGITAL,
+                                                                 .persistence     = FLOW_VIRTUAL_POINT_VOLATILE,
+                                                                 .has_default     = true,
+                                                                 .digital_default = false};
+    assert(flow_virtual_points_activate(&virtual_points, "controller-east", "shared-deployment/writer", &writer_declaration,
+                                        1U) == FLOW_VIRTUAL_POINT_OK);
+    assert(flow_virtual_points_activate(&virtual_points, "controller-east", "shared-deployment/reader", &reader_declaration,
+                                        1U) == FLOW_VIRTUAL_POINT_OK);
+    flow_vm_snapshot_t snapshots[FLOW_CONTEXT_MAX_PROGRAMS];
+    reader_publish_count = 0U;
+    assert(flow_context_host_scan(&context, 1U, snapshots));
+    assert(reader_publish_count == 1U && !last_reader_output);
+    assert(flow_context_host_scan(&context, 2U, snapshots));
+    assert(reader_publish_count == 2U && last_reader_output);
+}
+
 /* Runs the loader, PLC scan, state feedback, debug-frame, abort, and transactional rejection tests. */
 int main(void)
 {
@@ -275,6 +385,8 @@ int main(void)
     test_payload_fuzz_rejections();
     test_long_running_scans();
     test_maximum_fixture();
+    test_multi_program_context();
+    test_cross_flow_virtual_point();
 
     return 0;
 }

@@ -363,7 +363,7 @@ controller_flow_result_t controller_flow_read(const controller_flow_t *flow, siz
 
     const size_t remaining = flow->committed.size - offset;
 
-    *size                  = remaining < capacity ? remaining : capacity;
+    *size = remaining < capacity ? remaining : capacity;
     memcpy(output, &flow->committed_artifact[offset], *size);
 
     return CONTROLLER_FLOW_OK;

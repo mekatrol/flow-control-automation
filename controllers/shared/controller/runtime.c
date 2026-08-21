@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "esp_attr.h"
+
 #include "board/config.h"
 #include "controller/auth.h"
 #include "controller/health.h"
@@ -12,6 +14,7 @@
 #include "controller/protocol.h"
 #include "diagnostics/service.h"
 #include "ethernet/link.h"
+#include "flow/context_host.h"
 #include "flow/host.h"
 #include "flow/service.h"
 #include "flow/virtual_points.h"
@@ -108,14 +111,16 @@ static controller_protocol_t controller_protocol;
 static controller_auth_t controller_auth;
 static controller_flow_t controller_flow;
 static flow_debug_t controller_debug;
-static flow_host_t controller_flow_host;
+static EXT_RAM_BSS_ATTR flow_context_host_t controller_context_host;
 static flow_virtual_point_store_t controller_virtual_points;
 static uint64_t next_flow_scan_ms;
 static flow_vm_target_t debug_target;
 static controller_points_t controller_points;
 static bool is_flow_ready;
 static bool is_debug_ready;
-static bool is_flow_host_ready;
+static bool is_context_host_ready;
+static bool are_virtual_points_restored;
+static uint64_t persisted_virtual_point_generation;
 static controller_io_t controller_io;
 static bool is_io_ready;
 static uint64_t next_io_poll_ms;
@@ -166,7 +171,7 @@ static void initialize_controller_protocol(void)
     config.flow                         = is_flow_ready ? &controller_flow : NULL;
     config.debug                        = is_debug_ready ? &controller_debug : NULL;
     config.points                       = is_io_ready ? &controller_points : NULL;
-    config.virtual_points = controller_virtual_points.protocol_version != 0U ? &controller_virtual_points : NULL;
+    config.virtual_points               = controller_virtual_points.protocol_version != 0U ? &controller_virtual_points : NULL;
     controller_protocol_init(&controller_protocol, &config, send_protocol_frame, &controller_rs485_service);
 }
 
@@ -244,24 +249,48 @@ static bool publish_flow_commands(void * /* context */, const flow_vm_command_t 
 /* Synchronizes durable activation and invokes one bounded production PLC scan. */
 static void process_flow(uint64_t now_ms)
 {
-    if (!is_flow_ready || !is_flow_host_ready || now_ms < next_flow_scan_ms)
+    if (!is_flow_ready || !is_context_host_ready || now_ms < next_flow_scan_ms)
     {
         return;
     }
 
-    if (controller_flow.has_committed &&
-        !flow_host_set_virtual_points(&controller_flow_host, &controller_virtual_points, protocol_device_id,
-                                      controller_flow.committed.id))
+    if (!controller_flow.has_committed || !controller_flow.committed.is_active)
     {
+        flow_context_host_stop(&controller_context_host);
         next_flow_scan_ms = now_ms + CONTROLLER_TICK_MS;
 
         return;
     }
 
-    if (flow_host_synchronize(&controller_flow_host, &controller_flow) && controller_flow_host.is_running)
+    if (controller_context_host.program_count == 0U ||
+        controller_context_host.programs[0].active_revision != controller_flow.committed.revision)
     {
-        flow_vm_snapshot_t snapshot;
-        flow_host_scan(&controller_flow_host, now_ms, &snapshot);
+        const flow_context_program_t program = {.program_id    = "program-0",
+                                                .revision      = controller_flow.committed.revision,
+                                                .artifact      = controller_flow.committed_artifact,
+                                                .artifact_size = controller_flow.committed.size};
+
+        if (!flow_context_host_load(&controller_context_host, &program, 1U))
+        {
+            next_flow_scan_ms = now_ms + CONTROLLER_TICK_MS;
+
+            return;
+        }
+    }
+
+    if (!are_virtual_points_restored)
+    {
+        are_virtual_points_restored        = platform_flow_restore_virtual_points(&controller_virtual_points);
+        persisted_virtual_point_generation = controller_virtual_points.generation;
+    }
+
+    flow_vm_snapshot_t snapshots[FLOW_CONTEXT_MAX_PROGRAMS];
+
+    if (are_virtual_points_restored && flow_context_host_scan(&controller_context_host, now_ms, snapshots) &&
+        controller_virtual_points.generation != persisted_virtual_point_generation &&
+        platform_flow_persist_virtual_points(&controller_virtual_points))
+    {
+        persisted_virtual_point_generation = controller_virtual_points.generation;
     }
 
     next_flow_scan_ms = now_ms + CONTROLLER_TICK_MS;
@@ -338,11 +367,11 @@ static void relinquish_debug_output(void * /* context */, const char *point_id)
 /* Builds the bounded Flow IL VM target used only for volatile shadow evaluation. */
 static bool initialize_debug(void)
 {
-    debug_target = (flow_vm_target_t){.abi_version            = FLOW_VM_ABI_VERSION,
-                                      .capabilities           = FLOW_VM_CAPABILITIES_ALL,
-                                      .maximum_artifact_bytes = FLOW_VM_MAX_ARTIFACT,
-                                      .maximum_work_per_scan  = FLOW_VM_MAX_INSTRUCTIONS,
-                                      .maximum_snapshot_bytes = FLOW_DEBUG_SNAPSHOT_CAPACITY};
+    debug_target              = (flow_vm_target_t){.abi_version            = FLOW_VM_ABI_VERSION,
+                                                   .capabilities           = FLOW_VM_CAPABILITIES_ALL,
+                                                   .maximum_artifact_bytes = FLOW_VM_MAX_ARTIFACT,
+                                                   .maximum_work_per_scan  = FLOW_VM_MAX_INSTRUCTIONS,
+                                                   .maximum_snapshot_bytes = FLOW_DEBUG_SNAPSHOT_CAPACITY};
     const bool is_initialized = flow_debug_init(&controller_debug, &debug_target, read_flow_inputs, NULL);
 
     if (is_initialized)
@@ -368,10 +397,11 @@ static void initialize_io(void)
         controller_points_init(&controller_points, platform_io_write_outputs);
     }
 
-    is_debug_ready     = initialize_debug();
-    is_flow_host_ready = flow_host_init(&controller_flow_host, read_flow_inputs, publish_flow_commands, NULL);
-    next_flow_scan_ms  = platform_get_monotonic_ms();
-    next_io_poll_ms    = platform_get_monotonic_ms();
+    is_debug_ready        = initialize_debug();
+    is_context_host_ready = flow_context_host_init(&controller_context_host, &controller_virtual_points, protocol_device_id,
+                                                   "active-context", read_flow_inputs, publish_flow_commands, NULL);
+    next_flow_scan_ms     = platform_get_monotonic_ms();
+    next_io_poll_ms       = platform_get_monotonic_ms();
 }
 
 /* Polls all PCF8574 banks into one cache so protocol reads never block on field I/O. */

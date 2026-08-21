@@ -175,7 +175,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
         var commands = _instructions.Where(item => item.Opcode == FlowOpcode.PointOutput).Select(item =>
         {
             var point = _points[item.Auxiliary];
-            return new FlowVmCommand(point.Id, _slots[item.Result], point.BindingKind == PointBindingKind.FlowInterface);
+            return new FlowVmCommand(point.Id, _slots[item.Result]);
         }).ToArray();
 
         _currentState = [.. _stagedState];
@@ -202,7 +202,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
         {
             case FlowOpcode.PointInput:
                 var point = _points[instruction.Auxiliary];
-                var input = _inputs.FirstOrDefault(item => item.PointId == point.Id && item.IsInterface == (point.BindingKind == PointBindingKind.FlowInterface));
+                var input = _inputs.FirstOrDefault(item => item.PointId == point.Id);
 
                 if (input is null)
                 {

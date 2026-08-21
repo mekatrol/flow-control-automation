@@ -299,8 +299,6 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         [FlowNodeKind.OnDelay] = new([new("in", DataDirection.Input, DataType.Boolean), new("value", DataDirection.Output, DataType.Boolean)]),
         [FlowNodeKind.RisingEdge] = new([new("in", DataDirection.Input, DataType.Boolean), new("value", DataDirection.Output, DataType.Boolean)]),
         [FlowNodeKind.Memory] = new([new("in", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Number)]),
-        [FlowNodeKind.FlowInput] = new([new("value", DataDirection.Output, DataType.Number)]),
-        [FlowNodeKind.FlowOutput] = new([new("value", DataDirection.Output, DataType.Number)]),
         [FlowNodeKind.DigitalOutput] = new([new("in", DataDirection.Input, DataType.Boolean)]),
         [FlowNodeKind.AnalogOutput] = new([new("in", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Number)]),
         [FlowNodeKind.Average] = new([new("input", DataDirection.Input, DataType.Number), new("output", DataDirection.Output, DataType.Number)]),
@@ -328,17 +326,6 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         if (request.ArtifactVersion != FlowILV1Format.Version)
         {
             throw Failure(FlowCompilationDiagnosticCode.UnsupportedArtifactVersion, "/artifactVersion", FlowILV1Format.Version);
-        }
-
-        var obsoleteNodeIndex = request.Source.Nodes
-            .Select((node, index) => (node, index))
-            .FirstOrDefault(item => item.node.Kind is FlowNodeKind.FlowInput or FlowNodeKind.FlowOutput);
-        if (obsoleteNodeIndex.node is not null)
-        {
-            throw Failure(
-                FlowCompilationDiagnosticCode.UnsupportedNode,
-                $"/nodes/{obsoleteNodeIndex.index}/kind",
-                obsoleteNodeIndex.node.Kind);
         }
 
         Validate(request);
@@ -521,8 +508,6 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             throw Failure(FlowCompilationDiagnosticCode.ConnectionCountLimitExceeded, "/connections", 384);
         }
 
-        ValidateInterface(source);
-
         ValidateGraph(source);
         ValidateUnits(request);
     }
@@ -639,7 +624,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         var memoryIds = GetMemoryNodeIds(schedule, nodes);
         var stateIds = GetStateNodeIds(schedule, nodes);
         var stateSlots = BuildStateSlots(schedule.Count, stateIds);
-        var points = BuildPoints(source, [.. schedule.Select(id => nodes[id])], request.Target.Points);
+        var points = BuildPoints([.. schedule.Select(id => nodes[id])], request.Target.Points);
         var constants = BuildConstantPool(source);
         var instructions = BuildInstructions(
             source,
@@ -1179,7 +1164,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         InputQualityPolicy qualityPolicy)
     {
         // ---------------------------------------------------------------------
-        // SECTION 2 — point/interface bindings
+        // SECTION 2 — physical and virtual point bindings
         // ---------------------------------------------------------------------
         // Each record starts with four fixed bytes:
         //   direction:u8, dataType:u8, qualityPolicy:u8, bindingKind:u8
@@ -1213,7 +1198,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         // constant, so bytes 6-7 become FF FF.
         var slotRecords = model.Schedule
             .Select((id, index) => Concat(
-                [2, (byte)ResultDataType(model.Source, model.Nodes[id])],
+                [2, (byte)ResultDataType(model.Nodes[id])],
                 U16(0),
                 U16(index),
                 U16(FlowILV1Format.Unused)))
@@ -1281,15 +1266,14 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         commitRecords.AddRange(model.Schedule
             .Where(id => model.Nodes[id].Kind is
                 FlowNodeKind.DigitalOutput or
-                FlowNodeKind.AnalogOutput or
-                FlowNodeKind.FlowOutput)
+                FlowNodeKind.AnalogOutput)
             .Select(id => Concat(
                 [2, 0],
                 U16(PointIndex(
                     model.Points,
                     model.Nodes[id],
                     DataDirection.Output,
-                    ResultDataType(model.Source, model.Nodes[id]))),
+                    ResultDataType(model.Nodes[id]))),
                 U16(model.Slots[id]),
                 U16(0))));
 
@@ -1979,7 +1963,6 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         {
             FlowNodeKind.DigitalInput or
             FlowNodeKind.AnalogInput or
-            FlowNodeKind.FlowInput or
             FlowNodeKind.DigitalConstant or
             FlowNodeKind.NumericConstant or
             FlowNodeKind.Schedule or
@@ -2017,8 +2000,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             FlowNodeKind.Pulse => CreateStatefulInstruction(context, node),
 
             FlowNodeKind.DigitalOutput or
-            FlowNodeKind.AnalogOutput or
-            FlowNodeKind.FlowOutput => CreateOutputInstruction(context, node),
+            FlowNodeKind.AnalogOutput => CreateOutputInstruction(context, node),
 
             _ => throw new UnreachableException()
         };
@@ -2054,22 +2036,6 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                         FlowILV1Format.Unused,
                         FlowILV1Format.Unused,
                         PointIndex(context.Points, node, DataDirection.Input, DataType.Number)
-                    ),
-                    context.NodeId,
-                    NodeInstructionRole.Primary),
-
-            FlowNodeKind.FlowInput =>
-                new(
-                    new(
-                        FlowOpcode.PointInput,
-                        context.ResultSlotIndex,
-                        FlowILV1Format.Unused,
-                        FlowILV1Format.Unused,
-                        PointIndex(
-                            context.Points,
-                            node,
-                            DataDirection.Input,
-                            InterfaceDataType(context.Source, node))
                     ),
                     context.NodeId,
                     NodeInstructionRole.Primary),
@@ -2422,22 +2388,6 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                     context.NodeId,
                     NodeInstructionRole.Primary),
 
-            FlowNodeKind.FlowOutput =>
-                new(
-                    new(
-                        FlowOpcode.PointOutput,
-                        context.ResultSlotIndex,
-                        InputSlot(context.Source, context.Slots, context.NodeId, "value"),
-                        FlowILV1Format.Unused,
-                        PointIndex(
-                            context.Points,
-                            node,
-                            DataDirection.Output,
-                            InterfaceDataType(context.Source, node))
-                    ),
-                    context.NodeId,
-                    NodeInstructionRole.Primary),
-
             _ => throw new UnreachableException()
         };
     }
@@ -2480,8 +2430,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
      * this node. Instructions store this compact index rather than a point ID.
      *
      * Physical I/O nodes identify a binding with configuration["pointId"], while
-     * FlowInput/FlowOutput nodes use configuration["interfaceId"]. The lookup
-     * also includes direction, data type, and node kind so two records with the
+     * The lookup also includes direction, data type, and node kind so two records with the
      * same textual ID cannot be confused when they represent different bindings.
      *
      *     node configuration ID
@@ -2497,7 +2446,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
      */
     private static ushort PointIndex(IReadOnlyList<PointRecord> points, ExecutableFlowNode node, DataDirection direction, DataType type)
     {
-        var pointId = node.Configuration[node.Kind is FlowNodeKind.FlowInput or FlowNodeKind.FlowOutput ? "interfaceId" : "pointId"].GetString();
+        var pointId = node.Configuration["pointId"].GetString();
 
         return checked((ushort)points.Select((point, index) => new { point, index })
             .Single(item =>
@@ -2552,10 +2501,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
      *     - physical output points have at most one proposed-output node
      *     - the combinational portion of the graph is acyclic
      *
-     * 'shapes' is built per node rather than using Shapes directly because
-     * FlowInput and FlowOutput obtain their data type from the flow interface.
-     * Their effective port shape therefore depends on the selected interface
-     * entry.
+     * 'shapes' is built per node so validation works with a local immutable map.
      */
     private static void ValidateGraph(ExecutableFlowSource source)
     {
@@ -2585,13 +2531,8 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 throw Failure(FlowCompilationDiagnosticCode.UnsupportedNode, $"/nodes/{index}/kind", node.Kind);
             }
 
-            ValidateConfiguration(source, node, index);
-            shapes[node.Id] = node.Kind switch
-            {
-                FlowNodeKind.FlowInput => new[] { new FlowPort("value", DataDirection.Output, InterfaceDataType(source, node)) }.ToDictionary(port => port.Id, StringComparer.Ordinal),
-                FlowNodeKind.FlowOutput => new[] { new FlowPort("value", DataDirection.Input, InterfaceDataType(source, node)) }.ToDictionary(port => port.Id, StringComparer.Ordinal),
-                _ => shape.Ports.ToDictionary(port => port.Id, StringComparer.Ordinal)
-            };
+            ValidateConfiguration(node, index);
+            shapes[node.Id] = shape.Ports.ToDictionary(port => port.Id, StringComparer.Ordinal);
         }
 
         var drivers = new HashSet<FlowPortKey>();
@@ -2634,126 +2575,6 @@ internal sealed partial class FlowCompiler : IFlowCompiler
     }
 
     /*
-     * Validate the flow's externally visible input/output interface.
-     *
-     * The interface is separate from the internal node graph: it defines values
-     * that another flow or host can supply to FlowInput nodes or receive from
-     * FlowOutput nodes. This method validates the interface-level limits and then
-     * delegates validation of individual entries to ValidateInterfaceEntries().
-     */
-    private static void ValidateInterface(ExecutableFlowSource source)
-    {
-        if (source.Interface.SchemaVersion != 1)
-        {
-            throw Failure(FlowCompilationDiagnosticCode.UnsupportedInterfaceSchema, "/interface/schemaVersion", 1);
-        }
-
-        if (source.Interface.Inputs.Count > 64 || source.Interface.Outputs.Count > 64)
-        {
-            throw Failure(FlowCompilationDiagnosticCode.InterfaceLimitExceeded, "/interface", 64);
-        }
-
-        ValidateInterfaceEntries(source.Interface.Inputs.Select(entry => new InterfaceRecord(entry.Id, entry.Name, entry.DataType, entry.Units, entry.DefaultValue)), "/interface/inputs");
-        ValidateInterfaceEntries(source.Interface.Outputs.Select(entry => new InterfaceRecord(entry.Id, entry.Name, entry.DataType, entry.Units, null)), "/interface/outputs");
-    }
-
-    /*
-     * Validate one interface collection (either inputs or outputs).
-     *
-     * IDs are unique using exact ordinal comparison because they are machine
-     * identifiers. Names are unique case-insensitively because they are
-     * human-facing labels. Numeric entries may declare engineering units;
-     * Boolean entries may not. If a default value is present, its JSON type must
-     * match the declared interface data type.
-     */
-    private static void ValidateInterfaceEntries(IEnumerable<InterfaceRecord> entries, string path)
-    {
-        var ids = new HashSet<string>(StringComparer.Ordinal);
-        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var (entry, index) in entries.Select((entry, index) => (entry, index)))
-        {
-            ValidateIdentifier(entry.Id, $"{path}/{index}/id", 63);
-            if (string.IsNullOrWhiteSpace(entry.Name) || Encoding.UTF8.GetByteCount(entry.Name) > 255 || !ids.Add(entry.Id) || !names.Add(entry.Name))
-            {
-                throw Failure(FlowCompilationDiagnosticCode.InvalidInterfaceEntry, $"{path}/{index}");
-            }
-
-            if (entry.DataType is not (DataType.Boolean or DataType.Number))
-            {
-                throw Failure(FlowCompilationDiagnosticCode.UnsupportedInterfaceType, $"{path}/{index}/dataType");
-            }
-
-            if (entry.DataType != DataType.Number && !string.IsNullOrEmpty(entry.Units))
-            {
-                throw Failure(FlowCompilationDiagnosticCode.IncompatibleInterfaceUnits, $"{path}/{index}/units");
-            }
-
-            if (entry.DefaultValue is { } value && !DefaultMatches(value, entry.DataType))
-            {
-                throw Failure(FlowCompilationDiagnosticCode.InvalidInterfaceDefault, $"{path}/{index}/defaultValue");
-            }
-        }
-    }
-
-    /*
-     * Check that an interface default value can represent the declared data type.
-     * Number defaults must also be finite because NaN and infinity are not valid
-     * executable numeric defaults for this profile.
-     */
-    private static bool DefaultMatches(JsonElement value, DataType type)
-    {
-        return type switch
-        {
-            DataType.Boolean => value.ValueKind is JsonValueKind.True or JsonValueKind.False,
-            DataType.Number => value.ValueKind == JsonValueKind.Number && value.TryGetDouble(out var number) && double.IsFinite(number),
-            _ => false
-        };
-    }
-
-    /*
-     * Resolve the interface declaration referenced by a FlowInput or FlowOutput
-     * node and normalize it into the compiler's internal InterfaceRecord shape.
-     *
-     * FlowInput searches source.Interface.Inputs and preserves its optional
-     * default value. FlowOutput searches source.Interface.Outputs and has no
-     * default value. A missing reference is reported against the node's
-     * configuration rather than allowed to fail later during encoding.
-     */
-    private static InterfaceRecord InterfaceEntry(ExecutableFlowSource source, ExecutableFlowNode node)
-    {
-        var id = node.Configuration["interfaceId"].GetString();
-        var entry = node.Kind == FlowNodeKind.FlowInput
-            ? source.Interface.Inputs.Where(item => item.Id == id).Select(item => new InterfaceRecord(item.Id, item.Name, item.DataType, item.Units, item.DefaultValue)).SingleOrDefault()
-            : source.Interface.Outputs.Where(item => item.Id == id).Select(item => new InterfaceRecord(item.Id, item.Name, item.DataType, item.Units, null)).SingleOrDefault();
-        return entry ?? throw Failure(FlowCompilationDiagnosticCode.MissingInterfaceReference, $"/nodes/{Escape(node.Id)}/configuration/interfaceId");
-    }
-
-    /*
-     * Return the executable VM data type for the interface entry referenced by
-     * this FlowInput/FlowOutput node. The explicit switch also prevents an
-     * unsupported future interface type from silently entering Flow IL v1.
-     */
-    private static DataType InterfaceDataType(ExecutableFlowSource source, ExecutableFlowNode node)
-    {
-        return InterfaceEntry(source, node).DataType switch
-        {
-            DataType.Boolean => DataType.Boolean,
-            DataType.Number => DataType.Number,
-            _ => throw new UnreachableException()
-        };
-    }
-
-    /*
-     * Return the engineering units declared by the interface entry referenced by
-     * this FlowInput/FlowOutput node. Null means the value is dimensionless or no
-     * units were declared.
-     */
-    private static string? InterfaceUnits(ExecutableFlowSource source, ExecutableFlowNode node)
-    {
-        return InterfaceEntry(source, node).Units;
-    }
-
-    /*
      * Validate the configuration object for one node according to its node kind.
      *
      * Graph validation proves that ports and connections are structurally valid;
@@ -2763,23 +2584,10 @@ internal sealed partial class FlowCompiler : IFlowCompiler
      * instruction generation can read configuration values without repeatedly
      * defending against malformed source data.
      */
-    private static void ValidateConfiguration(ExecutableFlowSource source, ExecutableFlowNode node, int index)
+    private static void ValidateConfiguration(ExecutableFlowNode node, int index)
     {
         var path = $"/nodes/{index}/configuration";
-        if (node.Kind is FlowNodeKind.FlowInput or FlowNodeKind.FlowOutput)
-        {
-            if (node.Configuration.Count != 1
-                || !node.Configuration.TryGetValue("interfaceId", out var reference)
-                || reference.ValueKind != JsonValueKind.String
-                || reference.GetString() is not string interfaceId)
-            {
-                throw Failure(FlowCompilationDiagnosticCode.MissingInterfaceId, $"{path}/interfaceId");
-            }
-
-            ValidateIdentifier(interfaceId, $"{path}/interfaceId", 63);
-            _ = InterfaceEntry(source, node);
-        }
-        else if (node.Kind is FlowNodeKind.DigitalInput or FlowNodeKind.DigitalOutput or FlowNodeKind.AnalogInput or FlowNodeKind.AnalogOutput)
+        if (node.Kind is FlowNodeKind.DigitalInput or FlowNodeKind.DigitalOutput or FlowNodeKind.AnalogInput or FlowNodeKind.AnalogOutput)
         {
             if (!node.Configuration.TryGetValue("pointId", out var point)
                 || point.ValueKind != JsonValueKind.String
@@ -2984,18 +2792,12 @@ internal sealed partial class FlowCompiler : IFlowCompiler
     /*
      * Determine the data type stored in a node's transient result slot.
      *
-     * FlowInput/FlowOutput are resolved from their interface declaration. Known
-     * numeric node kinds produce Number; the remaining supported executable node
+     * Known numeric node kinds produce Number; the remaining supported executable node
      * kinds produce Boolean. This value is written into the slot table and is also
      * used when resolving output point bindings.
      */
-    private static DataType ResultDataType(ExecutableFlowSource source, ExecutableFlowNode node)
+    private static DataType ResultDataType(ExecutableFlowNode node)
     {
-        if (node.Kind is FlowNodeKind.FlowInput or FlowNodeKind.FlowOutput)
-        {
-            return InterfaceDataType(source, node);
-        }
-
         if (node.Kind is
             FlowNodeKind.NumericConstant or
             FlowNodeKind.Add or
@@ -3146,11 +2948,10 @@ internal sealed partial class FlowCompiler : IFlowCompiler
     }
 
     /*
-     * Build the canonical table of external point/interface bindings referenced by
-     * executable I/O nodes.
+     * Build the canonical table of physical and virtual bindings referenced by executable I/O nodes.
      *
      * Each record captures the binding ID, direction, data type, units, and whether
-     * it represents a flow-interface endpoint. Duplicate equivalent records are
+     * it represents a physical or virtual endpoint. Duplicate equivalent records are
      * removed, then the table is sorted so equivalent source produces stable point
      * indices and therefore deterministic instruction bytes.
      *
@@ -3158,7 +2959,6 @@ internal sealed partial class FlowCompiler : IFlowCompiler
      * PointIndex() when instructions need to refer to a binding.
      */
     private static PointRecord[] BuildPoints(
-        ExecutableFlowSource source,
         IReadOnlyList<ExecutableFlowNode> nodes,
         IReadOnlyList<FlowPoint> resolvedPoints) =>
     [
@@ -3167,27 +2967,19 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 FlowNodeKind.DigitalInput or
                 FlowNodeKind.DigitalOutput or
                 FlowNodeKind.AnalogInput or
-                FlowNodeKind.AnalogOutput or
-                FlowNodeKind.FlowInput or
-                FlowNodeKind.FlowOutput)
+                FlowNodeKind.AnalogOutput)
             .Select(node => new PointRecord(
                 // Id
-                node.Configuration[
-                    node.Kind is FlowNodeKind.FlowInput or FlowNodeKind.FlowOutput
-                        ? "interfaceId"
-                        : "pointId"]
-                    .GetString()!,
+                node.Configuration["pointId"].GetString()!,
 
                 // Direction
                 node.Kind switch
                 {
                     FlowNodeKind.DigitalInput => DataDirection.Input,
                     FlowNodeKind.AnalogInput => DataDirection.Input,
-                    FlowNodeKind.FlowInput => DataDirection.Input,
 
                     FlowNodeKind.DigitalOutput => DataDirection.Output,
                     FlowNodeKind.AnalogOutput => DataDirection.Output,
-                    FlowNodeKind.FlowOutput => DataDirection.Output,
                 },
 
                 // Type
@@ -3201,21 +2993,13 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                     FlowNodeKind.AnalogOutput
                         => DataType.Number,
 
-                    FlowNodeKind.FlowInput or
-                    FlowNodeKind.FlowOutput
-                        => InterfaceDataType(source, node),
-
                     _ => DataType.Any
                 },
 
                 // Units
-                node.Kind is FlowNodeKind.FlowInput or FlowNodeKind.FlowOutput
-                    ? InterfaceUnits(source, node)
-                    : PointUnits(node, resolvedPoints),
+                PointUnits(node, resolvedPoints),
 
-                node.Kind is FlowNodeKind.FlowInput or FlowNodeKind.FlowOutput
-                    ? PointBindingKind.FlowInterface
-                    : PointBindingKind.ControllerPoint,
+                PointBinding(node, resolvedPoints),
 
                 // Kind
                 node.Kind))
@@ -3224,6 +3008,20 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             .ThenBy(point => point.Id, StringComparer.Ordinal)
             .ThenBy(point => point.Direction)
     ];
+
+    /// <summary>
+    /// Resolves a distinct physical, virtual, or legacy-interface wire binding from the compiled target.
+    /// </summary>
+    private static PointBindingKind PointBinding(
+        ExecutableFlowNode node,
+        IReadOnlyList<FlowPoint> resolvedPoints)
+    {
+        var pointId = node.Configuration["pointId"].GetString();
+        var point = resolvedPoints.SingleOrDefault(candidate => candidate.Id == pointId);
+        return string.Equals(point?.Implementation, "virtual", StringComparison.Ordinal)
+            ? PointBindingKind.VirtualPoint
+            : PointBindingKind.ControllerPoint;
+    }
 
     /// <summary>
     /// Gets units preserved in the source node when present, otherwise resolves
@@ -3312,7 +3110,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
      * two numeric inputs to have identical units; pass-through numeric operations
      * preserve the units of their input.
      *
-     * Physical and flow outputs are checked against the units declared by their
+     * Physical and virtual outputs are checked against the units declared by their
      * destination binding so a value cannot be written to an incompatible endpoint.
      */
     private static void ValidateUnits(FlowCompilationRequest request)
@@ -3328,7 +3126,6 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             var value = node.Kind switch
             {
                 FlowNodeKind.AnalogInput => request.Target.Points.SingleOrDefault(point => point.Id == node.Configuration["pointId"].GetString())?.Units,
-                FlowNodeKind.FlowInput => InterfaceUnits(source, node),
                 FlowNodeKind.NumericConstant => null,
                 FlowNodeKind.Add => RequireMatchingUnits(source, units, id, "a", "b"),
                 FlowNodeKind.Comparator => RequireMatchingUnits(source, units, id, "a", "b"),
@@ -3349,15 +3146,6 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 if (!string.Equals(inputUnits, pointUnits, StringComparison.Ordinal))
                 {
                     throw Failure(FlowCompilationDiagnosticCode.AnalogOutputUnitMismatch, $"/nodes/{Escape(id)}");
-                }
-            }
-
-            if (node.Kind == FlowNodeKind.FlowOutput)
-            {
-                var inputUnits = units[SourceNode(source, id, "value")];
-                if (!string.Equals(inputUnits, InterfaceUnits(source, node), StringComparison.Ordinal))
-                {
-                    throw Failure(FlowCompilationDiagnosticCode.FlowOutputUnitMismatch, $"/nodes/{Escape(id)}/ports/value");
                 }
             }
         }
@@ -3621,11 +3409,8 @@ internal sealed partial class FlowCompiler : IFlowCompiler
     /* Uniquely identifies one input/output port on one source node. */
     private sealed record FlowPortKey(string NodeId, string PortId);
 
-    /* Canonical compiler representation of one physical-point or flow-interface binding. */
+    /* Canonical compiler representation of one physical or virtual point binding. */
     private sealed record PointRecord(string Id, DataDirection Direction, DataType DataType, string? Units, PointBindingKind BindingKind, FlowNodeKind Kind);
-
-    /* Normalized representation shared by interface-input and interface-output validation. */
-    private sealed record InterfaceRecord(string Id, string Name, DataType DataType, string? Units, JsonElement? DefaultValue);
 
     /* Typed literal stored in the canonical constant pool before binary encoding. */
     private sealed record ConstantRecord(DataType DataType, double Number);

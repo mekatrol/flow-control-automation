@@ -33,16 +33,6 @@ public static class FlowCompilationDiagnostics
                 [FlowCompilationDiagnosticCode.CombinationalCycle] = D(1109, "Combinational cycle", "The graph contains a combinational cycle involving node \"{0}\"."),
                 [FlowCompilationDiagnosticCode.DuplicatePointOutputDriver] = D(1110, "Point has multiple output drivers", "Only one proposed-output node may target point \"{0}\"."),
 
-                // Interface
-                [FlowCompilationDiagnosticCode.UnsupportedInterfaceSchema] = D(1201, "Unsupported interface schema", "Only interface schema {0} is supported."),
-                [FlowCompilationDiagnosticCode.InterfaceLimitExceeded] = D(1202, "Interface limit exceeded", "At most {0} interface inputs and {0} interface outputs are supported."),
-                [FlowCompilationDiagnosticCode.InvalidInterfaceEntry] = D(1203, "Invalid interface entry", "Interface IDs and names must be non-empty, bounded, and unique."),
-                [FlowCompilationDiagnosticCode.UnsupportedInterfaceType] = D(1204, "Unsupported interface type", "The current executable profile supports Boolean and number interfaces."),
-                [FlowCompilationDiagnosticCode.IncompatibleInterfaceUnits] = D(1205, "Incompatible interface units", "Only number interfaces may declare engineering units."),
-                [FlowCompilationDiagnosticCode.InvalidInterfaceDefault] = D(1206, "Invalid interface default", "The default value does not match the declared interface type."),
-                [FlowCompilationDiagnosticCode.MissingInterfaceId] = D(1207, "Missing interface ID", "An interfaceId string is required."),
-                [FlowCompilationDiagnosticCode.MissingInterfaceReference] = D(1208, "Interface reference not found", "The referenced interface entry does not exist in the required direction."),
-
                 // Configuration
                 [FlowCompilationDiagnosticCode.MissingPointId] = D(1301, "Missing point ID", "A pointId string is required."),
                 [FlowCompilationDiagnosticCode.UnexpectedPointConfigurationProperty] = D(1302, "Unsupported point configuration", "Only pointId and optional units are supported for this node."),
@@ -59,7 +49,6 @@ public static class FlowCompilationDiagnostics
 
                 // Units
                 [FlowCompilationDiagnosticCode.AnalogOutputUnitMismatch] = D(1401, "Analog output unit mismatch", "Analog output units do not match the bound point."),
-                [FlowCompilationDiagnosticCode.FlowOutputUnitMismatch] = D(1402, "Flow output unit mismatch", "Flow output units do not match its input."),
                 [FlowCompilationDiagnosticCode.NumericOperandUnitMismatch] = D(1403, "Numeric operand unit mismatch", "Numeric operands require identical units."),
 
                 // Target

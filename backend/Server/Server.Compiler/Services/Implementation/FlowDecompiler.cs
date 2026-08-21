@@ -540,7 +540,7 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
                     InputQualityPolicy.Propagate)
                 || bindingKind is not (
                     PointBindingKind.ControllerPoint or
-                    PointBindingKind.FlowInterface))
+                    PointBindingKind.VirtualPoint))
             {
                 Fail(FlowCompilationDiagnosticCode.InvalidPointEncoding, $"/points/{i}");
             }
@@ -713,30 +713,11 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
 
         return point.BindingKind switch
         {
-            PointBindingKind.FlowInterface =>
-                ConfigureInterface(),
-
-            PointBindingKind.ControllerPoint =>
+            PointBindingKind.ControllerPoint or PointBindingKind.VirtualPoint =>
                 ConfigureControllerPoint(),
 
             _ => throw Error(FlowCompilationDiagnosticCode.UnsupportedBindingKind, $"/instructions/{instructionIndex}/auxiliary")
         };
-
-        FlowNodeKind ConfigureInterface()
-        {
-            configuration["interfaceId"] =
-                JsonSerializer.SerializeToElement(point.Id);
-
-            if (!string.IsNullOrEmpty(point.Units))
-            {
-                configuration["units"] =
-                    JsonSerializer.SerializeToElement(point.Units);
-            }
-
-            return direction == DataDirection.Input
-                ? FlowNodeKind.FlowInput
-                : FlowNodeKind.FlowOutput;
-        }
 
         FlowNodeKind ConfigureControllerPoint()
         {
@@ -1169,7 +1150,7 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
     /* Directory metadata needed to locate and parse one validated section payload. */
     private sealed record SectionInfo(int Offset, int Length, int Count, ushort Version);
 
-    /* Decoded point/interface binding from section 2. */
+    /* Decoded physical or virtual point binding from section 2. */
     private sealed record PointRecord(
         DataDirection Direction,
         DataType DataType,

@@ -3,5 +3,5 @@ namespace Server.Common.Contracts;
 public enum PointBindingKind : byte
 {
     ControllerPoint = 0,
-    FlowInterface = 1
+    VirtualPoint = 1
 }

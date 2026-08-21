@@ -270,7 +270,7 @@ static bool read_slot(platform_settings_context_t *context, uint32_t slot, setti
     memcpy(payload->settings, plaintext + header->bootstrap_size, header->settings_size);
     payload->settings_size = header->settings_size;
 
-    *generation            = header->generation;
+    *generation = header->generation;
     memset(plaintext, 0, sizeof(plaintext));
 
     return true;
@@ -454,15 +454,15 @@ platform_settings_result_t platform_settings_initialize(const settings_storage_c
     memset(&settings_context, 0, sizeof(settings_context));
     settings_context.first_reserved_sector = config->first_reserved_sector;
 
-    *store                                 = (settings_store_t){.get_bootstrap   = get_bootstrap,
-                                                                .stage_bootstrap = stage_bootstrap,
-                                                                .get_settings    = get_settings,
-                                                                .stage_settings  = stage_settings,
-                                                                .commit          = commit,
-                                                                .abort           = abort_transaction,
-                                                                .context         = &settings_context};
-    const gpio_config_t detect_config      = {
-             .pin_bit_mask = UINT64_C(1) << config->card_detect_gpio, .mode = GPIO_MODE_INPUT, .pull_up_en = GPIO_PULLUP_ENABLE};
+    *store                            = (settings_store_t){.get_bootstrap   = get_bootstrap,
+                                                           .stage_bootstrap = stage_bootstrap,
+                                                           .get_settings    = get_settings,
+                                                           .stage_settings  = stage_settings,
+                                                           .commit          = commit,
+                                                           .abort           = abort_transaction,
+                                                           .context         = &settings_context};
+    const gpio_config_t detect_config = {
+        .pin_bit_mask = UINT64_C(1) << config->card_detect_gpio, .mode = GPIO_MODE_INPUT, .pull_up_en = GPIO_PULLUP_ENABLE};
 
     if (config->first_reserved_sector == 0)
     {

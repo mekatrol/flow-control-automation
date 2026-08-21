@@ -1,6 +1,5 @@
 using Server.Common.Contracts;
 using System.Globalization;
-using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -38,7 +37,6 @@ internal partial class FlowValidator : IFlowValidator
             throw new FlowValidationException($"unsupported flow status \"{flow.Status}\"");
         }
 
-        ValidateInterface(flow.Interface);
         ValidateVirtualPoints(flow.VirtualPointDeclarations);
 
         if (flow.Revision < 1)
@@ -75,8 +73,6 @@ internal partial class FlowValidator : IFlowValidator
             {
                 throw new FlowValidationException($"nodes[{nodeIndex}]: unsupported kind");
             }
-
-            ValidateInterfaceNode(flow.Interface, node, nodeIndex);
 
             if (!double.IsFinite(node.X)
                 || !double.IsFinite(node.Y)
@@ -155,22 +151,6 @@ internal partial class FlowValidator : IFlowValidator
         }
     }
 
-    private static void ValidateInterface(FlowInterface definition)
-    {
-        if (definition.SchemaVersion != 1)
-        {
-            throw new FlowValidationException("interface.schemaVersion: only version 1 is supported");
-        }
-
-        if (definition.Inputs.Count > 64 || definition.Outputs.Count > 64)
-        {
-            throw new FlowValidationException("interface: at most 64 inputs and 64 outputs are supported");
-        }
-
-        ValidateEntries(definition.Inputs.Select(entry => (entry.Id, entry.Name, entry.DataType, entry.Units, entry.DefaultValue)), "interface.inputs", true);
-        ValidateEntries(definition.Outputs.Select(entry => (entry.Id, entry.Name, entry.DataType, entry.Units, (JsonElement?)null)), "interface.outputs", false);
-    }
-
     private static void ValidateVirtualPoints(IReadOnlyList<VirtualPointDeclaration> declarations)
     {
         var keys = new HashSet<string>(StringComparer.Ordinal);
@@ -203,79 +183,6 @@ internal partial class FlowValidator : IFlowValidator
             {
                 throw new FlowValidationException($"virtualPointDeclarations[{index}].relinquishDefault does not match valueType");
             }
-        }
-    }
-
-    private static void ValidateEntries(
-        IEnumerable<(string Id, string Name, DataType DataType, string? Units, JsonElement? DefaultValue)> values,
-        string path,
-        bool inputs)
-    {
-        var ids = new HashSet<string>(StringComparer.Ordinal);
-        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var (entry, index) in values.Select((entry, index) => (entry, index)))
-        {
-            if (string.IsNullOrWhiteSpace(entry.Id) || string.IsNullOrWhiteSpace(entry.Name) || !ids.Add(entry.Id) || !names.Add(entry.Name))
-            {
-                throw new FlowValidationException($"{path}[{index}]: id and name must be non-empty and unique");
-            }
-
-            if (entry.DataType is not (DataType.Boolean or DataType.Number or DataType.String or DataType.Event))
-            {
-                throw new FlowValidationException($"{path}[{index}].dataType: unsupported type");
-            }
-
-            if (entry.DataType != DataType.Number && !string.IsNullOrEmpty(entry.Units))
-            {
-                throw new FlowValidationException($"{path}[{index}].units: units require number data type");
-            }
-
-            if (Encoding.UTF8.GetByteCount(entry.Id) > 63 || Encoding.UTF8.GetByteCount(entry.Name) > 255 || (entry.Units is not null && Encoding.UTF8.GetByteCount(entry.Units) > 63))
-            {
-                throw new FlowValidationException($"{path}[{index}]: text exceeds interface bounds");
-            }
-
-            if (inputs && entry.DefaultValue is { } value && !Matches(value, entry.DataType))
-            {
-                throw new FlowValidationException($"{path}[{index}].defaultValue: value does not match dataType");
-            }
-        }
-    }
-
-    private static bool Matches(JsonElement value, DataType dataType) => dataType switch
-    {
-        DataType.Boolean => value.ValueKind is JsonValueKind.True or JsonValueKind.False,
-        DataType.Number => value.ValueKind == JsonValueKind.Number && value.TryGetDouble(out var number) && double.IsFinite(number),
-        DataType.String => value.ValueKind == JsonValueKind.String,
-        DataType.Event => value.ValueKind == JsonValueKind.Null,
-        _ => false
-    };
-
-    private static void ValidateInterfaceNode(FlowInterface definition, FlowNode node, int nodeIndex)
-    {
-        if (node.Kind is not (FlowNodeKind.FlowInput or FlowNodeKind.FlowOutput))
-        {
-            return;
-        }
-
-        if (node.Configuration.Count != 1 || !node.Configuration.TryGetValue("interfaceId", out var value) || value.ValueKind != JsonValueKind.String)
-        {
-            throw new FlowValidationException($"nodes[{nodeIndex}].configuration.interfaceId: required string");
-        }
-
-        var id = value.GetString();
-        var entry = node.Kind == FlowNodeKind.FlowInput
-            ? definition.Inputs.Select(item => (item.Id, item.Name, item.DataType, item.Units)).SingleOrDefault(item => item.Id == id)
-            : definition.Outputs.Select(item => (item.Id, item.Name, item.DataType, item.Units)).SingleOrDefault(item => item.Id == id);
-        if (entry.Id is null)
-        {
-            throw new FlowValidationException($"nodes[{nodeIndex}].configuration.interfaceId: unknown interface entry");
-        }
-
-        var expectedDirection = node.Kind == FlowNodeKind.FlowInput ? DataDirection.Output : DataDirection.Input;
-        if (node.Connectors.Count != 1 || node.Connectors[0].Direction != expectedDirection || node.Connectors[0].DataType != entry.DataType)
-        {
-            throw new FlowValidationException($"nodes[{nodeIndex}].connectors: terminal connector does not match interface entry");
         }
     }
 

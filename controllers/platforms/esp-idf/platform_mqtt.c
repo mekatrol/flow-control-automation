@@ -347,9 +347,9 @@ bool platform_mqtt_get_transport_route(mqtt_transport_route_t *route, void *cont
 
     const network_link_snapshot_t snapshot = network_manager_get_link_snapshot(network_manager, selected_link);
 
-    *route                                 = (mqtt_transport_route_t){
-                                        .identifier = (uint32_t)selected_link,
-                                        .generation = snapshot.transitioned_at_ms,
+    *route = (mqtt_transport_route_t){
+        .identifier = (uint32_t)selected_link,
+        .generation = snapshot.transitioned_at_ms,
     };
     snprintf(route->name, sizeof(route->name), "%s", network_get_link_id_name(selected_link));
 

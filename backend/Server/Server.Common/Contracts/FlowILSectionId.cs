@@ -12,7 +12,7 @@ public enum FlowILSectionId : int
     Constants = 1,
 
     /// <summary>
-    /// Contains controller-point and flow-interface binding records.
+    /// Contains physical and virtual point-binding records.
     /// </summary>
     Points = 2,
 

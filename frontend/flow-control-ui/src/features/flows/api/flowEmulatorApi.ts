@@ -7,7 +7,7 @@ export interface EmulatorSnapshot {
   lifecycleState: string;
   virtualTimeMilliseconds: number;
   scanNumber: number;
-  inputs: { pointId: string; typedValue: EmulatorValue; isInterface: boolean }[];
+  inputs: { pointId: string; typedValue: EmulatorValue }[];
   outputHistory: {
     scanNumber: number;
     outputId: string;
@@ -16,7 +16,6 @@ export interface EmulatorSnapshot {
     quality: string;
     units?: string;
     lastChangeScan: number;
-    isInterface: boolean;
   }[];
   activeFault?: string;
 }

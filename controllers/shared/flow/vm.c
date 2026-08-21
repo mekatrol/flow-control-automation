@@ -8,37 +8,37 @@
 
 enum
 {
-    ENVELOPE_BYTES           = 128,
-    DIRECTORY_ENTRY_BYTES    = 48,
-    SECTION_COUNT            = 8,
-    SLOT_RECORD_BYTES        = 8,
-    INSTRUCTION_RECORD_BYTES = 12,
-    UNUSED_INDEX             = 0xffff,
-    OPCODE_READ_POINT        = 1,
-    OPCODE_CONSTANT          = 2,
-    OPCODE_NOT               = 3,
-    OPCODE_AND               = 4,
-    OPCODE_OR                = 5,
-    OPCODE_LOAD_STATE        = 6,
-    OPCODE_PROPOSE_OUTPUT    = 7,
-    OPCODE_STAGE_STATE       = 8,
-    OPCODE_NAND              = 9,
-    OPCODE_NOR               = 10,
-    OPCODE_XOR               = 11,
-    OPCODE_XNOR              = 12,
-    OPCODE_NUMERIC_CONSTANT  = 13,
-    OPCODE_ADD               = 14,
-    OPCODE_COMPARE           = 15,
-    OPCODE_LEVEL_SHIFTER     = 16,
-    OPCODE_QUALITY_GOOD      = 17,
-    OPCODE_ON_DELAY          = 18,
-    OPCODE_RISING_EDGE       = 19,
-    OPCODE_MIN               = 20,
-    OPCODE_MAX               = 21,
-    OPCODE_CLAMP             = 22,
-    OPCODE_SELECT            = 23,
-    OPCODE_COPY              = 24,
-    OPCODE_COMMIT            = 255,
+    ENVELOPE_BYTES              = 128,
+    DIRECTORY_ENTRY_BYTES       = 48,
+    SECTION_COUNT               = 8,
+    SLOT_RECORD_BYTES           = 8,
+    INSTRUCTION_RECORD_BYTES    = 12,
+    UNUSED_INDEX                = 0xffff,
+    OPCODE_READ_POINT           = 1,
+    OPCODE_CONSTANT             = 2,
+    OPCODE_NOT                  = 3,
+    OPCODE_AND                  = 4,
+    OPCODE_OR                   = 5,
+    OPCODE_LOAD_STATE           = 6,
+    OPCODE_PROPOSE_OUTPUT       = 7,
+    OPCODE_STAGE_STATE          = 8,
+    OPCODE_NAND                 = 9,
+    OPCODE_NOR                  = 10,
+    OPCODE_XOR                  = 11,
+    OPCODE_XNOR                 = 12,
+    OPCODE_NUMERIC_CONSTANT     = 13,
+    OPCODE_ADD                  = 14,
+    OPCODE_COMPARE              = 15,
+    OPCODE_LEVEL_SHIFTER        = 16,
+    OPCODE_QUALITY_GOOD         = 17,
+    OPCODE_ON_DELAY             = 18,
+    OPCODE_RISING_EDGE          = 19,
+    OPCODE_MIN                  = 20,
+    OPCODE_MAX                  = 21,
+    OPCODE_CLAMP                = 22,
+    OPCODE_SELECT               = 23,
+    OPCODE_COPY                 = 24,
+    OPCODE_COMMIT               = 255,
     RETAINED_STATE_RECORD_BYTES = 9,
 };
 
@@ -166,10 +166,10 @@ static flow_vm_result_t get_metadata(const uint8_t *artifact, size_t size, metad
 
         const uint16_t version = get_u16(&entry[2]);
         section_t *section     = &metadata->sections[index];
-        section->version   = version;
-        section->offset    = get_u32(&entry[4]);
-        section->length    = get_u32(&entry[8]);
-        section->count     = get_u32(&entry[12]);
+        section->version       = version;
+        section->offset        = get_u32(&entry[4]);
+        section->length        = get_u32(&entry[8]);
+        section->count         = get_u32(&entry[12]);
 
         if (version != 1U || section->offset != expected_offset || section->offset > size ||
             section->length > size - section->offset)
@@ -223,8 +223,7 @@ static const flow_vm_input_sample_t *get_input(const flow_vm_t *vm, const char *
 {
     for (size_t index = 0; index < vm->captured_input_count; index++)
     {
-        if (strcmp(vm->captured_inputs[index].point_id, point_id) == 0 &&
-            vm->captured_inputs[index].binding_kind == binding_kind)
+        if (strcmp(vm->captured_inputs[index].point_id, point_id) == 0 && vm->captured_inputs[index].binding_kind == binding_kind)
         {
             return &vm->captured_inputs[index];
         }
@@ -268,8 +267,7 @@ flow_vm_result_t flow_vm_get_requirements(const uint8_t *artifact, size_t artifa
 
     for (uint32_t index = 0; index < slots.count; index++)
     {
-        if (artifact[slots.offset + index * SLOT_RECORD_BYTES] >= 3U &&
-            artifact[slots.offset + index * SLOT_RECORD_BYTES] <= 5U)
+        if (artifact[slots.offset + index * SLOT_RECORD_BYTES] >= 3U && artifact[slots.offset + index * SLOT_RECORD_BYTES] <= 5U)
         {
             requirements->state_count++;
         }
@@ -335,6 +333,7 @@ flow_vm_result_t flow_vm_prepare(const uint8_t *artifact, size_t artifact_size, 
             vm->constant_types[index] = 1U;
             constant_offset += 4U;
         }
+
         else if (record[0] == 2U && record[1] == 0U && get_u16(&record[2]) == 0U &&
                  constant_offset + 12U <= constants.offset + constants.length)
         {
@@ -346,9 +345,10 @@ flow_vm_result_t flow_vm_prepare(const uint8_t *artifact, size_t artifact_size, 
             }
 
             vm->numeric_constants[index] = number;
-            vm->constant_types[index]     = 2U;
+            vm->constant_types[index]    = 2U;
             constant_offset += 12U;
         }
+
         else
         {
             return get_result(FLOW_VM_INVALID_CONSTANT, "/constants");
@@ -379,8 +379,8 @@ flow_vm_result_t flow_vm_prepare(const uint8_t *artifact, size_t artifact_size, 
             return get_result(FLOW_VM_INVALID_BINDING, "/points");
         }
 
-        vm->points[index].direction = artifact[point_offset];
-        vm->points[index].type      = artifact[point_offset + 1U];
+        vm->points[index].direction    = artifact[point_offset];
+        vm->points[index].type         = artifact[point_offset + 1U];
         vm->points[index].binding_kind = artifact[point_offset + 3U];
 
         if ((vm->points[index].type != 1U && vm->points[index].type != 2U) || vm->points[index].binding_kind > 1U)
@@ -449,9 +449,10 @@ flow_vm_result_t flow_vm_prepare(const uint8_t *artifact, size_t artifact_size, 
 
                 vm->timer_durations_ms[state_index] = (uint64_t)vm->numeric_constants[constant];
             }
+
             else
             {
-                vm->initial_state[state_index] = vm->constants[constant];
+                vm->initial_state[state_index]         = vm->constants[constant];
                 vm->initial_numeric_state[state_index] = vm->numeric_constants[constant];
             }
 
@@ -485,8 +486,7 @@ flow_vm_result_t flow_vm_prepare(const uint8_t *artifact, size_t artifact_size, 
         if ((instruction->result != UNUSED_INDEX && instruction->result >= vm->slot_count) ||
             (instruction->operand0 != UNUSED_INDEX && instruction->operand0 >= vm->slot_count) ||
             (instruction->operand1 != UNUSED_INDEX && instruction->opcode != OPCODE_LEVEL_SHIFTER &&
-             instruction->opcode != OPCODE_CLAMP &&
-             instruction->operand1 >= vm->slot_count) ||
+             instruction->opcode != OPCODE_CLAMP && instruction->operand1 >= vm->slot_count) ||
             (instruction->opcode == OPCODE_SELECT && instruction->auxiliary >= vm->slot_count) ||
             (instruction->opcode == OPCODE_CLAMP &&
              (instruction->operand1 >= vm->constant_count || instruction->auxiliary >= vm->constant_count)))
@@ -516,8 +516,7 @@ flow_vm_result_t flow_vm_initialize(flow_vm_t *vm, const uint8_t *retained_state
 {
     const size_t expected_size = vm == NULL ? 0U : vm->state_count * RETAINED_STATE_RECORD_BYTES;
 
-    if (vm == NULL || vm->lifecycle != FLOW_VM_PREPARED ||
-        ((retained_state == NULL) != (retained_state_size == 0U)) ||
+    if (vm == NULL || vm->lifecycle != FLOW_VM_PREPARED || ((retained_state == NULL) != (retained_state_size == 0U)) ||
         (retained_state != NULL && retained_state_size != expected_size))
     {
         return get_result(FLOW_VM_WRONG_STATE, "/lifecycle");
@@ -544,6 +543,7 @@ flow_vm_result_t flow_vm_initialize(flow_vm_t *vm, const uint8_t *retained_state
 
             vm->current_state[index] = record[1] == 1U;
         }
+
         else
         {
             const double value = get_f64(&record[1]);
@@ -556,6 +556,7 @@ flow_vm_result_t flow_vm_initialize(flow_vm_t *vm, const uint8_t *retained_state
             vm->current_numeric_state[index] = value;
         }
     }
+
     vm->lifecycle = FLOW_VM_INITIALIZED;
 
     return get_result(FLOW_VM_OK, "");
@@ -624,18 +625,16 @@ flow_vm_result_t flow_vm_step_instruction(flow_vm_t *vm, flow_vm_execution_view_
                 return get_result(FLOW_VM_INVALID_OPERAND, "/instructions/point");
             }
 
-            const flow_vm_input_sample_t *sample = get_input(
-                vm,
-                vm->points[instruction->auxiliary].id,
-                vm->points[instruction->auxiliary].binding_kind);
+            const flow_vm_input_sample_t *sample =
+                get_input(vm, vm->points[instruction->auxiliary].id, vm->points[instruction->auxiliary].binding_kind);
 
             if (sample == NULL || (sample->type != 0U && sample->type != vm->points[instruction->auxiliary].type))
             {
                 return get_result(FLOW_VM_INPUT_REJECTED, "/inputs");
             }
 
-            vm->working_slots[instruction->result] = sample->value;
-            vm->numeric_slots[instruction->result] = sample->number;
+            vm->working_slots[instruction->result]  = sample->value;
+            vm->numeric_slots[instruction->result]  = sample->number;
             vm->slot_qualities[instruction->result] = sample->quality;
             break;
         }
@@ -650,7 +649,7 @@ flow_vm_result_t flow_vm_step_instruction(flow_vm_t *vm, flow_vm_execution_view_
             vm->working_slots[instruction->result] = vm->constants[instruction->auxiliary];
             break;
         case OPCODE_NOT:
-            vm->working_slots[instruction->result] = !vm->working_slots[instruction->operand0];
+            vm->working_slots[instruction->result]  = !vm->working_slots[instruction->operand0];
             vm->slot_qualities[instruction->result] = vm->slot_qualities[instruction->operand0];
             break;
         case OPCODE_AND:
@@ -725,37 +724,52 @@ flow_vm_result_t flow_vm_step_instruction(flow_vm_t *vm, flow_vm_execution_view_
                     : vm->slot_qualities[instruction->operand1];
             break;
         }
+
         case OPCODE_MIN:
         case OPCODE_MAX: {
-            const double left = vm->numeric_slots[instruction->operand0];
-            const double right = vm->numeric_slots[instruction->operand1];
+            const double left                      = vm->numeric_slots[instruction->operand0];
+            const double right                     = vm->numeric_slots[instruction->operand1];
             vm->numeric_slots[instruction->result] = instruction->opcode == OPCODE_MIN ? fmin(left, right) : fmax(left, right);
             vm->slot_qualities[instruction->result] =
                 vm->slot_qualities[instruction->operand0] > vm->slot_qualities[instruction->operand1]
-                    ? vm->slot_qualities[instruction->operand0] : vm->slot_qualities[instruction->operand1];
+                    ? vm->slot_qualities[instruction->operand0]
+                    : vm->slot_qualities[instruction->operand1];
             break;
         }
+
         case OPCODE_CLAMP: {
             if (instruction->operand1 >= vm->constant_count || instruction->auxiliary >= vm->constant_count ||
                 vm->constant_types[instruction->operand1] != 2U || vm->constant_types[instruction->auxiliary] != 2U)
+            {
                 return get_result(FLOW_VM_INVALID_OPERAND, "/instructions/clamp");
-            vm->numeric_slots[instruction->result] = fmin(fmax(vm->numeric_slots[instruction->operand0],
-                vm->numeric_constants[instruction->operand1]), vm->numeric_constants[instruction->auxiliary]);
+            }
+
+            vm->numeric_slots[instruction->result] =
+                fmin(fmax(vm->numeric_slots[instruction->operand0], vm->numeric_constants[instruction->operand1]),
+                     vm->numeric_constants[instruction->auxiliary]);
             vm->slot_qualities[instruction->result] = vm->slot_qualities[instruction->operand0];
             break;
         }
+
         case OPCODE_SELECT: {
             const uint16_t selected = vm->working_slots[instruction->operand0] ? instruction->operand1 : instruction->auxiliary;
-            if (selected >= vm->slot_count) return get_result(FLOW_VM_INVALID_OPERAND, "/instructions/select");
-            vm->working_slots[instruction->result] = vm->working_slots[selected];
-            vm->numeric_slots[instruction->result] = vm->numeric_slots[selected];
+
+            if (selected >= vm->slot_count)
+            {
+                return get_result(FLOW_VM_INVALID_OPERAND, "/instructions/select");
+            }
+
+            vm->working_slots[instruction->result]  = vm->working_slots[selected];
+            vm->numeric_slots[instruction->result]  = vm->numeric_slots[selected];
             vm->slot_qualities[instruction->result] = vm->slot_qualities[instruction->operand0] > vm->slot_qualities[selected]
-                ? vm->slot_qualities[instruction->operand0] : vm->slot_qualities[selected];
+                                                          ? vm->slot_qualities[instruction->operand0]
+                                                          : vm->slot_qualities[selected];
             break;
         }
+
         case OPCODE_COPY:
-            vm->working_slots[instruction->result] = vm->working_slots[instruction->operand0];
-            vm->numeric_slots[instruction->result] = vm->numeric_slots[instruction->operand0];
+            vm->working_slots[instruction->result]  = vm->working_slots[instruction->operand0];
+            vm->numeric_slots[instruction->result]  = vm->numeric_slots[instruction->operand0];
             vm->slot_qualities[instruction->result] = vm->slot_qualities[instruction->operand0];
             break;
         case OPCODE_COMPARE: {
@@ -765,13 +779,27 @@ flow_vm_result_t flow_vm_step_instruction(flow_vm_t *vm, flow_vm_execution_view_
 
             switch (instruction->auxiliary)
             {
-                case 1U: value = left < right; break;
-                case 2U: value = left <= right; break;
-                case 3U: value = left == right; break;
-                case 4U: value = left >= right; break;
-                case 5U: value = left > right; break;
-                case 6U: value = left != right; break;
-                default: return get_result(FLOW_VM_INVALID_OPERAND, "/instructions/comparison");
+                case 1U:
+                    value = left < right;
+                    break;
+                case 2U:
+                    value = left <= right;
+                    break;
+                case 3U:
+                    value = left == right;
+                    break;
+                case 4U:
+                    value = left >= right;
+                    break;
+                case 5U:
+                    value = left > right;
+                    break;
+                case 6U:
+                    value = left != right;
+                    break;
+                default:
+
+                    return get_result(FLOW_VM_INVALID_OPERAND, "/instructions/comparison");
             }
 
             vm->working_slots[instruction->result] = value;
@@ -781,6 +809,7 @@ flow_vm_result_t flow_vm_step_instruction(flow_vm_t *vm, flow_vm_execution_view_
                     : vm->slot_qualities[instruction->operand1];
             break;
         }
+
         case OPCODE_LEVEL_SHIFTER: {
             if (instruction->operand1 >= vm->constant_count || instruction->auxiliary >= vm->constant_count ||
                 vm->constant_types[instruction->operand1] != 2U || vm->constant_types[instruction->auxiliary] != 2U)
@@ -796,12 +825,13 @@ flow_vm_result_t flow_vm_step_instruction(flow_vm_t *vm, flow_vm_execution_view_
                 return get_result(FLOW_VM_INPUT_REJECTED, "/arithmeticOverflow");
             }
 
-            vm->numeric_slots[instruction->result] = value;
+            vm->numeric_slots[instruction->result]  = value;
             vm->slot_qualities[instruction->result] = vm->slot_qualities[instruction->operand0];
             break;
         }
+
         case OPCODE_QUALITY_GOOD:
-            vm->working_slots[instruction->result] = vm->slot_qualities[instruction->operand0] == 0U;
+            vm->working_slots[instruction->result]  = vm->slot_qualities[instruction->operand0] == 0U;
             vm->slot_qualities[instruction->result] = 0U;
             break;
         case OPCODE_ON_DELAY: {
@@ -815,8 +845,9 @@ flow_vm_result_t flow_vm_step_instruction(flow_vm_t *vm, flow_vm_execution_view_
             if (!vm->working_slots[instruction->operand0])
             {
                 vm->working_slots[instruction->result] = false;
-                vm->staged_timer_started_at_ms[state] = 0U;
+                vm->staged_timer_started_at_ms[state]  = 0U;
             }
+
             else
             {
                 if (vm->timer_started_at_ms[state] == 0U)
@@ -824,9 +855,8 @@ flow_vm_result_t flow_vm_step_instruction(flow_vm_t *vm, flow_vm_execution_view_
                     vm->staged_timer_started_at_ms[state] = vm->sampled_at_ms == 0U ? 1U : vm->sampled_at_ms;
                 }
 
-                const uint64_t started = vm->timer_started_at_ms[state] == 0U
-                                             ? vm->staged_timer_started_at_ms[state]
-                                             : vm->timer_started_at_ms[state];
+                const uint64_t started =
+                    vm->timer_started_at_ms[state] == 0U ? vm->staged_timer_started_at_ms[state] : vm->timer_started_at_ms[state];
                 vm->working_slots[instruction->result] =
                     vm->sampled_at_ms >= started && vm->sampled_at_ms - started >= vm->timer_durations_ms[state];
             }
@@ -834,19 +864,20 @@ flow_vm_result_t flow_vm_step_instruction(flow_vm_t *vm, flow_vm_execution_view_
             vm->staged_state_valid[state] = true;
             break;
         }
+
         case OPCODE_RISING_EDGE: {
             if (instruction->auxiliary < vm->state_slot_base || instruction->auxiliary - vm->state_slot_base >= vm->state_count)
             {
                 return get_result(FLOW_VM_INVALID_OPERAND, "/instructions/event");
             }
 
-            const uint16_t state = instruction->auxiliary - vm->state_slot_base;
-            vm->working_slots[instruction->result] =
-                vm->working_slots[instruction->operand0] && !vm->current_state[state];
-            vm->staged_state[state] = vm->working_slots[instruction->operand0];
-            vm->staged_state_valid[state] = true;
+            const uint16_t state                   = instruction->auxiliary - vm->state_slot_base;
+            vm->working_slots[instruction->result] = vm->working_slots[instruction->operand0] && !vm->current_state[state];
+            vm->staged_state[state]                = vm->working_slots[instruction->operand0];
+            vm->staged_state_valid[state]          = true;
             break;
         }
+
         case OPCODE_LOAD_STATE:
 
             if (instruction->auxiliary < vm->state_slot_base || instruction->auxiliary - vm->state_slot_base >= vm->state_count)
@@ -855,8 +886,7 @@ flow_vm_result_t flow_vm_step_instruction(flow_vm_t *vm, flow_vm_execution_view_
             }
 
             vm->working_slots[instruction->result] = vm->current_state[instruction->auxiliary - vm->state_slot_base];
-            vm->numeric_slots[instruction->result] =
-                vm->current_numeric_state[instruction->auxiliary - vm->state_slot_base];
+            vm->numeric_slots[instruction->result] = vm->current_numeric_state[instruction->auxiliary - vm->state_slot_base];
             break;
         case OPCODE_PROPOSE_OUTPUT:
 
@@ -870,8 +900,8 @@ flow_vm_result_t flow_vm_step_instruction(flow_vm_t *vm, flow_vm_execution_view_
                 return get_result(FLOW_VM_INVALID_OPERAND, "/instructions/pointType");
             }
 
-            vm->working_slots[instruction->result] = vm->working_slots[instruction->operand0];
-            vm->numeric_slots[instruction->result] = vm->numeric_slots[instruction->operand0];
+            vm->working_slots[instruction->result]  = vm->working_slots[instruction->operand0];
+            vm->numeric_slots[instruction->result]  = vm->numeric_slots[instruction->operand0];
             vm->slot_qualities[instruction->result] = vm->slot_qualities[instruction->operand0];
             break;
         case OPCODE_STAGE_STATE:
@@ -881,10 +911,9 @@ flow_vm_result_t flow_vm_step_instruction(flow_vm_t *vm, flow_vm_execution_view_
                 return get_result(FLOW_VM_INVALID_OPERAND, "/instructions/state");
             }
 
-            vm->staged_state[instruction->auxiliary - vm->state_slot_base]       = vm->working_slots[instruction->operand0];
-            vm->staged_numeric_state[instruction->auxiliary - vm->state_slot_base] =
-                vm->numeric_slots[instruction->operand0];
-            vm->staged_state_valid[instruction->auxiliary - vm->state_slot_base] = true;
+            vm->staged_state[instruction->auxiliary - vm->state_slot_base]         = vm->working_slots[instruction->operand0];
+            vm->staged_numeric_state[instruction->auxiliary - vm->state_slot_base] = vm->numeric_slots[instruction->operand0];
+            vm->staged_state_valid[instruction->auxiliary - vm->state_slot_base]   = true;
             break;
         case OPCODE_COMMIT:
             break;
@@ -926,10 +955,8 @@ flow_vm_result_t flow_vm_get_debug_frame(const flow_vm_t *vm, flow_vm_debug_fram
     memcpy(frame->slot_qualities, vm->slot_qualities, vm->slot_count * sizeof(frame->slot_qualities[0]));
     memcpy(frame->current_state, vm->current_state, vm->state_count * sizeof(frame->current_state[0]));
     memcpy(frame->staged_state, vm->staged_state, vm->state_count * sizeof(frame->staged_state[0]));
-    memcpy(frame->current_numeric_state, vm->current_numeric_state,
-           vm->state_count * sizeof(frame->current_numeric_state[0]));
-    memcpy(frame->staged_numeric_state, vm->staged_numeric_state,
-           vm->state_count * sizeof(frame->staged_numeric_state[0]));
+    memcpy(frame->current_numeric_state, vm->current_numeric_state, vm->state_count * sizeof(frame->current_numeric_state[0]));
+    memcpy(frame->staged_numeric_state, vm->staged_numeric_state, vm->state_count * sizeof(frame->staged_numeric_state[0]));
     memcpy(frame->staged_state_valid, vm->staged_state_valid, vm->state_count * sizeof(frame->staged_state_valid[0]));
 
     /* Copy only proposed commands produced by instructions already executed in this frame. */
@@ -971,10 +998,10 @@ flow_vm_result_t flow_vm_commit_tick(flow_vm_t *vm, flow_vm_command_t *commands,
         {
             flow_vm_command_t *command = &vm->staged_outputs[output_index++];
             snprintf(command->point_id, sizeof(command->point_id), "%s", vm->points[instruction->auxiliary].id);
-            command->value = vm->working_slots[instruction->result];
-            command->number = vm->numeric_slots[instruction->result];
-            command->quality = vm->slot_qualities[instruction->result];
-            command->type = vm->slot_types[instruction->result];
+            command->value        = vm->working_slots[instruction->result];
+            command->number       = vm->numeric_slots[instruction->result];
+            command->quality      = vm->slot_qualities[instruction->result];
+            command->type         = vm->slot_types[instruction->result];
             command->binding_kind = vm->points[instruction->auxiliary].binding_kind;
         }
     }
@@ -1052,13 +1079,14 @@ flow_vm_result_t flow_vm_export_retained_state(const flow_vm_t *vm, uint8_t *out
     for (uint16_t index = 0; index < vm->state_count; index++)
     {
         uint8_t *record = &output[index * RETAINED_STATE_RECORD_BYTES];
-        record[0] = vm->state_types[index];
+        record[0]       = vm->state_types[index];
         memset(&record[1], 0, RETAINED_STATE_RECORD_BYTES - 1U);
 
         if (record[0] == 1U)
         {
             record[1] = vm->current_state[index] ? 1U : 0U;
         }
+
         else
         {
             put_f64(&record[1], vm->current_numeric_state[index]);

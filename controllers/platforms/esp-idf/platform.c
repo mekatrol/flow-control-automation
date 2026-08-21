@@ -98,16 +98,16 @@ void platform_get_startup_info(platform_startup_info_t *info)
     esp_flash_get_size(NULL, &flash_size);
     const esp_app_desc_t *app = esp_app_get_description();
 
-    *info                     = (platform_startup_info_t){
-                            .firmware_name          = app->project_name,
-                            .firmware_version       = app->version,
-                            .processor              = CONFIG_IDF_TARGET,
-                            .reset_reason           = get_reset_reason_name(esp_reset_reason()),
-                            .processor_cores        = (uint32_t)chip.cores,
-                            .silicon_revision_major = (uint32_t)(chip.revision / SILICON_REVISION_SCALE),
-                            .silicon_revision_minor = (uint32_t)(chip.revision % SILICON_REVISION_SCALE),
-                            .flash_bytes            = flash_size,
-                            .external_ram_bytes     = heap_caps_get_total_size(MALLOC_CAP_SPIRAM),
+    *info = (platform_startup_info_t){
+        .firmware_name          = app->project_name,
+        .firmware_version       = app->version,
+        .processor              = CONFIG_IDF_TARGET,
+        .reset_reason           = get_reset_reason_name(esp_reset_reason()),
+        .processor_cores        = (uint32_t)chip.cores,
+        .silicon_revision_major = (uint32_t)(chip.revision / SILICON_REVISION_SCALE),
+        .silicon_revision_minor = (uint32_t)(chip.revision % SILICON_REVISION_SCALE),
+        .flash_bytes            = flash_size,
+        .external_ram_bytes     = heap_caps_get_total_size(MALLOC_CAP_SPIRAM),
     };
 }
 

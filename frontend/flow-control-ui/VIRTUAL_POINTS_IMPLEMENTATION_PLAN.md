@@ -345,8 +345,8 @@ Implementation status last updated: 21 August 2026.
 | Phase 2 | Complete | Instance-scoped synchronized state, atomic commits, defaults/uninitialized quality, durable retained restoration, server VM routing, inspection APIs, writer ownership/release, volatile reset, isolation, and concurrency coverage are implemented. |
 | Phase 3 | Complete | Active deployment revalidates revisions, capabilities, bindings, contracts, and writer ownership, then compiles every context program for the concrete instance and persists immutable context/instance/template/flow artifact provenance. |
 | Phase 4 | Complete | The designer supports context-preview selection, searchable flow/context/physical points, debounced authoritative existence checks, distinct unavailable diagnostics, save/deploy blocking, and creation of typed virtual declarations. |
-| Phase 5 | In progress | The controller now has bounded instance-global analog/digital storage, atomic multi-point commits, writer ownership/release, instance identity checks, typed versioned retained images, VM host routing, and append-only capability negotiation. The host suite passes 18 tests. A multi-program deployment envelope and platform retained-image persistence remain. |
-| Phase 6 | Complete | Flow Input/Output node kinds have been removed from authoring and are rejected by backend validation. Virtual points are the sole cross-flow communication mechanism. |
+| Phase 5 | Verification pending | Controller implementation is complete: bounded instance-global analog/digital storage, atomic multi-point commits, writer ownership/release, instance identity checks, typed/versioned platform-persisted retained images, a two-value physical/virtual artifact binding contract, virtual-point capability negotiation, and a bounded multi-program context host with next-scan cross-flow visibility. Controller, backend, and focused cross-flow regressions pass; unrelated frontend browser regressions keep the full-suite completion gate open. |
+| Phase 6 | Complete | The obsolete cross-flow contracts, node kinds, compiler/decompiler branches, VM flags, emulator surface, wire binding, and tests have been deleted. Virtual points are the sole cross-flow communication mechanism. |
 
 Status labels describe implementation progress; a phase is complete only after its exit criteria and applicable tests pass.
 
@@ -403,7 +403,7 @@ Exit criteria: ordinary users do not need to know point IDs, expert users can ty
 
 ### Phase 5 — Controller runtime support
 
-Status: **In progress**. The compiler encodes Memory transient/state slots as numeric and the controller VM executes them correctly. A single-owner controller task now hosts bounded instance-global analog/digital cells, coherent snapshots, atomic shared-point transactions, deterministic writer leases, strict concrete-instance identity, typed versioned retained images, VM virtual-binding routing, and append-only capability negotiation. The remaining production boundary is replacing the controller's single-flow deployment record with a multi-program context deployment and persisting retained images through the platform store.
+Status: **Verification pending**. The implementation is complete, but the full regression gate is not green. The compiler uses exactly two point bindings: physical `0` and virtual `1`. The controller runtime hosts bounded instance-global analog/digital cells, coherent context snapshots, atomic shared-point transactions, deterministic writer leases, and strict concrete-instance identity. A bounded context host validates and activates up to two programs atomically and gives every program the same start-of-scan snapshot, so committed values become visible on the next context scan. Retained images are typed, versioned, instance-qualified, restored from platform NVS, and persisted only when their generation changes.
 
 - Version the controller protocol for virtual-point definitions and state.
 - Implement volatile/retained storage on supported controllers.
@@ -413,9 +413,9 @@ Status: **In progress**. The compiler encodes Memory transient/state slots as nu
 
 Exit criteria: cross-flow communication behaves the same on a supported controller VM as on the server VM.
 
-### Phase 6 — Flow-interface decision and cleanup
+### Phase 6 — Obsolete cross-flow mechanism cleanup
 
-Status: **Complete**. Flow Input/Output node kinds are no longer valid. The frontend schema does not expose or serialize them and backend validation/compiler boundaries do not accept them. No migration path is provided. Virtual points are the only mechanism for cross-flow communication.
+Status: **Complete**. The obsolete cross-flow mechanism has been deleted from the frontend, backend contracts, compiler, decompiler, server VM, emulator, controller binding contract, and tests. No migration or compatibility path exists. Virtual points are the only mechanism for cross-flow communication.
 
 - Remove the interface editor and node kinds from authoring.
 - Reject unsupported nodes in backend validation and before server/controller artifact compilation.
@@ -427,10 +427,10 @@ Exit criteria: there is one unambiguous mechanism for cross-flow communication, 
 
 ### Current verification status
 
-- Backend unit tests: **250 passed, 0 failed**.
+- Backend unit tests: **248 passed, 0 failed**.
 - Frontend unit tests: **183 passed, 0 failed**.
 - Frontend production build, lint, formatting, and diff checks: **passed**.
-- Playwright Chromium, Edge, and mobile Chromium projects pass. Firefox is currently blocked before page creation by the upstream Playwright-on-elevated-Windows `_page` startup defect; it does not reach application assertions.
+- Playwright full matrix: **179 passed, 12 skipped, 64 failed, 1 did not run**. Firefox remains blocked before page creation by the upstream Playwright-on-elevated-Windows `_page` startup defect. In untouched frontend code, rapid-navigation also fails on Chromium, Edge, and mobile Chromium, and the mobile debug test times out behind an intercepting overlay; the same four non-Firefox failures reproduce in an isolated 21-test rerun.
 - Real .NET-backed end-to-end tests: **3 passed, 0 failed**.
 - Controller host tests: **18 passed, 0 failed**.
 

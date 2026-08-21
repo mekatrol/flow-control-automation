@@ -56,8 +56,7 @@ internal sealed class FlowDeploymentService(
             new
             {
                 flow.Nodes,
-                flow.Connections,
-                flow.Interface
+                flow.Connections
             },
             FlowControlJson.Options);
 
@@ -117,7 +116,6 @@ internal sealed class FlowDeploymentService(
                             connection.End.ConnectorId)))
             ],
 
-            Interface = flow.Interface,
             VirtualPointDeclarations = flow.VirtualPointDeclarations
         };
     }

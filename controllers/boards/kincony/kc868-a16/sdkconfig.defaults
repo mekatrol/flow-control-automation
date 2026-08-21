@@ -3,6 +3,7 @@ CONFIG_SPIRAM=y
 CONFIG_SPIRAM_MODE_OCT=y
 CONFIG_SPIRAM_SPEED_80M=y
 CONFIG_SPIRAM_BOOT_INIT=y
+CONFIG_SPIRAM_ALLOW_BSS_SEG_EXTERNAL_MEMORY=y
 # Keep ESP-IDF stdout, stderr, and component logs away from the USB terminal.
 # The terminal service owns USB Serial/JTAG directly through its driver.
 CONFIG_ESP_CONSOLE_NONE=y

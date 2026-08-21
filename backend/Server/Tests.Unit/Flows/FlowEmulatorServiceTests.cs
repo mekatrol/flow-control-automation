@@ -86,43 +86,6 @@ public sealed class FlowEmulatorServiceTests
         });
     }
 
-    /// <summary>
-    /// Purpose: Protects typed interface inputs as one coherent simulator scan image.
-    /// Description: Applies a numeric terminal value and quality through the atomic operation, then verifies the committed interface output and reset default.
-    /// </summary>
-    [Test]
-    public async Task AppliesTypedInterfaceInputsAtomicallyAndResetRestoresDefaults()
-    {
-        using var service = new FlowEmulatorService(new Resolver(), new Compiler(), new MachineFactory());
-        var source = Source() with
-        {
-            Interface = new FlowInterface
-            {
-                Inputs = [new FlowInterfaceInput { Id = "temperature", Name = "Temperature", DataType = DataType.Number, Units = "°C", DefaultValue = JsonSerializer.SerializeToElement(12.5), Required = true }],
-                Outputs = [new FlowInterfaceOutput { Id = "result", Name = "Result", DataType = DataType.Number, Units = "°C" }]
-            },
-            Nodes = [new ExecutableFlowNode { Id = "input", Kind = FlowNodeKind.FlowInput, Configuration = new Dictionary<string, JsonElement> { ["interfaceId"] = JsonSerializer.SerializeToElement("temperature") } }]
-        };
-        var created = await service.CreateAsync(source, default);
-
-        var stepped = service.ApplyInputsAndStep(created.EmulatorId,
-            [new EmulatorInputChange("temperature", FlowVmValue.FromNumber(21.5, DataQuality.Uncertain))]);
-        var reset = service.Reset(created.EmulatorId, powerCycle: false);
-
-        Assert.Multiple(() =>
-        {
-            // Expected outcome: The applied number and quality reach the committed interface output in one scan.
-            // Acceptance criteria: The latest sample is numeric 21.5 with interface identity and units, proving typed metadata survived the VM boundary.
-            Assert.That(stepped.OutputHistory[^1].OutputId, Is.EqualTo("result"));
-            Assert.That(stepped.OutputHistory[^1].IsInterface, Is.True);
-            Assert.That(stepped.OutputHistory[^1].Units, Is.EqualTo("°C"));
-            Assert.That(stepped.OutputHistory[^1].EffectiveValue.Number, Is.EqualTo(21.5));
-            // Expected outcome: Reset restores the persisted default instead of silently substituting zero.
-            // Acceptance criteria: The current input equals 12.5 after reset because that is the declared interface default.
-            Assert.That(reset.Inputs.Single().TypedValue.Number, Is.EqualTo(12.5));
-        });
-    }
-
     private static ExecutableFlowSource Source() => new()
     {
         Id = "flow-a",
@@ -187,14 +150,11 @@ public sealed class FlowEmulatorServiceTests
         public FlowVmScanResult Scan(IReadOnlyList<FlowVmInput> inputs, ulong sampledAtMilliseconds)
         {
             var input = inputs.Single();
-            var value = input.Value;
             return new FlowVmScanResult(
                 ++_scan,
                 sampledAtMilliseconds,
                 [input.TypedValue],
-                [input.IsInterface
-                    ? new FlowVmCommand("result", input.TypedValue, isInterface: true)
-                    : new FlowVmCommand("output-01", value)]);
+                [new FlowVmCommand("output-01", input.TypedValue)]);
         }
 
         public void Reset() => _scan = 0;

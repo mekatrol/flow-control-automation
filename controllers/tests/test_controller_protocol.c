@@ -111,7 +111,7 @@ static controller_protocol_t get_protocol(void)
                                                  .get_io_block     = get_io_block,
                                                  .set_output       = set_output,
                                                  .set_output_block = set_output_block,
-                                                 .virtual_points = &virtual_points};
+                                                 .virtual_points   = &virtual_points};
     assert(controller_protocol_init(&protocol, &config, capture_send, NULL));
     sent_size = 0;
 
@@ -123,13 +123,12 @@ static void test_virtual_point_capabilities(void)
 {
     controller_protocol_t protocol = get_protocol();
     uint8_t frame[CONTROLLER_PROTOCOL_FRAME_CAPACITY];
-    const size_t size =
-        encode_request(CONTROLLER_ADDRESS, CONTROLLER_PROTOCOL_OPERATION_GET_CAPABILITIES, NULL, 0, frame);
+    const size_t size = encode_request(CONTROLLER_ADDRESS, CONTROLLER_PROTOCOL_OPERATION_GET_CAPABILITIES, NULL, 0, frame);
     controller_protocol_receive(&protocol, frame, size, 0U);
     controller_protocol_message_t response;
     assert(controller_protocol_decode(sent_frame, sent_size, &response) == CONTROLLER_PROTOCOL_DECODE_OK);
-    assert(response.payload_size == 30U && response.payload[24] == 1U &&
-           response.payload[25] == FLOW_VIRTUAL_POINT_CAPACITY && response.payload[26] == 1U);
+    assert(response.payload_size == 30U && response.payload[24] == 1U && response.payload[25] == FLOW_VIRTUAL_POINT_CAPACITY &&
+           response.payload[26] == 1U);
 }
 
 /* Encodes one request into local frame storage for dispatcher tests. */
@@ -183,12 +182,15 @@ static void test_authentication_dispatch(void)
                                                   .session_lifetime_ms   = 1000,
                                                   .maximum_attempts      = 3};
     assert(controller_auth_init(&auth, &auth_config));
+    flow_virtual_point_store_t virtual_points;
+    assert(flow_virtual_points_init(&virtual_points, DEVICE_ID, 1U));
     controller_protocol_t protocol;
     const controller_protocol_config_t config = {.address          = CONTROLLER_ADDRESS,
                                                  .device_id        = DEVICE_ID,
                                                  .hardware_model   = HARDWARE_MODEL,
                                                  .firmware_version = FIRMWARE_VERSION,
-                                                 .auth             = &auth};
+                                                 .auth             = &auth,
+                                                 .virtual_points   = &virtual_points};
     assert(controller_protocol_init(&protocol, &config, capture_send, NULL));
     const uint8_t client_nonce[CONTROLLER_AUTH_NONCE_SIZE] = {7};
     uint8_t frame[CONTROLLER_PROTOCOL_FRAME_CAPACITY];

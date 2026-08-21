@@ -80,6 +80,7 @@ add_library(flow_vm_static STATIC
     ../shared/flow/service.c
     ../shared/flow/sha256.c)
 target_sources(flow_vm_static PRIVATE ../shared/flow/virtual_points.c)
+target_sources(flow_vm_static PRIVATE ../shared/flow/context_host.c)
 target_include_directories(flow_vm_static PUBLIC ../shared)
 
 add_executable(flow_vm_tests

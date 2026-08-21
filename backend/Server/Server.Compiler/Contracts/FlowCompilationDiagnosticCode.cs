@@ -37,16 +37,6 @@ public enum FlowCompilationDiagnosticCode
     CombinationalCycle = 1109,
     DuplicatePointOutputDriver = 1110,
 
-    // 12xx - flow interface validation
-    UnsupportedInterfaceSchema = 1201,
-    InterfaceLimitExceeded = 1202,
-    InvalidInterfaceEntry = 1203,
-    UnsupportedInterfaceType = 1204,
-    IncompatibleInterfaceUnits = 1205,
-    InvalidInterfaceDefault = 1206,
-    MissingInterfaceId = 1207,
-    MissingInterfaceReference = 1208,
-
     // 13xx - node configuration validation
     MissingPointId = 1301,
     UnexpectedPointConfigurationProperty = 1302,
@@ -63,7 +53,6 @@ public enum FlowCompilationDiagnosticCode
 
     // 14xx - unit validation
     AnalogOutputUnitMismatch = 1401,
-    FlowOutputUnitMismatch = 1402,
     NumericOperandUnitMismatch = 1403,
 
     // 2xxx - target resolution/capability validation

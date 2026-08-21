@@ -11,7 +11,6 @@ public sealed record EmulatorOutputSample(
     DataQuality Quality,
     string? Units,
     ulong LastChangeScan,
-    bool IsInterface,
     string ArbitrationOwner,
     byte Priority,
     ulong? ExpiresAtMilliseconds);

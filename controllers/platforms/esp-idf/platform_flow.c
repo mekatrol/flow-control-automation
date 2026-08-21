@@ -13,8 +13,15 @@ enum
     FLOW_RECORD_VERSION = 1,
 };
 
-static const char FLOW_NAMESPACE[]  = "fcp_flow";
-static const char FLOW_RECORD_KEY[] = "generation";
+static const char FLOW_NAMESPACE[]           = "fcp_flow";
+static const char FLOW_RECORD_KEY[]          = "generation";
+static const char VIRTUAL_POINT_RECORD_KEY[] = "virtual_points";
+
+/* The retained image maximum follows the public bounded cell and entry sizes with headroom for format evolution. */
+enum
+{
+    VIRTUAL_POINT_IMAGE_CAPACITY = 4096,
+};
 
 typedef struct
 {
@@ -113,7 +120,7 @@ bool platform_flow_is_artifact_valid(void * /* context */, const controller_flow
                                               .capabilities           = FLOW_VM_CAPABILITIES_ALL,
                                               .maximum_artifact_bytes = FLOW_VM_MAX_ARTIFACT,
                                               .maximum_work_per_scan  = FLOW_VM_MAX_INSTRUCTIONS,
-                                              .maximum_snapshot_bytes = sizeof(flow_vm_snapshot_t)};
+                                              .maximum_snapshot_bytes = FLOW_VM_MAX_SNAPSHOT_BYTES};
     flow_vm_t candidate;
 
     if (metadata == NULL || artifact == NULL || metadata->artifact_schema != SUPPORTED_SCHEMA || metadata->size == 0)
@@ -126,4 +133,44 @@ bool platform_flow_is_artifact_valid(void * /* context */, const controller_flow
     flow_vm_clear(&candidate);
 
     return prepared.code == FLOW_VM_OK;
+}
+
+/* Loads and validates one exact retained image; absence is a valid first-boot state. */
+bool platform_flow_restore_virtual_points(flow_virtual_point_store_t *store)
+{
+    if (flow_handle == 0 || store == NULL)
+    {
+        return false;
+    }
+
+    uint8_t image[VIRTUAL_POINT_IMAGE_CAPACITY];
+    size_t image_size      = sizeof(image);
+    const esp_err_t result = nvs_get_blob(flow_handle, VIRTUAL_POINT_RECORD_KEY, image, &image_size);
+
+    if (result == ESP_ERR_NVS_NOT_FOUND)
+    {
+        return true;
+    }
+
+    return result == ESP_OK && image_size > 0U &&
+           flow_virtual_points_restore_retained(store, image, image_size) == FLOW_VIRTUAL_POINT_OK;
+}
+
+/* Encodes and atomically commits the complete retained image under the existing flow namespace. */
+bool platform_flow_persist_virtual_points(const flow_virtual_point_store_t *store)
+{
+    if (flow_handle == 0 || store == NULL)
+    {
+        return false;
+    }
+
+    uint8_t image[VIRTUAL_POINT_IMAGE_CAPACITY];
+    size_t image_size = 0;
+
+    if (flow_virtual_points_export_retained(store, image, sizeof(image), &image_size) != FLOW_VIRTUAL_POINT_OK)
+    {
+        return false;
+    }
+
+    return nvs_set_blob(flow_handle, VIRTUAL_POINT_RECORD_KEY, image, image_size) == ESP_OK && nvs_commit(flow_handle) == ESP_OK;
 }

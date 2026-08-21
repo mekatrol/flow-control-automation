@@ -11,8 +11,8 @@
  */
 
 #include "flow/service.h"
-#include "flow/vm.h"
 #include "flow/virtual_points.h"
+#include "flow/vm.h"
 
 typedef bool (*flow_host_read_inputs_t)(void *context, flow_vm_input_sample_t *samples, size_t capacity, size_t *count,
                                         uint64_t *sampled_at_ms);
@@ -29,6 +29,7 @@ typedef struct
     void *adapter_context;
     flow_vm_result_t last_result;
     flow_virtual_point_store_t *virtual_points;
+    const flow_virtual_point_store_t *virtual_point_snapshot_source;
     char execution_instance_id[FLOW_VIRTUAL_POINT_ID_CAPACITY];
     char deployment_id[FLOW_VIRTUAL_POINT_ID_CAPACITY];
 } flow_host_t;
@@ -45,8 +46,18 @@ bool flow_host_init(flow_host_t *host, flow_host_read_inputs_t read_inputs, flow
  * @param deployment_id Active deployment identity that owns this program's writer leases.
  * @return true when identities are bounded and the instance matches; false leaves virtual routing disabled.
  */
-bool flow_host_set_virtual_points(flow_host_t *host, flow_virtual_point_store_t *store,
-                                  const char *execution_instance_id, const char *deployment_id);
+bool flow_host_set_virtual_points(flow_host_t *host, flow_virtual_point_store_t *store, const char *execution_instance_id,
+                                  const char *deployment_id);
+
+/**
+ * Prepares and activates one artifact revision transactionally in the inactive VM slot.
+ * @param host Non-NULL initialized host with optional virtual routing already configured.
+ * @param artifact Non-NULL complete Flow IL bytes readable for this call.
+ * @param artifact_size Byte count from one through FLOW_VM_MAX_ARTIFACT.
+ * @param revision Non-zero immutable program revision used to avoid redundant preparation.
+ * @return true when the new VM is active or the revision was already running; false preserves the previous VM.
+ */
+bool flow_host_prepare_artifact(flow_host_t *host, const uint8_t *artifact, size_t artifact_size, uint32_t revision);
 
 /* Prepares an active committed generation before atomically replacing the running VM. */
 bool flow_host_synchronize(flow_host_t *host, const controller_flow_t *deployment);

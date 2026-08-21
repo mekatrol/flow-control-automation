@@ -23,8 +23,6 @@ public enum FlowNodeKind : byte
     LevelShifter,
     OnDelay,
     RisingEdge,
-    FlowInput,
-    FlowOutput,
     Average,
     Calculator,
     Clamp,

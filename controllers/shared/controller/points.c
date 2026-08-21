@@ -125,9 +125,9 @@ controller_point_result_t controller_points_command(controller_points_t *points,
 
     const controller_point_command_t previous = *slot;
 
-    *slot                                     = *command;
-    slot->is_used                             = true;
-    const controller_point_result_t result    = apply_outputs(points);
+    *slot                                  = *command;
+    slot->is_used                          = true;
+    const controller_point_result_t result = apply_outputs(points);
 
     if (result != CONTROLLER_POINT_OK)
     {

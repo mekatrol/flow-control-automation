@@ -47,7 +47,7 @@
             >
           </fieldset>
         </div>
-        <p v-else class="empty-state">This flow has no interface inputs.</p>
+        <p v-else class="empty-state">This flow has no inputs.</p>
         <p v-if="error" class="error" role="alert">{{ error }}</p>
         <div class="execute-actions">
           <AppButton

@@ -314,8 +314,7 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
                 {
                     _inputs[input.PointId] = new FlowVmInput(
                         input.PointId,
-                        input.TypedValue with { Quality = DataQuality.Unavailable },
-                        input.IsInterface);
+                        input.TypedValue with { Quality = DataQuality.Unavailable });
                 }
             }
             var scan = _machine.Scan([.. _inputs.Values.OrderBy(input => input.PointId, StringComparer.Ordinal)], _clock);
@@ -331,8 +330,7 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
                 var quality = failed ? DataQuality.Bad : command.TypedValue.Quality;
                 var effective = failed ? command.TypedValue with { Quality = DataQuality.Bad } : command.TypedValue;
 
-                var previous = _outputs.LastOrDefault(output =>
-                    output.OutputId == command.PointId && output.IsInterface == command.IsInterface);
+                var previous = _outputs.LastOrDefault(output => output.OutputId == command.PointId);
 
                 var lastChange = previous is null || previous.EffectiveValue != effective
                     ? scan.ScanNumber
@@ -340,7 +338,7 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
 
                 _outputs.Add(new EmulatorOutputSample(
                     scan.ScanNumber, _clock, command.PointId, command.TypedValue, effective,
-                    quality, OutputUnits(command), lastChange, command.IsInterface, "emulator", 16, null));
+                    quality, null, lastChange, "emulator", 16, null));
             }
             if (_outputs.Count > MaximumHistory)
             {
@@ -356,8 +354,7 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
                 var existing = _inputs[change.InputId];
                 _inputs[change.InputId] = new FlowVmInput(
                     change.InputId,
-                    change.TypedValue,
-                    existing.IsInterface);
+                    change.TypedValue);
             }
             _pending.RemoveRange(0, ready.Length);
         }
@@ -410,10 +407,6 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
             _pending.Sort(static (left, right) => Nullable.Compare(left.EffectiveAtMilliseconds, right.EffectiveAtMilliseconds));
         }
 
-        private string? OutputUnits(FlowVmCommand command) => command.IsInterface
-            ? _source.Interface.Outputs.FirstOrDefault(output => output.Id == command.PointId)?.Units
-            : null;
-
         private FlowEmulatorSnapshot SnapshotCore() => new()
         {
             EmulatorId = Id,
@@ -429,19 +422,6 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
 
         private static IEnumerable<FlowVmInput> InitialInputs(ExecutableFlowSource source)
         {
-            foreach (var entry in source.Interface.Inputs)
-            {
-                var value = entry.DefaultValue is { } defaultValue
-                    ? entry.DataType == DataType.Number
-                        ? FlowVmValue.FromNumber(defaultValue.GetDouble())
-                        : FlowVmValue.FromBoolean(defaultValue.GetBoolean())
-                    : entry.DataType == DataType.Number
-                        ? FlowVmValue.FromNumber(0, entry.Required ? DataQuality.Unavailable : DataQuality.Good)
-                        : FlowVmValue.FromBoolean(false, entry.Required ? DataQuality.Unavailable : DataQuality.Good);
-
-                yield return new FlowVmInput(entry.Id, value, isInterface: true);
-            }
-
             foreach (var pointId in InputPointIds(source))
             {
                 yield return new FlowVmInput(pointId, false);

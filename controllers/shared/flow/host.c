@@ -1,13 +1,13 @@
 #include "flow/host.h"
 
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
 
 static const flow_vm_target_t TARGET = {.abi_version            = FLOW_VM_ABI_VERSION,
                                         .capabilities           = FLOW_VM_CAPABILITIES_ALL,
                                         .maximum_artifact_bytes = FLOW_VM_MAX_ARTIFACT,
                                         .maximum_work_per_scan  = FLOW_VM_MAX_INSTRUCTIONS,
-                                        .maximum_snapshot_bytes = sizeof(flow_vm_snapshot_t)};
+                                        .maximum_snapshot_bytes = FLOW_VM_MAX_SNAPSHOT_BYTES};
 
 /* Initializes caller-owned host state without preparing an artifact. */
 bool flow_host_init(flow_host_t *host, flow_host_read_inputs_t read_inputs, flow_host_publish_commands_t publish_commands,
@@ -27,8 +27,8 @@ bool flow_host_init(flow_host_t *host, flow_host_read_inputs_t read_inputs, flow
 }
 
 /* Installs bounded instance and deployment identity used for every shared-point snapshot and commit. */
-bool flow_host_set_virtual_points(flow_host_t *host, flow_virtual_point_store_t *store,
-                                  const char *execution_instance_id, const char *deployment_id)
+bool flow_host_set_virtual_points(flow_host_t *host, flow_virtual_point_store_t *store, const char *execution_instance_id,
+                                  const char *deployment_id)
 {
     if (host == NULL || store == NULL || execution_instance_id == NULL || deployment_id == NULL ||
         execution_instance_id[0] == '\0' || deployment_id[0] == '\0' ||
@@ -39,7 +39,8 @@ bool flow_host_set_virtual_points(flow_host_t *host, flow_virtual_point_store_t 
         return false;
     }
 
-    host->virtual_points = store;
+    host->virtual_points                = store;
+    host->virtual_point_snapshot_source = store;
     snprintf(host->execution_instance_id, sizeof(host->execution_instance_id), "%s", execution_instance_id);
     snprintf(host->deployment_id, sizeof(host->deployment_id), "%s", deployment_id);
 
@@ -71,31 +72,69 @@ static bool append_virtual_inputs(flow_host_t *host, flow_vm_t *vm, flow_vm_inpu
         const char *keys[] = {point->id};
         flow_virtual_point_snapshot_t snapshot;
 
-        if (flow_virtual_points_snapshot(host->virtual_points, keys, 1U, &snapshot) != FLOW_VIRTUAL_POINT_OK)
+        if (flow_virtual_points_snapshot(host->virtual_point_snapshot_source, keys, 1U, &snapshot) != FLOW_VIRTUAL_POINT_OK)
         {
             return false;
         }
 
         flow_vm_input_sample_t *sample = &samples[*sample_count];
         snprintf(sample->point_id, sizeof(sample->point_id), "%s", point->id);
-        sample->type = (uint8_t)snapshot.type;
+        sample->type         = (uint8_t)snapshot.type;
         sample->binding_kind = 1U;
-        sample->quality = snapshot.is_initialized ? 0U : 3U;
-        sample->value = snapshot.digital_value;
-        sample->number = snapshot.analog_value;
+        sample->quality      = snapshot.is_initialized ? 0U : 3U;
+        sample->value        = snapshot.digital_value;
+        sample->number       = snapshot.analog_value;
         (*sample_count)++;
     }
 
     return true;
 }
 
+/* Prepares an immutable artifact into the inactive slot and switches only after VM and virtual-contract validation succeed. */
+bool flow_host_prepare_artifact(flow_host_t *host, const uint8_t *artifact, size_t artifact_size, uint32_t revision)
+{
+    if (host == NULL || artifact == NULL || artifact_size == 0U || artifact_size > FLOW_VM_MAX_ARTIFACT || revision == 0U)
+    {
+        return false;
+    }
+
+    if (host->is_running && host->active_revision == revision)
+    {
+        return true;
+    }
+
+    const uint8_t replacement = (uint8_t)(host->active_instance ^ 1U);
+    flow_vm_clear(&host->instances[replacement]);
+    host->last_result = flow_vm_prepare(artifact, artifact_size, &TARGET, &host->instances[replacement]);
+
+    if (host->last_result.code != FLOW_VM_OK)
+    {
+        return false;
+    }
+
+    host->last_result = flow_vm_initialize(&host->instances[replacement], NULL, 0U);
+
+    if (host->last_result.code != FLOW_VM_OK)
+    {
+        flow_vm_clear(&host->instances[replacement]);
+
+        return false;
+    }
+
+    flow_vm_clear(&host->instances[host->active_instance]);
+    host->active_instance = replacement;
+    host->active_revision = revision;
+    host->is_running      = true;
+
+    return true;
+}
+
 /* Splits VM proposals and commits all virtual commands as one instance-global transaction before physical publication. */
-static bool publish_host_commands(flow_host_t *host, const flow_vm_command_t *commands, size_t command_count,
-                                  uint64_t now_ms)
+static bool publish_host_commands(flow_host_t *host, const flow_vm_command_t *commands, size_t command_count, uint64_t now_ms)
 {
     flow_virtual_point_command_t virtual_commands[FLOW_VIRTUAL_POINT_COMMAND_CAPACITY];
     flow_vm_command_t physical_commands[FLOW_VM_MAX_OUTPUTS];
-    size_t virtual_count = 0;
+    size_t virtual_count  = 0;
     size_t physical_count = 0;
 
     for (size_t index = 0; index < command_count; index++)
@@ -109,19 +148,19 @@ static bool publish_host_commands(flow_host_t *host, const flow_vm_command_t *co
 
             flow_virtual_point_command_t *command = &virtual_commands[virtual_count++];
             snprintf(command->key, sizeof(command->key), "%s", commands[index].point_id);
-            command->type = (flow_virtual_point_type_t)commands[index].type;
+            command->type          = (flow_virtual_point_type_t)commands[index].type;
             command->digital_value = commands[index].value;
-            command->analog_value = commands[index].number;
+            command->analog_value  = commands[index].number;
         }
+
         else
         {
             physical_commands[physical_count++] = commands[index];
         }
     }
 
-    if (virtual_count != 0U &&
-        flow_virtual_points_commit(host->virtual_points, host->execution_instance_id, host->deployment_id,
-                                   virtual_commands, virtual_count, now_ms) != FLOW_VIRTUAL_POINT_OK)
+    if (virtual_count != 0U && flow_virtual_points_commit(host->virtual_points, host->execution_instance_id, host->deployment_id,
+                                                          virtual_commands, virtual_count, now_ms) != FLOW_VIRTUAL_POINT_OK)
     {
         return false;
     }
@@ -184,8 +223,7 @@ bool flow_host_synchronize(flow_host_t *host, const controller_flow_t *deploymen
 
             size_t declaration_index = 0;
 
-            while (declaration_index < declaration_count &&
-                   strcmp(declarations[declaration_index].key, point->id) != 0)
+            while (declaration_index < declaration_count && strcmp(declarations[declaration_index].key, point->id) != 0)
             {
                 declaration_index++;
             }
@@ -200,11 +238,10 @@ bool flow_host_synchronize(flow_host_t *host, const controller_flow_t *deploymen
                 }
 
                 declarations[declaration_index] = (flow_virtual_point_declaration_t){
-                    .type = (flow_virtual_point_type_t)point->type,
+                    .type        = (flow_virtual_point_type_t)point->type,
                     .persistence = FLOW_VIRTUAL_POINT_VOLATILE,
                 };
-                snprintf(declarations[declaration_index].key, sizeof(declarations[declaration_index].key), "%s",
-                         point->id);
+                snprintf(declarations[declaration_index].key, sizeof(declarations[declaration_index].key), "%s", point->id);
                 declaration_count++;
             }
 
@@ -212,8 +249,8 @@ bool flow_host_synchronize(flow_host_t *host, const controller_flow_t *deploymen
             declarations[declaration_index].is_writer |= point->direction == 2U;
         }
 
-        if (flow_virtual_points_activate(host->virtual_points, host->execution_instance_id, host->deployment_id,
-                                         declarations, declaration_count) != FLOW_VIRTUAL_POINT_OK)
+        if (flow_virtual_points_activate(host->virtual_points, host->execution_instance_id, host->deployment_id, declarations,
+                                         declaration_count) != FLOW_VIRTUAL_POINT_OK)
         {
             flow_vm_clear(&host->instances[replacement]);
 

@@ -55,26 +55,13 @@ describe('flow simulator panel', () => {
 
   /**
    * Purpose: Protects the primary typed simulator workflow from regressing to Boolean point toggles.
-   * Description: Renders a numeric interface terminal, changes its value and quality, and applies one coherent scan.
+   * Description: Renders a numeric point, changes its value and quality, and applies one coherent scan.
    */
-  it('applies a typed interface input and exposes committed output metadata', async () => {
+  it('applies a typed point input and exposes committed output metadata', async () => {
     const wrapper = mount(AppFlowSimulatorPanel, {
       props: {
         automation: 'simulator',
         lifecycle: 'ready',
-        flowInterface: {
-          schemaVersion: 1,
-          inputs: [
-            {
-              id: 'temperature',
-              name: 'Temperature',
-              dataType: 'number',
-              units: '°C',
-              required: true
-            }
-          ],
-          outputs: [{ id: 'result', name: 'Result', dataType: 'number', units: '°C' }]
-        },
         session: {
           sessionId: 'one',
           flowId: 'flow-a',
@@ -103,7 +90,6 @@ describe('flow simulator panel', () => {
             inputs: [
               {
                 pointId: 'temperature',
-                isInterface: true,
                 typedValue: { type: 'number', boolean: false, number: 12.5, quality: 'good' }
               }
             ],
@@ -111,7 +97,6 @@ describe('flow simulator panel', () => {
               {
                 scanNumber: 1,
                 outputId: 'result',
-                isInterface: true,
                 proposedValue: { type: 'number', boolean: false, number: 12.5, quality: 'good' },
                 effectiveValue: { type: 'number', boolean: false, number: 12.5, quality: 'good' },
                 quality: 'good',
@@ -127,7 +112,7 @@ describe('flow simulator panel', () => {
     await wrapper.get('input[type="number"]').setValue('21.5');
     await wrapper.get('[data-automation="simulator-io.apply-step"]').trigger('click');
 
-    // Expected outcome: One atomic typed request is emitted using the stable interface ID.
+    // Expected outcome: One atomic typed request is emitted using the stable point ID.
     // Acceptance criteria: The emitted value is numeric 21.5 for `temperature`, proving the workbench does not use a display label or Boolean coercion.
     expect(wrapper.emitted('apply-inputs-step')?.[0]?.[0]).toEqual([
       {

@@ -8,8 +8,8 @@
 enum
 {
     RETAINED_IMAGE_VERSION = 1,
-    RETAINED_HEADER_SIZE = 8,
-    RETAINED_ENTRY_SIZE = FLOW_VIRTUAL_POINT_ID_CAPACITY + 1 + 8 + 8 + 8,
+    RETAINED_HEADER_SIZE   = 8 + FLOW_VIRTUAL_POINT_ID_CAPACITY,
+    RETAINED_ENTRY_SIZE    = FLOW_VIRTUAL_POINT_ID_CAPACITY + 1 + 8 + 8 + 8,
 };
 
 static const uint8_t RETAINED_MAGIC[4] = {'F', 'V', 'P', 'S'};
@@ -30,14 +30,12 @@ static bool is_declaration_valid(const flow_virtual_point_declaration_t *declara
 {
     if (declaration == NULL || !is_identity_valid(declaration->key) ||
         (declaration->type != FLOW_VIRTUAL_POINT_DIGITAL && declaration->type != FLOW_VIRTUAL_POINT_ANALOG) ||
-        (declaration->persistence != FLOW_VIRTUAL_POINT_VOLATILE &&
-         declaration->persistence != FLOW_VIRTUAL_POINT_RETAINED))
+        (declaration->persistence != FLOW_VIRTUAL_POINT_VOLATILE && declaration->persistence != FLOW_VIRTUAL_POINT_RETAINED))
     {
         return false;
     }
 
-    return declaration->type != FLOW_VIRTUAL_POINT_ANALOG || !declaration->has_default ||
-           isfinite(declaration->analog_default);
+    return declaration->type != FLOW_VIRTUAL_POINT_ANALOG || !declaration->has_default || isfinite(declaration->analog_default);
 }
 
 /* Gets the allocated cell index for one exact key, or capacity when absent. */
@@ -69,11 +67,9 @@ static size_t get_free_cell_index(const flow_virtual_point_store_t *store)
 }
 
 /* Tests immutable contract fields; readable capability is enforced by artifact resolution before allocation. */
-static bool is_contract_compatible(const flow_virtual_point_declaration_t *left,
-                                   const flow_virtual_point_declaration_t *right)
+static bool is_contract_compatible(const flow_virtual_point_declaration_t *left, const flow_virtual_point_declaration_t *right)
 {
-    if (left->type != right->type || left->persistence != right->persistence ||
-        left->has_default != right->has_default)
+    if (left->type != right->type || left->persistence != right->persistence || left->has_default != right->has_default)
     {
         return false;
     }
@@ -90,8 +86,7 @@ static bool is_contract_compatible(const flow_virtual_point_declaration_t *left,
 /* Checks that one request identity targets this concrete controller. */
 static bool is_instance_match(const flow_virtual_point_store_t *store, const char *execution_instance_id)
 {
-    return is_identity_valid(execution_instance_id) &&
-           strcmp(store->execution_instance_id, execution_instance_id) == 0;
+    return is_identity_valid(execution_instance_id) && strcmp(store->execution_instance_id, execution_instance_id) == 0;
 }
 
 /* Writes an unsigned 64-bit field in little-endian wire order. */
@@ -121,13 +116,14 @@ static void initialize_cell(flow_virtual_point_cell_t *cell, const flow_virtual_
 {
     *cell = (flow_virtual_point_cell_t){.declaration = *declaration, .is_used = true};
     snprintf(cell->value.key, sizeof(cell->value.key), "%s", declaration->key);
-    cell->value.type = declaration->type;
+    cell->value.type           = declaration->type;
     cell->value.is_initialized = declaration->has_default;
 
     if (declaration->type == FLOW_VIRTUAL_POINT_DIGITAL)
     {
         cell->value.digital_value = declaration->digital_default;
     }
+
     else
     {
         cell->value.analog_value = declaration->analog_default;
@@ -135,8 +131,7 @@ static void initialize_cell(flow_virtual_point_cell_t *cell, const flow_virtual_
 }
 
 /* Initializes empty bounded state after validating the concrete instance identity and protocol version. */
-bool flow_virtual_points_init(flow_virtual_point_store_t *store, const char *execution_instance_id,
-                              uint32_t protocol_version)
+bool flow_virtual_points_init(flow_virtual_point_store_t *store, const char *execution_instance_id, uint32_t protocol_version)
 {
     if (store == NULL)
     {
@@ -157,8 +152,8 @@ bool flow_virtual_points_init(flow_virtual_point_store_t *store, const char *exe
 }
 
 /* Validates the complete activation against a temporary copy so conflicts cannot partially allocate cells or writer leases. */
-flow_virtual_point_result_t flow_virtual_points_activate(flow_virtual_point_store_t *store,
-                                                         const char *execution_instance_id, const char *deployment_id,
+flow_virtual_point_result_t flow_virtual_points_activate(flow_virtual_point_store_t *store, const char *execution_instance_id,
+                                                         const char *deployment_id,
                                                          const flow_virtual_point_declaration_t *declarations,
                                                          size_t declaration_count)
 {
@@ -197,6 +192,7 @@ flow_virtual_point_result_t flow_virtual_points_activate(flow_virtual_point_stor
 
             initialize_cell(&proposed.cells[cell_index], declaration);
         }
+
         else if (!is_contract_compatible(&proposed.cells[cell_index].declaration, declaration))
         {
             return FLOW_VIRTUAL_POINT_CONTRACT_CONFLICT;
@@ -222,8 +218,7 @@ flow_virtual_point_result_t flow_virtual_points_activate(flow_virtual_point_stor
 }
 
 /* Releases only matching writer leases so readers and committed shared values survive undeployment. */
-flow_virtual_point_result_t flow_virtual_points_deactivate(flow_virtual_point_store_t *store,
-                                                           const char *execution_instance_id,
+flow_virtual_point_result_t flow_virtual_points_deactivate(flow_virtual_point_store_t *store, const char *execution_instance_id,
                                                            const char *deployment_id)
 {
     if (store == NULL || !is_identity_valid(deployment_id))
@@ -251,8 +246,7 @@ flow_virtual_point_result_t flow_virtual_points_deactivate(flow_virtual_point_st
 flow_virtual_point_result_t flow_virtual_points_snapshot(const flow_virtual_point_store_t *store, const char *const *keys,
                                                          size_t key_count, flow_virtual_point_snapshot_t *output)
 {
-    if (store == NULL || key_count > FLOW_VIRTUAL_POINT_CAPACITY ||
-        ((keys == NULL || output == NULL) && key_count != 0))
+    if (store == NULL || key_count > FLOW_VIRTUAL_POINT_CAPACITY || ((keys == NULL || output == NULL) && key_count != 0))
     {
         return FLOW_VIRTUAL_POINT_INVALID_ARGUMENT;
     }
@@ -278,10 +272,9 @@ flow_virtual_point_result_t flow_virtual_points_snapshot(const flow_virtual_poin
 }
 
 /* Validates identity, uniqueness, ownership, type, and analog finiteness before changing any shared cell. */
-flow_virtual_point_result_t flow_virtual_points_commit(flow_virtual_point_store_t *store,
-                                                       const char *execution_instance_id, const char *deployment_id,
-                                                       const flow_virtual_point_command_t *commands, size_t command_count,
-                                                       uint64_t timestamp_ms)
+flow_virtual_point_result_t flow_virtual_points_commit(flow_virtual_point_store_t *store, const char *execution_instance_id,
+                                                       const char *deployment_id, const flow_virtual_point_command_t *commands,
+                                                       size_t command_count, uint64_t timestamp_ms)
 {
     if (store == NULL || !is_identity_valid(deployment_id) || command_count > FLOW_VIRTUAL_POINT_COMMAND_CAPACITY ||
         (commands == NULL && command_count != 0))
@@ -300,8 +293,7 @@ flow_virtual_point_result_t flow_virtual_points_commit(flow_virtual_point_store_
     {
         const flow_virtual_point_command_t *command = &commands[command_index];
 
-        if (!is_identity_valid(command->key) ||
-            (command->type == FLOW_VIRTUAL_POINT_ANALOG && !isfinite(command->analog_value)))
+        if (!is_identity_valid(command->key) || (command->type == FLOW_VIRTUAL_POINT_ANALOG && !isfinite(command->analog_value)))
         {
             return FLOW_VIRTUAL_POINT_INVALID_ARGUMENT;
         }
@@ -338,12 +330,12 @@ flow_virtual_point_result_t flow_virtual_points_commit(flow_virtual_point_store_
 
     for (size_t command_index = 0; command_index < command_count; command_index++)
     {
-        flow_virtual_point_cell_t *cell = &store->cells[cell_indices[command_index]];
+        flow_virtual_point_cell_t *cell             = &store->cells[cell_indices[command_index]];
         const flow_virtual_point_command_t *command = &commands[command_index];
-        cell->value.digital_value = command->digital_value;
-        cell->value.analog_value = command->analog_value;
-        cell->value.is_initialized = true;
-        cell->value.timestamp_ms = timestamp_ms;
+        cell->value.digital_value                   = command->digital_value;
+        cell->value.analog_value                    = command->analog_value;
+        cell->value.is_initialized                  = true;
+        cell->value.timestamp_ms                    = timestamp_ms;
         cell->value.version++;
     }
 
@@ -376,6 +368,7 @@ flow_virtual_point_result_t flow_virtual_points_export_retained(const flow_virtu
     }
 
     const size_t required = RETAINED_HEADER_SIZE + (size_t)count * RETAINED_ENTRY_SIZE;
+
     *size = required;
 
     if (capacity < required)
@@ -388,14 +381,15 @@ flow_virtual_point_result_t flow_virtual_points_export_retained(const flow_virtu
     output[5] = 0;
     output[6] = 0;
     output[7] = (uint8_t)count;
+    memset(output + 8U, 0, FLOW_VIRTUAL_POINT_ID_CAPACITY);
+    memcpy(output + 8U, store->execution_instance_id, strlen(store->execution_instance_id));
     size_t offset = RETAINED_HEADER_SIZE;
 
     for (size_t index = 0; index < FLOW_VIRTUAL_POINT_CAPACITY; index++)
     {
         const flow_virtual_point_cell_t *cell = &store->cells[index];
 
-        if (!cell->is_used || cell->declaration.persistence != FLOW_VIRTUAL_POINT_RETAINED ||
-            !cell->value.is_initialized)
+        if (!cell->is_used || cell->declaration.persistence != FLOW_VIRTUAL_POINT_RETAINED || !cell->value.is_initialized)
         {
             continue;
         }
@@ -403,7 +397,7 @@ flow_virtual_point_result_t flow_virtual_points_export_retained(const flow_virtu
         memset(output + offset, 0, FLOW_VIRTUAL_POINT_ID_CAPACITY);
         memcpy(output + offset, cell->declaration.key, strlen(cell->declaration.key));
         offset += FLOW_VIRTUAL_POINT_ID_CAPACITY;
-        output[offset++] = (uint8_t)cell->declaration.type;
+        output[offset++]    = (uint8_t)cell->declaration.type;
         uint64_t value_bits = cell->value.digital_value ? 1U : 0U;
 
         if (cell->declaration.type == FLOW_VIRTUAL_POINT_ANALOG)
@@ -427,7 +421,8 @@ flow_virtual_point_result_t flow_virtual_points_restore_retained(flow_virtual_po
                                                                  size_t size)
 {
     if (store == NULL || image == NULL || size < RETAINED_HEADER_SIZE ||
-        memcmp(image, RETAINED_MAGIC, sizeof(RETAINED_MAGIC)) != 0 || image[4] != RETAINED_IMAGE_VERSION)
+        memcmp(image, RETAINED_MAGIC, sizeof(RETAINED_MAGIC)) != 0 || image[4] != RETAINED_IMAGE_VERSION ||
+        !is_identity_valid((const char *)(image + 8U)) || strcmp((const char *)(image + 8U), store->execution_instance_id) != 0)
     {
         return FLOW_VIRTUAL_POINT_RETAINED_INCOMPATIBLE;
     }
@@ -440,7 +435,7 @@ flow_virtual_point_result_t flow_virtual_points_restore_retained(flow_virtual_po
     }
 
     flow_virtual_point_store_t proposed = *store;
-    size_t offset = RETAINED_HEADER_SIZE;
+    size_t offset                       = RETAINED_HEADER_SIZE;
 
     for (size_t entry = 0; entry < count; entry++)
     {
@@ -454,7 +449,7 @@ flow_virtual_point_result_t flow_virtual_points_restore_retained(flow_virtual_po
         const size_t cell_index = get_cell_index(&proposed, key);
         offset += FLOW_VIRTUAL_POINT_ID_CAPACITY;
         const flow_virtual_point_type_t type = (flow_virtual_point_type_t)image[offset++];
-        const uint64_t value_bits = get_u64(image + offset);
+        const uint64_t value_bits            = get_u64(image + offset);
         offset += sizeof(value_bits);
         const uint64_t timestamp_ms = get_u64(image + offset);
         offset += sizeof(timestamp_ms);
@@ -469,9 +464,9 @@ flow_virtual_point_result_t flow_virtual_points_restore_retained(flow_virtual_po
         }
 
         flow_virtual_point_snapshot_t *value = &proposed.cells[cell_index].value;
-        value->is_initialized = true;
-        value->timestamp_ms = timestamp_ms;
-        value->version = version;
+        value->is_initialized                = true;
+        value->timestamp_ms                  = timestamp_ms;
+        value->version                       = version;
 
         if (type == FLOW_VIRTUAL_POINT_DIGITAL)
         {
@@ -482,6 +477,7 @@ flow_virtual_point_result_t flow_virtual_points_restore_retained(flow_virtual_po
 
             value->digital_value = value_bits != 0U;
         }
+
         else
         {
             memcpy(&value->analog_value, &value_bits, sizeof(value->analog_value));

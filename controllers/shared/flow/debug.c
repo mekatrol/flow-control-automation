@@ -42,8 +42,7 @@ static uint16_t get_u16(const uint8_t *bytes)
 /* What: Decodes one little-endian u32. Why: Section offsets and lengths are canonical wire fields. How: Combines four bytes. */
 static uint32_t get_u32(const uint8_t *bytes)
 {
-    return (uint32_t)bytes[0] | ((uint32_t)bytes[1] << 8U) | ((uint32_t)bytes[2] << 16U) |
-           ((uint32_t)bytes[3] << 24U);
+    return (uint32_t)bytes[0] | ((uint32_t)bytes[1] << 8U) | ((uint32_t)bytes[2] << 16U) | ((uint32_t)bytes[3] << 24U);
 }
 
 /* What: Retains current debug-map correlation. Why: The core VM does not carry authoring strings in every production instance.
@@ -52,11 +51,11 @@ static bool load_debug_map(flow_debug_t *debug)
 {
     enum
     {
-        ENVELOPE_BYTES = 128,
+        ENVELOPE_BYTES        = 128,
         DIRECTORY_ENTRY_BYTES = 48,
         DEBUG_DIRECTORY_INDEX = 6,
     };
-    const uint8_t *entry = &debug->artifact[ENVELOPE_BYTES + DEBUG_DIRECTORY_INDEX * DIRECTORY_ENTRY_BYTES];
+    const uint8_t *entry          = &debug->artifact[ENVELOPE_BYTES + DEBUG_DIRECTORY_INDEX * DIRECTORY_ENTRY_BYTES];
     const uint32_t section_offset = get_u32(&entry[4]);
     const uint32_t section_length = get_u32(&entry[8]);
     const uint32_t count          = get_u32(&entry[12]);
@@ -448,7 +447,7 @@ static bool encode_snapshot(flow_debug_t *debug, uint64_t completed_at_ms)
         append_u16(debug, &offset, snapshot->output_count) && append_u32(debug, &offset, debug->overrun_count) &&
         append_u32(debug, &offset, 0U) && append_u16(debug, &offset, (uint16_t)debug->last_result.code) &&
         (debug->last_result.path[0] == '\0' ? append_u8(debug, &offset, 0U)
-                                             : append_string(debug, &offset, debug->last_result.path)) &&
+                                            : append_string(debug, &offset, debug->last_result.path)) &&
         append_u32(debug, &offset, debug->execution_high_water_us) && append_u32(debug, &offset, debug->missed_deadline_count) &&
         append_u32(debug, &offset, debug->arbitration_loss_count);
 
@@ -486,8 +485,8 @@ static bool encode_snapshot(flow_debug_t *debug, uint64_t completed_at_ms)
 
         if (slot == UINT16_MAX)
         {
-            if (!append_string(debug, &offset, node_id) || !append_u8(debug, &offset, 3U) ||
-                !append_u8(debug, &offset, 3U) || !append_u8(debug, &offset, 1U) || !append_u8(debug, &offset, 0U))
+            if (!append_string(debug, &offset, node_id) || !append_u8(debug, &offset, 3U) || !append_u8(debug, &offset, 3U) ||
+                !append_u8(debug, &offset, 1U) || !append_u8(debug, &offset, 0U))
             {
                 return false;
             }
@@ -499,7 +498,7 @@ static bool encode_snapshot(flow_debug_t *debug, uint64_t completed_at_ms)
             !append_u8(debug, &offset, debug->vm.slot_qualities[slot]) ||
             !append_u8(debug, &offset, debug->vm.slot_types[slot]) || !append_u8(debug, &offset, 1U) ||
             (debug->vm.slot_types[slot] == 2U ? !append_f64(debug, &offset, debug->vm.numeric_slots[slot])
-                                               : !append_u8(debug, &offset, debug->vm.working_slots[slot] ? 1U : 0U)))
+                                              : !append_u8(debug, &offset, debug->vm.working_slots[slot] ? 1U : 0U)))
         {
             return false;
         }
@@ -720,8 +719,8 @@ flow_debug_result_t flow_debug_step(flow_debug_t *debug, uint32_t owner_id, uint
     debug->state              = FLOW_DEBUG_STEPPING;
     const uint64_t started_us = debug->get_time_us == NULL ? 0U : debug->get_time_us(debug->time_context);
     flow_vm_input_sample_t samples[FLOW_VM_MAX_POINTS] = {0};
-    size_t sample_count                                  = 0U;
-    uint64_t sampled_at_ms                               = 0U;
+    size_t sample_count                                = 0U;
+    uint64_t sampled_at_ms                             = 0U;
 
     if (!debug->get_input(debug->input_context, samples, FLOW_VM_MAX_POINTS, &sample_count, &sampled_at_ms))
     {
@@ -732,19 +731,17 @@ flow_debug_result_t flow_debug_step(flow_debug_t *debug, uint32_t owner_id, uint
         return FLOW_DEBUG_VALIDATION_FAILED;
     }
 
-    const flow_vm_input_frame_t input = {.samples         = samples,
-                                         .sample_count    = sample_count,
-                                         .sampled_at_ms   = sampled_at_ms,
-                                         .is_coherent     = true};
+    const flow_vm_input_frame_t input = {
+        .samples = samples, .sample_count = sample_count, .sampled_at_ms = sampled_at_ms, .is_coherent = true};
     debug->last_result = flow_vm_begin_tick(&debug->vm, &input);
 
     if (debug->last_result.code == FLOW_VM_OK)
     {
         flow_vm_command_t commands[FLOW_VM_MAX_OUTPUTS];
         size_t command_count;
-        debug->last_result = flow_vm_commit_tick(&debug->vm, commands, FLOW_VM_MAX_OUTPUTS, &command_count,
-                                                 &debug->vm.snapshot);
+        debug->last_result = flow_vm_commit_tick(&debug->vm, commands, FLOW_VM_MAX_OUTPUTS, &command_count, &debug->vm.snapshot);
     }
+
     const uint64_t completed_us  = debug->get_time_us == NULL ? started_us : debug->get_time_us(debug->time_context);
     const uint64_t duration_us   = completed_us >= started_us ? completed_us - started_us : 0U;
     debug->execution_duration_us = duration_us > UINT32_MAX ? UINT32_MAX : (uint32_t)duration_us;
@@ -1055,8 +1052,8 @@ void flow_debug_process(flow_debug_t *debug, uint64_t now_ms)
 
         const uint64_t started_us = debug->get_time_us == NULL ? 0U : debug->get_time_us(debug->time_context);
         flow_vm_input_sample_t samples[FLOW_VM_MAX_POINTS] = {0};
-        size_t sample_count                                  = 0U;
-        uint64_t sampled_at_ms                               = 0U;
+        size_t sample_count                                = 0U;
+        uint64_t sampled_at_ms                             = 0U;
 
         if (!debug->get_input(debug->input_context, samples, FLOW_VM_MAX_POINTS, &sample_count, &sampled_at_ms))
         {
@@ -1067,18 +1064,16 @@ void flow_debug_process(flow_debug_t *debug, uint64_t now_ms)
             return;
         }
 
-        const flow_vm_input_frame_t input = {.samples         = samples,
-                                             .sample_count    = sample_count,
-                                             .sampled_at_ms   = sampled_at_ms,
-                                             .is_coherent     = true};
+        const flow_vm_input_frame_t input = {
+            .samples = samples, .sample_count = sample_count, .sampled_at_ms = sampled_at_ms, .is_coherent = true};
         debug->last_result = flow_vm_begin_tick(&debug->vm, &input);
 
         if (debug->last_result.code == FLOW_VM_OK)
         {
             flow_vm_command_t commands[FLOW_VM_MAX_OUTPUTS];
             size_t command_count;
-            debug->last_result = flow_vm_commit_tick(&debug->vm, commands, FLOW_VM_MAX_OUTPUTS, &command_count,
-                                                     &debug->vm.snapshot);
+            debug->last_result =
+                flow_vm_commit_tick(&debug->vm, commands, FLOW_VM_MAX_OUTPUTS, &command_count, &debug->vm.snapshot);
         }
 
         if (debug->last_result.code != FLOW_VM_OK)

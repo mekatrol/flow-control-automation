@@ -38,7 +38,6 @@ internal sealed class ServerFlowPointAdapter(
         IReadOnlyList<FlowVmCommand> commands,
         CancellationToken cancellationToken)
     {
-        commands = [.. commands.Where(command => !command.IsInterface)];
         cancellationToken.ThrowIfCancellationRequested();
         await virtualPoints.CommitAsync("server", flowId, commands, cancellationToken);
         lock (_gate)

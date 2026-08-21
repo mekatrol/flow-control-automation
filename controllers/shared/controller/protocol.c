@@ -244,8 +244,8 @@ static bool is_config_valid(const controller_protocol_config_t *config)
     size_t size = 0;
 
     return config != NULL && config->address != PROTOCOL_BROADCAST_ADDRESS && config->device_id != NULL &&
-           config->hardware_model != NULL && config->firmware_version != NULL &&
-           get_string_size(config->device_id, UINT8_MAX, &size) && size > 0 &&
+           config->hardware_model != NULL && config->firmware_version != NULL && config->virtual_points != NULL &&
+           config->virtual_points->protocol_version != 0U && get_string_size(config->device_id, UINT8_MAX, &size) && size > 0 &&
            get_string_size(config->hardware_model, UINT8_MAX, &size) && size > 0 &&
            get_string_size(config->firmware_version, UINT8_MAX, &size) && size > 0;
 }
@@ -1091,14 +1091,12 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
                 break;
             }
 
-            static const size_t BASE_CAPABILITY_PAYLOAD_SIZE = 24;
             static const size_t VIRTUAL_POINT_CAPABILITY_PAYLOAD_SIZE = 30;
-            static const uint8_t ARTIFACT_VERSION_COUNT    = 1;
-            static const uint8_t FLOW_IL_VERSION           = 1;
-            static const uint8_t DEBUGGER_FEATURES         = UINT8_C(0x7f);
-            response.payload_size = protocol->config.virtual_points == NULL ? BASE_CAPABILITY_PAYLOAD_SIZE
-                                                                             : VIRTUAL_POINT_CAPABILITY_PAYLOAD_SIZE;
-            response.payload[0]                            = PROTOCOL_CAPABILITY_MINOR;
+            static const uint8_t ARTIFACT_VERSION_COUNT               = 1;
+            static const uint8_t FLOW_IL_VERSION                      = 1;
+            static const uint8_t DEBUGGER_FEATURES                    = UINT8_C(0x7f);
+            response.payload_size                                     = VIRTUAL_POINT_CAPABILITY_PAYLOAD_SIZE;
+            response.payload[0]                                       = PROTOCOL_CAPABILITY_MINOR;
             put_u16(&response.payload[1], CONTROLLER_PROTOCOL_FRAME_CAPACITY);
             put_u16(&response.payload[3], CONTROLLER_PROTOCOL_PAYLOAD_CAPACITY);
             response.payload[5]  = PROTOCOL_OPERATION_BITMAP_SIZE;
@@ -1121,13 +1119,9 @@ static void dispatch_request(controller_protocol_t *protocol, const controller_p
             response.payload[22] = DEBUGGER_FEATURES;
             response.payload[23] = FLOW_VM_MAX_OUTPUTS;
 
-            if (protocol->config.virtual_points != NULL)
-            {
-                /* This append-only extension keeps the original capability prefix stable for older hosts. */
-                response.payload[24] = 1U;
-                response.payload[25] = FLOW_VIRTUAL_POINT_CAPACITY;
-                put_u32(&response.payload[26], protocol->config.virtual_points->protocol_version);
-            }
+            response.payload[24] = 1U;
+            response.payload[25] = FLOW_VIRTUAL_POINT_CAPACITY;
+            put_u32(&response.payload[26], protocol->config.virtual_points->protocol_version);
 
             send_response(protocol, &response);
             break;

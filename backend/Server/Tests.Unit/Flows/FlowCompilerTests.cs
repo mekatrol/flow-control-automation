@@ -126,12 +126,7 @@ public sealed class FlowCompilerTests
             ControllerTemplateId = "fixture",
             ControllerTemplateRevision = 1,
             Nodes = nodes,
-            Connections = connections,
-            Interface = new FlowInterface
-            {
-                Inputs = [new FlowInterfaceInput { Id = "test-input", Name = "Test input", DataType = DataType.Boolean, Required = false }],
-                Outputs = [new FlowInterfaceOutput { Id = "test-output", Name = "Test output", DataType = DataType.Boolean }]
-            }
+            Connections = connections
         };
     }
 
@@ -219,6 +214,25 @@ public sealed class FlowCompilerTests
                 .Select(index =>
                     artifact[checked((int)instructionSection) + (index * 12)]),
             Does.Contain((byte)opcode));
+    }
+
+    [Test]
+    public void EncodesVirtualPointsWithTheirDistinctControllerBindingKind()
+    {
+        var source = ReadSource("valid-two-button-and");
+        var request = BuildCompilationRequest(source);
+        request = request with
+        {
+            Target = request.Target with
+            {
+                Points = [.. request.Target.Points.Select(point => point with { Implementation = "virtual" })]
+            }
+        };
+        var artifact = _compiler.Compile(request).Artifact.ToArray();
+        var pointSection = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(
+            artifact.AsSpan(128 + 48 + 4, 4));
+
+        Assert.That(artifact[checked((int)pointSection) + 3], Is.EqualTo((byte)PointBindingKind.VirtualPoint));
     }
 
     [Test]
@@ -322,28 +336,6 @@ public sealed class FlowCompilerTests
         Assert.That(second.Artifact.ToArray(), Is.Not.EqualTo(first.Artifact.ToArray()));
     }
 
-    [TestCase(FlowNodeKind.FlowInput)]
-    [TestCase(FlowNodeKind.FlowOutput)]
-    public void RejectsObsoleteFlowInterfaceNodes(FlowNodeKind kind)
-    {
-        var source = ReadSource("valid-two-button-and") with
-        {
-            Interface = new FlowInterface
-            {
-                Inputs = [new FlowInterfaceInput { Id = "temperature", Name = "Temperature", DataType = DataType.Number, Units = "°C", Required = true }],
-                Outputs = [new FlowInterfaceOutput { Id = "result", Name = "Result", DataType = DataType.Number, Units = "°C" }]
-            },
-            Nodes = [new ExecutableFlowNode { Id = "obsolete", Kind = kind, Configuration = new Dictionary<string, JsonElement> { ["interfaceId"] = JsonSerializer.SerializeToElement("temperature") } }],
-            Connections = []
-        };
-        var request = BuildCompilationRequest(source);
-
-        AssertDiagnostic(
-            () => _compiler.Compile(request),
-            FlowCompilationDiagnosticCode.UnsupportedNode,
-            "/nodes/0/kind");
-    }
-
     [Test]
     public void RejectsAnUnresolvedPointDependencyBeforeEmission()
     {
@@ -398,7 +390,7 @@ public sealed class FlowCompilerTests
                     Id = node.Configuration["pointId"].GetString()!,
                     Name = node.Configuration["pointId"].GetString()!,
                     Enabled = true,
-                    Implementation = "virtual",
+                    Implementation = "bound",
                     Direction = node.Kind is FlowNodeKind.DigitalInput or FlowNodeKind.AnalogInput ? DataDirection.Input : DataDirection.Output,
                     ValueType = node.Kind is FlowNodeKind.AnalogInput or FlowNodeKind.AnalogOutput ? FlowPointValueType.Analog : FlowPointValueType.Digital,
                     Readable = node.Kind is FlowNodeKind.DigitalInput or FlowNodeKind.AnalogInput,

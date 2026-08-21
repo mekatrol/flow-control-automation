@@ -351,7 +351,7 @@ public sealed class FlowDecompilerTests
                                     .GetString()!,
 
                             Enabled = true,
-                            Implementation = "virtual",
+                            Implementation = "bound",
 
                             Direction =
                                 node.Kind.ToString()

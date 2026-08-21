@@ -8,8 +8,8 @@
 #include "controller/points.h"
 #include "flow/debug.h"
 #include "flow/service.h"
-#include "flow/vm.h"
 #include "flow/virtual_points.h"
+#include "flow/vm.h"
 
 /* Version-one wire limits preserve the 256-byte RS485 transport bound. */
 enum
@@ -109,16 +109,22 @@ typedef struct
 {
     /** Version-one flag bits; reserved bits must be zero. */
     uint8_t flags;
+
     /** Destination controller address in the inclusive wire range 0 through 65535. */
     uint16_t destination;
+
     /** Source address used to route and correlate the response. */
     uint16_t source;
+
     /** Caller-selected transaction value echoed by the response. */
     uint16_t transaction;
+
     /** Operation code from @ref controller_protocol_operation_t. */
     uint8_t operation;
+
     /** Number of valid bytes in payload, from zero through CONTROLLER_PROTOCOL_PAYLOAD_CAPACITY. */
     size_t payload_size;
+
     /** Caller-owned decoded payload storage; only the first payload_size bytes are meaningful. */
     uint8_t payload[CONTROLLER_PROTOCOL_PAYLOAD_CAPACITY];
 } controller_protocol_message_t;
@@ -217,7 +223,8 @@ typedef struct
     controller_flow_t *flow;
     flow_debug_t *debug;
     controller_points_t *points;
-    /** Optional instance-global store; non-NULL advertises atomic virtual-point protocol support. */
+
+    /** Required instance-global store used by the virtual-point protocol. */
     flow_virtual_point_store_t *virtual_points;
 } controller_protocol_config_t;
 

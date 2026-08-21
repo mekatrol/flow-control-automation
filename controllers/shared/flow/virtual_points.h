@@ -12,8 +12,8 @@
 /** Maximum UTF-8 bytes, including the terminator, in controller instance and deployment identities. */
 enum
 {
-    FLOW_VIRTUAL_POINT_ID_CAPACITY = 65,
-    FLOW_VIRTUAL_POINT_CAPACITY = 32,
+    FLOW_VIRTUAL_POINT_ID_CAPACITY      = 65,
+    FLOW_VIRTUAL_POINT_CAPACITY         = 32,
     FLOW_VIRTUAL_POINT_COMMAND_CAPACITY = 16,
 };
 
@@ -22,6 +22,7 @@ typedef enum
 {
     /** Boolean digital value. */
     FLOW_VIRTUAL_POINT_DIGITAL = 1,
+
     /** IEEE-754 binary64 analog value. */
     FLOW_VIRTUAL_POINT_ANALOG = 2,
 } flow_virtual_point_type_t;
@@ -31,6 +32,7 @@ typedef enum
 {
     /** Value resets to its declared default or uninitialized quality. */
     FLOW_VIRTUAL_POINT_VOLATILE,
+
     /** Value participates in typed retained-image export and restore. */
     FLOW_VIRTUAL_POINT_RETAINED,
 } flow_virtual_point_persistence_t;
@@ -40,18 +42,25 @@ typedef enum
 {
     /** Operation completed atomically. */
     FLOW_VIRTUAL_POINT_OK,
+
     /** Pointer, identity, type, capacity, or command content was invalid. */
     FLOW_VIRTUAL_POINT_INVALID_ARGUMENT,
+
     /** Point key is not allocated on this execution instance. */
     FLOW_VIRTUAL_POINT_NOT_FOUND,
+
     /** Contract differs from the existing instance-global contract. */
     FLOW_VIRTUAL_POINT_CONTRACT_CONFLICT,
+
     /** Another active deployment owns the writer lease. */
     FLOW_VIRTUAL_POINT_WRITER_CONFLICT,
+
     /** Caller identity does not match this controller instance. */
     FLOW_VIRTUAL_POINT_INSTANCE_MISMATCH,
+
     /** Retained image is malformed or incompatible with allocated contracts. */
     FLOW_VIRTUAL_POINT_RETAINED_INCOMPATIBLE,
+
     /** Fixed controller capacity is exhausted. */
     FLOW_VIRTUAL_POINT_STORAGE_FULL,
 } flow_virtual_point_result_t;
@@ -61,16 +70,22 @@ typedef struct
 {
     /** Stable non-empty key, terminated within FLOW_VIRTUAL_POINT_ID_CAPACITY. */
     char key[FLOW_VIRTUAL_POINT_ID_CAPACITY];
+
     /** Analog or digital value contract. */
     flow_virtual_point_type_t type;
+
     /** Volatile or retained lifecycle. */
     flow_virtual_point_persistence_t persistence;
+
     /** Whether this declaration requests the unique writer lease. */
     bool is_writer;
+
     /** Whether a typed initial value is present. */
     bool has_default;
+
     /** Digital initial value when type is FLOW_VIRTUAL_POINT_DIGITAL. */
     bool digital_default;
+
     /** Analog initial value when type is FLOW_VIRTUAL_POINT_ANALOG. */
     double analog_default;
 } flow_virtual_point_declaration_t;
@@ -80,16 +95,22 @@ typedef struct
 {
     /** Stable point key. */
     char key[FLOW_VIRTUAL_POINT_ID_CAPACITY];
+
     /** Declared value type. */
     flow_virtual_point_type_t type;
+
     /** False until a default, retained restore, or successful command initializes the cell. */
     bool is_initialized;
+
     /** Digital committed value. */
     bool digital_value;
+
     /** Analog committed value. */
     double analog_value;
+
     /** Monotonic timestamp supplied by the successful commit. */
     uint64_t timestamp_ms;
+
     /** Monotonic per-cell version, starting at zero before the first commit. */
     uint64_t version;
 } flow_virtual_point_snapshot_t;
@@ -99,10 +120,13 @@ typedef struct
 {
     /** Allocated point key owned by the committing deployment. */
     char key[FLOW_VIRTUAL_POINT_ID_CAPACITY];
+
     /** Type that must exactly match the allocated contract. */
     flow_virtual_point_type_t type;
+
     /** Digital proposed value. */
     bool digital_value;
+
     /** Analog proposed value. */
     double analog_value;
 } flow_virtual_point_command_t;
@@ -121,10 +145,13 @@ typedef struct
 {
     /** Stable concrete controller identity checked on every mutating operation. */
     char execution_instance_id[FLOW_VIRTUAL_POINT_ID_CAPACITY];
+
     /** Protocol contract version advertised during capability negotiation. */
     uint32_t protocol_version;
+
     /** Complete transaction generation incremented once per successful non-empty commit. */
     uint64_t generation;
+
     /** Fixed cell pool shared by every active program on this instance. */
     flow_virtual_point_cell_t cells[FLOW_VIRTUAL_POINT_CAPACITY];
 } flow_virtual_point_store_t;
@@ -136,8 +163,7 @@ typedef struct
  * @param protocol_version Non-zero virtual-point protocol contract version.
  * @return true on success; false leaves store cleared.
  */
-bool flow_virtual_points_init(flow_virtual_point_store_t *store, const char *execution_instance_id,
-                              uint32_t protocol_version);
+bool flow_virtual_points_init(flow_virtual_point_store_t *store, const char *execution_instance_id, uint32_t protocol_version);
 
 /**
  * Allocates compatible declarations and atomically acquires requested writer leases.
@@ -148,8 +174,8 @@ bool flow_virtual_points_init(flow_virtual_point_store_t *store, const char *exe
  * @param declaration_count Number of declarations from zero through FLOW_VIRTUAL_POINT_CAPACITY.
  * @return Stable result; failure leaves every cell and lease unchanged.
  */
-flow_virtual_point_result_t flow_virtual_points_activate(flow_virtual_point_store_t *store,
-                                                         const char *execution_instance_id, const char *deployment_id,
+flow_virtual_point_result_t flow_virtual_points_activate(flow_virtual_point_store_t *store, const char *execution_instance_id,
+                                                         const char *deployment_id,
                                                          const flow_virtual_point_declaration_t *declarations,
                                                          size_t declaration_count);
 
@@ -160,8 +186,7 @@ flow_virtual_point_result_t flow_virtual_points_activate(flow_virtual_point_stor
  * @param deployment_id Non-empty deployment identity to release.
  * @return Stable result; mismatch leaves ownership unchanged.
  */
-flow_virtual_point_result_t flow_virtual_points_deactivate(flow_virtual_point_store_t *store,
-                                                           const char *execution_instance_id,
+flow_virtual_point_result_t flow_virtual_points_deactivate(flow_virtual_point_store_t *store, const char *execution_instance_id,
                                                            const char *deployment_id);
 
 /**
@@ -185,10 +210,9 @@ flow_virtual_point_result_t flow_virtual_points_snapshot(const flow_virtual_poin
  * @param timestamp_ms Monotonic commit timestamp applied to every command.
  * @return Stable result; any failure leaves every value and version unchanged.
  */
-flow_virtual_point_result_t flow_virtual_points_commit(flow_virtual_point_store_t *store,
-                                                       const char *execution_instance_id, const char *deployment_id,
-                                                       const flow_virtual_point_command_t *commands, size_t command_count,
-                                                       uint64_t timestamp_ms);
+flow_virtual_point_result_t flow_virtual_points_commit(flow_virtual_point_store_t *store, const char *execution_instance_id,
+                                                       const char *deployment_id, const flow_virtual_point_command_t *commands,
+                                                       size_t command_count, uint64_t timestamp_ms);
 
 /**
  * Exports retained initialized cells into a versioned typed image.
