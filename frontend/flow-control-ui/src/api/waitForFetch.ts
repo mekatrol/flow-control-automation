@@ -1,12 +1,12 @@
 import { getActivePinia } from 'pinia';
+import { getApiKey } from '@/config/apiAccess';
 import { useWaitStore } from '@/stores/wait';
 
 export const waitForFetch = async (
   input: RequestInfo | URL,
   init?: RequestInit
 ): Promise<Response> => {
-  const apiKey =
-    import.meta.env.VITE_FLOW_CONTROL_API_KEY || sessionStorage.getItem('flow-control-api-key');
+  const apiKey = getApiKey();
   let authenticatedInit = init;
   if (apiKey) {
     const headers = new Headers(init?.headers);

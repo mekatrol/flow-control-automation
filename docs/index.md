@@ -13,6 +13,7 @@ the managed server and supported hardware controllers.
 - [Portable flow runtime](architecture/portable-flow-runtime.md)
 - [PLC scan cycle](architecture/plc-scan-cycle.md)
 - [Flow authoring and controller targets](architecture/flow-authoring-and-controller-targets.md)
+- [Frontend hosting and API access](architecture/frontend-hosting-and-api-access.md)
 
 ## Reference
 

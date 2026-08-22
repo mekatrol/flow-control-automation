@@ -7,9 +7,13 @@ and routes are listed in the [API reference](../reference/virtual-points-api.md)
 ## Authorization
 
 Production API startup requires at least one configured identity with a key and
-permissions. Clients send the key through `X-Api-Key`. Keep keys in the
-deployment secret manager rather than source control or browser configuration
-files.
+permissions. Clients send the key through `X-Api-Key`. Keep source API keys in
+the deployment secret manager rather than source control. A server-hosted
+frontend may receive a restricted identity through its runtime HTML metadata as
+described in the
+[frontend hosting architecture](../architecture/frontend-hosting-and-api-access.md).
+Because browser-injected keys are visible to anyone who can load the UI, they
+identify the frontend client and do not authenticate individual users.
 
 Permissions relevant to virtual points are:
 
@@ -68,8 +72,10 @@ ApiAccess__Identities__local-admin__Permissions__0
 
 Set the permission variable to `*` only for an intentionally administrative
 identity. Do not commit API keys to source control, reuse them between
-identities, or expose them in browser configuration files. Clients provide the
-generated value in the `X-Api-Key` request header.
+identities, or place them in compiled frontend assets. Clients provide the
+generated value in the `X-Api-Key` request header. When the server injects a
+frontend identity into `index.html`, restrict access to the UI and grant that
+identity only the permissions it requires.
 
 ## Capacity
 

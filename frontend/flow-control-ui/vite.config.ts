@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { fileURLToPath, URL } from 'node:url';
 
 import { defineConfig, type Plugin } from 'vite';
@@ -5,11 +6,49 @@ import vue from '@vitejs/plugin-vue';
 import vueDevTools from 'vite-plugin-vue-devtools';
 
 const defaultChunkSizeLimitKb = 500;
+const apiKeyPlaceholder = '__FLOW_CONTROL_API_KEY__';
 const chunkSizeBudgets = [
   { name: 'AppYamlEditor', pattern: /^assets\/AppYamlEditor-.*\.js$/, limitKb: 1_300 },
   { name: 'Monaco editor API', pattern: /^assets\/editor\.api-.*\.js$/, limitKb: 2_700 },
   { name: 'Monaco YAML worker', pattern: /^assets\/YamlWorker-.*\.js$/, limitKb: 1_200 }
 ];
+
+const localApiSettingsUrl = new URL(
+  '../../backend/Server/Server.Api/appsettings.Local.json',
+  import.meta.url
+);
+
+const getLocalDevelopmentApiKey = (): string => {
+  if (process.env.VITE_FLOW_CONTROL_API_KEY) return process.env.VITE_FLOW_CONTROL_API_KEY;
+
+  const settings = JSON.parse(readFileSync(localApiSettingsUrl, 'utf8')) as {
+    ApiAccess?: { Identities?: Record<string, { Key?: string }> };
+  };
+  const apiKey = Object.values(settings.ApiAccess?.Identities ?? {}).find(
+    (identity) => identity.Key
+  )?.Key;
+  if (!apiKey) {
+    throw new Error(
+      `Configure an API identity in ${fileURLToPath(localApiSettingsUrl)} before starting Vite.`
+    );
+  }
+
+  return apiKey;
+};
+
+const escapeHtmlAttribute = (value: string): string =>
+  value
+    .replaceAll('&', '&amp;')
+    .replaceAll('"', '&quot;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;');
+
+const localApiKeyPlugin = (apiKey: string | undefined): Plugin => ({
+  name: 'local-api-key',
+  transformIndexHtml: apiKey
+    ? (html) => html.replace(apiKeyPlaceholder, escapeHtmlAttribute(apiKey))
+    : undefined
+});
 
 const chunkSizeBudgetPlugin = (): Plugin => {
   return {
@@ -34,14 +73,14 @@ const chunkSizeBudgetPlugin = (): Plugin => {
 };
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   // Home Assistant add-ons commonly serve their UI below an ingress prefix.
   // Vite rewrites built asset URLs against this value while Vue Router continues
   // to receive the browser-visible route.
   base: process.env.VITE_BASE_PATH || '/',
   server: {
     // During local development the browser talks to Vite. Forward API calls to
-    // the separately running Go process so the UI uses the durable store rather
+    // the separately running ASP.NET Core process so the UI uses the durable store rather
     // than requiring cross-origin URLs or development-only CORS permissions.
     proxy: {
       '/api': process.env.VITE_API_PROXY || 'http://localhost:8080'
@@ -50,7 +89,12 @@ export default defineConfig({
     // surface transient EBUSY errors and terminate the development server.
     watch: { ignored: ['**/data/**', '**/test-results/**'] }
   },
-  plugins: [vue(), ...(process.env.FLOW_UI_E2E ? [] : [vueDevTools()]), chunkSizeBudgetPlugin()],
+  plugins: [
+    vue(),
+    ...(process.env.FLOW_UI_E2E ? [] : [vueDevTools()]),
+    localApiKeyPlugin(command === 'serve' ? getLocalDevelopmentApiKey() : undefined),
+    chunkSizeBudgetPlugin()
+  ],
   optimizeDeps: {
     // The E2E suite opens several lazy routes in parallel. If Vite discovers a
     // new dependency after a test has started interacting with a page, its
@@ -84,4 +128,4 @@ export default defineConfig({
       '@contracts': fileURLToPath(new URL('../../testdata/contracts', import.meta.url))
     }
   }
-});
+}));

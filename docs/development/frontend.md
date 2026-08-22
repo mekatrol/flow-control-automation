@@ -61,7 +61,18 @@ CI images must likewise install Edge at `/opt/microsoft/msedge/msedge` before
 running the complete Playwright suite.
 
 The development server proxies `/api` to the ASP.NET Core backend at
-`http://localhost:5008` by default. Set `VITE_API_PROXY` to override that
+`http://localhost:8080` by default. When the development server starts, Vite
+reads the first API identity key from the gitignored
+`backend/Server/Server.Api/appsettings.Local.json` file and supplies it to the
+frontend through the `flow-control-api-key` metadata in `index.html`. This avoids
+presenting the API-key prompt during local debugging and ensures that the
+browser uses the same key as the local backend.
+
+Set `VITE_FLOW_CONTROL_API_KEY` before starting Vite to override the local
+settings value. Vite replaces the metadata value only when running the
+development server. Production builds retain the `__FLOW_CONTROL_API_KEY__`
+placeholder; the hosting server must replace it with an HTML-attribute-encoded
+API key when serving `index.html`. Set `VITE_API_PROXY` to override the backend
 address. Before merging frontend changes, run the same checks required by the
 completed migration:
 
@@ -117,6 +128,7 @@ remain rooted at `/api` and should be routed to `Server.Api` by the deployment.
 
 ## Related documentation
 
+- [Frontend hosting and API access](../architecture/frontend-hosting-and-api-access.md)
 - [Portable flow runtime architecture](../architecture/portable-flow-runtime.md)
 - [Virtual points and execution contexts](../guides/virtual-points.md)
 - [Virtual-points API](../reference/virtual-points-api.md)

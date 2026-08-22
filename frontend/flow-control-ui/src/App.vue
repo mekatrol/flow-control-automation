@@ -17,15 +17,15 @@
 <script setup lang="ts">
 import AppSpinnerOverlay from '@/components/AppSpinnerOverlay.vue';
 import { useWait } from '@/composables/useWait';
+import { getApiKey, removeStoredApiKey, storeApiKey } from '@/config/apiAccess';
 import { ref } from 'vue';
 
 const { isWaiting } = useWait();
-const configuredKey = import.meta.env.VITE_FLOW_CONTROL_API_KEY;
-const authenticated = ref(Boolean(configuredKey || sessionStorage.getItem('flow-control-api-key')));
+const authenticated = ref(Boolean(getApiKey()));
 const apiKey = ref('');
 const authenticationError = ref('');
 const authenticate = async (): Promise<void> => {
-  sessionStorage.setItem('flow-control-api-key', apiKey.value);
+  storeApiKey(apiKey.value);
   const response = await fetch('/api/execution-contexts', {
     headers: { 'X-Api-Key': apiKey.value }
   });
@@ -33,7 +33,7 @@ const authenticate = async (): Promise<void> => {
     authenticated.value = true;
     authenticationError.value = '';
   } else {
-    sessionStorage.removeItem('flow-control-api-key');
+    removeStoredApiKey();
     authenticationError.value =
       response.status === 401 ? 'The API key is invalid.' : 'The API key does not have access.';
   }
