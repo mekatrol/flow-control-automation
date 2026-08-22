@@ -6,93 +6,116 @@
       :message="noticeError"
     />
     <p v-if="loading" class="request-status" role="status">Loading latest flow…</p>
-    <div v-if="showDeployConfirmation" class="dialog-backdrop">
-      <section
-        ref="deployDialog"
-        class="discard-dialog"
-        role="alertdialog"
-        aria-labelledby="deploy-title"
-        aria-describedby="deploy-description"
-        aria-modal="true"
-        tabindex="-1"
-        @keydown="handleDeployDialogKeydown"
-      >
-        <h2 id="deploy-title">Deploy this flow?</h2>
-        <p id="deploy-description">
-          The latest saved definition will replace the currently running version.
-        </p>
-        <div>
-          <AppButton
-            v-bind="automation('deploy-cancel')"
-            text="Cancel"
-            :icon="cancelIcon"
-            data-dialog-initial-focus
-            @click="closeDeployConfirmation"
-          />
-          <AppButton
-            v-bind="automation('deploy-confirm')"
-            text="Deploy now"
-            :icon="deployIcon"
-            @click="deployFlow"
-          />
-        </div>
-      </section>
-    </div>
-    <div v-if="showRevertConfirmation" class="dialog-backdrop">
-      <section
-        class="discard-dialog"
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby="revert-title"
-      >
-        <h2 id="revert-title">Revert this draft?</h2>
-        <p>All draft changes will be replaced by the currently deployed version.</p>
-        <div>
-          <AppButton
-            v-bind="automation('revert-cancel')"
-            text="Keep draft"
-            :icon="cancelIcon"
-            @click="showRevertConfirmation = false"
-          />
-          <AppButton
-            v-bind="automation('revert-confirm')"
-            text="Revert draft"
-            :icon="discardIcon"
-            @click="revertDraftToDeployed"
-          />
-        </div>
-      </section>
-    </div>
-    <div v-if="pendingRoute" class="dialog-backdrop">
-      <section
-        ref="discardDialog"
-        class="discard-dialog"
-        role="alertdialog"
-        aria-labelledby="discard-title"
-        aria-describedby="discard-description"
-        aria-modal="true"
-        tabindex="-1"
-        @keydown="handleDiscardDialogKeydown"
-      >
-        <h2 id="discard-title">Discard unsaved changes?</h2>
-        <p id="discard-description">This flow has changes that have not been saved.</p>
-        <div>
-          <AppButton
-            v-bind="automation('discard-keep-editing')"
-            text="Keep editing"
-            :icon="renameFlowIcon"
-            data-dialog-initial-focus
-            @click="keepEditing"
-          />
-          <AppButton
-            v-bind="automation('discard-confirm')"
-            text="Discard changes"
-            :icon="discardIcon"
-            @click="discardChanges"
-          />
-        </div>
-      </section>
-    </div>
+    <AppPromptDialog
+      id="deploy-confirmation-dialog"
+      ref="deployDialog"
+      content-label="Deploy flow confirmation"
+      automation="flow-designer-deploy-confirmation"
+      @confirm="deployFlow"
+    >
+      <template #prompt="{ cancel, confirm }">
+        <section
+          class="designer-prompt-dialog"
+          aria-labelledby="deploy-title"
+          aria-describedby="deploy-description"
+          @keydown.esc.prevent="cancel"
+        >
+          <h2 id="deploy-title">Deploy this flow?</h2>
+          <p id="deploy-description">
+            The latest saved definition will replace the currently running version.
+          </p>
+          <div class="designer-prompt-actions">
+            <AppButton
+              v-bind="automation('deploy-cancel')"
+              text="Cancel"
+              :icon="cancelIcon"
+              data-dialog-initial-focus
+              @click="cancel"
+            />
+            <AppButton
+              v-bind="automation('deploy-confirm')"
+              text="Deploy now"
+              :icon="deployIcon"
+              @click="confirm"
+            />
+          </div>
+        </section>
+      </template>
+    </AppPromptDialog>
+
+    <AppPromptDialog
+      id="revert-confirmation-dialog"
+      ref="revertDialog"
+      content-label="Revert draft confirmation"
+      automation="flow-designer-revert-confirmation"
+      @confirm="revertDraftToDeployed"
+    >
+      <template #prompt="{ cancel, confirm }">
+        <section
+          class="designer-prompt-dialog"
+          aria-labelledby="revert-title"
+          aria-describedby="revert-description"
+          @keydown.esc.prevent="cancel"
+        >
+          <h2 id="revert-title">Revert this draft?</h2>
+          <p id="revert-description">
+            All draft changes will be replaced by the currently deployed version.
+          </p>
+          <div class="designer-prompt-actions">
+            <AppButton
+              v-bind="automation('revert-cancel')"
+              text="Keep draft"
+              :icon="cancelIcon"
+              data-dialog-initial-focus
+              @click="cancel"
+            />
+            <AppButton
+              v-bind="automation('revert-confirm')"
+              text="Revert draft"
+              :icon="discardIcon"
+              @click="confirm"
+            />
+          </div>
+        </section>
+      </template>
+    </AppPromptDialog>
+
+    <AppPromptDialog
+      id="discard-changes-dialog"
+      ref="discardDialog"
+      content-label="Discard unsaved flow changes confirmation"
+      automation="flow-designer-discard-confirmation"
+      @cancel="keepEditing"
+      @confirm="discardChanges"
+    >
+      <template #prompt="{ cancel, confirm }">
+        <section
+          class="designer-prompt-dialog"
+          aria-labelledby="discard-title"
+          aria-describedby="discard-description"
+          @keydown.esc.prevent="cancel"
+        >
+          <h2 id="discard-title">Discard unsaved changes?</h2>
+          <p id="discard-description">This flow has changes that have not been saved.</p>
+          <div class="designer-prompt-actions">
+            <AppButton
+              v-bind="automation('discard-keep-editing')"
+              text="Keep editing"
+              :icon="renameFlowIcon"
+              data-dialog-initial-focus
+              @click="cancel"
+            />
+            <AppButton
+              v-bind="automation('discard-confirm')"
+              text="Discard changes"
+              :icon="discardIcon"
+              @click="confirm"
+            />
+          </div>
+        </section>
+      </template>
+    </AppPromptDialog>
+
     <template v-if="flow">
       <section
         v-if="draftFlow?.deployedRevision"
@@ -121,7 +144,7 @@
           v-bind="automation('revert-draft')"
           text="Revert draft to deployed"
           :disabled="saving || revertingDraft"
-          @click="showRevertConfirmation = true"
+          @click="openRevertConfirmation"
         />
       </section>
       <div class="designer-heading">
@@ -173,7 +196,7 @@
             :text="deploying ? 'Deploying…' : 'Deploy flow'"
             :icon="deployIcon"
             :disabled="dirty || deploying || !pointReferencesValid"
-            @click="showDeployConfirmation = true"
+            @click="openDeployConfirmation"
           />
           <AppButton
             v-if="flow.status === 'deployed'"
@@ -390,6 +413,7 @@ import debugIcon from '@/assets/icons/flow-debug-icon.svg';
 import AppButton from '@/components/AppButton.vue';
 import AppLink from '@/components/AppLink.vue';
 import AppErrorNotice from '@/components/AppErrorNotice.vue';
+import AppPromptDialog from '@/components/AppPromptDialog.vue';
 import AppFlowDesignerCanvas from '@/features/flows/components/AppFlowDesignerCanvas.vue';
 import AppFlowCompileResults from '@/features/flows/components/AppFlowCompileResults.vue';
 import AppFlowDebugTargetSelector from '@/features/flows/components/AppFlowDebugTargetSelector.vue';
@@ -421,7 +445,6 @@ import { flowRuntimeApi } from '@/features/flows/api/flowRuntimeApi';
 import { createLatestRequestGuard } from '@/features/flows/api/latestRequest';
 import { useFlowRuntimeStore } from '@/features/flows/stores/flowRuntime';
 import { useFlowSimulatorStore } from '@/features/flows/stores/flowSimulator';
-import { useModalFocus } from '@/features/flows/composables/useModalFocus';
 import type {
   FlowConfigurationValue,
   FlowConnectionEndpoint,
@@ -501,10 +524,9 @@ const runtimeFailureMessage = (error: unknown, fallback: string): string =>
     : error instanceof Error
       ? error.message
       : fallback;
-const showDeployConfirmation = ref(false);
-const showRevertConfirmation = ref(false);
-const deployDialog = ref<HTMLElement>();
-const discardDialog = ref<HTMLElement>();
+const deployDialog = ref<InstanceType<typeof AppPromptDialog>>();
+const revertDialog = ref<InstanceType<typeof AppPromptDialog>>();
+const discardDialog = ref<InstanceType<typeof AppPromptDialog>>();
 const runtime = computed(() => runtimeStore.snapshotFor(props.flowId));
 const debugTargets = computed(() => getFlowDebugTargets(controllerTemplates.allItems));
 const debugTargetId = ref('server');
@@ -911,14 +933,13 @@ const stopDebugSession = async (keepalive = false): Promise<void> => {
   }
 };
 
-const closeDeployConfirmation = (): void => {
-  showDeployConfirmation.value = false;
+const openDeployConfirmation = (): void => {
+  deployDialog.value?.showModal();
 };
-const { handleKeydown: handleDeployDialogKeydown } = useModalFocus(
-  deployDialog,
-  showDeployConfirmation,
-  closeDeployConfirmation
-);
+
+const openRevertConfirmation = (): void => {
+  revertDialog.value?.showModal();
+};
 
 const moveNode = (nodeId: string, x: number, y: number): void => {
   flowStore.moveNode(props.flowId, nodeId, x, y);
@@ -1073,7 +1094,6 @@ const refreshRuntime = async (flowId = props.flowId): Promise<void> => {
 };
 
 const deployFlow = async (): Promise<void> => {
-  showDeployConfirmation.value = false;
   runtimeStore.beginDeployment(props.flowId);
   runtimeError.value = undefined;
   try {
@@ -1106,7 +1126,6 @@ const showDeployedVersion = async (): Promise<void> => {
 };
 
 const revertDraftToDeployed = async (): Promise<void> => {
-  showRevertConfirmation.value = false;
   revertingDraft.value = true;
   saveError.value = undefined;
   try {
@@ -1185,12 +1204,6 @@ const handleBeforeUnload = (event: BeforeUnloadEvent): void => {
 const keepEditing = (): void => {
   pendingRoute.value = undefined;
 };
-const discardDialogOpen = computed(() => Boolean(pendingRoute.value));
-const { handleKeydown: handleDiscardDialogKeydown } = useModalFocus(
-  discardDialog,
-  discardDialogOpen,
-  keepEditing
-);
 
 const discardChanges = async (): Promise<void> => {
   const target = pendingRoute.value;
@@ -1218,6 +1231,7 @@ onBeforeRouteLeave((to) => {
     return true;
   }
   pendingRoute.value = to.fullPath;
+  discardDialog.value?.showModal();
   return false;
 });
 onMounted(() => {
@@ -1361,34 +1375,20 @@ h1 {
   border-radius: var(--radius-lg);
 }
 
-.dialog-backdrop {
-  position: fixed;
-  z-index: 20;
-  display: grid;
-  inset: 0;
-  place-items: center;
-  padding: var(--space-10);
-  background: var(--color-modal-backdrop);
-}
-
-.discard-dialog {
+.designer-prompt-dialog {
   width: min(430px, 100%);
-  padding: var(--space-12);
-  background: var(--color-surface-raised);
-  border-radius: var(--radius-2xl);
-  box-shadow: var(--shadow-dialog);
 }
 
-.discard-dialog h2 {
+.designer-prompt-dialog h2 {
   margin: var(--space-0);
   color: var(--color-text-primary);
 }
 
-.discard-dialog p {
+.designer-prompt-dialog p {
   color: var(--color-text-muted);
 }
 
-.discard-dialog > div {
+.designer-prompt-actions {
   display: flex;
   gap: var(--space-3-5);
   justify-content: end;
