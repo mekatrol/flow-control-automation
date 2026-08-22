@@ -22,6 +22,55 @@ Permissions relevant to virtual points are:
 The wildcard permission `*` is intended only for deliberately configured
 administrative identities.
 
+### Generate an API key
+
+Generate a cryptographically random 32-byte key for each API identity. Run the
+command for your operating system, then copy the printed value into your secret
+manager or local configuration.
+
+Windows PowerShell:
+
+```powershell
+$key = New-Object byte[] 32
+[System.Security.Cryptography.RandomNumberGenerator]::Fill($key)
+[Convert]::ToBase64String($key)
+```
+
+macOS or Linux with OpenSSL:
+
+```sh
+openssl rand -base64 32
+```
+
+For local development, place the generated value in the gitignored
+`backend/Server/Server.Api/appsettings.Local.json` file:
+
+```json
+{
+  "ApiAccess": {
+    "Identities": {
+      "local-admin": {
+        "Key": "REPLACE_WITH_GENERATED_API_KEY",
+        "Permissions": ["*"]
+      }
+    }
+  }
+}
+```
+
+For a deployment, configure the same identity through the deployment secret
+manager. The corresponding environment variables are:
+
+```text
+ApiAccess__Identities__local-admin__Key
+ApiAccess__Identities__local-admin__Permissions__0
+```
+
+Set the permission variable to `*` only for an intentionally administrative
+identity. Do not commit API keys to source control, reuse them between
+identities, or expose them in browser configuration files. Clients provide the
+generated value in the `X-Api-Key` request header.
+
 ## Capacity
 
 The service rejects configurations that exceed:
@@ -91,4 +140,3 @@ After a disconnect, treat cached physical values according to their quality and
 timestamp. Virtual-point values remain instance-local; retained values restore
 before affected programs activate, and volatile values follow the instance
 restart policy.
-
