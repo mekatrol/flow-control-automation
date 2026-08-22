@@ -36,17 +36,27 @@ avoids asking a developer to enter the key in the browser.
 ## Server-hosted frontend
 
 The production bundle retains the placeholder. When ASP.NET serves
-`index.html`, it must:
+`index.html`, a single HTML-response middleware injects the key for the root
+document, an explicit `/index.html` request, and SPA fallback routes. It:
 
-1. Select the API identity intended for the hosted frontend.
-2. HTML-attribute-encode its key.
-3. Replace the exact `__FLOW_CONTROL_API_KEY__` placeholder in the response.
-4. Prevent a response containing one deployment's key from being cached and
+1. Selects the identity named by `ApiAccess:FrontendIdentity`, or the first
+   configured identity when no frontend identity is named.
+2. HTML-attribute-encodes its key.
+3. Replaces the exact `__FLOW_CONTROL_API_KEY__` placeholder in the response.
+4. Prevents a response containing one deployment's key from being cached and
    served for another deployment or identity.
 
 Replacement occurs in the HTML response, before response compression. Hashed
 JavaScript and CSS assets remain static and cacheable because they contain no
 deployment key.
+
+The server includes files found in `frontend/flow-control-ui/dist` under its
+`wwwroot` output. Build the frontend before building or publishing the server.
+ASP.NET default-file, static-file, and SPA fallback handling all run behind the
+injection middleware. At startup, the server resolves a built bundle from its
+content-root `wwwroot`, compiled-output `wwwroot`, or the repository frontend
+`dist` directory. If none contains `index.html`, frontend hosting is disabled
+and the API can still start normally.
 
 ## Security boundary
 

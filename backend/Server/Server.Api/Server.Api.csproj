@@ -15,4 +15,11 @@
     <ProjectReference Include="..\Server.Services\Server.Services.csproj" />
   </ItemGroup>
 
+  <ItemGroup Condition="Exists('..\..\..\frontend\flow-control-ui\dist')">
+    <Content Include="..\..\..\frontend\flow-control-ui\dist\**\*"
+             Link="wwwroot\%(RecursiveDir)%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

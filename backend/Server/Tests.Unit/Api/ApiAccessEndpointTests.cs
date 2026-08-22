@@ -8,6 +8,45 @@ namespace Tests.Unit.Api;
 [TestFixture]
 internal sealed class ApiAccessEndpointTests
 {
+    [TestCase("/")]
+    [TestCase("/index.html")]
+    [TestCase("/flows/example")]
+    public async Task FrontendEntryPointsReceiveTheConfiguredApiKey(string path)
+    {
+        const string index = "<meta name=\"flow-control-api-key\" content=\"__FLOW_CONTROL_API_KEY__\">";
+        await using var factory = new FlowControlApplicationFactory(
+            environment: "Production",
+            frontendIndex: index);
+        using var client = factory.CreateClient();
+
+        var response = await client.GetAsync(path);
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(response.Content.Headers.ContentType?.MediaType, Is.EqualTo("text/html"));
+            Assert.That(response.Headers.CacheControl?.NoStore, Is.True);
+            Assert.That(html, Does.Contain("content=\"test-api-key\""));
+            Assert.That(html, Does.Not.Contain("__FLOW_CONTROL_API_KEY__"));
+        });
+    }
+
+    [Test]
+    public async Task UnknownApiRoutesDoNotReturnTheFrontendBundle()
+    {
+        const string index = "<meta name=\"flow-control-api-key\" content=\"__FLOW_CONTROL_API_KEY__\">";
+        await using var factory = new FlowControlApplicationFactory(
+            environment: "Production",
+            frontendIndex: index);
+        using var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Add("X-Api-Key", "test-api-key");
+
+        var response = await client.GetAsync("/api/not-an-endpoint");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
     [Test]
     public async Task ProductionApiRequiresAConfiguredKey()
     {

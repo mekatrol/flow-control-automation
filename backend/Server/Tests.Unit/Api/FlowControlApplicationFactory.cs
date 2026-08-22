@@ -5,7 +5,8 @@ namespace Tests.Unit.Api;
 
 internal sealed class FlowControlApplicationFactory(
     Action<IServiceCollection>? configureServices = null,
-    string environment = "Testing") : WebApplicationFactory<Server.Api.Program>
+    string environment = "Testing",
+    string? frontendIndex = null) : WebApplicationFactory<Server.Api.Program>
 {
     private const string TestCredentialEncryptionKey =
         "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=";
@@ -30,6 +31,13 @@ internal sealed class FlowControlApplicationFactory(
         // can otherwise replace the domain exception being asserted.
         builder.ConfigureLogging(logging => logging.ClearProviders());
         Directory.CreateDirectory(_temporaryDirectory);
+        if (frontendIndex is not null)
+        {
+            var webRoot = Path.Combine(_temporaryDirectory, "wwwroot");
+            Directory.CreateDirectory(webRoot);
+            File.WriteAllText(Path.Combine(webRoot, "index.html"), frontendIndex);
+            builder.UseWebRoot(webRoot);
+        }
 
         builder.ConfigureAppConfiguration((_, configuration) =>
         {
@@ -38,6 +46,7 @@ internal sealed class FlowControlApplicationFactory(
                 [$"{DatabaseOptions.SectionName}:{DatabaseOptions.FlowControlConfigurationKey}"] = DatabaseConnectionString,
                 [nameof(ServerOptions.CredentialEncryptionKey)] = TestCredentialEncryptionKey,
                 [ServerOptions.ControllerDataFileConfigurationKey] = ControllerDataPath,
+                ["ApiAccess:FrontendIdentity"] = "test",
                 ["ApiAccess:Identities:test:Key"] = "test-api-key",
                 ["ApiAccess:Identities:test:Permissions:0"] = "*"
             });

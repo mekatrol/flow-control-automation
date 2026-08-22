@@ -52,6 +52,7 @@ For local development, place the generated value in the gitignored
 ```json
 {
   "ApiAccess": {
+    "FrontendIdentity": "local-admin",
     "Identities": {
       "local-admin": {
         "Key": "REPLACE_WITH_GENERATED_API_KEY",
@@ -68,7 +69,11 @@ manager. The corresponding environment variables are:
 ```text
 ApiAccess__Identities__local-admin__Key
 ApiAccess__Identities__local-admin__Permissions__0
+ApiAccess__FrontendIdentity
 ```
+
+Set `ApiAccess__FrontendIdentity` to `local-admin` when that identity should be
+injected into the server-hosted frontend.
 
 Set the permission variable to `*` only for an intentionally administrative
 identity. Do not commit API keys to source control, reuse them between

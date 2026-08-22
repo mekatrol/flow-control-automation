@@ -1,3 +1,4 @@
+using Microsoft.Extensions.FileProviders;
 using Server.Api.Extensions;
 using Server.Api.Security;
 using Server.Compiler.Extensions;
@@ -33,9 +34,23 @@ public partial class Program
         builder.Services.AddOptions<ApiAccessOptions>().Bind(builder.Configuration.GetSection(ApiAccessOptions.SectionName))
             .Validate(options => builder.Environment.IsEnvironment("Testing") || options.Identities.Count > 0, "At least one API identity is required.")
             .Validate(options => options.Identities.Values.All(identity => !string.IsNullOrWhiteSpace(identity.Key) && identity.Permissions.Length > 0), "Every API identity requires a key and permissions.")
+            .Validate(options => options.FrontendIdentity is null || options.Identities.ContainsKey(options.FrontendIdentity), "The frontend API identity must reference a configured identity.")
             .ValidateOnStart();
 
         var app = builder.Build();
+        var frontendWebRoot = FindFrontendWebRoot(
+            app.Environment.ContentRootPath,
+            app.Environment.WebRootPath);
+        using var frontendFiles = frontendWebRoot is null
+            ? null
+            : new PhysicalFileProvider(frontendWebRoot);
+
+        if (frontendFiles is not null)
+        {
+            app.UseMiddleware<FrontendApiKeyInjectionMiddleware>();
+            app.UseDefaultFiles(new DefaultFilesOptions { FileProvider = frontendFiles });
+            app.UseStaticFiles(new StaticFileOptions { FileProvider = frontendFiles });
+        }
 
         app.UseMiddleware<ApiAccessMiddleware>();
         app.UseMiddleware<MutationAuditMiddleware>();
@@ -50,6 +65,45 @@ public partial class Program
         }
 
         app.MapFlowControlEndpoints();
+        if (frontendFiles is not null)
+        {
+            app.MapFallback("{*path:nonfile}", async context =>
+            {
+                if (context.Request.Path.StartsWithSegments("/api"))
+                {
+                    context.Response.StatusCode = StatusCodes.Status404NotFound;
+                    return;
+                }
+
+                var index = frontendFiles.GetFileInfo("index.html");
+                if (!index.Exists)
+                {
+                    context.Response.StatusCode = StatusCodes.Status404NotFound;
+                    return;
+                }
+
+                context.Response.ContentType = "text/html; charset=utf-8";
+                await context.Response.SendFileAsync(index, context.RequestAborted);
+            });
+        }
+
         await app.RunAsync();
+    }
+
+    private static string? FindFrontendWebRoot(string contentRootPath, string? webRootPath)
+    {
+        List<string> candidates =
+        [
+            Path.Combine(contentRootPath, "wwwroot"),
+            Path.Combine(AppContext.BaseDirectory, "wwwroot"),
+            Path.GetFullPath(
+                Path.Combine(contentRootPath, "..", "..", "..", "frontend", "flow-control-ui", "dist")),
+        ];
+        if (!string.IsNullOrWhiteSpace(webRootPath))
+        {
+            candidates.Insert(0, webRootPath);
+        }
+
+        return candidates.FirstOrDefault(path => File.Exists(Path.Combine(path, "index.html")));
     }
 }
