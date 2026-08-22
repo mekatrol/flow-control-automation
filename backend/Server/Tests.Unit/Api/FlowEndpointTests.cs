@@ -448,6 +448,60 @@ internal sealed class FlowEndpointTests
         });
     }
 
+    /// <summary>
+    /// Purpose: Protects the independent editable draft and last deployed flow versions.
+    /// Description: Deploys a saved graph, edits its draft, reads the deployed graph, and reverts the draft.
+    /// </summary>
+    [Test]
+    public async Task DeploymentSnapshotsDraftAndRevertRestoresIt()
+    {
+        await using var factory = new FlowControlApplicationFactory();
+        using var client = factory.CreateClient();
+        var created = await CreateFlow(client, "Versioned flow");
+        var firstDraft = created with
+        {
+            Description = "deployed content",
+            Nodes =
+            [
+                new FlowNode
+                {
+                    Id = "constant-true",
+                    Kind = FlowNodeKind.DigitalConstant,
+                    Label = "Constant true",
+                    Connectors = [new FlowConnector("value", "Value", DataDirection.Output, DataType.Boolean, "right")],
+                    Configuration = new Dictionary<string, JsonElement>
+                    {
+                        ["value"] = JsonSerializer.SerializeToElement(true)
+                    }
+                }
+            ]
+        };
+        using var saveResponse = await client.PutAsJsonAsync(
+            $"/api/flows/{created.Id}", firstDraft, FlowControlJson.Options);
+        var saved = (await saveResponse.Content.ReadFromJsonAsync<Flow>(FlowControlJson.Options))!;
+        using var deployResponse = await client.PostAsync($"/api/flows/{created.Id}/deploy", null);
+        Assert.That(deployResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK), await deployResponse.Content.ReadAsStringAsync());
+
+        using var editResponse = await client.PutAsJsonAsync(
+            $"/api/flows/{created.Id}", saved with { Description = "new draft content", Status = "draft" }, FlowControlJson.Options);
+        var edited = (await editResponse.Content.ReadFromJsonAsync<Flow>(FlowControlJson.Options))!;
+        var deployed = await client.GetFromJsonAsync<Flow>(
+            $"/api/flows/{created.Id}/deployed", FlowControlJson.Options);
+        using var revertResponse = await client.PostAsync(
+            $"/api/flows/{created.Id}/revert-to-deployed", null);
+        var reverted = await revertResponse.Content.ReadFromJsonAsync<Flow>(FlowControlJson.Options);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(edited.Status, Is.EqualTo("draft"), "Editing creates a draft while retaining the deployed snapshot.");
+            Assert.That(edited.Description, Is.EqualTo("new draft content"), "Saving changes updates only the draft content.");
+            Assert.That(deployed!.Description, Is.EqualTo("deployed content"), "The deployed endpoint returns the runtime-approved graph.");
+            Assert.That(deployed.Revision, Is.EqualTo(saved.Revision), "The deployed graph retains its original revision.");
+            Assert.That(reverted!.Description, Is.EqualTo("deployed content"), "Revert copies deployed content back to the draft.");
+            Assert.That(reverted.Revision, Is.GreaterThan(edited.Revision), "Revert is persisted as a new optimistic-concurrency revision.");
+        });
+    }
+
     private static async Task<Flow> CreateFlow(HttpClient client, string name)
     {
         using var response = await client.PostAsJsonAsync(

@@ -148,7 +148,14 @@ internal sealed class FlowDatabaseService(
             throw new FlowConcurrencyException(id);
         }
 
-        var saved = flow with { UpdatedAt = Timestamp(), Revision = checked(current.Revision + 1) };
+        var saved = flow with
+        {
+            Status = MatchesDeployed(flow, current.DeployedVersion) ? "deployed" : "draft",
+            DeployedRevision = current.DeployedRevision,
+            DeployedVersion = current.DeployedVersion,
+            UpdatedAt = Timestamp(),
+            Revision = checked(current.Revision + 1)
+        };
 
         flowValidator.Validate(saved);
 
@@ -157,6 +164,58 @@ internal sealed class FlowDatabaseService(
         await ReconcileContainingContextsAsync(saved, cancellationToken);
         await SaveWithConcurrencyMapping(id, entity, cancellationToken);
         return saved;
+    }
+
+    public async Task<Flow> MarkDeployedAsync(
+        string id,
+        int revision,
+        CancellationToken cancellationToken)
+    {
+        var entity = await FindTrackedAsync(id, cancellationToken);
+        var current = Deserialize(entity);
+        if (current.Revision != revision)
+        {
+            throw new FlowConcurrencyException(id);
+        }
+
+        var deployed = current with
+        {
+            Status = "deployed",
+            DeployedRevision = current.Revision,
+            DeployedVersion = Snapshot(current)
+        };
+        entity.Json = Serialize(deployed);
+        entity.Updated = timeProvider.GetUtcNow();
+        await SaveWithConcurrencyMapping(id, entity, cancellationToken);
+        return deployed;
+    }
+
+    public async Task<Flow> RevertToDeployedAsync(
+        string id,
+        CancellationToken cancellationToken)
+    {
+        var entity = await FindTrackedAsync(id, cancellationToken);
+        var current = Deserialize(entity);
+        var snapshot = current.DeployedVersion
+            ?? throw new FlowValidationException("flow has no deployed version");
+        var reverted = current with
+        {
+            Name = snapshot.Name,
+            Description = snapshot.Description,
+            Nodes = snapshot.Nodes,
+            Connections = snapshot.Connections,
+            VirtualPointDeclarations = snapshot.VirtualPointDeclarations,
+            Status = "deployed",
+            DeployedRevision = snapshot.Revision,
+            UpdatedAt = Timestamp(),
+            Revision = checked(current.Revision + 1)
+        };
+        flowValidator.Validate(reverted);
+        entity.Json = Serialize(reverted);
+        entity.Updated = timeProvider.GetUtcNow();
+        await ReconcileContainingContextsAsync(reverted, cancellationToken);
+        await SaveWithConcurrencyMapping(id, entity, cancellationToken);
+        return reverted;
     }
 
     public async Task<Flow> SetDisabledAsync(
@@ -186,6 +245,28 @@ internal sealed class FlowDatabaseService(
     private static Flow Deserialize(FlowEntity entity) =>
         JsonSerializer.Deserialize<Flow>(entity.Json, FlowControlJson.Options)
         ?? throw new InvalidOperationException($"Stored flow {entity.Id} is null.");
+
+    private static FlowVersionSnapshot Snapshot(Flow flow) => new()
+    {
+        Name = flow.Name,
+        Description = flow.Description,
+        UpdatedAt = flow.UpdatedAt,
+        Revision = flow.Revision,
+        Nodes = flow.Nodes,
+        Connections = flow.Connections,
+        VirtualPointDeclarations = flow.VirtualPointDeclarations
+    };
+
+    private static bool MatchesDeployed(Flow flow, FlowVersionSnapshot? deployed) =>
+        deployed is not null
+        && flow.Name == deployed.Name
+        && flow.Description == deployed.Description
+        && JsonSerializer.Serialize(flow.Nodes, FlowControlJson.Options)
+            == JsonSerializer.Serialize(deployed.Nodes, FlowControlJson.Options)
+        && JsonSerializer.Serialize(flow.Connections, FlowControlJson.Options)
+            == JsonSerializer.Serialize(deployed.Connections, FlowControlJson.Options)
+        && JsonSerializer.Serialize(flow.VirtualPointDeclarations, FlowControlJson.Options)
+            == JsonSerializer.Serialize(deployed.VirtualPointDeclarations, FlowControlJson.Options);
 
     private static string Serialize(Flow flow) =>
         JsonSerializer.Serialize(flow, FlowControlJson.Options);

@@ -198,7 +198,9 @@ export interface FlowApiClient {
   listFlows(parameters: FlowListParameters, signal?: AbortSignal): Promise<FlowPage>;
   createFlow(name: string, signal?: AbortSignal): Promise<FlowDto>;
   getFlow(flowId: string, signal?: AbortSignal): Promise<FlowDto>;
+  getDeployedFlow(flowId: string, signal?: AbortSignal): Promise<FlowDto>;
   saveFlow(flow: FlowDto, signal?: AbortSignal): Promise<FlowDto>;
+  revertToDeployed(flowId: string, signal?: AbortSignal): Promise<FlowDto>;
   setFlowDisabled(flowId: string, disabled: boolean, signal?: AbortSignal): Promise<FlowDto>;
   deleteFlow(flowId: string, signal?: AbortSignal): Promise<void>;
   importFlowIl(
@@ -229,11 +231,18 @@ export const flowApi: FlowApiClient = {
     }),
   getFlow: (flowId, signal) =>
     requestFlow(`/api/flows/${encodeURIComponent(flowId)}`, { method: 'GET', signal }),
+  getDeployedFlow: (flowId, signal) =>
+    requestFlow(`/api/flows/${encodeURIComponent(flowId)}/deployed`, { method: 'GET', signal }),
   saveFlow: (flow, signal) =>
     requestFlow(`/api/flows/${encodeURIComponent(flow.id)}`, {
       method: 'PUT',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(flow),
+      signal
+    }),
+  revertToDeployed: (flowId, signal) =>
+    requestFlow(`/api/flows/${encodeURIComponent(flowId)}/revert-to-deployed`, {
+      method: 'POST',
       signal
     }),
   setFlowDisabled: (flowId, disabled, signal) =>

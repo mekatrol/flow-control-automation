@@ -38,6 +38,31 @@
         </div>
       </section>
     </div>
+    <div v-if="showRevertConfirmation" class="dialog-backdrop">
+      <section
+        class="discard-dialog"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="revert-title"
+      >
+        <h2 id="revert-title">Revert this draft?</h2>
+        <p>All draft changes will be replaced by the currently deployed version.</p>
+        <div>
+          <AppButton
+            v-bind="automation('revert-cancel')"
+            text="Keep draft"
+            :icon="cancelIcon"
+            @click="showRevertConfirmation = false"
+          />
+          <AppButton
+            v-bind="automation('revert-confirm')"
+            text="Revert draft"
+            :icon="discardIcon"
+            @click="revertDraftToDeployed"
+          />
+        </div>
+      </section>
+    </div>
     <div v-if="pendingRoute" class="dialog-backdrop">
       <section
         ref="discardDialog"
@@ -69,6 +94,36 @@
       </section>
     </div>
     <template v-if="flow">
+      <section
+        v-if="draftFlow?.deployedRevision"
+        class="version-selector"
+        aria-label="Flow version"
+      >
+        <div role="group" aria-label="Version to view">
+          <AppButton
+            v-bind="automation('view-draft')"
+            text="Draft"
+            :disabled="versionView === 'draft'"
+            @click="showDraftVersion"
+          />
+          <AppButton
+            v-bind="automation('view-deployed')"
+            text="Deployed"
+            :disabled="versionView === 'deployed' || loadingDeployedVersion"
+            @click="showDeployedVersion"
+          />
+        </div>
+        <span v-if="versionView === 'deployed'" role="status">
+          Viewing deployed revision {{ flow.revision }}. This version is read-only.
+        </span>
+        <AppButton
+          v-if="versionView === 'draft' && draftFlow.status === 'draft'"
+          v-bind="automation('revert-draft')"
+          text="Revert draft to deployed"
+          :disabled="saving || revertingDraft"
+          @click="showRevertConfirmation = true"
+        />
+      </section>
       <div class="designer-heading">
         <div>
           <RouterLink :to="{ name: 'flows' }">← All flows</RouterLink>
@@ -97,6 +152,7 @@
             :error="controllerTemplates.error"
           />
           <AppButton
+            v-if="versionView === 'draft'"
             v-bind="automation('save')"
             :text="saving ? 'Saving…' : 'Save flow'"
             :icon="saveIcon"
@@ -104,6 +160,7 @@
             @click="saveFlow"
           />
           <AppButton
+            v-if="versionView === 'draft'"
             v-bind="automation('deploy')"
             :text="deploying ? 'Deploying…' : 'Deploy flow'"
             :icon="deployIcon"
@@ -135,7 +192,11 @@
         </div>
       </div>
 
-      <nav class="workspace-modes" aria-label="Flow workspace mode">
+      <nav
+        v-if="versionView === 'draft'"
+        class="workspace-modes"
+        aria-label="Flow workspace mode"
+      >
         <AppLink
           v-bind="automation('design-mode')"
           text="Design"
@@ -165,7 +226,11 @@
         />
       </nav>
 
-      <section class="context-preview" aria-label="Execution context validation preview">
+      <section
+        v-if="versionView === 'draft'"
+        class="context-preview"
+        aria-label="Execution context validation preview"
+      >
         <label>
           <span>Validate against execution context</span>
           <select v-model="selectedContextId" :disabled="contextsLoading">
@@ -254,30 +319,32 @@
         @[EVENTS.RESET_INPUTS]="resetEmulatorInputs"
       />
 
-      <AppFlowDesignerCanvas
-        v-bind="automation('canvas')"
-        :flow="flow"
-        :runtime="debugNodeRuntime ?? runtime"
-        :current-node-id="debugInspection?.nodeId"
-        :breakpoints="debugBreakpoints"
-        :connector-values="debugConnectorValues"
-        :debugging="workspaceMode === 'debugger' && Boolean(debugSessionId)"
-        :focus-node-id="diagnosticNodeId"
-        :context-point-contracts="selectedContext?.pointContracts"
-        :execution-context-id="selectedContextId || undefined"
-        @point-validation="setPointValidation"
-        @create-virtual-point="createVirtualPoint"
-        @[EVENTS.SET_BREAKPOINT]="setBreakpoint"
-        @[EVENTS.RUN_TO_NODE]="runToNode"
-        @[EVENTS.MOVE_NODE]="moveNode"
-        @[EVENTS.REORDER_NODE]="reorderNode"
-        @[EVENTS.DELETE_NODE]="deleteNode"
-        @[EVENTS.ADD_CONNECTION]="addConnection"
-        @[EVENTS.DELETE_CONNECTION]="deleteConnection"
-        @[EVENTS.ADD_NODE]="addNode"
-        @[EVENTS.UPDATE_NODE_LABEL]="updateNodeLabel"
-        @[EVENTS.UPDATE_NODE_CONFIGURATION]="updateNodeConfiguration"
-      />
+      <div :class="{ 'deployed-version-canvas': versionView === 'deployed' }">
+        <AppFlowDesignerCanvas
+          v-bind="automation('canvas')"
+          :flow="flow"
+          :runtime="debugNodeRuntime ?? runtime"
+          :current-node-id="debugInspection?.nodeId"
+          :breakpoints="debugBreakpoints"
+          :connector-values="debugConnectorValues"
+          :debugging="workspaceMode === 'debugger' && Boolean(debugSessionId)"
+          :focus-node-id="diagnosticNodeId"
+          :context-point-contracts="selectedContext?.pointContracts"
+          :execution-context-id="selectedContextId || undefined"
+          @point-validation="setPointValidation"
+          @create-virtual-point="createVirtualPoint"
+          @[EVENTS.SET_BREAKPOINT]="setBreakpoint"
+          @[EVENTS.RUN_TO_NODE]="runToNode"
+          @[EVENTS.MOVE_NODE]="moveNode"
+          @[EVENTS.REORDER_NODE]="reorderNode"
+          @[EVENTS.DELETE_NODE]="deleteNode"
+          @[EVENTS.ADD_CONNECTION]="addConnection"
+          @[EVENTS.DELETE_CONNECTION]="deleteConnection"
+          @[EVENTS.ADD_NODE]="addNode"
+          @[EVENTS.UPDATE_NODE_LABEL]="updateNodeLabel"
+          @[EVENTS.UPDATE_NODE_CONFIGURATION]="updateNodeConfiguration"
+        />
+      </div>
     </template>
 
     <div v-else-if="!loading" class="not-found">
@@ -339,10 +406,11 @@ import { useModalFocus } from '@/features/flows/composables/useModalFocus';
 import type {
   FlowConfigurationValue,
   FlowConnectionEndpoint,
+  FlowDefinition,
   FlowNode
 } from '@/features/flows/types';
 import type { FlowTutorial } from '@/features/flows/tutorialCatalogue';
-import { flowDomainToDto } from '@/features/flows/api/flowMapper';
+import { flowDomainToDto, flowDtoToDomain } from '@/features/flows/api/flowMapper';
 import {
   executionContextApi,
   type ExecutionContextSummary
@@ -367,7 +435,14 @@ const workspaceMode = computed(() => props.workspaceMode);
 const activeTutorial = ref<FlowTutorial>();
 const controllerTemplates = useControllerTemplatesCatalogueStore();
 const router = useRouter();
-const flow = computed(() => flowStore.findFlow(props.flowId));
+const draftFlow = computed(() => flowStore.findFlow(props.flowId));
+const deployedFlow = ref<FlowDefinition>();
+const versionView = ref<'draft' | 'deployed'>('draft');
+const loadingDeployedVersion = ref(false);
+const revertingDraft = ref(false);
+const flow = computed(() =>
+  versionView.value === 'deployed' ? deployedFlow.value : draftFlow.value
+);
 const dirty = computed(() => flowStore.isFlowDirty(props.flowId));
 const executionContexts = ref<ExecutionContextSummary[]>([]);
 const selectedContextId = ref('');
@@ -405,6 +480,7 @@ const runtimeFailureMessage = (error: unknown, fallback: string): string =>
       ? error.message
       : fallback;
 const showDeployConfirmation = ref(false);
+const showRevertConfirmation = ref(false);
 const deployDialog = ref<HTMLElement>();
 const discardDialog = ref<HTMLElement>();
 const runtime = computed(() => runtimeStore.snapshotFor(props.flowId));
@@ -890,6 +966,8 @@ const loadFlow = async (flowId: string): Promise<void> => {
   const controller = new AbortController();
   const requestGeneration = loadGuard.begin();
   loadController = controller;
+  versionView.value = 'draft';
+  deployedFlow.value = undefined;
   loading.value = true;
   loadError.value = undefined;
   flowStore.selectFlow(flowId);
@@ -941,10 +1019,42 @@ const deployFlow = async (): Promise<void> => {
     const snapshot = await flowRuntimeApi.deployFlow(props.flowId);
     if (snapshot.flowId !== props.flowId) throw new Error('Runtime state belongs to another flow.');
     runtimeStore.completeDeployment(snapshot);
+    flowStore.replaceFlowFromPayload(await flowApi.getFlow(props.flowId));
   } catch (error) {
     const message = runtimeFailureMessage(error, 'Unable to deploy this flow.');
     runtimeStore.failDeployment(props.flowId, message);
     runtimeError.value = message;
+  }
+};
+
+const showDraftVersion = (): void => {
+  versionView.value = 'draft';
+};
+
+const showDeployedVersion = async (): Promise<void> => {
+  loadingDeployedVersion.value = true;
+  saveError.value = undefined;
+  try {
+    deployedFlow.value = flowDtoToDomain(await flowApi.getDeployedFlow(props.flowId));
+    versionView.value = 'deployed';
+  } catch (error) {
+    saveError.value = runtimeFailureMessage(error, 'Unable to load the deployed version.');
+  } finally {
+    loadingDeployedVersion.value = false;
+  }
+};
+
+const revertDraftToDeployed = async (): Promise<void> => {
+  showRevertConfirmation.value = false;
+  revertingDraft.value = true;
+  saveError.value = undefined;
+  try {
+    flowStore.replaceFlowFromPayload(await flowApi.revertToDeployed(props.flowId));
+    versionView.value = 'draft';
+  } catch (error) {
+    saveError.value = runtimeFailureMessage(error, 'Unable to revert the draft.');
+  } finally {
+    revertingDraft.value = false;
   }
 };
 
@@ -1164,6 +1274,24 @@ h1 {
 .heading-actions {
   display: flex;
   gap: var(--space-3-5);
+}
+
+.version-selector {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  justify-content: space-between;
+  margin-bottom: var(--space-5);
+}
+
+.version-selector > div {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.deployed-version-canvas {
+  pointer-events: none;
+  opacity: 0.9;
 }
 
 .request-status {

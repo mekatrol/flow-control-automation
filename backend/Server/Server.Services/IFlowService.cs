@@ -32,6 +32,12 @@ public interface IFlowService
     /// <returns>The persisted flow with its incremented revision and updated timestamp.</returns>
     Task<Flow> SaveAsync(string id, Flow flow, CancellationToken cancellationToken);
 
+    /// <summary>Records the current validated draft as the version accepted by the runtime.</summary>
+    Task<Flow> MarkDeployedAsync(string id, int revision, CancellationToken cancellationToken);
+
+    /// <summary>Replaces the editable draft content with the last deployed snapshot.</summary>
+    Task<Flow> RevertToDeployedAsync(string id, CancellationToken cancellationToken);
+
     /// <summary>Changes only a flow's disabled state under optimistic concurrency.</summary>
     /// <param name="id">The non-empty canonical flow identifier.</param>
     /// <param name="disabled">The desired execution-disabled state.</param>

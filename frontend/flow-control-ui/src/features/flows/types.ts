@@ -143,5 +143,7 @@ export interface FlowDefinition {
   /** Directed edges in stable persisted order; connection IDs must be unique. */
   connections: FlowConnection[];
   revision?: number;
+  /** Revision captured by the last successful deployment, when one exists. */
+  deployedRevision?: number;
   virtualPointDeclarations?: VirtualPointDeclaration[];
 }

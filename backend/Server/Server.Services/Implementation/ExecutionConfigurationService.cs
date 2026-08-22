@@ -16,6 +16,7 @@ internal sealed partial class ExecutionConfigurationService(
     TimeProvider timeProvider,
     IControllerTemplateStore controllerTemplates,
     IPointDefinitionStore pointDefinitions,
+    IFlowStore flows,
     IFlowCompilationTargetResolver targetResolver,
     IFlowCompiler compiler) : IExecutionConfigurationService
 {
@@ -248,7 +249,16 @@ internal sealed partial class ExecutionConfigurationService(
             Created = timeProvider.GetUtcNow(),
             Updated = timeProvider.GetUtcNow()
         };
-        return await SaveDeployment(entity, deployment, create, cancellationToken);
+        var saved = await SaveDeployment(entity, deployment, create, cancellationToken);
+        if (saved.Status == ExecutionContextDeploymentStatus.Active)
+        {
+            foreach (var program in definition.Programs.DistinctBy(item => item.FlowId))
+            {
+                await flows.MarkDeployedAsync(program.FlowId, program.FlowRevision, cancellationToken);
+            }
+        }
+
+        return saved;
     }
 
     public async Task DeleteDeploymentAsync(string contextId, string deploymentId, CancellationToken cancellationToken)

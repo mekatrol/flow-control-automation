@@ -56,6 +56,32 @@ describe('flow API client', () => {
   });
 
   /**
+   * Purpose: Protects the deployed-version read and draft-revert routes.
+   * Description: Reads and restores the last deployed graph through typed API methods.
+   */
+  it('reads the deployed version and reverts the draft', async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(response(sampleFlows[0]))
+      .mockResolvedValueOnce(response(sampleFlows[0]));
+    vi.stubGlobal('fetch', fetchMock);
+
+    // Expected outcome: Both endpoint responses pass normal flow validation.
+    // Acceptance criteria: Both methods return the validated fixture and use the version-specific routes.
+    await expect(flowApi.getDeployedFlow('climate control')).resolves.toEqual(sampleFlows[0]);
+    await expect(flowApi.revertToDeployed('climate control')).resolves.toEqual(sampleFlows[0]);
+    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/flows/climate%20control/deployed', {
+      method: 'GET',
+      signal: undefined
+    });
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      '/api/flows/climate%20control/revert-to-deployed',
+      { method: 'POST', signal: undefined }
+    );
+  });
+
+  /**
    * Purpose: Protects the behavioral contract that lists, creates, disables, enables, and deletes flows through typed endpoints.
    * Description: Exercises lists, creates, disables, enables, and deletes flows through typed endpoints from its arranged starting state and
    * verifies the observable results required by the scenario.

@@ -27,6 +27,8 @@ public static class EndpointRouteBuilderExtensions
         endpoints.MapPost("/api/flows/import-il", ImportFlowIl);
         endpoints.MapGet("/api/flows/{flowId}", GetFlow);
         endpoints.MapPut("/api/flows/{flowId}", SaveFlow);
+        endpoints.MapGet("/api/flows/{flowId}/deployed", GetDeployedFlow);
+        endpoints.MapPost("/api/flows/{flowId}/revert-to-deployed", RevertToDeployedFlow);
         endpoints.MapDelete("/api/flows/{flowId}", DeleteFlow);
         endpoints.MapPost("/api/flows/{flowId}/deploy", DeployFlow);
         endpoints.MapPost("/api/flows/{flowId}/disable", DisableFlow);
@@ -204,6 +206,44 @@ public static class EndpointRouteBuilderExtensions
                 () => flows.SaveAsync(flowId, decoded.Value!, cancellationToken));
     }
 
+    private static async Task<IResult> GetDeployedFlow(
+        string flowId,
+        IFlowService flows,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var flow = await flows.GetAsync(flowId, cancellationToken);
+            var version = flow.DeployedVersion
+                ?? throw new FlowValidationException("flow has no deployed version");
+            return Results.Json(flow with
+            {
+                Name = version.Name,
+                Description = version.Description,
+                UpdatedAt = version.UpdatedAt,
+                Revision = version.Revision,
+                Nodes = version.Nodes,
+                Connections = version.Connections,
+                VirtualPointDeclarations = version.VirtualPointDeclarations,
+                Status = "deployed"
+            });
+        }
+        catch (FlowNotFoundException)
+        {
+            return Error(StatusCodes.Status404NotFound, "flow not found");
+        }
+        catch (FlowValidationException exception)
+        {
+            return Error(StatusCodes.Status409Conflict, exception.Message);
+        }
+    }
+
+    private static Task<IResult> RevertToDeployedFlow(
+        string flowId,
+        IFlowService flows,
+        CancellationToken cancellationToken) =>
+        MapFlowResult(() => flows.RevertToDeployedAsync(flowId, cancellationToken));
+
     private static async Task<IResult> DeleteFlow(
         string flowId,
         IFlowService flows,
@@ -238,9 +278,10 @@ public static class EndpointRouteBuilderExtensions
     {
         try
         {
-            return Results.Json(await deployment.DeployAsync(
-                await flows.GetAsync(flowId, cancellationToken),
-                cancellationToken));
+            var flow = await flows.GetAsync(flowId, cancellationToken);
+            var snapshot = await deployment.DeployAsync(flow, cancellationToken);
+            await flows.MarkDeployedAsync(flowId, flow.Revision, cancellationToken);
+            return Results.Json(snapshot);
         }
         catch (FlowNotFoundException)
         {

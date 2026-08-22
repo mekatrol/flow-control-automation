@@ -49,6 +49,7 @@ export interface FlowDto {
   nodes: FlowNodeDto[];
   connections: FlowConnectionDto[];
   revision?: number;
+  deployedRevision?: number;
   virtualPointDeclarations?: VirtualPointDeclaration[];
 }
 
@@ -271,6 +272,15 @@ export const parseFlowDto = (value: unknown): FlowDto => {
     source.revision === undefined ? undefined : asFiniteNumber(source.revision, 'flow.revision');
   if (revision !== undefined && (!Number.isInteger(revision) || revision < 1))
     fail('flow.revision', 'expected a positive integer');
+  const deployedRevision =
+    source.deployedRevision === undefined
+      ? undefined
+      : asFiniteNumber(source.deployedRevision, 'flow.deployedRevision');
+  if (
+    deployedRevision !== undefined &&
+    (!Number.isInteger(deployedRevision) || deployedRevision < 1)
+  )
+    fail('flow.deployedRevision', 'expected a positive integer');
   const virtualPointDeclarations =
     source.virtualPointDeclarations === undefined
       ? undefined
@@ -301,6 +311,7 @@ export const parseFlowDto = (value: unknown): FlowDto => {
     nodes,
     connections,
     ...(revision !== undefined ? { revision } : {}),
+    ...(deployedRevision !== undefined ? { deployedRevision } : {}),
     ...(virtualPointDeclarations !== undefined ? { virtualPointDeclarations } : {})
   };
 };

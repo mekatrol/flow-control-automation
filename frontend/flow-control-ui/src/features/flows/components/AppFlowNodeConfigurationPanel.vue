@@ -45,14 +45,14 @@
           <small v-else-if="!errors.pointId" id="point-lookup-help" class="field-help">
             Search declared compatible points or enter a point ID manually.
           </small>
-          <button
+          <AppButton
             v-if="canCreateVirtualPoint"
-            type="button"
+            v-bind="automation('create-virtual-point')"
             class="create-point-button"
+            :text="`Create virtual point “${pointDraft.trim()}”`"
+            :icon="createIcon"
             @click="showCreatePoint = true"
-          >
-            Create virtual point “{{ pointDraft.trim() }}”
-          </button>
+          />
           <fieldset v-if="showCreatePoint" class="create-point-form">
             <legend>Create virtual point</legend>
             <label><span>Display name</span><input v-model="createName" type="text" /></label>
@@ -70,10 +70,19 @@
               ><span>Optional default</span><input v-model="createDefault" type="text"
             /></label>
             <div class="create-point-actions">
-              <button type="button" @click="showCreatePoint = false">Cancel</button>
-              <button type="button" :disabled="!createName.trim()" @click="createVirtualPoint">
-                Create
-              </button>
+              <AppButton
+                v-bind="automation('create-virtual-point-cancel')"
+                text="Cancel"
+                :icon="cancelIcon"
+                @click="showCreatePoint = false"
+              />
+              <AppButton
+                v-bind="automation('create-virtual-point-confirm')"
+                text="Create"
+                :icon="checkIcon"
+                :disabled="!createName.trim()"
+                @click="createVirtualPoint"
+              />
             </div>
           </fieldset>
         </template>
@@ -145,6 +154,10 @@ export const editorValueFromInput = (
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 
 import AppSvg from '@/components/AppSvg.vue';
+import AppButton from '@/components/AppButton.vue';
+import cancelIcon from '@/assets/icons/cancel-icon.svg';
+import checkIcon from '@/assets/icons/check-icon.svg';
+import createIcon from '@/assets/icons/new-flow-icon.svg';
 import { useAutomation } from '@/composables/useAutomation';
 import { EVENTS } from '@/constants/events';
 import { getNodeIconUrl, getNodeKind } from '@/features/flows/nodeKinds';
