@@ -100,7 +100,7 @@
             v-bind="automation('save')"
             :text="saving ? 'Saving…' : 'Save flow'"
             :icon="saveIcon"
-            :disabled="saving || !pointReferencesValid"
+            :disabled="saving"
             @click="saveFlow"
           />
           <AppButton
@@ -178,7 +178,7 @@
         <small v-if="contextsLoading" role="status">Loading execution contexts…</small>
         <small v-else-if="contextsError" role="status">{{ contextsError }}</small>
         <small v-else-if="!pointReferencesValid" role="alert">
-          Save and deploy are blocked until every point reference is valid.
+          Drafts can be saved, but deployment is blocked until every point reference is valid.
         </small>
       </section>
 
@@ -964,10 +964,6 @@ const setFlowDisabled = async (disabled: boolean): Promise<void> => {
 };
 
 const saveFlow = async (): Promise<void> => {
-  if (!(await validateAllPointReferences())) {
-    saveError.value = 'Resolve every invalid or unavailable point reference before saving.';
-    return;
-  }
   const payload = flowStore.flowPayload(props.flowId);
   if (!payload) return;
   saving.value = true;
