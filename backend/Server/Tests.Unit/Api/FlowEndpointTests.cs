@@ -1,4 +1,6 @@
+using Server.Common;
 using Server.Common.Contracts;
+using Server.Compiler.Contracts;
 using Server.Services.Contracts;
 using System.Net;
 using System.Net.Http.Json;
@@ -445,6 +447,50 @@ internal sealed class FlowEndpointTests
             // Acceptance criteria: `deploy.StatusCode` must equal `HttpStatusCode.NotFound`, because this condition proves that
             // runtime routes return not found for missing flow.
             Assert.That(deploy.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+        });
+    }
+
+    /// <summary>
+    /// Purpose: Protects compile-only validation of an unsaved draft.
+    /// Description: Submits executable source directly and verifies compilation succeeds without deployment.
+    /// </summary>
+    [Test]
+    public async Task CompileDraftReturnsArtifactMetadataWithoutDeploying()
+    {
+        await using var factory = new FlowControlApplicationFactory();
+        using var client = factory.CreateClient();
+        var source = new ExecutableFlowSource
+        {
+            Id = "compile-draft",
+            Revision = 7u,
+            ControllerTemplateId = BuiltInControllerTemplate.Id,
+            ControllerTemplateRevision = checked((uint)BuiltInControllerTemplate.Default.Revision),
+            Nodes =
+            [
+                new ExecutableFlowNode
+                {
+                    Id = "constant",
+                    Kind = FlowNodeKind.DigitalConstant,
+                    Configuration = new Dictionary<string, JsonElement>
+                    {
+                        ["value"] = JsonSerializer.SerializeToElement(true)
+                    }
+                }
+            ]
+        };
+
+        using var response = await client.PostAsJsonAsync(
+            "/api/flows/compile-draft/compile", source, FlowControlJson.Options);
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+
+        // Expected outcome: Compile succeeds and reports compiler metadata without requiring a saved flow.
+        // Acceptance criteria: The response is successful, contains the source revision, and has no diagnostics.
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(document.RootElement.GetProperty("success").GetBoolean(), Is.True);
+            Assert.That(document.RootElement.GetProperty("flowRevision").GetUInt32(), Is.EqualTo(7));
+            Assert.That(document.RootElement.GetProperty("diagnostics").GetArrayLength(), Is.Zero);
         });
     }
 

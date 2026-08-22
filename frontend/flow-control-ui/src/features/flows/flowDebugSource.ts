@@ -137,6 +137,7 @@ export const createExecutableFlowSource = (
     connections: flow.connections.map((connection) => ({
       source: { nodeId: connection.start.nodeId, portId: connection.start.connectorId },
       target: { nodeId: connection.end.nodeId, portId: connection.end.connectorId }
-    }))
+    })),
+    virtualPointDeclarations: structuredClone(flow.virtualPointDeclarations ?? [])
   };
 };

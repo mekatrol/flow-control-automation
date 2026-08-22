@@ -161,6 +161,14 @@
           />
           <AppButton
             v-if="versionView === 'draft'"
+            v-bind="automation('compile')"
+            :text="compiling ? 'Compiling…' : 'Compile'"
+            :icon="compileIcon"
+            :disabled="compiling"
+            @click="compileFlow"
+          />
+          <AppButton
+            v-if="versionView === 'draft'"
             v-bind="automation('deploy')"
             :text="deploying ? 'Deploying…' : 'Deploy flow'"
             :icon="deployIcon"
@@ -192,11 +200,7 @@
         </div>
       </div>
 
-      <nav
-        v-if="versionView === 'draft'"
-        class="workspace-modes"
-        aria-label="Flow workspace mode"
-      >
+      <nav v-if="versionView === 'draft'" class="workspace-modes" aria-label="Flow workspace mode">
         <AppLink
           v-bind="automation('design-mode')"
           text="Design"
@@ -246,6 +250,14 @@
           Drafts can be saved, but deployment is blocked until every point reference is valid.
         </small>
       </section>
+
+      <AppFlowCompileResults
+        v-if="versionView === 'draft' && compileResult"
+        v-bind="automation('compile-results')"
+        :result="compileResult"
+        :node-ids="draftFlow?.nodes.map(({ id }) => id) ?? []"
+        @select-diagnostic="focusDiagnosticNode"
+      />
 
       <AppFlowTutorialPanel
         v-if="activeTutorial"
@@ -365,6 +377,7 @@ import { useAutomation } from '@/composables/useAutomation';
 import { EVENTS } from '@/constants/events';
 import cancelIcon from '@/assets/icons/cancel-icon.svg';
 import deployIcon from '@/assets/icons/deploy-icon.svg';
+import compileIcon from '@/assets/icons/compile-icon.svg';
 import disableFlowIcon from '@/assets/icons/disable-flow-icon.svg';
 import discardIcon from '@/assets/icons/discard-icon.svg';
 import enableFlowIcon from '@/assets/icons/enable-flow-icon.svg';
@@ -378,6 +391,7 @@ import AppButton from '@/components/AppButton.vue';
 import AppLink from '@/components/AppLink.vue';
 import AppErrorNotice from '@/components/AppErrorNotice.vue';
 import AppFlowDesignerCanvas from '@/features/flows/components/AppFlowDesignerCanvas.vue';
+import AppFlowCompileResults from '@/features/flows/components/AppFlowCompileResults.vue';
 import AppFlowDebugTargetSelector from '@/features/flows/components/AppFlowDebugTargetSelector.vue';
 import AppFlowDebugPanel from '@/features/flows/components/AppFlowDebugPanel.vue';
 import AppFlowEmulatorPanel from '@/features/flows/components/AppFlowEmulatorPanel.vue';
@@ -393,7 +407,12 @@ import {
   type FlowDebugBreakpoint
 } from '@/features/flows/api/flowDebugApi';
 import { flowEmulatorApi, type EmulatorSnapshot } from '@/features/flows/api/flowEmulatorApi';
-import { createExecutableFlowSource, graphRevision } from '@/features/flows/flowDebugSource';
+import {
+  createExecutableFlowSource,
+  FlowDebugSourceError,
+  graphRevision
+} from '@/features/flows/flowDebugSource';
+import { flowCompileApi, type FlowCompileResult } from '@/features/flows/api/flowCompileApi';
 import { useControllerTemplatesCatalogueStore } from '@/features/catalogues/stores/catalogues';
 import { useFlowsStore } from '@/features/flows/stores/flows';
 import type { ZOrderCommand } from '@/features/flows/graph/zOrder';
@@ -440,6 +459,9 @@ const deployedFlow = ref<FlowDefinition>();
 const versionView = ref<'draft' | 'deployed'>('draft');
 const loadingDeployedVersion = ref(false);
 const revertingDraft = ref(false);
+const compiling = ref(false);
+const compileResult = ref<FlowCompileResult>();
+const compiledGraphRevision = ref<number>();
 const flow = computed(() =>
   versionView.value === 'deployed' ? deployedFlow.value : draftFlow.value
 );
@@ -532,6 +554,10 @@ watch(debugTargetId, () => {
 const flowRevision = computed(() => (flow.value ? graphRevision(flow.value) : 1));
 watch(flowRevision, (revision, previous) => {
   if (previous !== undefined && revision !== previous) simulator.markStale();
+  if (compiledGraphRevision.value !== undefined && revision !== compiledGraphRevision.value) {
+    compileResult.value = undefined;
+    compiledGraphRevision.value = undefined;
+  }
 });
 const debugSnapshotStale = computed(() =>
   Boolean(debugSnapshot.value && debugRevision.value !== flowRevision.value)
@@ -611,6 +637,41 @@ const executableSource = (): ExecutableFlowSource | undefined => {
   const target = selectedDebugTarget.value;
   if (!current || !target) return;
   return createExecutableFlowSource(current, target);
+};
+const compileFlow = async (): Promise<void> => {
+  const current = draftFlow.value;
+  const target = debugTargets.value.find((item) => item.id === 'server');
+  if (!current || !target) return;
+  compiling.value = true;
+  saveError.value = undefined;
+  try {
+    const source = createExecutableFlowSource(current, target);
+    compileResult.value = await flowCompileApi.compile(source);
+    compiledGraphRevision.value = graphRevision(current);
+    const firstPath = compileResult.value.diagnostics[0]?.path ?? '';
+    const match = /^\/nodes\/(\d+)(?:\/|$)/.exec(firstPath);
+    if (match) diagnosticNodeId.value = current.nodes[Number(match[1])]?.id;
+  } catch (error) {
+    const nodeIndex =
+      error instanceof FlowDebugSourceError && error.nodeId
+        ? current.nodes.findIndex(({ id }) => id === error.nodeId)
+        : -1;
+    compileResult.value = {
+      success: false,
+      diagnostics: [
+        {
+          code: 'InvalidDraft',
+          displayCode: 'FLOW-DRAFT',
+          path: nodeIndex >= 0 ? `/nodes/${nodeIndex}` : '',
+          title: 'Draft cannot be compiled',
+          message: error instanceof Error ? error.message : 'The draft could not be compiled.'
+        }
+      ]
+    };
+    compiledGraphRevision.value = graphRevision(current);
+  } finally {
+    compiling.value = false;
+  }
 };
 const startSimulation = async (): Promise<void> => {
   const current = flow.value;

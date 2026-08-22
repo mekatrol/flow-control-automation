@@ -27,6 +27,7 @@ public static class EndpointRouteBuilderExtensions
         endpoints.MapPost("/api/flows/import-il", ImportFlowIl);
         endpoints.MapGet("/api/flows/{flowId}", GetFlow);
         endpoints.MapPut("/api/flows/{flowId}", SaveFlow);
+        endpoints.MapPost("/api/flows/{flowId}/compile", CompileFlow);
         endpoints.MapGet("/api/flows/{flowId}/deployed", GetDeployedFlow);
         endpoints.MapPost("/api/flows/{flowId}/revert-to-deployed", RevertToDeployedFlow);
         endpoints.MapDelete("/api/flows/{flowId}", DeleteFlow);
@@ -204,6 +205,61 @@ public static class EndpointRouteBuilderExtensions
         return decoded.Error
             ?? await MapFlowResult(
                 () => flows.SaveAsync(flowId, decoded.Value!, cancellationToken));
+    }
+
+    private static async Task<IResult> CompileFlow(
+        string flowId,
+        ExecutableFlowSource source,
+        IFlowCompilationTargetResolver targetResolver,
+        IFlowCompiler compiler,
+        CancellationToken cancellationToken)
+    {
+        if (!string.Equals(flowId, source.Id, StringComparison.Ordinal))
+        {
+            return Error(StatusCodes.Status400BadRequest, "flow id must match the request path");
+        }
+
+        try
+        {
+            var target = await targetResolver.ResolveAsync(source, cancellationToken);
+            var result = compiler.Compile(new FlowCompilationRequest { Source = source, Target = target });
+            return Results.Json(new
+            {
+                success = true,
+                result.FlowRevision,
+                result.ArtifactSha256,
+                result.InstructionCount,
+                result.SlotCount,
+                result.PointCount,
+                diagnostics = Array.Empty<FlowCompilationDiagnostic>()
+            });
+        }
+        catch (FlowCompilationException exception)
+        {
+            return Results.Json(new
+            {
+                success = false,
+                diagnostics = exception.Diagnostics
+            }, statusCode: StatusCodes.Status422UnprocessableEntity);
+        }
+        catch (ControllerGatewayException exception)
+        {
+            return Results.Json(new
+            {
+                success = false,
+                diagnostics = new[]
+                {
+                    new
+                    {
+                        code = "TargetInvalid",
+                        displayCode = "FLOW-TARGET",
+                        path = "/controllerTemplateId",
+                        title = "Compilation target is unavailable",
+                        message = exception.Message
+                    }
+                }
+            }, statusCode: StatusCodes.Status422UnprocessableEntity);
+        }
     }
 
     private static async Task<IResult> GetDeployedFlow(
