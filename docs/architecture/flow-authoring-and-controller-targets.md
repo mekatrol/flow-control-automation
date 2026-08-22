@@ -1,4 +1,4 @@
-# Flows and controller targets
+# Flow authoring and controller targets
 
 ## Purpose
 
@@ -7,40 +7,41 @@ connect nodes in the Vue designer, save a draft through the ASP.NET Core API,
 and deploy a validated snapshot to the runtime. Flows may run in this
 application or target a physical controller with a smaller feature set.
 
-This document is the technical reference for future implementation work. The
-combined delivery sequence is in `.codex/implementation-plan.md`; point
-semantics are in `.codex/point-types.md`; the current browser wire contract is
-in `.codex/ui-flow-schema.md`.
+This document defines the flow and controller-target architecture. The
+historical delivery sequence is in the
+[archived implementation plan](../archive/points-flows-controller-templates-implementation-plan.md);
+point semantics are in the [point model](../reference/point-model.md), and the
+browser wire contract is in the [UI flow schema](../reference/ui-flow-schema.md).
 
-## Current and intended lifecycle
+## Lifecycle
 
 1. The user creates a draft flow with a stable ID and display metadata.
-2. The user chooses a controller template. New flows default to the built-in
-   `default` target.
-3. The designer offers functions, connectors, and points supported by that
-   target. Unsupported saved content remains visible with diagnostics so it can
-   be repaired; it is never silently deleted.
+2. The user may select a logical execution context as an authoring preview. The
+   selection validates requirements but does not bind the flow to one target.
+3. The designer offers functions, connectors, and declared point contracts.
+   Unsupported saved content remains visible with diagnostics so it can be
+   repaired; it is never silently deleted.
 4. Saving validates the persisted graph and records only durable authoring
    state. Selection, viewport, pointer state, validation presentation, and live
    runtime telemetry are not persisted in the graph.
-5. Deploying resolves the flow, referenced points, selected template, and other
-   dependencies as one consistent snapshot. Deployment fails with structured
-   diagnostics if anything is missing, incompatible, disabled, or unsupported.
-6. A successful deployment captures the validated flow plus point and template
-   revisions. Later edits do not mutate a running deployment; redeployment is
-   explicit.
-7. The backend compiles the resolved snapshot to canonical Flow IL. The built-in
-   target runs it on the server; hardware targets load the same IL through their
-   portable VM host. A flow may be triggered by events or by a configured
-   interval, subject to its target capabilities.
-8. Disabling, stopping, undeploying, or deleting a flow shuts down only that
+5. A logical execution context selects immutable flow revisions and merges
+   their point requirements.
+6. Deploying resolves the context, physical bindings, concrete execution
+   instance, controller template, and other dependencies as one consistent
+   snapshot. Missing, stale, incompatible, disabled, or unsupported resources
+   produce structured diagnostics.
+7. A successful deployment records exact flow, context, instance, point,
+   binding, template, compiler, and artifact revisions. Later edits do not
+   mutate a running deployment; redeployment is explicit.
+8. The backend compiles the resolved snapshot to canonical Flow IL. The server
+   and hardware controllers load it through equivalent portable VM hosts.
+9. Disabling, stopping, undeploying, or deleting a flow shuts down only that
    flow and releases non-retained point commands belonging to its stable source
    ID.
 
-The backend persists flow definitions and compiles resolved Boolean graphs to
-the single current scheduled Flow IL version. Its production runtime remains a
-lifecycle/status placeholder until portable-IL Phase 4. Pre-release code rejects
-non-current versions and does not translate or execute them.
+The backend persists flow definitions and compiles resolved graphs to the single
+current scheduled Flow IL version. Pre-release code rejects non-current versions
+and does not translate, migrate, or execute them.
 
 ## Persisted graph
 
@@ -62,7 +63,7 @@ label, direction (`input` or `output`), data type, and side. Each connection
 references an existing output connector and existing input connector.
 
 Current primitive connector data types are `any`, `boolean`, `event`, `number`,
-and `string`. Except for the explicit legacy `any` wildcard, endpoint primitive
+and `string`. Except for the explicit `any` wildcard, endpoint primitive
 types must match. Domain rules can be stricter: analog and integer both use
 `number`, for example, but point contracts must still prevent accidental
 analog/integer or engineering-unit mismatches.
@@ -242,21 +243,24 @@ semantic errors include stable field paths. API errors do not reveal host paths
 or secrets.
 
 Custom-template updates use optimistic revisions and atomic replacement.
-Deleting a referenced template is blocked and reports affected flow IDs. A
-capability-reducing edit reports affected flows and requires an explicit
+Deleting a referenced template is blocked and reports affected execution
+instances and deployments. A capability-reducing edit reports affected
+resources and requires an explicit
 conflict-resolution path. No edit changes an already-running deployment.
 
 ## Authoring behaviour
 
-The target selector is part of flow settings and is fully keyboard accessible.
-Changing it recomputes diagnostics. The palette and point selectors may filter
-unsupported choices to reduce mistakes, but the UI must also explain why an
-item is unavailable. Colour is never the only indicator.
+The context-preview selector is part of flow settings and is fully keyboard
+accessible. Changing it recomputes diagnostics without changing the portable
+graph. Concrete target selection and physical mapping belong to the deployment
+screen. The palette and point selectors may filter unsupported choices to
+reduce mistakes, but the UI must also explain why an item is unavailable.
+Colour is never the only indicator.
 
 Draft editing remains lossless:
 
-- switching targets does not delete nodes or connections;
-- opening a flow whose template is missing preserves its configured ID;
+- switching preview contexts does not delete nodes or connections;
+- opening a flow whose preview context is missing preserves its configured ID;
 - opening a graph with a now-unsupported function renders the function and an
   actionable diagnostic;
 - point definition drift is shown at the affected node; and
@@ -278,11 +282,11 @@ canonical rule vocabulary:
 - YAML load/write validates template syntax, schema, semantics, and identity.
 - Flow DTO parsing validates shape, enums, finite values, unique IDs, endpoint
   existence, direction, and primitive connector compatibility.
-- Draft save validates graph integrity and reports target/point incompatibility
-  without destroying repairable content.
-- Deployment resolves one consistent template and point snapshot, then validates
-  all function kinds, connectors, point contracts, execution mode, runtime
-  features, and target limits.
+- Draft save validates graph integrity and declarations and reports preview
+  incompatibility without destroying repairable content.
+- Deployment resolves one consistent context, instance, template, physical
+  binding, and point snapshot, then validates all function kinds, connectors,
+  point contracts, execution mode, runtime features, and target limits.
 - Runtime construction checks the captured deployment contract defensively and
   refuses unsupported work.
 
@@ -298,12 +302,12 @@ feature to make deployment succeed.
 ## Compilation and execution model
 
 All hosts use the strict PLC Scan Cycle defined in
-`docs/plc-scan-cycle.md`: Read Inputs, Execute Logic, and Write Outputs. The input image and current
+the [PLC scan cycle](plc-scan-cycle.md): Read Inputs, Execute Logic, and Write Outputs. The input image and current
 state are immutable during Execute Logic; state and proposed commands remain
 private until the atomic Write Outputs boundary.
 
 Editable graph topology is a compiler input, not a target runtime format. The
-backend resolves one immutable flow/point/template snapshot, validates types,
+backend resolves one immutable context/flow/point/instance/template snapshot, validates types,
 units and capabilities, rejects combinational cycles, applies deterministic
 Kahn scheduling, allocates typed slots/state, and emits canonical Flow IL plus
 stable symbols. Browser validation is advisory and targets never accept the
@@ -358,7 +362,8 @@ deployment intact.
 ## API and persistence
 
 Existing flow CRUD and runtime endpoints remain the public boundary described
-in `.codex/ui-flow-schema.md` and `.codex/ui-runtime-api.md`. Durable backend
+in the [UI flow schema](../reference/ui-flow-schema.md) and
+[runtime API](../reference/runtime-api.md). Durable backend
 configuration is stored in EF Core/SQLite through the checked-in migrations.
 Point definitions, live point state, controller templates, deployed snapshots,
 commands, and audit/history remain separate domains because they have different
@@ -380,16 +385,18 @@ Mutations return revision conflicts rather than silently overwriting another
 editor.
 
 Cross-resource mutations and deployments go through a service layer capable of
-holding consistent snapshots across the flow, point, and template stores. A
-future database may replace file stores without changing the HTTP contracts.
+holding consistent snapshots across the flow, context, instance, point, and
+template stores. Storage implementations may change without changing the HTTP
+contracts.
 
 ## Testing and completion standard
 
-Every implementation phase in `.codex/implementation-plan.md` includes
-production code, unit/integration tests, focused Playwright coverage, and a
-manual smoke test. Tests cover positive and negative cases, legacy data,
-malformed input, target mismatch, concurrency, atomic-write failure, and
-recovery.
+Changes require production code, unit/integration tests, focused Playwright
+coverage where user behavior changes, and an appropriate smoke test. Tests
+cover positive and negative cases, malformed input, target mismatch,
+concurrency, atomic-write failure, and recovery. Current virtual-point
+acceptance coverage is defined in
+[virtual-point verification](../testing/virtual-points.md).
 
 Frontend work must pass formatting, linting, unit tests, production build, and
 focused plus full E2E suites. User-visible flows are tested with keyboard-only

@@ -2,23 +2,29 @@
 
 Flow Control Automation is a home automation flow engine with a graphical editor for creating, deploying, and managing automation logic.
 
+## Documentation
+
+The consolidated architecture, guides, reference material, operations,
+development instructions, tests, and design decisions are available from the
+[`documentation index`](docs/index.md).
+
 Every running flow follows a strict
-[`PLC Scan Cycle`](docs/plc-scan-cycle.md): **Read Inputs** into a frozen
+[`PLC scan cycle`](docs/architecture/plc-scan-cycle.md): **Read Inputs** into a frozen
 snapshot, **Execute Logic** against that snapshot and committed state, then
 **Write Outputs** by atomically committing next state, proposed commands, and a
 completed-scan snapshot. Intentional feedback uses explicit memory/delay state,
 so cyclic behavior is predictable without recursive graph evaluation.
 
 The production execution architecture is defined by the
-[`portable flow runtime architecture`](docs/portable-flow-runtime-architecture.md).
+[`portable flow runtime architecture`](docs/architecture/portable-flow-runtime.md).
 Flows compile on the backend into deterministic bytecode and execute through
 contract-compatible managed .NET and controller runtimes. Earlier design records
 remain under [`docs/decisions/`](docs/decisions/), but pre-release runtime paths
 support only the current format.
 The production bytecode and host boundaries are defined by the
-[`Flow IL v1 contract`](docs/flow-il-v1-contract.md),
-[`VM host ABI`](docs/flow-vm-host-abi-v1.md), and
-[`debugger contract`](docs/flow-il-v1-debug-contract.md).
+[`Flow IL v1 contract`](docs/reference/flow-il-v1.md),
+[`VM host ABI`](docs/reference/flow-vm-host-abi-v1.md), and
+[`debugger contract`](docs/reference/flow-il-v1-debugger.md).
 The backend compiler is authoritative and emits only the current scheduled Flow
 IL version. Non-current versions are rejected rather than migrated or executed.
 The backend decompiler performs the reverse tooling operation: users
@@ -26,7 +32,7 @@ can import supported compiled IL as a valid editable designer flow. Artifacts
 recover a deterministic semantically equivalent graph with stable executable
 IDs, configuration, labels, groups, and canvas layout losslessly.
 
-## What the Application Does
+## What the application does
 
 The application allows users to build automation flows by connecting visual
 nodes in a web interface. Each server deployment owns an isolated portable-VM
@@ -48,7 +54,8 @@ The application is intended to run in Docker as either:
 
 The frontend build supports reverse-proxy and Home Assistant ingress prefixes via
 `VITE_BASE_PATH`. Deployment details and the required single-page application
-fallback are documented in [`frontend/flow-control-ui/README.md`](frontend/flow-control-ui/README.md).
+fallback are documented in the
+[`frontend development guide`](docs/development/frontend.md#production-base-path).
 
 ## Technology
 
@@ -68,6 +75,7 @@ flow-control-automation/
 │   └── flow-control-ui/ Vue application
 ├── controllers/
 │   └── kincony/kc868-a16/ ESP-IDF firmware for the KC868-A16v3
+├── docs/                 Guides, architecture, reference, and operations
 └── .vscode/             Development tasks and extension recommendations
 ```
 

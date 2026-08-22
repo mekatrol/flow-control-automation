@@ -377,7 +377,7 @@ node/connection counts, required capabilities/limits, payload length, and
 SHA-256 digest.
 
 Flow IL envelope version 1 is the sole accepted executable artifact and uses the deterministic encoding in
-[`../docs/flow-il-v1-contract.md`](../docs/flow-il-v1-contract.md).
+[Flow IL v1](flow-il-v1.md).
 FCP transfer still treats the bytes as opaque; the deployment validator owns
 their semantics.
 
@@ -444,7 +444,7 @@ these versions, opcode requirements, or bounded resources do not match.
 
 Opcodes `0x50` through `0x5b` reserve the authenticated volatile debug-session
 profile. Their lifecycle, lease, chunk, snapshot, and shadow-safety semantics
-follow [`../docs/flow-il-v1-debug-contract.md`](../docs/flow-il-v1-debug-contract.md)
+follow the [Flow IL debugger contract](flow-il-v1-debugger.md)
 and the portable architecture.
 They never mutate durable upload or committed-generation state.
 
@@ -473,15 +473,17 @@ After cache expiry, transfer IDs, offsets, flow IDs, revisions, and digests keep
 chunk and commit operations idempotent. After ambiguous timeout, clients query
 status instead of assuming failure and creating a second deployment.
 
-## 14. Compatibility
+## 14. Version and capability negotiation
 
-Major versions are incompatible and never guessed. Minor features use
-capability and operation bitmaps. Reserved fields/bits are zero and rejected
-when nonzero unless negotiated otherwise.
+Only the current protocol version is supported. Versions are never guessed,
+translated, migrated, or accepted through a fallback decoder. Unsupported
+versions fail before any mutation is prepared.
 
-Released enum values and opcodes are permanent. Deprecated operations remain
-decodable for their documented window. New point types, authentication
-algorithms, artifact schemas, or frame profiles require negotiation.
+Peers using the current version negotiate optional operations and resource
+limits through capability bitmaps. Reserved fields and bits must be zero and
+are rejected when nonzero. Changing point types, authentication algorithms,
+artifact schemas, or frame profiles requires updating the protocol version and
+all producers, consumers, fixtures, and tests together.
 
 ## 15. Resource, security, and safety rules
 

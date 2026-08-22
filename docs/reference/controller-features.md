@@ -1,8 +1,8 @@
-# Implemented features
+# Controller features
 
 This document describes capabilities currently implemented in the controller
-firmware. Work that is not yet complete remains in
-[`../docs/portable-flow-runtime-architecture.md`](../docs/portable-flow-runtime-architecture.md).
+firmware. Their design constraints are defined by the
+[portable flow runtime architecture](../architecture/portable-flow-runtime.md).
 
 ## Portable runtime and diagnostics
 
@@ -74,7 +74,7 @@ firmware. Work that is not yet complete remains in
 ## Flow Controller Protocol
 
 The normative FCP version 1 wire contract is documented in
-[`PROTOCOL.md`](PROTOCOL.md). Its codec and dispatcher are independent of
+[controller protocol v1](controller-protocol-v1.md). Its codec and dispatcher are independent of
 ESP-IDF and UART types so another bounded transport can carry the protocol.
 
 Implemented protocol capabilities include:
@@ -115,6 +115,6 @@ artifacts, and Flow IL v1 host equivalence.
 - The production ESP32-S3 image builds and boots on the KinCony KC868-A16v3.
   Core protocol, authentication, output, and transactional artifact operations
   have been exercised through a Linux host and USB-to-RS485 adapter.
-- [`scripts/fcp-client.py`](scripts/fcp-client.py) provides dependency-free
+- [`scripts/fcp-client.py`](../../controllers/scripts/fcp-client.py) provides dependency-free
   Linux commands for discovery, inspection, I/O, authenticated output control,
   subscriptions, and flow-artifact management.

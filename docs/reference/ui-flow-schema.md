@@ -4,9 +4,9 @@ The frontend API boundary is defined by `src/features/flows/api/flowDto.ts`. All
 untrusted payloads must pass `parseFlowDto` before entering Pinia, and API writes
 must use `flowDomainToDto` rather than serialising transient designer state.
 
-## Differences from the legacy HtmlSvg persistence model
+## Schema decisions
 
-| Legacy field | Current schema decision |
+| Previous field | Current schema decision |
 | --- | --- |
 | Numeric flow-element IDs | String IDs are used for stable URL/API identifiers and readable fixtures. |
 | `flow.nodes` and `flow.connections` only | A flow also persists its ID, display metadata, deployment status, and update timestamp. |
@@ -26,9 +26,8 @@ the frontend node-kind registry.
 
 ## Frontend HTTP operations
 
-The Phase 6 frontend expects these JSON operations. Browser tests provide
-deterministic route fixtures until the ASP.NET Core server implements the
-matching API.
+The frontend uses these JSON operations. Browser tests provide deterministic
+route fixtures, and real-backend E2E tests verify the ASP.NET Core surface.
 
 | Method and path | Request | Successful response |
 | --- | --- | --- |

@@ -1,4 +1,4 @@
-# Live-output debug commissioning
+# Live-output commissioning
 
 Live-output debugging must not be enabled for a controller model until this
 checklist passes on an isolated test rig with outputs disconnected from

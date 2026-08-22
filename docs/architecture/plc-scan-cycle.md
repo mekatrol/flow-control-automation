@@ -1,4 +1,4 @@
-# PLC Scan Cycle execution model
+# PLC scan cycle
 
 Flow Control Automation executes every deployed flow using a strict PLC Scan
 Cycle. This is the normative runtime model for the server VM, controller VM,

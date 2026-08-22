@@ -2,7 +2,7 @@
 
 Status: Accepted. This document records the normative simulator schemas,
 diagnostics, limits, and endpoint behavior that complement the system design in
-[`portable-flow-runtime-architecture.md`](portable-flow-runtime-architecture.md). Changes
+[portable flow runtime architecture](../architecture/portable-flow-runtime.md). Changes
 to these contracts must be made deliberately across producers, consumers,
 fixtures, and tests.
 

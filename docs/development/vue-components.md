@@ -198,9 +198,11 @@ Every new component must be WCAG 2.2 Level AA compliant in all of its states and
 - Add a colocated Vitest test under `__tests__/`. Use `@vue/test-utils` and `// @vitest-environment jsdom` for DOM component tests.
 - Test what a user or consumer observes: rendered content, accessible names/states, emitted events and payloads, automation attributes, disabled behavior, slots, and cleanup.
 - Add or update a Playwright spec under `e2e/` that exercises the component through a real user-facing route.
-- Run the E2E test across every browser/device project configured in `playwright.config.ts`, rather than selecting only one project. Currently this means desktop Chromium, desktop Firefox, desktop Edge, and mobile Chromium.
+- Run the E2E test across every default browser/device project configured in
+  `playwright.config.ts`, rather than selecting only one project. Firefox is an
+  explicit opt-in where the local Playwright environment supports it.
 - Include accessibility assertions appropriate to the component and verify keyboard interaction in E2E coverage.
-- Follow `.codex/test-documentation-rules.md` when documenting tests.
+- Follow the [test documentation standard](test-documentation.md) when documenting tests.
 - Avoid tests coupled only to implementation details or fragile CSS selectors; prefer roles, labels, and `data-automation`.
 
 ## 10. Verify before handing off

@@ -183,11 +183,13 @@ All interacting locks have one documented acquisition order. Interrupt handlers
 must not directly mutate multiword point records.
 
 Committed retained values are persisted asynchronously with their instance ID,
-point key, contract identity, and committed version. Restore is synchronized and
-occurs before affected programs activate. Volatile values reset with their
-execution instance. Concurrency conformance tests must force scan, deployment,
-reset, persistence, debugger, and API-read interleavings and prove freedom from
-torn reads, partial commits, deadlocks, and cross-instance leakage.
+point key, complete contract identity, and committed version. Restore is
+synchronized, occurs before affected programs activate, and requires an exact
+instance, type, units, persistence, and default match. Values are never coerced
+or migrated between contracts. Volatile values reset with their execution
+instance. Concurrency conformance tests must force scan, deployment, reset,
+persistence, debugger, and API-read interleavings and prove freedom from torn
+reads, partial commits, deadlocks, and cross-instance leakage.
 
 ## Flow IL v1 contract
 
@@ -196,7 +198,7 @@ revision, execution policy, resource requirements, eight independently
 versioned sections, and a digest for each section. The sections are typed
 constants, point bindings, slot layout, scheduled instructions, commit plan,
 symbols, debug map, and source dependencies. Exact encodings and semantic rules
-are normative in [`flow-il-v1-contract.md`](flow-il-v1-contract.md).
+are normative in [Flow IL v1](../reference/flow-il-v1.md).
 
 Flow IL v1 has exactly these eight version-1 sections. The symbol section contains
 bounded, digest-protected labels, group IDs, and finite canvas coordinates for
@@ -235,7 +237,7 @@ differences are allowed only where that later contract explicitly defines them.
 ## Runtime and host ABI
 
 The normative runtime model is the
-[`PLC Scan Cycle`](plc-scan-cycle.md). Each host triggers a scan, captures a
+[PLC scan cycle](plc-scan-cycle.md). Each host triggers a scan, captures a
 frozen input/current-state image, executes scheduled instructions into private
 working storage, and atomically publishes only at Write Outputs. The existing
 word `tick` means one complete PLC scan in existing APIs.
@@ -411,7 +413,7 @@ limits interface entries, active sessions, session idle time, breakpoints,
 history, inspectable slots, artifact size, instructions per scan, and request
 size. Target profiles may advertise smaller limits, in which case the effective
 limit is the minimum. Exact current values and structured error codes are
-normative in [`flow-simulator-contract.md`](flow-simulator-contract.md).
+normative in the [flow simulator reference](../reference/flow-simulator.md).
 
 ## Deployment model
 
@@ -423,6 +425,10 @@ shared-point allocation, and swaps the context generation into service only
 after every preparation succeeds. A failed merge, bind, compile, allocation, or
 prepare leaves the prior complete deployment generation running.
 
+Admission is bounded to 128 virtual points per context and execution instance,
+including at most 64 retained points per context. A target may advertise a
+smaller capacity; deployment uses the smaller effective limit.
+
 The built-in `default` target means the server VM. Hardware templates advertise
 the same vocabulary plus limits and supported Flow IL/ABI versions. A compiled
 artifact may be reused only when all dependency revisions and target
@@ -431,8 +437,9 @@ IL digest, dependency revisions, and optional symbols separately from editable
 flow JSON.
 
 Server deployment is the baseline host. The existing
-`POST /api/flows/{flowId}/deploy` endpoint is transitional and is replaced or
-supplemented by context-to-instance deployment APIs. Controller transfer and
+`POST /api/flows/{flowId}/deploy` endpoint is flow-local. Context-to-instance
+deployment APIs are authoritative for composed multi-program deployments.
+Controller transfer and
 debug sessions remain alternate hosts in the same compiler pipeline. An
 artifact may be reused across execution instances only when the complete
 template capabilities, physical bindings, merged virtual-point contracts, and

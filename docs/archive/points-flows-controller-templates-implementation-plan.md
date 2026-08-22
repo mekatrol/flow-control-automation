@@ -1,7 +1,11 @@
 # Points, flows, and controller templates implementation plan
 
+> **Archived:** This plan preserves historical delivery context and status as
+> recorded on 12 August 2026. It is not a current backlog or normative design
+> source. Use the [documentation index](../index.md) for maintained guidance.
+
 > The portable Flow IL architecture in
-> `docs/portable-flow-il-architecture.md` is authoritative for compiler,
+> `docs/architecture/portable-flow-runtime.md` is authoritative for compiler,
 > server runtime, and controller runtime work. Any phase below that implies a
 > separate backend graph evaluator must instead compile to Flow IL and use the
 > shared portable VM. Point/source authoring phases and their ordering remain
@@ -26,13 +30,10 @@ Last updated: 12 August 2026.
 | 5 - Frontend data layer and read-only catalogue | Complete | Strict DTO/API parsing, latest-request Pinia stores, responsive point/group/controller catalogues, compatibility states, and automated accessibility-oriented coverage are in place. |
 | 6 onward | Not started | Phase 6 is next; follow the sequence below, including the remaining controller-template sub-phases. |
 
-Detailed Phase 0 verification results are recorded in
-`.codex/phase-0-baseline.md`.
-
 ## 1. Goal
 
-Implement the point and flow models described in `.codex/point-types.md` and
-`.codex/flows.md` across the ASP.NET Core backend and Vue frontend. Controller
+Implement the point and flow models described in the [point model](../reference/point-model.md) and
+[flow authoring and controller-target architecture](../architecture/flow-authoring-and-controller-targets.md) across the ASP.NET Core backend and Vue frontend. Controller
 templates form part of the same implementation because they constrain point
 definitions, flow functions, graph connections, deployment, and runtime
 behaviour. Users must be able to:
@@ -93,7 +94,7 @@ definitions, live state, commands, and history have different persistence and
 safety requirements.
 
 All runtime phases must preserve the PLC Scan Cycle in
-`docs/plc-scan-cycle.md`: Read Inputs freezes values and committed state,
+the [PLC scan cycle](../architecture/plc-scan-cycle.md): Read Inputs freezes values and committed state,
 Execute Logic stages changes without live I/O, and Write Outputs atomically
 publishes successful state, commands, and telemetry. Driver expansion must not
 introduce mid-scan reads/writes or overlapping scans.
@@ -523,8 +524,7 @@ files; inspect the diff before committing.
 ### Phase 0 - Contract fixtures and compatibility baseline — Complete
 
 **Completed:** 25 July 2026. All implementation, unit/integration, and
-E2E/smoke items below are complete. The full recorded quality baseline is in
-`.codex/phase-0-baseline.md`.
+E2E/smoke items below are complete.
 
 **Purpose:** Freeze current behavior and create shared examples before adding
 new persisted concepts.
@@ -1115,7 +1115,7 @@ output bindings without complete safe policies remain disabled.
 
 ### Phase 13 - Quality-aware flows, commissioning, alarms, and history
 
-**Purpose:** Complete the operational model from `.codex/point-types.md`.
+**Purpose:** Complete the operational [point model](../reference/point-model.md).
 
 **Implementation**
 

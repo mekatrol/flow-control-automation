@@ -1,4 +1,4 @@
-# Portable Flow VM host ABI 1
+# Flow VM host ABI v1
 
 ## Boundary
 

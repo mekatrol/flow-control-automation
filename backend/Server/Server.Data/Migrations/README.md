@@ -1,8 +1,4 @@
-Create future migrations from `backend/Server` with:
+# Database migrations
 
-```sh
-dotnet ef migrations add <Name> \
-  --project Server.Data/Server.Data.csproj \
-  --startup-project Server.Api/Server.Api.csproj \
-  --context FlowControlDbContext
-```
+Migration creation is documented in the central
+[database migrations guide](../../../../docs/development/database-migrations.md).

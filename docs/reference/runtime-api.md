@@ -1,9 +1,9 @@
 # Deploy and runtime-status API contract
 
 The snapshot endpoints let the browser deploy a saved flow and refresh runtime
-state without adding execution data to the persisted graph DTO. During the
-portable-IL migration, deployment to the built-in target means compile, prepare,
-and transactionally start the server VM. A successful status response must not
+state without adding execution data to the persisted graph DTO. Deployment to
+the built-in target compiles, prepares, and transactionally starts the server
+VM. A successful status response must not
 be synthesized merely from the saved graph.
 
 ## Endpoints
@@ -41,4 +41,4 @@ snapshot and a newly edited draft to coexist safely.
 The initial frontend transport refreshes the snapshot after loading the graph and
 after deployment. A failed refresh marks the connection as disconnected and clears
 node values, because retaining them would misleadingly present stale telemetry as
-current. A future server-sent-event transport may publish the same snapshot shape.
+current. Streaming transports must preserve the same snapshot semantics.
