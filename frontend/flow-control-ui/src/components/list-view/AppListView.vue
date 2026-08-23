@@ -1,20 +1,27 @@
 <template>
   <section v-bind="automation()" class="list-view" :aria-labelledby="titleId" :aria-busy="loading">
     <div class="list-view__heading">
-      <div>
-        <h2 :id="titleId">{{ title }}</h2>
-        <p v-if="description" :id="descriptionId">{{ description }}</p>
-      </div>
+      <slot name="list-header">
+        <div>
+          <h2 :id="titleId">{{ title }}</h2>
+          <p v-if="description" :id="descriptionId">{{ description }}</p>
+        </div>
+      </slot>
 
       <AppListFilter
         v-bind="automation('filter')"
         :model-value="draftFilter"
         :active="Boolean(query.filter)"
         :input-id="filterId"
+        :show-filter-apply="showFilterApply"
         @update:model-value="draftFilter = $event"
         @apply="applyFilter"
         @clear="clearFilter"
-      />
+      >
+        <template v-if="$slots['filter-options']" #filter-options>
+          <slot name="filter-options" />
+        </template>
+      </AppListFilter>
     </div>
 
     <AppListPagination
@@ -126,7 +133,11 @@
   </section>
 </template>
 
-<script setup lang="ts" generic="TRow extends ListRow">
+<script
+  setup
+  lang="ts"
+  generic="TRow extends ListRow, TQuery extends ListQuery<TRow> = ListQuery<TRow>"
+>
 import { computed, ref, watch } from 'vue';
 import AppListFilter from '@/components/list-view/AppListFilter.vue';
 import AppListFooterRow from '@/components/list-view/AppListFooterRow.vue';
@@ -142,38 +153,46 @@ import type {
 } from '@/models/listViewModels';
 import { useAutomation } from '@/composables/useAutomation';
 
-interface Props<TRow extends ListRow> {
+interface Props<TRow extends ListRow, TQuery extends ListQuery<TRow>> {
   title: string;
   description?: string;
   rows: TRow[];
   columns: ListColumn<TRow>[];
-  query: ListQuery<TRow>;
+  query: TQuery;
   totalItems: number;
   loading?: boolean;
   emptyMessage?: string;
   pageSizeOptions?: number[];
   id?: string;
   automation: string;
+  showFilterApply?: boolean;
 }
 
-const props = withDefaults(defineProps<Props<TRow>>(), {
+const props = withDefaults(defineProps<Props<TRow, TQuery>>(), {
   description: '',
   loading: false,
   emptyMessage: 'No results found.',
   pageSizeOptions: () => [10, 25, 50, 100],
-  id: 'list-view'
+  id: 'list-view',
+  showFilterApply: true
 });
 
-type Emits<TRow extends ListRow> = {
-  'query-change': [query: ListQuery<TRow>];
+type Emits<
+  TRow extends ListRow,
+  TQuery extends ListQuery<TRow>
+> = {
+  'query-change': [query: TQuery];
   'filter-clear': [];
   'sort-clear': [];
   'row-click': [row: TRow];
   reset: [];
 };
-const emit = defineEmits<Emits<TRow>>();
+
+const emit = defineEmits<Emits<TRow, TQuery>>();
 
 interface Slots<TRow extends ListRow> {
+  'list-header'?: () => unknown;
+  'filter-options'?: () => unknown;
   cell?: (props: ListCellContext<TRow>) => unknown;
   footer?: (props: { totalItems: number }) => unknown;
   [name: `cell-${string}`]: ((props: ListCellContext<TRow>) => unknown) | undefined;
@@ -222,7 +241,7 @@ const updateQuery = (changes: Partial<ListQuery<TRow>>): void => {
   emit(ListViewEmit.QueryChange, {
     ...props.query,
     ...changes
-  });
+  } as TQuery);
 };
 
 const applyFilter = (filter: string): void => {

@@ -2,16 +2,18 @@
   <form v-bind="automation()" class="list-filter" role="search" @submit.prevent="applyFilter">
     <label :for="inputId">{{ label }}</label>
     <div class="list-filter__controls">
-      <AppClearableInput
-        v-bind="automation('input')"
-        :id="inputId"
-        v-model="filterValue"
-        type="search"
-        :placeholder="placeholder"
-        autocomplete="off"
-        @clear="clearFilter"
-      />
-      <AppButton text="Apply" type="submit" :icon="filterIcon" v-bind="automation('submit')" />
+      <slot name="filter-options">
+        <AppClearableInput
+          v-bind="automation('input')"
+          :id="inputId"
+          v-model="filterValue"
+          type="search"
+          :placeholder="placeholder"
+          autocomplete="off"
+          @clear="clearFilter"
+        />
+      </slot>
+      <AppButton v-if="showFilterApply" text="Apply" type="submit" :icon="filterIcon" v-bind="automation('submit')" />
     </div>
   </form>
 </template>
@@ -33,13 +35,15 @@ interface Props {
   automation: string;
   active: boolean;
   disabled?: boolean;
+  showFilterApply?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   inputId: 'list-filter',
   label: 'Filter list',
   placeholder: 'Enter filter text',
-  disabled: false
+  disabled: false,
+  showFilterApply: true
 });
 
 type Emits = {
@@ -68,6 +72,11 @@ const clearFilter = (): void => {
 </script>
 
 <style scoped>
+form {
+  display: flex;
+  flex-direction: column;
+}
+
 .list-filter {
   display: flex;
   gap: 0.35rem;
@@ -75,7 +84,6 @@ const clearFilter = (): void => {
 
 .list-filter__controls {
   display: flex;
-  flex-wrap: wrap;
   gap: 0.5rem;
 }
 

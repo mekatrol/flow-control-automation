@@ -1,27 +1,39 @@
 <template>
   <div>
-    <AppMultiSelectDropdown
-      v-model="filterStatuses"
-      v-bind="automation('status-filter')"
-      class="app-filter-field app-filter-field--content"
-      label="Deployment status"
-      all-label="All"
-      :options="statusOptions"
-    />
-
     <AppListView
       id="flow-list"
       v-bind="automation()"
       title="Flows"
-      description="List of defined flows."
       class="flow-list"
+      :show-filter-apply="false"
       :columns="columns"
       :rows="sortedRows"
       :query="query"
       :total-items="totalItems"
       :page-size-options="[5, 10, 25]"
-      @query-change="query = $event"
+      @query-change="updateQuery"
     >
+      <template #filter-options>
+        <div class="filter-options">
+          <AppMultiSelectDropdown
+            v-model="filterStatuses"
+            v-bind="automation('status-filter')"
+            class="app-filter-field app-filter-field--content"
+            label="Deployment status"
+            all-label="All"
+            :options="statusOptions"
+          />
+
+          <AppClearableInput
+            v-model="filterText"
+            v-bind="automation('input')"
+            type="search"
+            placeholder="Enter a flow name"
+            autocomplete="off"
+          />
+        </div>
+      </template>
+
       <template #cell-name="{ row }">
         <form
           v-if="editingFlowId === row.id"
@@ -30,12 +42,14 @@
           @submit.prevent="$emit(EVENTS.SAVE_RENAME, row.id)"
         >
           <label :for="`rename-${row.id}`">Rename {{ row.name }}</label>
+
           <input
             :id="`rename-${row.id}`"
             :value="renameValue"
             type="text"
             @input="$emit(EVENTS.UPDATE_RENAME_VALUE, ($event.target as HTMLInputElement).value)"
           />
+
           <AppButton
             v-bind="automation('save-name')"
             type="submit"
@@ -44,6 +58,7 @@
             hide-text
             :disabled="renaming"
           />
+
           <AppButton
             v-bind="automation('cancel-rename')"
             text="Cancel"
@@ -52,6 +67,7 @@
             @click="$emit(EVENTS.CANCEL_RENAME)"
           />
         </form>
+
         <RouterLink
           v-else
           class="flow-name"
@@ -61,22 +77,29 @@
           {{ row.name }}
         </RouterLink>
       </template>
+
       <template #cell-status="{ row }">
         <span class="status" :class="[row.status, { disabled: row.disabled }]">
           {{ row.disabled ? `${row.status} · disabled` : row.status }}
         </span>
       </template>
+
       <template #cell-nodes="{ row }">
-        <span class="nodes" :class="[row.nodes, { disabled: row.disabled }]">
+        <span class="nodes" :class="{ disabled: row.disabled }">
           {{ row.nodes.length }}
         </span>
       </template>
+
       <template #cell-updatedAt="{ row }">
-        <time :datetime="row.updatedAt">{{ formattedUpdatedAt(row) }}</time>
+        <time :datetime="row.updatedAt">
+          {{ formattedUpdatedAt(row) }}
+        </time>
       </template>
+
       <template #cell-disabled="{ row }">
         <a :href="`tel:${row.disabled}`">{{ row.disabled }}</a>
       </template>
+
       <template #cell-actions="{ row }">
         <div class="actions">
           <AppButton
@@ -87,6 +110,7 @@
             :disabled="togglingDisabledId === row.id"
             @click="emit(EVENTS.TOGGLE_DISABLED, row.id, !row.disabled)"
           />
+
           <AppButton
             v-bind="automation('rename')"
             class="light-weight"
@@ -94,6 +118,7 @@
             :icon="renameFlowIcon"
             @click="emit(EVENTS.BEGIN_RENAME, row.id, row.name)"
           />
+
           <AppButton
             v-bind="automation('delete')"
             class="light-weight"
@@ -101,6 +126,7 @@
             :icon="deleteFlowIcon"
             @click="emit(EVENTS.BEGIN_DELETE, row.id)"
           />
+
           <div
             v-if="confirmingDeleteId === row.id"
             :ref="setDeleteDialog"
@@ -112,7 +138,8 @@
             tabindex="-1"
             @keydown="handleDeleteDialogKeydown"
           >
-            <span :id="`delete-description-${row.id}`">Delete this flow?</span>
+            <span :id="`delete-description-${row.id}`"> Delete this flow? </span>
+
             <AppButton
               v-bind="automation('confirm-delete')"
               text="Confirm delete"
@@ -120,6 +147,7 @@
               :disabled="deleting"
               @click="$emit(EVENTS.CONFIRM_DELETE, row.id.toString())"
             />
+
             <AppButton
               v-bind="automation('cancel-delete')"
               text="Cancel"
@@ -136,16 +164,19 @@
 
 <script setup lang="ts">
 import { computed, ref, type ComponentPublicInstance } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
+
 import { useAutomation } from '@/composables/useAutomation';
 import type { SortDirection } from '@/composables/usePaginatedCollection';
 import { useModalFocus } from '@/features/flows/composables/useModalFocus';
 
 import { EVENTS } from '@/constants/events';
 import type { FlowDefinition, FlowNode } from '@/features/flows/types';
+import type { ListColumn, ListQuery, ListRow } from '@/models';
+
 import AppListView from '@/components/list-view/AppListView.vue';
 import AppButton from '@/components/AppButton.vue';
-import type { ListColumn, ListQuery, ListRow } from '@/models';
+import AppClearableInput from '@/components/AppClearableInput.vue';
 import AppMultiSelectDropdown, {
   type MultiSelectOption
 } from '@/components/AppMultiSelectDropdown.vue';
@@ -156,6 +187,10 @@ import disableFlowIcon from '@/assets/icons/disable-flow-icon.svg';
 import enableFlowIcon from '@/assets/icons/enable-flow-icon.svg';
 import renameFlowIcon from '@/assets/icons/rename-flow-icon.svg';
 import saveIcon from '@/assets/icons/save-icon.svg';
+
+type FlowStatus = 'draft' | 'deployed';
+
+const FLOW_STATUSES: FlowStatus[] = ['draft', 'deployed'];
 
 const props = defineProps<{
   automation: string;
@@ -169,9 +204,6 @@ const props = defineProps<{
   togglingDisabledId?: string;
 }>();
 
-const route = useRoute();
-const router = useRouter();
-const automation = useAutomation(props.automation);
 const emit = defineEmits<{
   (event: typeof EVENTS.TOGGLE_SORT): void;
   (event: typeof EVENTS.BEGIN_RENAME, flowId: string, name: string): void;
@@ -189,10 +221,17 @@ export interface FlowRow extends ListRow {
   name: string;
   updatedAt: string;
   nodes: FlowNode[];
-  status: string;
+  status: FlowStatus;
   disabled: boolean;
   actions: string;
 }
+
+interface FlowListQuery extends ListQuery<FlowRow> {
+  statuses: FlowStatus[];
+}
+
+const route = useRoute();
+const automation = useAutomation(props.automation);
 
 const columns: ListColumn<FlowRow>[] = [
   {
@@ -234,29 +273,46 @@ const statusOptions: MultiSelectOption[] = [
   { label: 'Deployed', value: 'deployed' }
 ];
 
-const requestedStatuses = Array.isArray(route.query.status)
-  ? route.query.status
-  : route.query.status
-    ? [route.query.status]
-    : [];
+const isFlowStatus = (value: unknown): value is FlowStatus =>
+  typeof value === 'string' && FLOW_STATUSES.includes(value as FlowStatus);
 
-const validRequestedStatuses = requestedStatuses.filter(
-  (status): status is 'draft' | 'deployed' => status === 'draft' || status === 'deployed'
-);
+const requestedStatuses = (
+  Array.isArray(route.query.status) ? route.query.status : [route.query.status]
+).filter(isFlowStatus);
 
-const statusFilters = ref<string[]>(
-  validRequestedStatuses.length > 0
-    ? validRequestedStatuses
-    : statusOptions.map(({ value }) => value)
-);
-
-const query = ref<ListQuery<FlowRow>>({
+const query = ref<FlowListQuery>({
   page: 1,
   pageSize: 5,
   filter: '',
+  statuses: requestedStatuses.length > 0 ? requestedStatuses : [...FLOW_STATUSES],
   sort: null
 });
-const filterStatuses = ref([...statusFilters.value]);
+
+const updateQuery = (nextQuery: FlowListQuery): void => {
+  query.value = nextQuery;
+};
+
+const filterText = computed({
+  get: () => query.value.filter,
+  set: (filter: string) => {
+    query.value = {
+      ...query.value,
+      page: 1,
+      filter
+    };
+  }
+});
+
+const filterStatuses = computed({
+  get: () => query.value.statuses,
+  set: (statuses: FlowStatus[]) => {
+    query.value = {
+      ...query.value,
+      page: 1,
+      statuses
+    };
+  }
+});
 
 const rows = computed<FlowRow[]>(() =>
   props.flows.map((flow) => ({
@@ -264,39 +320,26 @@ const rows = computed<FlowRow[]>(() =>
     name: flow.name,
     updatedAt: flow.updatedAt,
     nodes: flow.nodes,
-    status: flow.status,
+    status: flow.status as FlowStatus,
     disabled: flow.disabled,
     automation: `row-${flow.id}`,
     actions: ''
   }))
 );
 
-const deleteDialog = ref<HTMLElement>();
-const deleteDialogOpen = computed(() => !!props.confirmingDeleteId);
-const setDeleteDialog = (element: Element | ComponentPublicInstance | null): void => {
-  deleteDialog.value = element instanceof HTMLElement ? element : undefined;
-};
-const { handleKeydown: handleDeleteDialogKeydown } = useModalFocus(
-  deleteDialog,
-  deleteDialogOpen,
-  () => emit(EVENTS.CANCEL_DELETE)
-);
-
-const filteredRows = computed(() => {
+const filteredRows = computed<FlowRow[]>(() => {
   const filter = query.value.filter.trim().toLocaleLowerCase();
 
-  if (!filter) {
-    return rows.value;
-  }
+  return rows.value.filter((row) => {
+    const matchesStatus = query.value.statuses.includes(row.status);
 
-  return rows.value.filter((row) =>
-    [row.name, row.status, row.disabled.toString()].some((value) =>
-      value.toLocaleLowerCase().includes(filter)
-    )
-  );
+    const matchesText = filter.length === 0 || row.name.toLocaleLowerCase().includes(filter);
+
+    return matchesStatus && matchesText;
+  });
 });
 
-const sortedRows = computed(() => {
+const sortedRows = computed<FlowRow[]>(() => {
   const sort = query.value.sort;
 
   if (!sort) {
@@ -316,7 +359,20 @@ const sortedRows = computed(() => {
   });
 });
 
-const totalItems = computed(() => sortedRows.value.length);
+const totalItems = computed(() => filteredRows.value.length);
+
+const deleteDialog = ref<HTMLElement>();
+const deleteDialogOpen = computed(() => !!props.confirmingDeleteId);
+
+const setDeleteDialog = (element: Element | ComponentPublicInstance | null): void => {
+  deleteDialog.value = element instanceof HTMLElement ? element : undefined;
+};
+
+const { handleKeydown: handleDeleteDialogKeydown } = useModalFocus(
+  deleteDialog,
+  deleteDialogOpen,
+  () => emit(EVENTS.CANCEL_DELETE)
+);
 
 const formattedUpdatedAt = (row: FlowRow): string =>
   new Intl.DateTimeFormat(undefined, {
@@ -350,5 +406,10 @@ const formattedUpdatedAt = (row: FlowRow): string =>
 .actions {
   display: flex;
   justify-content: space-evenly;
+}
+
+.filter-options {
+  display: flex;
+  gap: 1.5em;
 }
 </style>
