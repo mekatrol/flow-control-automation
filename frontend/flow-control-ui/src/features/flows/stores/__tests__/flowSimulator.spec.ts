@@ -12,9 +12,10 @@ const source = (): ExecutableFlowSource => ({
   revision: 3,
   controllerTemplateId: 'server',
   controllerTemplateRevision: 1,
-  execution: { mode: 'manual', intervalMs: 0, inputQualityPolicy: 'require_good' },
+  execution: { mode: 'manual', intervalMs: 0, inputQualityPolicy: 'requireGood' },
   nodes: [],
-  connections: []
+  connections: [],
+  virtualPointDeclarations: []
 });
 const session = (state: SimulatorSession['lifecycleState'] = 'ready'): SimulatorSession => ({
   sessionId: 'session-a',

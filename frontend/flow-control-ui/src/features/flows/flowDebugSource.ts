@@ -122,7 +122,7 @@ export const createExecutableFlowSource = (
       intervalMs: 0,
       inputQualityPolicy: flow.nodes.some((node) => node.kind === 'qualityGood')
         ? 'propagate'
-        : 'require_good'
+        : 'requireGood'
     },
     nodes: flow.nodes.map((node) => ({
       id: node.id,

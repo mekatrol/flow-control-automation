@@ -2,7 +2,17 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { flowCompileApi } from '@/features/flows/api/flowCompileApi';
 import type { ExecutableFlowSource } from '@/features/flows/api/flowDebugApi';
 
-const source = { id: 'draft-flow', virtualPointDeclarations: [] } as ExecutableFlowSource;
+const source = {
+  schemaVersion: 1,
+  id: 'draft-flow',
+  revision: 3,
+  controllerTemplateId: 'server',
+  controllerTemplateRevision: 1,
+  execution: { mode: 'manual', intervalMs: 0, inputQualityPolicy: 'requireGood' },
+  nodes: [],
+  connections: [],
+  virtualPointDeclarations: []
+} as ExecutableFlowSource;
 
 describe('flow compile API', () => {
   afterEach(() => vi.unstubAllGlobals());

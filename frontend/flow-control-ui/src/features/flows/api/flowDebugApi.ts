@@ -117,7 +117,7 @@ export interface ExecutableFlowSource {
   execution: {
     mode: 'manual';
     intervalMs: number;
-    inputQualityPolicy: 'require_good' | 'propagate';
+    inputQualityPolicy: 'requireGood' | 'propagate';
   };
   nodes: {
     id: string;

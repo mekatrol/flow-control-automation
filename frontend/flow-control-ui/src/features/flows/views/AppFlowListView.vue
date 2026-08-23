@@ -45,7 +45,7 @@
           id="flow-il-file"
           type="file"
           accept=".bin,.fil,application/octet-stream"
-          @change="selectIlArtifact"
+          @change="selectILArtifact"
         />
         <label for="flow-il-name">Recovered flow name</label>
         <input
@@ -59,7 +59,7 @@
           :text="importing ? 'Validating…' : 'Preview recovery'"
           :icon="previewIcon"
           :disabled="!importArtifact || importing"
-          @click="previewIl"
+          @click="previewIL"
         />
       </div>
       <div v-if="importPreview" class="il-import-preview" role="status">
@@ -77,38 +77,13 @@
           text="Save as new editable flow"
           :icon="saveIcon"
           :disabled="importing"
-          @click="saveIlImport"
+          @click="saveILImport"
         />
       </div>
     </section>
 
     <p v-if="loading" class="request-status" role="status">Loading flows…</p>
     <div v-if="!error" class="flow-results">
-      <AppFilter
-        v-bind="automation('filter')"
-        class="table-tools"
-        @[EVENTS.APPLY_FILTER]="applyFilters"
-      >
-        <label class="app-filter-field flow-name-filter" for="flow-filter">
-          <span>Filter by name</span>
-          <input
-            id="flow-filter"
-            v-model="filterQuery"
-            type="search"
-            autocomplete="off"
-            placeholder="Search flow names"
-          />
-        </label>
-        <AppMultiSelectDropdown
-          v-model="filterStatuses"
-          v-bind="automation('status-filter')"
-          class="app-filter-field app-filter-field--content"
-          label="Deployment status"
-          all-label="All"
-          :options="statusOptions"
-        />
-      </AppFilter>
-
       <p v-if="totalItems === 0 && hasActiveFilters" class="empty-state" role="status">
         No flows match the selected filters.
       </p>
@@ -133,6 +108,7 @@
         @[EVENTS.CANCEL_DELETE]="closeDeleteConfirmation"
         @[EVENTS.TOGGLE_DISABLED]="setFlowDisabled"
       />
+
       <AppTablePagination
         v-if="totalItems > 0"
         v-bind="automation('pagination')"
@@ -216,14 +192,17 @@ const requestedStatuses = Array.isArray(route.query.status)
   : route.query.status
     ? [route.query.status]
     : [];
+
 const validRequestedStatuses = requestedStatuses.filter(
   (status): status is 'draft' | 'deployed' => status === 'draft' || status === 'deployed'
 );
+
 const statusFilters = ref<string[]>(
   validRequestedStatuses.length > 0
     ? validRequestedStatuses
     : statusOptions.map(({ value }) => value)
 );
+
 const {
   query,
   page,
@@ -242,18 +221,22 @@ const {
   initialPageSize,
   initialSortDirection
 });
+
 const filterQuery = ref(query.value);
 const filterStatuses = ref([...statusFilters.value]);
+
 const applyFilters = (): void => {
   query.value = filterQuery.value;
   statusFilters.value = [...filterStatuses.value];
   page.value = 1;
 };
+
 const hasActiveFilters = computed(
   () =>
     query.value.trim().length > 0 ||
     !statusOptions.every(({ value }) => statusFilters.value.includes(value))
 );
+
 const items = computed(() => flows.value);
 
 watch(
@@ -341,7 +324,7 @@ const createFlow = async (): Promise<void> => {
   }
 };
 
-const selectIlArtifact = async (event: Event): Promise<void> => {
+const selectILArtifact = async (event: Event): Promise<void> => {
   const file = (event.target as HTMLInputElement).files?.[0];
   importPreview.value = undefined;
   importArtifact.value = '';
@@ -354,7 +337,7 @@ const selectIlArtifact = async (event: Event): Promise<void> => {
   importArtifact.value = btoa(String.fromCharCode(...bytes));
 };
 
-const previewIl = async (): Promise<void> => {
+const previewIL = async (): Promise<void> => {
   if (!importArtifact.value) return;
   importing.value = true;
   error.value = undefined;
@@ -372,7 +355,7 @@ const previewIl = async (): Promise<void> => {
   }
 };
 
-const saveIlImport = async (): Promise<void> => {
+const saveILImport = async (): Promise<void> => {
   if (!importArtifact.value || !importPreview.value) return;
   importing.value = true;
   error.value = undefined;
@@ -597,6 +580,10 @@ h1 {
   display: flex;
   gap: var(--space-3-5);
   align-items: center;
+}
+
+.accessible-input::-webkit-search-cancel-button {
+  font-size: 1.8rem;
 }
 
 /* Mobile breakpoint (40rem): stacks page and navigation content for phone layouts. */

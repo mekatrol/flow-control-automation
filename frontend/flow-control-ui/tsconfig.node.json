@@ -7,7 +7,7 @@
     "cypress.config.*",
     "playwright.config.*",
     "eslint.config.*",
-    "eslint-rules/**/*.ts",
+    "eslint-rules/**/*.ts"
   ],
   "compilerOptions": {
     // Most tools use transpilation instead of Node.js's native type-stripping.

@@ -147,111 +147,39 @@
           @click="openRevertConfirmation"
         />
       </section>
-      <div class="designer-heading">
-        <div>
-          <RouterLink :to="{ name: 'flows' }">← All flows</RouterLink>
-          <div class="title-row">
-            <h1>{{ flow.name }}</h1>
-            <span :class="flow.status">{{ flow.status }}</span>
-            <span v-if="flow.disabled" class="disabled">disabled</span>
-            <span v-if="dirty" class="dirty-state" role="status">Unsaved changes</span>
-            <span
-              class="runtime-state"
-              role="status"
-              :aria-label="`Runtime state: ${runtime?.state ?? 'disconnected'}`"
-            >
-              {{ runtime?.state ?? 'disconnected' }}
-            </span>
-          </div>
-          <p>{{ flow.description }}</p>
-        </div>
-        <div class="heading-actions">
-          <AppFlowDebugTargetSelector
-            v-if="workspaceMode === 'debugger'"
-            v-model="debugTargetId"
-            v-bind="automation('debug-target')"
-            :targets="debugTargets"
-            :loading="controllerTemplates.loading"
-            :error="controllerTemplates.error"
-          />
-          <AppButton
-            v-if="versionView === 'draft'"
-            v-bind="automation('save')"
-            :text="saving ? 'Saving…' : 'Save flow'"
-            :icon="saveIcon"
-            :disabled="saving"
-            @click="saveFlow"
-          />
-          <AppButton
-            v-if="versionView === 'draft'"
-            v-bind="automation('compile')"
-            :text="compiling ? 'Compiling…' : 'Compile'"
-            :icon="compileIcon"
-            :disabled="compiling"
-            @click="compileFlow"
-          />
-          <AppButton
-            v-if="versionView === 'draft'"
-            v-bind="automation('deploy')"
-            :text="deploying ? 'Deploying…' : 'Deploy flow'"
-            :icon="deployIcon"
-            :disabled="dirty || deploying || !pointReferencesValid"
-            @click="openDeployConfirmation"
-          />
-          <AppButton
-            v-if="flow.status === 'deployed'"
-            v-bind="automation('toggle-disabled')"
-            :text="
-              togglingDisabled
-                ? flow.disabled
-                  ? 'Enabling…'
-                  : 'Disabling…'
-                : flow.disabled
-                  ? 'Enable'
-                  : 'Disable'
-            "
-            :icon="flow.disabled ? enableFlowIcon : disableFlowIcon"
-            :disabled="togglingDisabled"
-            @click="setFlowDisabled(!flow.disabled)"
-          />
-          <AppButton
-            v-bind="automation('refresh-runtime')"
-            text="Refresh runtime"
-            :icon="refreshIcon"
-            @click="refreshRuntime()"
-          />
-        </div>
-      </div>
 
-      <nav v-if="versionView === 'draft'" class="workspace-modes" aria-label="Flow workspace mode">
-        <AppLink
-          v-bind="automation('design-mode')"
-          text="Design"
-          :to="{ name: ROUTE_NAMES.flowDesigner, params: { flowId } }"
-          :aria-current="workspaceMode === 'design' ? 'page' : undefined"
-          :icon="designIcon"
-          :disabled="saving"
-          @click="saveFlow"
-        />
-        <AppLink
-          v-bind="automation('simulate-mode')"
-          text="Simulate"
-          :to="{ name: ROUTE_NAMES.flowSimulator, params: { flowId } }"
-          :aria-current="workspaceMode === 'simulator' ? 'page' : undefined"
-          :icon="simulateIcon"
-          :disabled="saving"
-          @click="saveFlow"
-        />
-        <AppLink
-          v-bind="automation('debug-mode')"
-          text="Debug"
-          :to="{ name: ROUTE_NAMES.flowDebugger, params: { flowId } }"
-          :aria-current="workspaceMode === 'debugger' ? 'page' : undefined"
-          :icon="debugIcon"
-          :disabled="saving"
-          @click="saveFlow"
-        />
-      </nav>
+      <AppFlowDesignerHeader
+        v-bind="automation('header')"
+        v-model:debug-target-id="debugTargetId"
+        :flow="flow"
+        :dirty="dirty"
+        :compiling="compiling"
+        :deploying="deploying"
+        :saving="saving"
+        :loading="controllerTemplates.loading"
+        :toggling-disabled="togglingDisabled"
+        :runtime-state="runtime?.state"
+        :workspace-mode="workspaceMode"
+        :version-view="versionView"
+        :debug-targets="debugTargets"
+        :controller-templates-error="controllerTemplates.error"
+        :point-references-valid="pointReferencesValid"
+        @save="saveFlow"
+        @compile="compileFlow"
+        @deploy="deployFlow"
+        @refresh-runtime="refreshRuntime"
+        @toggle-disabled="setFlowDisabled"
+      />
+
+      <AppFlowWorkspaceNavigation
+        v-bind="automation('workspace-navigation')"
+        :flow-id="props.flowId"
+        :workspace-mode="workspaceMode"
+        :version-view="versionView"
+        :saving="saving"
+        :loading="loading"
+        @save="saveFlow"
+      />
 
       <section
         v-if="versionView === 'draft'"
@@ -400,27 +328,18 @@ import { useAutomation } from '@/composables/useAutomation';
 import { EVENTS } from '@/constants/events';
 import cancelIcon from '@/assets/icons/cancel-icon.svg';
 import deployIcon from '@/assets/icons/deploy-icon.svg';
-import compileIcon from '@/assets/icons/compile-icon.svg';
-import disableFlowIcon from '@/assets/icons/disable-flow-icon.svg';
 import discardIcon from '@/assets/icons/discard-icon.svg';
-import enableFlowIcon from '@/assets/icons/enable-flow-icon.svg';
-import refreshIcon from '@/assets/icons/refresh-icon.svg';
 import renameFlowIcon from '@/assets/icons/rename-flow-icon.svg';
-import saveIcon from '@/assets/icons/save-icon.svg';
-import designIcon from '@/assets/icons/flow-design-icon.svg';
-import simulateIcon from '@/assets/icons/flow-simulate-icon.svg';
-import debugIcon from '@/assets/icons/flow-debug-icon.svg';
 import AppButton from '@/components/AppButton.vue';
-import AppLink from '@/components/AppLink.vue';
 import AppErrorNotice from '@/components/AppErrorNotice.vue';
 import AppPromptDialog from '@/components/AppPromptDialog.vue';
 import AppFlowDesignerCanvas from '@/features/flows/components/AppFlowDesignerCanvas.vue';
 import AppFlowCompileResults from '@/features/flows/components/AppFlowCompileResults.vue';
-import AppFlowDebugTargetSelector from '@/features/flows/components/AppFlowDebugTargetSelector.vue';
 import AppFlowDebugPanel from '@/features/flows/components/AppFlowDebugPanel.vue';
 import AppFlowEmulatorPanel from '@/features/flows/components/AppFlowEmulatorPanel.vue';
 import AppFlowSimulatorPanel from '@/features/flows/components/AppFlowSimulatorPanel.vue';
 import AppFlowTutorialPanel from '@/features/flows/components/AppFlowTutorialPanel.vue';
+import AppFlowDesignerHeader from '@/features/flows/components/designer/AppFlowDesignerHeader.vue';
 import { getFlowDebugTargets } from '@/features/flows/debugTargets';
 import {
   flowDebugApi,
@@ -463,10 +382,12 @@ import {
   type PointValidationState
 } from '@/features/flows/flowPointValidation';
 import type { VirtualPointDeclaration } from '@/features/flows/types';
+import type { WorkspaceMode } from '@/features/flows/types/flowDesigner';
+import AppFlowWorkspaceNavigation from '@/features/flows/components/designer/AppFlowWorkspaceNavigation.vue';
 
 const props = defineProps<{
   flowId: string;
-  workspaceMode: 'design' | 'simulator' | 'debugger';
+  workspaceMode: WorkspaceMode;
 }>();
 const automation = useAutomation('flow-designer');
 
@@ -1255,28 +1176,6 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', handleBeforeUnl
 .designer-page :deep(.canvas-frame) {
   min-height: 0;
   flex: 1;
-}
-
-.workspace-modes {
-  display: flex;
-  gap: var(--space-2);
-  margin-bottom: var(--space-3);
-}
-
-.workspace-modes a {
-  min-height: var(--control-min-height);
-  padding: var(--space-2) var(--space-4);
-  color: var(--color-text-primary);
-  background: var(--color-surface-raised);
-  border: var(--border-width-default) solid var(--color-border-default);
-  border-radius: var(--radius-lg);
-  text-decoration: none;
-}
-
-.workspace-modes a[aria-current='page'] {
-  color: var(--color-action-primary-strong);
-  background: var(--color-action-primary-surface);
-  border-color: var(--color-action-primary);
 }
 
 .designer-heading {

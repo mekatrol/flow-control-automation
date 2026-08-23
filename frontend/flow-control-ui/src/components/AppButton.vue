@@ -2,6 +2,7 @@
   <button
     v-bind="automation()"
     data-app-button
+    :class="props.size"
     :type="type"
     :aria-label="hideText ? text : ariaLabel"
   >
@@ -31,12 +32,14 @@ const props = withDefaults(
     ariaLabel?: string;
     hideText?: boolean;
     type?: 'button' | 'submit' | 'reset';
+    size?: string;
   }>(),
   {
     icon: undefined,
     ariaLabel: undefined,
     hideText: false,
-    type: 'button'
+    type: 'button',
+    size: undefined
   }
 );
 
@@ -57,6 +60,10 @@ button {
   border: var(--border-width-default) solid var(--color-border-default);
   border-radius: var(--radius-lg);
   cursor: pointer;
+}
+
+button.light-weight {
+  font-weight: var(--font-weight-regular);
 }
 
 button:hover:not(:disabled) {

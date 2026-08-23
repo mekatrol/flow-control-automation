@@ -1,3 +1,4 @@
+import path from 'node:path';
 import type { Rule } from 'eslint';
 import type { AST as VueAST } from 'vue-eslint-parser';
 
@@ -46,10 +47,13 @@ const requireAutomationProp: Rule.RuleModule = {
   create(context): Rule.RuleListener {
     const typedContext = context as RuleContext;
     const parserServices = typedContext.sourceCode.parserServices;
-    const componentFileMatch = context.filename.match(
-      /[/\\]src[/\\]components[/\\]((?:App|Base)[^/\\]+)\.vue$/
-    );
-    const componentName = componentFileMatch?.[1];
+    const filename = path.basename(context.filename, '.vue');
+    const isComponentFile = /[/\\]src[/\\]components[/\\]/.test(context.filename);
+
+    const componentName =
+      isComponentFile && (filename.startsWith('App') || filename.startsWith('Base'))
+        ? filename
+        : undefined;
 
     if (!parserServices?.defineTemplateBodyVisitor) {
       return {};
