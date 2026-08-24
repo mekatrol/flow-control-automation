@@ -24,25 +24,9 @@
       }}</span>
     </th>
   </tr>
-  <tr v-if="sort" v-bind="automation('sort-status')">
-    <th v-bind="automation('sort-status-cell')" :colspan="columns.length" class="sort-status">
-      <span v-bind="automation('sort-by')">
-        Sorted by {{ sortedColumnLabel }}
-        {{ sort.direction === 'asc' ? 'ascending' : 'descending' }}.
-      </span>
-      <button
-        v-bind="automation('sort-clear')"
-        type="button"
-        @click="emit(ListHeaderRowEmit.SortClear)"
-      >
-        Clear sorting
-      </button>
-    </th>
-  </tr>
 </template>
 
 <script setup lang="ts" generic="TRow extends ListRow">
-import { computed } from 'vue';
 import { useAutomation } from '@/composables/useAutomation';
 
 import { ListHeaderRowEmit } from '@/models/listViewEmits';
@@ -69,10 +53,6 @@ type Emits<TRow extends ListRow> = {
 const emit = defineEmits<Emits<TRow>>();
 
 const automation = useAutomation(props.automation);
-
-const sortedColumnLabel = computed(
-  () => props.columns.find((column) => column.key === props.sort?.column)?.label ?? ''
-);
 
 const ariaSort = (
   column: ListColumn<TRow>
