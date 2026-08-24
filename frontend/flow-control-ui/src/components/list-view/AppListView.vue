@@ -1,8 +1,8 @@
 <template>
   <section v-bind="automation()" class="list-view" :aria-labelledby="titleId" :aria-busy="loading">
     <div class="list-view__heading">
-      <slot name="list-header">
-        <div>
+      <slot name="header">
+        <div v-if="!$slots['header']">
           <h2 :id="titleId">{{ title }}</h2>
           <p v-if="description" :id="descriptionId">{{ description }}</p>
         </div>
@@ -24,21 +24,26 @@
       </AppListFilter>
     </div>
 
-    <AppListPagination
-      v-bind="automation('top-pagination')"
-      :page="query.page"
-      :page-size="query.pageSize"
-      :total-items="totalItems"
-      :page-size-options="pageSizeOptions"
-      :page-size-id="topPageSizeId"
-      aria-label="Top list pagination"
-      @page-change="changePage"
-      @page-size-change="changePageSize"
-    />
+    <slot name="top-pagination">
+      <AppListPagination
+        v-if="!$slots['top-pagination']"
+        v-bind="automation('top-pagination')"
+        :page="query.page"
+        :page-size="query.pageSize"
+        :total-items="totalItems"
+        :page-size-options="pageSizeOptions"
+        :page-size-id="topPageSizeId"
+        aria-label="Top list pagination"
+        @page-change="changePage"
+        @page-size-change="changePageSize"
+      />
+    </slot>
 
-    <p class="list-view__status" aria-live="polite" aria-atomic="true">
-      {{ statusMessage }}
-    </p>
+    <slot name="message">
+      <p v-if="!$slots['message']" class="list-view__status" aria-live="polite" aria-atomic="true">
+        {{ statusMessage }}
+      </p>
+    </slot>
 
     <div class="list-view__table-scroll" tabindex="0" aria-label="Scrollable list results">
       <table :aria-describedby="description ? descriptionId : undefined">
@@ -119,17 +124,20 @@
       </table>
     </div>
 
-    <AppListPagination
-      v-bind="automation('bottom-pagination')"
-      :page="query.page"
-      :page-size="query.pageSize"
-      :total-items="totalItems"
-      :page-size-options="pageSizeOptions"
-      :page-size-id="bottomPageSizeId"
-      aria-label="Bottom list pagination"
-      @page-change="changePage"
-      @page-size-change="changePageSize"
-    />
+    <slot name="bottom-pagination">
+      <AppListPagination
+        v-if="!$slots['bottom-pagination']"
+        v-bind="automation('bottom-pagination')"
+        :page="query.page"
+        :page-size="query.pageSize"
+        :total-items="totalItems"
+        :page-size-options="pageSizeOptions"
+        :page-size-id="bottomPageSizeId"
+        aria-label="Bottom list pagination"
+        @page-change="changePage"
+        @page-size-change="changePageSize"
+      />
+    </slot>
   </section>
 </template>
 
@@ -188,8 +196,11 @@ type Emits<TRow extends ListRow, TQuery extends ListQuery<TRow>> = {
 const emit = defineEmits<Emits<TRow, TQuery>>();
 
 interface Slots<TRow extends ListRow> {
-  'list-header'?: () => unknown;
+  header?: () => unknown;
   'filter-options'?: () => unknown;
+  'top-pagination'?: () => unknown;
+  'bottom-pagination'?: () => unknown;
+  message?: () => unknown;
   cell?: (props: ListCellContext<TRow>) => unknown;
   footer?: (props: { totalItems: number }) => unknown;
   [name: `cell-${string}`]: ((props: ListCellContext<TRow>) => unknown) | undefined;

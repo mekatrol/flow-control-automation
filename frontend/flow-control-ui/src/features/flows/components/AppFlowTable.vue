@@ -13,6 +13,9 @@
       :page-size-options="[5, 10, 25]"
       @query-change="updateQuery"
     >
+      <template #header>
+        <h2 class="flow-list-heading">Flow List</h2>
+      </template>
       <template #filter-options>
         <div class="filter-options">
           <AppMultiSelectDropdown
@@ -33,6 +36,8 @@
           />
         </div>
       </template>
+
+      <template #message></template>
 
       <template #cell-name="{ row }">
         <form
@@ -158,6 +163,8 @@
           </div>
         </div>
       </template>
+
+      <template #bottom-pagination></template>
     </AppListView>
   </div>
 </template>
@@ -412,5 +419,13 @@ const formattedUpdatedAt = (row: FlowRow): string =>
   display: flex;
   flex: 1;
   gap: 1.5em;
+}
+
+.flow-list-heading {
+  font-size: 1.5rem;
+  padding: 0.5rem;
+  background-color: var(--color-surface-raised);
+  border-radius: var(--radius-md);
+  border: var(--border-width-default) solid var(--color-border-default);
 }
 </style>
