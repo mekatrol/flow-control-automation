@@ -10,7 +10,7 @@
     </label>
 
     <p class="range" aria-live="polite">
-      <span class="visually-hidden">Showing </span>{{ rangeStart }}–{{ rangeEnd }} of
+      <span class="visually-hidden">Showing </span>{{ firstItem }}–{{ lastItem }} of
       {{ totalItems }}
     </p>
 
@@ -20,53 +20,70 @@
         text="Previous page"
         :icon="chevronLeftIcon"
         :disabled="page <= 1"
-        @click="$emit(EVENTS.UPDATE_PAGE, page - 1)"
+        @click="goToPage(page - 1)"
       />
-      <span aria-current="page">Page {{ page }} of {{ pageCount }}</span>
+      <span aria-current="page">Page {{ page }} of {{ totalItems }}</span>
       <AppButton
         v-bind="automation('next')"
         text="Next page"
         :icon="chevronRightIcon"
         :disabled="page >= pageCount"
-        @click="$emit(EVENTS.UPDATE_PAGE, page + 1)"
+        @click="goToPage(page + 1)"
       />
     </nav>
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 import { useAutomation } from '@/composables/useAutomation';
+
+import { ListPaginationEmit } from '@/models/listViewEmits';
+import AppButton from '@/components/AppButton.vue';
+
 import chevronLeftIcon from '@/assets/icons/chevron-left-icon.svg';
 import chevronRightIcon from '@/assets/icons/chevron-right-icon.svg';
-import AppButton from '@/components/AppButton.vue';
-import { EVENTS } from '@/constants/events';
 
-const props = withDefaults(
-  defineProps<{
-    page: number;
-    pageCount: number;
-    pageSize: number;
-    rangeStart: number;
-    rangeEnd: number;
-    totalItems: number;
-    automation: string;
-    pageSizeOptions?: readonly number[];
-  }>(),
-  {
-    pageSizeOptions: () => [10, 20, 50]
-  }
-);
+interface Props {
+  page: number;
+  pageCount: number;
+  pageSize: number;
+  totalItems: number;
+  pageSizeOptions?: number[];
+  ariaLabel?: string;
+  automation: string;
+}
 
-const emit = defineEmits<{
-  (event: typeof EVENTS.UPDATE_PAGE, page: number): void;
-  (event: typeof EVENTS.UPDATE_PAGE_SIZE, pageSize: number): void;
-}>();
+const props = withDefaults(defineProps<Props>(), {
+  pageSizeOptions: () => [10, 25, 50, 100],
+  ariaLabel: 'List pagination'
+});
 
-const changePageSize = (event: Event): void => {
-  emit(EVENTS.UPDATE_PAGE_SIZE, Number((event.target as HTMLSelectElement).value));
+type Emits = {
+  'page-change': [page: number];
+  'page-size-change': [pageSize: number];
 };
 
+const emit = defineEmits<Emits>();
+
 const automation = useAutomation(props.automation);
+
+const firstItem = computed(() => {
+  if (props.totalItems === 0) return 0;
+  return (props.page - 1) * props.pageSize + 1;
+});
+
+const lastItem = computed(() => Math.min(props.page * props.pageSize, props.totalItems));
+
+const goToPage = (page: number): void => {
+  const nextPage = Math.min(Math.max(page, 1), props.pageCount);
+  emit(ListPaginationEmit.PageChange, nextPage);
+};
+
+const changePageSize = (event: Event): void => {
+  const target = event.target as HTMLSelectElement;
+  emit(ListPaginationEmit.PageSizeChange, Number(target.value));
+};
 </script>
 
 <style scoped>

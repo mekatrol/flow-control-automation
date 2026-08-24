@@ -108,19 +108,6 @@
         @[EVENTS.CANCEL_DELETE]="closeDeleteConfirmation"
         @[EVENTS.TOGGLE_DISABLED]="setFlowDisabled"
       />
-
-      <AppTablePagination
-        v-if="totalItems > 0"
-        v-bind="automation('pagination')"
-        :page="page"
-        :page-count="pageCount"
-        :page-size="pageSize"
-        :range-start="rangeStart"
-        :range-end="rangeEnd"
-        :total-items="totalItems"
-        @[EVENTS.UPDATE_PAGE]="setPage"
-        @[EVENTS.UPDATE_PAGE_SIZE]="setPageSize"
-      />
     </div>
   </section>
 </template>
@@ -135,11 +122,7 @@ import previewIcon from '@/assets/icons/visibility-icon.svg';
 import saveIcon from '@/assets/icons/save-icon.svg';
 import AppButton from '@/components/AppButton.vue';
 import AppErrorNotice from '@/components/AppErrorNotice.vue';
-import AppFilter from '@/components/AppFilter.vue';
-import AppMultiSelectDropdown, {
-  type MultiSelectOption
-} from '@/components/AppMultiSelectDropdown.vue';
-import AppTablePagination from '@/components/AppTablePagination.vue';
+import { type MultiSelectOption } from '@/components/AppMultiSelectDropdown.vue';
 import { useServerPagination } from '@/composables/useServerPagination';
 import { useAutomation } from '@/composables/useAutomation';
 import { EVENTS } from '@/constants/events';
@@ -209,10 +192,6 @@ const {
   pageSize,
   sortDirection,
   totalItems,
-  pageCount,
-  rangeStart,
-  rangeEnd,
-  setPage,
   toggleSortDirection,
   applyPageMetadata
 } = useServerPagination({
@@ -221,15 +200,6 @@ const {
   initialPageSize,
   initialSortDirection
 });
-
-const filterQuery = ref(query.value);
-const filterStatuses = ref([...statusFilters.value]);
-
-const applyFilters = (): void => {
-  query.value = filterQuery.value;
-  statusFilters.value = [...filterStatuses.value];
-  page.value = 1;
-};
 
 const hasActiveFilters = computed(
   () =>

@@ -163,8 +163,6 @@
           </div>
         </div>
       </template>
-
-      <template #bottom-pagination></template>
     </AppListView>
   </div>
 </template>

@@ -58,30 +58,30 @@
           </tr>
         </template>
       </AppTable>
-      <AppTablePagination
+      <AppPagination
         v-bind="automation('pagination')"
         :page="store.result.page"
         :page-count="store.result.pageCount"
         :page-size="store.result.pageSize"
-        :range-start="rangeStart"
-        :range-end="rangeEnd"
         :total-items="store.result.totalItems"
-        @[EVENTS.UPDATE_PAGE]="setPage"
-        @[EVENTS.UPDATE_PAGE_SIZE]="setPageSize"
+        :page-size-options="[10, 25, 50, 100]"
+        aria-label="Template pagination"
+        @page-change="setPage"
+        @page-size-change="setPageSize"
       />
     </template>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { onBeforeUnmount, onMounted, ref } from 'vue';
 import newIcon from '@/assets/icons/new-flow-icon.svg';
 import AppErrorNotice from '@/components/AppErrorNotice.vue';
 import { useAutomation } from '@/composables/useAutomation';
 import AppFilter from '@/components/AppFilter.vue';
 import AppSvg from '@/components/AppSvg.vue';
 import AppTable from '@/components/AppTable.vue';
-import AppTablePagination from '@/components/AppTablePagination.vue';
+import AppPagination from '@/components/AppPagination.vue';
 import { EVENTS } from '@/constants/events';
 import { usePointGroupsCatalogueStore } from '@/features/catalogues/stores/catalogues';
 
@@ -90,12 +90,6 @@ const store = usePointGroupsCatalogueStore();
 const filter = ref('');
 const page = ref(1);
 const pageSize = ref(10);
-const rangeStart = computed(() =>
-  store.result.totalItems === 0 ? 0 : (store.result.page - 1) * store.result.pageSize + 1
-);
-const rangeEnd = computed(() =>
-  Math.min(store.result.page * store.result.pageSize, store.result.totalItems)
-);
 const formatDate = (value?: string): string =>
   value
     ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(

@@ -25,14 +25,14 @@
     </div>
 
     <slot name="top-pagination">
-      <AppListPagination
+      <AppPagination
         v-if="!$slots['top-pagination']"
         v-bind="automation('top-pagination')"
         :page="query.page"
+        :page-count="pageCount"
         :page-size="query.pageSize"
         :total-items="totalItems"
         :page-size-options="pageSizeOptions"
-        :page-size-id="topPageSizeId"
         aria-label="Top list pagination"
         @page-change="changePage"
         @page-size-change="changePageSize"
@@ -125,14 +125,14 @@
     </div>
 
     <slot name="bottom-pagination">
-      <AppListPagination
+      <AppPagination
         v-if="!$slots['bottom-pagination']"
         v-bind="automation('bottom-pagination')"
         :page="query.page"
+        :page-count="pageCount"
         :page-size="query.pageSize"
         :total-items="totalItems"
         :page-size-options="pageSizeOptions"
-        :page-size-id="bottomPageSizeId"
         aria-label="Bottom list pagination"
         @page-change="changePage"
         @page-size-change="changePageSize"
@@ -150,7 +150,7 @@ import { computed, ref, watch } from 'vue';
 import AppListFilter from '@/components/list-view/AppListFilter.vue';
 import AppListFooterRow from '@/components/list-view/AppListFooterRow.vue';
 import AppListHeaderRow from '@/components/list-view/AppListHeaderRow.vue';
-import AppListPagination from '@/components/list-view/AppListPagination.vue';
+import AppPagination from '@/components/AppPagination.vue';
 import { ListViewEmit } from '@/models/listViewEmits';
 import type {
   ListCellContext,
@@ -215,9 +215,8 @@ const automation = useAutomation(props.automation);
 const titleId = computed(() => `${props.id}-title`);
 const descriptionId = computed(() => `${props.id}-description`);
 const filterId = computed(() => `${props.id}-filter`);
-const topPageSizeId = computed(() => `${props.id}-page-size-top`);
-const bottomPageSizeId = computed(() => `${props.id}-page-size-bottom`);
 const hasActiveQuery = computed(() => Boolean(props.query.filter || props.query.sort));
+const pageCount = computed(() => Math.max(1, Math.ceil(props.totalItems / props.query.pageSize)));
 
 const statusMessage = computed(() => {
   if (props.loading) return 'Loading results.';

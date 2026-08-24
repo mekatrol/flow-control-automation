@@ -70,16 +70,16 @@
           </tr>
         </template>
       </AppTable>
-      <AppTablePagination
+      <AppPagination
         v-bind="automation('pagination')"
         :page="store.result.page"
         :page-count="store.result.pageCount"
         :page-size="store.result.pageSize"
-        :range-start="rangeStart"
-        :range-end="rangeEnd"
         :total-items="store.result.totalItems"
-        @[EVENTS.UPDATE_PAGE]="setPage"
-        @[EVENTS.UPDATE_PAGE_SIZE]="setPageSize"
+        :page-size-options="[10, 25, 50, 100]"
+        aria-label="Template pagination"
+        @page-change="setPage"
+        @page-size-change="setPageSize"
       />
     </template>
   </section>
@@ -93,7 +93,7 @@ import { useAutomation } from '@/composables/useAutomation';
 import AppFilter from '@/components/AppFilter.vue';
 import AppSvg from '@/components/AppSvg.vue';
 import AppTable from '@/components/AppTable.vue';
-import AppTablePagination from '@/components/AppTablePagination.vue';
+import AppPagination from '@/components/AppPagination.vue';
 import { EVENTS } from '@/constants/events';
 import { usePointsCatalogueStore } from '@/features/catalogues/stores/catalogues';
 
@@ -102,12 +102,6 @@ const store = usePointsCatalogueStore();
 const filter = ref('');
 const page = ref(1);
 const pageSize = ref(10);
-const rangeStart = computed(() =>
-  store.result.totalItems === 0 ? 0 : (store.result.page - 1) * store.result.pageSize + 1
-);
-const rangeEnd = computed(() =>
-  Math.min(store.result.page * store.result.pageSize, store.result.totalItems)
-);
 const errorMessage = computed(() =>
   store.errorStatus === 404
     ? `${store.error} This backend does not support the points API. Check the deployed backend version and try again.`
