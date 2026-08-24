@@ -69,10 +69,18 @@
           >
             <template
               v-for="column in columns"
-              :key="column.key"
+              :key="`header-${column.key}`"
               #[`column-header-${column.key}`]="slotProps"
             >
               <slot :name="`column-header-${column.key}`" v-bind="slotProps" />
+            </template>
+
+            <template
+              v-for="column in columns"
+              :key="`header-pre-${column.key}`"
+              #[`column-header-${column.key}-pre`]="slotProps"
+            >
+              <slot :name="`column-header-${column.key}-pre`" v-bind="slotProps" />
             </template>
           </AppListHeaderRow>
         </thead>
@@ -217,6 +225,9 @@ interface Slots<TRow extends ListRow> {
   [name: `cell-${string}`]: ((props: ListCellContext<TRow>) => unknown) | undefined;
 
   [name: `column-header-${string}`]: ((props: { column: ListColumn<TRow> }) => unknown) | undefined;
+  [name: `column-header-${string}-pre`]:
+    | ((props: { column: ListColumn<TRow> }) => unknown)
+    | undefined;
 }
 
 defineSlots<Slots<TRow>>();

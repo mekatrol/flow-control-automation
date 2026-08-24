@@ -8,28 +8,27 @@
       :aria-sort="ariaSort(column)"
       v-bind="automation(`column-${column.automation}`)"
     >
-      <slot :name="`column-header-${column.key}`" :column="column" />
-
-      <button
-        v-if="column.sortable"
-        v-bind="automation(`sort-button-${column.automation}`)"
-        type="button"
-        class="sort-button"
-        :aria-label="sortLabel(column)"
-        @click="changeSort(column)"
-      >
-        <span v-bind="automation(`column-label-${column.automation}`)">
+      <slot :name="`column-header-${column.key}`" :column="column">
+        <slot :name="`column-header-${column.key}-pre`" :column="column" />
+        <button
+          v-if="column.sortable"
+          v-bind="automation(`sort-button-${column.automation}`)"
+          type="button"
+          class="sort-button"
+          :aria-label="sortLabel(column)"
+          @click="changeSort(column)"
+        >
+          <span v-bind="automation(`column-label-${column.automation}`)">
+            {{ column.label }}
+          </span>
+          <span aria-hidden="true">
+            {{ sortIndicator(column) }}
+          </span>
+        </button>
+        <span v-else v-bind="automation(`column-label-${column.automation}`)">
           {{ column.label }}
         </span>
-
-        <span aria-hidden="true">
-          {{ sortIndicator(column) }}
-        </span>
-      </button>
-
-      <span v-else v-bind="automation(`column-label-${column.automation}`)">
-        {{ column.label }}
-      </span>
+      </slot>
     </th>
   </tr>
 </template>
@@ -61,6 +60,9 @@ const emit = defineEmits<Emits<TRow>>();
 
 interface Slots<TRow extends ListRow> {
   [name: `column-header-${string}`]: ((props: { column: ListColumn<TRow> }) => unknown) | undefined;
+  [name: `column-label-${string}-pre`]:
+    | ((props: { column: ListColumn<TRow> }) => unknown)
+    | undefined;
 }
 
 defineSlots<Slots<TRow>>();
