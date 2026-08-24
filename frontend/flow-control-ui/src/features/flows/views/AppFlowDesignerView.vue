@@ -854,10 +854,6 @@ const stopDebugSession = async (keepalive = false): Promise<void> => {
   }
 };
 
-const openDeployConfirmation = (): void => {
-  deployDialog.value?.showModal();
-};
-
 const openRevertConfirmation = (): void => {
   revertDialog.value?.showModal();
 };

@@ -198,7 +198,7 @@ import {
 } from '@/features/credentials/api/credentialApi';
 import cancelIcon from '@/assets/icons/cancel-icon.svg';
 import deleteIcon from '@/assets/icons/delete-flow-icon.svg';
-import createIcon from '@/assets/icons/new-flow-icon.svg';
+import createIcon from '@/assets/icons/new-icon.svg';
 import editIcon from '@/assets/icons/rename-flow-icon.svg';
 import saveIcon from '@/assets/icons/save-icon.svg';
 import visibilityIcon from '@/assets/icons/visibility-icon.svg';

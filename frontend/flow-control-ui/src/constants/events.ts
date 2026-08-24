@@ -2,6 +2,7 @@ export const EVENTS = {
   ACTIVATE: 'activate',
   ADD: 'add',
   ADD_CONNECTION: 'add-connection',
+  ADD_FLOW: 'add-flow',
   APPLY_INPUTS_STEP: 'apply-inputs-step',
   ADVANCE: 'advance',
   ADD_NODE: 'add-node',

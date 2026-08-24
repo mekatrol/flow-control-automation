@@ -61,10 +61,10 @@ const props = withDefaults(
   }
 );
 
-const emit = defineEmits<{
-  (event: typeof EVENTS.CANCEL): void;
-  (event: typeof EVENTS.CONFIRM): void;
-}>();
+const emit = defineEmits({
+  [EVENTS.CANCEL]: (): boolean => true,
+  [EVENTS.CONFIRM]: (): boolean => true
+});
 
 const dialog = ref<InstanceType<typeof AppDialog>>();
 const automation = useAutomation(props.automation);

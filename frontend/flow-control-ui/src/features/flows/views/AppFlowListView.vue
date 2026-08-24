@@ -107,21 +107,30 @@
         @[EVENTS.CONFIRM_DELETE]="deleteFlow"
         @[EVENTS.CANCEL_DELETE]="closeDeleteConfirmation"
         @[EVENTS.TOGGLE_DISABLED]="setFlowDisabled"
+        @[EVENTS.ADD_FLOW]="showCreateFlowDialog"
       />
     </div>
+
+    <AppFlowCreateDialog
+      v-bind="automation('create-dialog')"
+      ref="createFlowDialog"
+      v-model="newFlowName"
+      @confirm="createFlow"
+    />
   </section>
 </template>
 
 <script setup lang="ts">
 import { storeToRefs } from 'pinia';
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-import newFlowIcon from '@/assets/icons/new-flow-icon.svg';
+import newFlowIcon from '@/assets/icons/new-icon.svg';
 import previewIcon from '@/assets/icons/visibility-icon.svg';
 import saveIcon from '@/assets/icons/save-icon.svg';
 import AppButton from '@/components/AppButton.vue';
 import AppErrorNotice from '@/components/AppErrorNotice.vue';
+import AppFlowCreateDialog from '@/features/flows/components/AppFlowCreateDialog.vue';
 import { type MultiSelectOption } from '@/components/AppMultiSelectDropdown.vue';
 import { useServerPagination } from '@/composables/useServerPagination';
 import { useAutomation } from '@/composables/useAutomation';
@@ -186,20 +195,13 @@ const statusFilters = ref<string[]>(
     : statusOptions.map(({ value }) => value)
 );
 
-const {
-  query,
-  page,
-  pageSize,
-  sortDirection,
-  totalItems,
-  toggleSortDirection,
-  applyPageMetadata
-} = useServerPagination({
-  initialQuery: queryValue(route.query.filter),
-  initialPage: positiveInteger(route.query.page, 1),
-  initialPageSize,
-  initialSortDirection
-});
+const { query, page, pageSize, sortDirection, totalItems, toggleSortDirection, applyPageMetadata } =
+  useServerPagination({
+    initialQuery: queryValue(route.query.filter),
+    initialPage: positiveInteger(route.query.page, 1),
+    initialPageSize,
+    initialSortDirection
+  });
 
 const hasActiveFilters = computed(
   () =>
@@ -208,6 +210,13 @@ const hasActiveFilters = computed(
 );
 
 const items = computed(() => flows.value);
+
+const createFlowDialog = ref<InstanceType<typeof AppFlowCreateDialog>>();
+
+const showCreateFlowDialog = async (): Promise<void> => {
+  await nextTick();
+  createFlowDialog.value?.showModal();
+};
 
 watch(
   statusFilters,
@@ -347,14 +356,13 @@ const beginRename = (flowId: string, name: string): void => {
   editingFlowId.value = flowId;
   renameValue.value = name;
 };
+
 const setRenameValue = (value: string): void => {
   renameValue.value = value;
 };
+
 const cancelRename = (): void => {
   editingFlowId.value = undefined;
-};
-const setPageSize = (value: number): void => {
-  pageSize.value = value;
 };
 
 const beginDelete = (flowId: string): void => {

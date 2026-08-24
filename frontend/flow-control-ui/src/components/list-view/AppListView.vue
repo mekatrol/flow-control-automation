@@ -72,16 +72,26 @@
             :sort="query.sort"
             @sort-change="changeSort"
             @sort-clear="clearSort"
-          />
+          >
+            <template
+              v-for="column in columns"
+              :key="column.key"
+              #[`column-header-${column.key}`]="slotProps"
+            >
+              <slot :name="`column-header-${column.key}`" v-bind="slotProps" />
+            </template>
+          </AppListHeaderRow>
         </thead>
 
         <tbody>
           <tr v-if="loading">
             <td :colspan="columns.length">Loading results…</td>
           </tr>
+
           <tr v-else-if="rows.length === 0">
             <td :colspan="columns.length">{{ emptyMessage }}</td>
           </tr>
+
           <template v-else>
             <tr
               v-for="row in rows"
@@ -118,7 +128,7 @@
             :show-reset="hasActiveQuery"
             @reset="resetQuery"
           >
-            <slot name="footer" :total-items="totalItems"></slot>
+            <slot name="footer" :total-items="totalItems" />
           </AppListFooterRow>
         </tfoot>
       </table>
@@ -147,11 +157,14 @@
   generic="TRow extends ListRow, TQuery extends ListQuery<TRow> = ListQuery<TRow>"
 >
 import { computed, ref, watch } from 'vue';
+
 import AppListFilter from '@/components/list-view/AppListFilter.vue';
 import AppListFooterRow from '@/components/list-view/AppListFooterRow.vue';
 import AppListHeaderRow from '@/components/list-view/AppListHeaderRow.vue';
 import AppPagination from '@/components/AppPagination.vue';
+
 import { ListViewEmit } from '@/models/listViewEmits';
+
 import type {
   ListCellContext,
   ListColumn,
@@ -159,6 +172,7 @@ import type {
   ListRow,
   ListSort
 } from '@/models/listViewModels';
+
 import { useAutomation } from '@/composables/useAutomation';
 
 interface Props<TRow extends ListRow, TQuery extends ListQuery<TRow>> {
@@ -201,9 +215,14 @@ interface Slots<TRow extends ListRow> {
   'top-pagination'?: () => unknown;
   'bottom-pagination'?: () => unknown;
   message?: () => unknown;
+
   cell?: (props: ListCellContext<TRow>) => unknown;
+
   footer?: (props: { totalItems: number }) => unknown;
+
   [name: `cell-${string}`]: ((props: ListCellContext<TRow>) => unknown) | undefined;
+
+  [name: `column-header-${string}`]: ((props: { column: ListColumn<TRow> }) => unknown) | undefined;
 }
 
 defineSlots<Slots<TRow>>();
@@ -213,14 +232,20 @@ const draftFilter = ref(props.query.filter);
 const automation = useAutomation(props.automation);
 
 const titleId = computed(() => `${props.id}-title`);
+
 const descriptionId = computed(() => `${props.id}-description`);
+
 const filterId = computed(() => `${props.id}-filter`);
+
 const hasActiveQuery = computed(() => Boolean(props.query.filter || props.query.sort));
+
 const pageCount = computed(() => Math.max(1, Math.ceil(props.totalItems / props.query.pageSize)));
 
 const statusMessage = computed(() => {
   if (props.loading) return 'Loading results.';
+
   if (props.totalItems === 0) return 'No results found.';
+
   return `${props.totalItems} results available.`;
 });
 
@@ -265,6 +290,7 @@ const clearFilter = (): void => {
     page: 1,
     filter: ''
   });
+
   emit(ListViewEmit.FilterClear);
 };
 
@@ -291,17 +317,20 @@ const clearSort = (): void => {
     page: 1,
     sort: null
   });
+
   emit(ListViewEmit.SortClear);
 };
 
 const resetQuery = (): void => {
   draftFilter.value = '';
+
   emit(ListViewEmit.QueryChange, {
     ...props.query,
     page: 1,
     filter: '',
     sort: null
   });
+
   emit(ListViewEmit.Reset);
 };
 </script>

@@ -75,7 +75,7 @@
 
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue';
-import newIcon from '@/assets/icons/new-flow-icon.svg';
+import newIcon from '@/assets/icons/new-icon.svg';
 import AppErrorNotice from '@/components/AppErrorNotice.vue';
 import { useAutomation } from '@/composables/useAutomation';
 import AppFilter from '@/components/AppFilter.vue';

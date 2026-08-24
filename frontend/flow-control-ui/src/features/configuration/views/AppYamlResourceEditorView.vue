@@ -162,7 +162,7 @@ import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
 import checkIcon from '@/assets/icons/check-icon.svg';
 import deleteIcon from '@/assets/icons/delete-flow-icon.svg';
-import newIcon from '@/assets/icons/new-flow-icon.svg';
+import newIcon from '@/assets/icons/new-icon.svg';
 import pauseIcon from '@/assets/icons/pause-icon.svg';
 import playIcon from '@/assets/icons/play-icon.svg';
 import retryIcon from '@/assets/icons/retry-icon.svg';

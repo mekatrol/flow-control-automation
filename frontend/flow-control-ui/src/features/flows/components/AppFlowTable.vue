@@ -39,6 +39,19 @@
 
       <template #message></template>
 
+      <template #column-header-name>
+        <AppButton
+          v-bind="automation('add-flow')"
+          type="button"
+          class="add-flow-btn"
+          text="Add flow"
+          :icon="newIcon"
+          aria-label="Add a new flow"
+          hide-text
+          @click="$emit(EVENTS.ADD_FLOW)"
+        />
+      </template>
+
       <template #cell-name="{ row }">
         <form
           v-if="editingFlowId === row.id"
@@ -192,6 +205,7 @@ import disableFlowIcon from '@/assets/icons/disable-flow-icon.svg';
 import enableFlowIcon from '@/assets/icons/enable-flow-icon.svg';
 import renameFlowIcon from '@/assets/icons/rename-flow-icon.svg';
 import saveIcon from '@/assets/icons/save-icon.svg';
+import newIcon from '@/assets/icons/new-icon.svg';
 
 type FlowStatus = 'draft' | 'deployed';
 
@@ -210,6 +224,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
+  (event: typeof EVENTS.ADD_FLOW): void;
   (event: typeof EVENTS.TOGGLE_SORT): void;
   (event: typeof EVENTS.BEGIN_RENAME, flowId: string, name: string): void;
   (event: typeof EVENTS.UPDATE_RENAME_VALUE, value: string): void;
@@ -425,5 +440,9 @@ const formattedUpdatedAt = (row: FlowRow): string =>
   background-color: var(--color-surface-raised);
   border-radius: var(--radius-md);
   border: var(--border-width-default) solid var(--color-border-default);
+}
+
+.add-flow-btn {
+  margin-right: 0.5rem;
 }
 </style>

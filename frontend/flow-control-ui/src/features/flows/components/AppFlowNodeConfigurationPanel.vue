@@ -157,7 +157,7 @@ import AppSvg from '@/components/AppSvg.vue';
 import AppButton from '@/components/AppButton.vue';
 import cancelIcon from '@/assets/icons/cancel-icon.svg';
 import checkIcon from '@/assets/icons/check-icon.svg';
-import createIcon from '@/assets/icons/new-flow-icon.svg';
+import createIcon from '@/assets/icons/new-icon.svg';
 import { useAutomation } from '@/composables/useAutomation';
 import { EVENTS } from '@/constants/events';
 import { getNodeIconUrl, getNodeKind } from '@/features/flows/nodeKinds';

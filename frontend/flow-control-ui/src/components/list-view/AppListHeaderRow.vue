@@ -8,6 +8,8 @@
       :aria-sort="ariaSort(column)"
       v-bind="automation(`column-${column.automation}`)"
     >
+      <slot :name="`column-header-${column.key}`" :column="column" />
+
       <button
         v-if="column.sortable"
         v-bind="automation(`sort-button-${column.automation}`)"
@@ -16,12 +18,18 @@
         :aria-label="sortLabel(column)"
         @click="changeSort(column)"
       >
-        <span v-bind="automation(`column-label-${column.automation}`)">{{ column.label }}</span>
-        <span aria-hidden="true">{{ sortIndicator(column) }}</span>
+        <span v-bind="automation(`column-label-${column.automation}`)">
+          {{ column.label }}
+        </span>
+
+        <span aria-hidden="true">
+          {{ sortIndicator(column) }}
+        </span>
       </button>
-      <span v-else v-bind="automation(`column-label-${column.automation}`)">{{
-        column.label
-      }}</span>
+
+      <span v-else v-bind="automation(`column-label-${column.automation}`)">
+        {{ column.label }}
+      </span>
     </th>
   </tr>
 </template>
@@ -41,7 +49,6 @@ interface Props<TRow extends ListRow> {
 const props = defineProps<Props<TRow>>();
 
 defineOptions({
-  // Multiple root elements prevent Vue from automatically inheriting attributes.
   inheritAttrs: false
 });
 
@@ -52,24 +59,43 @@ type Emits<TRow extends ListRow> = {
 
 const emit = defineEmits<Emits<TRow>>();
 
+interface Slots<TRow extends ListRow> {
+  [name: `column-header-${string}`]: ((props: { column: ListColumn<TRow> }) => unknown) | undefined;
+}
+
+defineSlots<Slots<TRow>>();
+
 const automation = useAutomation(props.automation);
 
 const ariaSort = (
   column: ListColumn<TRow>
 ): 'none' | 'ascending' | 'descending' | 'other' | undefined => {
   if (!column.sortable) return undefined;
-  if (props.sort?.column !== column.key) return 'none' as const;
-  return props.sort.direction === 'asc' ? ('ascending' as const) : ('descending' as const);
+
+  if (props.sort?.column !== column.key) {
+    return 'none';
+  }
+
+  return props.sort.direction === 'asc' ? 'ascending' : 'descending';
 };
 
 const sortIndicator = (column: ListColumn<TRow>): string => {
-  if (props.sort?.column !== column.key) return '↕';
+  if (props.sort?.column !== column.key) {
+    return '↕';
+  }
+
   return props.sort.direction === 'asc' ? '↑' : '↓';
 };
 
 const sortLabel = (column: ListColumn<TRow>): string => {
-  if (props.sort?.column !== column.key) return `Sort by ${column.label} ascending`;
-  if (props.sort.direction === 'asc') return `Sort by ${column.label} descending`;
+  if (props.sort?.column !== column.key) {
+    return `Sort by ${column.label} ascending`;
+  }
+
+  if (props.sort.direction === 'asc') {
+    return `Sort by ${column.label} descending`;
+  }
+
   return `Sort by ${column.label} ascending`;
 };
 
