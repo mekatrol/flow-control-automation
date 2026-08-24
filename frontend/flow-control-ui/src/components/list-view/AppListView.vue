@@ -177,10 +177,7 @@ const props = withDefaults(defineProps<Props<TRow, TQuery>>(), {
   showFilterApply: true
 });
 
-type Emits<
-  TRow extends ListRow,
-  TQuery extends ListQuery<TRow>
-> = {
+type Emits<TRow extends ListRow, TQuery extends ListQuery<TRow>> = {
   'query-change': [query: TQuery];
   'filter-clear': [];
   'sort-clear': [];
@@ -313,8 +310,6 @@ const resetQuery = (): void => {
 .list-view__heading {
   display: flex;
   flex-direction: column;
-  align-items: start;
-  justify-content: space-between;
   gap: 1rem;
 }
 

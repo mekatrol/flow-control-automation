@@ -410,6 +410,7 @@ const formattedUpdatedAt = (row: FlowRow): string =>
 
 .filter-options {
   display: flex;
+  flex: 1;
   gap: 1.5em;
 }
 </style>
