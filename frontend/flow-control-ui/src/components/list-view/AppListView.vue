@@ -39,12 +39,6 @@
       />
     </slot>
 
-    <slot name="message">
-      <p v-if="!$slots['message']" class="list-view__status" aria-live="polite" aria-atomic="true">
-        {{ statusMessage }}
-      </p>
-    </slot>
-
     <div class="list-view__table-scroll" tabindex="0" aria-label="Scrollable list results">
       <table :aria-describedby="description ? descriptionId : undefined">
         <caption class="visually-hidden">
@@ -240,14 +234,6 @@ const filterId = computed(() => `${props.id}-filter`);
 const hasActiveQuery = computed(() => Boolean(props.query.filter || props.query.sort));
 
 const pageCount = computed(() => Math.max(1, Math.ceil(props.totalItems / props.query.pageSize)));
-
-const statusMessage = computed(() => {
-  if (props.loading) return 'Loading results.';
-
-  if (props.totalItems === 0) return 'No results found.';
-
-  return `${props.totalItems} results available.`;
-});
 
 watch(
   () => props.query.filter,

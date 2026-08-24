@@ -37,8 +37,6 @@
         </div>
       </template>
 
-      <template #message></template>
-
       <template #column-header-name>
         <AppButton
           v-bind="automation('add-flow')"
