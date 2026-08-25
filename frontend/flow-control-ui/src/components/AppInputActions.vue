@@ -32,9 +32,10 @@
       </button>
 
       <button
-        v-if="props.actionEnabled"
+        v-if="showAction"
         type="button"
         class="action-btn"
+        :disabled="props.actionDisabled"
         :aria-label="props.actionAriaLabel"
         @click="action"
       >
@@ -71,18 +72,20 @@ const props = withDefaults(
     inputAriaLabel?: string;
     clearAriaLabel?: string;
     actionAriaLabel?: string;
-    actionEnabled?: boolean;
+    showAction?: boolean;
     automation: string;
     modelValue?: string;
+    actionDisabled?: boolean;
   }>(),
   {
     id: undefined,
+    modelValue: '',
     label: undefined,
     inputAriaLabel: 'Input',
     clearAriaLabel: 'Clear input',
     actionAriaLabel: 'Perform action',
-    actionEnabled: false,
-    modelValue: ''
+    showAction: false,
+    actionDisabled: false
   }
 );
 
@@ -206,7 +209,7 @@ const action = (): void => {
 }
 
 .clear-btn:hover,
-.action-btn:hover {
+.action-btn:not(:disabled):hover {
   background: var(--color-surface-neutral);
 }
 
@@ -220,5 +223,10 @@ const action = (): void => {
 .action-btn:focus-visible {
   outline: var(--outline-width-focus) solid var(--color-focus-ring);
   outline-offset: var(--space-0-5);
+}
+
+.action-btn:disabled {
+  color: var(--color-text-disabled);
+  cursor: not-allowed;
 }
 </style>

@@ -30,10 +30,10 @@
           <AppInputActions
             v-model="filterText"
             v-bind="automation('input')"
-            type="search"
             placeholder="Enter a flow name"
             autocomplete="off"
-            action-enabled
+            show-action
+            :action-disabled="filterText.length === 0"
           />
         </div>
       </template>
