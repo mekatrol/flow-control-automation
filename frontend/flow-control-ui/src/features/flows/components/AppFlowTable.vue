@@ -27,12 +27,13 @@
             :options="statusOptions"
           />
 
-          <AppClearableInput
+          <AppInputActions
             v-model="filterText"
             v-bind="automation('input')"
             type="search"
             placeholder="Enter a flow name"
             autocomplete="off"
+            action-enabled
           />
         </div>
       </template>
@@ -192,7 +193,7 @@ import type { ListColumn, ListQuery, ListRow } from '@/models';
 
 import AppListView from '@/components/list-view/AppListView.vue';
 import AppButton from '@/components/AppButton.vue';
-import AppClearableInput from '@/components/AppClearableInput.vue';
+import AppInputActions from '@/components/AppInputActions.vue';
 import AppMultiSelectDropdown, {
   type MultiSelectOption
 } from '@/components/AppMultiSelectDropdown.vue';

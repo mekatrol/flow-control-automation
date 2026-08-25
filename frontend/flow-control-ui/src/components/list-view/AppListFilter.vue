@@ -3,7 +3,7 @@
     <label :for="inputId">{{ label }}</label>
     <div class="list-filter__controls">
       <slot name="filter-options">
-        <AppClearableInput
+        <AppInputActions
           v-bind="automation('input')"
           :id="inputId"
           v-model="filterValue"
@@ -25,7 +25,7 @@ import { useAutomation } from '@/composables/useAutomation';
 import { ListFilterEmit } from '@/models/listViewEmits';
 import filterIcon from '@/assets/icons/filter-icon.svg';
 import AppButton from '@/components/AppButton.vue';
-import AppClearableInput from '@/components/AppClearableInput.vue';
+import AppInputActions from '@/components/AppInputActions.vue';
 
 interface Props {
   modelValue: string;
