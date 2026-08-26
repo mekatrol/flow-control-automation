@@ -35,7 +35,7 @@ test('supports bypass navigation and modal use with only the keyboard', async ({
   await deployButton.focus();
   await page.keyboard.press('Enter');
 
-  const dialog = page.getByRole('alertdialog', { name: 'Deploy this flow?' });
+  const dialog = page.getByRole('alertdialog', { name: 'Deploy flow confirmation' });
   const cancelButton = dialog.getByRole('button', { name: 'Cancel' });
   const confirmButton = dialog.getByRole('button', { name: 'Deploy now' });
 
@@ -44,13 +44,13 @@ test('supports bypass navigation and modal use with only the keyboard', async ({
   // supports bypass navigation and modal use with only the keyboard.
   await expect(cancelButton).toBeFocused();
 
-  await page.keyboard.press('Shift+Tab');
+  await page.keyboard.press('Tab');
 
   // Expected outcome: `confirmButton` owns keyboard focus.
   // Acceptance criteria: `confirmButton` must be focused, because this condition proves that
   // supports bypass navigation and modal use with only the keyboard.
   await expect(confirmButton).toBeFocused();
-  await page.keyboard.press('Tab');
+  await page.keyboard.press('Shift+Tab');
 
   // Expected outcome: `cancelButton` owns keyboard focus.
   // Acceptance criteria: `cancelButton` must be focused, because this condition proves that

@@ -5,12 +5,15 @@
       v-bind="automation('designer-error')"
       :message="noticeError"
     />
+
     <p v-if="loading" class="request-status" role="status">Loading latest flow…</p>
+
     <AppPromptDialog
       id="deploy-confirmation-dialog"
       ref="deployDialog"
       content-label="Deploy flow confirmation"
       automation="flow-designer-deploy-confirmation"
+      role="alertdialog"
       @confirm="deployFlow"
     >
       <template #prompt="{ cancel, confirm }">
@@ -166,7 +169,7 @@
         :point-references-valid="pointReferencesValid"
         @save="saveFlow"
         @compile="compileFlow"
-        @deploy="deployFlow"
+        @deploy="openDeployConfirmation"
         @refresh-runtime="refreshRuntime"
         @toggle-disabled="setFlowDisabled"
       />
@@ -481,6 +484,7 @@ const stopDebugPolling = (): void => {
   if (debugPollTimer !== undefined) window.clearInterval(debugPollTimer);
   debugPollTimer = undefined;
 };
+
 const deploying = computed(() => runtimeStore.isDeploying(props.flowId));
 let loadController: AbortController | undefined;
 const loadGuard = createLatestRequestGuard();
@@ -490,6 +494,7 @@ let allowNavigation = false;
 watch(debugTargets, (targets) => {
   if (!targets.some((target) => target.id === debugTargetId.value)) debugTargetId.value = 'server';
 });
+
 watch(debugTargetId, () => {
   if (debugSessionId.value) void stopDebugSession();
 });
@@ -505,6 +510,7 @@ watch(flowRevision, (revision, previous) => {
 const debugSnapshotStale = computed(() =>
   Boolean(debugSnapshot.value && debugRevision.value !== flowRevision.value)
 );
+
 const debugNodeRuntime = computed(() => {
   const snapshot = debugSnapshot.value;
   if (!snapshot || debugSnapshotStale.value) return undefined;
@@ -526,6 +532,7 @@ const debugNodeRuntime = computed(() => {
     )
   };
 });
+
 const debugConnectorValues = computed(() => {
   const snapshot = debugSnapshot.value;
   const currentFlow = flow.value;
@@ -571,16 +578,19 @@ const debugConnectorValues = computed(() => {
 const selectedDebugTarget = computed(() =>
   debugTargets.value.find((target) => target.id === debugTargetId.value)
 );
+
 const debugHost = computed<'server' | 'emulator' | 'controller'>(() => {
   const kind = selectedDebugTarget.value?.kind;
   return kind === 'emulator' || kind === 'controller' ? kind : 'server';
 });
+
 const executableSource = (): ExecutableFlowSource | undefined => {
   const current = flow.value;
   const target = selectedDebugTarget.value;
   if (!current || !target) return;
   return createExecutableFlowSource(current, target);
 };
+
 const compileFlow = async (): Promise<void> => {
   const current = draftFlow.value;
   const target = debugTargets.value.find((item) => item.id === 'server');
@@ -616,14 +626,17 @@ const compileFlow = async (): Promise<void> => {
     compiling.value = false;
   }
 };
+
 const startSimulation = async (): Promise<void> => {
   const current = flow.value;
   const target = debugTargets.value.find((item) => item.id === 'server');
   if (!current || !target) return;
   await simulator.start(createExecutableFlowSource(current, target));
 };
+
 const debugFailure = (error: unknown): string =>
   error instanceof Error ? error.message : 'Debug operation failed.';
+
 const loadDebugSession = async (): Promise<void> => {
   debugController?.abort();
   debugController = new AbortController();
@@ -658,6 +671,7 @@ const loadDebugSession = async (): Promise<void> => {
     debugError.value = debugFailure(error);
   }
 };
+
 const applyDebugSession = (session: Awaited<ReturnType<typeof flowDebugApi.stepNode>>): void => {
   debugLifecycle.value = session.lifecycleState === 'empty' ? 'stopped' : session.lifecycleState;
   debugSnapshot.value = session.snapshot;
@@ -665,6 +679,7 @@ const applyDebugSession = (session: Awaited<ReturnType<typeof flowDebugApi.stepN
   debugInspection.value = session.inspection;
   debugExecutionOrder.value = session.executionOrder ?? [];
 };
+
 const stepNodeDebugSession = async (): Promise<void> => {
   if (!debugSessionId.value) return;
   try {
@@ -673,6 +688,7 @@ const stepNodeDebugSession = async (): Promise<void> => {
     debugError.value = debugFailure(error);
   }
 };
+
 const stepInstructionDebugSession = async (): Promise<void> => {
   if (!debugSessionId.value) return;
   try {
@@ -681,6 +697,7 @@ const stepInstructionDebugSession = async (): Promise<void> => {
     debugError.value = debugFailure(error);
   }
 };
+
 const restartDebugSession = async (): Promise<void> => {
   if (!debugSessionId.value) return;
   try {
@@ -689,6 +706,7 @@ const restartDebugSession = async (): Promise<void> => {
     debugError.value = debugFailure(error);
   }
 };
+
 const applyEmulatorInputsAndStep = async (
   inputs: import('@/features/flows/api/flowEmulatorApi').EmulatorInputChange[]
 ): Promise<void> => {
@@ -698,6 +716,7 @@ const applyEmulatorInputsAndStep = async (
     inputs
   );
 };
+
 const advanceEmulator = async (milliseconds: number): Promise<void> => {
   if (!emulatorSnapshot.value) return;
   emulatorSnapshot.value = await flowEmulatorApi.advance(
@@ -705,10 +724,12 @@ const advanceEmulator = async (milliseconds: number): Promise<void> => {
     milliseconds
   );
 };
+
 const setEmulatorFault = async (fault: string | null): Promise<void> => {
   if (!emulatorSnapshot.value) return;
   emulatorSnapshot.value = await flowEmulatorApi.fault(emulatorSnapshot.value.emulatorId, fault);
 };
+
 const resetEmulator = async (powerCycle: boolean): Promise<void> => {
   if (!emulatorSnapshot.value) return;
   emulatorSnapshot.value = await flowEmulatorApi.reset(
@@ -716,10 +737,12 @@ const resetEmulator = async (powerCycle: boolean): Promise<void> => {
     powerCycle
   );
 };
+
 const resetEmulatorInputs = async (): Promise<void> => {
   if (!emulatorSnapshot.value) return;
   emulatorSnapshot.value = await flowEmulatorApi.resetInputs(emulatorSnapshot.value.emulatorId);
 };
+
 const setBreakpoint = async (
   nodeId: string,
   position: 'before' | 'after' | null
@@ -734,6 +757,7 @@ const setBreakpoint = async (
     debugError.value = debugFailure(error);
   }
 };
+
 const runToNode = async (nodeId: string): Promise<void> => {
   if (!debugSessionId.value) return;
   try {
@@ -744,9 +768,11 @@ const runToNode = async (nodeId: string): Promise<void> => {
     debugError.value = debugFailure(error);
   }
 };
+
 const focusDiagnosticNode = (nodeId: string): void => {
   diagnosticNodeId.value = nodeId;
 };
+
 const runToBreakpoint = async (): Promise<void> => {
   const breakpoint = debugBreakpoints.value[0];
   if (!debugSessionId.value || !breakpoint) {
@@ -759,6 +785,7 @@ const runToBreakpoint = async (): Promise<void> => {
     debugError.value = debugFailure(error);
   }
 };
+
 const enableLiveOutput = async (confirmedPointIds: string[]): Promise<void> => {
   const sessionId = debugSessionId.value;
   if (!sessionId || debugSnapshotStale.value) return;
@@ -772,6 +799,7 @@ const enableLiveOutput = async (confirmedPointIds: string[]): Promise<void> => {
     debugError.value = debugFailure(error);
   }
 };
+
 const stepDebugSession = async (): Promise<void> => {
   const sessionId = debugSessionId.value;
   if (!sessionId || debugSnapshotStale.value) return;
@@ -792,6 +820,7 @@ const stepDebugSession = async (): Promise<void> => {
     debugError.value = debugFailure(error);
   }
 };
+
 const runDebugSession = async (): Promise<void> => {
   const sessionId = debugSessionId.value;
   if (!sessionId) return;
@@ -820,6 +849,7 @@ const runDebugSession = async (): Promise<void> => {
     debugError.value = debugFailure(error);
   }
 };
+
 const pauseDebugSession = async (): Promise<void> => {
   const sessionId = debugSessionId.value;
   if (!sessionId) return;
@@ -833,6 +863,7 @@ const pauseDebugSession = async (): Promise<void> => {
     debugError.value = debugFailure(error);
   }
 };
+
 const stopDebugSession = async (keepalive = false): Promise<void> => {
   stopDebugPolling();
   debugController?.abort();
@@ -881,10 +912,12 @@ const deleteConnection = (connectionId: string): void => {
 const addNode = (node: FlowNode): void => {
   flowStore.addNode(props.flowId, node);
 };
+
 const openTutorialExample = (tutorial: FlowTutorial): void => {
   activeTutorial.value = tutorial;
   void router.push({ name: ROUTE_NAMES.flowSimulator, params: { flowId: props.flowId } });
 };
+
 const copyTutorialExample = async (tutorial: FlowTutorial): Promise<void> => {
   try {
     const created = await flowApi.createFlow(`${tutorial.title} copy`);
@@ -917,6 +950,7 @@ const updateNodeConfiguration = (
 const setPointValidation = (nodeId: string, state: PointValidationState): void => {
   pointValidation.value[nodeId] = state;
 };
+
 const validateAllPointReferences = async (): Promise<boolean> => {
   pointValidationController?.abort();
   const controller = new AbortController();
@@ -937,10 +971,12 @@ const validateAllPointReferences = async (): Promise<boolean> => {
   nodes.forEach((node, index) => (pointValidation.value[node.id] = results[index]!.state));
   return results.every(({ state }) => state === 'valid');
 };
+
 const createVirtualPoint = (declaration: VirtualPointDeclaration): void => {
   flowStore.addVirtualPointDeclaration(props.flowId, declaration);
   void validateAllPointReferences();
 };
+
 const loadExecutionContexts = async (): Promise<void> => {
   contextsLoading.value = true;
   contextsError.value = '';
@@ -1008,6 +1044,10 @@ const refreshRuntime = async (flowId = props.flowId): Promise<void> => {
     runtimeStore.disconnect(flowId);
     runtimeError.value = runtimeFailureMessage(error, 'Unable to load runtime state.');
   }
+};
+
+const openDeployConfirmation = (): void => {
+  deployDialog.value?.showModal();
 };
 
 const deployFlow = async (): Promise<void> => {
