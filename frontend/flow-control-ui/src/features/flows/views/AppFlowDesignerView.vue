@@ -1206,7 +1206,9 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', handleBeforeUnl
   min-height: 0;
   margin: var(--space-0) auto;
   padding: var(--space-17) var(--space-0) var(--space-12);
+  overflow-y: auto;
   flex-direction: column;
+  scrollbar-gutter: stable;
 }
 
 .designer-page :deep(.canvas-frame) {
@@ -1356,7 +1358,6 @@ h1 {
   .designer-page {
     width: calc(100% - 28px);
     padding-top: var(--space-10);
-    overflow-y: auto;
   }
 
   .designer-page :deep(.canvas-frame) {
