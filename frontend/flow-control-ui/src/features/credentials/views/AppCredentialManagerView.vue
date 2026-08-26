@@ -117,6 +117,7 @@
             v-bind="automation('password-visibility')"
             class="secret-visibility-button"
             :text="passwordVisible ? 'Hide password' : 'Show password'"
+            :aria-label="passwordVisible ? 'Hide password' : 'Show password'"
             :icon="visibilityIcon"
             hide-text
             :aria-pressed="passwordVisible"
