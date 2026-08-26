@@ -252,7 +252,7 @@ test('keeps the newest route response during rapid navigation', async ({ page })
   });
   await page.route('**/api/flows/*', async (route) => {
     const id = new URL(route.request().url()).pathname.split('/').at(-1);
-    if (id === 'climate-control') {
+    if (id === 'garden-irrigation') {
       markClimateRequested();
       await climateReady;
     }
@@ -260,12 +260,12 @@ test('keeps the newest route response during rapid navigation', async ({ page })
     await route.fulfill({ status: flow ? 200 : 404, json: flow ?? {} });
   });
 
-  await page.goto('/flows/climate-control');
+  await page.goto('/flows/garden-irrigation');
   // Synchronize with the deliberately delayed request itself. The loading text
   // is transient and can be painted between Playwright polling intervals on a
   // fast mobile Chromium run.
   await climateRequested;
-  await expect(page).toHaveURL(/\/flows\/climate-control(?:\/design)?$/);
+  await expect(page).toHaveURL(/\/flows\/garden-irrigation(?:\/design)?$/);
   await page.evaluate(async () => {
     // @ts-expect-error The path is resolved by the browser-facing Vite module graph.
     const { default: router } = await import('/src/router/index.ts');
@@ -414,7 +414,7 @@ test('protects dirty navigation and supports explicit discard', async ({ page })
   // Expected outcome: `page.getByRole('alertdialog', { name: 'Discard unsaved changes?' })` is visible to the user.
   // Acceptance criteria: `page.getByRole('alertdialog', { name: 'Discard unsaved changes?' })` must be visible, because this condition proves that
   // protects dirty navigation and supports explicit discard.
-  await expect(page.getByRole('alertdialog', { name: 'Discard unsaved changes?' })).toBeVisible();
+  await expect(page.getByRole('alertdialog', { name: 'Discard unsaved flow changes confirmation' })).toBeVisible();
 
   // Expected outcome: Navigation reaches the required route.
   // Acceptance criteria: the page URL must match `/\/flows\/climate-control\/design$/`, because this condition proves that

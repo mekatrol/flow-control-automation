@@ -24,6 +24,7 @@
         <AppButton
           v-bind="automation('zoom-in')"
           text="Zoom in"
+          aria-label="Zoom in"
           hide-text
           :disabled="zoom >= 2"
           @click="setZoom(zoom + 0.25)"
