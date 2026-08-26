@@ -3,6 +3,7 @@
     v-bind="automation()"
     class="theme-selector"
     :text="themeButtonLabel"
+    :aria-label="themeButtonLabel"
     hide-text
     aria-describedby="theme-selector-help"
     :title="themeButtonLabel"
