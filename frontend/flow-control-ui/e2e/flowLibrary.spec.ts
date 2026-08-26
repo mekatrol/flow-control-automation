@@ -127,7 +127,7 @@ test('creates a flow and opens its designer', async ({ page }) => {
   // Assert the initial form contract before entering valid data. Whitespace is
   // deliberately checked because it must not enable a meaningless create.
   const newFlowName = page.getByRole('textbox', { name: 'New flow name' });
-  const newFlowButton = page.getByRole('button', { name: 'New flow' });
+  const newFlowButton = page.getByRole('button', { name: 'New flow', exact: true }); // Exact match as there are multiple buttons that match the substring
 
   // Expected outcome: `newFlowName` exposes the required attribute.
   // Acceptance criteria: `newFlowName` must have attribute arguments `'placeholder', 'Enter new flow name'`, because this condition proves that
@@ -337,7 +337,9 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
   // Expected outcome: The apply action remains on one line at the current viewport.
   // Acceptance criteria: The button text uses nowrap because wrapping made catalogue filters taller than the approved flows layout.
   expect(
-    await applyFilterButton.locator('.button-text').evaluate((element) => getComputedStyle(element).whiteSpace)
+    await applyFilterButton
+      .locator('.button-text')
+      .evaluate((element) => getComputedStyle(element).whiteSpace)
   ).toBe('nowrap');
 
   // Expected outcome: `table` is visible to the user.
@@ -654,7 +656,6 @@ test('uses the shared button contract for visible and icon-only actions', async 
   ] as const;
 
   for (const [label, button] of iconOnlyButtons) {
-
     // Expected outcome: `button` exposes the required attribute.
     // Acceptance criteria: `button` must have attribute arguments `'aria-label', label`, because this condition proves that
     // uses the shared button contract for visible and icon-only actions.
