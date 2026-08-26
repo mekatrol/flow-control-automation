@@ -332,7 +332,6 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
   // Expected outcome: `table.getByRole('columnheader', { name: /Name/ })` exposes the required attribute.
   // Acceptance criteria: `table.getByRole('columnheader', { name: /Name/ })` must have attribute arguments `'aria-sort', 'ascending'`, because this condition proves that
   // filters, sorts, and paginates the semantic flow table.
-  await page.getByRole('button', { name: 'Sort by Name ascending' }).click();
   await expect(table.getByRole('columnheader', { name: /Name/ })).toHaveAttribute(
     'aria-sort',
     'ascending'
@@ -376,12 +375,17 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
   await expect(table.locator('tbody').getByRole('row')).toHaveCount(10);
 
   const sortButton = page.getByRole('button', { name: 'Sort by Name descending' });
+  const descendingResponse = page.waitForResponse((response) => {
+    const url = new URL(response.url());
+    return url.pathname === '/api/flows' && url.searchParams.get('sort') === 'descending';
+  });
   await sortButton.click();
+  await descendingResponse;
 
   // Expected outcome: the first table body row displays the required content.
-  // Acceptance criteria: the first table body row must contain the text `'Flow 10'`, because this condition proves that
+  // Acceptance criteria: the first table body row must contain the text `'Flow 25'`, because this condition proves that
   // filters, sorts, and paginates the semantic flow table.
-  await expect(table.locator('tbody').getByRole('row').first()).toContainText('Flow 10');
+  await expect(table.locator('tbody').getByRole('row').first()).toContainText('Flow 25');
 
   await nameFilter.fill('Flow 2');
 

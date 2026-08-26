@@ -7,7 +7,7 @@
       class="flow-list"
       :show-filter-apply="false"
       :columns="columns"
-      :rows="sortedRows"
+      :rows="filteredRows"
       :query="query"
       :total-items="totalItems"
       :page-size-options="[5, 10, 25]"
@@ -181,7 +181,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, type ComponentPublicInstance } from 'vue';
+import { computed, ref, watch, type ComponentPublicInstance } from 'vue';
 import { useRoute } from 'vue-router';
 
 import { useAutomation } from '@/composables/useAutomation';
@@ -305,12 +305,33 @@ const query = ref<FlowListQuery>({
   pageSize: 5,
   filter: '',
   statuses: requestedStatuses.length > 0 ? requestedStatuses : [...FLOW_STATUSES],
-  sort: null
+  sort: {
+    column: 'name',
+    direction: props.sortDirection === 'ascending' ? 'asc' : 'desc'
+  }
 });
 
 const updateQuery = (nextQuery: FlowListQuery): void => {
+  const requestedDirection = nextQuery.sort?.direction;
+  const currentDirection = query.value.sort?.direction;
   query.value = nextQuery;
+  if (nextQuery.sort?.column === 'name' && requestedDirection !== currentDirection) {
+    emit(EVENTS.TOGGLE_SORT);
+  }
 };
+
+watch(
+  () => props.sortDirection,
+  (sortDirection) => {
+    query.value = {
+      ...query.value,
+      sort: {
+        column: 'name',
+        direction: sortDirection === 'ascending' ? 'asc' : 'desc'
+      }
+    };
+  }
+);
 
 const filterText = computed({
   get: () => query.value.filter,
@@ -356,26 +377,6 @@ const filteredRows = computed<FlowRow[]>(() => {
     const matchesText = filter.length === 0 || row.name.toLocaleLowerCase().includes(filter);
 
     return matchesStatus && matchesText;
-  });
-});
-
-const sortedRows = computed<FlowRow[]>(() => {
-  const sort = query.value.sort;
-
-  if (!sort) {
-    return filteredRows.value;
-  }
-
-  return [...filteredRows.value].sort((left, right): number => {
-    const leftValue = String(left[sort.column]);
-    const rightValue = String(right[sort.column]);
-
-    const result = leftValue.localeCompare(rightValue, undefined, {
-      numeric: true,
-      sensitivity: 'base'
-    });
-
-    return sort.direction === 'asc' ? result : -result;
   });
 });
 

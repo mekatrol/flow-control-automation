@@ -13,7 +13,7 @@
         <p>Automation workspace</p>
         <h1>Flows</h1>
         <p>Design, inspect, and deploy independent automation flows.</p>
-      </div>      
+      </div>
     </div>
 
     <section class="il-import" aria-labelledby="il-import-title">
@@ -65,7 +65,7 @@
     </section>
 
     <p v-if="loading" class="request-status" role="status">Loading flows…</p>
-    
+
     <div v-if="!error" class="flow-results">
       <p v-if="totalItems === 0 && hasActiveFilters" class="empty-state" role="status">
         No flows match the selected filters.

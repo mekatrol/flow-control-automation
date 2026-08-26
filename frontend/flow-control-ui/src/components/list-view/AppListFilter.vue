@@ -13,7 +13,13 @@
           @clear="clearFilter"
         />
       </slot>
-      <AppButton v-if="showFilterApply" text="Apply" type="submit" :icon="filterIcon" v-bind="automation('submit')" />
+      <AppButton
+        v-if="showFilterApply"
+        text="Apply"
+        type="submit"
+        :icon="filterIcon"
+        v-bind="automation('submit')"
+      />
     </div>
   </form>
 </template>
@@ -35,7 +41,7 @@ interface Props {
   automation: string;
   active: boolean;
   disabled?: boolean;
-  showFilterApply?: boolean
+  showFilterApply?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
