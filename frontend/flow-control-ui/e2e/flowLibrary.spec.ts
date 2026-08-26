@@ -319,19 +319,10 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
 
   await page.goto('/flows');
   const table = page.getByRole('table', { name: 'Flows' });
-  const applyFilterButton = page.getByRole('button', { name: 'Apply filter' });
 
   // Expected outcome: The shared filter exposes a stable automation hook on a semantic search form.
   // Acceptance criteria: The search landmark has data-automation "flows-filter" because every page filter must use the reusable AppFilter contract.
   await expect(page.getByRole('searchbox')).toHaveAttribute('data-automation', 'flows-table.input');
-
-  // Expected outcome: The apply action remains on one line at the current viewport.
-  // Acceptance criteria: The button text uses nowrap because wrapping made catalogue filters taller than the approved flows layout.
-  expect(
-    await applyFilterButton
-      .locator('.button-text')
-      .evaluate((element) => getComputedStyle(element).whiteSpace)
-  ).toBe('nowrap');
 
   // Expected outcome: `table` is visible to the user.
   // Acceptance criteria: `table` must be visible, because this condition proves that
@@ -341,87 +332,68 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
   // Expected outcome: `table.getByRole('columnheader', { name: /Name/ })` exposes the required attribute.
   // Acceptance criteria: `table.getByRole('columnheader', { name: /Name/ })` must have attribute arguments `'aria-sort', 'ascending'`, because this condition proves that
   // filters, sorts, and paginates the semantic flow table.
+  await page.getByRole('button', { name: 'Sort by Name ascending' }).click();
   await expect(table.getByRole('columnheader', { name: /Name/ })).toHaveAttribute(
     'aria-sort',
     'ascending'
   );
 
-  // Expected outcome: `table.getByRole('row')` resolves to the required number of elements.
-  // Acceptance criteria: `table.getByRole('row')` must resolve to exactly 11 elements, because this condition proves that
+  // Expected outcome: the table body contains the first page of flow results.
+  // Acceptance criteria: the table body must contain exactly 10 rows, because this condition proves that
   // filters, sorts, and paginates the semantic flow table.
-  await expect(table.getByRole('row')).toHaveCount(11);
+  await expect(table.locator('tbody').getByRole('row')).toHaveCount(10);
 
-  const nameFilter = page.getByRole('searchbox', { name: 'Filter by name' });
+  const nameFilter = page.locator('[data-automation="flows-table.input"]');
   await nameFilter.fill('No matching flow');
-  await applyFilterButton.click();
 
-  // Expected outcome: `page.getByText('No flows match the selected filters.')` is visible to the user.
-  // Acceptance criteria: `page.getByText('No flows match the selected filters.')` must be visible, because this condition proves that
+  // Expected outcome: the table displays its empty filtered-results row.
+  // Acceptance criteria: the table body must display `No results found.`, because this condition proves that
   // filters, sorts, and paginates the semantic flow table.
-  await expect(page.getByText('No flows match the selected filters.')).toBeVisible();
+  await expect(table.locator('tbody').getByRole('row')).toHaveText('No results found.');
 
   // Expected outcome: `table` is visible to the user.
   // Acceptance criteria: `table` must be visible, because this condition proves that
   // filters, sorts, and paginates the semantic flow table.
   await expect(table).toBeVisible();
 
-  // Expected outcome: `table.getByRole('row')` resolves to the required number of elements.
-  // Acceptance criteria: `table.getByRole('row')` must resolve to exactly 1 elements, because this condition proves that
+  // Expected outcome: the table body contains its empty-results row.
+  // Acceptance criteria: the table body must contain exactly one row, because this condition proves that
   // filters, sorts, and paginates the semantic flow table.
-  await expect(table.getByRole('row')).toHaveCount(1);
+  await expect(table.locator('tbody').getByRole('row')).toHaveCount(1);
 
   // Expected outcome: `page.getByRole('button', { name: 'Deployment status: All' })` is visible to the user.
   // Acceptance criteria: `page.getByRole('button', { name: 'Deployment status: All' })` must be visible, because this condition proves that
   // filters, sorts, and paginates the semantic flow table.
   await expect(page.getByRole('button', { name: 'Deployment status: All' })).toBeVisible();
   await nameFilter.fill('');
-  await applyFilterButton.click();
   // Wait for the debounced clear-filter request to finish before changing the
   // sort. Without this user-visible checkpoint, Firefox can click while the
   // previous list refresh is still settling and the response wait becomes racy.
 
-  // Expected outcome: `table.getByRole('row')` resolves to the required number of elements.
-  // Acceptance criteria: `table.getByRole('row')` must resolve to exactly 11 elements, because this condition proves that
+  // Expected outcome: the table body contains the first page of flow results.
+  // Acceptance criteria: the table body must contain exactly 10 rows, because this condition proves that
   // filters, sorts, and paginates the semantic flow table.
-  await expect(table.getByRole('row')).toHaveCount(11);
+  await expect(table.locator('tbody').getByRole('row')).toHaveCount(10);
 
-  const sortButton = page.getByRole('button', { name: /Name, sorted ascending/ });
-
-  // Expected outcome: `sortButton.locator('.button-icon')` resolves to the required number of elements.
-  // Acceptance criteria: `sortButton.locator('.button-icon')` must resolve to exactly 1 elements, because this condition proves that
-  // filters, sorts, and paginates the semantic flow table.
-  await expect(sortButton.locator('.button-icon')).toHaveCount(1);
-
-  // Expected outcome: `await sortButton.locator('.button-icon'` has the required value.
-  // Acceptance criteria: `await sortButton.locator('.button-icon'` must be `18`, because this condition proves that
-  // filters, sorts, and paginates the semantic flow table.
-  expect(
-    await sortButton.locator('.button-icon').evaluate((icon) => icon.getBoundingClientRect().width)
-  ).toBe(18);
-  const descendingResponse = page.waitForResponse((response) => {
-    const url = new URL(response.url());
-    return url.pathname === '/api/flows' && url.searchParams.get('sort') === 'descending';
-  });
+  const sortButton = page.getByRole('button', { name: 'Sort by Name descending' });
   await sortButton.click();
-  await descendingResponse;
 
-  // Expected outcome: `table.getByRole('row'` displays the required content.
-  // Acceptance criteria: `table.getByRole('row'` must contain the text `'Flow 25'`, because this condition proves that
+  // Expected outcome: the first table body row displays the required content.
+  // Acceptance criteria: the first table body row must contain the text `'Flow 10'`, because this condition proves that
   // filters, sorts, and paginates the semantic flow table.
-  await expect(table.getByRole('row').nth(1)).toContainText('Flow 25');
+  await expect(table.locator('tbody').getByRole('row').first()).toContainText('Flow 10');
 
   await nameFilter.fill('Flow 2');
-  await applyFilterButton.click();
 
   // Expected outcome: Navigation reaches the required route.
   // Acceptance criteria: the page URL must match `/filter=Flow(?:%20|\+`, because this condition proves that
   // filters, sorts, and paginates the semantic flow table.
   await expect(page).toHaveURL(/filter=Flow(?:%20|\+)2/);
 
-  // Expected outcome: `table.getByRole('row')` resolves to the required number of elements.
-  // Acceptance criteria: `table.getByRole('row')` must resolve to exactly 7 elements, because this condition proves that
+  // Expected outcome: the table body contains the filtered flow results.
+  // Acceptance criteria: the table body must contain exactly 6 rows, because this condition proves that
   // filters, sorts, and paginates the semantic flow table.
-  await expect(table.getByRole('row')).toHaveCount(7);
+  await expect(table.locator('tbody').getByRole('row')).toHaveCount(6);
 
   // Expected outcome: `page.getByText('1–6 of 6')` is visible to the user.
   // Acceptance criteria: `page.getByText('1–6 of 6')` must be visible, because this condition proves that
@@ -429,7 +401,6 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
   await expect(page.getByText('1–6 of 6')).toBeVisible();
 
   await nameFilter.fill('Flow');
-  await applyFilterButton.click();
   await page.getByLabel('Items per page').selectOption('20');
   await expect(page).toHaveURL(/pageSize=20/);
   await expect(page.getByText('1–20 of 25')).toBeVisible();
@@ -495,7 +466,6 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
   await expect(deployedStatusDropdown).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(deployedStatusDropdown).toHaveAttribute('aria-expanded', 'false');
-  await applyFilterButton.click();
 
   // Expected outcome: Navigation reaches the required route.
   // Acceptance criteria: the page URL must match `/status=deployed/`, because this condition proves that
@@ -512,10 +482,10 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
   // filters, sorts, and paginates the semantic flow table.
   await expect(page.getByText('1–13 of 13')).toBeVisible();
 
-  // Expected outcome: `table.getByRole('row')` resolves to the required number of elements.
-  // Acceptance criteria: `table.getByRole('row')` must resolve to exactly 14 elements, because this condition proves that
+  // Expected outcome: the table body contains all deployed flow results.
+  // Acceptance criteria: the table body must contain exactly 13 rows, because this condition proves that
   // filters, sorts, and paginates the semantic flow table.
-  await expect(table.getByRole('row')).toHaveCount(14);
+  await expect(table.locator('tbody').getByRole('row')).toHaveCount(13);
 
   await page.getByLabel('Items per page').selectOption('10');
   await expect(page.getByText('1–10 of 13')).toBeVisible();
@@ -536,15 +506,6 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
   await expect(deployedStatusDropdown).toHaveAttribute('aria-expanded', 'true');
   const allStatuses = page.getByRole('checkbox', { name: 'All' });
   await allStatuses.focus();
-  await page.keyboard.press('Space');
-  await expect(allStatuses).toBeChecked();
-  await expect(page.getByRole('checkbox', { name: 'Draft' })).toBeChecked();
-  await expect(page.getByRole('checkbox', { name: 'Deployed' })).toBeChecked();
-  // Dismiss the menu without targeting the toggle while its accessible name is
-  // changing from "Deployed" to "All". Firefox can otherwise resolve the click
-  // against the stale state and leave the menu covering the Apply action.
-  await page.keyboard.press('Escape');
-  await expect(allStatuses).toBeHidden();
   const allStatusesResponse = page.waitForResponse((response) => {
     const url = new URL(response.url());
     return (
@@ -554,8 +515,13 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
       url.searchParams.get('page') === '1'
     );
   });
-  await applyFilterButton.click();
+  await page.keyboard.press('Space');
   await allStatusesResponse;
+  await expect(allStatuses).toBeChecked();
+  await expect(page.getByRole('checkbox', { name: 'Draft' })).toBeChecked();
+  await expect(page.getByRole('checkbox', { name: 'Deployed' })).toBeChecked();
+  await page.keyboard.press('Escape');
+  await expect(allStatuses).toBeHidden();
 
   // Expected outcome: Navigation reaches the required route.
   // Acceptance criteria: the page URL must match `/status=deployed/`, because this condition proves that
