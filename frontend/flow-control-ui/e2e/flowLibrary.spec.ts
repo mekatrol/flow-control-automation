@@ -77,9 +77,18 @@ test('shows flow-library loading, empty, error, and retry states', async ({ page
   await expect(emptyTable).toBeVisible();
 
   // Expected outcome: `emptyTable.getByRole('row')` resolves to the required number of elements.
-  // Acceptance criteria: `emptyTable.getByRole('row')` must resolve to exactly 1 elements, because this condition proves that
+  // Acceptance criteria: `emptyTable.getByRole('row')` must resolve to exactly 3 elements, because this condition proves that
   // shows flow-library loading, empty, error, and retry states.
-  await expect(emptyTable.getByRole('row')).toHaveCount(1);
+  // The 3 rows are, header row, empty table state row displaying 'No results found' and footer status row.
+  await expect(emptyTable.getByRole('row')).toHaveCount(3);
+
+  // Expected outcome: the table body contains one empty-state row displaying the required message.
+  // Acceptance criteria: the table body row must display `No results found.`, proving that no flow data rows are displayed.
+  await expect(emptyTable.locator('tbody').getByRole('row')).toHaveText('No results found.');
+
+  // Expected outcome: the table footer contains one status row displaying the required result count.
+  // Acceptance criteria: the table footer row must display `0 total results`, proving that the empty result count is displayed.
+  await expect(emptyTable.locator('tfoot').getByRole('row')).toHaveText('0 total results');
 
   await page.unroute(flowsCollectionPattern);
   let shouldFail = true;
