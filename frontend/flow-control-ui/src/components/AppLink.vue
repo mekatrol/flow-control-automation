@@ -3,7 +3,7 @@
     <a
       :href="href"
       :aria-current="ariaCurrent"
-      :aria-label="hideText ? (ariaLabel ?? text) : ariaLabel"
+      :aria-label="ariaLabel ?? text"
       class="app-link"
       v-bind="automation()"
       @click="navigate"
