@@ -260,7 +260,7 @@ test('validates, saves, and reloads typed node configuration', async ({ page }) 
 
   await page.getByRole('searchbox', { name: 'Find a node' }).fill('line');
   await page.getByRole('button', { name: 'Apply filter' }).click();
-  await page.getByRole('button', { name: 'Line' }).click();
+  await page.getByRole('button', { name: 'Line', exact: true }).click();
   const label = page.getByRole('textbox', { name: 'Node label' });
   await label.fill('   ');
 

@@ -5,6 +5,7 @@
     :content-label="contentLabel"
     v-bind="automation()"
     :dismissible="false"
+    role="alertdialog"
   >
     <slot name="prompt" :cancel="cancel" :confirm="confirm">
       <section

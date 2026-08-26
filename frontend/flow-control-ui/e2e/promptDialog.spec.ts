@@ -75,12 +75,12 @@ test('runs the standard AppPromptDialog actions', async ({ page }) => {
   await mountPromptDialog(page);
 
   const host = page.locator('#prompt-dialog-e2e-fixture');
-  const prompt = page.getByRole('dialog', { name: 'Discard changes' });
+  const prompt = page.getByRole('alertdialog', { name: 'Discard changes' });
 
   await page.getByRole('button', { name: 'Open prompt' }).click();
 
   // Expected outcome: Opening the standard prompt creates a visible modal decision.
-  // Acceptance criteria: The "Discard changes" dialog is visible because the exposed
+  // Acceptance criteria: The "Discard changes" alert dialog is visible because the exposed
   // `showModal` operation must present the fallback prompt before either action is possible.
   await expect(prompt).toBeVisible();
   await page.getByRole('button', { name: 'Keep editing' }).click();

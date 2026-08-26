@@ -22,6 +22,11 @@ describe('AppPromptDialog', () => {
 
     const section = wrapper.get('section');
 
+    // Expected outcome: A confirmation prompt is exposed as an interruptive alert dialog.
+    // Acceptance criteria: The native dialog role is `alertdialog` because the prompt
+    // presents an important decision that must be resolved before work can continue.
+    expect(wrapper.get('dialog').attributes('role')).toBe('alertdialog');
+
     // Expected outcome: The prompt title labels the standard prompt content.
     // Acceptance criteria: `aria-labelledby` references `discard-prompt-title` because
     // assistive technology must announce this prompt's visible heading as its title.

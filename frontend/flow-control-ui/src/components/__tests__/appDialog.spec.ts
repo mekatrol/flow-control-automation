@@ -24,6 +24,11 @@ describe('AppDialog', () => {
 
     const dialog = wrapper.get('dialog');
 
+    // Expected outcome: The reusable surface retains the native dialog semantics.
+    // Acceptance criteria: No explicit role is present because the native `dialog`
+    // element already exposes `dialog` and ordinary workflows must not be announced as alerts.
+    expect(dialog.attributes('role')).toBeUndefined();
+
     // Expected outcome: The reusable dialog keeps the caller-provided DOM identity.
     // Acceptance criteria: The native dialog ID is `credential-dialog` because labels,
     // automation hooks, and imperative callers must target the same dialog instance.

@@ -133,7 +133,7 @@ test('requires an explicit action to close the credential dialog', async ({ page
   // implicit dismissal must leave all protected form state intact.
   await expect(page.getByLabel('Display name')).toHaveValue('Unsaved credential');
 
-  const discardDialog = page.getByRole('dialog', {
+  const discardDialog = page.getByRole('alertdialog', {
     name: 'Discard unsaved credential changes'
   });
 

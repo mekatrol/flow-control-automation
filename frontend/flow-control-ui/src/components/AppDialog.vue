@@ -4,7 +4,6 @@
     :id="dialogId"
     ref="panel"
     class="dialog-panel"
-    role="alertdialog"
     :aria-label="contentLabel"
     @cancel="handleCancel"
     @close="emit(EVENTS.CLOSE, $event)"

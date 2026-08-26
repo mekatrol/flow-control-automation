@@ -411,8 +411,8 @@ test('protects dirty navigation and supports explicit discard', async ({ page })
 
   await page.getByRole('link', { name: 'All flows' }).click();
 
-  // Expected outcome: `page.getByRole('alertdialog', { name: 'Discard unsaved changes?' })` is visible to the user.
-  // Acceptance criteria: `page.getByRole('alertdialog', { name: 'Discard unsaved changes?' })` must be visible, because this condition proves that
+  // Expected outcome: `page.getByRole('alertdialog', { name: 'Discard unsaved flow changes confirmation' })` is visible to the user.
+  // Acceptance criteria: `page.getByRole('alertdialog', { name: 'Discard unsaved flow changes confirmation' })` must be visible, because this condition proves that
   // protects dirty navigation and supports explicit discard.
   await expect(page.getByRole('alertdialog', { name: 'Discard unsaved flow changes confirmation' })).toBeVisible();
 

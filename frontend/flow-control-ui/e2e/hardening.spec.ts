@@ -70,7 +70,7 @@ test('creates, edits, saves, deploys, and reloads a flow as one critical journey
   // creates, edits, saves, deploys, and reloads a flow as one critical journey.
   await expect(page.getByRole('heading', { name: 'Critical journey' })).toBeVisible();
 
-  await page.getByRole('button', { name: 'Add Calculator node' }).click();
+  await page.getByRole('button', { name: 'Calculator', exact: true }).click();
   await page.getByRole('textbox', { name: 'Node label' }).fill('Verified calculation');
   await page.getByRole('button', { name: 'Save flow' }).click();
 

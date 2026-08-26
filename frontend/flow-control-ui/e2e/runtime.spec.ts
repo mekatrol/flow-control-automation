@@ -49,10 +49,10 @@ test('confirms deployment and announces successful and failed runtime updates', 
   await expect(page.getByRole('status', { name: 'Runtime state: stopped' })).toBeVisible();
   await page.getByRole('button', { name: 'Deploy flow' }).click();
 
-  // Expected outcome: `page.getByRole('alertdialog', { name: 'Deploy this flow?' })` is visible to the user.
-  // Acceptance criteria: `page.getByRole('alertdialog', { name: 'Deploy this flow?' })` must be visible, because this condition proves that
+  // Expected outcome: `page.getByRole('alertdialog', { name: 'Deploy flow confirmation' })` is visible to the user.
+  // Acceptance criteria: `page.getByRole('alertdialog', { name: 'Deploy flow confirmation' })` must be visible, because this condition proves that
   // confirms deployment and announces successful and failed runtime updates.
-  await expect(page.getByRole('alertdialog', { name: 'Deploy this flow?' })).toBeVisible();
+  await expect(page.getByRole('alertdialog', { name: 'Deploy flow confirmation' })).toBeVisible();
   await page.getByRole('button', { name: 'Deploy now' }).click();
 
   // Expected outcome: `page.getByRole('status', { name: 'Runtime state: running' })` is visible to the user.
