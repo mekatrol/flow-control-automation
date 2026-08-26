@@ -13,25 +13,7 @@
         <p>Automation workspace</p>
         <h1>Flows</h1>
         <p>Design, inspect, and deploy independent automation flows.</p>
-      </div>
-      <form class="create-flow" @submit.prevent="createFlow">
-        <label for="new-flow-name">New flow name</label>
-        <input
-          id="new-flow-name"
-          v-model="newFlowName"
-          autocomplete="off"
-          name="new-flow-name"
-          type="text"
-          placeholder="Enter new flow name"
-        />
-        <AppButton
-          v-bind="automation('create')"
-          type="submit"
-          :disabled="creating || !newFlowName.trim()"
-          :text="creating ? 'Creating…' : 'New flow'"
-          :icon="newFlowIcon"
-        />
-      </form>
+      </div>      
     </div>
 
     <section class="il-import" aria-labelledby="il-import-title">
@@ -126,7 +108,6 @@ import { storeToRefs } from 'pinia';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-import newFlowIcon from '@/assets/icons/new-icon.svg';
 import previewIcon from '@/assets/icons/visibility-icon.svg';
 import saveIcon from '@/assets/icons/save-icon.svg';
 import AppButton from '@/components/AppButton.vue';

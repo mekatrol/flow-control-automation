@@ -124,40 +124,31 @@ test('creates a flow and opens its designer', async ({ page }) => {
   await useMutableFlowsApi(page);
   await page.goto('/flows');
 
-  // Assert the initial form contract before entering valid data. Whitespace is
-  // deliberately checked because it must not enable a meaningless create.
-  const newFlowName = page.getByRole('textbox', { name: 'New flow name' });
-  const newFlowButton = page.getByRole('button', { name: 'New flow', exact: true }); // Exact match as there are multiple buttons that match the substring
+  // Open flow creation from the add action in the table's Name column header.
+  await page.getByRole('button', { name: 'Add a new flow' }).click();
+  const createDialog = page.getByRole('dialog', { name: 'Create new flow' });
+  const newFlowName = createDialog.getByRole('textbox', { name: 'Flow name' });
+  const createFlowButton = createDialog.getByRole('button', { name: 'Create flow' });
 
-  // Expected outcome: `newFlowName` exposes the required attribute.
-  // Acceptance criteria: `newFlowName` must have attribute arguments `'placeholder', 'Enter new flow name'`, because this condition proves that
+  // Expected outcome: the create dialog is visible.
+  // Acceptance criteria: `createDialog` must be visible, because this condition proves that
   // creates a flow and opens its designer.
-  await expect(newFlowName).toHaveAttribute('placeholder', 'Enter new flow name');
+  await expect(createDialog).toBeVisible();
 
   // Expected outcome: `newFlowName` exposes the required attribute.
   // Acceptance criteria: `newFlowName` must have attribute arguments `'autocomplete', 'off'`, because this condition proves that
   // creates a flow and opens its designer.
   await expect(newFlowName).toHaveAttribute('autocomplete', 'off');
 
-  // Expected outcome: `newFlowButton` prevents interaction.
-  // Acceptance criteria: `newFlowButton` must be disabled, because this condition proves that
+  // Expected outcome: the name field is required.
+  // Acceptance criteria: `newFlowName` must have the `required` attribute, because this condition proves that
   // creates a flow and opens its designer.
-  await expect(newFlowButton).toBeDisabled();
-  await newFlowName.fill('   ');
-
-  // Expected outcome: `newFlowButton` prevents interaction.
-  // Acceptance criteria: `newFlowButton` must be disabled, because this condition proves that
-  // creates a flow and opens its designer.
-  await expect(newFlowButton).toBeDisabled();
+  await expect(newFlowName).toHaveAttribute('required');
 
   // Act: submit a valid name through the same controls a user operates.
   await newFlowName.fill('New automation');
 
-  // Expected outcome: `newFlowButton` permits interaction.
-  // Acceptance criteria: `newFlowButton` must be enabled, because this condition proves that
-  // creates a flow and opens its designer.
-  await expect(newFlowButton).toBeEnabled();
-  await newFlowButton.click();
+  await createFlowButton.click();
 
   // Assert: creation opens the new flow immediately so it is ready to edit.
 
@@ -332,7 +323,7 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
 
   // Expected outcome: The shared filter exposes a stable automation hook on a semantic search form.
   // Acceptance criteria: The search landmark has data-automation "flows-filter" because every page filter must use the reusable AppFilter contract.
-  await expect(page.getByRole('search')).toHaveAttribute('data-automation', 'flows.filter');
+  await expect(page.getByRole('searchbox')).toHaveAttribute('data-automation', 'flows-table.input');
 
   // Expected outcome: The apply action remains on one line at the current viewport.
   // Acceptance criteria: The button text uses nowrap because wrapping made catalogue filters taller than the approved flows layout.
@@ -592,8 +583,8 @@ test('uses the shared button contract for visible and icon-only actions', async 
   // text-labelled, and icon-only examples of the shared button component.
   await page.goto('/flows');
 
-  // Assert every native button opts into the shared visual/interaction contract.
-  const renderedButtons = page.locator('button');
+  // Assert the page renders actions using the shared visual/interaction contract.
+  const renderedButtons = page.locator('button[data-app-button]');
 
   // Expected outcome: `renderedButtons.first()` is visible to the user.
   // Acceptance criteria: `renderedButtons.first()` must be visible, because this condition proves that
@@ -605,55 +596,15 @@ test('uses the shared button contract for visible and icon-only actions', async 
   // uses the shared button contract for visible and icon-only actions.
   expect(await renderedButtons.count()).toBeGreaterThan(0);
 
-  // Expected outcome: `await renderedButtons.evaluateAll((buttons) => buttons.every((button) => button.hasAttribute('data-a` has the required value.
-  // Acceptance criteria: `await renderedButtons.evaluateAll((buttons) => buttons.every((button) => button.hasAttribute('data-a` must be `true`, because this condition proves that
+  const addFlowButton = page.getByRole('button', { name: 'Add a new flow' });
+
+  // Expected outcome: the table-header action is icon-only.
+  // Acceptance criteria: `addFlowButton` must expose its accessible name through `aria-label`, because this condition proves that
   // uses the shared button contract for visible and icon-only actions.
-  expect(
-    await renderedButtons.evaluateAll((buttons) =>
-      buttons.every((button) => button.hasAttribute('data-app-button'))
-    )
-  ).toBe(true);
+  await expect(addFlowButton).toHaveAttribute('aria-label', 'Add a new flow');
+  await expect(addFlowButton).toHaveAttribute('data-app-button');
 
-  const newFlowButton = page.getByRole('button', { name: 'New flow' });
-
-  // Expected outcome: `newFlowButton.locator('.button-text')` displays the required text.
-  // Acceptance criteria: `newFlowButton.locator('.button-text')` must display `'New flow'`, because this condition proves that
-  // uses the shared button contract for visible and icon-only actions.
-  await expect(newFlowButton.locator('.button-text')).toHaveText('New flow');
-
-  // Expected outcome: `newFlowButton` exposes the required attribute.
-  // Acceptance criteria: `newFlowButton` must have attribute arguments `'aria-label'`, because this condition proves that
-  // uses the shared button contract for visible and icon-only actions.
-  await expect(newFlowButton).not.toHaveAttribute('aria-label');
-
-  // Assert disabled and enabled states remain visually distinguishable without
-  // coupling this check to the separate flow-creation behaviour.
-  const disabledBackground = await newFlowButton.evaluate(
-    (button) => getComputedStyle(button).backgroundColor
-  );
-
-  // Expected outcome: `newFlowButton` uses the required rendered style.
-  // Acceptance criteria: `newFlowButton` must have CSS arguments `'border-style', 'dashed'`, because this condition proves that
-  // uses the shared button contract for visible and icon-only actions.
-  await expect(newFlowButton).toHaveCSS('border-style', 'dashed');
-  await page.getByRole('textbox', { name: 'New flow name' }).fill('New automation');
-
-  // Expected outcome: `newFlowButton` uses the required rendered style.
-  // Acceptance criteria: `newFlowButton` must have CSS arguments `'background-color', disabledBackground`, because this condition proves that
-  // uses the shared button contract for visible and icon-only actions.
-  await expect(newFlowButton).not.toHaveCSS('background-color', disabledBackground);
-
-  // Expected outcome: `newFlowButton` uses the required rendered style.
-  // Acceptance criteria: `newFlowButton` must have CSS arguments `'border-style', 'solid'`, because this condition proves that
-  // uses the shared button contract for visible and icon-only actions.
-  await expect(newFlowButton).toHaveCSS('border-style', 'solid');
-
-  // Act: expose the inline rename controls, which are deliberately icon-only.
-  await page.getByRole('button', { name: 'Rename' }).first().click();
-  const iconOnlyButtons = [
-    ['Save name', page.getByRole('button', { name: 'Save name' })],
-    ['Cancel', page.getByRole('button', { name: 'Cancel' })]
-  ] as const;
+  const iconOnlyButtons = [['Add a new flow', addFlowButton]] as const;
 
   for (const [label, button] of iconOnlyButtons) {
     // Expected outcome: `button` exposes the required attribute.

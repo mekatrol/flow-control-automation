@@ -10,9 +10,9 @@
         ref="input"
         v-model="value"
         v-bind="$attrs"
-        type="text"
+        :type="type"
         class="accessible-input"
-        :aria-label="props.label ? undefined : props.inputAriaLabel"
+        :aria-label="props.inputAriaLabel ?? props.label"
         @keydown.esc="clear"
       />
 
@@ -57,8 +57,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, useId } from 'vue';
+import { computed, ref, useId, type InputHTMLAttributes } from 'vue';
 import { useAutomation } from '@/composables/useAutomation';
+
+type InputType = InputHTMLAttributes['type'];
 
 defineOptions({
   // Native input attributes are forwarded explicitly to the underlying input.
@@ -68,6 +70,7 @@ defineOptions({
 const props = withDefaults(
   defineProps<{
     id?: string;
+    type?: InputType;
     label?: string;
     inputAriaLabel?: string;
     clearAriaLabel?: string;
@@ -80,10 +83,11 @@ const props = withDefaults(
   {
     id: undefined,
     modelValue: '',
+    type: 'text',
     label: undefined,
-    inputAriaLabel: 'Input',
+    inputAriaLabel: undefined,
     clearAriaLabel: 'Clear input',
-    actionAriaLabel: 'Perform action',
+    actionAriaLabel: 'Search',
     showAction: false,
     actionDisabled: false
   }

@@ -33,6 +33,7 @@
             placeholder="Enter a flow name"
             autocomplete="off"
             show-action
+            type="search"
             :action-disabled="filterText.length === 0"
           />
         </div>
