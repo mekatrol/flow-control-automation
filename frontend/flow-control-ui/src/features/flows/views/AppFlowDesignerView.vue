@@ -6,8 +6,6 @@
       :message="noticeError"
     />
 
-    <p v-if="loading" class="request-status" role="status">Loading latest flow…</p>
-
     <AppPromptDialog
       id="deploy-confirmation-dialog"
       ref="deployDialog"
@@ -1306,12 +1304,6 @@ h1 {
   opacity: 0.9;
 }
 
-.request-status {
-  margin: var(--space-0) var(--space-0) var(--space-5-5);
-  padding: var(--space-4-5) var(--space-5-5);
-  border-radius: var(--radius-lg);
-}
-
 .designer-prompt-dialog {
   width: min(430px, 100%);
 }
@@ -1329,11 +1321,6 @@ h1 {
   display: flex;
   gap: var(--space-3-5);
   justify-content: end;
-}
-
-.request-status {
-  color: var(--color-info-text);
-  background: var(--color-info-surface);
 }
 
 .not-found {

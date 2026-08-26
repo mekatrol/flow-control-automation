@@ -83,6 +83,7 @@
     </section>
 
     <p v-if="loading" class="request-status" role="status">Loading flows…</p>
+    
     <div v-if="!error" class="flow-results">
       <p v-if="totalItems === 0 && hasActiveFilters" class="empty-state" role="status">
         No flows match the selected filters.
