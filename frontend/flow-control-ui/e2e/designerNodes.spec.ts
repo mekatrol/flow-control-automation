@@ -229,7 +229,7 @@ test('moves and deletes with the keyboard while safeguarding editable controls',
   await expect(node).toBeHidden();
 
   // Expected outcome: `page.locator('[data-connection-id]')` resolves to the required number of elements.
-  // Acceptance criteria: `page.locator('[data-connection-id]')` must resolve to exactly 1 elements, because this condition proves that
+  // Acceptance criteria: `page.locator('[data-connection-id]')` must resolve to exactly 1 element, because this condition proves that
   // moves and deletes with the keyboard while safeguarding editable controls.
   await expect(page.locator('[data-connection-id]')).toHaveCount(1);
 
@@ -260,7 +260,7 @@ test('validates, saves, and reloads typed node configuration', async ({ page }) 
 
   await page.getByRole('searchbox', { name: 'Find a node' }).fill('line');
   await page.getByRole('button', { name: 'Apply filter' }).click();
-  await page.getByRole('button', { name: 'Line', exact: true }).click();
+  await page.getByRole('button', { name: 'Add Line node', exact: true }).click();
   const label = page.getByRole('textbox', { name: 'Node label' });
   await label.fill('   ');
 

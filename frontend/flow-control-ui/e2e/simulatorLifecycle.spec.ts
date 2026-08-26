@@ -41,16 +41,19 @@ test('starts, steps, restarts, and stops a draft simulation with keyboard-operab
     'aria-current',
     'page'
   );
-  await page.getByRole('button', { name: 'Start simulation' }).click();
+  await page.getByRole('button', { name: 'Start simulation' }).focus();
+  await page.keyboard.press('Enter');
   await expect(page.getByRole('status', { name: undefined }).filter({ hasText: 'Ready' })).toBeVisible();
-  await page.getByRole('button', { name: 'One scan' }).click();
+  await page.getByRole('button', { name: 'One scan' }).focus();
+  await page.keyboard.press('Enter');
   await expect(page.getByText('Scan', { exact: true }).locator('..')).toContainText('1');
 
   await page.getByRole('button', { name: 'Restart' }).focus();
   await page.keyboard.press('Enter');
   await expect(page.getByText('Ready', { exact: true })).toBeVisible();
   expect(starts).toBe(1);
-  await page.getByRole('button', { name: 'Stop' }).click();
+  await page.getByRole('button', { name: 'Stop' }).focus();
+  await page.keyboard.press('Enter');
   await expect(page.getByText('Stopped', { exact: true })).toBeVisible();
   await page.getByRole('link', { name: 'All flows' }).click();
   await expect(page).toHaveURL(/\/flows$/);

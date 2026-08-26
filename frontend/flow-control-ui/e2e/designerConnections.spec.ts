@@ -157,7 +157,7 @@ test('creates a connection with the keyboard and deletes a selected connection',
   await expect(keyboardConnection).toBeHidden();
 
   // Expected outcome: `page.locator('[data-connection-id]:not([data-connection-id="connection-preview"])')` resolves to the required number of elements.
-  // Acceptance criteria: `page.locator('[data-connection-id]:not([data-connection-id="connection-preview"])')` must resolve to exactly 1 elements, because this condition proves that
+  // Acceptance criteria: `page.locator('[data-connection-id]:not([data-connection-id="connection-preview"])')` must resolve to exactly 1 element, because this condition proves that
   // creates a connection with the keyboard and deletes a selected connection.
   await expect(
     page.locator('[data-connection-id]:not([data-connection-id="connection-preview"])')

@@ -74,6 +74,11 @@
       <AppFlowTable
         v-bind="automation('table')"
         :flows="items"
+        :filter="query"
+        :statuses="statusFilters"
+        :page="page"
+        :page-size="pageSize"
+        :total-items="totalItems"
         :sort-direction="sortDirection"
         :editing-flow-id="editingFlowId"
         :rename-value="renameValue"
@@ -82,6 +87,10 @@
         :deleting="deleting"
         :toggling-disabled-id="togglingDisabledId"
         @[EVENTS.TOGGLE_SORT]="toggleSortDirection"
+        @update:filter="query = $event"
+        @update:statuses="statusFilters = $event"
+        @[EVENTS.UPDATE_PAGE]="updatePage"
+        @[EVENTS.UPDATE_PAGE_SIZE]="updatePageSize"
         @[EVENTS.BEGIN_RENAME]="beginRename"
         @[EVENTS.UPDATE_RENAME_VALUE]="setRenameValue"
         @[EVENTS.SAVE_RENAME]="renameFlow"
@@ -171,10 +180,10 @@ const validRequestedStatuses = requestedStatuses.filter(
   (status): status is 'draft' | 'deployed' => status === 'draft' || status === 'deployed'
 );
 
-const statusFilters = ref<string[]>(
+const statusFilters = ref<Array<'draft' | 'deployed'>>(
   validRequestedStatuses.length > 0
     ? validRequestedStatuses
-    : statusOptions.map(({ value }) => value)
+    : statusOptions.map(({ value }) => value as 'draft' | 'deployed')
 );
 
 const { query, page, pageSize, sortDirection, totalItems, toggleSortDirection, applyPageMetadata } =
@@ -185,10 +194,20 @@ const { query, page, pageSize, sortDirection, totalItems, toggleSortDirection, a
     initialSortDirection
   });
 
+const updatePage = (nextPage: number): void => {
+  page.value = nextPage;
+};
+
+const updatePageSize = (nextPageSize: number): void => {
+  pageSize.value = nextPageSize;
+};
+
 const hasActiveFilters = computed(
   () =>
     query.value.trim().length > 0 ||
-    !statusOptions.every(({ value }) => statusFilters.value.includes(value))
+    !statusOptions.every(({ value }) =>
+      statusFilters.value.includes(value as 'draft' | 'deployed')
+    )
 );
 
 const items = computed(() => flows.value);

@@ -13,7 +13,7 @@ test('keeps learning actions out of the function palette', async ({ page }) => {
   await page.getByRole('button', { name: 'Apply filter' }).click();
 
   // Assert: The function remains available without an adjacent Learn action.
-  await expect(page.getByRole('button', { name: 'And', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Add And node', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: /Learn .* block/ })).toHaveCount(0);
 });
 

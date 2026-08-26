@@ -7,10 +7,10 @@
       class="flow-list"
       :show-filter-apply="false"
       :columns="columns"
-      :rows="filteredRows"
+      :rows="rows"
       :query="query"
-      :total-items="totalItems"
-      :page-size-options="[5, 10, 25]"
+      :total-items="props.totalItems"
+      :page-size-options="[10, 20, 50]"
       @query-change="updateQuery"
     >
       <template #header>
@@ -182,7 +182,6 @@
 
 <script setup lang="ts">
 import { computed, ref, watch, type ComponentPublicInstance } from 'vue';
-import { useRoute } from 'vue-router';
 
 import { useAutomation } from '@/composables/useAutomation';
 import type { SortDirection } from '@/composables/usePaginatedCollection';
@@ -209,11 +208,14 @@ import newIcon from '@/assets/icons/new-icon.svg';
 
 type FlowStatus = 'draft' | 'deployed';
 
-const FLOW_STATUSES: FlowStatus[] = ['draft', 'deployed'];
-
 const props = defineProps<{
   automation: string;
   flows: FlowDefinition[];
+  filter: string;
+  statuses: FlowStatus[];
+  page: number;
+  pageSize: number;
+  totalItems: number;
   sortDirection: SortDirection;
   editingFlowId?: string;
   renameValue: string;
@@ -226,6 +228,10 @@ const props = defineProps<{
 const emit = defineEmits<{
   (event: typeof EVENTS.ADD_FLOW): void;
   (event: typeof EVENTS.TOGGLE_SORT): void;
+  (event: 'update:filter', filter: string): void;
+  (event: 'update:statuses', statuses: FlowStatus[]): void;
+  (event: typeof EVENTS.UPDATE_PAGE, page: number): void;
+  (event: typeof EVENTS.UPDATE_PAGE_SIZE, pageSize: number): void;
   (event: typeof EVENTS.BEGIN_RENAME, flowId: string, name: string): void;
   (event: typeof EVENTS.UPDATE_RENAME_VALUE, value: string): void;
   (event: typeof EVENTS.SAVE_RENAME, flowId: string): void;
@@ -250,7 +256,6 @@ interface FlowListQuery extends ListQuery<FlowRow> {
   statuses: FlowStatus[];
 }
 
-const route = useRoute();
 const automation = useAutomation(props.automation);
 
 const columns: ListColumn<FlowRow>[] = [
@@ -293,18 +298,11 @@ const statusOptions: MultiSelectOption[] = [
   { label: 'Deployed', value: 'deployed' }
 ];
 
-const isFlowStatus = (value: unknown): value is FlowStatus =>
-  typeof value === 'string' && FLOW_STATUSES.includes(value as FlowStatus);
-
-const requestedStatuses = (
-  Array.isArray(route.query.status) ? route.query.status : [route.query.status]
-).filter(isFlowStatus);
-
 const query = ref<FlowListQuery>({
-  page: 1,
-  pageSize: 5,
-  filter: '',
-  statuses: requestedStatuses.length > 0 ? requestedStatuses : [...FLOW_STATUSES],
+  page: props.page,
+  pageSize: props.pageSize,
+  filter: props.filter,
+  statuses: [...props.statuses],
   sort: {
     column: 'name',
     direction: props.sortDirection === 'ascending' ? 'asc' : 'desc'
@@ -315,16 +313,22 @@ const updateQuery = (nextQuery: FlowListQuery): void => {
   const requestedDirection = nextQuery.sort?.direction;
   const currentDirection = query.value.sort?.direction;
   query.value = nextQuery;
+  if (nextQuery.page !== props.page) emit(EVENTS.UPDATE_PAGE, nextQuery.page);
+  if (nextQuery.pageSize !== props.pageSize) emit(EVENTS.UPDATE_PAGE_SIZE, nextQuery.pageSize);
   if (nextQuery.sort?.column === 'name' && requestedDirection !== currentDirection) {
     emit(EVENTS.TOGGLE_SORT);
   }
 };
 
 watch(
-  () => props.sortDirection,
-  (sortDirection) => {
+  () => [props.filter, props.statuses, props.page, props.pageSize, props.sortDirection] as const,
+  ([filter, statuses, page, pageSize, sortDirection]) => {
     query.value = {
       ...query.value,
+      filter,
+      statuses: [...statuses],
+      page,
+      pageSize,
       sort: {
         column: 'name',
         direction: sortDirection === 'ascending' ? 'asc' : 'desc'
@@ -334,24 +338,16 @@ watch(
 );
 
 const filterText = computed({
-  get: () => query.value.filter,
+  get: () => props.filter,
   set: (filter: string) => {
-    query.value = {
-      ...query.value,
-      page: 1,
-      filter
-    };
+    emit('update:filter', filter);
   }
 });
 
 const filterStatuses = computed({
-  get: () => query.value.statuses,
+  get: () => props.statuses,
   set: (statuses: FlowStatus[]) => {
-    query.value = {
-      ...query.value,
-      page: 1,
-      statuses
-    };
+    emit('update:statuses', statuses);
   }
 });
 
@@ -367,20 +363,6 @@ const rows = computed<FlowRow[]>(() =>
     actions: ''
   }))
 );
-
-const filteredRows = computed<FlowRow[]>(() => {
-  const filter = query.value.filter.trim().toLocaleLowerCase();
-
-  return rows.value.filter((row) => {
-    const matchesStatus = query.value.statuses.includes(row.status);
-
-    const matchesText = filter.length === 0 || row.name.toLocaleLowerCase().includes(filter);
-
-    return matchesStatus && matchesText;
-  });
-});
-
-const totalItems = computed(() => filteredRows.value.length);
 
 const deleteDialog = ref<HTMLElement>();
 const deleteDialogOpen = computed(() => !!props.confirmingDeleteId);

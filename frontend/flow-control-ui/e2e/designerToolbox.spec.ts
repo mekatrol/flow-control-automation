@@ -34,16 +34,16 @@ test('searches the node palette and adds registry-backed nodes', async ({ page }
   await search.fill('timing');
   await page.getByRole('button', { name: 'Apply filter' }).click();
 
-  // Expected outcome: `page.getByRole('button', { name: 'Pulse', exact: true })` is visible to the user.
-  // Acceptance criteria: `page.getByRole('button', { name: 'Pulse', exact: true })` must be visible, because this condition proves that
+  // Expected outcome: `page.getByRole('button', { name: 'Add Pulse node', exact: true })` is visible to the user.
+  // Acceptance criteria: `page.getByRole('button', { name: 'Add Pulse node', exact: true })` must be visible, because this condition proves that
   // searches the node palette and adds registry-backed nodes.
-  await expect(page.getByRole('button', { name: 'Pulse', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Add Pulse node', exact: true })).toBeVisible();
 
-  // Expected outcome: `page.getByRole('button', { name: 'Calculator', exact: true })` resolves to the required number of elements.
-  // Acceptance criteria: `page.getByRole('button', { name: 'Calculator', exact: true })` must resolve to exactly 0 elements, because this condition proves that
+  // Expected outcome: `page.getByRole('button', { name: 'Add Calculator node', exact: true })` resolves to the required number of elements.
+  // Acceptance criteria: `page.getByRole('button', { name: 'Add Calculator node', exact: true })` must resolve to exactly 0 elements, because this condition proves that
   // searches the node palette and adds registry-backed nodes.
-  await expect(page.getByRole('button', { name: 'Calculator', exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Pulse', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Add Calculator node', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Add Pulse node', exact: true }).click();
 
   const pulse = page.getByRole('button', { name: /New Pulse, Pulse node/ });
 
@@ -74,7 +74,7 @@ test('searches the node palette and adds registry-backed nodes', async ({ page }
 
   await search.fill('routing');
   await page.getByRole('button', { name: 'Apply filter' }).click();
-  await page.getByRole('button', { name: 'Split', exact: true }).click();
+  await page.getByRole('button', { name: 'Add Split node', exact: true }).click();
   const split = page.getByRole('button', { name: /New Split, Split node/ });
 
   // Expected outcome: `split` is visible to the user.
@@ -93,7 +93,7 @@ test('searches the node palette and adds registry-backed nodes', async ({ page }
   await expect(split.locator('.node-body')).not.toHaveAttribute('fill');
 
   // Expected outcome: `split.locator('rect.connector-port')` resolves to the required number of elements.
-  // Acceptance criteria: `split.locator('rect.connector-port')` must resolve to exactly 3 elements, because this condition proves that
+  // Acceptance criteria: the new Split node must expose exactly 2 connector ports, because this condition proves that
   // searches the node palette and adds registry-backed nodes.
   await expect(page.locator('.flow-node').filter({ has: split }).locator('rect.connector-port')).toHaveCount(2);
 
@@ -109,7 +109,7 @@ test('searches the node palette and adds registry-backed nodes', async ({ page }
   // Acceptance criteria: `page.getByRole('heading', { name: 'override', exact: true })` must be visible, because this condition proves that
   // searches the node palette and adds registry-backed nodes.
   await expect(page.getByRole('heading', { name: 'override', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Override', exact: true }).click();
+  await page.getByRole('button', { name: 'Add Override node', exact: true }).click();
   const override = page.getByRole('button', { name: /New Override, Override node/ });
 
   // Expected outcome: `override` exposes the required attribute.
@@ -134,7 +134,7 @@ test('keeps dark-theme function blocks at WCAG AA text contrast', async ({ page 
 
   const search = page.getByRole('searchbox', { name: 'Find a node' });
   await search.fill('and');
-  await page.getByRole('button', { name: 'And', exact: true }).click();
+  await page.getByRole('button', { name: 'Add And node', exact: true }).click();
 
   const contrastByCategory = await page.locator('.flow-node').evaluateAll((nodes) => {
     const luminance = (color: string): number => {
@@ -186,7 +186,7 @@ test('drags a legacy function block from the toolbox onto the canvas', async ({ 
 
   const search = page.getByRole('searchbox', { name: 'Find a node' });
   await search.fill('average');
-  const average = page.getByRole('button', { name: 'Average', exact: true });
+  const average = page.getByRole('button', { name: 'Add Average node', exact: true });
 
   // Expected outcome: `average` exposes the required attribute.
   // Acceptance criteria: `average` must have attribute arguments `'draggable', 'true'`, because this condition proves that

@@ -702,7 +702,10 @@ const handleDragCancel = (event: PointerEvent): void => {
     position: static;
     width: auto;
     min-width: 0;
-    max-height: min(240px, 35%);
+    min-height: 0;
+    height: 240px;
+    max-height: 240px;
+    flex: 0 0 240px;
     overflow-y: auto;
     border-right: var(--border-width-none);
     border-bottom: var(--border-width-default) solid var(--color-border-subtle);

@@ -75,15 +75,17 @@ test('creates, edits, saves, deploys, and reloads a flow as one critical journey
   );
 
   await page.goto('/flows');
-  await page.getByRole('textbox', { name: 'New flow name' }).fill('Critical journey');
-  await page.getByRole('button', { name: 'New flow', exact: true }).click();
+  await page.getByRole('button', { name: 'Add a new flow' }).click();
+  const createDialog = page.getByRole('dialog', { name: 'Create new flow' });
+  await createDialog.getByRole('textbox', { name: 'Flow name' }).fill('Critical journey');
+  await createDialog.getByRole('button', { name: 'Create flow' }).click();
 
   // Expected outcome: `page.getByRole('heading', { name: 'Critical journey' })` is visible to the user.
   // Acceptance criteria: `page.getByRole('heading', { name: 'Critical journey' })` must be visible, because this condition proves that
   // creates, edits, saves, deploys, and reloads a flow as one critical journey.
   await expect(page.getByRole('heading', { name: 'Critical journey' })).toBeVisible();
 
-  await page.getByRole('button', { name: 'Calculator', exact: true }).click();
+  await page.getByRole('button', { name: 'Add Calculator node', exact: true }).click();
   await page.getByRole('textbox', { name: 'Node label' }).fill('Verified calculation');
   await page.getByRole('button', { name: 'Save flow' }).click();
 

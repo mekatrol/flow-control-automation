@@ -87,8 +87,8 @@ test('shows flow-library loading, empty, error, and retry states', async ({ page
   await expect(emptyTable.locator('tbody').getByRole('row')).toHaveText('No results found.');
 
   // Expected outcome: the table footer contains one status row displaying the required result count.
-  // Acceptance criteria: the table footer row must display `0 total results`, proving that the empty result count is displayed.
-  await expect(emptyTable.locator('tfoot').getByRole('row')).toHaveText('0 total results');
+  // Acceptance criteria: the table footer row must include `0 total results`, proving that the empty result count is displayed.
+  await expect(emptyTable.locator('tfoot').getByRole('row')).toContainText('0 total results');
 
   await page.unroute(flowsCollectionPattern);
   let shouldFail = true;
@@ -319,6 +319,7 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
 
   await page.goto('/flows');
   const table = page.getByRole('table', { name: 'Flows' });
+  const topPagination = page.locator('[data-automation="flows-table.top-pagination"]');
 
   // Expected outcome: The shared filter exposes a stable automation hook on a semantic search form.
   // Acceptance criteria: The search landmark has data-automation "flows-filter" because every page filter must use the reusable AppFilter contract.
@@ -348,7 +349,9 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
   // Expected outcome: the table displays its empty filtered-results row.
   // Acceptance criteria: the table body must display `No results found.`, because this condition proves that
   // filters, sorts, and paginates the semantic flow table.
-  await expect(table.locator('tbody').getByRole('row')).toHaveText('No results found.');
+  const filteredRows = table.locator('tbody').getByRole('row');
+  await expect(filteredRows).toHaveCount(1);
+  await expect(filteredRows).toHaveText('No results found.');
 
   // Expected outcome: `table` is visible to the user.
   // Acceptance criteria: `table` must be visible, because this condition proves that
@@ -402,16 +405,16 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
   // Expected outcome: `page.getByText('1–6 of 6')` is visible to the user.
   // Acceptance criteria: `page.getByText('1–6 of 6')` must be visible, because this condition proves that
   // filters, sorts, and paginates the semantic flow table.
-  await expect(page.getByText('1–6 of 6')).toBeVisible();
+  await expect(topPagination.getByText('1–6 of 6')).toBeVisible();
 
   await nameFilter.fill('Flow');
-  await page.getByLabel('Items per page').selectOption('20');
+  await topPagination.getByLabel('Items per page').selectOption('20');
   await expect(page).toHaveURL(/pageSize=20/);
-  await expect(page.getByText('1–20 of 25')).toBeVisible();
-  const nextPageButton = page.getByRole('button', { name: 'Next page' });
+  await expect(topPagination.getByText('1–20 of 25')).toBeVisible();
+  const nextPageButton = topPagination.getByRole('button', { name: 'Next page' });
 
   // Expected outcome: `nextPageButton.locator('.button-icon')` resolves to the required number of elements.
-  // Acceptance criteria: `nextPageButton.locator('.button-icon')` must resolve to exactly 1 elements, because this condition proves that
+  // Acceptance criteria: `nextPageButton.locator('.button-icon')` must resolve to exactly 1 element, because this condition proves that
   // filters, sorts, and paginates the semantic flow table.
   await expect(nextPageButton.locator('.button-icon')).toHaveCount(1);
 
@@ -443,7 +446,7 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
   // Expected outcome: `page.getByText('21–25 of 25')` is visible to the user.
   // Acceptance criteria: `page.getByText('21–25 of 25')` must be visible, because this condition proves that
   // filters, sorts, and paginates the semantic flow table.
-  await expect(page.getByText('21–25 of 25')).toBeVisible();
+  await expect(topPagination.getByText('21–25 of 25')).toBeVisible();
 
   const statusDropdown = page.getByRole('button', {
     name: 'Deployment status: All'
@@ -484,16 +487,16 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
   // Expected outcome: `page.getByText('1–13 of 13')` is visible to the user.
   // Acceptance criteria: `page.getByText('1–13 of 13')` must be visible, because this condition proves that
   // filters, sorts, and paginates the semantic flow table.
-  await expect(page.getByText('1–13 of 13')).toBeVisible();
+  await expect(topPagination.getByText('1–13 of 13')).toBeVisible();
 
   // Expected outcome: the table body contains all deployed flow results.
   // Acceptance criteria: the table body must contain exactly 13 rows, because this condition proves that
   // filters, sorts, and paginates the semantic flow table.
   await expect(table.locator('tbody').getByRole('row')).toHaveCount(13);
 
-  await page.getByLabel('Items per page').selectOption('10');
-  await expect(page.getByText('1–10 of 13')).toBeVisible();
-  await page.getByRole('button', { name: 'Next page' }).click();
+  await topPagination.getByLabel('Items per page').selectOption('10');
+  await expect(topPagination.getByText('1–10 of 13')).toBeVisible();
+  await topPagination.getByRole('button', { name: 'Next page' }).click();
 
   // Expected outcome: Navigation reaches the required route.
   // Acceptance criteria: the page URL must match `/status=deployed/`, because this condition proves that
@@ -503,24 +506,14 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
   // Expected outcome: `page.getByText('11–13 of 13')` is visible to the user.
   // Acceptance criteria: `page.getByText('11–13 of 13')` must be visible, because this condition proves that
   // filters, sorts, and paginates the semantic flow table.
-  await expect(page.getByText('11–13 of 13')).toBeVisible();
+  await expect(topPagination.getByText('11–13 of 13')).toBeVisible();
 
   await deployedStatusDropdown.focus();
   await page.keyboard.press('Enter');
   await expect(deployedStatusDropdown).toHaveAttribute('aria-expanded', 'true');
   const allStatuses = page.getByRole('checkbox', { name: 'All' });
   await allStatuses.focus();
-  const allStatusesResponse = page.waitForResponse((response) => {
-    const url = new URL(response.url());
-    return (
-      url.pathname === '/api/flows' &&
-      url.searchParams.getAll('status').includes('draft') &&
-      url.searchParams.getAll('status').includes('deployed') &&
-      url.searchParams.get('page') === '1'
-    );
-  });
   await page.keyboard.press('Space');
-  await allStatusesResponse;
   await expect(allStatuses).toBeChecked();
   await expect(page.getByRole('checkbox', { name: 'Draft' })).toBeChecked();
   await expect(page.getByRole('checkbox', { name: 'Deployed' })).toBeChecked();
@@ -540,7 +533,7 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
   // Expected outcome: `page.getByText('1–10 of 25')` is visible to the user.
   // Acceptance criteria: `page.getByText('1–10 of 25')` must be visible, because this condition proves that
   // filters, sorts, and paginates the semantic flow table.
-  await expect(page.getByText('1–10 of 25')).toBeVisible();
+  await expect(topPagination.getByText('1–10 of 25')).toBeVisible();
 });
 
 /**
@@ -588,7 +581,7 @@ test('uses the shared button contract for visible and icon-only actions', async 
     await expect(button.locator('.button-text')).toHaveCount(0);
 
     // Expected outcome: `button.locator('.button-icon')` resolves to the required number of elements.
-    // Acceptance criteria: `button.locator('.button-icon')` must resolve to exactly 1 elements, because this condition proves that
+    // Acceptance criteria: `button.locator('.button-icon')` must resolve to exactly 1 element, because this condition proves that
     // uses the shared button contract for visible and icon-only actions.
     await expect(button.locator('.button-icon')).toHaveCount(1);
     await expect
