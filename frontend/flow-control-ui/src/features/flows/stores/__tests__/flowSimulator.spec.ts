@@ -90,6 +90,48 @@ describe('flow simulator store', () => {
     expect(store.lifecycle).toBe('ready');
   });
 
+  it('runs a simulated scan immediately so node values are available', async () => {
+    const fetch = vi.spyOn(globalThis, 'fetch');
+    fetch
+      .mockResolvedValueOnce(new Response(JSON.stringify(session()), { status: 201 }))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            ...session('running'),
+            snapshot: {
+              debugSessionId: 'session-a',
+              flowId: 'flow-a',
+              revision: 3,
+              lifecycleState: 'running',
+              mode: 'interval',
+              tickNumber: 1,
+              sampledAtMs: 1,
+              completedAtMs: 2,
+              executionDurationUs: 1,
+              inputValidity: [],
+              nodes: [],
+              proposedOutputs: [],
+              overrunCount: 0,
+              evaluationFailureCount: 0,
+              lastReasonCode: 0,
+              lastReason: '',
+              lastReasonPath: ''
+            }
+          }),
+          { status: 200 }
+        )
+      );
+    const store = useFlowSimulatorStore();
+
+    await store.start(source());
+    await store.run();
+
+    expect(store.lifecycle).toBe('running');
+    expect(store.session?.snapshot?.tickNumber).toBe(1);
+    expect(fetch.mock.calls[1]?.[0]).toBe('/api/flows/flow-a/simulator-sessions/session-a/run');
+    await store.stop(true);
+  });
+
   it('presents structured service failures and enters faulted state', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(
@@ -103,6 +145,15 @@ describe('flow simulator store', () => {
 
     expect(store.lifecycle).toBe('faulted');
     expect(store.error).toBe('Draft is invalid.');
+  });
+
+  it('presents source-construction failures that happen before a request', () => {
+    const store = useFlowSimulatorStore();
+
+    store.reportFailure(new Error('Analog Input requires a point ID.'));
+
+    expect(store.lifecycle).toBe('faulted');
+    expect(store.error).toBe('Analog Input requires a point ID.');
   });
 
   it('presents every compiler diagnostic with its source path', async () => {

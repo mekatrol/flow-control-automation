@@ -4,7 +4,8 @@ import { useWaitStore } from '@/stores/wait';
 
 export const waitForFetch = async (
   input: RequestInfo | URL,
-  init?: RequestInit
+  init?: RequestInit,
+  options: { trackWait?: boolean } = {}
 ): Promise<Response> => {
   const apiKey = getApiKey();
   let authenticatedInit = init;
@@ -14,7 +15,7 @@ export const waitForFetch = async (
     authenticatedInit = { ...init, headers };
   }
   const pinia = getActivePinia();
-  if (!pinia) return fetch(input, authenticatedInit);
+  if (!pinia || options.trackWait === false) return fetch(input, authenticatedInit);
 
   const waitStore = useWaitStore(pinia);
   waitStore.wait();

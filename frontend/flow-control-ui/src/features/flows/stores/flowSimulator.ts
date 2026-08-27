@@ -148,6 +148,7 @@ export const useFlowSimulatorStore = defineStore('flow-simulator', () => {
     session,
     error,
     busy,
+    reportFailure: failure,
     start,
     stepTick,
     applyInputsAndStep,

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { reactive } from 'vue';
 import { createDefaultNode } from '@/features/flows/graph/createNode';
 import { createExecutableFlowSource, graphRevision } from '@/features/flows/flowDebugSource';
 import type { FlowDebugTarget } from '@/features/flows/debugTargets';
@@ -77,6 +78,25 @@ describe('designer debug source', () => {
     const flow = debugFlow();
     flow.nodes[1] = createDefaultNode('timer', { x: 0, y: 0 }, 1, 'timer');
     expect(() => createExecutableFlowSource(flow, target)).not.toThrow();
+  });
+
+  it('copies virtual point declarations from a reactive flow', () => {
+    const flow = reactive(debugFlow());
+    flow.virtualPointDeclarations = [
+      {
+        key: 'virtual-temperature',
+        valueType: 'analog',
+        units: '°C',
+        readable: true,
+        commandable: false,
+        persistence: 'volatile'
+      }
+    ];
+
+    const source = createExecutableFlowSource(flow, target);
+
+    expect(source.virtualPointDeclarations).toEqual(flow.virtualPointDeclarations);
+    expect(source.virtualPointDeclarations).not.toBe(flow.virtualPointDeclarations);
   });
 
   it('changes revision whenever the graph changes', () => {

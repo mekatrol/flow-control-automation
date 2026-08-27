@@ -104,16 +104,36 @@ public sealed class FlowSimulatorService(
         await Execute(flowId, sessionId, (debug) => debug.StepNodeAsync(flowId, sessionId, cancellationToken));
     public async Task<FlowSimulatorSession> StepInstructionAsync(string flowId, string sessionId, CancellationToken cancellationToken) =>
         await Execute(flowId, sessionId, (debug) => debug.StepInstructionAsync(flowId, sessionId, cancellationToken));
-    public async Task<FlowSimulatorSession> RestartAsync(string flowId, string sessionId, CancellationToken cancellationToken) =>
-        await Execute(flowId, sessionId, (debug) => debug.RestartAsync(flowId, sessionId, cancellationToken));
-    public async Task<FlowSimulatorSession> RunAsync(string flowId, string sessionId, uint intervalMilliseconds, CancellationToken cancellationToken) =>
-        await Execute(flowId, sessionId, (debug) => debug.RunAsync(flowId, sessionId, intervalMilliseconds, cancellationToken));
-    public async Task<FlowSimulatorSession> PauseAsync(string flowId, string sessionId, CancellationToken cancellationToken) =>
-        await Execute(flowId, sessionId, (debug) => debug.PauseAsync(flowId, sessionId, cancellationToken));
+    public async Task<FlowSimulatorSession> RestartAsync(string flowId, string sessionId, CancellationToken cancellationToken)
+    {
+        var entry = Require(flowId, sessionId);
+        entry.StopContinuous();
+        return Map(await Debug(entry.Registry).RestartAsync(flowId, sessionId, cancellationToken), entry, sessions.Touch(entry));
+    }
+    public async Task<FlowSimulatorSession> RunAsync(string flowId, string sessionId, uint intervalMilliseconds, CancellationToken cancellationToken)
+    {
+        var entry = Require(flowId, sessionId);
+        entry.StopContinuous();
+        await Debug(entry.Registry).StepAsync(flowId, sessionId, cancellationToken);
+        entry.Registry.Session = entry.Registry.Session! with { LifecycleState = "running", Mode = "interval" };
+        entry.StartContinuous(async token =>
+        {
+            await Debug(entry.Registry).StepAsync(flowId, sessionId, token);
+            entry.Registry.Session = entry.Registry.Session! with { LifecycleState = "running", Mode = "interval" };
+        }, intervalMilliseconds);
+        return Map(entry.Registry.Session, entry, sessions.Touch(entry));
+    }
+    public async Task<FlowSimulatorSession> PauseAsync(string flowId, string sessionId, CancellationToken cancellationToken)
+    {
+        var entry = Require(flowId, sessionId);
+        entry.StopContinuous();
+        return Map(await Debug(entry.Registry).PauseAsync(flowId, sessionId, cancellationToken), entry, sessions.Touch(entry));
+    }
 
     public async Task StopAsync(string flowId, string sessionId, CancellationToken cancellationToken)
     {
         var entry = Require(flowId, sessionId);
+        entry.StopContinuous();
         try { await Debug(entry.Registry).StopAsync(flowId, sessionId, cancellationToken); }
         finally { sessions.Remove(flowId, sessionId); }
     }

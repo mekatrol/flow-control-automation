@@ -182,21 +182,9 @@
       <AppFlowSimulatorPanel
         v-if="workspaceMode === 'simulator'"
         :lifecycle="simulator.lifecycle"
-        :session="simulator.session"
         :error="simulator.error"
         @[EVENTS.START_SIMULATION]="startSimulation"
-        @[EVENTS.STEP_TICK]="simulator.stepTick"
-        @[EVENTS.STEP_NODE]="simulator.stepNode"
-        @[EVENTS.STEP_INSTRUCTION]="simulator.stepInstruction"
-        @[EVENTS.RUN]="simulator.run"
-        @[EVENTS.PAUSE]="simulator.pause"
-        @[EVENTS.RESTART]="simulator.restart"
         @[EVENTS.STOP_SIMULATION]="simulator.stop"
-        @[EVENTS.APPLY_INPUTS_STEP]="simulator.applyInputsAndStep"
-        @[EVENTS.ADVANCE]="simulator.advance"
-        @[EVENTS.FAULT]="simulator.fault"
-        @[EVENTS.RESET]="simulator.resetIo"
-        @[EVENTS.RESET_INPUTS]="simulator.resetInputs"
       />
 
       <AppFlowDebugPanel
@@ -242,7 +230,7 @@
       <div :class="{ 'deployed-version-canvas': versionView === 'deployed' }">
         <AppFlowDesignerCanvas
           :flow="flow"
-          :runtime="debugNodeRuntime ?? runtime"
+          :runtime="canvasRuntime"
           :current-node-id="debugInspection?.nodeId"
           :breakpoints="debugBreakpoints"
           :connector-values="debugConnectorValues"
@@ -250,8 +238,11 @@
           :focus-node-id="diagnosticNodeId"
           :context-point-contracts="selectedContext?.pointContracts"
           :execution-context-id="selectedContextId || undefined"
+          :simulator-io="workspaceMode === 'simulator' ? simulator.session?.io : undefined"
+          :show-default-values="workspaceMode === 'simulator'"
           @point-validation="setPointValidation"
           @create-virtual-point="createVirtualPoint"
+          @[EVENTS.APPLY_INPUTS_STEP]="applySimulatorInputs"
           @[EVENTS.SET_BREAKPOINT]="setBreakpoint"
           @[EVENTS.RUN_TO_NODE]="runToNode"
           @[EVENTS.MOVE_NODE]="moveNode"
@@ -484,6 +475,74 @@ const debugNodeRuntime = computed(() => {
   };
 });
 
+const simulatorNodeRuntime = computed(() => {
+  const session = simulator.session;
+  const currentFlow = flow.value;
+  if (
+    workspaceMode.value !== 'simulator' ||
+    !session ||
+    !currentFlow ||
+    simulator.lifecycle === 'stale'
+  )
+    return undefined;
+  const snapshot = session.snapshot;
+  const snapshotsByNode = new Map(snapshot?.nodes.map((node) => [node.nodeId, node]) ?? []);
+  const inspectedValues = session.inspection?.nodeValues ?? {};
+  const inputValues = new Map(
+    session.io?.inputs.map((input) => [input.pointId, input.typedValue]) ?? []
+  );
+  const outputValues = new Map(
+    (session.io?.outputHistory ?? []).map((output) => [output.outputId, output.effectiveValue])
+  );
+  const updatedAt = new Date(snapshot?.completedAtMs ?? Date.now()).toISOString();
+  return {
+    flowId: session.flowId,
+    state: session.lifecycleState === 'faulted' ? ('error' as const) : ('running' as const),
+    updatedAt,
+    nodes: Object.fromEntries(
+      currentFlow.nodes.map((flowNode) => {
+        const node = snapshotsByNode.get(flowNode.id);
+        const inspected = inspectedValues[flowNode.id];
+        const pointId = String(flowNode.configuration.pointId ?? '');
+        const ioValue = flowNode.kind.endsWith('Input')
+          ? inputValues.get(pointId)
+          : flowNode.kind.endsWith('Output')
+            ? outputValues.get(pointId)
+            : undefined;
+        const typed = node?.typedValue ?? inspected;
+        const typedDataType = typed
+          ? typed.type || (typed as typeof typed & { dataType?: string }).dataType
+          : undefined;
+        const ioDataType = ioValue
+          ? ioValue.type || (ioValue as typeof ioValue & { dataType?: string }).dataType
+          : undefined;
+        const value = typed
+          ? typedDataType === 'number'
+            ? typed.number
+            : typed.value
+          : ioValue
+            ? ioDataType === 'number'
+              ? ioValue.number
+              : ioValue.boolean
+            : undefined;
+        return [
+          flowNode.id,
+          {
+            state: (node?.state === 'fault' ? 'error' : 'running') as 'error' | 'running',
+            ...(value === undefined ? {} : { value: String(value) }),
+            updatedAt
+          }
+        ];
+      })
+    )
+  };
+});
+const canvasRuntime = computed(() => {
+  if (workspaceMode.value === 'simulator') return simulatorNodeRuntime.value ?? runtime.value;
+  if (workspaceMode.value === 'debugger') return debugNodeRuntime.value ?? runtime.value;
+  return runtime.value;
+});
+
 const debugConnectorValues = computed(() => {
   const snapshot = debugSnapshot.value;
   const currentFlow = flow.value;
@@ -581,8 +640,25 @@ const compileFlow = async (): Promise<void> => {
 const startSimulation = async (): Promise<void> => {
   const current = flow.value;
   const target = debugTargets.value.find((item) => item.id === 'server');
-  if (!current || !target) return;
-  await simulator.start(createExecutableFlowSource(current, target));
+  if (!current || !target) {
+    simulator.reportFailure(new Error('The flow or simulator execution target is unavailable.'));
+    return;
+  }
+  try {
+    await simulator.start(createExecutableFlowSource(current, target));
+    if (simulator.lifecycle === 'ready') await simulator.run();
+  } catch (error) {
+    simulator.reportFailure(error);
+  }
+};
+
+const applySimulatorInputs = async (
+  inputs: import('@/features/flows/api/flowEmulatorApi').EmulatorInputChange[]
+): Promise<void> => {
+  const wasRunning = simulator.lifecycle === 'running';
+  if (wasRunning) await simulator.pause();
+  await simulator.applyInputsAndStep(inputs);
+  if (wasRunning && simulator.lifecycle === 'paused') await simulator.run();
 };
 
 const debugFailure = (error: unknown): string =>
@@ -1236,7 +1312,7 @@ h1 {
 
 .heading-actions {
   display: flex;
-  gap: var(--space-3-5);
+  gap: var(--space-5-5);
 }
 
 .version-selector {

@@ -86,10 +86,11 @@ const parse = (value: unknown): SimulatorSession => {
 const request = async (
   url: string,
   init: RequestInit,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  trackWait = true
 ): Promise<SimulatorSession> => {
   try {
-    const response = await waitForFetch(url, { ...init, signal });
+    const response = await waitForFetch(url, { ...init, signal }, { trackWait });
     if (!response.ok) {
       const body: unknown = await response.json().catch(() => undefined);
       throw new FlowApiError('http', errorMessage(body, response.status), response.status);
@@ -120,7 +121,7 @@ export const flowSimulatorApi = {
       signal
     ),
   get: (flowId: string, sessionId: string, signal?: AbortSignal) =>
-    request(sessionUrl(flowId, sessionId), { method: 'GET' }, signal),
+    request(sessionUrl(flowId, sessionId), { method: 'GET' }, signal, false),
   stepTick: (flowId: string, sessionId: string, signal?: AbortSignal) =>
     request(`${sessionUrl(flowId, sessionId)}/step`, { method: 'POST' }, signal),
   applyInputsAndStep: (

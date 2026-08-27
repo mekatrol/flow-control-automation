@@ -49,4 +49,14 @@ describe('waitForFetch', () => {
     expect(store.waitCount).toBe(0);
     expect(store.isWaiting).toBe(false);
   });
+
+  it('allows background polling without changing the global wait state', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response()));
+    const store = useWaitStore();
+
+    await waitForFetch('/poll', undefined, { trackWait: false });
+
+    expect(store.waitCount).toBe(0);
+    expect(store.isWaiting).toBe(false);
+  });
 });

@@ -80,6 +80,8 @@ describe('FlowNode', () => {
     // Acceptance criteria: `wrapper.get('.node-status'` must be `'running: 21.5 °C'`, because this condition proves that
     // uses registry metadata and exposes an accessible node name and status.
     expect(wrapper.get('.node-status').attributes('aria-label')).toBe('running: 21.5 °C');
+    expect(wrapper.get('.status-label').text()).toBe('running');
+    expect(wrapper.get('.status-value').text()).toBe('21.5 °C');
 
     // Expected outcome: `wrapper.findAll('.node-marker')` contains the required number of entries.
     // Acceptance criteria: `wrapper.findAll('.node-marker')` must contain exactly 3 entries, because this condition proves that

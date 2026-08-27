@@ -138,6 +138,10 @@ export const createExecutableFlowSource = (
       source: { nodeId: connection.start.nodeId, portId: connection.start.connectorId },
       target: { nodeId: connection.end.nodeId, portId: connection.end.connectorId }
     })),
-    virtualPointDeclarations: structuredClone(flow.virtualPointDeclarations ?? [])
+    // Flow definitions come from a reactive Pinia store. Browser structuredClone
+    // rejects Vue proxy objects, while declarations contain only scalar fields.
+    virtualPointDeclarations: (flow.virtualPointDeclarations ?? []).map((declaration) => ({
+      ...declaration
+    }))
   };
 };

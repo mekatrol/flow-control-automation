@@ -77,6 +77,12 @@
     <div class="designer-workspace">
       <AppFlowNodePalette @[EVENTS.ADD]="handleAddNode" />
       <div class="canvas-column">
+        <AppFlowSimulatorIoOverlay
+          v-if="simulatorIo"
+          :flow="flow"
+          :snapshot="simulatorIo"
+          @apply="(inputs) => emit(EVENTS.APPLY_INPUTS_STEP, inputs)"
+        />
         <p v-if="connectionError" class="connection-error" role="alert">{{ connectionError }}</p>
 
         <div
@@ -148,11 +154,7 @@
               :node="node"
               :selected="node.id === selectedNodeId"
               :status="runtime?.nodes[node.id]?.state ?? flow.status"
-              :status-value="
-                runtime?.nodes[node.id]?.value === undefined
-                  ? undefined
-                  : String(runtime.nodes[node.id]?.value)
-              "
+              :status-value="nodeStatusValue(node)"
               :connection-start="connectionStart"
               :compatible-connector-keys="compatibleConnectorKeys"
               :current="node.id === currentNodeId"
@@ -205,6 +207,7 @@ import AppFlowDesignerToolbar from './AppFlowDesignerToolbar.vue';
 import AppFlowNode from './AppFlowNode.vue';
 import AppFlowNodePalette from './AppFlowNodePalette.vue';
 import AppFlowNodeConfigurationPanel from './AppFlowNodeConfigurationPanel.vue';
+import AppFlowSimulatorIoOverlay from './AppFlowSimulatorIoOverlay.vue';
 import {
   clientToSvgPoint,
   useDesignerViewport
@@ -236,6 +239,7 @@ import { flowNodeKinds } from '@/features/flows/nodeKinds';
 import type { FlowRuntimeSnapshot } from '@/features/flows/api/flowRuntimeApi';
 import type { ConnectorRuntimeValue } from '@/features/flows/api/flowRuntimeApi';
 import type { FlowDebugBreakpoint } from '@/features/flows/api/flowDebugApi';
+import type { EmulatorInputChange, EmulatorSnapshot } from '@/features/flows/api/flowEmulatorApi';
 
 const props = defineProps<{
   flow: FlowDefinition;
@@ -247,6 +251,8 @@ const props = defineProps<{
   focusNodeId?: string;
   contextPointContracts?: VirtualPointDeclaration[];
   executionContextId?: string;
+  simulatorIo?: EmulatorSnapshot;
+  showDefaultValues?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -271,6 +277,7 @@ const emit = defineEmits<{
   ): void;
   (event: 'pointValidation', nodeId: string, state: PointValidationState): void;
   (event: 'createVirtualPoint', declaration: VirtualPointDeclaration): void;
+  (event: typeof EVENTS.APPLY_INPUTS_STEP, inputs: EmulatorInputChange[]): void;
 }>();
 
 const handleNodeLabelUpdate = (label: string): void => {
@@ -399,6 +406,27 @@ const orderedNodes = computed(() =>
 const selectedNode = computed(() =>
   selectedNodeId.value ? nodesById.value.get(selectedNodeId.value) : undefined
 );
+const defaultNodeValue = (node: FlowNodeModel): string | undefined => {
+  if (node.kind === 'numericConstant') return String(node.configuration.value ?? 0);
+  if (node.kind === 'digitalConstant' || node.kind === 'memory')
+    return Boolean(node.configuration.value) ? 'On' : 'Off';
+  if (!node.kind.endsWith('Input') && !node.kind.endsWith('Output')) return undefined;
+  const pointId = String(node.configuration.pointId ?? '');
+  const declaration = props.flow.virtualPointDeclarations?.find((point) => point.key === pointId);
+  if (!declaration) return undefined;
+  if (typeof declaration.relinquishDefault === 'number')
+    return `${declaration.relinquishDefault}${declaration.units ? ` ${declaration.units}` : ''}`;
+  if (typeof declaration.relinquishDefault === 'boolean')
+    return declaration.relinquishDefault ? 'On' : 'Off';
+  return declaration.valueType === 'analog'
+    ? `0${declaration.units ? ` ${declaration.units}` : ''}`
+    : 'Off';
+};
+const nodeStatusValue = (node: FlowNodeModel): string | undefined => {
+  const runtimeValue = props.runtime?.nodes[node.id]?.value;
+  if (runtimeValue !== undefined) return String(runtimeValue);
+  return props.showDefaultValues ? defaultNodeValue(node) : undefined;
+};
 const canMoveFront = computed(() =>
   selectedNodeId.value ? canReorderNode(props.flow.nodes, selectedNodeId.value, 'front') : false
 );

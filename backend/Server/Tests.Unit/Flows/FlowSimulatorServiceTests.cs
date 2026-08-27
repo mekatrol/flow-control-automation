@@ -51,6 +51,29 @@ public sealed class FlowSimulatorServiceTests
         ordinaryDebugRegistry.Dispose();
     }
 
+    [Test]
+    public async Task RunExecutesScansUntilPaused()
+    {
+        var machines = new MachineFactory();
+        using var emulators = new FlowEmulatorService(new Resolver(), new Compiler(), machines);
+        using var sessions = new FlowSimulatorSessionRegistry(TimeProvider.System);
+        var service = CreateService(machines, new RecordingPointAdapter(), emulators, sessions);
+        var started = await service.StartAsync(Source(), false, default);
+
+        var running = await service.RunAsync(Source().Id, started.SessionId, 10, default);
+        await Task.Delay(60);
+        var progressed = await service.GetAsync(Source().Id, started.SessionId, default);
+        var paused = await service.PauseAsync(Source().Id, started.SessionId, default);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(running.LifecycleState, Is.EqualTo("running"));
+            Assert.That(running.Snapshot?.TickNumber, Is.EqualTo(1));
+            Assert.That(progressed.Snapshot?.TickNumber, Is.GreaterThan(1));
+            Assert.That(paused.LifecycleState, Is.EqualTo("paused"));
+        });
+    }
+
     private static FlowSimulatorService CreateService(
         IFlowVirtualMachineFactory machines,
         IFlowPointAdapter points,

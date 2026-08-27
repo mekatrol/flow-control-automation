@@ -4,128 +4,28 @@ import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import AppFlowSimulatorPanel from '@/features/flows/components/AppFlowSimulatorPanel.vue';
 
-describe('flow simulator panel', () => {
-  it('exposes deterministic controls and announces lifecycle state', async () => {
-    const wrapper = mount(AppFlowSimulatorPanel, {
-      props: {
-        lifecycle: 'ready',
-        session: {
-          sessionId: 'one',
-          flowId: 'flow-a',
-          sourceRevision: 1,
-          sourceDigest: 'abc',
-          lifecycleState: 'ready',
-          leaseRemainingMilliseconds: 900000,
-          breakpoints: [],
-          capabilities: {
-            stepTick: true,
-            stepNode: true,
-            stepInstruction: true,
-            continue: true,
-            pause: true,
-            runTo: true,
-            maximumBreakpoints: 32,
-            maximumInspectableSlots: 256
-          }
-        }
-      }
-    });
-
-    await wrapper
-      .findAll('button')
-      .find((button) => button.text() === 'One scan')!
-      .trigger('click');
-
-    expect(wrapper.emitted('step-tick')).toHaveLength(1);
-    expect(wrapper.get('[role="status"]').text()).toBe('Ready');
-    expect(wrapper.text()).toContain('No commands from this workspace are sent');
-  });
-
-  it('requires recompilation after an edit and disables execution', () => {
-    const wrapper = mount(AppFlowSimulatorPanel, {
-      props: { lifecycle: 'stale' }
-    });
-
-    expect(wrapper.get('[role="alert"]').text()).toContain('Start simulation again');
+describe('flow simulator controls', () => {
+  it('offers only start before a simulation session exists', async () => {
+    const wrapper = mount(AppFlowSimulatorPanel, { props: { lifecycle: 'idle' } });
     const buttons = wrapper.findAll('button');
-    expect(
-      buttons.find((button) => button.text() === 'One scan')!.attributes('disabled')
-    ).toBeDefined();
+
+    expect(buttons.map((button) => button.text())).toEqual(['Start simulation', 'Stop simulation']);
     expect(buttons[0]!.attributes('disabled')).toBeUndefined();
+    expect(buttons[1]!.attributes('disabled')).toBeDefined();
+
+    await buttons[0]!.trigger('click');
+    expect(wrapper.emitted('start-simulation')).toHaveLength(1);
   });
 
-  /**
-   * Purpose: Protects the primary typed simulator workflow from regressing to Boolean point toggles.
-   * Description: Renders a numeric point, changes its value and quality, and applies one coherent scan.
-   */
-  it('applies a typed point input and exposes committed output metadata', async () => {
-    const wrapper = mount(AppFlowSimulatorPanel, {
-      props: {
-        lifecycle: 'ready',
-        session: {
-          sessionId: 'one',
-          flowId: 'flow-a',
-          sourceRevision: 1,
-          sourceDigest: 'abc',
-          lifecycleState: 'ready',
-          leaseRemainingMilliseconds: 900000,
-          breakpoints: [],
-          capabilities: {
-            stepTick: true,
-            stepNode: true,
-            stepInstruction: true,
-            continue: true,
-            pause: true,
-            runTo: true,
-            maximumBreakpoints: 32,
-            maximumInspectableSlots: 256
-          },
-          io: {
-            emulatorId: 'io',
-            flowId: 'flow-a',
-            controllerTemplateId: 'server',
-            lifecycleState: 'ready',
-            virtualTimeMilliseconds: 0,
-            scanNumber: 1,
-            inputs: [
-              {
-                pointId: 'temperature',
-                typedValue: { type: 'number', boolean: false, number: 12.5, quality: 'good' }
-              }
-            ],
-            outputHistory: [
-              {
-                scanNumber: 1,
-                outputId: 'result',
-                proposedValue: { type: 'number', boolean: false, number: 12.5, quality: 'good' },
-                effectiveValue: { type: 'number', boolean: false, number: 12.5, quality: 'good' },
-                quality: 'good',
-                units: '°C',
-                lastChangeScan: 1
-              }
-            ]
-          }
-        }
-      }
-    });
+  it('offers stop and reports running for an active session', async () => {
+    const wrapper = mount(AppFlowSimulatorPanel, { props: { lifecycle: 'running' } });
+    const buttons = wrapper.findAll('button');
 
-    await wrapper.get('input[type="number"]').setValue('21.5');
-    await wrapper
-      .findAll('button')
-      .find((button) => button.text() === 'Apply inputs and run one scan')!
-      .trigger('click');
+    expect(wrapper.get('[role="status"]').text()).toBe('running');
+    expect(buttons[0]!.attributes('disabled')).toBeDefined();
+    expect(buttons[1]!.attributes('disabled')).toBeUndefined();
 
-    // Expected outcome: One atomic typed request is emitted using the stable point ID.
-    // Acceptance criteria: The emitted value is numeric 21.5 for `temperature`, proving the workbench does not use a display label or Boolean coercion.
-    expect(wrapper.emitted('apply-inputs-step')?.[0]?.[0]).toEqual([
-      {
-        inputId: 'temperature',
-        typedValue: { type: 'number', boolean: false, number: 21.5, quality: 'good' }
-      }
-    ]);
-    // Expected outcome: Output history clearly identifies committed simulator state and units.
-    // Acceptance criteria: Visible text contains the committed label and °C, distinguishing it from a physical output.
-    expect(wrapper.text()).toContain('Committed');
-    expect(wrapper.text()).toContain('12.5 °C');
+    await buttons[1]!.trigger('click');
+    expect(wrapper.emitted('stop-simulation')).toHaveLength(1);
   });
 });

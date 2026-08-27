@@ -106,11 +106,39 @@ public sealed class FlowSimulatorSessionRegistry(TimeProvider timeProvider) : ID
 
     internal sealed class Entry(FlowDebugSessionRegistry registry, DateTimeOffset lastAccess, string? emulatorId, Action? cleanup) : IDisposable
     {
+        private CancellationTokenSource? _continuousCancellation;
+        private Task? _continuousTask;
         public FlowDebugSessionRegistry Registry { get; } = registry;
         public string? EmulatorId { get; } = emulatorId;
         public DateTimeOffset LastAccess { get; set; } = lastAccess;
+        public void StartContinuous(Func<CancellationToken, Task> scan, uint intervalMilliseconds)
+        {
+            StopContinuous();
+            _continuousCancellation = new CancellationTokenSource();
+            var token = _continuousCancellation.Token;
+            _continuousTask = Task.Run(async () =>
+            {
+                try
+                {
+                    while (!token.IsCancellationRequested)
+                    {
+                        await Task.Delay(checked((int)Math.Max(1, intervalMilliseconds)), token);
+                        await scan(token);
+                    }
+                }
+                catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+            }, CancellationToken.None);
+        }
+        public void StopContinuous()
+        {
+            _continuousCancellation?.Cancel();
+            _continuousCancellation?.Dispose();
+            _continuousCancellation = null;
+            _continuousTask = null;
+        }
         public void Dispose()
         {
+            StopContinuous();
             Registry.Dispose();
             cleanup?.Invoke();
         }

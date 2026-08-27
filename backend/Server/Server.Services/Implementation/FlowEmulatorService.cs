@@ -420,20 +420,21 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
             ActiveFault = _fault
         };
 
-        private static IEnumerable<FlowVmInput> InitialInputs(ExecutableFlowSource source)
-        {
-            foreach (var pointId in InputPointIds(source))
+        private static IEnumerable<FlowVmInput> InitialInputs(ExecutableFlowSource source) => source.Nodes
+            .Where(node => node.Kind is FlowNodeKind.DigitalInput or FlowNodeKind.AnalogInput
+                && node.Configuration.TryGetValue("pointId", out _))
+            .Select(node => new
             {
-                yield return new FlowVmInput(pointId, false);
-            }
-        }
-
-        private static IEnumerable<string> InputPointIds(ExecutableFlowSource source) => source.Nodes
-            .Where(node => node.Kind == FlowNodeKind.DigitalInput && node.Configuration.TryGetValue("pointId", out _))
-            .Select(node => node.Configuration["pointId"].GetString())
-            .Where(static id => !string.IsNullOrEmpty(id))
-            .Cast<string>()
-            .Distinct(StringComparer.Ordinal);
+                PointId = node.Configuration["pointId"].GetString(),
+                node.Kind
+            })
+            .Where(static item => !string.IsNullOrEmpty(item.PointId))
+            .DistinctBy(static item => item.PointId, StringComparer.Ordinal)
+            .Select(static item => new FlowVmInput(
+                item.PointId!,
+                item.Kind == FlowNodeKind.AnalogInput
+                    ? FlowVmValue.FromNumber(0)
+                    : FlowVmValue.FromBoolean(false)));
 
         public void Dispose() => _machine.Dispose();
     }

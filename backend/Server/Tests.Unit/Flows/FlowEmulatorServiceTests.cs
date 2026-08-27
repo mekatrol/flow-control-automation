@@ -86,6 +86,29 @@ public sealed class FlowEmulatorServiceTests
         });
     }
 
+    [Test]
+    public async Task InitializesAndAcceptsAnalogInputs()
+    {
+        using var service = new FlowEmulatorService(new Resolver(), new Compiler(), new MachineFactory());
+        var source = Source() with
+        {
+            Nodes =
+            [
+                Source().Nodes[0] with { Kind = FlowNodeKind.AnalogInput }
+            ]
+        };
+        var created = await service.CreateAsync(source, default);
+
+        var updated = service.ApplyInputsAndStep(created.EmulatorId,
+            [new EmulatorInputChange("input-01", FlowVmValue.FromNumber(21.5))]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(created.Inputs.Single().TypedValue.DataType, Is.EqualTo(DataType.Number));
+            Assert.That(updated.Inputs.Single().TypedValue.Number, Is.EqualTo(21.5));
+        });
+    }
+
     private static ExecutableFlowSource Source() => new()
     {
         Id = "flow-a",

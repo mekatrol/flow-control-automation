@@ -20,9 +20,12 @@
             @click="emit(EVENTS.RESET_INPUTS)"
           />
         </div>
-        <div v-if="snapshot?.inputs.length" class="input-grid">
-          <fieldset v-for="input in snapshot.inputs" :key="input.pointId" class="input-card">
-            <legend>{{ inputLabel(input.pointId) }}</legend>
+        <div v-if="editableInputs.length" class="input-grid">
+          <fieldset v-for="input in editableInputs" :key="input.pointId" class="input-card">
+            <legend>
+              {{ inputLabel(input.pointId) }}
+              <span v-if="virtualPoints.has(input.pointId)" class="point-kind">Virtual</span>
+            </legend>
             <label v-if="input.typedValue.type === 'boolean'" class="value-toggle"
               ><input v-model="inputDraft(input.pointId).boolean" type="checkbox" /><span>{{
                 inputDraft(input.pointId).boolean ? 'On' : 'Off'
@@ -124,8 +127,10 @@ import type {
   EmulatorSnapshot,
   EmulatorValue
 } from '@/features/flows/api/flowEmulatorApi';
+import type { VirtualPointDeclaration } from '@/features/flows/types';
 const props = defineProps<{
   snapshot?: EmulatorSnapshot;
+  virtualPointDeclarations?: VirtualPointDeclaration[];
 }>();
 const emit = defineEmits<{
   (event: typeof EVENTS.APPLY_INPUTS_STEP, inputs: EmulatorInputChange[]): void;
@@ -137,6 +142,26 @@ const emit = defineEmits<{
 const qualities = ['good', 'bad', 'stale', 'unavailable'] as const;
 const draft = reactive<Record<string, EmulatorValue>>({});
 const error = ref<string>();
+const virtualPoints = computed(
+  () => new Map((props.virtualPointDeclarations ?? []).map((point) => [point.key, point]))
+);
+const defaultValue = (point: VirtualPointDeclaration): EmulatorValue => ({
+  type: point.valueType === 'analog' ? 'number' : 'boolean',
+  boolean: point.valueType === 'digital' ? Boolean(point.relinquishDefault) : false,
+  number:
+    point.valueType === 'analog' && typeof point.relinquishDefault === 'number'
+      ? point.relinquishDefault
+      : 0,
+  quality: 'good'
+});
+const editableInputs = computed(() => {
+  const inputs = new Map((props.snapshot?.inputs ?? []).map((input) => [input.pointId, input]));
+  for (const point of props.virtualPointDeclarations ?? []) {
+    if (point.readable && !inputs.has(point.key))
+      inputs.set(point.key, { pointId: point.key, typedValue: defaultValue(point) });
+  }
+  return [...inputs.values()];
+});
 const latestOutputs = computed(() => {
   const history = props.snapshot?.outputHistory ?? [];
   const scan = Math.max(0, ...history.map((item) => item.scanNumber));
@@ -145,17 +170,20 @@ const latestOutputs = computed(() => {
 const inputDraft = (id: string): EmulatorValue =>
   draft[id] ?? { type: 'boolean', boolean: false, number: 0, quality: 'unavailable' };
 watch(
-  () => props.snapshot?.inputs,
+  editableInputs,
   (inputs) => inputs?.forEach((input) => (draft[input.pointId] = { ...input.typedValue })),
   { immediate: true, deep: true }
 );
 const inputLabel = (id: string): string => id;
-const inputUnits = (_id: string): string => '';
+const inputUnits = (id: string): string => virtualPoints.value.get(id)?.units ?? '';
 const outputLabel = (id: string): string => id;
 const displayValue = (value: EmulatorValue): string =>
   value.type === 'number' ? String(value.number) : value.boolean ? 'On' : 'Off';
 const applyAndStep = (): void => {
-  const changes = Object.entries(draft).map(([inputId, typedValue]) => ({ inputId, typedValue }));
+  const changes = editableInputs.value.map(({ pointId }) => ({
+    inputId: pointId,
+    typedValue: inputDraft(pointId)
+  }));
   if (
     changes.some(
       ({ typedValue }) => typedValue.type === 'number' && !Number.isFinite(typedValue.number)
@@ -232,6 +260,13 @@ h4,
 .input-card legend {
   padding: 0 var(--space-2);
   font-weight: var(--font-weight-semibold);
+}
+.point-kind {
+  margin-left: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
 }
 .field-label {
   display: grid;

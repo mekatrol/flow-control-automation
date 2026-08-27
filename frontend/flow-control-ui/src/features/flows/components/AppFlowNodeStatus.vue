@@ -6,7 +6,10 @@
   >
     <rect class="status-background" y="-1" :width="width" height="14" rx="2" />
     <rect class="status-indicator" x="3" width="9" height="9" rx="2" />
-    <text x="17" y="9">{{ value || status }}</text>
+    <text class="status-label" x="17" y="9">{{ status }}</text>
+    <text v-if="value" class="status-value" :x="width - 5" y="9" text-anchor="end">
+      {{ value }}
+    </text>
     <title>{{ value ? `${status}: ${value}` : status }}</title>
   </g>
 </template>
@@ -44,5 +47,9 @@ defineProps<{
   fill: var(--color-node-status-stopped);
   font-size: var(--font-size-sm);
   text-transform: uppercase;
+}
+
+.status-value {
+  text-transform: none !important;
 }
 </style>
