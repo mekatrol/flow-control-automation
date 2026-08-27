@@ -96,7 +96,11 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
   ]),
   [FlowNodeFunctionType.Average]: executableDefinition(
     FlowNodeFunctionType.Average,
-    numberConnectors(),
+    [
+      { id: 'a', label: 'A', direction: 'input', dataType: 'number', side: 'left' },
+      { id: 'b', label: 'B', direction: 'input', dataType: 'number', side: 'left' },
+      { id: 'output', label: 'Average', direction: 'output', dataType: 'number', side: 'right' }
+    ],
     [],
     {},
     'maths'

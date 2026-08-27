@@ -60,9 +60,9 @@ public sealed class FlowCompilerTests
     {
         var numericInputs = kind switch
         {
-            FlowNodeKind.Add or FlowNodeKind.Comparator or FlowNodeKind.Min or FlowNodeKind.Max or FlowNodeKind.Sequence => ["a", "b"],
+            FlowNodeKind.Add or FlowNodeKind.Average or FlowNodeKind.Comparator or FlowNodeKind.Min or FlowNodeKind.Max or FlowNodeKind.Sequence => ["a", "b"],
             FlowNodeKind.Selector => ["a", "b"],
-            FlowNodeKind.Average or FlowNodeKind.Calculator or FlowNodeKind.Clamp or FlowNodeKind.Line or FlowNodeKind.Split => new[] { "input" },
+            FlowNodeKind.Calculator or FlowNodeKind.Clamp or FlowNodeKind.Line or FlowNodeKind.Split => new[] { "input" },
             FlowNodeKind.LevelShifter => ["in"],
             FlowNodeKind.AnalogOutput => ["in"],
             FlowNodeKind.Memory or FlowNodeKind.QualityGood => ["in"],

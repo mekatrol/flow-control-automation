@@ -31,7 +31,8 @@ the listed opcode semantics.
 | `qualityGood` | `QUALITY_GOOD` (17) | stateless quality projection | compiler validation and portable VM semantics |
 | `onDelay` | `ON_DELAY` (18) plus state metadata | stages timer state; publishes only at `COMMIT` | compiler state metadata and portable VM transactional tests |
 | `risingEdge` | `RISING_EDGE` (19) plus state metadata | stages previous-input state; publishes only at `COMMIT` | compiler state metadata and portable VM transactional tests |
-| `average`, `calculator`, `split`, `override` | `COPY` (24) | stateless canonical single-value profiles | compiler and registry tests |
+| `calculator`, `split`, `override` | `COPY` (24) | stateless canonical single-value profiles | compiler and registry tests |
+| `average` | `AVERAGE` (27) | mean of two numeric inputs | compiler and VM tests |
 | `min`, `max` | `MIN` (20), `MAX` (21) | stateless; propagates worst input quality | compiler and portable VM tests |
 | `clamp` | `CLAMP` (22) | stateless; finite ordered bounds | compiler and portable VM tests |
 | `line` | `LEVEL_SHIFTER` (16) | stateless affine transform | compiler and portable VM tests |

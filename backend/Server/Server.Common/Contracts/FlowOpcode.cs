@@ -33,6 +33,7 @@ public enum FlowOpcode : byte
     Passthrough = 24,
     If = 25,
     Sequence = 26,
+    Average = 27,
 
     Commit = byte.MaxValue
 }

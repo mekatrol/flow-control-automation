@@ -243,6 +243,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
                     Value(Constant(instruction.Auxiliary, DataType.Number));
                 break;
             case FlowOpcode.Add: Number(instruction, a.Number + b.Number, quality); break;
+            case FlowOpcode.Average: Number(instruction, (a.Number / 2D) + (b.Number / 2D), quality); break;
             case FlowOpcode.Comparator:
                 var compared = instruction.Auxiliary switch { 1 => a.Number < b.Number, 2 => a.Number <= b.Number, 3 => a.Number == b.Number, 4 => a.Number >= b.Number, 5 => a.Number > b.Number, 6 => a.Number != b.Number, _ => throw Error(FlowVmErrorCode.InvalidInstruction, "/instructions/comparison") };
                 _slots[instruction.Result] = FlowVmValue.FromBoolean(compared, quality);

@@ -301,7 +301,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         [FlowNodeKind.Memory] = new([new("in", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Number)]),
         [FlowNodeKind.DigitalOutput] = new([new("in", DataDirection.Input, DataType.Boolean)]),
         [FlowNodeKind.AnalogOutput] = new([new("in", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Number)]),
-        [FlowNodeKind.Average] = new([new("input", DataDirection.Input, DataType.Number), new("output", DataDirection.Output, DataType.Number)]),
+        [FlowNodeKind.Average] = new([new("a", DataDirection.Input, DataType.Number), new("b", DataDirection.Input, DataType.Number), new("output", DataDirection.Output, DataType.Number)]),
         [FlowNodeKind.Calculator] = new([new("input", DataDirection.Input, DataType.Number), new("output", DataDirection.Output, DataType.Number)]),
         [FlowNodeKind.Clamp] = new([new("input", DataDirection.Input, DataType.Number), new("output", DataDirection.Output, DataType.Number)]),
         [FlowNodeKind.Min] = new([new("a", DataDirection.Input, DataType.Number), new("b", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Number)]),
@@ -2191,7 +2191,6 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                     context.NodeId,
                     NodeInstructionRole.Primary),
 
-            FlowNodeKind.Average or
             FlowNodeKind.Calculator or
             FlowNodeKind.Split or
             FlowNodeKind.Override =>
@@ -2205,6 +2204,8 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                     ),
                     context.NodeId,
                     NodeInstructionRole.Primary),
+
+            FlowNodeKind.Average => CreateBinaryNumericInstruction(context, FlowOpcode.Average),
 
             FlowNodeKind.Min => CreateBinaryNumericInstruction(context, FlowOpcode.Min),
             FlowNodeKind.Max => CreateBinaryNumericInstruction(context, FlowOpcode.Max),
@@ -3130,7 +3131,8 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 FlowNodeKind.Add => RequireMatchingUnits(source, units, id, "a", "b"),
                 FlowNodeKind.Comparator => RequireMatchingUnits(source, units, id, "a", "b"),
                 FlowNodeKind.LevelShifter => units[SourceNode(source, id, "in")],
-                FlowNodeKind.Average or FlowNodeKind.Calculator or FlowNodeKind.Clamp or FlowNodeKind.Line => units[SourceNode(source, id, "input")],
+                FlowNodeKind.Average => units[SourceNode(source, id, "a")],
+                FlowNodeKind.Calculator or FlowNodeKind.Clamp or FlowNodeKind.Line => units[SourceNode(source, id, "input")],
                 FlowNodeKind.Min or FlowNodeKind.Max or FlowNodeKind.Selector => RequireMatchingUnits(source, units, id, "a", "b"),
                 _ => null
             };

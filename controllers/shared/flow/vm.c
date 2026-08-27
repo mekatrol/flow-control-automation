@@ -38,6 +38,7 @@ enum
     OPCODE_CLAMP                = 22,
     OPCODE_SELECT               = 23,
     OPCODE_COPY                 = 24,
+    OPCODE_AVERAGE              = 27,
     OPCODE_COMMIT               = 255,
     RETAINED_STATE_RECORD_BYTES = 9,
 };
@@ -478,7 +479,7 @@ flow_vm_result_t flow_vm_prepare(const uint8_t *artifact, size_t artifact_size, 
         instruction->auxiliary             = get_u16(&record[8]);
 
         if (record[1] != 0U || get_u16(&record[10]) != 0U || instruction->opcode == 0U ||
-            (instruction->opcode > OPCODE_COPY && instruction->opcode != OPCODE_COMMIT))
+            (instruction->opcode > OPCODE_AVERAGE && instruction->opcode != OPCODE_COMMIT))
         {
             return get_result(FLOW_VM_UNKNOWN_OPCODE, "/instructions");
         }
@@ -711,6 +712,24 @@ flow_vm_result_t flow_vm_step_instruction(flow_vm_t *vm, flow_vm_execution_view_
             break;
         case OPCODE_ADD: {
             const double value = vm->numeric_slots[instruction->operand0] + vm->numeric_slots[instruction->operand1];
+
+            if (!isfinite(value))
+            {
+                return get_result(FLOW_VM_INPUT_REJECTED, "/arithmeticOverflow");
+            }
+
+            vm->numeric_slots[instruction->result] = value;
+            vm->slot_qualities[instruction->result] =
+                vm->slot_qualities[instruction->operand0] > vm->slot_qualities[instruction->operand1]
+                    ? vm->slot_qualities[instruction->operand0]
+                    : vm->slot_qualities[instruction->operand1];
+            break;
+        }
+
+        case OPCODE_AVERAGE: {
+            /* Halving before addition avoids overflowing when two finite inputs have a finite average. */
+            const double value = (vm->numeric_slots[instruction->operand0] / 2.0) +
+                                 (vm->numeric_slots[instruction->operand1] / 2.0);
 
             if (!isfinite(value))
             {

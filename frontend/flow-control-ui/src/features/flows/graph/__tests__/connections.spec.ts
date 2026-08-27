@@ -95,6 +95,26 @@ describe('connection graph operations', () => {
     });
   });
 
+  it('rejects a second input driver but permits output fan-out', () => {
+    const flow = structuredClone(sampleFlows[0]!);
+
+    expect(
+      validateConnection(
+        flow,
+        { nodeId: 'zone-split', connectorId: 'output' },
+        { nodeId: 'comfort-pulse', connectorId: 'input' }
+      ).message
+    ).toMatch(/already has a connection/);
+
+    expect(
+      validateConnection(
+        flow,
+        { nodeId: 'temperature-average', connectorId: 'output' },
+        { nodeId: 'zone-split', connectorId: 'input' }
+      )
+    ).toEqual({ valid: true });
+  });
+
   /**
    * Purpose: Protects the behavioral contract that rejects duplicate, self, missing, wrong-direction, and incompatible links.
    * Description: Exercises rejects duplicate, self, missing, wrong-direction, and incompatible links from its arranged starting state and

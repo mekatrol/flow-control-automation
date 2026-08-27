@@ -266,6 +266,7 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
                 instruction.Auxiliary,
                 instructionIndex),
             FlowOpcode.Add => FlowNodeKind.Add,
+            FlowOpcode.Average => FlowNodeKind.Average,
             FlowOpcode.Comparator => ConfigureComparator(
                 configuration,
                 instruction.Auxiliary,
@@ -315,6 +316,7 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
             case FlowOpcode.Xor:
             case FlowOpcode.Xnor:
             case FlowOpcode.Add:
+            case FlowOpcode.Average:
             case FlowOpcode.Comparator:
                 AddInputConnection("a", instruction.Operand0);
                 AddInputConnection("b", instruction.Operand1);

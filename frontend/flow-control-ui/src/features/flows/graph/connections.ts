@@ -50,6 +50,13 @@ export const validateConnection = (
       connection.end.connectorId === end.connectorId
   );
   if (duplicate) return { valid: false, message: 'That connection already exists.' };
+  const inputAlreadyDriven = flow.connections.some(
+    (connection) =>
+      connection.end.nodeId === end.nodeId && connection.end.connectorId === end.connectorId
+  );
+  if (inputAlreadyDriven) {
+    return { valid: false, message: 'That input already has a connection.' };
+  }
   return { valid: true };
 };
 
