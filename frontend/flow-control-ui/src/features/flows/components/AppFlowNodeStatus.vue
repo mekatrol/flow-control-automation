@@ -1,7 +1,7 @@
 <template>
   <g
     class="node-status"
-    transform="translate(0 49)"
+    transform="translate(0 69)"
     :aria-label="value ? `${status}: ${value}` : status"
   >
     <rect class="status-background" y="-1" :width="width" height="14" rx="2" />

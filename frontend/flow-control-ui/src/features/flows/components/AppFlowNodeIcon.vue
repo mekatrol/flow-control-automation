@@ -1,15 +1,15 @@
 <template>
   <g class="node-icon" aria-hidden="true">
-    <path class="node-icon-shade" d="M2 0h38v40H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2Z" />
+    <path class="node-icon-shade" d="M2 0h38v60H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2Z" />
     <image
       class="node-icon-foreground"
       :href="getNodeIconUrl(icon)"
       x="8"
-      y="8"
+      y="18"
       width="24"
       height="24"
     />
-    <path class="node-icon-separator" d="M39.5.5v39" />
+    <path class="node-icon-separator" d="M39.5.5v59" />
   </g>
 </template>
 

@@ -1,5 +1,5 @@
 <template>
-  <text class="node-label" x="46" y="25">{{ kindLabel || label }}</text>
+  <text class="node-label" x="46" y="35">{{ kindLabel || label }}</text>
 </template>
 
 <script setup lang="ts">

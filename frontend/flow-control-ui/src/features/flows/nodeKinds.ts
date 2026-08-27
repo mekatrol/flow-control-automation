@@ -19,7 +19,9 @@ export interface NodeKindDefinition {
   executable: boolean;
 }
 
-const defaultNodeSize = (): NodeKindDefinition['defaultSize'] => ({ width: 170, height: 40 });
+// A shared footprint keeps mixed node kinds aligned. The width accommodates the
+// longest built-in label and the extra height gives clustered ports more room.
+const defaultNodeSize = (): NodeKindDefinition['defaultSize'] => ({ width: 200, height: 60 });
 
 // Each node kind declares everything the palette, canvas, and inspector need.
 // Keeping these concerns together prevents their labels, connectors, and

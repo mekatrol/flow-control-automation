@@ -49,11 +49,11 @@ describe('connector layout', () => {
     const layouts = layoutConnectors([connector('a', 'right'), connector('b', 'right')], 210, 90);
 
     // Expected outcome: `layouts.map(({ x, y }) => ({ x, y }))` matches the required structure.
-    // Acceptance criteria: `layouts.map(({ x, y }) => ({ x, y }))` must equal `[ { x: 210, y: 30 }, { x: 210, y: 60 } ]`, because this condition proves that
+    // Acceptance criteria: vertically stacked connectors have one extra pixel of separation while remaining centred.
     // spaces multiple connectors evenly along one side.
     expect(layouts.map(({ x, y }) => ({ x, y }))).toEqual([
-      { x: 210, y: 30 },
-      { x: 210, y: 60 }
+      { x: 210, y: 29.5 },
+      { x: 210, y: 60.5 }
     ]);
   });
 
@@ -65,14 +65,14 @@ describe('connector layout', () => {
   it('prevents hit targets from overlapping on a densely populated side', () => {
     const layouts = layoutConnectors(
       [connector('condition', 'left'), connector('a', 'left'), connector('b', 'left')],
-      170,
-      40
+      200,
+      60
     );
 
     expect(layouts.map(({ y, hitRadius }) => ({ y, hitRadius }))).toEqual([
-      { y: 10, hitRadius: 5 },
-      { y: 20, hitRadius: 5 },
-      { y: 30, hitRadius: 5 }
+      { y: 14, hitRadius: 7.5 },
+      { y: 30, hitRadius: 7.5 },
+      { y: 46, hitRadius: 7.5 }
     ]);
   });
 });

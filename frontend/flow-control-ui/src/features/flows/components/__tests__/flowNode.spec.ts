@@ -109,15 +109,15 @@ describe('FlowNode', () => {
     expect(wrapper.findAll('rect.connector-port')).toHaveLength(node.connectors.length);
 
     // Expected outcome: `wrapper.get('.node-body'` has the required value.
-    // Acceptance criteria: `wrapper.get('.node-body'` must be `'170'`, because this condition proves that
+    // Acceptance criteria: `wrapper.get('.node-body'` must be `'200'`, because this condition proves that
     // uses registry metadata and exposes an accessible node name and status.
-    expect(wrapper.get('.node-body').attributes('width')).toBe('170');
+    expect(wrapper.get('.node-body').attributes('width')).toBe('200');
 
     // Expected outcome: `wrapper.findAll('.node-marker'` matches the required structure.
     // Acceptance criteria: `wrapper.findAll('.node-marker'` must equal `['translate(110 -8`, because this condition proves that
     // uses registry metadata and exposes an accessible node name and status.
     expect(wrapper.findAll('.node-marker').map((marker) => marker.attributes('transform'))).toEqual(
-      ['translate(110 -8)', 'translate(130 -8)', 'translate(150 -8)']
+      ['translate(140 -8)', 'translate(160 -8)', 'translate(180 -8)']
     );
 
     // Expected outcome: `wrapper .findAll('.flow-connector'` has the required value.
@@ -126,7 +126,7 @@ describe('FlowNode', () => {
     expect(
       wrapper
         .findAll('.flow-connector')
-        .some((connector) => connector.attributes('transform')?.startsWith('translate(170 '))
+        .some((connector) => connector.attributes('transform')?.startsWith('translate(200 '))
     ).toBe(true);
   });
 
