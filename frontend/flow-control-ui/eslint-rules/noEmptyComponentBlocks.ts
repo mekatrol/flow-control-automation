@@ -31,6 +31,10 @@ type VueDocumentFragment = {
   children: Array<VueElement | { type: string }>;
 };
 
+const isVueElement = (child: VueElement | { type: string }): child is VueElement => {
+  return child.type === 'VElement' && 'name' in child && 'startTag' in child && 'endTag' in child;
+};
+
 const COMPONENT_BLOCK_NAMES = new Set<ComponentBlockName>(['template', 'script', 'style']);
 const createRule = ESLintUtils.RuleCreator((): string => '');
 
@@ -65,7 +69,7 @@ const noEmptyComponentBlocks = createRule<Options, MessageIds>({
 
         for (const child of documentFragment.children) {
           if (
-            child.type !== 'VElement' ||
+            !isVueElement(child) ||
             !COMPONENT_BLOCK_NAMES.has(child.name as ComponentBlockName) ||
             !child.endTag
           ) {
