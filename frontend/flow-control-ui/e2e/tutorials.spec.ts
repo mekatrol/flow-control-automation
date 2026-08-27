@@ -10,7 +10,6 @@ test('keeps learning actions out of the function palette', async ({ page }) => {
   // Arrange: Open a normal editable flow and narrow the palette to one function.
   await page.goto('/flows/climate-control');
   await page.getByRole('searchbox', { name: 'Find a node' }).fill('and');
-  await page.getByRole('button', { name: 'Apply filter' }).click();
 
   // Assert: The function remains available without an adjacent Learn action.
   await expect(page.getByRole('button', { name: 'Add And node', exact: true })).toBeVisible();

@@ -10,7 +10,13 @@
     <div class="app-filter-fields">
       <slot></slot>
     </div>
-    <AppButton class="app-filter-apply" type="submit" :text="applyText" :icon="filterIcon" />
+    <AppButton
+      v-if="showApply"
+      class="app-filter-apply"
+      type="submit"
+      :text="applyText"
+      :icon="filterIcon"
+    />
   </form>
 </template>
 
@@ -22,11 +28,13 @@ import { EVENTS } from '@/constants/events';
 withDefaults(
   defineProps<{
     applyText?: string;
+    showApply?: boolean;
     constrained?: boolean;
     layout?: 'inline' | 'stacked';
   }>(),
   {
     applyText: 'Apply filter',
+    showApply: true,
     constrained: false,
     layout: 'inline'
   }

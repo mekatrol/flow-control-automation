@@ -19,6 +19,17 @@ describe('node palette filtering and grouping', () => {
     expect(addActions).toHaveLength(flowNodeKinds.length);
     expect(addActions.every((action) => action.classes('palette-add-button'))).toBe(true);
     expect(wrapper.text()).not.toContain('Learn');
+    expect(wrapper.find('button.app-filter-apply').exists()).toBe(false);
+  });
+
+  it('updates the visible nodes when the search model changes', async () => {
+    const wrapper = mount(AppFlowNodePalette);
+
+    await wrapper.get('input[type="search"]').setValue('pulse');
+
+    const addActions = wrapper.findAll('button.palette-add-button');
+    expect(addActions).toHaveLength(1);
+    expect(addActions[0]?.text()).toContain('Pulse');
   });
 
   /**

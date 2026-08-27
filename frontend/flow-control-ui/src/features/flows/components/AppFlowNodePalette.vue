@@ -1,7 +1,7 @@
 <template>
   <aside class="node-palette" aria-label="Function block toolbox">
     <h2>Function blocks</h2>
-    <AppFilter layout="stacked" @[EVENTS.APPLY_FILTER]="applyFilter">
+    <AppFilter layout="stacked" :show-apply="false">
       <label class="app-filter-field">
         <span>Find a node</span>
         <input v-model="filter" type="search" placeholder="Search nodes" />
@@ -26,7 +26,7 @@
         </div>
       </section>
     </div>
-    <p v-else>No node kinds match “{{ query }}”.</p>
+    <p v-else>No node kinds match “{{ filter }}”.</p>
   </aside>
 </template>
 
@@ -78,11 +78,7 @@ const emit = defineEmits<{
   (event: typeof EVENTS.ADD, kind: FlowNodeKind): void;
 }>();
 const filter = ref('');
-const query = ref('');
-const groups = computed(() => groupNodeKinds(filterNodeKinds(query.value)));
-const applyFilter = (): void => {
-  query.value = filter.value;
-};
+const groups = computed(() => groupNodeKinds(filterNodeKinds(filter.value)));
 
 const startPaletteDrag = (kind: FlowNodeKind, event: DragEvent): void => {
   event.dataTransfer?.setData('application/x-flow-node-function-type', kind);
