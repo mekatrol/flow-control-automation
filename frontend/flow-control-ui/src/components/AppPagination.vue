@@ -1,5 +1,5 @@
 <template>
-  <div class="pagination" v-bind="automation()">
+  <div class="pagination">
     <label>
       Items per page
       <select :value="pageSize" @change="changePageSize">
@@ -16,7 +16,6 @@
 
     <nav aria-label="Table pagination">
       <AppButton
-        v-bind="automation('prev')"
         text="Previous page"
         :icon="chevronLeftIcon"
         :disabled="page <= 1"
@@ -24,7 +23,6 @@
       />
       <span aria-current="page">Page {{ page }} of {{ totalItems }}</span>
       <AppButton
-        v-bind="automation('next')"
         text="Next page"
         :icon="chevronRightIcon"
         :disabled="page >= pageCount"
@@ -36,7 +34,6 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useAutomation } from '@/composables/useAutomation';
 
 import { ListPaginationEmit } from '@/models/listViewEmits';
 import AppButton from '@/components/AppButton.vue';
@@ -51,7 +48,6 @@ interface Props {
   totalItems: number;
   pageSizeOptions?: number[];
   ariaLabel?: string;
-  automation: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -65,8 +61,6 @@ type Emits = {
 };
 
 const emit = defineEmits<Emits>();
-
-const automation = useAutomation(props.automation);
 
 const firstItem = computed(() => {
   if (props.totalItems === 0) return 0;

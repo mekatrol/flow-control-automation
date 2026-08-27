@@ -43,7 +43,6 @@ const mountPopover = async (
             h(
               AppPopover,
               {
-                automation: 'app-options-popover',
                 id: fixture.id,
                 contentLabel: 'App options',
                 popoverMode: fixture.popoverMode ?? 'auto'

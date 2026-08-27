@@ -1,8 +1,7 @@
 <template>
-  <section v-bind="automation()" class="catalogue-page" aria-labelledby="groups-heading">
+  <section class="catalogue-page" aria-labelledby="groups-heading">
     <AppErrorNotice
       id="point-groups-error-notice"
-      v-bind="automation('error')"
       :message="store.error"
       retryable
       @[EVENTS.RETRY]="refresh"
@@ -14,12 +13,12 @@
         <p>Review reusable membership and shared source relationships.</p>
       </div>
       <RouterLink class="primary-link" :to="{ name: 'point-group-new' }">
-        <AppSvg :src="newIcon" v-bind="automation('new-icon')" size="1em" />
+        <AppSvg :src="newIcon" size="1em" />
         New group
       </RouterLink>
     </div>
 
-    <AppFilter v-bind="automation('filter')" constrained @[EVENTS.APPLY_FILTER]="applyFilter">
+    <AppFilter constrained @[EVENTS.APPLY_FILTER]="applyFilter">
       <label class="app-filter-field" for="groups-filter">
         <span>Filter point groups</span>
         <input id="groups-filter" v-model="filter" type="search" autocomplete="off" />
@@ -35,7 +34,7 @@
       No point groups found.
     </p>
     <template v-else-if="!store.error">
-      <AppTable v-bind="automation('table')" caption="Configured point groups">
+      <AppTable caption="Configured point groups">
         <template #head>
           <tr>
             <th scope="col">Name</th>
@@ -59,7 +58,6 @@
         </template>
       </AppTable>
       <AppPagination
-        v-bind="automation('pagination')"
         :page="store.result.page"
         :page-count="store.result.pageCount"
         :page-size="store.result.pageSize"
@@ -77,7 +75,6 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import newIcon from '@/assets/icons/new-icon.svg';
 import AppErrorNotice from '@/components/AppErrorNotice.vue';
-import { useAutomation } from '@/composables/useAutomation';
 import AppFilter from '@/components/AppFilter.vue';
 import AppSvg from '@/components/AppSvg.vue';
 import AppTable from '@/components/AppTable.vue';
@@ -85,7 +82,6 @@ import AppPagination from '@/components/AppPagination.vue';
 import { EVENTS } from '@/constants/events';
 import { usePointGroupsCatalogueStore } from '@/features/catalogues/stores/catalogues';
 
-const automation = useAutomation('point-groups-catalogue');
 const store = usePointGroupsCatalogueStore();
 const filter = ref('');
 const page = ref(1);

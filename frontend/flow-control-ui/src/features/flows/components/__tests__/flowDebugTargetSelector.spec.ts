@@ -19,7 +19,7 @@ const targets = [
 describe('flow debug target selector', () => {
   it('emits only configured target selections', async () => {
     const wrapper = mount(AppFlowDebugTargetSelector, {
-      props: { automation: 'target', modelValue: 'host', targets }
+      props: { modelValue: 'host', targets }
     });
 
     await wrapper.get('select').setValue('controller:kc868-a16');
@@ -31,7 +31,6 @@ describe('flow debug target selector', () => {
   it('labels hardware targets as shadow mode', () => {
     const wrapper = mount(AppFlowDebugTargetSelector, {
       props: {
-        automation: 'target',
         modelValue: 'controller:kc868-a16',
         targets
       }

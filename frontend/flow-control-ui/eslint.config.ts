@@ -8,12 +8,10 @@ import vue from 'eslint-plugin-vue';
 import tseslint from 'typescript-eslint';
 import vueParser from 'vue-eslint-parser';
 
-import requireAutomationProp from './eslint-rules/requireAutomationProp.js';
 import requireFilenameCase from './eslint-rules/requireFilenameCase.js';
 
 const localPlugin = {
   rules: {
-    requireAutomationProp,
     requireFilenameCase
   }
 } as unknown as ESLint.Plugin;
@@ -98,8 +96,6 @@ const sharedRules: Linter.RulesRecord = {
 
 const vueRules: Linter.RulesRecord = {
   ...sharedRules,
-
-  'local/requireAutomationProp': 'error',
 
   // Oxfmt owns template indentation so the documented format-then-lint workflow remains idempotent.
   'vue/html-closing-bracket-newline': 'off',

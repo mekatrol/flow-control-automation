@@ -1,8 +1,7 @@
 <template>
-  <section v-bind="automation()" class="configuration-page">
+  <section class="configuration-page">
     <AppErrorNotice
       id="point-sources-error-notice"
-      v-bind="automation('error')"
       :message="error"
       retryable
       @[EVENTS.RETRY]="load"
@@ -14,14 +13,14 @@
         <p>Define reusable, read-only connections before mapping points.</p>
       </div>
       <RouterLink class="primary-link" :to="{ name: 'point-source-new' }">
-        <AppSvg :src="newIcon" v-bind="automation('new-icon')" size="1em" />
+        <AppSvg :src="newIcon" size="1em" />
         New source
       </RouterLink>
     </div>
 
     <p v-if="loading" role="status">Loading point sources…</p>
     <div v-if="!error" class="source-list">
-      <AppFilter v-bind="automation('filter')" constrained @[EVENTS.APPLY_FILTER]="applyFilter">
+      <AppFilter constrained @[EVENTS.APPLY_FILTER]="applyFilter">
         <label class="app-filter-field" for="source-filter">
           <span>Filter by name</span>
           <input id="source-filter" v-model="filter" type="search" autocomplete="off" />
@@ -64,7 +63,6 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import newIcon from '@/assets/icons/new-icon.svg';
 import AppErrorNotice from '@/components/AppErrorNotice.vue';
-import { useAutomation } from '@/composables/useAutomation';
 import AppFilter from '@/components/AppFilter.vue';
 import AppSvg from '@/components/AppSvg.vue';
 import { EVENTS } from '@/constants/events';
@@ -74,7 +72,6 @@ import {
   type PointSourceSummary
 } from '@/features/pointSources/api/pointSourceApi';
 
-const automation = useAutomation('point-sources');
 const sources = ref<PointSourceSummary[]>([]);
 const filter = ref('');
 const appliedFilter = ref('');

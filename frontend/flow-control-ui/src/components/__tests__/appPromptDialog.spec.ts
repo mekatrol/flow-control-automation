@@ -8,13 +8,11 @@ import AppPromptDialog from '@/components/AppPromptDialog.vue';
 
 describe('AppPromptDialog', () => {
   /**
-   * Purpose: Protects the standard prompt content, semantic relationships, and automation contract.
    * Description: Exercises the fallback prompt and verifies its accessible information and generic actions.
    */
   it('renders the standard discard prompt', () => {
     const wrapper = mount(AppPromptDialog, {
       props: {
-        automation: 'discard-prompt',
         contentLabel: 'Discard changes',
         id: 'discard-prompt'
       }
@@ -48,18 +46,16 @@ describe('AppPromptDialog', () => {
     expect(wrapper.get('#discard-prompt-description').text()).toContain('will be lost');
 
     // Expected outcome: The safe fallback action lets the user continue editing.
-    // Acceptance criteria: The cancel automation target contains "Keep editing" because
     // cancellation must preserve the unsaved work rather than imply destructive action.
-    expect(wrapper.get('[data-automation="discard-prompt.cancel"]').text()).toContain(
-      'Keep editing'
-    );
+    expect(
+      wrapper.findAll('button').find((button) => button.text() === 'Keep editing')
+    ).toBeDefined();
 
     // Expected outcome: The destructive fallback action clearly confirms discarding.
-    // Acceptance criteria: The confirm automation target contains "Discard changes"
     // because users must be able to distinguish the destructive choice from cancellation.
-    expect(wrapper.get('[data-automation="discard-prompt.confirm"]').text()).toContain(
-      'Discard changes'
-    );
+    expect(
+      wrapper.findAll('button').find((button) => button.text() === 'Discard changes')
+    ).toBeDefined();
   });
 
   /**
@@ -69,7 +65,6 @@ describe('AppPromptDialog', () => {
   it('closes and emits generic prompt actions', async () => {
     const wrapper = mount(AppPromptDialog, {
       props: {
-        automation: 'discard-prompt',
         contentLabel: 'Discard changes',
         id: 'discard-prompt'
       }
@@ -77,7 +72,10 @@ describe('AppPromptDialog', () => {
     const close = vi.fn<() => void>();
     wrapper.get('dialog').element.close = close;
 
-    await wrapper.get('[data-app-button]').trigger('click');
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === 'Keep editing')!
+      .trigger('click');
 
     // Expected outcome: Activating the safe action reports cancellation to the caller.
     // Acceptance criteria: One `cancel` event is emitted because one click must produce
@@ -89,7 +87,10 @@ describe('AppPromptDialog', () => {
     // cancellation must return focus to the underlying workflow.
     expect(close).toHaveBeenCalledOnce();
 
-    await wrapper.findAll('[data-app-button]')[1]!.trigger('click');
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === 'Discard changes')!
+      .trigger('click');
 
     // Expected outcome: Activating the destructive action reports confirmation.
     // Acceptance criteria: One `confirm` event is emitted because the caller needs one
@@ -109,7 +110,6 @@ describe('AppPromptDialog', () => {
   it('provides cancel and confirm callbacks to the prompt slot', async () => {
     const wrapper = mount(AppPromptDialog, {
       props: {
-        automation: 'custom-prompt',
         contentLabel: 'Custom decision',
         id: 'custom-prompt'
       },
@@ -152,7 +152,6 @@ describe('AppPromptDialog', () => {
   it('supports custom wording and exposes the native modal controls', () => {
     const wrapper = mount(AppPromptDialog, {
       props: {
-        automation: 'replace-prompt',
         cancelText: 'Retain value',
         confirmText: 'Replace value',
         contentLabel: 'Replace existing value',
@@ -185,12 +184,16 @@ describe('AppPromptDialog', () => {
     // Expected outcome: The custom safe action uses the caller's terminology.
     // Acceptance criteria: The first action contains "Retain value" because cancellation
     // preserves the existing value in this replacement workflow.
-    expect(wrapper.findAll('[data-app-button]')[0]!.text()).toContain('Retain value');
+    expect(
+      wrapper.findAll('button').find((button) => button.text() === 'Retain value')
+    ).toBeDefined();
 
     // Expected outcome: The custom confirmation action uses the caller's terminology.
     // Acceptance criteria: The second action contains "Replace value" because confirmation
     // authorizes replacement in this workflow rather than generic discarding.
-    expect(wrapper.findAll('[data-app-button]')[1]!.text()).toContain('Replace value');
+    expect(
+      wrapper.findAll('button').find((button) => button.text() === 'Replace value')
+    ).toBeDefined();
 
     // Expected outcome: The exposed open control delegates to the native modal.
     // Acceptance criteria: `showModal` is called once because one imperative open request

@@ -1,5 +1,5 @@
 <template>
-  <div v-bind="automation()" class="debug-target">
+  <div class="debug-target">
     <label :for="selectId">Debug target</label>
     <select
       :id="selectId"
@@ -24,11 +24,9 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
-import { useAutomation } from '@/composables/useAutomation';
 import type { FlowDebugTarget } from '@/features/flows/debugTargets';
 
 const props = defineProps<{
-  automation: string;
   modelValue: string;
   targets: FlowDebugTarget[];
   loading?: boolean;
@@ -38,8 +36,7 @@ const emit = defineEmits<{
   (event: 'update:modelValue', value: string): void;
 }>();
 
-const automation = useAutomation(props.automation);
-const selectId = computed(() => `${props.automation}-select`);
+const selectId = 'flow-debug-target-select';
 const selected = computed(() => props.targets.find((target) => target.id === props.modelValue));
 
 const selectTarget = (event: Event): void => {

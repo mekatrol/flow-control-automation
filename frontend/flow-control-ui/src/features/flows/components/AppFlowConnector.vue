@@ -1,6 +1,5 @@
 <template>
   <g
-    v-bind="automation()"
     class="flow-connector"
     :class="{ compatible, active }"
     :transform="`translate(${layout.x} ${layout.y})`"
@@ -28,11 +27,9 @@
 
 <script setup lang="ts">
 import type { ConnectorLayout } from '@/features/flows/geometry/connectorLayout';
-import { useAutomation } from '@/composables/useAutomation';
 import { EVENTS } from '@/constants/events';
 
-const props = defineProps<{
-  automation: string;
+defineProps<{
   layout: ConnectorLayout;
   compatible?: boolean;
   active?: boolean;
@@ -46,7 +43,6 @@ const emit = defineEmits<{
   (event: typeof EVENTS.RELEASE): void;
   (event: typeof EVENTS.PREVIEW): void;
 }>();
-const automation = useAutomation(props.automation);
 </script>
 
 <style scoped>

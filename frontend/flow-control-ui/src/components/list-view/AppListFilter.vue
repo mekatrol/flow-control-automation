@@ -1,10 +1,9 @@
 <template>
-  <form v-bind="automation()" class="list-filter" role="search" @submit.prevent="applyFilter">
+  <form class="list-filter" role="search" @submit.prevent="applyFilter">
     <label :for="inputId">{{ label }}</label>
     <div class="list-filter__controls">
       <slot name="filter-options">
         <AppInputActions
-          v-bind="automation('input')"
           :id="inputId"
           v-model="filterValue"
           type="search"
@@ -13,20 +12,13 @@
           @clear="clearFilter"
         />
       </slot>
-      <AppButton
-        v-if="showFilterApply"
-        text="Apply"
-        type="submit"
-        :icon="filterIcon"
-        v-bind="automation('submit')"
-      />
+      <AppButton v-if="showFilterApply" text="Apply" type="submit" :icon="filterIcon" />
     </div>
   </form>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useAutomation } from '@/composables/useAutomation';
 
 import { ListFilterEmit } from '@/models/listViewEmits';
 import filterIcon from '@/assets/icons/filter-icon.svg';
@@ -38,7 +30,6 @@ interface Props {
   inputId?: string;
   label?: string;
   placeholder?: string;
-  automation: string;
   active: boolean;
   disabled?: boolean;
   showFilterApply?: boolean;
@@ -59,8 +50,6 @@ type Emits = {
 };
 
 const emit = defineEmits<Emits>();
-
-const automation = useAutomation(props.automation);
 
 const filterValue = computed({
   get: () => props.modelValue,

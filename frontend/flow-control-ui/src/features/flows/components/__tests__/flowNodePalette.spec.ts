@@ -12,11 +12,10 @@ import { flowNodeKinds } from '@/features/flows/nodeKinds';
 describe('node palette filtering and grouping', () => {
   it('offers one add action per function without learn actions', () => {
     const wrapper = mount(AppFlowNodePalette, {
-      props: { automation: 'node-palette' }
+      props: {}
     });
 
-    expect(wrapper.find('[data-automation^="node-palette.learn-"]').exists()).toBe(false);
-    const addActions = wrapper.findAll('button[data-automation^="node-palette.add-"]');
+    const addActions = wrapper.findAll('button.palette-add-button');
     expect(addActions).toHaveLength(flowNodeKinds.length);
     expect(addActions.every((action) => action.classes('palette-add-button'))).toBe(true);
     expect(wrapper.text()).not.toContain('Learn');

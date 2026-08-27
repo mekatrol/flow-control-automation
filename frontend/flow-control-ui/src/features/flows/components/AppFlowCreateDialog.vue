@@ -1,11 +1,6 @@
 <template>
-  <AppDialog
-    ref="dialog"
-    content-label="Create new flow"
-    v-bind="automation()"
-    :dismissible="false"
-  >
-    <AppForm class="new-flow-form" v-bind="automation('form')" @submit.prevent="confirm">
+  <AppDialog ref="dialog" content-label="Create new flow" :dismissible="false">
+    <AppForm class="new-flow-form" @submit.prevent="confirm">
       <template #header>
         <section>
           <h2>Flow details</h2>
@@ -17,18 +12,8 @@
       </section>
       <template #footer>
         <section class="editor-actions">
-          <AppButton
-            v-bind="automation('save')"
-            type="submit"
-            text="Create flow"
-            :icon="createIcon"
-          />
-          <AppButton
-            v-bind="automation('cancel')"
-            text="Cancel"
-            :icon="cancelIcon"
-            @click="cancel"
-          />
+          <AppButton type="submit" text="Create flow" :icon="createIcon" />
+          <AppButton text="Cancel" :icon="cancelIcon" @click="cancel" />
         </section>
       </template>
     </AppForm>
@@ -37,8 +22,6 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-
-import { useAutomation } from '@/composables/useAutomation';
 
 import AppButton from '@/components/AppButton.vue';
 import AppDialog from '@/components/AppDialog.vue';
@@ -51,7 +34,6 @@ import { EVENTS } from '@/constants/events';
 
 const props = withDefaults(
   defineProps<{
-    automation: string;
     modelValue: string;
   }>(),
   {}
@@ -64,7 +46,6 @@ const emit = defineEmits({
 });
 
 const dialog = ref<InstanceType<typeof AppDialog>>();
-const automation = useAutomation(props.automation);
 
 const value = computed({
   get: (): string => props.modelValue,

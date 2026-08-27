@@ -1,8 +1,7 @@
 <template>
-  <section v-bind="automation()" class="configuration-page editor-page">
+  <section class="configuration-page editor-page">
     <AppErrorNotice
       id="yaml-resource-error-notice"
-      v-bind="automation('error')"
       :message="apiError"
       :details="noticeErrorDetails"
     />
@@ -48,7 +47,6 @@
       <div class="editor-actions">
         <AppButton
           v-if="!readOnly"
-          v-bind="automation('save')"
           type="submit"
           :text="saving ? 'Saving…' : 'Save'"
           :icon="saveIcon"
@@ -56,7 +54,6 @@
         />
         <AppButton
           v-if="kind === 'controller' && !readOnly"
-          v-bind="automation('validate')"
           text="Validate"
           :icon="checkIcon"
           :disabled="busy || hasEditorErrors"
@@ -64,7 +61,6 @@
         />
         <AppButton
           v-if="!isNew && !readOnly"
-          v-bind="automation('delete')"
           text="Delete"
           :icon="deleteIcon"
           :disabled="busy"
@@ -72,7 +68,6 @@
         />
         <AppButton
           v-if="kind === 'group' && !isNew && deleteConflict"
-          v-bind="automation('make-standalone')"
           text="Make member points standalone"
           :icon="checkIcon"
           @click="makeStandalone"
@@ -82,13 +77,12 @@
           class="primary-link"
           :to="{ name: 'controller-template-new' }"
         >
-          <AppSvg :src="newIcon" v-bind="automation('create-icon')" size="1em" />
+          <AppSvg :src="newIcon" size="1em" />
           Create custom template from example
         </RouterLink>
       </div>
       <AppYamlEditor
         v-model="yaml"
-        v-bind="automation('editor')"
         :label="`${singularLabel} YAML`"
         :help="editorHelp"
         :schema="schema"
@@ -107,17 +101,11 @@
       <div>
         <h2 id="runtime-heading">Live point value</h2>
         <AppButton
-          v-bind="automation('runtime-toggle-updates')"
           :text="runtimePaused ? 'Resume updates' : 'Pause updates'"
           :icon="runtimePaused ? playIcon : pauseIcon"
           @click="runtimePaused = !runtimePaused"
         />
-        <AppButton
-          v-bind="automation('runtime-retry')"
-          text="Retry now"
-          :icon="retryIcon"
-          @click="loadRuntime"
-        />
+        <AppButton text="Retry now" :icon="retryIcon" @click="loadRuntime" />
       </div>
       <p v-if="runtimeLoading" role="status">Reading point value…</p>
       <dl v-if="runtime">
@@ -172,7 +160,6 @@ import AppErrorNotice from '@/components/AppErrorNotice.vue';
 import AppSvg from '@/components/AppSvg.vue';
 import AppYamlEditor, { type YamlDiagnostic } from '@/components/AppYamlEditor.vue';
 import { EVENTS } from '@/constants/events';
-import { useAutomation } from '@/composables/useAutomation';
 import {
   controllerTemplateConfigurationApi,
   pointConfigurationApi,
@@ -359,7 +346,6 @@ const status = ref('');
 const deleteConflict = ref(false);
 const serverDiagnostics = ref<ValidationDiagnostic[]>([]);
 const editorDiagnostics = ref<YamlDiagnostic[]>([]);
-const automation = useAutomation('yaml-resource-editor');
 const setEditorDiagnostics = (diagnostics: YamlDiagnostic[]): void => {
   editorDiagnostics.value = diagnostics;
 };

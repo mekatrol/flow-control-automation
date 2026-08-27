@@ -11,7 +11,6 @@ describe('flow compile results', () => {
   it('renders errors and emits the affected node', async () => {
     const wrapper = mount(AppFlowCompileResults, {
       props: {
-        automation: 'compile-results',
         nodeIds: ['first', 'affected'],
         result: {
           success: false,

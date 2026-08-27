@@ -1,16 +1,11 @@
 <template>
-  <tr v-bind="automation()">
-    <td v-bind="automation('cell')" :colspan="columnCount">
+  <tr>
+    <td :colspan="columnCount">
       <div class="footer-content">
         <slot>
           <span>{{ totalItems }} total results</span>
         </slot>
-        <button
-          v-if="showReset"
-          v-bind="automation('reset')"
-          type="button"
-          @click="emit(ListFooterRowEmit.Reset)"
-        >
+        <button v-if="showReset" type="button" @click="emit(ListFooterRowEmit.Reset)">
           Reset filters and sorting
         </button>
       </div>
@@ -20,16 +15,14 @@
 
 <script setup lang="ts">
 import { ListFooterRowEmit } from '@/models/listViewEmits';
-import { useAutomation } from '@/composables/useAutomation';
 
 interface Props {
   columnCount: number;
   totalItems: number;
   showReset?: boolean;
-  automation: string;
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   showReset: false
 });
 
@@ -38,8 +31,6 @@ type Emits = {
 };
 
 const emit = defineEmits<Emits>();
-
-const automation = useAutomation(props.automation);
 </script>
 
 <style scoped>

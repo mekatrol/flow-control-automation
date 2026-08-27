@@ -1,6 +1,5 @@
 <template>
   <dialog
-    v-bind="automation()"
     :id="dialogId"
     ref="panel"
     class="dialog-panel"
@@ -14,14 +13,12 @@
 
 <script setup lang="ts">
 import { computed, ref, useId } from 'vue';
-import { useAutomation } from '@/composables/useAutomation';
 import { EVENTS } from '@/constants/events';
 
 const props = withDefaults(
   defineProps<{
     id?: string;
     contentLabel: string;
-    automation: string;
     dismissible?: boolean;
   }>(),
   {
@@ -38,7 +35,6 @@ const emit = defineEmits({
 const generatedId = useId();
 const dialogId = computed((): string => props.id ?? generatedId);
 const panel = ref<HTMLDialogElement>();
-const automation = useAutomation(props.automation);
 
 const handleCancel = (event: Event): void => {
   if (!props.dismissible) event.preventDefault();

@@ -1,18 +1,7 @@
 <template>
-  <div class="form-group" v-bind="automation()">
+  <div class="form-group">
     <slot></slot>
   </div>
 </template>
 
-<script setup lang="ts">
-import { useAutomation } from '@/composables/useAutomation';
-
-const props = withDefaults(
-  defineProps<{
-    automation: string;
-  }>(),
-  {}
-);
-
-const automation = useAutomation(props.automation);
-</script>
+<script setup lang="ts"></script>

@@ -8,7 +8,6 @@ describe('flow simulator panel', () => {
   it('exposes deterministic controls and announces lifecycle state', async () => {
     const wrapper = mount(AppFlowSimulatorPanel, {
       props: {
-        automation: 'simulator',
         lifecycle: 'ready',
         session: {
           sessionId: 'one',
@@ -32,7 +31,10 @@ describe('flow simulator panel', () => {
       }
     });
 
-    await wrapper.get('[data-automation="simulator.step-tick"]').trigger('click');
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === 'One scan')!
+      .trigger('click');
 
     expect(wrapper.emitted('step-tick')).toHaveLength(1);
     expect(wrapper.get('[role="status"]').text()).toBe('Ready');
@@ -41,16 +43,15 @@ describe('flow simulator panel', () => {
 
   it('requires recompilation after an edit and disables execution', () => {
     const wrapper = mount(AppFlowSimulatorPanel, {
-      props: { automation: 'simulator', lifecycle: 'stale' }
+      props: { lifecycle: 'stale' }
     });
 
     expect(wrapper.get('[role="alert"]').text()).toContain('Start simulation again');
+    const buttons = wrapper.findAll('button');
     expect(
-      wrapper.get('[data-automation="simulator.step-tick"]').attributes('disabled')
+      buttons.find((button) => button.text() === 'One scan')!.attributes('disabled')
     ).toBeDefined();
-    expect(
-      wrapper.get('[data-automation="simulator.start"]').attributes('disabled')
-    ).toBeUndefined();
+    expect(buttons[0]!.attributes('disabled')).toBeUndefined();
   });
 
   /**
@@ -60,7 +61,6 @@ describe('flow simulator panel', () => {
   it('applies a typed point input and exposes committed output metadata', async () => {
     const wrapper = mount(AppFlowSimulatorPanel, {
       props: {
-        automation: 'simulator',
         lifecycle: 'ready',
         session: {
           sessionId: 'one',
@@ -110,7 +110,10 @@ describe('flow simulator panel', () => {
     });
 
     await wrapper.get('input[type="number"]').setValue('21.5');
-    await wrapper.get('[data-automation="simulator-io.apply-step"]').trigger('click');
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === 'Apply inputs and run one scan')!
+      .trigger('click');
 
     // Expected outcome: One atomic typed request is emitted using the stable point ID.
     // Acceptance criteria: The emitted value is numeric 21.5 for `temperature`, proving the workbench does not use a display label or Boolean coercion.

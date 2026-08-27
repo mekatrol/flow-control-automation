@@ -10,7 +10,7 @@ describe('AppNotice', () => {
   /**
    * Purpose: Protects the accessible fallback presentation for every supported notice severity.
    * Description: Renders each variant with standard content and observes its semantics, icon,
-   * title, message, and stable automation targets.
+   * title, and message.
    */
   it.each([
     ['info', 'status'],
@@ -20,7 +20,6 @@ describe('AppNotice', () => {
   ] satisfies [AppNoticeVariant, string][])('renders the %s variant', (variant, expectedRole) => {
     const wrapper = mount(AppNotice, {
       props: {
-        automation: 'request-error',
         id: 'request-error',
         message: 'The request could not be completed.',
         title: 'Request failed',
@@ -41,9 +40,7 @@ describe('AppNotice', () => {
     // Expected outcome: The fallback body shows the caller's error detail.
     // Acceptance criteria: The content target contains the arranged request failure because
     // callers need a useful message without providing a custom content slot.
-    expect(wrapper.get('[data-automation="request-error.content"]').text()).toBe(
-      'The request could not be completed.'
-    );
+    expect(wrapper.get('.notice-content').text()).toBe('The request could not be completed.');
 
     // Expected outcome: Each severity supplies a decorative SVG visual indicator.
     // Acceptance criteria: The icon source is an encoded SVG because each selected variant
@@ -64,7 +61,6 @@ describe('AppNotice', () => {
     });
     const wrapper = mount(AppNotice, {
       props: {
-        automation: 'api-error',
         id: 'api-error',
         message: 'Fallback detail',
         title: 'API error'
@@ -75,7 +71,10 @@ describe('AppNotice', () => {
       }
     });
 
-    await wrapper.get('[data-automation="api-error.copy"]').trigger('click');
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === 'Copy details')!
+      .trigger('click');
 
     // Expected outcome: Copying rich content writes only its human-readable text.
     // Acceptance criteria: The clipboard receives the exact rendered sentence with no anchor
@@ -96,7 +95,6 @@ describe('AppNotice', () => {
   it('supports custom header, content, and footer slots', async () => {
     const wrapper = mount(AppNotice, {
       props: {
-        automation: 'custom-error',
         id: 'custom-error',
         message: 'Fallback message',
         title: 'Fallback title'
@@ -131,7 +129,6 @@ describe('AppNotice', () => {
   it('exposes modal lifecycle methods', () => {
     const wrapper = mount(AppNotice, {
       props: {
-        automation: 'save-error',
         id: 'save-error',
         message: 'Try again.',
         title: 'Save failed'

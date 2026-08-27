@@ -1,8 +1,7 @@
 <template>
-  <section v-bind="automation()" class="catalogue-page" aria-labelledby="points-heading">
+  <section class="catalogue-page" aria-labelledby="points-heading">
     <AppErrorNotice
       id="points-error-notice"
-      v-bind="automation('error')"
       :message="errorMessage"
       retryable
       retry-label="Check again"
@@ -15,12 +14,12 @@
         <p>Review standalone and grouped automation points and their capabilities.</p>
       </div>
       <RouterLink class="primary-link" :to="{ name: 'point-new' }">
-        <AppSvg :src="newIcon" v-bind="automation('new-icon')" size="1em" />
+        <AppSvg :src="newIcon" size="1em" />
         New point
       </RouterLink>
     </div>
 
-    <AppFilter v-bind="automation('filter')" constrained @[EVENTS.APPLY_FILTER]="applyFilter">
+    <AppFilter constrained @[EVENTS.APPLY_FILTER]="applyFilter">
       <label class="app-filter-field" for="points-filter">
         <span>Filter points</span>
         <input id="points-filter" v-model="filter" type="search" autocomplete="off" />
@@ -36,7 +35,7 @@
       No points found.
     </p>
     <template v-else-if="!store.error">
-      <AppTable v-bind="automation('table')" caption="Configured points">
+      <AppTable caption="Configured points">
         <template #head>
           <tr>
             <th scope="col">Name</th>
@@ -71,7 +70,6 @@
         </template>
       </AppTable>
       <AppPagination
-        v-bind="automation('pagination')"
         :page="store.result.page"
         :page-count="store.result.pageCount"
         :page-size="store.result.pageSize"
@@ -89,7 +87,6 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import newIcon from '@/assets/icons/new-icon.svg';
 import AppErrorNotice from '@/components/AppErrorNotice.vue';
-import { useAutomation } from '@/composables/useAutomation';
 import AppFilter from '@/components/AppFilter.vue';
 import AppSvg from '@/components/AppSvg.vue';
 import AppTable from '@/components/AppTable.vue';
@@ -97,7 +94,6 @@ import AppPagination from '@/components/AppPagination.vue';
 import { EVENTS } from '@/constants/events';
 import { usePointsCatalogueStore } from '@/features/catalogues/stores/catalogues';
 
-const automation = useAutomation('points-catalogue');
 const store = usePointsCatalogueStore();
 const filter = ref('');
 const page = ref(1);

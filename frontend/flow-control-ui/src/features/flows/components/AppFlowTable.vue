@@ -2,7 +2,6 @@
   <div>
     <AppListView
       id="flow-list"
-      v-bind="automation()"
       title="Flows"
       class="flow-list"
       :show-filter-apply="false"
@@ -20,7 +19,6 @@
         <div class="filter-options">
           <AppMultiSelectDropdown
             v-model="filterStatuses"
-            v-bind="automation('status-filter')"
             class="app-filter-field app-filter-field--content"
             label="Deployment status"
             all-label="All"
@@ -29,7 +27,6 @@
 
           <AppInputActions
             v-model="filterText"
-            v-bind="automation('input')"
             placeholder="Enter a flow name"
             autocomplete="off"
             show-action
@@ -41,7 +38,6 @@
 
       <template #column-header-name-pre>
         <AppButton
-          v-bind="automation('add-flow')"
           type="button"
           class="add-flow-btn"
           text="Add flow"
@@ -69,7 +65,6 @@
           />
 
           <AppButton
-            v-bind="automation('save-name')"
             type="submit"
             text="Save name"
             :icon="saveIcon"
@@ -78,7 +73,6 @@
           />
 
           <AppButton
-            v-bind="automation('cancel-rename')"
             text="Cancel"
             :icon="cancelIcon"
             hide-text
@@ -121,7 +115,6 @@
       <template #cell-actions="{ row }">
         <div class="actions">
           <AppButton
-            v-bind="automation('toggle-disabled')"
             class="light-weight"
             :text="row.disabled ? 'Enable' : 'Disable'"
             :icon="row.disabled ? enableFlowIcon : disableFlowIcon"
@@ -130,7 +123,6 @@
           />
 
           <AppButton
-            v-bind="automation('rename')"
             class="light-weight"
             text="Rename"
             :icon="renameFlowIcon"
@@ -138,7 +130,6 @@
           />
 
           <AppButton
-            v-bind="automation('delete')"
             class="light-weight"
             text="Delete"
             :icon="deleteFlowIcon"
@@ -153,7 +144,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 
-import { useAutomation } from '@/composables/useAutomation';
 import type { SortDirection } from '@/composables/usePaginatedCollection';
 
 import { EVENTS } from '@/constants/events';
@@ -178,7 +168,6 @@ import newIcon from '@/assets/icons/new-icon.svg';
 type FlowStatus = 'draft' | 'deployed';
 
 const props = defineProps<{
-  automation: string;
   flows: FlowDefinition[];
   filter: string;
   statuses: FlowStatus[];
@@ -221,38 +210,31 @@ interface FlowListQuery extends ListQuery<FlowRow> {
   statuses: FlowStatus[];
 }
 
-const automation = useAutomation(props.automation);
-
 const columns: ListColumn<FlowRow>[] = [
   {
     key: 'name',
     label: 'Name',
-    automation: 'name',
     sortable: true
   },
   {
     key: 'status',
     label: 'Status',
-    automation: 'status',
     sortable: true,
     width: '12rem'
   },
   {
     key: 'nodes',
     label: 'Nodes',
-    automation: 'nodes',
     width: '12rem'
   },
   {
     key: 'updatedAt',
     label: 'Updated',
-    automation: 'updated-at',
     width: '12rem'
   },
   {
     key: 'actions',
     label: 'Actions',
-    automation: 'actions',
     sortable: false,
     width: '24rem'
   }
@@ -324,7 +306,6 @@ const rows = computed<FlowRow[]>(() =>
     nodes: flow.nodes,
     status: flow.status as FlowStatus,
     disabled: flow.disabled,
-    automation: `row-${flow.id}`,
     actions: ''
   }))
 );

@@ -1,31 +1,29 @@
 <template>
-  <tr v-bind="automation('sort')">
+  <tr>
     <th
       v-for="column in columns"
       :key="column.key"
       scope="col"
       :class="`align-${column.align ?? 'start'}`"
       :aria-sort="ariaSort(column)"
-      v-bind="automation(`column-${column.automation}`)"
     >
       <slot :name="`column-header-${column.key}`" :column="column">
         <slot :name="`column-header-${column.key}-pre`" :column="column" />
         <button
           v-if="column.sortable"
-          v-bind="automation(`sort-button-${column.automation}`)"
           type="button"
           class="sort-button"
           :aria-label="sortLabel(column)"
           @click="changeSort(column)"
         >
-          <span v-bind="automation(`column-label-${column.automation}`)">
+          <span>
             {{ column.label }}
           </span>
           <span aria-hidden="true">
             {{ sortIndicator(column) }}
           </span>
         </button>
-        <span v-else v-bind="automation(`column-label-${column.automation}`)">
+        <span v-else>
           {{ column.label }}
         </span>
       </slot>
@@ -34,15 +32,12 @@
 </template>
 
 <script setup lang="ts" generic="TRow extends ListRow">
-import { useAutomation } from '@/composables/useAutomation';
-
 import { ListHeaderRowEmit } from '@/models/listViewEmits';
 import type { ListColumn, ListRow, ListSort } from '@/models/listViewModels';
 
 interface Props<TRow extends ListRow> {
   columns: ListColumn<TRow>[];
   sort: ListSort<TRow> | null;
-  automation: string;
 }
 
 const props = defineProps<Props<TRow>>();
@@ -66,8 +61,6 @@ interface Slots<TRow extends ListRow> {
 }
 
 defineSlots<Slots<TRow>>();
-
-const automation = useAutomation(props.automation);
 
 const ariaSort = (
   column: ListColumn<TRow>

@@ -1,5 +1,5 @@
 <template>
-  <section v-bind="automation()" class="simulator-panel" aria-labelledby="simulator-title">
+  <section class="simulator-panel" aria-labelledby="simulator-title">
     <header class="simulator-heading">
       <div>
         <p class="eyebrow">Test workspace</p>
@@ -17,7 +17,6 @@
     <div class="command-bar" role="group" aria-label="Simulation controls">
       <div class="command-group primary-actions">
         <AppButton
-          v-bind="automation('start')"
           :text="
             lifecycle === 'compiling'
               ? 'Compiling…'
@@ -30,14 +29,12 @@
           @click="emit(EVENTS.START_SIMULATION)"
         />
         <AppButton
-          v-bind="automation('run')"
           text="Run continuously"
           :icon="playIcon"
           :disabled="!canExecute"
           @click="emit(EVENTS.RUN)"
         />
         <AppButton
-          v-bind="automation('pause')"
           text="Pause"
           :icon="pauseIcon"
           :disabled="lifecycle !== 'running'"
@@ -47,21 +44,18 @@
       <div class="command-group step-actions">
         <span class="group-label">Step</span>
         <AppButton
-          v-bind="automation('step-tick')"
           text="One scan"
           :icon="stepIcon"
           :disabled="!canExecute"
           @click="emit(EVENTS.STEP_TICK)"
         />
         <AppButton
-          v-bind="automation('step-mode')"
           text="Node"
           :icon="stepNodeIcon"
           :disabled="!canStepNode"
           @click="emit(EVENTS.STEP_NODE)"
         />
         <AppButton
-          v-bind="automation('step-instruction')"
           text="Instruction"
           :icon="stepInstructionIcon"
           :disabled="!canStepInstruction"
@@ -70,14 +64,12 @@
       </div>
       <div class="command-group session-actions">
         <AppButton
-          v-bind="automation('restart')"
           text="Restart"
           :icon="refreshIcon"
           :disabled="!active || lifecycle === 'running'"
           @click="emit(EVENTS.RESTART)"
         />
         <AppButton
-          v-bind="automation('stop')"
           text="Stop"
           :icon="stopIcon"
           :disabled="!active"
@@ -109,7 +101,6 @@
     </dl>
     <AppFlowEmulatorPanel
       v-if="session?.io"
-      v-bind="automation('io')"
       :snapshot="session.io"
       @[EVENTS.APPLY_INPUTS_STEP]="forwardInputs"
       @[EVENTS.ADVANCE]="forwardAdvance"
@@ -139,14 +130,12 @@ import stepNodeIcon from '@/assets/icons/step-node-icon.svg';
 import stopIcon from '@/assets/icons/stop-icon.svg';
 import AppButton from '@/components/AppButton.vue';
 import AppFlowEmulatorPanel from '@/features/flows/components/AppFlowEmulatorPanel.vue';
-import { useAutomation } from '@/composables/useAutomation';
 import { EVENTS } from '@/constants/events';
 import type { SimulatorLifecycle, SimulatorSession } from '@/features/flows/api/flowSimulatorApi';
 import type { EmulatorInputChange } from '@/features/flows/api/flowEmulatorApi';
 
 const props = withDefaults(
   defineProps<{
-    automation: string;
     lifecycle: SimulatorLifecycle;
     session?: SimulatorSession;
     error?: string;
@@ -171,7 +160,6 @@ const emit = defineEmits<{
   (event: typeof EVENTS.FAULT, fault: string | null): void;
   (event: typeof EVENTS.RESET, powerCycle: boolean): void;
 }>();
-const automation = useAutomation(props.automation);
 const forwardInputs = (inputs: EmulatorInputChange[]): void =>
   emit(EVENTS.APPLY_INPUTS_STEP, inputs);
 const forwardAdvance = (milliseconds: number): void => emit(EVENTS.ADVANCE, milliseconds);

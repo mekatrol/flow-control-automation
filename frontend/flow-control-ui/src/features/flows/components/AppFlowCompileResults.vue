@@ -1,5 +1,5 @@
 <template>
-  <section v-bind="automation()" class="compile-results" aria-label="Error List">
+  <section class="compile-results" aria-label="Error List">
     <header>
       <h2>Error List</h2>
       <span>{{ errorCount }} {{ errorCount === 1 ? 'Error' : 'Errors' }}</span>
@@ -41,12 +41,10 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useAutomation } from '@/composables/useAutomation';
 import type { FlowCompileResult } from '@/features/flows/api/flowCompileApi';
 
-const props = defineProps<{ automation: string; result?: FlowCompileResult; nodeIds: string[] }>();
+const props = defineProps<{ result?: FlowCompileResult; nodeIds: string[] }>();
 const emit = defineEmits<{ (event: 'selectDiagnostic', nodeId: string): void }>();
-const automation = useAutomation(props.automation);
 const errorCount = computed(() => props.result?.diagnostics.length ?? 0);
 const nodeIdFor = (path: string): string | undefined => {
   const match = /^\/nodes\/(\d+)(?:\/|$)/.exec(path);

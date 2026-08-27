@@ -43,7 +43,6 @@ const mountPromptDialog = async (page: Page, customPrompt = false): Promise<void
                   ref: prompt,
                   id: 'app-prompt',
                   contentLabel: 'Discard changes',
-                  automation: 'app-prompt',
                   onCancel: () => (host.dataset.result = 'cancel'),
                   onConfirm: () => (host.dataset.result = 'confirm')
                 },

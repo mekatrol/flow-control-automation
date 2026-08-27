@@ -8,12 +8,10 @@ import AppDialog from '@/components/AppDialog.vue';
 describe('AppDialog', () => {
   /**
    * Purpose: Protects the structural and accessibility contract of the reusable native dialog surface.
-   * Description: Exercises rendering content and automation metadata without adding application-specific controls.
    */
-  it('renders an accessible native dialog with automation metadata and slotted content', () => {
+  it('renders an accessible native dialog with slotted content', () => {
     const wrapper = mount(AppDialog, {
       props: {
-        automation: 'credential-dialog',
         contentLabel: 'Credential details',
         id: 'credential-dialog'
       },
@@ -31,7 +29,6 @@ describe('AppDialog', () => {
 
     // Expected outcome: The reusable dialog keeps the caller-provided DOM identity.
     // Acceptance criteria: The native dialog ID is `credential-dialog` because labels,
-    // automation hooks, and imperative callers must target the same dialog instance.
     expect(dialog.attributes('id')).toBe('credential-dialog');
 
     // Expected outcome: The native dialog exposes its caller-provided accessible name.
@@ -39,10 +36,7 @@ describe('AppDialog', () => {
     // no required built-in heading and still needs an announced purpose.
     expect(dialog.attributes('aria-label')).toBe('Credential details');
 
-    // Expected outcome: The dialog exposes stable automation metadata when requested.
-    // Acceptance criteria: `data-automation` is `credential-dialog` because consumers
     // need the supplied component identity rather than a generated selector.
-    expect(dialog.attributes('data-automation')).toBe('credential-dialog');
 
     // Expected outcome: Caller content is rendered inside the native dialog surface.
     // Acceptance criteria: The dialog contains "Dialog content" because AppDialog must
@@ -62,7 +56,6 @@ describe('AppDialog', () => {
   it('exposes methods that open and close the native dialog', () => {
     const wrapper = mount(AppDialog, {
       props: {
-        automation: 'credential-dialog',
         contentLabel: 'Credential details',
         id: 'credential-dialog'
       }
@@ -99,7 +92,6 @@ describe('AppDialog', () => {
   it('emits native cancel and close events', () => {
     const wrapper = mount(AppDialog, {
       props: {
-        automation: 'credential-dialog',
         contentLabel: 'Credential details',
         id: 'credential-dialog'
       }
@@ -129,7 +121,6 @@ describe('AppDialog', () => {
   it('prevents native cancellation when dismissal is disabled', () => {
     const wrapper = mount(AppDialog, {
       props: {
-        automation: 'credential-dialog',
         contentLabel: 'Credential details',
         dismissible: false,
         id: 'credential-dialog'

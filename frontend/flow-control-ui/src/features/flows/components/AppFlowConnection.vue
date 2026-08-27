@@ -1,7 +1,6 @@
 <template>
   <g
     v-if="path"
-    v-bind="automation()"
     class="connection-group"
     :class="{ selected, preview }"
     :data-connection-id="id"
@@ -21,13 +20,11 @@
 import { computed } from 'vue';
 
 import { connectionPath } from '@/features/flows/geometry/connectionPath';
-import { useAutomation } from '@/composables/useAutomation';
 import { EVENTS } from '@/constants/events';
 import type { Point } from '@/features/flows/geometry/connectorLayout';
 import type { ConnectorSide } from '@/features/flows/types';
 
 const props = defineProps<{
-  automation: string;
   id: string;
   start?: Point;
   end?: Point;
@@ -40,7 +37,6 @@ const props = defineProps<{
 const emit = defineEmits<{
   (event: typeof EVENTS.SELECT, id: string): void;
 }>();
-const automation = useAutomation(props.automation);
 // The same calculated curve drives both the visible stroke and its larger hit
 // target, ensuring selection follows exactly what the user sees.
 const path = computed(() => connectionPath(props.start, props.end, props.startSide, props.endSide));

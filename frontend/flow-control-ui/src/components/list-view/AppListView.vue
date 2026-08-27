@@ -1,5 +1,5 @@
 <template>
-  <section v-bind="automation()" class="list-view" :aria-labelledby="titleId" :aria-busy="loading">
+  <section class="list-view" :aria-labelledby="titleId" :aria-busy="loading">
     <div class="list-view__heading">
       <slot name="header">
         <div v-if="!$slots['header']">
@@ -9,7 +9,6 @@
       </slot>
 
       <AppListFilter
-        v-bind="automation('filter')"
         :model-value="draftFilter"
         :active="Boolean(query.filter)"
         :input-id="filterId"
@@ -27,7 +26,6 @@
     <slot name="top-pagination">
       <AppPagination
         v-if="!$slots['top-pagination']"
-        v-bind="automation('top-pagination')"
         :page="query.page"
         :page-count="pageCount"
         :page-size="query.pageSize"
@@ -61,7 +59,6 @@
 
         <thead>
           <AppListHeaderRow
-            v-bind="automation('header')"
             :columns="columns"
             :sort="query.sort"
             @sort-change="changeSort"
@@ -99,7 +96,6 @@
               v-for="row in rows"
               :key="row.id"
               class="list-view__row"
-              v-bind="automation(`row-${row.automation}`)"
               @click="rowClick($event, row)"
             >
               <td
@@ -124,7 +120,6 @@
 
         <tfoot>
           <AppListFooterRow
-            v-bind="automation('footer')"
             :column-count="columns.length"
             :total-items="totalItems"
             :show-reset="hasActiveQuery"
@@ -139,7 +134,6 @@
     <slot name="bottom-pagination">
       <AppPagination
         v-if="!$slots['bottom-pagination']"
-        v-bind="automation('bottom-pagination')"
         :page="query.page"
         :page-count="pageCount"
         :page-size="query.pageSize"
@@ -175,8 +169,6 @@ import type {
   ListSort
 } from '@/models/listViewModels';
 
-import { useAutomation } from '@/composables/useAutomation';
-
 interface Props<TRow extends ListRow, TQuery extends ListQuery<TRow>> {
   title: string;
   description?: string;
@@ -188,7 +180,6 @@ interface Props<TRow extends ListRow, TQuery extends ListQuery<TRow>> {
   emptyMessage?: string;
   pageSizeOptions?: number[];
   id?: string;
-  automation: string;
   showFilterApply?: boolean;
 }
 
@@ -233,8 +224,6 @@ interface Slots<TRow extends ListRow> {
 defineSlots<Slots<TRow>>();
 
 const draftFilter = ref(props.query.filter);
-
-const automation = useAutomation(props.automation);
 
 const titleId = computed(() => `${props.id}-title`);
 

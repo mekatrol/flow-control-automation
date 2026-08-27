@@ -1,5 +1,5 @@
 <template>
-  <div class="yaml-editor" v-bind="automation()">
+  <div class="yaml-editor">
     <label :id="labelId">{{ label }}</label>
     <div
       ref="container"
@@ -20,7 +20,6 @@
       <ol>
         <li v-for="diagnostic in diagnostics" :key="diagnostic.key">
           <AppButton
-            v-bind="automation(`diagnostic-${diagnostic.line}-${diagnostic.column}`)"
             :text="`Line ${diagnostic.line}, column ${diagnostic.column}: ${diagnostic.message}`"
             :icon="diagnosticIcon"
             @click="revealDiagnostic(diagnostic)"
@@ -36,7 +35,6 @@ import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 import diagnosticIcon from '@/assets/icons/diagnostic-icon.svg';
 import AppButton from '@/components/AppButton.vue';
-import { useAutomation } from '@/composables/useAutomation';
 import { EVENTS } from '@/constants/events';
 import {
   configureYamlSchema,
@@ -56,7 +54,6 @@ export interface YamlDiagnostic {
 const props = withDefaults(
   defineProps<{
     modelValue: string;
-    automation: string;
     label: string;
     help?: string;
     schema: JSONSchema;
@@ -70,7 +67,6 @@ const props = withDefaults(
     readOnly: false
   }
 );
-const automation = useAutomation(props.automation);
 const emit = defineEmits<{
   (event: typeof EVENTS.UPDATE_MODEL_VALUE, value: string): void;
   (event: typeof EVENTS.DIAGNOSTICS, diagnostics: YamlDiagnostic[]): void;

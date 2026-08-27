@@ -26,7 +26,6 @@ describe('AppErrorNotice', () => {
     const wrapper = mount(AppErrorNotice, {
       props: {
         id: 'request-error',
-        automation: 'request-error',
         message: '',
         retryable: true
       }
@@ -45,7 +44,10 @@ describe('AppErrorNotice', () => {
     // needs the supplied error detail to understand what failed.
     expect(wrapper.get('[role="alert"]').text()).toContain('Request failed (502)');
 
-    await wrapper.get('[data-automation="request-error.retry"]').trigger('click');
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === 'Retry')!
+      .trigger('click');
 
     // Expected outcome: Activating Retry dismisses the current error notice.
     // Acceptance criteria: close is called once because the recovery action must remove

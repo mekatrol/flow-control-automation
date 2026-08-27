@@ -26,7 +26,6 @@ const mountAppNotice = async (page: Page): Promise<void> => {
             h(AppNotice, {
               ref: notice,
               id: 'runtime-error',
-              automation: 'runtime-error',
               title: 'Runtime failed',
               message: 'Fallback message',
               variant: 'error'
@@ -81,10 +80,7 @@ test('presents and operates the AppNotice overlay', async ({ page }) => {
   // Expected outcome: Copying linked details produces a plain-text diagnostic.
   // Acceptance criteria: The fixture receives the rendered sentence without HTML because
   // AppNotice must make clipboard output portable to logs, tickets, and messages.
-  await expect(host).toHaveAttribute(
-    'data-clipboard',
-    'Open flow diagnostics for incident 42.'
-  );
+  await expect(host).toHaveAttribute('data-clipboard', 'Open flow diagnostics for incident 42.');
 
   await page.keyboard.press('Escape');
 

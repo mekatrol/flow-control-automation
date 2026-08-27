@@ -3,13 +3,11 @@
     :id="id"
     ref="dialog"
     :content-label="contentLabel"
-    v-bind="automation()"
     :dismissible="false"
     role="alertdialog"
   >
     <slot name="prompt" :cancel="cancel" :confirm="confirm">
       <section
-        v-bind="automation('prompt')"
         class="prompt-dialog-content"
         :aria-labelledby="`${id}-title`"
         :aria-describedby="`${id}-description`"
@@ -17,18 +15,8 @@
         <h2 :id="`${id}-title`">{{ title }}</h2>
         <p :id="`${id}-description`">{{ message }}</p>
         <div class="prompt-dialog-actions">
-          <AppButton
-            v-bind="automation('confirm')"
-            :text="confirmText"
-            :icon="deleteIcon"
-            @click="confirm"
-          />
-          <AppButton
-            v-bind="automation('cancel')"
-            :text="cancelText"
-            :icon="cancelIcon"
-            @click="cancel"
-          />
+          <AppButton :text="confirmText" :icon="deleteIcon" @click="confirm" />
+          <AppButton :text="cancelText" :icon="cancelIcon" @click="cancel" />
         </div>
       </section>
     </slot>
@@ -41,14 +29,12 @@ import cancelIcon from '@/assets/icons/cancel-icon.svg';
 import deleteIcon from '@/assets/icons/delete-flow-icon.svg';
 import AppButton from '@/components/AppButton.vue';
 import AppDialog from '@/components/AppDialog.vue';
-import { useAutomation } from '@/composables/useAutomation';
 import { EVENTS } from '@/constants/events';
 
-const props = withDefaults(
+withDefaults(
   defineProps<{
     id: string;
     contentLabel: string;
-    automation: string;
     title?: string;
     message?: string;
     cancelText?: string;
@@ -68,7 +54,6 @@ const emit = defineEmits({
 });
 
 const dialog = ref<InstanceType<typeof AppDialog>>();
-const automation = useAutomation(props.automation);
 
 const close = (): void => {
   dialog.value?.close();

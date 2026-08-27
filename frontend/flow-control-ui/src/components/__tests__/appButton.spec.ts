@@ -13,7 +13,7 @@ describe('AppButton', () => {
    */
   it('shows its text by default', () => {
     const wrapper = mount(AppButton, {
-      props: { automation: 'save-flow', text: 'Save flow', icon: '/save.svg' }
+      props: { text: 'Save flow', icon: '/save.svg' }
     });
 
     // Expected outcome: `wrapper.get('button'` has the required value.
@@ -21,9 +21,9 @@ describe('AppButton', () => {
     // shows its text by default.
     expect(wrapper.get('button').text()).toBe('Save flow');
 
-    // Expected outcome: `wrapper.get('button'` is not supplied.
-    // Acceptance criteria: `wrapper.get('button'` must be undefined, because this condition proves that
-    // shows its text by default.
+    // Expected outcome: No `aria-label` is provided.
+    // Acceptance criteria: The button's `aria-label` attribute must be undefined,
+    // allowing its visible text to serve as the accessible name.
     expect(wrapper.get('button').attributes('aria-label')).toBeUndefined();
 
     // Expected outcome: `wrapper.get('.button-icon'` has the required value.
@@ -39,7 +39,7 @@ describe('AppButton', () => {
    */
   it('uses the defined text as the accessible label when text is hidden', () => {
     const wrapper = mount(AppButton, {
-      props: { automation: 'save-name', text: 'Save name', icon: '/save.svg', hideText: true }
+      props: { text: 'Save name', icon: '/save.svg', hideText: true }
     });
 
     // Expected outcome: `wrapper.get('button'` has the required value.

@@ -1,33 +1,24 @@
 <template>
   <button
-    v-bind="automation()"
     data-app-button
     :class="props.size"
     :type="type"
-    :aria-label="ariaLabel ?? text"
+    :aria-label="!hideText ? undefined : (ariaLabel ?? text)"
   >
-    <span v-if="$slots.icon" class="button-icon-slot" v-bind="automation('icon')">
+    <span v-if="$slots.icon" class="button-icon-slot">
       <slot name="icon" />
     </span>
-    <AppSvg
-      v-else-if="icon"
-      class="button-icon"
-      :src="icon"
-      v-bind="automation('icon')"
-      :size="18"
-    />
-    <span v-if="!hideText" class="button-text" v-bind="automation('text')">{{ text }}</span>
+    <AppSvg v-else-if="icon" class="button-icon" :src="icon" :size="18" />
+    <span v-if="!hideText" class="button-text">{{ text }}</span>
   </button>
 </template>
 
 <script setup lang="ts">
 import AppSvg from '@/components/AppSvg.vue';
-import { useAutomation } from '@/composables/useAutomation';
 
 const props = withDefaults(
   defineProps<{
     text: string;
-    automation: string;
     icon?: string;
     ariaLabel?: string;
     hideText?: boolean;
@@ -42,8 +33,6 @@ const props = withDefaults(
     size: undefined
   }
 );
-
-const automation = useAutomation(props.automation);
 </script>
 
 <style scoped>

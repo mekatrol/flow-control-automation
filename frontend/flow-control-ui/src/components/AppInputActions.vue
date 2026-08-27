@@ -1,5 +1,5 @@
 <template>
-  <div v-bind="automation()" class="input-actions">
+  <div class="input-actions">
     <label v-if="props.label" :for="inputId">
       {{ props.label }}
     </label>
@@ -58,7 +58,6 @@
 
 <script setup lang="ts">
 import { computed, ref, useId, type InputHTMLAttributes } from 'vue';
-import { useAutomation } from '@/composables/useAutomation';
 
 type InputType = InputHTMLAttributes['type'];
 
@@ -76,7 +75,6 @@ const props = withDefaults(
     clearAriaLabel?: string;
     actionAriaLabel?: string;
     showAction?: boolean;
-    automation: string;
     modelValue?: string;
     actionDisabled?: boolean;
   }>(),
@@ -104,8 +102,6 @@ const emit = defineEmits<Emits>();
 const input = ref<HTMLInputElement | null>(null);
 const generatedId = useId();
 const inputId = computed((): string => props.id ?? generatedId);
-
-const automation = useAutomation(props.automation);
 
 const value = computed({
   get: (): string => props.modelValue,

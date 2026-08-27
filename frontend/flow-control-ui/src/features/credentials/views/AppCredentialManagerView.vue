@@ -1,6 +1,6 @@
 <template>
-  <section v-bind="automation()" class="configuration-page credential-page">
-    <AppErrorNotice id="credentials-error-notice" v-bind="automation('error')" :message="error" />
+  <section class="configuration-page credential-page">
+    <AppErrorNotice id="credentials-error-notice" :message="error" />
     <div class="page-heading">
       <div>
         <p>Secure configuration</p>
@@ -21,12 +21,7 @@
             <h2 id="saved-credentials-heading">Saved credentials</h2>
             <p>Use the displayed reference in point-source YAML.</p>
           </div>
-          <AppButton
-            v-bind="automation('new')"
-            text="New credential"
-            :icon="createIcon"
-            @click="openCreateDialog"
-          />
+          <AppButton text="New credential" :icon="createIcon" @click="openCreateDialog" />
         </div>
         <p v-if="loading" role="status">Loading credentials…</p>
         <p v-else-if="credentials.length === 0" class="empty-state">
@@ -55,12 +50,7 @@
                 <code>secret://{{ credential.id }}</code>
               </td>
               <td>
-                <AppButton
-                  v-bind="automation(`edit-${credential.id}`)"
-                  text="Edit"
-                  :icon="editIcon"
-                  @click="openEditDialog(credential)"
-                />
+                <AppButton text="Edit" :icon="editIcon" @click="openEditDialog(credential)" />
               </td>
             </tr>
           </tbody>
@@ -73,11 +63,10 @@
     id="credential-form-dialog"
     ref="credentialDialog"
     :content-label="editing ? `Edit ${form.name}` : 'Create new credential'"
-    v-bind="automation('dialog')"
     :dismissible="false"
     @[EVENTS.CANCEL]="handleCredentialDialogCancel"
   >
-    <AppForm class="credential-form" v-bind="automation('form')" @submit.prevent="save">
+    <AppForm class="credential-form" @submit.prevent="save">
       <p>{{ editing ? 'Update credential' : 'New credential' }}</p>
       <h2>{{ editing ? `Edit ${form.name}` : 'Credential details' }}</h2>
       <label for="credential-name">Display name</label>
@@ -114,7 +103,6 @@
           />
           <AppButton
             v-if="form.password"
-            v-bind="automation('password-visibility')"
             class="secret-visibility-button"
             :text="passwordVisible ? 'Hide password' : 'Show password'"
             :aria-label="passwordVisible ? 'Hide password' : 'Show password'"
@@ -138,7 +126,6 @@
           />
           <AppButton
             v-if="form.token"
-            v-bind="automation('token-visibility')"
             class="secret-visibility-button"
             :text="tokenVisible ? 'Hide token' : 'Show token'"
             :icon="visibilityIcon"
@@ -154,26 +141,18 @@
       </p>
       <div class="editor-actions">
         <AppButton
-          v-bind="automation('save')"
           type="submit"
           :text="saving ? 'Saving…' : editing ? 'Save changes' : 'Create credential'"
           :icon="editing ? saveIcon : createIcon"
           :disabled="saving"
         />
         <AppButton
-          v-bind="automation('cancel')"
           text="Cancel"
           :icon="cancelIcon"
           :disabled="saving"
           @click="cancelCredentialDialog"
         />
-        <AppButton
-          v-if="editing"
-          v-bind="automation('delete')"
-          text="Delete"
-          :icon="deleteIcon"
-          @click="remove"
-        />
+        <AppButton v-if="editing" text="Delete" :icon="deleteIcon" @click="remove" />
       </div>
     </AppForm>
   </AppDialog>
@@ -182,7 +161,6 @@
     id="credential-discard-dialog"
     ref="credentialDiscardDialog"
     content-label="Discard unsaved credential changes"
-    v-bind="automation('discard-dialog')"
     message="Your credential changes have not been saved and will be lost."
     @[EVENTS.CANCEL]="keepEditing"
     @[EVENTS.CONFIRM]="discardCredentialChanges"
@@ -209,14 +187,12 @@ import AppErrorNotice from '@/components/AppErrorNotice.vue';
 import AppForm from '@/components/AppForm.vue';
 import AppPromptDialog from '@/components/AppPromptDialog.vue';
 import { EVENTS } from '@/constants/events';
-import { useAutomation } from '@/composables/useAutomation';
 
 const credentials = ref<CredentialMetadata[]>([]);
 const loading = ref(false);
 const saving = ref(false);
 const editing = ref(false);
 const error = ref('');
-const automation = useAutomation('credentials');
 const status = ref('');
 const passwordVisible = ref(false);
 const tokenVisible = ref(false);

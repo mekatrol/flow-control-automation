@@ -25,7 +25,6 @@ const mountAppSvg = async (page: Page): Promise<void> => {
             h(AppSvg, {
               src: source.value,
               size: size.value,
-              automation: 'dynamic-svg',
               label: 'Current notice type'
             }),
             h('button', {
@@ -52,11 +51,10 @@ const mountAppSvg = async (page: Page): Promise<void> => {
 /**
  * Purpose: Protects reactive SVG masking in a real browser rather than only Vue's DOM model.
  * Description: Renders an informative icon, changes its source and size at runtime, and observes
- * browser-computed mask and dimensions without replacing its automation target.
  */
 test('updates an AppSvg source and size at runtime', async ({ page }) => {
   await mountAppSvg(page);
-  const icon = page.locator('[data-automation="dynamic-svg"]');
+  const icon = page.getByRole('img', { name: 'Current notice type' });
 
   // Expected outcome: The initial icon has accessible image semantics.
   // Acceptance criteria: Its accessible name is "Current notice type" because meaningful

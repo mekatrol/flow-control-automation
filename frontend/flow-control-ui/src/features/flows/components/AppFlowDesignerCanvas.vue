@@ -1,5 +1,5 @@
 <template>
-  <div v-bind="automation()" class="canvas-frame">
+  <div class="canvas-frame">
     <div class="canvas-toolbar">
       <span>{{ flow.nodes.length }} nodes</span>
       <span>{{ flow.connections.length }} connections</span>
@@ -8,7 +8,6 @@
       </span>
       <div class="zoom-controls" aria-label="Canvas zoom controls">
         <AppButton
-          v-bind="automation('zoom-out')"
           text="Zoom out"
           aria-label="Zoom out"
           hide-text
@@ -23,7 +22,6 @@
         </AppButton>
         <output aria-live="polite">{{ Math.round(zoom * 100) }}%</output>
         <AppButton
-          v-bind="automation('zoom-in')"
           text="Zoom in"
           aria-label="Zoom in"
           hide-text
@@ -42,7 +40,6 @@
         Snap to grid
       </label>
       <AppFlowDesignerToolbar
-        v-bind="automation('toolbar')"
         :selected-node-id="selectedNodeId"
         :can-move-front="canMoveFront"
         :can-move-back="canMoveBack"
@@ -55,25 +52,21 @@
         aria-label="Selected node breakpoints"
       >
         <AppButton
-          v-bind="automation('breakpoint-before')"
           text="Breakpoint before"
           :icon="breakpointIcon"
           @click="setSelectedBreakpoint('before')"
         />
         <AppButton
-          v-bind="automation('breakpoint-after')"
           text="Breakpoint after"
           :icon="breakpointIcon"
           @click="setSelectedBreakpoint('after')"
         />
         <AppButton
-          v-bind="automation('breakpoint-clear')"
           text="Clear breakpoints"
           :icon="cancelIcon"
           @click="setSelectedBreakpoint(null)"
         />
         <AppButton
-          v-bind="automation('run-to-node')"
           text="Run to selected node"
           :icon="playIcon"
           @click="emit(EVENTS.RUN_TO_NODE, selectedNodeId)"
@@ -82,7 +75,7 @@
     </div>
 
     <div class="designer-workspace">
-      <AppFlowNodePalette v-bind="automation('node-palette')" @[EVENTS.ADD]="handleAddNode" />
+      <AppFlowNodePalette @[EVENTS.ADD]="handleAddNode" />
       <div class="canvas-column">
         <p v-if="connectionError" class="connection-error" role="alert">{{ connectionError }}</p>
 
@@ -131,7 +124,6 @@
                 v-for="rendered in renderedConnections"
                 :id="rendered.connection.id"
                 :key="rendered.connection.id"
-                v-bind="automation(`connection-${rendered.connection.id}`)"
                 :start="rendered.start"
                 :end="rendered.end"
                 :start-side="rendered.startSide"
@@ -143,7 +135,6 @@
               <AppFlowConnection
                 v-if="previewStart && previewEnd"
                 id="connection-preview"
-                v-bind="automation('connection-preview')"
                 :start="previewStart"
                 :end="previewEnd"
                 :start-side="previewStartSide"
@@ -154,7 +145,6 @@
             <AppFlowNode
               v-for="node in orderedNodes"
               :key="node.id"
-              v-bind="automation(`node-${node.id}`)"
               :node="node"
               :selected="node.id === selectedNodeId"
               :status="runtime?.nodes[node.id]?.state ?? flow.status"
@@ -189,7 +179,6 @@
       </div>
       <AppFlowNodeConfigurationPanel
         v-if="selectedNode"
-        v-bind="automation('node-configuration')"
         :node="selectedNode"
         :virtual-point-declarations="flow.virtualPointDeclarations"
         :context-point-contracts="contextPointContracts"
@@ -210,7 +199,6 @@ import breakpointIcon from '@/assets/icons/breakpoint-icon.svg';
 import cancelIcon from '@/assets/icons/cancel-icon.svg';
 import playIcon from '@/assets/icons/play-icon.svg';
 import AppButton from '@/components/AppButton.vue';
-import { useAutomation } from '@/composables/useAutomation';
 import { EVENTS } from '@/constants/events';
 import AppFlowConnection from './AppFlowConnection.vue';
 import AppFlowDesignerToolbar from './AppFlowDesignerToolbar.vue';
@@ -250,7 +238,6 @@ import type { ConnectorRuntimeValue } from '@/features/flows/api/flowRuntimeApi'
 import type { FlowDebugBreakpoint } from '@/features/flows/api/flowDebugApi';
 
 const props = defineProps<{
-  automation: string;
   flow: FlowDefinition;
   runtime?: FlowRuntimeSnapshot;
   currentNodeId?: string;
@@ -262,7 +249,6 @@ const props = defineProps<{
   executionContextId?: string;
 }>();
 
-const automation = useAutomation(props.automation);
 const emit = defineEmits<{
   (event: typeof EVENTS.SET_BREAKPOINT, nodeId: string, position: 'before' | 'after' | null): void;
   (event: typeof EVENTS.RUN_TO_NODE, nodeId: string): void;

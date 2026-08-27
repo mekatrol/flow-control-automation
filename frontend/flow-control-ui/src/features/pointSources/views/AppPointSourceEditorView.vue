@@ -1,6 +1,6 @@
 <template>
-  <section v-bind="automation()" class="configuration-page editor-page">
-    <AppErrorNotice id="point-source-error-notice" v-bind="automation('error')" :message="error" />
+  <section class="configuration-page editor-page">
+    <AppErrorNotice id="point-source-error-notice" :message="error" />
     <nav aria-label="Breadcrumb">
       <RouterLink :to="{ name: 'point-sources' }">Point sources</RouterLink> /
       {{ isNew ? 'New source' : 'Edit source' }}
@@ -20,37 +20,22 @@
       <form @submit.prevent="save">
         <div class="editor-actions">
           <AppButton
-            v-bind="automation('save')"
             type="submit"
             :text="saving ? 'Saving…' : 'Save'"
             :icon="saveIcon"
             :disabled="saving || hasEditorErrors"
           />
           <AppButton
-            v-bind="automation('test-connection')"
             :text="testing ? 'Testing…' : 'Test connection'"
             :icon="testConnectionIcon"
             :disabled="testing || hasEditorErrors"
             @click="testConnection"
           />
-          <AppButton
-            v-if="testing"
-            v-bind="automation('cancel-test')"
-            text="Cancel test"
-            :icon="cancelIcon"
-            @click="cancelTest"
-          />
-          <AppButton
-            v-if="!isNew"
-            v-bind="automation('delete')"
-            text="Delete"
-            :icon="deleteIcon"
-            @click="remove"
-          />
+          <AppButton v-if="testing" text="Cancel test" :icon="cancelIcon" @click="cancelTest" />
+          <AppButton v-if="!isNew" text="Delete" :icon="deleteIcon" @click="remove" />
         </div>
         <AppYamlEditor
           v-model="yaml"
-          v-bind="automation('yaml-editor')"
           label="Point source YAML"
           help="Errors and suggestions use the point-source schema. The server validates again when you test or save."
           :schema="pointSourceSchema"
@@ -87,12 +72,7 @@
           tabindex="0"
           :aria-label="`${selectedExample.name} example YAML`"
         ><code>{{ selectedExample.yaml }}</code></pre>
-        <AppButton
-          v-bind="automation('use-example')"
-          text="Use this example"
-          :icon="checkIcon"
-          @click="useSelectedExample"
-        />
+        <AppButton text="Use this example" :icon="checkIcon" @click="useSelectedExample" />
         <div v-if="selectedExample.kind === 'mqtt'" class="mqtt-credential-help">
           <h3>MQTT credentials</h3>
           <p>
@@ -131,7 +111,6 @@
       </ol>
       <AppButton
         v-if="testResult.status === 'failed'"
-        v-bind="automation('retry-test')"
         text="Retry test"
         :icon="retryIcon"
         @click="testConnection"
@@ -155,7 +134,6 @@ import AppButton from '@/components/AppButton.vue';
 import AppErrorNotice from '@/components/AppErrorNotice.vue';
 import AppYamlEditor, { type YamlDiagnostic } from '@/components/AppYamlEditor.vue';
 import { EVENTS } from '@/constants/events';
-import { useAutomation } from '@/composables/useAutomation';
 import {
   pointSourceApi,
   type ConnectionTestResult,
@@ -261,7 +239,6 @@ const error = ref('');
 const status = ref('');
 const testResult = ref<ConnectionTestResult>();
 const editorDiagnostics = ref<YamlDiagnostic[]>([]);
-const automation = useAutomation('point-source-editor');
 const setEditorDiagnostics = (diagnostics: YamlDiagnostic[]): void => {
   editorDiagnostics.value = diagnostics;
 };

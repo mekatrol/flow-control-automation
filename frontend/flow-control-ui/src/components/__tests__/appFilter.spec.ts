@@ -10,11 +10,10 @@ describe('AppFilter', () => {
   /**
    * Purpose: Protects the shared filter shell's ability to host different labelled control types.
    * Description: Renders search and select controls through the default slot and verifies the semantic form,
-   * automation hooks, and standard apply action remain available.
    */
   it('renders flexible filter controls with a standard apply action', () => {
     const wrapper = mount(AppFilter, {
-      props: { automation: 'example-filter', constrained: true },
+      props: { constrained: true },
       slots: {
         default:
           '<label class="app-filter-field">Name<input type="search"></label><label>Status<select><option>All</option></select></label>'
@@ -33,10 +32,6 @@ describe('AppFilter', () => {
     // Acceptance criteria: Exactly one select is rendered because flexible content must not be restricted to text filters.
     expect(wrapper.findAll('select')).toHaveLength(1);
 
-    // Expected outcome: The component exposes a stable root automation identifier.
-    // Acceptance criteria: The form has data-automation "example-filter" because end-to-end consumers need a stable hook for the complete filter.
-    expect(wrapper.get('form').attributes('data-automation')).toBe('example-filter');
-
     // Expected outcome: Every filter receives the consistent apply action.
     // Acceptance criteria: The submit button text is "Apply filter" because that is the application-wide explicit filtering action.
     expect(wrapper.get('button[type="submit"]').text()).toBe('Apply filter');
@@ -48,7 +43,7 @@ describe('AppFilter', () => {
    */
   it('emits the shared apply event when submitted', async () => {
     const wrapper = mount(AppFilter, {
-      props: { automation: 'example-filter' },
+      props: {},
       slots: { default: '<input aria-label="Name" type="search">' }
     });
 

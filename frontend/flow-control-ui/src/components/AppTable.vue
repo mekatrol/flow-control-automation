@@ -1,11 +1,5 @@
 <template>
-  <div
-    v-bind="automation()"
-    class="table-scroll"
-    tabindex="0"
-    role="region"
-    :aria-label="`${caption} table`"
-  >
+  <div class="table-scroll" tabindex="0" role="region" :aria-label="`${caption} table`">
     <table>
       <caption>
         {{
@@ -23,14 +17,9 @@
 </template>
 
 <script setup lang="ts">
-import { useAutomation } from '@/composables/useAutomation';
-
-const props = defineProps<{
+defineProps<{
   caption: string;
-  automation: string;
 }>();
-
-const automation = useAutomation(props.automation);
 </script>
 
 <style scoped>

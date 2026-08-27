@@ -3,24 +3,17 @@
     <a
       :href="href"
       :aria-current="ariaCurrent"
-      :aria-label="ariaLabel ?? text"
+      :aria-label="!hideText ? undefined : (ariaLabel ?? text)"
       class="app-link"
-      v-bind="automation()"
       @click="navigate"
     >
-      <span v-if="$slots.icon" class="link-icon-slot" v-bind="automation('icon')">
+      <span v-if="$slots.icon" class="link-icon-slot">
         <slot name="icon" />
       </span>
 
-      <AppSvg
-        v-else-if="icon"
-        class="link-icon"
-        :src="icon"
-        v-bind="automation('icon')"
-        :size="18"
-      />
+      <AppSvg v-else-if="icon" class="link-icon" :src="icon" :size="18" />
 
-      <span v-if="!hideText" class="link-text" v-bind="automation('text')">
+      <span v-if="!hideText" class="link-text">
         {{ text }}
       </span>
     </a>
@@ -29,15 +22,13 @@
 
 <script setup lang="ts">
 import AppSvg from '@/components/AppSvg.vue';
-import { useAutomation } from '@/composables/useAutomation';
 import type { RouteLocationRaw } from 'vue-router';
 import type { AriaAttributes } from 'vue';
 
-const props = withDefaults(
+withDefaults(
   defineProps<{
     text: string;
     to: RouteLocationRaw;
-    automation: string;
     icon?: string;
     ariaCurrent?: AriaAttributes['aria-current'];
     ariaLabel?: string;
@@ -50,8 +41,6 @@ const props = withDefaults(
     hideText: false
   }
 );
-
-const automation = useAutomation(props.automation);
 </script>
 
 <style scoped>

@@ -1,16 +1,11 @@
 <template>
-  <section v-bind="automation()" class="designer-page">
-    <AppErrorNotice
-      id="flow-designer-error-notice"
-      v-bind="automation('designer-error')"
-      :message="noticeError"
-    />
+  <section class="designer-page">
+    <AppErrorNotice id="flow-designer-error-notice" :message="noticeError" />
 
     <AppPromptDialog
       id="deploy-confirmation-dialog"
       ref="deployDialog"
       content-label="Deploy flow confirmation"
-      automation="flow-designer-deploy-confirmation"
       role="alertdialog"
       @confirm="deployFlow"
     >
@@ -26,19 +21,8 @@
             The latest saved definition will replace the currently running version.
           </p>
           <div class="designer-prompt-actions">
-            <AppButton
-              v-bind="automation('deploy-cancel')"
-              text="Cancel"
-              :icon="cancelIcon"
-              data-dialog-initial-focus
-              @click="cancel"
-            />
-            <AppButton
-              v-bind="automation('deploy-confirm')"
-              text="Deploy now"
-              :icon="deployIcon"
-              @click="confirm"
-            />
+            <AppButton text="Cancel" :icon="cancelIcon" data-dialog-initial-focus @click="cancel" />
+            <AppButton text="Deploy now" :icon="deployIcon" @click="confirm" />
           </div>
         </section>
       </template>
@@ -48,7 +32,6 @@
       id="revert-confirmation-dialog"
       ref="revertDialog"
       content-label="Revert draft confirmation"
-      automation="flow-designer-revert-confirmation"
       @confirm="revertDraftToDeployed"
     >
       <template #prompt="{ cancel, confirm }">
@@ -64,18 +47,12 @@
           </p>
           <div class="designer-prompt-actions">
             <AppButton
-              v-bind="automation('revert-cancel')"
               text="Keep draft"
               :icon="cancelIcon"
               data-dialog-initial-focus
               @click="cancel"
             />
-            <AppButton
-              v-bind="automation('revert-confirm')"
-              text="Revert draft"
-              :icon="discardIcon"
-              @click="confirm"
-            />
+            <AppButton text="Revert draft" :icon="discardIcon" @click="confirm" />
           </div>
         </section>
       </template>
@@ -85,7 +62,6 @@
       id="discard-changes-dialog"
       ref="discardDialog"
       content-label="Discard unsaved flow changes confirmation"
-      automation="flow-designer-discard-confirmation"
       @cancel="keepEditing"
       @confirm="discardChanges"
     >
@@ -100,18 +76,12 @@
           <p id="discard-description">This flow has changes that have not been saved.</p>
           <div class="designer-prompt-actions">
             <AppButton
-              v-bind="automation('discard-keep-editing')"
               text="Keep editing"
               :icon="renameFlowIcon"
               data-dialog-initial-focus
               @click="cancel"
             />
-            <AppButton
-              v-bind="automation('discard-confirm')"
-              text="Discard changes"
-              :icon="discardIcon"
-              @click="confirm"
-            />
+            <AppButton text="Discard changes" :icon="discardIcon" @click="confirm" />
           </div>
         </section>
       </template>
@@ -124,14 +94,8 @@
         aria-label="Flow version"
       >
         <div role="group" aria-label="Version to view">
+          <AppButton text="Draft" :disabled="versionView === 'draft'" @click="showDraftVersion" />
           <AppButton
-            v-bind="automation('view-draft')"
-            text="Draft"
-            :disabled="versionView === 'draft'"
-            @click="showDraftVersion"
-          />
-          <AppButton
-            v-bind="automation('view-deployed')"
             text="Deployed"
             :disabled="versionView === 'deployed' || loadingDeployedVersion"
             @click="showDeployedVersion"
@@ -142,7 +106,6 @@
         </span>
         <AppButton
           v-if="versionView === 'draft' && draftFlow.status === 'draft'"
-          v-bind="automation('revert-draft')"
           text="Revert draft to deployed"
           :disabled="saving || revertingDraft"
           @click="openRevertConfirmation"
@@ -150,7 +113,6 @@
       </section>
 
       <AppFlowDesignerHeader
-        v-bind="automation('header')"
         v-model:debug-target-id="debugTargetId"
         :flow="flow"
         :dirty="dirty"
@@ -173,7 +135,6 @@
       />
 
       <AppFlowWorkspaceNavigation
-        v-bind="automation('workspace-navigation')"
         :flow-id="props.flowId"
         :workspace-mode="workspaceMode"
         :version-view="versionView"
@@ -205,7 +166,6 @@
 
       <AppFlowCompileResults
         v-if="versionView === 'draft' && compileResult"
-        v-bind="automation('compile-results')"
         :result="compileResult"
         :node-ids="draftFlow?.nodes.map(({ id }) => id) ?? []"
         @select-diagnostic="focusDiagnosticNode"
@@ -213,7 +173,6 @@
 
       <AppFlowTutorialPanel
         v-if="activeTutorial"
-        v-bind="automation('tutorial')"
         :tutorial="activeTutorial"
         @[EVENTS.CLOSE]="activeTutorial = undefined"
         @[EVENTS.OPEN_TUTORIAL]="openTutorialExample"
@@ -222,7 +181,6 @@
 
       <AppFlowSimulatorPanel
         v-if="workspaceMode === 'simulator'"
-        v-bind="automation('simulator')"
         :lifecycle="simulator.lifecycle"
         :session="simulator.session"
         :error="simulator.error"
@@ -243,7 +201,6 @@
 
       <AppFlowDebugPanel
         v-if="workspaceMode === 'debugger'"
-        v-bind="automation('debug')"
         :lifecycle="debugLifecycle"
         :snapshot="debugSnapshot"
         :stale="debugSnapshotStale"
@@ -274,7 +231,6 @@
 
       <AppFlowEmulatorPanel
         v-if="workspaceMode === 'debugger' && selectedDebugTarget?.kind === 'emulator'"
-        v-bind="automation('emulator')"
         :snapshot="emulatorSnapshot"
         @[EVENTS.APPLY_INPUTS_STEP]="applyEmulatorInputsAndStep"
         @[EVENTS.ADVANCE]="advanceEmulator"
@@ -285,7 +241,6 @@
 
       <div :class="{ 'deployed-version-canvas': versionView === 'deployed' }">
         <AppFlowDesignerCanvas
-          v-bind="automation('canvas')"
           :flow="flow"
           :runtime="debugNodeRuntime ?? runtime"
           :current-node-id="debugInspection?.nodeId"
@@ -325,7 +280,6 @@ import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
 import { ROUTE_NAMES } from '@/router';
 
-import { useAutomation } from '@/composables/useAutomation';
 import { EVENTS } from '@/constants/events';
 import cancelIcon from '@/assets/icons/cancel-icon.svg';
 import deployIcon from '@/assets/icons/deploy-icon.svg';
@@ -390,7 +344,6 @@ const props = defineProps<{
   flowId: string;
   workspaceMode: WorkspaceMode;
 }>();
-const automation = useAutomation('flow-designer');
 
 const flowStore = useFlowsStore();
 const runtimeStore = useFlowRuntimeStore();

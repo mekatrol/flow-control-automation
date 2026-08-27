@@ -1,12 +1,6 @@
 <template>
-  <div
-    v-bind="automation()"
-    class="z-order-controls"
-    role="toolbar"
-    aria-label="Node stacking order"
-  >
+  <div class="z-order-controls" role="toolbar" aria-label="Node stacking order">
     <AppButton
-      v-bind="automation('bring-to-front')"
       text="Bring to front"
       hide-text
       title="Bring to front"
@@ -23,7 +17,6 @@
       </template>
     </AppButton>
     <AppButton
-      v-bind="automation('bring-forward')"
       text="Bring forward"
       hide-text
       title="Bring forward"
@@ -39,7 +32,6 @@
       </template>
     </AppButton>
     <AppButton
-      v-bind="automation('send-backward')"
       text="Send backward"
       hide-text
       title="Send backward"
@@ -55,7 +47,6 @@
       </template>
     </AppButton>
     <AppButton
-      v-bind="automation('send-to-back')"
       text="Send to back"
       hide-text
       title="Send to back"
@@ -76,12 +67,10 @@
 
 <script setup lang="ts">
 import AppButton from '@/components/AppButton.vue';
-import { useAutomation } from '@/composables/useAutomation';
 import { EVENTS } from '@/constants/events';
 import type { ZOrderCommand } from '@/features/flows/graph/zOrder';
 
-const props = defineProps<{
-  automation: string;
+defineProps<{
   selectedNodeId?: string;
   canMoveFront: boolean;
   canMoveBack: boolean;
@@ -90,7 +79,6 @@ const props = defineProps<{
 const emit = defineEmits<{
   (event: typeof EVENTS.REORDER, command: ZOrderCommand): void;
 }>();
-const automation = useAutomation(props.automation);
 </script>
 
 <style scoped>

@@ -6,13 +6,11 @@ export type ListColumnKey<TRow> = Extract<keyof TRow, string>;
 
 export interface ListRow {
   id: ListRowId;
-  automation: string;
 }
 
 export interface ListColumn<TRow extends ListRow> {
   key: ListColumnKey<TRow>;
   label: string;
-  automation: string;
   sortable?: boolean;
   width?: string;
   align?: 'start' | 'center' | 'end';

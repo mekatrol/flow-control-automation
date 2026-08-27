@@ -16,7 +16,6 @@ describe('FlowNode', () => {
     const output = node.connectors.find((connector) => connector.direction === 'output')!;
     const wrapper = mount(AppFlowNode, {
       props: {
-        automation: 'flow-node-debug',
         node,
         selected: false,
         breakpointPositions: ['before', 'after'],
@@ -46,7 +45,6 @@ describe('FlowNode', () => {
     const node = sampleFlows[0]!.nodes[0]!;
     const wrapper = mount(AppFlowNode, {
       props: {
-        automation: 'flow-node-source',
         node,
         selected: false,
         status: 'running',
@@ -138,7 +136,6 @@ describe('FlowNode', () => {
   it('emits selection from keyboard activation', async () => {
     const wrapper = mount(AppFlowNode, {
       props: {
-        automation: 'flow-node-source',
         node: sampleFlows[0]!.nodes[0]!,
         selected: false
       }

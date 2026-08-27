@@ -1,5 +1,5 @@
 <template>
-  <div v-bind="automation()" class="designer-heading">
+  <div class="designer-heading">
     <div>
       <RouterLink :to="{ name: 'flows' }">← All flows</RouterLink>
 
@@ -24,7 +24,6 @@
     <div class="heading-actions">
       <AppFlowDebugTargetSelector
         v-if="workspaceMode === 'debugger'"
-        v-bind="automation('debug-target')"
         :model-value="debugTargetId"
         :targets="debugTargets"
         :loading="loading"
@@ -34,7 +33,6 @@
 
       <AppButton
         v-if="versionView === 'draft'"
-        v-bind="automation('save')"
         :text="saving ? 'Saving…' : 'Save flow'"
         :icon="saveIcon"
         :disabled="saving"
@@ -43,7 +41,6 @@
 
       <AppButton
         v-if="versionView === 'draft'"
-        v-bind="automation('compile')"
         :text="compiling ? 'Compiling…' : 'Compile'"
         :icon="compileIcon"
         :disabled="compiling"
@@ -52,7 +49,6 @@
 
       <AppButton
         v-if="versionView === 'draft'"
-        v-bind="automation('deploy')"
         :text="deploying ? 'Deploying…' : 'Deploy flow'"
         :icon="deployIcon"
         :disabled="dirty || deploying || !pointReferencesValid"
@@ -61,7 +57,6 @@
 
       <AppButton
         v-if="flow.status === 'deployed'"
-        v-bind="automation('toggle-disabled')"
         :text="
           togglingDisabled
             ? flow.disabled
@@ -76,12 +71,7 @@
         @click="emit('toggleDisabled', !flow.disabled)"
       />
 
-      <AppButton
-        v-bind="automation('refresh-runtime')"
-        text="Refresh runtime"
-        :icon="refreshIcon"
-        @click="emit('refreshRuntime')"
-      />
+      <AppButton text="Refresh runtime" :icon="refreshIcon" @click="emit('refreshRuntime')" />
     </div>
   </div>
 </template>
@@ -90,8 +80,6 @@
 import type { FlowDefinition } from '@/features/flows/types';
 import type { WorkspaceMode, VersionView } from '@/features/flows/types/flowDesigner';
 import type { FlowDebugTarget } from '@/features/flows/debugTargets';
-
-import { useAutomation } from '@/composables/useAutomation';
 
 import AppButton from '@/components/AppButton.vue';
 
@@ -104,7 +92,7 @@ import deployIcon from '@/assets/icons/deploy-icon.svg';
 
 import AppFlowDebugTargetSelector from '@/features/flows/components/AppFlowDebugTargetSelector.vue';
 
-const props = defineProps<{
+defineProps<{
   flow: FlowDefinition;
   dirty: boolean;
   runtimeState?: string;
@@ -123,11 +111,7 @@ const props = defineProps<{
   togglingDisabled: boolean;
 
   pointReferencesValid: boolean;
-
-  automation: string;
 }>();
-
-const automation = useAutomation(props.automation);
 
 const emit = defineEmits<{
   save: [];

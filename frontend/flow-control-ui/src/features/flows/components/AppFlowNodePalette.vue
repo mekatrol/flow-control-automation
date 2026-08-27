@@ -1,7 +1,7 @@
 <template>
-  <aside v-bind="automation()" class="node-palette" aria-label="Function block toolbox">
+  <aside class="node-palette" aria-label="Function block toolbox">
     <h2>Function blocks</h2>
-    <AppFilter v-bind="automation('filter')" layout="stacked" @[EVENTS.APPLY_FILTER]="applyFilter">
+    <AppFilter layout="stacked" @[EVENTS.APPLY_FILTER]="applyFilter">
       <label class="app-filter-field">
         <span>Find a node</span>
         <input v-model="filter" type="search" placeholder="Search nodes" />
@@ -12,7 +12,6 @@
         <h3>{{ category }}</h3>
         <div v-for="definition in definitions" :key="definition.kind" class="palette-item">
           <AppButton
-            v-bind="automation(`add-${automationKind(definition.kind)}`)"
             class="palette-add-button"
             :text="definition.label"
             draggable="true"
@@ -21,11 +20,7 @@
             @dragstart="startPaletteDrag(definition.kind, $event)"
           >
             <template #icon>
-              <AppSvg
-                :src="getNodeIconUrl(definition.icon)"
-                v-bind="automation(`add-${automationKind(definition.kind)}-icon`)"
-                size="100%"
-              />
+              <AppSvg :src="getNodeIconUrl(definition.icon)" size="100%" />
             </template>
           </AppButton>
         </div>
@@ -76,19 +71,12 @@ import { computed, ref } from 'vue';
 import AppButton from '@/components/AppButton.vue';
 import AppFilter from '@/components/AppFilter.vue';
 import AppSvg from '@/components/AppSvg.vue';
-import { useAutomation } from '@/composables/useAutomation';
 import { EVENTS } from '@/constants/events';
 import type { FlowNodeKind } from '@/features/flows/types';
 
-const props = defineProps<{
-  automation: string;
-}>();
 const emit = defineEmits<{
   (event: typeof EVENTS.ADD, kind: FlowNodeKind): void;
 }>();
-const automation = useAutomation(props.automation);
-const automationKind = (kind: string): string =>
-  kind.replaceAll(/([a-z0-9])([A-Z])/g, '$1-$2').toLocaleLowerCase();
 const filter = ref('');
 const query = ref('');
 const groups = computed(() => groupNodeKinds(filterNodeKinds(query.value)));

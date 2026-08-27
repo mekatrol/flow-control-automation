@@ -1,6 +1,5 @@
 <template>
   <g
-    v-bind="automation()"
     class="flow-node"
     :data-node-id="node.id"
     :data-node-category="definition.category"
@@ -27,37 +26,17 @@
         :height="definition.defaultSize.height"
         rx="2"
       />
-      <AppFlowNodeIcon v-bind="automation('icon')" :icon="definition.icon" />
-      <AppFlowNodeLabel
-        v-bind="automation('label')"
-        :label="node.label"
-        :kind-label="definition.label"
-      />
+      <AppFlowNodeIcon :icon="definition.icon" />
+      <AppFlowNodeLabel :label="node.label" :kind-label="definition.label" />
       <AppFlowNodeStatus
         v-if="status"
-        v-bind="automation('status')"
         :status="status"
         :value="statusValue"
         :width="definition.defaultSize.width"
       />
-      <AppFlowNodeMarker
-        v-bind="automation('marker-square')"
-        shape="square"
-        color="orange"
-        :x="definition.defaultSize.width - 60"
-      />
-      <AppFlowNodeMarker
-        v-bind="automation('marker-triangle')"
-        shape="triangle"
-        color="green"
-        :x="definition.defaultSize.width - 40"
-      />
-      <AppFlowNodeMarker
-        v-bind="automation('marker-circle')"
-        shape="circle"
-        color="blue"
-        :x="definition.defaultSize.width - 20"
-      />
+      <AppFlowNodeMarker shape="square" color="orange" :x="definition.defaultSize.width - 60" />
+      <AppFlowNodeMarker shape="triangle" color="green" :x="definition.defaultSize.width - 40" />
+      <AppFlowNodeMarker shape="circle" color="blue" :x="definition.defaultSize.width - 20" />
       <text v-if="breakpointPositions?.includes('before')" class="breakpoint-marker" x="6" y="14">
         B
       </text>
@@ -74,7 +53,6 @@
       <AppFlowConnector
         v-for="layout in connectorLayouts"
         :key="layout.connector.id"
-        v-bind="automation(`connector-${layout.connector.id}`)"
         :layout="layout"
         :compatible="compatibleConnectorKeys?.includes(connectorKey(layout.connector.id))"
         :active="
@@ -117,14 +95,12 @@ import AppFlowNodeMarker from './AppFlowNodeMarker.vue';
 import AppFlowNodeStatus from './AppFlowNodeStatus.vue';
 import AppFlowConnector from './AppFlowConnector.vue';
 import { layoutConnectors } from '@/features/flows/geometry/connectorLayout';
-import { useAutomation } from '@/composables/useAutomation';
 import { EVENTS } from '@/constants/events';
 import { getNodeKind } from '@/features/flows/nodeKinds';
 import type { FlowConnectionEndpoint, FlowNode } from '@/features/flows/types';
 import type { ConnectorRuntimeValue } from '@/features/flows/api/flowRuntimeApi';
 
 const props = defineProps<{
-  automation: string;
   node: FlowNode;
   selected: boolean;
   status?: 'draft' | 'deployed' | 'idle' | 'running' | 'stopped' | 'error';
@@ -136,7 +112,6 @@ const props = defineProps<{
   connectorValues?: Record<string, ConnectorRuntimeValue>;
 }>();
 
-const automation = useAutomation(props.automation);
 const emit = defineEmits<{
   (event: typeof EVENTS.SELECT, nodeId: string): void;
   (event: typeof EVENTS.DRAG_START, nodeId: string, nativeEvent: PointerEvent): void;

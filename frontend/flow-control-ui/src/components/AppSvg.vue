@@ -1,6 +1,5 @@
 <template>
   <span
-    v-bind="automation()"
     class="app-svg"
     :style="svgStyle"
     :role="label ? 'img' : undefined"
@@ -13,14 +12,11 @@
 import { computed } from 'vue';
 import type { CSSProperties } from 'vue';
 
-import { useAutomation } from '@/composables/useAutomation';
-
 export type AppSvgSize = number | string;
 
 const props = withDefaults(
   defineProps<{
     src: string;
-    automation: string;
     size?: AppSvgSize;
     width?: AppSvgSize;
     height?: AppSvgSize;
@@ -37,8 +33,6 @@ const props = withDefaults(
     label: undefined
   }
 );
-
-const automation = useAutomation(props.automation);
 
 const cssSize = (value: AppSvgSize): string =>
   typeof value === 'number' ? `${String(value)}px` : value;

@@ -1,7 +1,7 @@
 <template>
-  <aside v-bind="automation()" class="configuration-panel" aria-label="Node configuration">
+  <aside class="configuration-panel" aria-label="Node configuration">
     <div class="panel-heading">
-      <AppSvg :src="getNodeIconUrl(definition.icon)" v-bind="automation('icon')" :size="22" />
+      <AppSvg :src="getNodeIconUrl(definition.icon)" :size="22" />
       <div class="heading-copy">
         <strong>Configure {{ definition.label }}</strong>
         <small>{{ node.id }}</small>
@@ -47,7 +47,6 @@
           </small>
           <AppButton
             v-if="canCreateVirtualPoint"
-            v-bind="automation('create-virtual-point')"
             class="create-point-button"
             :text="`Create virtual point “${pointDraft.trim()}”`"
             :icon="createIcon"
@@ -70,14 +69,8 @@
               ><span>Optional default</span><input v-model="createDefault" type="text"
             /></label>
             <div class="create-point-actions">
+              <AppButton text="Cancel" :icon="cancelIcon" @click="showCreatePoint = false" />
               <AppButton
-                v-bind="automation('create-virtual-point-cancel')"
-                text="Cancel"
-                :icon="cancelIcon"
-                @click="showCreatePoint = false"
-              />
-              <AppButton
-                v-bind="automation('create-virtual-point-confirm')"
                 text="Create"
                 :icon="checkIcon"
                 :disabled="!createName.trim()"
@@ -158,7 +151,6 @@ import AppButton from '@/components/AppButton.vue';
 import cancelIcon from '@/assets/icons/cancel-icon.svg';
 import checkIcon from '@/assets/icons/check-icon.svg';
 import createIcon from '@/assets/icons/new-icon.svg';
-import { useAutomation } from '@/composables/useAutomation';
 import { EVENTS } from '@/constants/events';
 import { getNodeIconUrl, getNodeKind } from '@/features/flows/nodeKinds';
 import type { NodeEditorField } from '@/features/flows/nodeKinds';
@@ -177,7 +169,6 @@ import {
 } from '@/features/flows/flowPointValidation';
 
 const props = defineProps<{
-  automation: string;
   node: FlowNode;
   virtualPointDeclarations?: VirtualPointDeclaration[];
   contextPointContracts?: VirtualPointDeclaration[];
@@ -190,7 +181,6 @@ const emit = defineEmits<{
   (event: 'createVirtualPoint', declaration: VirtualPointDeclaration): void;
 }>();
 
-const automation = useAutomation(props.automation);
 const definition = computed(() => getNodeKind(props.node.kind));
 const nodeEditorFields = computed(() => definition.value.editor);
 const errors = ref<Record<string, string>>({});

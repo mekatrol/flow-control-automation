@@ -1,8 +1,7 @@
 <template>
-  <section v-bind="automation()" class="flow-library">
+  <section class="flow-library">
     <AppErrorNotice
       id="flows-error-notice"
-      v-bind="automation('error')"
       :message="error ?? ''"
       :retryable="errorRetry"
       @[EVENTS.RETRY]="loadFlows"
@@ -37,7 +36,6 @@
           placeholder="Use artifact flow ID"
         />
         <AppButton
-          v-bind="automation('preview-il')"
           :text="importing ? 'Validating…' : 'Preview recovery'"
           :icon="previewIcon"
           :disabled="!importArtifact || importing"
@@ -55,7 +53,6 @@
           <li v-for="warning in importPreview.warnings" :key="warning">{{ warning }}</li>
         </ul>
         <AppButton
-          v-bind="automation('save-il-import')"
           text="Save as new editable flow"
           :icon="saveIcon"
           :disabled="importing"
@@ -72,7 +69,6 @@
       </p>
 
       <AppFlowTable
-        v-bind="automation('table')"
         :flows="items"
         :filter="query"
         :statuses="statusFilters"
@@ -99,16 +95,10 @@
       />
     </div>
 
-    <AppFlowCreateDialog
-      v-bind="automation('create-dialog')"
-      ref="createFlowDialog"
-      v-model="newFlowName"
-      @confirm="createFlow"
-    />
+    <AppFlowCreateDialog ref="createFlowDialog" v-model="newFlowName" @confirm="createFlow" />
 
     <AppPromptDialog
       id="delete-flow-dialog"
-      v-bind="automation('delete-dialog')"
       ref="deleteFlowDialog"
       content-label="Delete flow"
       title="Delete flow?"
@@ -134,7 +124,6 @@ import AppPromptDialog from '@/components/AppPromptDialog.vue';
 import AppFlowCreateDialog from '@/features/flows/components/AppFlowCreateDialog.vue';
 import { type MultiSelectOption } from '@/components/AppMultiSelectDropdown.vue';
 import { useServerPagination } from '@/composables/useServerPagination';
-import { useAutomation } from '@/composables/useAutomation';
 import { EVENTS } from '@/constants/events';
 import {
   flowApi,
@@ -145,7 +134,6 @@ import AppFlowTable from '@/features/flows/components/AppFlowTable.vue';
 import { useFlowsStore } from '@/features/flows/stores/flows';
 
 const route = useRoute();
-const automation = useAutomation('flows');
 const router = useRouter();
 const flowStore = useFlowsStore();
 const { flows } = storeToRefs(flowStore);

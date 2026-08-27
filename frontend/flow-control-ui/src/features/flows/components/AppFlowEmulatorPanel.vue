@@ -1,5 +1,5 @@
 <template>
-  <section v-bind="automation()" class="emulator-panel" aria-labelledby="io-title">
+  <section class="emulator-panel" aria-labelledby="io-title">
     <div class="section-heading">
       <div>
         <h3 id="io-title">Inputs and outputs</h3>
@@ -14,7 +14,6 @@
         <div class="area-heading">
           <h4 id="inputs-title">Inputs</h4>
           <AppButton
-            v-bind="automation('reset-inputs')"
             text="Restore defaults"
             :icon="refreshIcon"
             :disabled="!snapshot"
@@ -51,13 +50,11 @@
         <p v-if="error" class="error" role="alert">{{ error }}</p>
         <div class="execute-actions">
           <AppButton
-            v-bind="automation('apply-step')"
             text="Apply inputs and run one scan"
             :icon="stepIcon"
             :disabled="!snapshot"
             @click="applyAndStep"
           /><AppButton
-            v-bind="automation('advance')"
             text="Advance 100 ms and scan"
             :icon="advanceIcon"
             :disabled="!snapshot"
@@ -78,13 +75,11 @@
         >
         <div class="reset-actions">
           <AppButton
-            v-bind="automation('reset')"
             text="Reset state"
             :icon="refreshIcon"
             :disabled="!snapshot"
             @click="emit(EVENTS.RESET, false)"
           /><AppButton
-            v-bind="automation('power-cycle')"
             text="Power cycle"
             :icon="powerCycleIcon"
             :disabled="!snapshot"
@@ -122,7 +117,6 @@ import powerCycleIcon from '@/assets/icons/power-cycle-icon.svg';
 import refreshIcon from '@/assets/icons/refresh-icon.svg';
 import stepIcon from '@/assets/icons/step-icon.svg';
 import AppButton from '@/components/AppButton.vue';
-import { useAutomation } from '@/composables/useAutomation';
 import { computed, reactive, ref, watch } from 'vue';
 import { EVENTS } from '@/constants/events';
 import type {
@@ -131,7 +125,6 @@ import type {
   EmulatorValue
 } from '@/features/flows/api/flowEmulatorApi';
 const props = defineProps<{
-  automation: string;
   snapshot?: EmulatorSnapshot;
 }>();
 const emit = defineEmits<{
@@ -141,7 +134,6 @@ const emit = defineEmits<{
   (event: typeof EVENTS.RESET, powerCycle: boolean): void;
   (event: typeof EVENTS.RESET_INPUTS): void;
 }>();
-const automation = useAutomation(props.automation);
 const qualities = ['good', 'bad', 'stale', 'unavailable'] as const;
 const draft = reactive<Record<string, EmulatorValue>>({});
 const error = ref<string>();

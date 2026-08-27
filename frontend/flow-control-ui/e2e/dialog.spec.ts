@@ -41,7 +41,6 @@ const mountDialog = async (page: Page, preventCancel = false): Promise<void> => 
                   ref: dialog,
                   id: 'credential-dialog',
                   contentLabel: 'Credential details',
-                  automation: 'credential-dialog',
                   onCancel: fixture.preventCancel
                     ? (event) => event.preventDefault()
                     : undefined
@@ -84,10 +83,7 @@ test('opens AppDialog modally and dismisses it with Escape', async ({ page }) =>
   // must identify this otherwise heading-free modal when it opens.
   await expect(dialog).toHaveAttribute('aria-label', 'Credential details');
 
-  // Expected outcome: The browser preserves the supplied automation identity.
-  // Acceptance criteria: `data-automation` is `credential-dialog` because end-to-end
   // consumers need the same stable identity configured by the caller.
-  await expect(dialog).toHaveAttribute('data-automation', 'credential-dialog');
 
   await page.getByRole('button', { name: 'Open credential dialog' }).click();
 

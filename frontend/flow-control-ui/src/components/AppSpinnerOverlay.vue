@@ -1,5 +1,5 @@
 <template>
-  <Transition name="spinner-overlay" automation="spinner-overlay">
+  <Transition name="spinner-overlay">
     <div
       v-if="isWaiting"
       class="spinner-overlay"

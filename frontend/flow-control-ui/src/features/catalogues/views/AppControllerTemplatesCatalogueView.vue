@@ -1,8 +1,7 @@
 <template>
-  <section v-bind="automation()" class="catalogue-page" aria-labelledby="templates-heading">
+  <section class="catalogue-page" aria-labelledby="templates-heading">
     <AppErrorNotice
       id="controller-templates-error-notice"
-      v-bind="automation('error')"
       :message="store.error"
       retryable
       @[EVENTS.RETRY]="store.load"
@@ -14,12 +13,12 @@
         <p>Review the capabilities and limits available to flow targets.</p>
       </div>
       <RouterLink class="primary-link" :to="{ name: 'controller-template-new' }">
-        <AppSvg :src="newIcon" v-bind="automation('new-icon')" size="1em" />
+        <AppSvg :src="newIcon" size="1em" />
         New template
       </RouterLink>
     </div>
 
-    <AppFilter v-bind="automation('filter')" constrained @[EVENTS.APPLY_FILTER]="applyFilter">
+    <AppFilter constrained @[EVENTS.APPLY_FILTER]="applyFilter">
       <label class="app-filter-field" for="templates-filter">
         <span>Filter controller templates</span>
         <input id="templates-filter" v-model="filter" type="search" autocomplete="off" />
@@ -35,7 +34,7 @@
       No controller templates found.
     </p>
     <template v-else-if="!store.error">
-      <AppTable v-bind="automation('table')" caption="Controller templates">
+      <AppTable caption="Controller templates">
         <template #head>
           <tr>
             <th scope="col">Name</th>
@@ -73,7 +72,6 @@
         </template>
       </AppTable>
       <AppPagination
-        v-bind="automation('pagination')"
         :page="store.result.page"
         :page-count="store.result.pageCount"
         :page-size="store.result.pageSize"
@@ -91,7 +89,6 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import newIcon from '@/assets/icons/new-icon.svg';
 import AppErrorNotice from '@/components/AppErrorNotice.vue';
-import { useAutomation } from '@/composables/useAutomation';
 import AppFilter from '@/components/AppFilter.vue';
 import AppSvg from '@/components/AppSvg.vue';
 import AppTable from '@/components/AppTable.vue';
@@ -100,7 +97,6 @@ import { EVENTS } from '@/constants/events';
 import type { ControllerTemplateSummary } from '@/features/catalogues/api/catalogueDto';
 import { useControllerTemplatesCatalogueStore } from '@/features/catalogues/stores/catalogues';
 
-const automation = useAutomation('controller-templates-catalogue');
 const store = useControllerTemplatesCatalogueStore();
 const filter = ref(store.filter);
 const list = (values: string[]): string =>

@@ -1,6 +1,5 @@
 <template>
   <form
-    v-bind="automation()"
     :class="[
       'app-filter',
       { 'app-filter--constrained': constrained, 'app-filter--stacked': layout === 'stacked' }
@@ -8,28 +7,20 @@
     role="search"
     @submit.prevent="emit(EVENTS.APPLY_FILTER)"
   >
-    <div v-bind="automation('fields')" class="app-filter-fields">
+    <div class="app-filter-fields">
       <slot></slot>
     </div>
-    <AppButton
-      v-bind="automation('apply')"
-      class="app-filter-apply"
-      type="submit"
-      :text="applyText"
-      :icon="filterIcon"
-    />
+    <AppButton class="app-filter-apply" type="submit" :text="applyText" :icon="filterIcon" />
   </form>
 </template>
 
 <script setup lang="ts">
 import filterIcon from '@/assets/icons/filter-icon.svg';
 import AppButton from '@/components/AppButton.vue';
-import { useAutomation } from '@/composables/useAutomation';
 import { EVENTS } from '@/constants/events';
 
-const props = withDefaults(
+withDefaults(
   defineProps<{
-    automation: string;
     applyText?: string;
     constrained?: boolean;
     layout?: 'inline' | 'stacked';
@@ -44,8 +35,6 @@ const props = withDefaults(
 const emit = defineEmits<{
   (event: typeof EVENTS.APPLY_FILTER): void;
 }>();
-
-const automation = useAutomation(props.automation);
 </script>
 
 <style scoped>

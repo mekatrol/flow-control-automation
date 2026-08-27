@@ -1,5 +1,5 @@
 <template>
-  <div v-bind="automation()" class="app-shell">
+  <div class="app-shell">
     <a class="skip-link" href="#main-content">Skip to main content</a>
     <header class="app-header header">
       <slot name="header">
@@ -23,7 +23,7 @@
           <RouterLink to="/point-sources">Point sources</RouterLink>
           <RouterLink to="/controller-templates">Controllers</RouterLink>
           <RouterLink to="/credentials">Credentials</RouterLink>
-          <AppThemeSelector v-bind="automation('theme-selector')" />
+          <AppThemeSelector />
         </nav>
       </slot>
     </header>
@@ -48,9 +48,6 @@
 
 <script setup lang="ts">
 import AppThemeSelector from '@/components/AppThemeSelector.vue';
-import { useAutomation } from '@/composables/useAutomation';
-
-const automation = useAutomation('app-layout');
 </script>
 
 <style scoped lang="css">

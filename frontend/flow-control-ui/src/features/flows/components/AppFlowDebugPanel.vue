@@ -1,75 +1,45 @@
 <template>
-  <section v-bind="automation()" class="debug-panel" aria-label="Flow debugging">
+  <section class="debug-panel" aria-label="Flow debugging">
     <div class="debug-controls">
       <strong>{{ hostLabel }} debug</strong>
       <span class="mode">{{
         host === 'controller' ? 'Shadow outputs by default' : 'Server-hosted execution'
       }}</span>
+      <AppButton text="Load" :icon="loadIcon" :disabled="!canLoad" @click="emit('load')" />
       <AppButton
-        v-bind="automation('load')"
-        text="Load"
-        :icon="loadIcon"
-        :disabled="!canLoad"
-        @click="emit('load')"
-      />
-      <AppButton
-        v-bind="automation('step')"
         text="Step tick"
         :icon="stepIcon"
         :disabled="!canStepTick"
         @click="emit('stepTick')"
       />
       <AppButton
-        v-bind="automation('run-to-boundary')"
         text="Run to tick boundary"
         :icon="stepIcon"
         :disabled="!canStepTick"
         @click="emit(EVENTS.RUN_TO_BOUNDARY)"
       />
       <AppButton
-        v-bind="automation('step-node')"
         text="Step node"
         :icon="stepNodeIcon"
         :disabled="!canStepNode"
         @click="emit('stepNode')"
       />
       <AppButton
-        v-bind="automation('step-instruction')"
         text="Step instruction"
         :icon="stepInstructionIcon"
         :disabled="!canStepInstruction"
         @click="emit('stepInstruction')"
       />
+      <AppButton text="Run" :icon="playIcon" :disabled="!canRun" @click="emit('run')" />
       <AppButton
-        v-bind="automation('run')"
-        text="Run"
-        :icon="playIcon"
-        :disabled="!canRun"
-        @click="emit('run')"
-      />
-      <AppButton
-        v-bind="automation('run-to')"
         text="Run to breakpoint"
         :icon="breakpointIcon"
         :disabled="!canRunTo"
         @click="emit('runTo')"
       />
+      <AppButton text="Pause" :icon="pauseIcon" :disabled="!canPause" @click="emit('pause')" />
+      <AppButton text="Stop" :icon="stopIcon" :disabled="!canStop" @click="emit('stop')" />
       <AppButton
-        v-bind="automation('pause')"
-        text="Pause"
-        :icon="pauseIcon"
-        :disabled="!canPause"
-        @click="emit('pause')"
-      />
-      <AppButton
-        v-bind="automation('stop')"
-        text="Stop"
-        :icon="stopIcon"
-        :disabled="!canStop"
-        @click="emit('stop')"
-      />
-      <AppButton
-        v-bind="automation('restart')"
         text="Restart"
         :icon="refreshIcon"
         :disabled="!canRestart"
@@ -86,7 +56,6 @@
           I confirm these named outputs may energise physical equipment.
         </label>
         <AppButton
-          v-bind="automation('enable-live-output')"
           text="Enable live outputs"
           :icon="enableFlowIcon"
           :disabled="!canEnableLiveOutput"
@@ -173,7 +142,6 @@ import stepInstructionIcon from '@/assets/icons/step-instruction-icon.svg';
 import stepNodeIcon from '@/assets/icons/step-node-icon.svg';
 import stopIcon from '@/assets/icons/stop-icon.svg';
 import AppButton from '@/components/AppButton.vue';
-import { useAutomation } from '@/composables/useAutomation';
 import { EVENTS } from '@/constants/events';
 import type {
   DebugRuntimeSnapshot,
@@ -183,7 +151,6 @@ import type {
 import type { FlowDebugBreakpoint } from '@/features/flows/api/flowDebugApi';
 
 const props = defineProps<{
-  automation: string;
   lifecycle: 'idle' | 'loading' | 'ready' | 'stepping' | 'running' | 'paused' | 'fault' | 'stopped';
   snapshot?: DebugRuntimeSnapshot;
   stale?: boolean;
@@ -216,7 +183,6 @@ const emit = defineEmits<{
   (event: typeof EVENTS.RUN_TO_BOUNDARY): void;
   (event: typeof EVENTS.SELECT_DIAGNOSTIC, nodeId: string): void;
 }>();
-const automation = useAutomation(props.automation);
 const busy = computed(() => props.lifecycle === 'loading' || props.lifecycle === 'stepping');
 const active = computed(() => ['ready', 'running', 'paused', 'fault'].includes(props.lifecycle));
 const canLoad = computed(() => props.targetAvailable && !busy.value && !active.value);

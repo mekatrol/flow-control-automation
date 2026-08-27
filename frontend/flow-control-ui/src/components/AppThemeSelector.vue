@@ -1,6 +1,5 @@
 <template>
   <AppButton
-    v-bind="automation()"
     class="theme-selector"
     :text="themeButtonLabel"
     :aria-label="themeButtonLabel"
@@ -29,14 +28,8 @@ import darkThemeIcon from '@/assets/icons/dark-mode-toggle-icon.svg';
 import lightThemeIcon from '@/assets/icons/light-mode-toggle-icon.svg';
 import systemThemeIcon from '@/assets/icons/system-mode-toggle-icon.svg';
 import AppButton from '@/components/AppButton.vue';
-import { useAutomation } from '@/composables/useAutomation';
 
 defineOptions({ inheritAttrs: false });
-
-const props = defineProps<{
-  automation: string;
-}>();
-const automation = useAutomation(props.automation);
 
 type ThemePreference = 'light' | 'system' | 'dark';
 

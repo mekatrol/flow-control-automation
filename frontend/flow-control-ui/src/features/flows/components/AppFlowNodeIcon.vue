@@ -1,5 +1,5 @@
 <template>
-  <g v-bind="automation()" class="node-icon" aria-hidden="true">
+  <g class="node-icon" aria-hidden="true">
     <path class="node-icon-shade" d="M2 0h38v40H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2Z" />
     <image
       class="node-icon-foreground"
@@ -15,10 +15,8 @@
 
 <script setup lang="ts">
 import { getNodeIconUrl } from '@/features/flows/nodeKinds';
-import { useAutomation } from '@/composables/useAutomation';
 
-const props = defineProps<{ automation: string; icon: string }>();
-const automation = useAutomation(props.automation);
+defineProps<{ icon: string }>();
 </script>
 
 <style scoped>

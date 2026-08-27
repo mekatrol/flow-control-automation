@@ -1,7 +1,6 @@
 <template>
   <nav v-if="versionView === 'draft'" class="workspace-modes" aria-label="Flow workspace mode">
     <AppLink
-      v-bind="automation('design-mode')"
       text="Design"
       :to="{ name: ROUTE_NAMES.flowDesigner, params: { flowId } }"
       :aria-current="workspaceMode === 'design' ? 'page' : undefined"
@@ -10,7 +9,6 @@
       @click="emit('save')"
     />
     <AppLink
-      v-bind="automation('simulate-mode')"
       text="Simulate"
       :to="{ name: ROUTE_NAMES.flowSimulator, params: { flowId } }"
       :aria-current="workspaceMode === 'simulator' ? 'page' : undefined"
@@ -19,7 +17,6 @@
       @click="emit('save')"
     />
     <AppLink
-      v-bind="automation('debug-mode')"
       text="Debug"
       :to="{ name: ROUTE_NAMES.flowDebugger, params: { flowId } }"
       :aria-current="workspaceMode === 'debugger' ? 'page' : undefined"
@@ -31,7 +28,6 @@
 </template>
 
 <script setup lang="ts">
-import { useAutomation } from '@/composables/useAutomation';
 import { ROUTE_NAMES } from '@/router';
 import type { WorkspaceMode, VersionView } from '@/features/flows/types/flowDesigner';
 
@@ -41,7 +37,7 @@ import designIcon from '@/assets/icons/flow-design-icon.svg';
 import simulateIcon from '@/assets/icons/flow-simulate-icon.svg';
 import debugIcon from '@/assets/icons/flow-debug-icon.svg';
 
-const props = defineProps<{
+defineProps<{
   flowId: string;
 
   workspaceMode: WorkspaceMode;
@@ -49,15 +45,11 @@ const props = defineProps<{
 
   saving: boolean;
   loading: boolean;
-
-  automation: string;
 }>();
 
 const emit = defineEmits<{
   save: [];
 }>();
-
-const automation = useAutomation(props.automation);
 </script>
 
 <style lang="css">

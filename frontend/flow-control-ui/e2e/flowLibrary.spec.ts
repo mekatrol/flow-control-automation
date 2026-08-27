@@ -153,17 +153,12 @@ test('creates a flow and opens its designer', async ({ page }) => {
   // Assert: creation opens the new flow immediately so it is ready to edit.
 
   // Expected outcome: Navigation reaches the required route.
-  // Acceptance criteria: the page URL must match `/\/flows\/new-automation$/`, because this condition proves that
   // creates a flow and opens its designer.
   await expect(page).toHaveURL(/\/flows\/new-automation\/design$/);
 
-  // Expected outcome: `page.getByRole('heading', { name: 'New automation' })` is visible to the user.
-  // Acceptance criteria: `page.getByRole('heading', { name: 'New automation' })` must be visible, because this condition proves that
   // creates a flow and opens its designer.
   await expect(page.getByRole('heading', { name: 'New automation' })).toBeVisible();
 
-  // Expected outcome: `page.getByRole('group', { name: 'New automation flow graph' })` is visible to the user.
-  // Acceptance criteria: `page.getByRole('group', { name: 'New automation flow graph' })` must be visible, because this condition proves that
   // creates a flow and opens its designer.
   await expect(page.getByRole('group', { name: 'New automation flow graph' })).toBeVisible();
 });
@@ -319,11 +314,7 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
 
   await page.goto('/flows');
   const table = page.getByRole('table', { name: 'Flows' });
-  const topPagination = page.locator('[data-automation="flows-table.top-pagination"]');
-
-  // Expected outcome: The shared filter exposes a stable automation hook on a semantic search form.
-  // Acceptance criteria: The search landmark has data-automation "flows-filter" because every page filter must use the reusable AppFilter contract.
-  await expect(page.getByRole('searchbox')).toHaveAttribute('data-automation', 'flows-table.input');
+  const topPagination = page.locator('.list-view > .pagination').first();
 
   // Expected outcome: `table` is visible to the user.
   // Acceptance criteria: `table` must be visible, because this condition proves that
@@ -343,7 +334,7 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
   // filters, sorts, and paginates the semantic flow table.
   await expect(table.locator('tbody').getByRole('row')).toHaveCount(10);
 
-  const nameFilter = page.locator('[data-automation="flows-table.input"]');
+  const nameFilter = page.getByRole('searchbox');
   await nameFilter.fill('No matching flow');
 
   // Expected outcome: the table displays its empty filtered-results row.

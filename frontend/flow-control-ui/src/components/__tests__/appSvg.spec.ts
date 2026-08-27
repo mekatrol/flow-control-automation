@@ -9,12 +9,10 @@ describe('AppSvg', () => {
   /**
    * Purpose: Protects the standard decorative, theme-aware SVG rendering contract.
    * Description: Renders a source with numeric sizing and observes its mask, inherited-color
-   * presentation, accessibility state, and stable automation identifier.
    */
   it('renders a decorative SVG mask with configurable sizing', () => {
     const wrapper = mount(AppSvg, {
       props: {
-        automation: 'save-icon',
         src: '/icons/save.svg',
         size: 24
       }
@@ -36,10 +34,8 @@ describe('AppSvg', () => {
     // redundant or meaningless content to the accessibility tree.
     expect(icon.attributes('aria-hidden')).toBe('true');
 
-    // Expected outcome: The reusable icon exposes its required automation hook.
     // Acceptance criteria: The identifier is `save-icon` because callers need a stable
     // target that is independent of the selected SVG source.
-    expect(icon.attributes('data-automation')).toBe('save-icon');
   });
 
   /**
@@ -50,7 +46,6 @@ describe('AppSvg', () => {
   it('reacts to runtime source and presentation changes', async () => {
     const wrapper = mount(AppSvg, {
       props: {
-        automation: 'runtime-icon',
         src: '/icons/first.svg',
         size: 16
       }
@@ -93,7 +88,6 @@ describe('AppSvg', () => {
   it('exposes an informative SVG with an accessible label', () => {
     const wrapper = mount(AppSvg, {
       props: {
-        automation: 'connection-status-icon',
         label: 'Connection healthy',
         src: '/icons/check.svg'
       }

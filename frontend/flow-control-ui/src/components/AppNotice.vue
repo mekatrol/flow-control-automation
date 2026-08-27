@@ -4,7 +4,6 @@
     ref="dialog"
     class="app-error-dialog"
     :content-label="title"
-    v-bind="automation()"
     :dismissible="dismissible"
   >
     <article
@@ -15,33 +14,22 @@
     >
       <header class="notice-header">
         <slot name="header" :title="title" :variant="variant" :icon="variantIcon">
-          <AppSvg class="notice-icon" :src="variantIcon" v-bind="automation('icon')" :size="28" />
+          <AppSvg class="notice-icon" :src="variantIcon" :size="28" />
           <h2 :id="titleId">{{ title }}</h2>
         </slot>
       </header>
 
-      <div :id="contentId" ref="content" v-bind="automation('content')" class="notice-content">
+      <div :id="contentId" ref="content" class="notice-content">
         <slot name="content" :message="message">
           <p>{{ message }}</p>
         </slot>
       </div>
 
-      <footer class="notice-footer" v-bind="automation('footer')">
+      <footer class="notice-footer">
         <slot name="footer" :close="close" :copy="copyToClipboard" :copied="copyState === 'copied'">
           <p class="copy-status" aria-live="polite">{{ copyStatus }}</p>
-          <AppButton
-            v-if="copyable"
-            v-bind="automation('copy')"
-            :text="copyLabel"
-            :icon="copyIcon"
-            @click="copyToClipboard"
-          />
-          <AppButton
-            v-bind="automation('close')"
-            :text="closeLabel"
-            :icon="cancelIcon"
-            @click="close"
-          />
+          <AppButton v-if="copyable" :text="copyLabel" :icon="copyIcon" @click="copyToClipboard" />
+          <AppButton :text="closeLabel" :icon="cancelIcon" @click="close" />
         </slot>
       </footer>
     </article>
@@ -60,14 +48,12 @@ import warningIcon from '@/assets/icons/warning-notice-icon.svg';
 import AppButton from '@/components/AppButton.vue';
 import AppDialog from '@/components/AppDialog.vue';
 import AppSvg from '@/components/AppSvg.vue';
-import { useAutomation } from '@/composables/useAutomation';
 
 export type AppNoticeVariant = 'info' | 'debug' | 'warning' | 'error';
 
 const props = withDefaults(
   defineProps<{
     id: string;
-    automation: string;
     title: string;
     message: string;
     variant?: AppNoticeVariant;
@@ -95,7 +81,6 @@ const icons: Record<AppNoticeVariant, string> = {
 const dialog = ref<InstanceType<typeof AppDialog>>();
 const content = ref<HTMLElement>();
 const copyState = ref<'idle' | 'copied' | 'failed'>('idle');
-const automation = useAutomation(props.automation);
 const titleId = `${props.id}-title`;
 const contentId = `${props.id}-content`;
 const variantIcon = computed(() => icons[props.variant]);

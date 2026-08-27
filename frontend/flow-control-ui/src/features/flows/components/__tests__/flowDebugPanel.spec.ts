@@ -7,7 +7,7 @@ import AppFlowDebugPanel from '@/features/flows/components/AppFlowDebugPanel.vue
 describe('flow debug panel', () => {
   it('enables only valid lifecycle operations', async () => {
     const wrapper = mount(AppFlowDebugPanel, {
-      props: { automation: 'debug', lifecycle: 'ready', targetAvailable: true }
+      props: { lifecycle: 'ready', targetAvailable: true }
     });
     const buttons = wrapper.findAll('button');
     expect(buttons.map((button) => button.attributes('disabled') === undefined)).toEqual([
@@ -29,7 +29,6 @@ describe('flow debug panel', () => {
   it('marks snapshots stale and disables execution', () => {
     const wrapper = mount(AppFlowDebugPanel, {
       props: {
-        automation: 'debug',
         lifecycle: 'ready',
         targetAvailable: true,
         stale: true,
@@ -55,19 +54,20 @@ describe('flow debug panel', () => {
       }
     });
     expect(wrapper.text()).toContain('Stale snapshot');
-    expect(wrapper.find('[data-automation="debug.step"]').attributes('disabled')).toBeDefined();
+    expect(wrapper.findAll('button')[1]!.attributes('disabled')).toBeDefined();
   });
 
   it('names every physical output and requires explicit confirmation', async () => {
     const wrapper = mount(AppFlowDebugPanel, {
       props: {
-        automation: 'debug',
         lifecycle: 'ready',
         targetAvailable: true,
         affectedOutputPoints: ['output-01', 'output-08']
       }
     });
-    const enable = wrapper.find('[data-automation="debug.enable-live-output"]');
+    const enable = wrapper
+      .findAll('button')
+      .find((button) => button.text() === 'Enable live outputs')!;
     expect(wrapper.text()).toContain('output-01, output-08');
     expect(enable.attributes('disabled')).toBeDefined();
 

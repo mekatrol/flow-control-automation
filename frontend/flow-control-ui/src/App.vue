@@ -11,7 +11,7 @@
   <div v-else class="app-content" :inert="isWaiting || undefined">
     <RouterView />
   </div>
-  <AppSpinnerOverlay automation="spinner-overlay" />
+  <AppSpinnerOverlay />
 </template>
 
 <script setup lang="ts">

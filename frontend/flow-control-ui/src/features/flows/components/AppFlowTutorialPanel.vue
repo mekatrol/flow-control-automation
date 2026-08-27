@@ -1,17 +1,12 @@
 <template>
-  <section v-bind="automation()" class="tutorial" aria-labelledby="tutorial-title">
+  <section class="tutorial" aria-labelledby="tutorial-title">
     <header>
       <div>
         <p class="category">{{ tutorial.category }}</p>
         <h2 id="tutorial-title">{{ tutorial.title }}</h2>
         <p>{{ tutorial.objective }}</p>
       </div>
-      <AppButton
-        v-bind="automation('close')"
-        text="Close tutorial"
-        :icon="closeIcon"
-        @click="emit(EVENTS.CLOSE)"
-      />
+      <AppButton text="Close tutorial" :icon="closeIcon" @click="emit(EVENTS.CLOSE)" />
     </header>
     <ol>
       <li v-for="step in tutorial.guidance" :key="step.title">
@@ -22,13 +17,11 @@
     </ol>
     <div class="actions">
       <AppButton
-        v-bind="automation('open-example')"
         text="Open disposable example"
         :icon="openIcon"
         @click="emit(EVENTS.OPEN_TUTORIAL, tutorial)"
       />
       <AppButton
-        v-bind="automation('copy-example')"
         text="Copy to my flows"
         :icon="copyIcon"
         @click="emit(EVENTS.COPY_TUTORIAL, tutorial)"
@@ -42,16 +35,14 @@ import closeIcon from '@/assets/icons/cancel-icon.svg';
 import copyIcon from '@/assets/icons/copy-icon.svg';
 import openIcon from '@/assets/icons/flow-design-icon.svg';
 import AppButton from '@/components/AppButton.vue';
-import { useAutomation } from '@/composables/useAutomation';
 import { EVENTS } from '@/constants/events';
 import type { FlowTutorial } from '@/features/flows/tutorialCatalogue';
 
-const props = defineProps<{ automation: string; tutorial: FlowTutorial }>();
+defineProps<{ tutorial: FlowTutorial }>();
 const emit = defineEmits<{
   (event: typeof EVENTS.CLOSE): void;
   (event: typeof EVENTS.OPEN_TUTORIAL | typeof EVENTS.COPY_TUTORIAL, tutorial: FlowTutorial): void;
 }>();
-const automation = useAutomation(props.automation);
 </script>
 
 <style scoped>

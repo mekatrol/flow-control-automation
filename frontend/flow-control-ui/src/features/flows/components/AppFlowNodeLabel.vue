@@ -1,12 +1,9 @@
 <template>
-  <text v-bind="automation()" class="node-label" x="46" y="25">{{ kindLabel || label }}</text>
+  <text class="node-label" x="46" y="25">{{ kindLabel || label }}</text>
 </template>
 
 <script setup lang="ts">
-import { useAutomation } from '@/composables/useAutomation';
-
-const props = defineProps<{ automation: string; label: string; kindLabel: string }>();
-const automation = useAutomation(props.automation);
+defineProps<{ label: string; kindLabel: string }>();
 </script>
 
 <style scoped>
