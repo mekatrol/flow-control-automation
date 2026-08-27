@@ -144,36 +144,6 @@
             :icon="deleteFlowIcon"
             @click="emit(EVENTS.BEGIN_DELETE, row.id)"
           />
-
-          <div
-            v-if="confirmingDeleteId === row.id"
-            :ref="setDeleteDialog"
-            class="delete-confirmation"
-            role="alertdialog"
-            :aria-label="`Delete ${row.name}?`"
-            :aria-describedby="`delete-description-${row.id}`"
-            aria-modal="true"
-            tabindex="-1"
-            @keydown="handleDeleteDialogKeydown"
-          >
-            <span :id="`delete-description-${row.id}`"> Delete this flow? </span>
-
-            <AppButton
-              v-bind="automation('confirm-delete')"
-              text="Confirm delete"
-              :icon="deleteFlowIcon"
-              :disabled="deleting"
-              @click="$emit(EVENTS.CONFIRM_DELETE, row.id.toString())"
-            />
-
-            <AppButton
-              v-bind="automation('cancel-delete')"
-              text="Cancel"
-              :icon="cancelIcon"
-              data-dialog-initial-focus
-              @click="$emit(EVENTS.CANCEL_DELETE)"
-            />
-          </div>
         </div>
       </template>
     </AppListView>
@@ -181,11 +151,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, type ComponentPublicInstance } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 import { useAutomation } from '@/composables/useAutomation';
 import type { SortDirection } from '@/composables/usePaginatedCollection';
-import { useModalFocus } from '@/features/flows/composables/useModalFocus';
 
 import { EVENTS } from '@/constants/events';
 import type { FlowDefinition, FlowNode } from '@/features/flows/types';
@@ -220,26 +189,22 @@ const props = defineProps<{
   editingFlowId?: string;
   renameValue: string;
   renaming: boolean;
-  confirmingDeleteId?: string;
-  deleting: boolean;
   togglingDisabledId?: string;
 }>();
 
 const emit = defineEmits<{
-  (event: typeof EVENTS.ADD_FLOW): void;
-  (event: typeof EVENTS.TOGGLE_SORT): void;
-  (event: 'update:filter', filter: string): void;
-  (event: 'update:statuses', statuses: FlowStatus[]): void;
-  (event: typeof EVENTS.UPDATE_PAGE, page: number): void;
-  (event: typeof EVENTS.UPDATE_PAGE_SIZE, pageSize: number): void;
-  (event: typeof EVENTS.BEGIN_RENAME, flowId: string, name: string): void;
-  (event: typeof EVENTS.UPDATE_RENAME_VALUE, value: string): void;
-  (event: typeof EVENTS.SAVE_RENAME, flowId: string): void;
-  (event: typeof EVENTS.CANCEL_RENAME): void;
-  (event: typeof EVENTS.BEGIN_DELETE, flowId: string): void;
-  (event: typeof EVENTS.CONFIRM_DELETE, flowId: string): void;
-  (event: typeof EVENTS.CANCEL_DELETE): void;
-  (event: typeof EVENTS.TOGGLE_DISABLED, flowId: string, disabled: boolean): void;
+  'add-flow': [];
+  'toggle-sort': [];
+  'update:filter': [filter: string];
+  'update:statuses': [statuses: FlowStatus[]];
+  'update:page': [page: number];
+  'update:pageSize': [pageSize: number];
+  'begin-rename': [flowId: string, name: string];
+  'update:renameValue': [value: string];
+  'save-rename': [flowId: string];
+  'cancel-rename': [];
+  'begin-delete': [flowId: string];
+  'toggle-disabled': [flowId: string, disabled: boolean];
 }>();
 
 export interface FlowRow extends ListRow {
@@ -362,19 +327,6 @@ const rows = computed<FlowRow[]>(() =>
     automation: `row-${flow.id}`,
     actions: ''
   }))
-);
-
-const deleteDialog = ref<HTMLElement>();
-const deleteDialogOpen = computed(() => !!props.confirmingDeleteId);
-
-const setDeleteDialog = (element: Element | ComponentPublicInstance | null): void => {
-  deleteDialog.value = element instanceof HTMLElement ? element : undefined;
-};
-
-const { handleKeydown: handleDeleteDialogKeydown } = useModalFocus(
-  deleteDialog,
-  deleteDialogOpen,
-  () => emit(EVENTS.CANCEL_DELETE)
 );
 
 const formattedUpdatedAt = (row: FlowRow): string =>

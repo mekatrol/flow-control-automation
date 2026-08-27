@@ -83,8 +83,6 @@
         :editing-flow-id="editingFlowId"
         :rename-value="renameValue"
         :renaming="renaming"
-        :confirming-delete-id="confirmingDeleteId"
-        :deleting="deleting"
         :toggling-disabled-id="togglingDisabledId"
         @[EVENTS.TOGGLE_SORT]="toggleSortDirection"
         @update:filter="query = $event"
@@ -96,8 +94,6 @@
         @[EVENTS.SAVE_RENAME]="renameFlow"
         @[EVENTS.CANCEL_RENAME]="cancelRename"
         @[EVENTS.BEGIN_DELETE]="beginDelete"
-        @[EVENTS.CONFIRM_DELETE]="deleteFlow"
-        @[EVENTS.CANCEL_DELETE]="closeDeleteConfirmation"
         @[EVENTS.TOGGLE_DISABLED]="setFlowDisabled"
         @[EVENTS.ADD_FLOW]="showCreateFlowDialog"
       />
@@ -108,6 +104,19 @@
       ref="createFlowDialog"
       v-model="newFlowName"
       @confirm="createFlow"
+    />
+
+    <AppPromptDialog
+      id="delete-flow-dialog"
+      v-bind="automation('delete-dialog')"
+      ref="deleteFlowDialog"
+      content-label="Delete flow"
+      title="Delete flow?"
+      :message="deleteConfirmationMessage"
+      cancel-text="Cancel"
+      confirm-text="Confirm delete"
+      @cancel="closeDeleteConfirmation"
+      @confirm="confirmDeleteFlow"
     />
   </section>
 </template>
@@ -121,6 +130,7 @@ import previewIcon from '@/assets/icons/visibility-icon.svg';
 import saveIcon from '@/assets/icons/save-icon.svg';
 import AppButton from '@/components/AppButton.vue';
 import AppErrorNotice from '@/components/AppErrorNotice.vue';
+import AppPromptDialog from '@/components/AppPromptDialog.vue';
 import AppFlowCreateDialog from '@/features/flows/components/AppFlowCreateDialog.vue';
 import { type MultiSelectOption } from '@/components/AppMultiSelectDropdown.vue';
 import { useServerPagination } from '@/composables/useServerPagination';
@@ -205,14 +215,18 @@ const updatePageSize = (nextPageSize: number): void => {
 const hasActiveFilters = computed(
   () =>
     query.value.trim().length > 0 ||
-    !statusOptions.every(({ value }) =>
-      statusFilters.value.includes(value as 'draft' | 'deployed')
-    )
+    !statusOptions.every(({ value }) => statusFilters.value.includes(value as 'draft' | 'deployed'))
 );
 
 const items = computed(() => flows.value);
 
 const createFlowDialog = ref<InstanceType<typeof AppFlowCreateDialog>>();
+const deleteFlowDialog = ref<InstanceType<typeof AppPromptDialog>>();
+
+const deleteConfirmationMessage = computed(() => {
+  const flow = flows.value.find(({ id }) => id === confirmingDeleteId.value);
+  return flow ? `Delete “${flow.name}”? This action cannot be undone.` : 'Delete this flow?';
+});
 
 const showCreateFlowDialog = async (): Promise<void> => {
   await nextTick();
@@ -366,8 +380,14 @@ const cancelRename = (): void => {
   editingFlowId.value = undefined;
 };
 
-const beginDelete = (flowId: string): void => {
+const beginDelete = async (flowId: string): Promise<void> => {
   confirmingDeleteId.value = flowId;
+  await nextTick();
+  deleteFlowDialog.value?.showModal();
+};
+
+const confirmDeleteFlow = (): void => {
+  if (confirmingDeleteId.value) void deleteFlow(confirmingDeleteId.value);
 };
 
 const renameFlow = async (flowId: string): Promise<void> => {

@@ -18,16 +18,16 @@
         <p :id="`${id}-description`">{{ message }}</p>
         <div class="prompt-dialog-actions">
           <AppButton
-            v-bind="automation('cancel')"
-            :text="cancelText"
-            :icon="cancelIcon"
-            @click="cancel"
-          />
-          <AppButton
             v-bind="automation('confirm')"
             :text="confirmText"
             :icon="deleteIcon"
             @click="confirm"
+          />
+          <AppButton
+            v-bind="automation('cancel')"
+            :text="cancelText"
+            :icon="cancelIcon"
+            @click="cancel"
           />
         </div>
       </section>
@@ -94,7 +94,9 @@ defineExpose({
 
 <style scoped>
 .prompt-dialog-content {
-  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5-5);
 }
 
 .prompt-dialog-content h2 {
@@ -107,8 +109,7 @@ defineExpose({
 
 .prompt-dialog-actions {
   display: flex;
-  flex-wrap: wrap;
   gap: var(--space-4-5);
-  margin-top: var(--space-10);
+  justify-content: center;
 }
 </style>
