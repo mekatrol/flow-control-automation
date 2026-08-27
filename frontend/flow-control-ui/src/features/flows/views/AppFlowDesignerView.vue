@@ -239,6 +239,7 @@
           :context-point-contracts="selectedContext?.pointContracts"
           :execution-context-id="selectedContextId || undefined"
           :simulator-io="workspaceMode === 'simulator' ? simulator.session?.io : undefined"
+          :simulator-mode="workspaceMode === 'simulator'"
           :show-default-values="workspaceMode === 'simulator'"
           @point-validation="setPointValidation"
           @create-virtual-point="createVirtualPoint"

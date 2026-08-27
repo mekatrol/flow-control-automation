@@ -77,12 +77,6 @@
     <div class="designer-workspace">
       <AppFlowNodePalette @[EVENTS.ADD]="handleAddNode" />
       <div class="canvas-column">
-        <AppFlowSimulatorIoOverlay
-          v-if="simulatorIo"
-          :flow="flow"
-          :snapshot="simulatorIo"
-          @apply="(inputs) => emit(EVENTS.APPLY_INPUTS_STEP, inputs)"
-        />
         <p v-if="connectionError" class="connection-error" role="alert">{{ connectionError }}</p>
 
         <div
@@ -179,8 +173,15 @@
           </svg>
         </div>
       </div>
+      <AppFlowSimulatorIoOverlay
+        v-if="simulatorMode"
+        :flow="flow"
+        :snapshot="simulatorIo"
+        :context-point-contracts="contextPointContracts"
+        @apply="(inputs) => emit(EVENTS.APPLY_INPUTS_STEP, inputs)"
+      />
       <AppFlowNodeConfigurationPanel
-        v-if="selectedNode"
+        v-else-if="selectedNode"
         :node="selectedNode"
         :virtual-point-declarations="flow.virtualPointDeclarations"
         :context-point-contracts="contextPointContracts"
@@ -252,6 +253,7 @@ const props = defineProps<{
   contextPointContracts?: VirtualPointDeclaration[];
   executionContextId?: string;
   simulatorIo?: EmulatorSnapshot;
+  simulatorMode?: boolean;
   showDefaultValues?: boolean;
 }>();
 
@@ -409,7 +411,7 @@ const selectedNode = computed(() =>
 const defaultNodeValue = (node: FlowNodeModel): string | undefined => {
   if (node.kind === 'numericConstant') return String(node.configuration.value ?? 0);
   if (node.kind === 'digitalConstant' || node.kind === 'memory')
-    return Boolean(node.configuration.value) ? 'On' : 'Off';
+    return node.configuration.value ? 'On' : 'Off';
   if (!node.kind.endsWith('Input') && !node.kind.endsWith('Output')) return undefined;
   const pointId = String(node.configuration.pointId ?? '');
   const declaration = props.flow.virtualPointDeclarations?.find((point) => point.key === pointId);

@@ -21,7 +21,9 @@ export interface EmulatorSnapshot {
 }
 
 export interface EmulatorValue {
-  type: 'boolean' | 'number';
+  dataType?: 'boolean' | 'number';
+  /** Legacy client-side fixtures used `type`; accept it while reading old snapshots. */
+  type?: 'boolean' | 'number';
   boolean: boolean;
   number: number;
   quality: 'good' | 'bad' | 'stale' | 'unavailable';
