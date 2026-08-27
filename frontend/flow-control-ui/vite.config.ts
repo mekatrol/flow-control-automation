@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath, URL } from 'node:url';
 
-import { defineConfig, type Plugin } from 'vite';
+import { defineConfig, type Plugin } from 'vitest/config';
 import vue from '@vitejs/plugin-vue';
 import vueDevTools from 'vite-plugin-vue-devtools';
 
@@ -127,5 +127,10 @@ export default defineConfig(({ command }) => ({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       '@contracts': fileURLToPath(new URL('../../testdata/contracts', import.meta.url))
     }
+  },
+  test: {
+    // Keep Playwright's `*.spec.ts` files owned by the Playwright VS Code adapter.
+    // Without a scoped include, Vitest also discovers everything under `e2e`.
+    include: ['src/**/*.spec.ts', 'eslint-rules/**/*.spec.ts']
   }
 }));

@@ -207,7 +207,7 @@ test('deletes a flow only after explicit confirmation', async ({ page }) => {
 
   // Act: request deletion, then use the destructive confirmation control.
   await climateRow.getByRole('button', { name: 'Delete' }).click();
-  await climateRow.getByRole('button', { name: 'Confirm delete' }).click();
+  await page.getByRole('button', { name: 'Confirm delete' }).click();
 
   // Assert: the card disappears only after the API accepts the DELETE request.
 
