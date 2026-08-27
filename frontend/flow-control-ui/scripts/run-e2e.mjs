@@ -1,11 +1,31 @@
 import { spawn, spawnSync } from 'node:child_process';
+import { createServer } from 'node:net';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
+const getAvailablePort = () =>
+  new Promise((resolve, reject) => {
+    const server = createServer();
+    server.unref();
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', () => {
+      const address = server.address();
+      if (!address || typeof address === 'string') {
+        server.close();
+        reject(new Error('Could not allocate an E2E server port.'));
+        return;
+      }
+      server.close((error) => (error ? reject(error) : resolve(address.port)));
+    });
+  });
+
 const dotnet = process.argv.includes('--dotnet');
 const forwarded = process.argv.slice(2).filter((argument) => argument !== '--dotnet');
-const port = Number(process.env.FLOW_UI_E2E_PORT ?? 5174);
-const backendURL = process.env.FLOW_UI_E2E_BACKEND_URL ?? 'http://127.0.0.1:5008';
+const port = process.env.FLOW_UI_E2E_PORT
+  ? Number(process.env.FLOW_UI_E2E_PORT)
+  : await getAvailablePort();
+const backendURL =
+  process.env.FLOW_UI_E2E_BACKEND_URL ?? `http://127.0.0.1:${await getAvailablePort()}`;
 const apiKey = 'flow-control-e2e-administrator-key';
 const children = [];
 
@@ -66,6 +86,7 @@ try {
     env: {
       ...process.env,
       FLOW_UI_E2E_MANAGED_SERVERS: '1',
+      FLOW_UI_E2E_PORT: String(port),
       ...(dotnet ? { FLOW_UI_E2E_BACKEND: 'dotnet' } : {})
     },
     stdio: 'inherit'
