@@ -113,9 +113,8 @@ a {
    AppCredentialManagerView. */
 .editor-actions {
   display: flex;
-  flex-wrap: wrap;
   gap: var(--space-4-5);
-  margin: var(--space-9) var(--space-0);
+  justify-content: center;
 }
 
 /* Compact validation-error list shared by configuration editors.

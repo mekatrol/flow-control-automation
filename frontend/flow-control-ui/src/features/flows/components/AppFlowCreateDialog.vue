@@ -6,18 +6,31 @@
     :dismissible="false"
   >
     <AppForm class="new-flow-form" v-bind="automation('form')" @submit.prevent="confirm">
-      <h2>Flow details</h2>
-      <label for="flow-name">Flow name</label>
-      <input id="flow-name" v-model="value" required autocomplete="off" />
-      <div class="editor-actions">
-        <AppButton
-          v-bind="automation('save')"
-          type="submit"
-          text="Create flow"
-          :icon="createIcon"
-        />
-        <AppButton v-bind="automation('cancel')" text="Cancel" :icon="cancelIcon" @click="cancel" />
-      </div>
+      <template #header>
+        <section>
+          <h2>Flow details</h2>
+        </section>
+      </template>
+      <section class="body">
+        <label for="flow-name">Flow name</label>
+        <input id="flow-name" v-model="value" required autocomplete="off" />
+      </section>
+      <template #footer>
+        <section class="editor-actions">
+          <AppButton
+            v-bind="automation('save')"
+            type="submit"
+            text="Create flow"
+            :icon="createIcon"
+          />
+          <AppButton
+            v-bind="automation('cancel')"
+            text="Cancel"
+            :icon="cancelIcon"
+            @click="cancel"
+          />
+        </section>
+      </template>
     </AppForm>
   </AppDialog>
 </template>
@@ -81,3 +94,20 @@ defineExpose({
   confirm
 });
 </script>
+
+<style lang="css">
+.body {
+  display: flex;
+  flex-direction: row;
+  gap: 0.5rem;
+  padding: 0.5rem 0.5rem;
+  min-width: 480px;
+  margin: 1rem;
+}
+
+.body > input {
+  flex: 1;
+  line-height: 1.2;
+  font-size: 1.2rem;
+}
+</style>
