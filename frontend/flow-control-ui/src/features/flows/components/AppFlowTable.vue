@@ -13,7 +13,15 @@
       @query-change="updateQuery"
     >
       <template #header>
-        <h2 class="flow-list-heading">Flow List</h2>
+        <div class="flow-list-header">
+          <h2 class="flow-list-heading">Flow List</h2>
+          <AppButton
+            type="button"
+            text="Import IL"
+            :icon="importIcon"
+            @click="$emit(EVENTS.IMPORT_IL)"
+          />
+        </div>
       </template>
       <template #filter-options>
         <div class="filter-options">
@@ -161,6 +169,7 @@ import cancelIcon from '@/assets/icons/cancel-icon.svg';
 import deleteFlowIcon from '@/assets/icons/delete-flow-icon.svg';
 import disableFlowIcon from '@/assets/icons/disable-flow-icon.svg';
 import enableFlowIcon from '@/assets/icons/enable-flow-icon.svg';
+import importIcon from '@/assets/icons/import-icon.svg';
 import renameFlowIcon from '@/assets/icons/rename-flow-icon.svg';
 import saveIcon from '@/assets/icons/save-icon.svg';
 import newIcon from '@/assets/icons/new-icon.svg';
@@ -183,6 +192,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'add-flow': [];
+  'import-il': [];
   'toggle-sort': [];
   'update:filter': [filter: string];
   'update:statuses': [statuses: FlowStatus[]];
@@ -351,11 +361,19 @@ const formattedUpdatedAt = (row: FlowRow): string =>
 }
 
 .flow-list-heading {
+  margin: 0;
   font-size: 1.5rem;
-  padding: 0.5rem;
+}
+
+.flow-list-header {
+  display: flex;
+  gap: var(--space-4);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4);
   background-color: var(--color-surface-raised);
-  border-radius: var(--radius-md);
   border: var(--border-width-default) solid var(--color-border-default);
+  border-radius: var(--radius-md);
 }
 
 .add-flow-btn {

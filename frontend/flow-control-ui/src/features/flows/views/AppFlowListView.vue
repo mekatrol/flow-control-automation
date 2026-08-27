@@ -7,60 +7,6 @@
       @[EVENTS.RETRY]="loadFlows"
     />
 
-    <div class="page-heading">
-      <div>
-        <p>Automation workspace</p>
-        <h1>Flows</h1>
-        <p>Design, inspect, and deploy independent automation flows.</p>
-      </div>
-    </div>
-
-    <section class="il-import" aria-labelledby="il-import-title">
-      <div>
-        <h2 id="il-import-title">Import compiled Flow IL</h2>
-        <p>Preview a validated artifact before saving it as a new editable draft.</p>
-      </div>
-      <div class="il-import-controls">
-        <label for="flow-il-file">Flow IL artifact</label>
-        <input
-          id="flow-il-file"
-          type="file"
-          accept=".bin,.fil,application/octet-stream"
-          @change="selectILArtifact"
-        />
-        <label for="flow-il-name">Recovered flow name</label>
-        <input
-          id="flow-il-name"
-          v-model="importName"
-          type="text"
-          placeholder="Use artifact flow ID"
-        />
-        <AppButton
-          :text="importing ? 'Validating…' : 'Preview recovery'"
-          :icon="previewIcon"
-          :disabled="!importArtifact || importing"
-          @click="previewIL"
-        />
-      </div>
-      <div v-if="importPreview" class="il-import-preview" role="status">
-        <p>
-          <strong>{{ importPreview.flow.name }}</strong> —
-          {{ importPreview.flow.nodes.length }} nodes,
-          {{ importPreview.flow.connections.length }} connections ({{ importPreview.recoveryLevel }}
-          recovery)
-        </p>
-        <ul v-if="importPreview.warnings.length">
-          <li v-for="warning in importPreview.warnings" :key="warning">{{ warning }}</li>
-        </ul>
-        <AppButton
-          text="Save as new editable flow"
-          :icon="saveIcon"
-          :disabled="importing"
-          @click="saveILImport"
-        />
-      </div>
-    </section>
-
     <p v-if="loading" class="request-status" role="status">Loading flows…</p>
 
     <div v-if="!error" class="flow-results">
@@ -92,10 +38,61 @@
         @[EVENTS.BEGIN_DELETE]="beginDelete"
         @[EVENTS.TOGGLE_DISABLED]="setFlowDisabled"
         @[EVENTS.ADD_FLOW]="showCreateFlowDialog"
+        @[EVENTS.IMPORT_IL]="showILImportDialog"
       />
     </div>
 
     <AppFlowCreateDialog ref="createFlowDialog" v-model="newFlowName" @confirm="createFlow" />
+
+    <AppDialog ref="ilImportDialog" content-label="Import compiled Flow IL">
+      <section class="il-import" aria-labelledby="il-import-title">
+        <div>
+          <h2 id="il-import-title">Import compiled Flow IL</h2>
+          <p>Preview a validated artifact before saving it as a new editable draft.</p>
+        </div>
+        <div class="il-import-controls">
+          <label for="flow-il-file">Flow IL artifact</label>
+          <input
+            id="flow-il-file"
+            type="file"
+            accept=".bin,.fil,application/octet-stream"
+            @change="selectILArtifact"
+          />
+          <label for="flow-il-name">Recovered flow name</label>
+          <input
+            id="flow-il-name"
+            v-model="importName"
+            type="text"
+            placeholder="Use artifact flow ID"
+          />
+          <AppButton
+            :text="importing ? 'Validating…' : 'Preview recovery'"
+            :icon="previewIcon"
+            :disabled="!importArtifact || importing"
+            @click="previewIL"
+          />
+        </div>
+        <div v-if="importPreview" class="il-import-preview" role="status">
+          <p>
+            <strong>{{ importPreview.flow.name }}</strong> —
+            {{ importPreview.flow.nodes.length }} nodes,
+            {{ importPreview.flow.connections.length }} connections ({{
+              importPreview.recoveryLevel
+            }}
+            recovery)
+          </p>
+          <ul v-if="importPreview.warnings.length">
+            <li v-for="warning in importPreview.warnings" :key="warning">{{ warning }}</li>
+          </ul>
+          <AppButton
+            text="Save as new editable flow"
+            :icon="saveIcon"
+            :disabled="importing"
+            @click="saveILImport"
+          />
+        </div>
+      </section>
+    </AppDialog>
 
     <AppPromptDialog
       id="delete-flow-dialog"
@@ -119,6 +116,7 @@ import { useRoute, useRouter } from 'vue-router';
 import previewIcon from '@/assets/icons/visibility-icon.svg';
 import saveIcon from '@/assets/icons/save-icon.svg';
 import AppButton from '@/components/AppButton.vue';
+import AppDialog from '@/components/AppDialog.vue';
 import AppErrorNotice from '@/components/AppErrorNotice.vue';
 import AppPromptDialog from '@/components/AppPromptDialog.vue';
 import AppFlowCreateDialog from '@/features/flows/components/AppFlowCreateDialog.vue';
@@ -209,6 +207,7 @@ const hasActiveFilters = computed(
 const items = computed(() => flows.value);
 
 const createFlowDialog = ref<InstanceType<typeof AppFlowCreateDialog>>();
+const ilImportDialog = ref<InstanceType<typeof AppDialog>>();
 const deleteFlowDialog = ref<InstanceType<typeof AppPromptDialog>>();
 
 const deleteConfirmationMessage = computed(() => {
@@ -219,6 +218,11 @@ const deleteConfirmationMessage = computed(() => {
 const showCreateFlowDialog = async (): Promise<void> => {
   await nextTick();
   createFlowDialog.value?.showModal();
+};
+
+const showILImportDialog = async (): Promise<void> => {
+  await nextTick();
+  ilImportDialog.value?.showModal();
 };
 
 watch(
@@ -497,7 +501,6 @@ h1 {
 .il-import {
   display: grid;
   gap: var(--space-6);
-  margin-bottom: var(--space-11);
   padding: var(--space-8);
   background: var(--color-surface-raised);
   border: var(--border-width-default) solid var(--color-border-default);

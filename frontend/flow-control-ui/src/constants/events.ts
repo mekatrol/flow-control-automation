@@ -24,6 +24,7 @@ export const EVENTS = {
   DIAGNOSTICS: 'diagnostics',
   FAULT: 'fault',
   DRAG_START: 'dragstart',
+  IMPORT_IL: 'import-il',
   MOVE_NODE: 'move-node',
   LEARN: 'learn',
   OPEN_TUTORIAL: 'open-tutorial',
