@@ -7,6 +7,7 @@ export interface Point {
 
 export interface ConnectorLayout extends Point {
   connector: FlowNodeConnector;
+  hitRadius: number;
 }
 
 const pointOnSide = (
@@ -37,10 +38,15 @@ export const layoutConnectors = (
   const sides: ConnectorSide[] = ['left', 'right', 'top', 'bottom'];
   return sides.flatMap((side) => {
     const onSide = connectors.filter((connector) => connector.side === side);
+    const sideLength = side === 'left' || side === 'right' ? height : width;
+    // Keep adjacent hit targets from overlapping. An overlap lets a connector
+    // rendered later in the SVG intercept a pointer intended for its neighbour.
+    const hitRadius = Math.min(14, sideLength / (onSide.length + 1) / 2);
     // Dividing a side into N + 1 gaps spaces connectors evenly while reserving
     // room at both corners, where a connector would be harder to distinguish.
     return onSide.map((connector, index) => ({
       connector,
+      hitRadius,
       ...pointOnSide(side, (index + 1) / (onSide.length + 1), width, height)
     }));
   });

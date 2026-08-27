@@ -56,4 +56,23 @@ describe('connector layout', () => {
       { x: 210, y: 60 }
     ]);
   });
+
+  /**
+   * Purpose: Ensures densely packed connector pointer targets remain independently reachable.
+   * Description: Lays out the selector's three inputs on a compact node and verifies their hit
+   * targets meet without overlapping, preventing a lower connector from intercepting the top port.
+   */
+  it('prevents hit targets from overlapping on a densely populated side', () => {
+    const layouts = layoutConnectors(
+      [connector('condition', 'left'), connector('a', 'left'), connector('b', 'left')],
+      170,
+      40
+    );
+
+    expect(layouts.map(({ y, hitRadius }) => ({ y, hitRadius }))).toEqual([
+      { y: 10, hitRadius: 5 },
+      { y: 20, hitRadius: 5 },
+      { y: 30, hitRadius: 5 }
+    ]);
+  });
 });

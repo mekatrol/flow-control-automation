@@ -16,7 +16,7 @@
   >
     <!-- SVG only hit-tests painted geometry. This transparent circle gives the
     connector a forgiving pointer target without making the visible port huge. -->
-    <circle class="connector-hit-target" r="14" />
+    <circle class="connector-hit-target" :r="layout.hitRadius" />
     <rect class="connector-port" x="-5" y="-5" width="10" height="10" rx="2" />
     <title>
       {{ layout.connector.label }} — {{ layout.connector.direction }}
