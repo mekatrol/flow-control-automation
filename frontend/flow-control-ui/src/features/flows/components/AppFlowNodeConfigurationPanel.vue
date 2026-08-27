@@ -46,15 +46,21 @@
             Search declared compatible points or enter a point ID manually.
           </small>
           <AppButton
-            v-if="canCreateVirtualPoint"
             class="create-point-button"
-            :text="`Create virtual point “${pointDraft.trim()}”`"
+            text="Create new virtual point"
             :icon="createIcon"
-            @click="showCreatePoint = true"
+            @click="openCreatePoint"
           />
           <fieldset v-if="showCreatePoint" class="create-point-form">
             <legend>Create virtual point</legend>
-            <label><span>Display name</span><input v-model="createName" type="text" /></label>
+            <label
+              ><span>Point ID</span
+              ><input
+                v-model="createPointId"
+                type="text"
+                :aria-invalid="Boolean(createPointIdError)"
+            /></label>
+            <small v-if="createPointIdError" role="alert">{{ createPointIdError }}</small>
             <label v-if="requirement.valueType === 'analog'"
               ><span>Units</span><input v-model="createUnits" type="text"
             /></label>
@@ -73,7 +79,7 @@
               <AppButton
                 text="Create"
                 :icon="checkIcon"
-                :disabled="!createName.trim()"
+                :disabled="Boolean(createPointIdError)"
                 @click="createVirtualPoint"
               />
             </div>
@@ -121,6 +127,14 @@ import type { NodeEditorField as EditorField } from '@/features/flows/nodeKinds'
 
 export const validateNodeLabel = (label: string): string | undefined =>
   label.trim() ? undefined : 'Node label is required.';
+
+export const nextAvailablePointId = (preferred: string, occupiedIds: Iterable<string>): string => {
+  const occupied = new Set(occupiedIds);
+  if (!occupied.has(preferred)) return preferred;
+  let suffix = 2;
+  while (occupied.has(`${preferred}-${suffix}`)) suffix += 1;
+  return `${preferred}-${suffix}`;
+};
 
 export const editorValueFromInput = (
   field: EditorField,
@@ -198,7 +212,7 @@ const remotePoints = ref<PointSummary[]>([]);
 const pointDraft = ref(String(props.node.configuration.pointId ?? ''));
 const validationState = ref<PointValidationState>('idle');
 const showCreatePoint = ref(false);
-const createName = ref('');
+const createPointId = ref('');
 const createUnits = ref('');
 const createPersistence = ref<'volatile' | 'retained'>('volatile');
 const createDefault = ref('');
@@ -283,13 +297,24 @@ const updatePointId = (field: NodeEditorField, event: Event): void => {
   }, 350);
 };
 
-const canCreateVirtualPoint = computed(
-  () =>
-    validationState.value === 'invalid' &&
-    pointDraft.value.trim() !== '' &&
-    errors.value.pointId?.includes('does not exist')
-);
+const createPointIdError = computed(() => {
+  const key = createPointId.value.trim();
+  if (!key) return 'Point ID is required.';
+  if (!/^[a-zA-Z0-9](?:[a-zA-Z0-9._-]{0,126}[a-zA-Z0-9])?$/.test(key))
+    return 'Point ID contains unsupported characters.';
+  if (declarations.value.some((point) => point.key === key)) return 'Point ID already exists.';
+  return undefined;
+});
+const openCreatePoint = (): void => {
+  const preferred = pointDraft.value.trim() || 'virtual-point';
+  createPointId.value = nextAvailablePointId(
+    preferred,
+    declarations.value.map((point) => point.key)
+  );
+  showCreatePoint.value = true;
+};
 const createVirtualPoint = (): void => {
+  if (createPointIdError.value) return;
   const rawDefault = createDefault.value.trim();
   const relinquishDefault =
     rawDefault === ''
@@ -302,7 +327,7 @@ const createVirtualPoint = (): void => {
     return;
   }
   emit('createVirtualPoint', {
-    key: pointDraft.value.trim(),
+    key: createPointId.value.trim(),
     valueType: requirement.value.valueType,
     ...(createUnits.value.trim() ? { units: createUnits.value.trim() } : {}),
     readable: true,
@@ -310,7 +335,9 @@ const createVirtualPoint = (): void => {
     persistence: createPersistence.value,
     ...(relinquishDefault !== undefined ? { relinquishDefault } : {})
   });
-  createName.value = '';
+  emit(EVENTS.UPDATE_CONFIGURATION, 'pointId', createPointId.value.trim());
+  pointDraft.value = createPointId.value.trim();
+  createPointId.value = '';
   showCreatePoint.value = false;
   validationState.value = 'valid';
   delete errors.value.pointId;

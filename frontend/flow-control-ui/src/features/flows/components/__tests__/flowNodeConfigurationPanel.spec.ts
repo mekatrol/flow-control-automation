@@ -4,10 +4,20 @@ import { describe, expect, it } from 'vitest';
 
 import {
   editorValueFromInput,
+  nextAvailablePointId,
   validateNodeLabel
 } from '@/features/flows/components/AppFlowNodeConfigurationPanel.vue';
 
 describe('node configuration validation', () => {
+  it('suggests a new point ID when the selected point already exists', () => {
+    expect(nextAvailablePointId('analog-input-point', ['analog-input-point'])).toBe(
+      'analog-input-point-2'
+    );
+    expect(
+      nextAvailablePointId('analog-input-point', ['analog-input-point', 'analog-input-point-2'])
+    ).toBe('analog-input-point-3');
+  });
+
   /**
    * Purpose: Protects the behavioral contract that requires a non-empty label.
    * Description: Exercises requires a non-empty label from its arranged starting state and
