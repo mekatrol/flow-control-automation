@@ -3,7 +3,7 @@
     data-app-button
     :class="props.size"
     :type="type"
-    :aria-label="!hideText ? undefined : (ariaLabel ?? text)"
+    :aria-label="ariaLabel ?? (hideText ? text : undefined)"
   >
     <span v-if="$slots.icon" class="button-icon-slot">
       <slot name="icon" />

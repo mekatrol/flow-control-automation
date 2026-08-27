@@ -3,7 +3,7 @@
     <a
       :href="href"
       :aria-current="ariaCurrent"
-      :aria-label="!hideText ? undefined : (ariaLabel ?? text)"
+      :aria-label="ariaLabel ?? (hideText ? text : undefined)"
       class="app-link"
       @click="navigate"
     >
