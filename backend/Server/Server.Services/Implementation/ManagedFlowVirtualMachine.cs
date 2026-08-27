@@ -300,8 +300,8 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
     }
 
     private void RisingEdge(
-    Instruction instruction,
-    FlowVmValue input)
+        Instruction instruction,
+        FlowVmValue input)
     {
         var state = State(instruction.Auxiliary);
 
