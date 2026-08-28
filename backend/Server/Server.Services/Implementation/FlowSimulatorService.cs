@@ -118,6 +118,7 @@ public sealed class FlowSimulatorService(
         entry.Registry.Session = entry.Registry.Session! with { LifecycleState = "running", Mode = "interval" };
         entry.StartContinuous(async token =>
         {
+            emulators.Advance(entry.EmulatorId!, intervalMilliseconds, scan: false);
             await Debug(entry.Registry).StepAsync(flowId, sessionId, token);
             entry.Registry.Session = entry.Registry.Session! with { LifecycleState = "running", Mode = "interval" };
         }, intervalMilliseconds);

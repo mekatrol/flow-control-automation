@@ -70,6 +70,8 @@ public sealed class FlowSimulatorServiceTests
             Assert.That(running.LifecycleState, Is.EqualTo("running"));
             Assert.That(running.Snapshot?.TickNumber, Is.EqualTo(1));
             Assert.That(progressed.Snapshot?.TickNumber, Is.GreaterThan(1));
+            Assert.That(progressed.Io?.VirtualTimeMilliseconds, Is.GreaterThanOrEqualTo(10));
+            Assert.That(progressed.Snapshot?.SampledAtMs, Is.GreaterThanOrEqualTo(10));
             Assert.That(paused.LifecycleState, Is.EqualTo("paused"));
         });
     }
@@ -129,11 +131,16 @@ public sealed class FlowSimulatorServiceTests
     private sealed class Machine : IFlowVirtualMachine
     {
         private ulong _scan;
+        private ulong _sampledAt;
         public bool Disposed { get; private set; }
         public FlowVmScanResult Scan(IReadOnlyList<FlowVmInput> inputs, ulong sampledAtMilliseconds) => throw new NotSupportedException();
-        public FlowVmExecutionFrame BeginScan(IReadOnlyList<FlowVmInput> inputs, ulong sampledAtMilliseconds) => new(0, FlowOpcode.Commit, true, [], [], [], []);
+        public FlowVmExecutionFrame BeginScan(IReadOnlyList<FlowVmInput> inputs, ulong sampledAtMilliseconds)
+        {
+            _sampledAt = sampledAtMilliseconds;
+            return new(0, FlowOpcode.Commit, true, [], [], [], []);
+        }
         public FlowVmExecutionFrame StepInstruction() => throw new NotSupportedException();
-        public FlowVmScanResult CommitScan() => new(++_scan, 1, [true], [new FlowVmCommand("output", true)]);
+        public FlowVmScanResult CommitScan() => new(++_scan, _sampledAt, [true], [new FlowVmCommand("output", true)]);
         public void AbortScan() { }
         public void Reset() => _scan = 0;
         public void Dispose() => Disposed = true;
