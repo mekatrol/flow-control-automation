@@ -5,6 +5,48 @@ type PointNodeKind = 'Analog Input' | 'Analog Output' | 'Digital Input' | 'Digit
 const nodeGroup = (page: Page, nodeId: string): Locator =>
   page.locator(`[data-node-id="${nodeId}"]`);
 
+export const moveNode = async (
+  page: Page,
+  nodeId: string,
+  position: { x: number; y: number }
+): Promise<void> => {
+  const node = nodeGroup(page, nodeId);
+  const selector = node.locator('.node-selector');
+  const transform = await selector.getAttribute('transform');
+  const coordinates = transform?.match(/^translate\((\d+) (\d+)\)$/);
+  const box = await selector.boundingBox();
+  expect(coordinates, `Node ${nodeId} must expose designer coordinates.`).not.toBeNull();
+  expect(box, `Node ${nodeId} must be visible before it can be arranged.`).not.toBeNull();
+
+  const currentX = Number(coordinates![1]);
+  const currentY = Number(coordinates![2]);
+  if (currentX === position.x && currentY === position.y) return;
+
+  const pointerId = 17;
+  const startX = box!.x + box!.width / 2;
+  const startY = box!.y + box!.height / 2;
+  const graph = page.getByRole('group', { name: /flow graph$/ });
+  const graphBox = await graph.boundingBox();
+  const viewBox = (await graph.getAttribute('viewBox'))?.split(' ').map(Number);
+  expect(graphBox, 'The designer graph must be visible before arranging nodes.').not.toBeNull();
+  expect(viewBox, 'The designer graph must expose its logical view box.').toHaveLength(4);
+  const clientScaleX = graphBox!.width / viewBox![2]!;
+  const clientScaleY = graphBox!.height / viewBox![3]!;
+  await selector.dispatchEvent('pointerdown', {
+    button: 0,
+    clientX: startX,
+    clientY: startY,
+    pointerId
+  });
+  await graph.dispatchEvent('pointermove', {
+    clientX: startX + (position.x - currentX) * clientScaleX,
+    clientY: startY + (position.y - currentY) * clientScaleY,
+    pointerId
+  });
+  await graph.dispatchEvent('pointerup', { pointerId });
+  await expect(selector).toHaveAttribute('transform', `translate(${position.x} ${position.y})`);
+};
+
 export const createFlow = async (page: Page, name: string): Promise<string> => {
   await page.goto('/flows');
   await page.getByRole('button', { name: 'Add a new flow' }).click();

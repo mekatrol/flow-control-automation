@@ -5,6 +5,7 @@ import {
   addVirtualPointNode,
   connectNodes,
   createFlow,
+  moveNode,
   saveFlow
 } from './helpers/functionNodeDesigner';
 import {
@@ -24,9 +25,13 @@ test('Add sums virtual analog inputs and publishes the virtual output', async ({
   const output = `add-result-${suffix}`;
 
   const inputANode = await addVirtualPointNode(page, 'Analog Input', inputA);
+  await moveNode(page, inputANode, { x: 24, y: 72 });
   const inputBNode = await addVirtualPointNode(page, 'Analog Input', inputB);
+  await moveNode(page, inputBNode, { x: 24, y: 216 });
   const addNodeId = await addNode(page, 'Add');
+  await moveNode(page, addNodeId, { x: 264, y: 144 });
   const outputNode = await addVirtualPointNode(page, 'Analog Output', output);
+  await moveNode(page, outputNode, { x: 480, y: 144 });
 
   await connectNodes(
     page,
