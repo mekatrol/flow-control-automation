@@ -160,7 +160,7 @@ internal sealed class ConnectivityEndpointTests
             // Expected outcome: `http.CredentialReceived == credential` confirms the required condition.
             // Acceptance criteria: `http.CredentialReceived == credential` must be true, because this condition proves that
             // saved route uses resolved credential without returning it.
-            Assert.That(http.CredentialReceived == credential, Is.True);
+            Assert.That(http.CredentialReceived, Is.EqualTo(credential));
 
             // Expected outcome: `body.Contains(credential` rejects the prohibited condition.
             // Acceptance criteria: `body.Contains(credential` must be false, because this condition proves that

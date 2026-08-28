@@ -64,12 +64,7 @@ public static class PointSourceEndpointRouteBuilderExtensions
         CancellationToken cancellationToken)
     {
         var decoded = await Decode(request, cancellationToken);
-        if (decoded.Error is not null)
-        {
-            return decoded.Error;
-        }
-
-        return await WriteSource(
+        return decoded.Error ?? await WriteSource(
             response,
             () => sources.CreateAsync(decoded.Source!, cancellationToken),
             StatusCodes.Status201Created);

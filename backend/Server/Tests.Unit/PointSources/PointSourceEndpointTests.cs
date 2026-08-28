@@ -66,15 +66,18 @@ internal sealed class PointSourceEndpointTests
 
         using var get = await client.GetAsync("/api/point-sources/weather");
 
-        // Expected outcome: `get.Headers.TryGetValues("ETag"` confirms the required condition.
-        // Acceptance criteria: `get.Headers.TryGetValues("ETag"` must be true, because this condition proves that
-        // crud uses yaml etags and revision conflicts.
-        Assert.That(get.Headers.TryGetValues("ETag", out var getEtags), Is.True);
+        using (Assert.EnterMultipleScope())
+        {
+            // Expected outcome: `get.Headers.TryGetValues("ETag"` confirms the required condition.
+            // Acceptance criteria: `get.Headers.TryGetValues("ETag"` must be true, because this condition proves that
+            // crud uses yaml etags and revision conflicts.
+            Assert.That(get.Headers.TryGetValues("ETag", out var getEtags), Is.True);
 
-        // Expected outcome: `getEtags` has the required value.
-        // Acceptance criteria: `getEtags` must equal `new[] { "1" }`, because this condition proves that
-        // crud uses yaml etags and revision conflicts.
-        Assert.That(getEtags, Is.EqualTo(new[] { "1" }));
+            // Expected outcome: `getEtags` has the required value.
+            // Acceptance criteria: `getEtags` must equal `new[] { "1" }`, because this condition proves that
+            // crud uses yaml etags and revision conflicts.
+            Assert.That(getEtags, Is.EqualTo(new[] { "1" }));
+        }
 
         var updatedInput = source with { Name = "Updated weather" };
         using var update = await SendYaml(

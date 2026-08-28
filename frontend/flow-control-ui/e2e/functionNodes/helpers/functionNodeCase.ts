@@ -10,7 +10,12 @@ import {
   saveFlow,
   type NodeConfigurationValue
 } from './functionNodeDesigner';
-import { applyInputs, expectOutput, startSimulation } from './functionNodeSimulator';
+import {
+  applyInputs,
+  expectOutput,
+  startSimulation,
+  stopSimulation
+} from './functionNodeSimulator';
 import { getNodeKind } from '@/features/flows/nodeKinds';
 import type { FlowNodeKind } from '@/features/flows/types';
 import { test } from './functionNodeTest';
@@ -105,15 +110,21 @@ export const runFunctionNodeCase = async (
   );
 
   await saveFlow(page, flowId);
-  await startSimulation(page, flowId);
-
-  for (const vector of testCase.vectors) {
-    if (inputs.length) {
-      const values = Object.fromEntries(
-        Object.entries(vector.inputs).map(([connectorId, value]) => [pointIds[connectorId]!, value])
-      );
-      await applyInputs(page, values);
+  const simulation = await startSimulation(page, flowId);
+  try {
+    for (const vector of testCase.vectors) {
+      if (inputs.length) {
+        const values = Object.fromEntries(
+          Object.entries(vector.inputs).map(([connectorId, value]) => [
+            pointIds[connectorId]!,
+            value
+          ])
+        );
+        await applyInputs(page, values);
+      }
+      await expectOutput(page, outputPointId, vector.expected);
     }
-    await expectOutput(page, outputPointId, vector.expected);
+  } finally {
+    await stopSimulation(page, simulation);
   }
 };

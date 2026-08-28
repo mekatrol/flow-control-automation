@@ -17,12 +17,12 @@ internal sealed class AddExecutionContextsAndInstances : Migration
             table: "ExecutionInstances",
             columns: ["Id", "Key", "Json", "Created", "Updated", "RowVersion"],
             columnTypes: ["TEXT", "TEXT", "TEXT", "TEXT", "TEXT", "INTEGER"],
-            values: new object[]
-            {
+            values:
+            [
                 "server", "server",
                 "{\"id\":\"server\",\"name\":\"Built-in server\",\"kind\":\"server\",\"enabled\":true,\"revision\":1}",
                 DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, 1
-            });
+            ]);
     }
 
     protected override void Down(MigrationBuilder migrationBuilder)

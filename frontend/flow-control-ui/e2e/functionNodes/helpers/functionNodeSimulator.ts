@@ -1,6 +1,14 @@
 import { expect, type Page } from '@playwright/test';
 
-export const startSimulation = async (page: Page, flowId: string): Promise<void> => {
+export interface StartedSimulation {
+  flowId: string;
+  sessionId: string;
+}
+
+export const startSimulation = async (
+  page: Page,
+  flowId: string
+): Promise<StartedSimulation> => {
   await page.getByRole('link', { name: 'Simulate' }).click();
   await expect(page).toHaveURL(new RegExp(`/flows/${flowId}/simulator$`));
   const started = page.waitForResponse(
@@ -10,8 +18,29 @@ export const startSimulation = async (page: Page, flowId: string): Promise<void>
   );
   await page.getByRole('button', { name: 'Start simulation' }).click();
   const response = await started;
-  expect(response.status(), await response.text()).toBe(201);
+  const body: unknown = await response.json();
+  expect(response.status(), JSON.stringify(body)).toBe(201);
+  expect(body).toEqual(
+    expect.objectContaining({
+      flowId,
+      sessionId: expect.any(String)
+    })
+  );
   await expect(page.getByLabel('Simulation controls').getByRole('status')).toHaveText('running');
+  return { flowId, sessionId: (body as { sessionId: string }).sessionId };
+};
+
+export const stopSimulation = async (
+  page: Page,
+  simulation: StartedSimulation
+): Promise<void> => {
+  const response = await page.request.delete(
+    `/api/flows/${encodeURIComponent(simulation.flowId)}/simulator-sessions/${encodeURIComponent(simulation.sessionId)}`
+  );
+  expect(
+    response.status(),
+    `Failed to stop simulator session ${simulation.sessionId}: ${await response.text()}`
+  ).toBe(204);
 };
 
 export const applyAnalogInputs = async (

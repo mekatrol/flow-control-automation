@@ -11,7 +11,8 @@ import {
 import {
   applyAnalogInputs,
   expectAnalogOutput,
-  startSimulation
+  startSimulation,
+  stopSimulation
 } from './helpers/functionNodeSimulator';
 
 test('Add sums virtual analog inputs and publishes the virtual output', async ({
@@ -50,18 +51,21 @@ test('Add sums virtual analog inputs and publishes the virtual output', async ({
   );
 
   await saveFlow(page, flowId);
-  await startSimulation(page, flowId);
+  const simulation = await startSimulation(page, flowId);
+  try {
+    for (const vector of [
+      { a: 2, b: 3, expected: 5 },
+      { a: 0, b: 0, expected: 0 },
+      { a: -4.5, b: 1.25, expected: -3.25 }
+    ]) {
+      await test.step(`${vector.a} + ${vector.b} = ${vector.expected}`, async () => {
+        await applyAnalogInputs(page, { [inputA]: vector.a, [inputB]: vector.b });
+        await expectAnalogOutput(page, output, vector.expected);
+      });
+    }
 
-  for (const vector of [
-    { a: 2, b: 3, expected: 5 },
-    { a: 0, b: 0, expected: 0 },
-    { a: -4.5, b: 1.25, expected: -3.25 }
-  ]) {
-    await test.step(`${vector.a} + ${vector.b} = ${vector.expected}`, async () => {
-      await applyAnalogInputs(page, { [inputA]: vector.a, [inputB]: vector.b });
-      await expectAnalogOutput(page, output, vector.expected);
-    });
+    await expect(page.getByRole('alert')).toHaveCount(0);
+  } finally {
+    await stopSimulation(page, simulation);
   }
-
-  await expect(page.getByRole('alert')).toHaveCount(0);
 });

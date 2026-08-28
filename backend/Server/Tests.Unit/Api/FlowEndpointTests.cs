@@ -1,6 +1,5 @@
 using Server.Common;
 using Server.Common.Contracts;
-using Server.Compiler.Contracts;
 using Server.Services.Contracts;
 using System.Net;
 using System.Net.Http.Json;
@@ -555,15 +554,18 @@ internal sealed class FlowEndpointTests
             new { name },
             FlowControlJson.Options);
 
-        // Expected outcome: `response.StatusCode` has the required value.
-        // Acceptance criteria: `response.StatusCode` must equal `HttpStatusCode.Created`, because this condition proves that
-        // runtime routes return not found for missing flow.
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+        using (Assert.EnterMultipleScope())
+        {
+            // Expected outcome: `response.StatusCode` has the required value.
+            // Acceptance criteria: `response.StatusCode` must equal `HttpStatusCode.Created`, because this condition proves that
+            // runtime routes return not found for missing flow.
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
 
-        // Expected outcome: `response.Content.Headers.ContentType?.MediaType` has the required value.
-        // Acceptance criteria: `response.Content.Headers.ContentType?.MediaType` must equal `"application/json"`, because this condition proves that
-        // runtime routes return not found for missing flow.
-        Assert.That(response.Content.Headers.ContentType?.MediaType, Is.EqualTo("application/json"));
+            // Expected outcome: `response.Content.Headers.ContentType?.MediaType` has the required value.
+            // Acceptance criteria: `response.Content.Headers.ContentType?.MediaType` must equal `"application/json"`, because this condition proves that
+            // runtime routes return not found for missing flow.
+            Assert.That(response.Content.Headers.ContentType?.MediaType, Is.EqualTo("application/json"));
+        }
         return (await response.Content.ReadFromJsonAsync<Flow>(FlowControlJson.Options))!;
     }
 

@@ -48,10 +48,7 @@ internal sealed class FlowRuntimeService(
             return Stop(flow);
         }
 
-        if (interval <= TimeSpan.Zero)
-        {
-            throw new ArgumentOutOfRangeException(nameof(interval));
-        }
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(interval, TimeSpan.Zero);
 
         await _deploymentGate.WaitAsync(cancellationToken);
         try
@@ -267,7 +264,7 @@ internal sealed class FlowRuntimeService(
         }
     }
 
-    private async Task StopInstanceAsync(RuntimeInstance instance)
+    private static async Task StopInstanceAsync(RuntimeInstance instance)
     {
         instance.Cancellation.Cancel();
         try

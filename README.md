@@ -168,6 +168,7 @@ Run the equivalent commands from the repository root with:
 dotnet clean backend/Server/Server.slnx
 dotnet format backend/Server/Server.slnx --verify-no-changes
 dotnet format backend/Server/Server.slnx
+dotnet format --severity info --verbosity detailed
 dotnet build backend/Server/Server.slnx
 dotnet test backend/Server/Server.slnx
 dotnet run --project backend/Server/Server.Api/Server.Api.csproj --launch-profile http
@@ -232,6 +233,30 @@ npm run build
 smoke-tests health, flow save/deploy, credential metadata, and point-source
 persistence against the real backend. It uses only temporary test data and a
 test-only encryption key.
+
+Direct Playwright and VS Code extension runs use port `5018` for their managed
+ASP.NET Core test server. An interrupted run can leave this server running,
+preventing the next run from binding to the port and retaining in-memory test
+state. The repository provides scripts that display and stop the process using
+the port. Both scripts exit successfully and report when the port is already
+free.
+
+On Windows, run the PowerShell script from the repository root:
+
+```powershell
+./tools/stop-e2e-test-server.ps1
+```
+
+On Linux, run the Bash script from the repository root. It uses `lsof` when
+available and falls back to `fuser`:
+
+```sh
+bash ./tools/stop-e2e-test-server.sh
+```
+
+Both scripts accept an optional port when troubleshooting a non-default E2E
+server. Use `-Port 5019` with PowerShell or pass `5019` as the first Bash
+argument.
 
 Playwright runs the end-to-end tests headlessly by default, so
 `npm run test:e2e` does not open a browser window. To watch the tests run in a

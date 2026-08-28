@@ -93,12 +93,7 @@ public static class ControllerTemplateEndpointRouteBuilderExtensions
         CancellationToken cancellationToken)
     {
         var decoded = await Decode(request, cancellationToken);
-        if (decoded.Error is not null)
-        {
-            return decoded.Error;
-        }
-
-        return TryRevision(request.Headers.IfMatch.ToString(), out var revision)
+        return decoded.Error ?? (TryRevision(request.Headers.IfMatch.ToString(), out var revision)
             ? await Write(
                 response,
                 () => templates.UpdateAsync(
@@ -107,7 +102,7 @@ public static class ControllerTemplateEndpointRouteBuilderExtensions
                     revision,
                     cancellationToken),
                 StatusCodes.Status200OK)
-            : Error(400, "invalid_revision", "If-Match must be a positive integer");
+            : Error(400, "invalid_revision", "If-Match must be a positive integer"));
     }
 
     private static async Task<IResult> Delete(

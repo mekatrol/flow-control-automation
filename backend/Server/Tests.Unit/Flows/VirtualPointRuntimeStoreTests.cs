@@ -43,8 +43,11 @@ public sealed class VirtualPointRuntimeStoreTests
             store.ActivateFlowAsync("server", "other", [analog], new HashSet<string> { analog.Key }, default));
         Assert.ThrowsAsync<InvalidOperationException>(() => store.CommitAsync(
             "server", "owner", [new FlowVmCommand(analog.Key, true)], default));
-        Assert.That(store.TrySnapshot("server", analog.Key, out var unchanged), Is.True);
-        Assert.That(unchanged.Value, Is.Null);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(store.TrySnapshot("server", analog.Key, out var unchanged), Is.True);
+            Assert.That(unchanged.Value, Is.Null);
+        }
 
         await store.CommitAsync("server", "owner",
             [new FlowVmCommand(analog.Key, FlowVmValue.FromNumber(3.25)), new FlowVmCommand(digital.Key, true)], default);
@@ -61,9 +64,12 @@ public sealed class VirtualPointRuntimeStoreTests
         var store = new VirtualPointRuntimeStore(TimeProvider.System);
         var contract = Analog("defaulted") with { RelinquishDefault = JsonSerializer.SerializeToElement(18.0) };
         await store.ActivateFlowAsync("server", "first", [contract], new HashSet<string> { contract.Key }, default);
-        Assert.That(store.TrySnapshot("server", contract.Key, out var initial), Is.True);
-        Assert.That(initial.Value?.Number, Is.EqualTo(18.0));
-        Assert.That(initial.Quality, Is.EqualTo(DataQuality.Good));
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(store.TrySnapshot("server", contract.Key, out var initial), Is.True);
+            Assert.That(initial.Value?.Number, Is.EqualTo(18.0));
+            Assert.That(initial.Quality, Is.EqualTo(DataQuality.Good));
+        }
 
         store.ReleaseFlow("server", "first");
         Assert.DoesNotThrowAsync(() => store.ActivateFlowAsync("server", "second", [contract], new HashSet<string> { contract.Key }, default));

@@ -21,7 +21,7 @@ public sealed class FcpControllerDebugTransportTests
         Assert.Multiple(() =>
         {
             Assert.That(result.SessionId, Is.EqualTo(42));
-            Assert.That(client.Operations, Is.EqualTo(new byte[] { 0x50, 0x51, 0x51, 0x51 }));
+            Assert.That(client.Operations, Is.EqualTo("PQQQ"u8.ToArray()));
             Assert.That(client.Uploaded.ToArray(), Is.EqualTo(artifact));
         });
     }
@@ -55,7 +55,7 @@ public sealed class FcpControllerDebugTransportTests
         Assert.Multiple(() =>
         {
             Assert.That(result, Is.EqualTo(new ControllerDebugLiveOutputResult(8, 1000)));
-            Assert.That(client.Operations.Last(), Is.EqualTo(0x5b));
+            Assert.That(client.Operations[^1], Is.EqualTo(0x5b));
             Assert.That(client.LiveOutputPoints, Is.EqualTo(new[] { "output-01", "output-08" }));
         });
     }
@@ -92,7 +92,7 @@ public sealed class FcpControllerDebugTransportTests
     {
         private readonly List<byte> _uploaded = [];
 
-        public IReadOnlyList<byte> Operations { get; } = new List<byte>();
+        public IReadOnlyList<byte> Operations { get; } = [];
         public IReadOnlyList<byte> Uploaded => _uploaded;
         public IReadOnlyList<string> LiveOutputPoints { get; private set; } = [];
 

@@ -276,10 +276,7 @@ public sealed class FcpControllerDebugTransport(IFcpClient client) : IController
 
     private static byte[] SessionBody(ulong sessionId)
     {
-        if (sessionId == 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(sessionId));
-        }
+        ArgumentOutOfRangeException.ThrowIfZero(sessionId);
         var body = new byte[8];
         BinaryPrimitives.WriteUInt64LittleEndian(body, sessionId);
         return body;

@@ -1,13 +1,13 @@
 namespace Server.Compiler.Contracts;
 
 /// <summary>
-/// Stable machine-readable Flow compiler diagnostic codes.
-///
+/// <para>Stable machine-readable Flow compiler diagnostic codes.</para>
+/// <para>
 /// Numeric values are part of the external diagnostic contract and must not be
 /// renumbered after release. The numeric ranges intentionally leave room for
 /// related diagnostics to be added without disturbing existing values.
-///
-/// Display IDs are produced as FCxxxx by <see cref="FlowCompilationDiagnostics"/>.
+/// </para>
+/// <para>Display IDs are produced as FCxxxx by <see cref="FlowCompilationDiagnostics"/>.</para>
 /// </summary>
 public enum FlowCompilationDiagnosticCode
 {
