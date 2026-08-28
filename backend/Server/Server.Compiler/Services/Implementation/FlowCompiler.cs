@@ -310,13 +310,13 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         [FlowNodeKind.If] = new([new("condition", DataDirection.Input, DataType.Boolean), new("whenTrue", DataDirection.Input, DataType.Boolean), new("whenFalse", DataDirection.Input, DataType.Boolean), new("value", DataDirection.Output, DataType.Boolean)]),
         [FlowNodeKind.Selector] = new([new("condition", DataDirection.Input, DataType.Boolean), new("a", DataDirection.Input, DataType.Number), new("b", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Number)]),
         [FlowNodeKind.Split] = new([new("input", DataDirection.Input, DataType.Number), new("output", DataDirection.Output, DataType.Number)]),
-        [FlowNodeKind.Sequence] = new([new("a", DataDirection.Input, DataType.Number), new("b", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Number)]),
+        [FlowNodeKind.Sequence] = new([new("a", DataDirection.Input, DataType.Boolean), new("b", DataDirection.Input, DataType.Boolean), new("value", DataDirection.Output, DataType.Boolean)]),
         [FlowNodeKind.Override] = new([new("input", DataDirection.Input, DataType.Boolean), new("output", DataDirection.Output, DataType.Boolean)]),
         [FlowNodeKind.Delay] = new([new("input", DataDirection.Input, DataType.Boolean), new("output", DataDirection.Output, DataType.Boolean)]),
         [FlowNodeKind.Timer] = new([new("input", DataDirection.Input, DataType.Boolean), new("output", DataDirection.Output, DataType.Boolean)]),
         [FlowNodeKind.Pulse] = new([new("input", DataDirection.Input, DataType.Boolean), new("output", DataDirection.Output, DataType.Boolean)]),
-        [FlowNodeKind.Schedule] = new([new("output", DataDirection.Output, DataType.Number)]),
-        [FlowNodeKind.Calendar] = new([new("output", DataDirection.Output, DataType.Number)])
+        [FlowNodeKind.Schedule] = new([new("output", DataDirection.Output, DataType.Boolean)]),
+        [FlowNodeKind.Calendar] = new([new("output", DataDirection.Output, DataType.Boolean)])
     };
 
     public FlowCompilationResult Compile(FlowCompilationRequest request)
@@ -2225,7 +2225,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             FlowNodeKind.Line =>
                 new(
                     new(
-                        FlowOpcode.Line,
+                        FlowOpcode.LevelShifter,
                         context.ResultSlotIndex,
                         InputSlot(context.Source, context.Slots, context.NodeId, "input"),
                         ConstantIndex(context.Constants, GetNumericConstant(node, "gain")),
@@ -2237,7 +2237,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             FlowNodeKind.If =>
                 new(
                     new(
-                        FlowOpcode.If,
+                        FlowOpcode.Selector,
                         context.ResultSlotIndex,
                         InputSlot(context.Source, context.Slots, context.NodeId, "condition"),
                         InputSlot(context.Source, context.Slots, context.NodeId, "whenTrue"),
@@ -2258,7 +2258,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                     context.NodeId,
                     NodeInstructionRole.Primary),
 
-            FlowNodeKind.Sequence => CreateBinaryNumericInstruction(context, FlowOpcode.Sequence),
+            FlowNodeKind.Sequence => CreateBinaryNumericInstruction(context, FlowOpcode.And),
             _ => throw new UnreachableException()
         };
     }

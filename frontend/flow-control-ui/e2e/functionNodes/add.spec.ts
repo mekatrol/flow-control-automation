@@ -1,4 +1,4 @@
-import { expect, test } from './fixtures/functionNodeTest';
+import { expect, test } from './helpers/functionNodeTest';
 
 import {
   addNode,

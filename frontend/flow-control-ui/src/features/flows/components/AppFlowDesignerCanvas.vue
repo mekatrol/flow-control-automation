@@ -409,8 +409,9 @@ const selectedNode = computed(() =>
   selectedNodeId.value ? nodesById.value.get(selectedNodeId.value) : undefined
 );
 const defaultNodeValue = (node: FlowNodeModel): string | undefined => {
-  if (node.kind === 'numericConstant') return String(node.configuration.value ?? 0);
-  if (node.kind === 'digitalConstant' || node.kind === 'memory')
+  if (node.kind === 'numericConstant' || node.kind === 'memory')
+    return String(node.configuration.value ?? 0);
+  if (node.kind === 'digitalConstant')
     return node.configuration.value ? 'On' : 'Off';
   if (!node.kind.endsWith('Input') && !node.kind.endsWith('Output')) return undefined;
   const pointId = String(node.configuration.pointId ?? '');

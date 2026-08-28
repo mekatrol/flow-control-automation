@@ -1,0 +1,9 @@
+import { defineFunctionNodeTest, test } from './helpers/functionNodeCase';
+
+test(...defineFunctionNodeTest({
+  kind: 'not',
+  vectors: [
+    { inputs: { in: false }, expected: true },
+    { inputs: { in: true }, expected: false }
+  ]
+}));

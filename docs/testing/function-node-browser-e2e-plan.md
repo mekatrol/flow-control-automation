@@ -1,6 +1,6 @@
 # Function-node browser E2E implementation plan
 
-Status: In progress
+Status: Implemented
 Last updated: 28 August 2026
 
 ## Implementation progress
@@ -9,9 +9,10 @@ Last updated: 28 August 2026
 | --- | --- | --- |
 | Dedicated real-backend runner | Complete | `npm run test:e2e:function-nodes` builds `Server.Api` into an isolated temporary output and runs the suite in desktop Chromium, avoiding locks from Visual Studio or extension-managed servers. `--no-build` is available for local iteration. |
 | Playwright extension launch | Complete | Direct and VS Code extension runs use the standard Playwright configuration, which starts the managed .NET backend, configures the Vite proxy, and seeds browser API access. The npm mocked-suite wrapper continues to own its lightweight server lifecycle. |
-| Browser action helpers | Complete for numeric stateless nodes | Flow creation, palette addition, virtual-point creation, keyboard connector wiring, save, simulation start, keyboard input entry, Apply, and rendered analog output assertions are implemented. |
+| Browser action helpers | Complete | Flow creation, palette addition, virtual-point creation, non-overlapping node placement, keyboard connector wiring, node configuration, save, simulation start, typed analog/digital input entry, Apply, and rendered output assertions are implemented. |
 | First alphabetical function: Add | Complete | The browser constructs Analog Input + Analog Input -> Add -> Analog Output and verifies positive, fractional/negative, and zero vectors against the real backend. |
-| Remaining functions and adapter smoke coverage | Not started | Continue with And, then the remaining registry in section 6. |
+| Remaining functions | Complete | All 32 registered executable functions in section 6 construct their graphs through the designer and pass against the isolated real backend. Source-only functions have no virtual input to apply; all other functions submit every input through the simulator UI for each vector. |
+| Backend contract alignment | Complete | Browser coverage identified and corrected compiler/runtime drift for Boolean source/routing/state nodes and opcode aliases used by If, Line, and Sequence. |
 
 ## 1. Goal
 

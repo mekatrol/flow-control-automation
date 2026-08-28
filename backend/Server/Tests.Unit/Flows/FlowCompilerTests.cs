@@ -60,7 +60,7 @@ public sealed class FlowCompilerTests
     {
         var numericInputs = kind switch
         {
-            FlowNodeKind.Add or FlowNodeKind.Average or FlowNodeKind.Comparator or FlowNodeKind.Min or FlowNodeKind.Max or FlowNodeKind.Sequence => ["a", "b"],
+            FlowNodeKind.Add or FlowNodeKind.Average or FlowNodeKind.Comparator or FlowNodeKind.Min or FlowNodeKind.Max => ["a", "b"],
             FlowNodeKind.Selector => ["a", "b"],
             FlowNodeKind.Calculator or FlowNodeKind.Clamp or FlowNodeKind.Line or FlowNodeKind.Split => new[] { "input" },
             FlowNodeKind.LevelShifter => ["in"],
@@ -72,7 +72,7 @@ public sealed class FlowCompilerTests
         string[] booleanInputs = kind switch
         {
             FlowNodeKind.Not or FlowNodeKind.OnDelay or FlowNodeKind.RisingEdge => ["in"],
-            FlowNodeKind.And or FlowNodeKind.Or or FlowNodeKind.Nand or FlowNodeKind.Nor or FlowNodeKind.Xnor or FlowNodeKind.Xor => ["a", "b"],
+            FlowNodeKind.And or FlowNodeKind.Or or FlowNodeKind.Nand or FlowNodeKind.Nor or FlowNodeKind.Xnor or FlowNodeKind.Xor or FlowNodeKind.Sequence => ["a", "b"],
             FlowNodeKind.If => ["condition", "whenTrue", "whenFalse"],
             FlowNodeKind.Selector => ["condition"],
             FlowNodeKind.Override or FlowNodeKind.Delay or FlowNodeKind.Timer or FlowNodeKind.Pulse => ["input"],

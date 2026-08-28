@@ -227,11 +227,11 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
   [FlowNodeFunctionType.Memory]: executableDefinition(
     FlowNodeFunctionType.Memory,
     [
-      booleanPort('in', 'Input', 'input', 'left'),
-      booleanPort('value', 'Previous value', 'output', 'right')
+      { id: 'in', label: 'Input', direction: 'input', dataType: 'number', side: 'left' },
+      { id: 'value', label: 'Previous value', direction: 'output', dataType: 'number', side: 'right' }
     ],
-    [{ key: 'value', label: 'Initial value', input: 'checkbox' }],
-    { value: false }
+    [{ key: 'value', label: 'Initial value', input: 'number' }],
+    { value: 0 }
   ),
   [FlowNodeFunctionType.Nand]: executableDefinition(FlowNodeFunctionType.Nand, [
     booleanPort('a', 'A', 'input', 'left'),
@@ -288,7 +288,7 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     'timing'
   ),
   [FlowNodeFunctionType.QualityGood]: executableDefinition(FlowNodeFunctionType.QualityGood, [
-    booleanPort('in', 'Input', 'input', 'left'),
+    { id: 'in', label: 'Input', direction: 'input', dataType: 'number', side: 'left' },
     booleanPort('value', 'Good', 'output', 'right')
   ]),
   [FlowNodeFunctionType.RisingEdge]: executableDefinition(FlowNodeFunctionType.RisingEdge, [
@@ -328,8 +328,8 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
   [FlowNodeFunctionType.Split]: executableDefinition(
     FlowNodeFunctionType.Split,
     [
-      booleanPort('input', 'Source', 'input', 'left'),
-      booleanPort('output', 'Route', 'output', 'right')
+      { id: 'input', label: 'Source', direction: 'input', dataType: 'number', side: 'left' },
+      { id: 'output', label: 'Route', direction: 'output', dataType: 'number', side: 'right' }
     ],
     [],
     {},

@@ -30,6 +30,7 @@ if (build.status !== 0) {
       '--dotnet',
       'e2e/functionNodes',
       '--project=desktop-chromium',
+      '--workers=1',
       ...forwarded
     ],
     {

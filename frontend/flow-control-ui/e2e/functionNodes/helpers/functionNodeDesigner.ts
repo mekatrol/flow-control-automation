@@ -1,6 +1,7 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 
 type PointNodeKind = 'Analog Input' | 'Analog Output' | 'Digital Input' | 'Digital Output';
+export type NodeConfigurationValue = boolean | number | string;
 
 const nodeGroup = (page: Page, nodeId: string): Locator =>
   page.locator(`[data-node-id="${nodeId}"]`);
@@ -64,6 +65,23 @@ export const addNode = async (page: Page, kind: string): Promise<string> => {
   const selected = page.locator('.flow-node.selected');
   await expect(selected).toBeVisible();
   return (await selected.getAttribute('data-node-id'))!;
+};
+
+export const configureSelectedNode = async (
+  page: Page,
+  configuration: Record<string, NodeConfigurationValue>
+): Promise<void> => {
+  const panel = page.getByRole('complementary', { name: 'Node configuration' });
+  for (const [label, value] of Object.entries(configuration)) {
+    if (typeof value === 'boolean') {
+      const checkbox = panel.getByRole('checkbox', { name: label });
+      if ((await checkbox.isChecked()) !== value) await checkbox.click();
+    } else if (typeof value === 'number') {
+      await panel.getByRole('spinbutton', { name: label }).fill(String(value));
+    } else {
+      await panel.getByRole('combobox', { name: label }).selectOption(value);
+    }
+  }
 };
 
 export const addVirtualPointNode = async (
