@@ -26,6 +26,7 @@ export interface FunctionNodeCase {
   kind: FlowNodeKind;
   configuration?: Record<string, NodeConfigurationValue>;
   vectors: FunctionVector[];
+  testLabel?: string;
 }
 
 export const booleanBinaryCase = (
@@ -44,7 +45,7 @@ export const booleanBinaryCase = (
 export const defineFunctionNodeTest = (
   testCase: FunctionNodeCase
 ): readonly [string, ({ page }: { page: Page }, testInfo: TestInfo) => Promise<void>] => {
-  const label = getNodeKind(testCase.kind).label;
+  const label = testCase.testLabel ?? getNodeKind(testCase.kind).label;
   return [
     `${label} evaluates virtual inputs and publishes its virtual output`,
     async ({ page }, testInfo) => {
