@@ -1,7 +1,17 @@
 # Function-node browser E2E implementation plan
 
-Status: Proposed  
+Status: In progress
 Last updated: 28 August 2026
+
+## Implementation progress
+
+| Deliverable | Status | Notes |
+| --- | --- | --- |
+| Dedicated real-backend runner | Complete | `npm run test:e2e:function-nodes` builds `Server.Api` into an isolated temporary output and runs the suite in desktop Chromium, avoiding locks from Visual Studio or extension-managed servers. `--no-build` is available for local iteration. |
+| Playwright extension launch | Complete | Direct and VS Code extension runs use the standard Playwright configuration, which starts the managed .NET backend, configures the Vite proxy, and seeds browser API access. The npm mocked-suite wrapper continues to own its lightweight server lifecycle. |
+| Browser action helpers | Complete for numeric stateless nodes | Flow creation, palette addition, virtual-point creation, keyboard connector wiring, save, simulation start, keyboard input entry, Apply, and rendered analog output assertions are implemented. |
+| First alphabetical function: Add | Complete | The browser constructs Analog Input + Analog Input -> Add -> Analog Output and verifies positive, fractional/negative, and zero vectors against the real backend. |
+| Remaining functions and adapter smoke coverage | Not started | Continue with And, then the remaining registry in section 6. |
 
 ## 1. Goal
 
@@ -235,4 +245,4 @@ A function block is complete only when:
 
 ## 9. Initial implementation checkpoint
 
-The next change should implement only Phase 0 and the Phase 1 **Not** vertical slice. Once that slice is stable, extract the helper structure in Phase 2. After the harness is proven, begin the required alphabetical series with **Add**, adding exactly one function-block spec per reviewable change.
+The initial checkpoint is complete using **Add**, the first function in the required alphabetical series, as the real-backend vertical slice. The next reviewable change should add **And** using the proven helpers, extending them only for digital inputs and outputs as required.

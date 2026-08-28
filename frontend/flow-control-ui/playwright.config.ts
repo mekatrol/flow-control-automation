@@ -4,11 +4,14 @@ import { join } from 'node:path';
 
 // Allow parallel worktrees or a developer's existing preview server to coexist
 // with an isolated test run while preserving the usual local default.
-const port = Number(process.env.FLOW_UI_E2E_PORT ?? 5174);
+const port = Number(process.env.FLOW_UI_E2E_PORT ?? 5184);
 const baseURL = `http://127.0.0.1:${port}`;
-const useDotnetBackend = process.env.FLOW_UI_E2E_BACKEND === 'dotnet';
+// Direct Playwright and VS Code extension runs provision the real backend.
+// The npm wrapper sets FLOW_UI_E2E_MANAGED_SERVERS and owns server startup, so
+// mocked command-line suites remain lightweight and route-isolated.
+const useDotnetBackend = process.env.FLOW_UI_E2E_BACKEND !== 'mock';
 const externalBackendURL = process.env.FLOW_UI_E2E_BACKEND_URL;
-const backendURL = externalBackendURL ?? 'http://127.0.0.1:5008';
+const backendURL = externalBackendURL ?? 'http://127.0.0.1:5018';
 const testEncryptionKey = 'AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=';
 const testApiKey = 'flow-control-e2e-administrator-key';
 const isHeaded = process.argv.includes('--headed');
@@ -52,8 +55,7 @@ export default defineConfig({
     ...(useDotnetBackend && !externalBackendURL
       ? [
           {
-            command:
-              'dotnet ../../backend/Server/Server.Api/bin/Debug/net10.0/Server.Api.dll',
+            command: 'dotnet ../../backend/Server/Server.Api/bin/Debug/net10.0/Server.Api.dll',
             url: `${backendURL}/api/health`,
             reuseExistingServer: false,
             timeout: 60_000,

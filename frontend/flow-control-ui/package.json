@@ -11,6 +11,7 @@
     "test:unit": "vitest src eslint-rules",
     "test:e2e": "node scripts/run-e2e.mjs",
     "test:e2e:dotnet": "node scripts/run-dotnet-e2e.mjs",
+    "test:e2e:function-nodes": "node scripts/run-function-node-e2e.mjs",
     "test:e2e:install": "playwright install chromium firefox",
     "test:e2e:install:edge": "playwright install msedge",
     "build-only": "vite build",

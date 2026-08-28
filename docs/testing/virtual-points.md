@@ -76,6 +76,7 @@ From `frontend/flow-control-ui`:
 npm run test:unit -- --run
 npm run test:e2e
 npm run test:e2e:dotnet
+npm run test:e2e:function-nodes
 npm run build
 npm run lint:check
 npm run format:check
@@ -83,4 +84,3 @@ npm run format:check
 
 Controller host tests are documented in
 [controller development](../development/controller.md#host-tests).
-

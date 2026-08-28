@@ -27,6 +27,9 @@ const port = process.env.FLOW_UI_E2E_PORT
 const backendURL =
   process.env.FLOW_UI_E2E_BACKEND_URL ?? `http://127.0.0.1:${await getAvailablePort()}`;
 const apiKey = 'flow-control-e2e-administrator-key';
+const backendDll =
+  process.env.FLOW_UI_E2E_BACKEND_DLL ??
+  '../../backend/Server/Server.Api/bin/Debug/net10.0/Server.Api.dll';
 const children = [];
 
 const start = (command, args, env, stdio = ['pipe', 'ignore', 'ignore']) => {
@@ -58,7 +61,7 @@ try {
   if (dotnet && !process.env.FLOW_UI_E2E_BACKEND_URL) {
     start(
       'dotnet',
-      ['../../backend/Server/Server.Api/bin/Debug/net10.0/Server.Api.dll'],
+      [backendDll],
       {
         SERVER_ADDRESS: backendURL,
         CREDENTIAL_ENCRYPTION_KEY: 'AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=',
