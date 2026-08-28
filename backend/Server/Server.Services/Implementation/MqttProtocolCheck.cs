@@ -100,7 +100,7 @@ internal sealed class MqttProtocolCheck(IConnectivityClock clock) : IMqttProtoco
         }
     }
 
-    private static byte[] Packet(byte packetType, IReadOnlyCollection<byte> payload)
+    private static byte[] Packet(byte packetType, List<byte> payload)
     {
         var packet = new List<byte> { packetType };
         var remaining = payload.Count;

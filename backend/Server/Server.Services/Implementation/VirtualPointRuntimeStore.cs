@@ -144,7 +144,7 @@ public sealed class VirtualPointRuntimeStore(
         await _commitGate.WaitAsync(cancellationToken);
         try
         {
-            IReadOnlyDictionary<string, RetainedVirtualPointValue> retainedWrites;
+            Dictionary<string, RetainedVirtualPointValue> retainedWrites;
             _gate.EnterWriteLock();
             try
             {

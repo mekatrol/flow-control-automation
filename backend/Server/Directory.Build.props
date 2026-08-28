@@ -1,4 +1,11 @@
 <Project>
+	<PropertyGroup>
+		<!-- Run IDE/code-style analyzers during normal builds, not only via dotnet format. -->
+		<EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+		<!-- Required for IDE0005 analysis; CS1591 remains disabled in .editorconfig. -->
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+	</PropertyGroup>
+
 	<ItemGroup>
 		<PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556">
 			<PrivateAssets>all</PrivateAssets>
