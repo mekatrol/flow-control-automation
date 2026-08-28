@@ -11,7 +11,7 @@ public sealed class ApiAccessMiddleware(RequestDelegate next, IHostEnvironment e
     {
         if (!context.Request.Path.StartsWithSegments("/api") || context.Request.Path == "/api/health") { await next(context); return; }
         string actor;
-        IReadOnlySet<string> permissions;
+        HashSet<string> permissions;
         if (environment.IsEnvironment("Testing"))
         {
             actor = "test-admin";

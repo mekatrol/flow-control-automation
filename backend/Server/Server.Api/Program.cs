@@ -67,7 +67,7 @@ public partial class Program
         app.MapFlowControlEndpoints();
         if (frontendFiles is not null)
         {
-            app.MapFallback("{*path:nonfile}", async context =>
+            app.MapFallback(async context =>
             {
                 if (context.Request.Path.StartsWithSegments("/api"))
                 {
