@@ -22,7 +22,9 @@ public static class FlowSimulatorEndpointRouteBuilderExtensions
         endpoints.MapPost("/api/flows/{flowId}/simulator-sessions/{sessionId}/restart", Restart);
         endpoints.MapPost("/api/flows/{flowId}/simulator-sessions/{sessionId}/run", Run);
         endpoints.MapPost("/api/flows/{flowId}/simulator-sessions/{sessionId}/pause", Pause);
+        endpoints.MapPost("/api/flows/{flowId}/simulator-sessions/{sessionId}/keepalive", KeepAlive);
         endpoints.MapDelete("/api/flows/{flowId}/simulator-sessions/{sessionId}", Stop);
+        endpoints.MapDelete("/api/simulator-sessions", Clear);
         return endpoints;
     }
 
@@ -61,6 +63,16 @@ public static class FlowSimulatorEndpointRouteBuilderExtensions
     private static async Task<IResult> Pause(string flowId, string sessionId, IFlowSimulatorService simulator, CancellationToken cancellationToken) =>
         await Map(() => simulator.PauseAsync(flowId, sessionId, cancellationToken));
 
+    private static async Task<IResult> KeepAlive(string flowId, string sessionId, IFlowSimulatorService simulator, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await simulator.KeepAliveAsync(flowId, sessionId, cancellationToken);
+            return Results.NoContent();
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException) { return MapError(exception); }
+    }
+
     private static async Task<IResult> Stop(string flowId, string sessionId, IFlowSimulatorService simulator, CancellationToken cancellationToken)
     {
         try
@@ -69,6 +81,12 @@ public static class FlowSimulatorEndpointRouteBuilderExtensions
             return Results.NoContent();
         }
         catch (Exception exception) when (exception is not OperationCanceledException) { return MapError(exception); }
+    }
+
+    private static async Task<IResult> Clear(IFlowSimulatorService simulator, CancellationToken cancellationToken)
+    {
+        await simulator.ClearAsync(cancellationToken);
+        return Results.NoContent();
     }
 
     private static async Task<IResult> Map(Func<Task<FlowSimulatorSession>> operation, int status = StatusCodes.Status200OK)

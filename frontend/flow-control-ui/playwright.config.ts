@@ -22,12 +22,13 @@ export default defineConfig({
   testDir: './e2e',
   tsconfig: './tsconfig.app.json',
   fullyParallel: true,
-  // Direct and VS Code Test Explorer runs share one fixed backend. Keep them serial so
-  // selecting the function-node folder cannot exceed that backend's emulator limit.
-  // The npm runner owns an isolated backend and supplies its desired worker count.
-  workers: isHeaded || !managedServers ? 1 : undefined,
+  // Visible browsers are substantially more resource-intensive. With every test and
+  // browser project fully parallel, headed runs can stall while creating a context or
+  // dispatching an otherwise-ready click. Keep headless runs at Playwright's default.
+  workers: isHeaded ? 1 : undefined,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
+  globalSetup: useDotnetBackend ? './e2e/globalSetup.ts' : undefined,
   reporter: process.env.CI ? 'github' : 'list',
   use: {
     baseURL,

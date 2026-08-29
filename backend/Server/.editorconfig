@@ -306,14 +306,17 @@ dotnet_naming_rule.private_readonly_fields_none.severity = none
 # ASP0018: Unused route parameter
 dotnet_diagnostic.ASP0018.severity = error
 
+# CA1050: Declare types in namespaces
+dotnet_diagnostic.CA1050.severity = error
+
+#CA1512: Use ArgumentOutOfRangeException throw helper
+dotnet_diagnostic.CA1512.severity = error
+
 # CA1859: Use concrete types when possible for improved performance
 dotnet_diagnostic.CA1859.severity = error
 
 # CA1861: Avoid constant arrays as arguments
 dotnet_diagnostic.CA1861.severity = none
-
-# CA1050: Declare types in namespaces
-dotnet_diagnostic.CA1050.severity = error
 
 # CS8509: The switch expression does not handle all possible values of its input type.
 dotnet_diagnostic.CS8509.severity = none

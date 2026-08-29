@@ -1,11 +1,26 @@
 namespace Server.Services.Implementation;
 
-public sealed class FlowSimulatorSessionRegistry(TimeProvider timeProvider) : IDisposable
+public sealed class FlowSimulatorSessionRegistry : IDisposable
 {
     public const int MaximumSessions = 32;
-    public static readonly TimeSpan Lease = TimeSpan.FromMinutes(15);
+    public static readonly TimeSpan DefaultLease = TimeSpan.FromSeconds(3);
     private readonly Lock _gate = new();
     private readonly Dictionary<string, Entry> _entries = new(StringComparer.Ordinal);
+    private readonly TimeProvider _timeProvider;
+    private readonly TimeSpan _lease;
+
+    public FlowSimulatorSessionRegistry(TimeProvider timeProvider)
+        : this(timeProvider, DefaultLease)
+    {
+    }
+
+    public FlowSimulatorSessionRegistry(TimeProvider timeProvider, TimeSpan lease)
+    {
+        ArgumentNullException.ThrowIfNull(timeProvider);
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(lease, TimeSpan.Zero);
+        _timeProvider = timeProvider;
+        _lease = lease;
+    }
 
     internal Entry? Get(string flowId)
     {
@@ -36,8 +51,9 @@ public sealed class FlowSimulatorSessionRegistry(TimeProvider timeProvider) : ID
                 throw new FlowSimulatorException("simulator_limit_exceeded", "The active simulator session limit has been reached.");
             }
 
-            var entry = new Entry(registry, timeProvider.GetUtcNow(), emulatorId, cleanup);
+            var entry = new Entry(flowId, registry, _timeProvider.GetUtcNow(), emulatorId, cleanup);
             _entries.Add(flowId, entry);
+            entry.ScheduleExpiry(_timeProvider, _lease, () => Remove(flowId, entry));
             return entry;
         }
     }
@@ -76,15 +92,16 @@ public sealed class FlowSimulatorSessionRegistry(TimeProvider timeProvider) : ID
     {
         lock (_gate)
         {
-            entry.LastAccess = timeProvider.GetUtcNow();
-            return checked((uint)Lease.TotalMilliseconds);
+            entry.LastAccess = _timeProvider.GetUtcNow();
+            entry.ScheduleExpiry(_timeProvider, _lease, () => Remove(entry.FlowId, entry));
+            return checked((uint)_lease.TotalMilliseconds);
         }
     }
 
     private void RemoveExpiredCore()
     {
-        var now = timeProvider.GetUtcNow();
-        foreach (var pair in _entries.Where(pair => now - pair.Value.LastAccess >= Lease).ToArray())
+        var now = _timeProvider.GetUtcNow();
+        foreach (var pair in _entries.Where(pair => now - pair.Value.LastAccess >= _lease).ToArray())
         {
             _entries.Remove(pair.Key);
             pair.Value.Dispose();
@@ -92,6 +109,11 @@ public sealed class FlowSimulatorSessionRegistry(TimeProvider timeProvider) : ID
     }
 
     public void Dispose()
+    {
+        Clear();
+    }
+
+    internal void Clear()
     {
         lock (_gate)
         {
@@ -104,9 +126,12 @@ public sealed class FlowSimulatorSessionRegistry(TimeProvider timeProvider) : ID
         }
     }
 
-    internal sealed class Entry(FlowDebugSessionRegistry registry, DateTimeOffset lastAccess, string? emulatorId, Action? cleanup) : IDisposable
+    internal sealed class Entry(string flowId, FlowDebugSessionRegistry registry, DateTimeOffset lastAccess, string? emulatorId, Action? cleanup) : IDisposable
     {
         private CancellationTokenSource? _continuousCancellation;
+        private ITimer? _expiryTimer;
+        private long _expiryVersion;
+        public string FlowId { get; } = flowId;
         public FlowDebugSessionRegistry Registry { get; } = registry;
         public string? EmulatorId { get; } = emulatorId;
         public DateTimeOffset LastAccess { get; set; } = lastAccess;
@@ -134,11 +159,33 @@ public sealed class FlowSimulatorSessionRegistry(TimeProvider timeProvider) : ID
             _continuousCancellation?.Dispose();
             _continuousCancellation = null;
         }
+        public void ScheduleExpiry(TimeProvider timeProvider, TimeSpan lease, Action expire)
+        {
+            var version = Interlocked.Increment(ref _expiryVersion);
+            _expiryTimer?.Dispose();
+            _expiryTimer = timeProvider.CreateTimer(
+                static state =>
+                {
+                    var expiry = (ExpiryState)state!;
+                    if (Volatile.Read(ref expiry.Entry._expiryVersion) == expiry.Version)
+                    {
+                        expiry.Expire();
+                    }
+                },
+                new ExpiryState(this, version, expire),
+                lease,
+                Timeout.InfiniteTimeSpan);
+        }
         public void Dispose()
         {
+            Interlocked.Increment(ref _expiryVersion);
+            _expiryTimer?.Dispose();
+            _expiryTimer = null;
             StopContinuous();
             Registry.Dispose();
             cleanup?.Invoke();
         }
+
+        private sealed record ExpiryState(Entry Entry, long Version, Action Expire);
     }
 }

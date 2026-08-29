@@ -110,6 +110,15 @@ const sessionUrl = (flowId: string, sessionId: string): string =>
   `${base(flowId)}/${encodeURIComponent(sessionId)}`;
 
 export const flowSimulatorApi = {
+  clearAll: async (): Promise<void> => {
+    const response = await waitForFetch('/api/simulator-sessions', { method: 'DELETE' });
+    if (!response.ok)
+      throw new FlowApiError(
+        'http',
+        `Clear simulations failed with status ${response.status}.`,
+        response.status
+      );
+  },
   start: (source: ExecutableFlowSource, signal?: AbortSignal) =>
     request(
       base(source.id),
@@ -189,6 +198,19 @@ export const flowSimulatorApi = {
     ),
   pause: (flowId: string, sessionId: string, signal?: AbortSignal) =>
     request(`${sessionUrl(flowId, sessionId)}/pause`, { method: 'POST' }, signal),
+  keepAlive: async (flowId: string, sessionId: string): Promise<void> => {
+    const response = await waitForFetch(
+      `${sessionUrl(flowId, sessionId)}/keepalive`,
+      { method: 'POST' },
+      { trackWait: false }
+    );
+    if (!response.ok)
+      throw new FlowApiError(
+        'http',
+        `Simulator keepalive failed with status ${response.status}.`,
+        response.status
+      );
+  },
   stop: async (flowId: string, sessionId: string, keepalive = false): Promise<void> => {
     const response = await waitForFetch(sessionUrl(flowId, sessionId), {
       method: 'DELETE',

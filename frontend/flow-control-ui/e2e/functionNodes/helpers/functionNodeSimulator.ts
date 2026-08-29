@@ -44,13 +44,18 @@ export const stopSimulation = async (
   page: Page,
   simulation: StartedSimulation
 ): Promise<void> => {
-  const response = await page.request.delete(
-    `/api/flows/${encodeURIComponent(simulation.flowId)}/simulator-sessions/${encodeURIComponent(simulation.sessionId)}`
+  const path = `/api/flows/${encodeURIComponent(simulation.flowId)}/simulator-sessions/${encodeURIComponent(simulation.sessionId)}`;
+  const stopped = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'DELETE' && new URL(response.url()).pathname === path
   );
-  expect(
-    response.status(),
-    `Failed to stop simulator session ${simulation.sessionId}: ${await response.text()}`
-  ).toBe(204);
+  await page.getByRole('button', { name: 'Stop simulation' }).click();
+  const response = await stopped;
+  if (![204, 404].includes(response.status())) {
+    const body = await response.text().catch(() => '<response body unavailable>');
+    throw new Error(`Failed to stop simulator session ${simulation.sessionId}: ${body}`);
+  }
+  await expect(page.getByLabel('Simulation controls').getByRole('status')).toHaveText('stopped');
 };
 
 export const applyAnalogInputs = async (

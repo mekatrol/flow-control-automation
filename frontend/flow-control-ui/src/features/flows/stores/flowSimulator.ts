@@ -17,11 +17,20 @@ export const useFlowSimulatorStore = defineStore('flow-simulator', () => {
   const requestGeneration = ref(0);
   let controller: AbortController | undefined;
   let pollTimer: ReturnType<typeof window.setInterval> | undefined;
+  let heartbeatTimer: ReturnType<typeof window.setInterval> | undefined;
 
   const busy = computed(() => lifecycle.value === 'compiling');
   const stopPolling = (): void => {
     if (pollTimer !== undefined) window.clearInterval(pollTimer);
     pollTimer = undefined;
+  };
+  const stopHeartbeat = (): void => {
+    if (heartbeatTimer !== undefined) window.clearInterval(heartbeatTimer);
+    heartbeatTimer = undefined;
+  };
+  const stopTimers = (): void => {
+    stopPolling();
+    stopHeartbeat();
   };
   const begin = (): { generation: number; signal: AbortSignal } => {
     controller?.abort();
@@ -32,6 +41,7 @@ export const useFlowSimulatorStore = defineStore('flow-simulator', () => {
   const current = (generation: number): boolean => generation === requestGeneration.value;
   const failure = (value: unknown): void => {
     if (value instanceof FlowApiError && value.kind === 'cancelled') return;
+    stopTimers();
     lifecycle.value = 'faulted';
     error.value = value instanceof Error ? value.message : 'Simulator operation failed.';
   };
@@ -43,7 +53,7 @@ export const useFlowSimulatorStore = defineStore('flow-simulator', () => {
 
   const start = async (source: ExecutableFlowSource): Promise<void> => {
     const request = begin();
-    stopPolling();
+    stopTimers();
     lifecycle.value = 'compiling';
     error.value = undefined;
     try {
@@ -100,7 +110,7 @@ export const useFlowSimulatorStore = defineStore('flow-simulator', () => {
   const stepInstruction = (): Promise<void> => operate(flowSimulatorApi.stepInstruction);
   const restart = (): Promise<void> => operate(flowSimulatorApi.restart);
   const pause = async (): Promise<void> => {
-    stopPolling();
+    stopTimers();
     await operate(flowSimulatorApi.pause);
   };
   const run = async (): Promise<void> => {
@@ -112,16 +122,22 @@ export const useFlowSimulatorStore = defineStore('flow-simulator', () => {
       if (!active || lifecycle.value !== 'running') return;
       void operate(flowSimulatorApi.get);
     }, 250);
+    stopHeartbeat();
+    heartbeatTimer = window.setInterval(() => {
+      const active = session.value;
+      if (!active || lifecycle.value !== 'running') return;
+      void flowSimulatorApi.keepAlive(active.flowId, active.sessionId).catch(failure);
+    }, 1_000);
   };
   const markStale = (): void => {
     if (!session.value || ['idle', 'stopped', 'faulted'].includes(lifecycle.value)) return;
-    stopPolling();
+    stopTimers();
     controller?.abort();
     requestGeneration.value += 1;
     lifecycle.value = 'stale';
   };
   const stop = async (keepalive = false): Promise<void> => {
-    stopPolling();
+    stopTimers();
     controller?.abort();
     requestGeneration.value += 1;
     const active = session.value;
@@ -136,7 +152,7 @@ export const useFlowSimulatorStore = defineStore('flow-simulator', () => {
     }
   };
   const reset = (): void => {
-    stopPolling();
+    stopTimers();
     controller?.abort();
     requestGeneration.value += 1;
     session.value = undefined;

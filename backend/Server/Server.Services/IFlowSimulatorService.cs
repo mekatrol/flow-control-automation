@@ -18,5 +18,7 @@ public interface IFlowSimulatorService
     Task<FlowSimulatorSession> RestartAsync(string flowId, string sessionId, CancellationToken cancellationToken);
     Task<FlowSimulatorSession> RunAsync(string flowId, string sessionId, uint intervalMilliseconds, CancellationToken cancellationToken);
     Task<FlowSimulatorSession> PauseAsync(string flowId, string sessionId, CancellationToken cancellationToken);
+    Task KeepAliveAsync(string flowId, string sessionId, CancellationToken cancellationToken);
     Task StopAsync(string flowId, string sessionId, CancellationToken cancellationToken);
+    Task ClearAsync(CancellationToken cancellationToken);
 }

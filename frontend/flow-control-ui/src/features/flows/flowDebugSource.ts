@@ -76,8 +76,7 @@ const configurationFor = (node: FlowNode): Record<string, unknown> => {
       throw new FlowDebugSourceError(`${node.label} (${node.id}) requires a point ID.`, node.id);
     return { pointId: pointId.trim() };
   }
-  if (node.kind === 'digitalConstant')
-    return { value: Boolean(node.configuration.value) };
+  if (node.kind === 'digitalConstant') return { value: Boolean(node.configuration.value) };
   if (node.kind === 'numericConstant' || node.kind === 'memory')
     return { value: Number(node.configuration.value) };
   if (node.kind === 'comparator') return { operator: String(node.configuration.operator) };

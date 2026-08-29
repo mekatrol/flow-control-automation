@@ -3,7 +3,7 @@
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ExecutableFlowSource } from '@/features/flows/api/flowDebugApi';
-import type { SimulatorSession } from '@/features/flows/api/flowSimulatorApi';
+import { flowSimulatorApi, type SimulatorSession } from '@/features/flows/api/flowSimulatorApi';
 import { useFlowSimulatorStore } from '@/features/flows/stores/flowSimulator';
 
 const source = (): ExecutableFlowSource => ({
@@ -39,8 +39,33 @@ const session = (state: SimulatorSession['lifecycleState'] = 'ready'): Simulator
 
 describe('flow simulator store', () => {
   beforeEach(() => {
+    vi.useRealTimers();
     setActivePinia(createPinia());
     vi.restoreAllMocks();
+  });
+
+  it('keeps alive once per second only while the simulation is running', async () => {
+    vi.useFakeTimers();
+    const fetch = vi.spyOn(globalThis, 'fetch');
+    fetch
+      .mockResolvedValueOnce(new Response(JSON.stringify(session()), { status: 201 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(session('running')), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(session('paused')), { status: 200 }));
+    vi.spyOn(flowSimulatorApi, 'get').mockResolvedValue(session('running'));
+    const keepAlive = vi.spyOn(flowSimulatorApi, 'keepAlive').mockResolvedValue();
+    const store = useFlowSimulatorStore();
+
+    await store.start(source());
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(keepAlive).not.toHaveBeenCalled();
+
+    await store.run();
+    await vi.advanceTimersByTimeAsync(2_100);
+    expect(keepAlive).toHaveBeenCalledTimes(2);
+
+    await store.pause();
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(keepAlive).toHaveBeenCalledTimes(2);
   });
 
   it('starts, steps, marks edits stale, and stops the volatile session', async () => {

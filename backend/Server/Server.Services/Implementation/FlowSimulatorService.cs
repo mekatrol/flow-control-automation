@@ -131,12 +131,26 @@ public sealed class FlowSimulatorService(
         return Map(await Debug(entry.Registry).PauseAsync(flowId, sessionId, cancellationToken), entry, sessions.Touch(entry));
     }
 
+    public Task KeepAliveAsync(string flowId, string sessionId, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        sessions.Touch(Require(flowId, sessionId));
+        return Task.CompletedTask;
+    }
+
     public async Task StopAsync(string flowId, string sessionId, CancellationToken cancellationToken)
     {
         var entry = Require(flowId, sessionId);
         entry.StopContinuous();
         try { await Debug(entry.Registry).StopAsync(flowId, sessionId, cancellationToken); }
         finally { sessions.Remove(flowId, sessionId); }
+    }
+
+    public Task ClearAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        sessions.Clear();
+        return Task.CompletedTask;
     }
 
     private async Task<FlowSimulatorSession> Execute(string flowId, string sessionId, Func<IFlowDebugService, Task<FlowDebugSession>> operation)

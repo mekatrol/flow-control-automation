@@ -40,6 +40,14 @@ public static class ServiceCollectionExtensions
                 "CREDENTIAL_ENCRYPTION_KEY must be Base64 for exactly 32 bytes.")
             .ValidateOnStart();
 
+        services
+            .AddOptions<FlowSimulatorOptions>()
+            .Bind(configuration.GetSection(FlowSimulatorOptions.SectionName))
+            .Validate(
+                options => options.SessionLeaseSeconds > 0,
+                "FlowSimulator:SessionLeaseSeconds must be greater than zero.")
+            .ValidateOnStart();
+
         services.AddFlowControlData(configuration);
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<IFlowVirtualMachineFactory, ManagedFlowVirtualMachineFactory>();
@@ -69,7 +77,9 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IControllerDebugTransport, FcpControllerDebugTransport>();
         services.AddSingleton<FlowDebugSessionRegistry>();
         services.AddScoped<IFlowDebugService, FlowDebugService>();
-        services.AddSingleton<FlowSimulatorSessionRegistry>();
+        services.AddSingleton(provider => new FlowSimulatorSessionRegistry(
+            provider.GetRequiredService<TimeProvider>(),
+            TimeSpan.FromSeconds(provider.GetRequiredService<IOptions<FlowSimulatorOptions>>().Value.SessionLeaseSeconds)));
         services.AddScoped<IFlowSimulatorService, FlowSimulatorService>();
         services.AddScoped<IPointReadService, PointReadService>();
         services.AddScoped<IPointSourceService, PointSourceDatabaseService>();

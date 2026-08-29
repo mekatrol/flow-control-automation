@@ -228,7 +228,13 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     FlowNodeFunctionType.Memory,
     [
       { id: 'in', label: 'Input', direction: 'input', dataType: 'number', side: 'left' },
-      { id: 'value', label: 'Previous value', direction: 'output', dataType: 'number', side: 'right' }
+      {
+        id: 'value',
+        label: 'Previous value',
+        direction: 'output',
+        dataType: 'number',
+        side: 'right'
+      }
     ],
     [{ key: 'value', label: 'Initial value', input: 'number' }],
     { value: 0 }
