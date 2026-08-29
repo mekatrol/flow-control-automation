@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Server.Common.Contracts;
 
 public enum FlowFunctionKind : byte
@@ -30,5 +32,9 @@ public enum FlowFunctionKind : byte
     Timer,
     WritePoint,
     Xnor,
-    Xor
+    Xor,
+    [JsonStringEnumMemberName("a2d")]
+    A2D,
+    [JsonStringEnumMemberName("d2a")]
+    D2A
 }

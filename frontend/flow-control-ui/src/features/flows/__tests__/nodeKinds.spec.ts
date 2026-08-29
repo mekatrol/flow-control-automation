@@ -12,7 +12,7 @@ describe('node-kind registry', () => {
     // Expected outcome: `flowNodeKinds` contains the required number of entries.
     // Acceptance criteria: `flowNodeKinds` must contain exactly 36 entries, because this condition proves that
     // contains complete rendering, connector, and editor metadata for every supported kind.
-    expect(flowNodeKinds).toHaveLength(36);
+    expect(flowNodeKinds).toHaveLength(38);
 
     // Expected outcome: `flowNodeKinds` matches the required structure.
     // Acceptance criteria: `flowNodeKinds` must equal `expect.arrayContaining(['and', 'average', 'calculator', 'nand', 'nor', 'not', 'xnor', 'xor']`, because this condition proves that
@@ -185,9 +185,11 @@ describe('node-kind registry', () => {
     // Acceptance criteria: `routingDefinitions.map(({ kind }) => kind` must equal `[ 'analogSwitch', 'sequence', 'split' ]`, because this condition proves that
     // keeps logic and routing blocks in their presentation categories.
     expect(routingDefinitions.map(({ kind }) => kind).sort()).toEqual([
+      'a2d',
       'analogInput',
       'analogOutput',
       'analogSwitch',
+      'd2a',
       'sequence',
       'split'
     ]);

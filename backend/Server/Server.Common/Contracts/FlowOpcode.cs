@@ -34,6 +34,9 @@ public enum FlowOpcode : byte
     DigitalSwitch = 25,
     Sequence = 26,
     Average = 27,
+    A2DLow = 28,
+    A2DHigh = 29,
+    D2A = 30,
 
     Commit = byte.MaxValue
 }

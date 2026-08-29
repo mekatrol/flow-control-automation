@@ -13,7 +13,7 @@
         "pointDirections": ["input", "output", "inputOutput", "value"],
         "pointFeatures": ["read", "command", "retain", "override", "relinquish", "quality", "alarms", "trends"],
         "connectorDataTypes": ["any", "boolean", "event", "number", "string"],
-        "flowFunctions": ["and", "analogSwitch", "average", "calculator", "calendar", "clamp", "comparator", "delay", "digitalSwitch", "levelShifter", "line", "max", "min", "nand", "nor", "not", "or", "override", "pointChanged", "pulse", "readPoint", "releasePointCommand", "schedule", "sequence", "split", "timer", "writePoint", "xnor", "xor"],
+        "flowFunctions": ["and", "average", "calculator", "calendar", "clamp", "comparator", "delay", "digitalSwitch", "levelShifter", "line", "max", "min", "nand", "nor", "not", "or", "override", "pointChanged", "pulse", "readPoint", "releasePointCommand", "schedule", "analogSwitch", "sequence", "split", "timer", "writePoint", "xnor", "xor", "a2d", "d2a"],
         "executionModes": ["event", "interval"],
         "runtimeFeatures": ["virtualPoints", "boundPoints", "commandArbitration", "qualityPropagation"]
       },

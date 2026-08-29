@@ -32,12 +32,12 @@ public sealed class FlowCompilerTests
 
     private static readonly FlowNodeKind[] FlowFunctionKinds =
     [
-        FlowNodeKind.Add, FlowNodeKind.AnalogInput, FlowNodeKind.AnalogOutput, FlowNodeKind.And, FlowNodeKind.Average, FlowNodeKind.Calculator, FlowNodeKind.Calendar,
+        FlowNodeKind.A2D, FlowNodeKind.Add, FlowNodeKind.AnalogInput, FlowNodeKind.AnalogOutput, FlowNodeKind.And, FlowNodeKind.Average, FlowNodeKind.Calculator, FlowNodeKind.Calendar,
         FlowNodeKind.Clamp, FlowNodeKind.Comparator, FlowNodeKind.Delay, FlowNodeKind.DigitalConstant, FlowNodeKind.DigitalInput, FlowNodeKind.DigitalOutput,
         FlowNodeKind.DigitalSwitch, FlowNodeKind.Line, FlowNodeKind.LevelShifter, FlowNodeKind.Max, FlowNodeKind.Memory, FlowNodeKind.Min,
         FlowNodeKind.Nand, FlowNodeKind.Nor, FlowNodeKind.Not, FlowNodeKind.NumericConstant, FlowNodeKind.OnDelay, FlowNodeKind.Or, FlowNodeKind.Override, FlowNodeKind.Pulse,
         FlowNodeKind.QualityGood, FlowNodeKind.RisingEdge, FlowNodeKind.Schedule, FlowNodeKind.AnalogSwitch, FlowNodeKind.Sequence, FlowNodeKind.Split ,FlowNodeKind.Timer,
-        FlowNodeKind.Xnor, FlowNodeKind.Xor
+        FlowNodeKind.D2A, FlowNodeKind.Xnor, FlowNodeKind.Xor
     ];
 
     private static readonly string FixtureSourceRoot = Path.Combine(
@@ -63,7 +63,7 @@ public sealed class FlowCompilerTests
             FlowNodeKind.Add or FlowNodeKind.Average or FlowNodeKind.Comparator or FlowNodeKind.Min or FlowNodeKind.Max => ["a", "b"],
             FlowNodeKind.AnalogSwitch => ["a", "b"],
             FlowNodeKind.Calculator or FlowNodeKind.Clamp or FlowNodeKind.Line or FlowNodeKind.Split => new[] { "input" },
-            FlowNodeKind.LevelShifter => ["in"],
+            FlowNodeKind.LevelShifter or FlowNodeKind.A2D => ["in"],
             FlowNodeKind.AnalogOutput => ["in"],
             FlowNodeKind.Memory or FlowNodeKind.QualityGood => ["in"],
             _ => []
@@ -76,7 +76,7 @@ public sealed class FlowCompilerTests
             FlowNodeKind.DigitalSwitch => ["condition", "whenTrue", "whenFalse"],
             FlowNodeKind.AnalogSwitch => ["condition"],
             FlowNodeKind.Override or FlowNodeKind.Delay or FlowNodeKind.Timer or FlowNodeKind.Pulse => ["input"],
-            FlowNodeKind.DigitalOutput => ["in"],
+            FlowNodeKind.DigitalOutput or FlowNodeKind.D2A => ["in"],
             _ => []
         };
 
@@ -95,6 +95,8 @@ public sealed class FlowCompilerTests
             FlowNodeKind.OnDelay or FlowNodeKind.Delay or FlowNodeKind.Timer =>
                 Config("durationMs", 100D),
             FlowNodeKind.Clamp => Config(("minimum", 0D), ("maximum", 100D)),
+            FlowNodeKind.A2D => Config(("activeLowThreshold", 25D), ("activeHighThreshold", 75D)),
+            FlowNodeKind.D2A => Config(("lowValue", 0D), ("highValue", 100D)),
             FlowNodeKind.Schedule or FlowNodeKind.Calendar =>
                 Config("enabled", true),
             _ => []

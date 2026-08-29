@@ -196,7 +196,9 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
 
         var instruction = _instructions[_instructionPointer++];
         var a = instruction.Operand0 == Unused ? FlowVmValue.FromBoolean(false) : _slots[instruction.Operand0];
-        var b = instruction.Operand1 == Unused ? FlowVmValue.FromBoolean(false) : _slots[instruction.Operand1];
+        var b = instruction.Operand1 == Unused || instruction.Opcode == FlowOpcode.D2A
+            ? FlowVmValue.FromBoolean(false)
+            : _slots[instruction.Operand1];
         var quality = Worse(a.Quality, b.Quality);
         switch (instruction.Opcode)
         {
@@ -273,6 +275,26 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
                 _slots[instruction.Result] = _slots[selected] with { Quality = Worse(a.Quality, _slots[selected].Quality) };
                 break;
             case FlowOpcode.Passthrough: _slots[instruction.Result] = a; break;
+            case FlowOpcode.A2DLow:
+                var lowState = State(instruction.Operand1);
+                var lowValue = a.Number > Constant(instruction.Auxiliary, DataType.Number).Number
+                    && _currentState[lowState].Boolean;
+                _slots[instruction.Result] = FlowVmValue.FromBoolean(lowValue, a.Quality);
+                break;
+            case FlowOpcode.A2DHigh:
+                var highState = State(instruction.Operand1);
+                var highValue = a.Number >= Constant(instruction.Auxiliary, DataType.Number).Number
+                    || _slots[instruction.Result].Boolean;
+                _slots[instruction.Result] = FlowVmValue.FromBoolean(highValue, a.Quality);
+                _stagedState[highState] = FlowVmValue.FromBoolean(highValue, a.Quality);
+                _stagedStateValid[highState] = true;
+                break;
+            case FlowOpcode.D2A:
+                var analogValue = Constant(
+                    a.Boolean ? instruction.Auxiliary : instruction.Operand1,
+                    DataType.Number).Number;
+                _slots[instruction.Result] = FlowVmValue.FromNumber(analogValue, a.Quality);
+                break;
             case FlowOpcode.Commit: break;
             default: Fail(FlowVmErrorCode.InvalidOpcode, "/instructions"); break;
         }

@@ -4,6 +4,7 @@ export type FlowStatus = 'draft' | 'deployed';
 // is also the persisted wire value, so adding a block does not require a second
 // translation table between the toolbox, graph, and API payload.
 export enum FlowNodeFunctionType {
+  A2D = 'a2d',
   Add = 'add',
   AnalogInput = 'analogInput',
   AnalogOutput = 'analogOutput',
@@ -18,6 +19,7 @@ export enum FlowNodeFunctionType {
   DigitalInput = 'digitalInput',
   DigitalOutput = 'digitalOutput',
   DigitalSwitch = 'digitalSwitch',
+  D2A = 'd2a',
   Line = 'line',
   LevelShifter = 'levelShifter',
   Max = 'max',

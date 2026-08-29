@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Server.Common.Contracts;
 
 public enum FlowNodeKind : byte
@@ -38,5 +40,9 @@ public enum FlowNodeKind : byte
     Timer,
     Pulse,
     Schedule,
-    Calendar
+    Calendar,
+    [JsonStringEnumMemberName("a2d")]
+    A2D,
+    [JsonStringEnumMemberName("d2a")]
+    D2A
 }

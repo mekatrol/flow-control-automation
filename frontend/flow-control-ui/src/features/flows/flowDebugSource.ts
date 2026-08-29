@@ -38,7 +38,9 @@ const supportedKinds = new Set([
   'analogSwitch',
   'sequence',
   'split',
-  'timer'
+  'timer',
+  'a2d',
+  'd2a'
 ]);
 
 export class FlowDebugSourceError extends Error {
@@ -92,6 +94,16 @@ const configurationFor = (node: FlowNode): Record<string, unknown> => {
     };
   if (node.kind === 'line')
     return { gain: Number(node.configuration.gain), offset: Number(node.configuration.offset) };
+  if (node.kind === 'a2d')
+    return {
+      activeLowThreshold: Number(node.configuration.activeLowThreshold),
+      activeHighThreshold: Number(node.configuration.activeHighThreshold)
+    };
+  if (node.kind === 'd2a')
+    return {
+      lowValue: Number(node.configuration.lowValue),
+      highValue: Number(node.configuration.highValue)
+    };
   if (node.kind === 'schedule' || node.kind === 'calendar')
     return { enabled: Boolean(node.configuration.enabled) };
   return {};

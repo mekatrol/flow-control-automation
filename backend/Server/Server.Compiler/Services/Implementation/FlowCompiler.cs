@@ -316,7 +316,9 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         [FlowNodeKind.Timer] = new([new("input", DataDirection.Input, DataType.Boolean), new("output", DataDirection.Output, DataType.Boolean)]),
         [FlowNodeKind.Pulse] = new([new("input", DataDirection.Input, DataType.Boolean), new("output", DataDirection.Output, DataType.Boolean)]),
         [FlowNodeKind.Schedule] = new([new("output", DataDirection.Output, DataType.Boolean)]),
-        [FlowNodeKind.Calendar] = new([new("output", DataDirection.Output, DataType.Boolean)])
+        [FlowNodeKind.Calendar] = new([new("output", DataDirection.Output, DataType.Boolean)]),
+        [FlowNodeKind.A2D] = new([new("in", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Boolean)]),
+        [FlowNodeKind.D2A] = new([new("in", DataDirection.Input, DataType.Boolean), new("value", DataDirection.Output, DataType.Number)])
     };
 
     public FlowCompilationResult Compile(FlowCompilationRequest request)
@@ -772,7 +774,8 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 FlowNodeKind.RisingEdge or
                 FlowNodeKind.Delay or
                 FlowNodeKind.Timer or
-                FlowNodeKind.Pulse)
+                FlowNodeKind.Pulse or
+                FlowNodeKind.A2D)
             ];
     }
 
@@ -987,6 +990,12 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 stateSlots,
                 points,
                 constants));
+
+            if (node.Kind == FlowNodeKind.A2D)
+            {
+                instructions.Add(CreateA2DHighInstruction(
+                    source, node, id, resultSlotIndex, slots, stateSlots, constants));
+            }
         }
 
         AddMemoryCommitInstructions(source, instructions, memoryIds, slots, stateSlots);
@@ -1224,6 +1233,12 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 U16(model.StateSlots[id]),
                 U16(ConstantIndex(model.Constants, GetBooleanConstant(false)))),
 
+            FlowNodeKind.A2D => Concat(
+                [5, 1],
+                U16(0),
+                U16(model.StateSlots[id]),
+                U16(ConstantIndex(model.Constants, GetBooleanConstant(false)))),
+
             _ => throw new UnreachableException()
         }));
 
@@ -1283,7 +1298,8 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 FlowNodeKind.RisingEdge or
                 FlowNodeKind.Delay or
                 FlowNodeKind.Timer or
-                FlowNodeKind.Pulse)
+                FlowNodeKind.Pulse or
+                FlowNodeKind.A2D)
             .Select(id => Concat(
                 [1, 0],
                 U16(model.StateSlots[id]),
@@ -1461,7 +1477,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             capabilities |= FlowILCapability.Outputs;
         }
 
-        if (memoryIds.Length > 0)
+        if (memoryIds.Length > 0 || source.Nodes.Any(node => node.Kind == FlowNodeKind.A2D))
         {
             capabilities |= FlowILCapability.State;
         }
@@ -1488,13 +1504,14 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                     FlowNodeKind.Min or
                     FlowNodeKind.Max or
                     FlowNodeKind.Line or
-                    FlowNodeKind.AnalogSwitch)
+                    FlowNodeKind.AnalogSwitch or
+                    FlowNodeKind.D2A)
             || points.Any(point => point.DataType == DataType.Number))
         {
             capabilities |= FlowILCapability.Numeric;
         }
 
-        if (source.Nodes.Any(node => node.Kind == FlowNodeKind.Comparator))
+        if (source.Nodes.Any(node => node.Kind is FlowNodeKind.Comparator or FlowNodeKind.A2D))
         {
             capabilities |= FlowILCapability.Comparison;
         }
@@ -1990,6 +2007,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             FlowNodeKind.Line or
             FlowNodeKind.DigitalSwitch or
             FlowNodeKind.AnalogSwitch or
+            FlowNodeKind.D2A or
             FlowNodeKind.Sequence => CreateCalculationInstruction(context, node),
 
             FlowNodeKind.OnDelay or
@@ -1997,7 +2015,8 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             FlowNodeKind.Memory or
             FlowNodeKind.Delay or
             FlowNodeKind.Timer or
-            FlowNodeKind.Pulse => CreateStatefulInstruction(context, node),
+            FlowNodeKind.Pulse or
+            FlowNodeKind.A2D => CreateStatefulInstruction(context, node),
 
             FlowNodeKind.DigitalOutput or
             FlowNodeKind.AnalogOutput => CreateOutputInstruction(context, node),
@@ -2258,6 +2277,18 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                     context.NodeId,
                     NodeInstructionRole.Primary),
 
+            FlowNodeKind.D2A =>
+                new(
+                    new(
+                        FlowOpcode.D2A,
+                        context.ResultSlotIndex,
+                        InputSlot(context.Source, context.Slots, context.NodeId, "in"),
+                        ConstantIndex(context.Constants, GetNumericConstant(node, "lowValue")),
+                        ConstantIndex(context.Constants, GetNumericConstant(node, "highValue"))
+                    ),
+                    context.NodeId,
+                    NodeInstructionRole.Primary),
+
             FlowNodeKind.Sequence => CreateBinaryNumericInstruction(context, FlowOpcode.And),
             _ => throw new UnreachableException()
         };
@@ -2350,9 +2381,39 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                     context.NodeId,
                     NodeInstructionRole.Primary),
 
+            FlowNodeKind.A2D =>
+                new(
+                    new(
+                        FlowOpcode.A2DLow,
+                        context.ResultSlotIndex,
+                        InputSlot(context.Source, context.Slots, context.NodeId, "in"),
+                        context.StateSlots[context.NodeId],
+                        ConstantIndex(context.Constants, GetNumericConstant(node, "activeLowThreshold"))
+                    ),
+                    context.NodeId,
+                    NodeInstructionRole.Primary),
+
             _ => throw new UnreachableException()
         };
     }
+
+    private static CompiledInstructionV1 CreateA2DHighInstruction(
+        ExecutableFlowSource source,
+        ExecutableFlowNode node,
+        string nodeId,
+        ushort resultSlotIndex,
+        Dictionary<string, ushort> slots,
+        Dictionary<string, ushort> stateSlots,
+        ConstantRecord[] constants) =>
+        new(
+            new(
+                FlowOpcode.A2DHigh,
+                resultSlotIndex,
+                InputSlot(source, slots, nodeId, "in"),
+                stateSlots[nodeId],
+                ConstantIndex(constants, GetNumericConstant(node, "activeHighThreshold"))),
+            nodeId,
+            NodeInstructionRole.Secondary);
 
     /*
      * Create proposed-output instructions. The VM writes the node's transient result
@@ -2644,6 +2705,30 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             ValidateFiniteNumber(node, path, "gain");
             ValidateFiniteNumber(node, path, "offset");
         }
+        else if (node.Kind == FlowNodeKind.A2D)
+        {
+            if (node.Configuration.Count != 2)
+            {
+                throw Failure(FlowCompilationDiagnosticCode.UnexpectedNodeConfiguration, path);
+            }
+
+            ValidateFiniteNumber(node, path, "activeLowThreshold");
+            ValidateFiniteNumber(node, path, "activeHighThreshold");
+            if (node.Configuration["activeLowThreshold"].GetDouble() > node.Configuration["activeHighThreshold"].GetDouble())
+            {
+                throw Failure(FlowCompilationDiagnosticCode.InvalidClampRange, path);
+            }
+        }
+        else if (node.Kind == FlowNodeKind.D2A)
+        {
+            if (node.Configuration.Count != 2)
+            {
+                throw Failure(FlowCompilationDiagnosticCode.UnexpectedNodeConfiguration, path);
+            }
+
+            ValidateFiniteNumber(node, path, "lowValue");
+            ValidateFiniteNumber(node, path, "highValue");
+        }
         else if (node.Kind is FlowNodeKind.OnDelay or FlowNodeKind.Delay or FlowNodeKind.Timer)
         {
             ValidateFiniteNumber(node, path, "durationMs");
@@ -2727,6 +2812,17 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         {
             yield return GetNumericConstant(node, "minimum");
             yield return GetNumericConstant(node, "maximum");
+        }
+        else if (node.Kind == FlowNodeKind.A2D)
+        {
+            yield return GetNumericConstant(node, "activeLowThreshold");
+            yield return GetNumericConstant(node, "activeHighThreshold");
+            yield return GetBooleanConstant(false);
+        }
+        else if (node.Kind == FlowNodeKind.D2A)
+        {
+            yield return GetNumericConstant(node, "lowValue");
+            yield return GetNumericConstant(node, "highValue");
         }
         else if (node.Kind is FlowNodeKind.OnDelay or FlowNodeKind.Delay or FlowNodeKind.Timer)
         {
@@ -2812,7 +2908,8 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             FlowNodeKind.Min or
             FlowNodeKind.Max or
             FlowNodeKind.Line or
-            FlowNodeKind.AnalogSwitch)
+            FlowNodeKind.AnalogSwitch or
+            FlowNodeKind.D2A)
         {
             return DataType.Number;
         }

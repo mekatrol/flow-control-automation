@@ -44,18 +44,27 @@ const executableDefinition = (
   category: NodeKindDefinition['category'] = 'logic'
 ): NodeKindDefinition => ({
   kind,
-  label: kind.replace(/([A-Z])/g, ' $1').replace(/^./, (letter) => letter.toUpperCase()),
+  label:
+    kind === FlowNodeFunctionType.A2D
+      ? 'A2D'
+      : kind === FlowNodeFunctionType.D2A
+        ? 'D2A'
+        : kind.replace(/([A-Z])/g, ' $1').replace(/^./, (letter) => letter.toUpperCase()),
   category,
   icon:
     kind === FlowNodeFunctionType.Memory
       ? 'delay'
-      : kind === FlowNodeFunctionType.DigitalInput
-        ? 'trigger'
-        : kind === FlowNodeFunctionType.DigitalOutput
-          ? 'override'
-          : kind === FlowNodeFunctionType.DigitalConstant
-            ? 'line'
-            : kind.toLowerCase(),
+      : kind === FlowNodeFunctionType.A2D
+        ? 'comparator'
+        : kind === FlowNodeFunctionType.D2A
+          ? 'analogswitch'
+          : kind === FlowNodeFunctionType.DigitalInput
+            ? 'trigger'
+            : kind === FlowNodeFunctionType.DigitalOutput
+              ? 'override'
+              : kind === FlowNodeFunctionType.DigitalConstant
+                ? 'line'
+                : kind.toLowerCase(),
   defaultSize: defaultNodeSize(),
   connectors,
   editor,
@@ -64,6 +73,19 @@ const executableDefinition = (
 });
 
 export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
+  [FlowNodeFunctionType.A2D]: executableDefinition(
+    FlowNodeFunctionType.A2D,
+    [
+      { id: 'in', label: 'Input', direction: 'input', dataType: 'number', side: 'left' },
+      booleanPort('value', 'Value', 'output', 'right')
+    ],
+    [
+      { key: 'activeLowThreshold', label: 'Active low threshold', input: 'number' },
+      { key: 'activeHighThreshold', label: 'Active high threshold', input: 'number' }
+    ],
+    { activeLowThreshold: 0, activeHighThreshold: 100 },
+    'routing'
+  ),
   [FlowNodeFunctionType.Add]: executableDefinition(
     FlowNodeFunctionType.Add,
     [
@@ -180,6 +202,19 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     booleanPort('whenFalse', 'False', 'input', 'left'),
     booleanPort('value', 'Value', 'output', 'right')
   ]),
+  [FlowNodeFunctionType.D2A]: executableDefinition(
+    FlowNodeFunctionType.D2A,
+    [
+      booleanPort('in', 'Input', 'input', 'left'),
+      { id: 'value', label: 'Value', direction: 'output', dataType: 'number', side: 'right' }
+    ],
+    [
+      { key: 'lowValue', label: 'Low analog value', input: 'number' },
+      { key: 'highValue', label: 'High analog value', input: 'number' }
+    ],
+    { lowValue: 0, highValue: 100 },
+    'routing'
+  ),
   [FlowNodeFunctionType.Line]: executableDefinition(
     FlowNodeFunctionType.Line,
     numberConnectors(),
