@@ -110,7 +110,7 @@ test('creates, edits, saves, deploys, and reloads a flow as one critical journey
     page.getByRole('button', { name: /Verified calculation, Calculator node/ })
   ).toBeVisible();
 
-  expect(savedFlow?.nodes[0]?.configuration).toEqual({});
+  expect(savedFlow?.nodes[0]?.configuration).toEqual({ formula: 'a * b + c' });
 });
 
 /**
