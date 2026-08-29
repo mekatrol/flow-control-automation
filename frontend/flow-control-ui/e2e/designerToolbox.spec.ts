@@ -38,10 +38,13 @@ test('searches the node palette and adds registry-backed nodes', async ({ page }
   // searches the node palette and adds registry-backed nodes.
   await expect(page.getByRole('button', { name: 'Add Pulse node', exact: true })).toBeVisible();
 
-  // Expected outcome: `page.getByRole('button', { name: 'Add Calculator node', exact: true })` resolves to the required number of elements.
-  // Acceptance criteria: `page.getByRole('button', { name: 'Add Calculator node', exact: true })` must resolve to exactly 0 elements, because this condition proves that
-  // searches the node palette and adds registry-backed nodes.
-  await expect(page.getByRole('button', { name: 'Add Calculator node', exact: true })).toHaveCount(0);
+  await search.fill('calculator');
+  await expect(
+    page.getByRole('button', { name: 'Add Calculator node', exact: true })
+  ).toBeVisible();
+  await search.fill('if');
+  await expect(page.getByRole('button', { name: 'Add If node', exact: true })).toBeVisible();
+  await search.fill('timing');
   await page.getByRole('button', { name: 'Add Pulse node', exact: true }).click();
 
   const pulse = page.getByRole('button', { name: /New Pulse, Pulse node/ });

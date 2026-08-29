@@ -7,7 +7,7 @@ import AppFlowNodePalette, {
   filterNodeKinds,
   groupNodeKinds
 } from '@/features/flows/components/AppFlowNodePalette.vue';
-import { flowNodeKinds } from '@/features/flows/nodeKinds';
+import { flowNodeKinds, paletteNodeKinds } from '@/features/flows/nodeKinds';
 
 describe('node palette filtering and grouping', () => {
   it('offers one add action per function without learn actions', () => {
@@ -16,7 +16,8 @@ describe('node palette filtering and grouping', () => {
     });
 
     const addActions = wrapper.findAll('button.palette-add-button');
-    expect(addActions).toHaveLength(flowNodeKinds.length);
+    expect(addActions).toHaveLength(paletteNodeKinds.length);
+    expect(paletteNodeKinds).toEqual(flowNodeKinds);
     expect(addActions.every((action) => action.classes('palette-add-button'))).toBe(true);
     expect(wrapper.text()).not.toContain('Learn');
     expect(wrapper.find('button.app-filter-apply').exists()).toBe(false);

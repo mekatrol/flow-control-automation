@@ -32,9 +32,9 @@
 
 <script lang="ts">
 import {
-  flowNodeKinds,
   getNodeIconUrl,
   getNodeKind,
+  paletteNodeKinds,
   type NodeKindDefinition
 } from '@/features/flows/nodeKinds';
 
@@ -42,7 +42,7 @@ export const filterNodeKinds = (query: string): NodeKindDefinition[] => {
   const search = query.trim().toLocaleLowerCase();
   // Search the registry rather than rendered labels so filtering remains a pure,
   // testable operation and category names are searchable as well as node names.
-  return flowNodeKinds
+  return paletteNodeKinds
     .map(getNodeKind)
     .filter(
       (definition) =>

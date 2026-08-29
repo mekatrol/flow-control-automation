@@ -365,6 +365,37 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
 
 export const flowNodeKinds = Object.keys(nodeKindRegistry) as FlowNodeKind[];
 
+// Palette availability is intentionally separate from the canonical registry.
+// Hidden kinds must remain registered so existing flows can still be loaded,
+// rendered, edited, and deleted while users are prevented from adding new ones.
+const defaultHiddenFlowNodeKinds = 'calculator,if';
+
+// Playwright also imports this registry directly in Node while discovering its
+// function-node cases, where Vite does not provide import.meta.env.
+const viteEnvironment = import.meta.env;
+const configuredHiddenFlowNodeKinds =
+  viteEnvironment?.VITE_HIDDEN_FLOW_NODE_KINDS ??
+  (viteEnvironment?.MODE === 'test' ? '' : defaultHiddenFlowNodeKinds);
+
+  const hiddenFlowNodeKinds = new Set(
+  configuredHiddenFlowNodeKinds
+    .split(',')
+    .map((kind) => kind.trim())
+    .filter(Boolean)
+);
+
+const unknownHiddenFlowNodeKinds = [...hiddenFlowNodeKinds].filter(
+  (kind) => !flowNodeKinds.includes(kind as FlowNodeKind)
+);
+
+if (unknownHiddenFlowNodeKinds.length) {
+  throw new Error(
+    `VITE_HIDDEN_FLOW_NODE_KINDS contains unknown node kinds: ${unknownHiddenFlowNodeKinds.join(', ')}`
+  );
+}
+
+export const paletteNodeKinds = flowNodeKinds.filter((kind) => !hiddenFlowNodeKinds.has(kind));
+
 export const getNodeKind = (kind: FlowNodeKind): NodeKindDefinition => nodeKindRegistry[kind];
 
 // Vite may serve the application below a Home Assistant add-on path. Building

@@ -78,6 +78,8 @@ try {
     ['./node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', String(port), '--strictPort'],
     {
       FLOW_UI_E2E: '1',
+      // E2E exercises every registered function through the same palette users see.
+      VITE_HIDDEN_FLOW_NODE_KINDS: '',
       VITE_FLOW_CONTROL_API_KEY: apiKey,
       ...(dotnet ? { VITE_API_PROXY: backendURL } : {})
     }
