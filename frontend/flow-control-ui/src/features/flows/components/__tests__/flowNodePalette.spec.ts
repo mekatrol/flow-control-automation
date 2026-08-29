@@ -44,35 +44,15 @@ describe('node palette filtering and grouping', () => {
     // filters by label and category without case sensitivity.
     expect(filterNodeKinds('PULSE').map(({ kind }) => kind)).toEqual(['pulse']);
 
-    // Expected outcome: `filterNodeKinds('logic'` matches the required structure.
-    // Acceptance criteria: `filterNodeKinds('logic'` includes the digital switch and other logic functions, because this condition proves that
-    // filters by label and category without case sensitivity.
-    expect(filterNodeKinds('logic').map(({ kind }) => kind)).toEqual([
-      'and',
-      'comparator',
-      'counter',
+    expect(filterNodeKinds('CONTROL')).not.toHaveLength(0);
+    expect(filterNodeKinds('io').map(({ kind }) => kind)).toEqual([
+      'analogInput',
+      'analogOutput',
       'digitalConstant',
       'digitalInput',
       'digitalOutput',
-      'digitalSwitch',
-      'levelShifter',
-      'memory',
-      'nand',
-      'nor',
-      'numericConstant',
-      'not',
-      'or',
-      'onDelay',
-      'qualityGood',
-      'risingEdge',
-      'xnor',
-      'xor'
+      'numericConstant'
     ]);
-
-    // Expected outcome: `filterNodeKinds('override'` matches the required structure.
-    // Acceptance criteria: `filterNodeKinds('override'` must equal `['override']`, because this condition proves that
-    // filters by label and category without case sensitivity.
-    expect(filterNodeKinds('override').map(({ kind }) => kind)).toEqual(['override']);
 
     // Expected outcome: `filterNodeKinds('missing')` matches the required structure.
     // Acceptance criteria: `filterNodeKinds('missing')` must equal `[]`, because this condition proves that
@@ -88,32 +68,38 @@ describe('node palette filtering and grouping', () => {
   it('groups registry entries by authoring category', () => {
     const groups = groupNodeKinds(filterNodeKinds(''));
 
-    // Expected outcome: `Object.keys(groups` matches the required structure.
-    // Acceptance criteria: `Object.keys(groups` must equal `['logic', 'maths', 'override', 'routing', 'timing']`, because this condition proves that
-    // groups registry entries by authoring category.
-    expect(Object.keys(groups).sort()).toEqual(['logic', 'maths', 'override', 'routing', 'timing']);
+    expect(Object.keys(groups)).toEqual(['io', 'control', 'timing', 'maths']);
 
-    // Expected outcome: `groups.override?.map(({ kind }) => kind)` matches the required structure.
-    // Acceptance criteria: `groups.override?.map(({ kind }) => kind)` must equal `['override']`, because this condition proves that
-    // groups registry entries by authoring category.
-    expect(groups.override?.map(({ kind }) => kind)).toEqual(['override']);
+    for (const definitions of Object.values(groups)) {
+      const labels = definitions?.map(({ label }) => label) ?? [];
+      expect(labels).toEqual([...labels].sort((left, right) => left.localeCompare(right)));
+    }
+
+    expect(groups.io?.map(({ kind }) => kind)).toEqual([
+      'analogInput',
+      'analogOutput',
+      'digitalConstant',
+      'digitalInput',
+      'digitalOutput',
+      'numericConstant'
+    ]);
 
     // Expected outcome: `groups.maths?.map(({ kind }) => kind)` matches the required structure.
     // Acceptance criteria: `groups.maths?.map(({ kind }) => kind)` must equal `[ 'average', 'calculator', 'clamp', 'line', 'max', 'min' ]`, because this condition proves that
     // groups registry entries by authoring category.
     expect(groups.maths?.map(({ kind }) => kind)).toEqual([
-      'subtract',
-      'multiply',
-      'divide',
-      'power',
-      'negate',
       'add',
       'average',
       'calculator',
       'clamp',
+      'divide',
       'line',
       'max',
-      'min'
+      'min',
+      'multiply',
+      'negate',
+      'power',
+      'subtract'
     ]);
   });
 });

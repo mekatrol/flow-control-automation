@@ -156,7 +156,7 @@ describe('node-kind registry', () => {
    * verifies the observable results required by the scenario.
    */
   it('groups every clock-driven function with the calendar timing category', () => {
-    const relatedKinds = ['clock', 'delay', 'pulse', 'schedule', 'timer'] as const;
+    const relatedKinds = ['clock', 'delay', 'onDelay', 'pulse', 'schedule', 'timer'] as const;
 
     // Expected outcome: `relatedKinds.map((kind) => nodeKindRegistry[kind].category)` matches the required structure.
     // Acceptance criteria: `relatedKinds.map((kind) => nodeKindRegistry[kind].category)` must equal `Array(relatedKinds.length`, because this condition proves that
@@ -166,51 +166,25 @@ describe('node-kind registry', () => {
     );
   });
 
-  /**
-   * Purpose: Protects the behavioral contract that keeps logic and routing blocks in their presentation categories.
-   * Description: Exercises keeps logic and routing blocks in their presentation categories from its arranged starting state and
-   * verifies the observable results required by the scenario.
-   */
-  it('keeps logic and routing blocks in their presentation categories', () => {
-    const logicDefinitions = Object.values(nodeKindRegistry).filter(
-      ({ category }) => category === 'logic'
-    );
-
-    // Expected outcome: `logicDefinitions` contains the required number of entries.
-    // Acceptance criteria: `logicDefinitions` must contain exactly 0 entries, because this condition proves that
-    // keeps logic and routing blocks in their presentation categories.
-    expect(logicDefinitions).not.toHaveLength(0);
-
-    const routingDefinitions = Object.values(nodeKindRegistry).filter(
-      ({ category }) => category === 'routing'
-    );
-
-    // Expected outcome: `routingDefinitions.map(({ kind }) => kind` matches the required structure.
-    // Acceptance criteria: `routingDefinitions.map(({ kind }) => kind` must equal `[ 'analogSwitch', 'sequence', 'split' ]`, because this condition proves that
-    // keeps logic and routing blocks in their presentation categories.
-    expect(routingDefinitions.map(({ kind }) => kind).sort()).toEqual([
-      'a2d',
-      'analogInput',
-      'analogOutput',
-      'analogSwitch',
-      'd2a',
-      'sequence',
-      'split'
-    ]);
+  /** Protects the combined control category used by the node palette. */
+  it('combines logic, routing, and override blocks in the control category', () => {
+    expect(nodeKindRegistry.and.category).toBe('control');
+    expect(nodeKindRegistry.split.category).toBe('control');
+    expect(nodeKindRegistry.override.category).toBe('control');
   });
 
-  /**
-   * Purpose: Protects the behavioral contract that keeps Override in its own function group.
-   * Description: Exercises keeps Override in its own function group from its arranged starting state and
-   * verifies the observable results required by the scenario.
-   */
-  it('keeps Override in its own function group', () => {
-    // Expected outcome: `nodeKindRegistry.override` contains the required object fields.
-    // Acceptance criteria: `nodeKindRegistry.override` must match the object `{ category: 'override' }`, because this condition proves that
-    // keeps Override in its own function group.
-    expect(nodeKindRegistry.override).toMatchObject({
-      category: 'override'
-    });
+  /** Protects the IO grouping for physical/virtual points and constants. */
+  it('groups physical points and constants as IO', () => {
+    for (const kind of [
+      'analogInput',
+      'analogOutput',
+      'digitalConstant',
+      'digitalInput',
+      'digitalOutput',
+      'numericConstant'
+    ] as const) {
+      expect(nodeKindRegistry[kind].category).toBe('io');
+    }
   });
 
   it('exposes a connectable Boolean error output on fallible maths nodes', () => {
@@ -236,7 +210,7 @@ describe('node-kind registry', () => {
   it('defines the rising-edge counter connector contract', () => {
     expect(nodeKindRegistry.counter).toMatchObject({
       label: 'Counter',
-      category: 'logic',
+      category: 'control',
       icon: 'counter',
       connectors: [
         { id: 'count', label: 'Count', direction: 'input', dataType: 'boolean' },

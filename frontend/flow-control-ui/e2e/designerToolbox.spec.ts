@@ -25,7 +25,7 @@ test('searches the node palette and adds registry-backed nodes', async ({ page }
   // searches the node palette and adds registry-backed nodes.
   expect((await initialFlowResponse).ok()).toBe(true);
 
-  const search = page.getByRole('searchbox', { name: 'Find a node' });
+  const search = page.getByRole('searchbox', { name: 'Find a function' });
 
   // Expected outcome: `search` is visible to the user.
   // Acceptance criteria: `search` must be visible, because this condition proves that
@@ -76,7 +76,7 @@ test('searches the node palette and adds registry-backed nodes', async ({ page }
   // searches the node palette and adds registry-backed nodes.
   await expect(page.getByRole('button', { name: /Trigger, input, boolean/ })).toBeVisible();
 
-  await search.fill('routing');
+  await search.fill('control');
   await page.getByRole('button', { name: 'Add Split node', exact: true }).click();
   const split = page.getByRole('button', { name: /New Split, Split node/ });
 
@@ -86,9 +86,9 @@ test('searches the node palette and adds registry-backed nodes', async ({ page }
   await expect(split).toBeVisible();
 
   // Expected outcome: `split` exposes the required attribute.
-  // Acceptance criteria: `split` must have attribute arguments `'data-node-category', 'routing'`, because this condition proves that
+  // Acceptance criteria: `split` must have attribute arguments `'data-node-category', 'control'`, because this condition proves that
   // searches the node palette and adds registry-backed nodes.
-  await expect(split).toHaveAttribute('data-node-category', 'routing');
+  await expect(split).toHaveAttribute('data-node-category', 'control');
 
   // Expected outcome: `split.locator('.node-body')` exposes the required attribute.
   // Acceptance criteria: `split.locator('.node-body')` must have attribute arguments `'fill'`, because this condition proves that
@@ -98,7 +98,9 @@ test('searches the node palette and adds registry-backed nodes', async ({ page }
   // Expected outcome: `split.locator('rect.connector-port')` resolves to the required number of elements.
   // Acceptance criteria: the new Split node must expose exactly 2 connector ports, because this condition proves that
   // searches the node palette and adds registry-backed nodes.
-  await expect(page.locator('.flow-node').filter({ has: split }).locator('rect.connector-port')).toHaveCount(2);
+  await expect(
+    page.locator('.flow-node').filter({ has: split }).locator('rect.connector-port')
+  ).toHaveCount(2);
 
   // Expected outcome: `page.getByText('6 nodes', { exact: true })` is visible to the user.
   // Acceptance criteria: `page.getByText('6 nodes', { exact: true })` must be visible, because this condition proves that
@@ -107,17 +109,17 @@ test('searches the node palette and adds registry-backed nodes', async ({ page }
 
   await search.fill('override');
 
-  // Expected outcome: `page.getByRole('heading', { name: 'override', exact: true })` is visible to the user.
-  // Acceptance criteria: `page.getByRole('heading', { name: 'override', exact: true })` must be visible, because this condition proves that
+  // Expected outcome: the Control category heading is visible after filtering for Override.
+  // Acceptance criteria: the `control` heading must be visible, because this condition proves that
   // searches the node palette and adds registry-backed nodes.
-  await expect(page.getByRole('heading', { name: 'override', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'control', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Add Override node', exact: true }).click();
   const override = page.getByRole('button', { name: /New Override, Override node/ });
 
-  // Expected outcome: `override` exposes the required attribute.
-  // Acceptance criteria: `override` must have attribute arguments `'data-node-category', 'override'`, because this condition proves that
+  // Expected outcome: the Override node exposes its combined category.
+  // Acceptance criteria: `override` must have the `data-node-category` value `control`, because this condition proves that
   // searches the node palette and adds registry-backed nodes.
-  await expect(override).toHaveAttribute('data-node-category', 'override');
+  await expect(override).toHaveAttribute('data-node-category', 'control');
 
   // Expected outcome: `override.locator('.node-body')` exposes the required attribute.
   // Acceptance criteria: `override.locator('.node-body')` must have attribute arguments `'fill'`, because this condition proves that
@@ -134,43 +136,46 @@ test('keeps dark-theme function blocks at WCAG AA text contrast', async ({ page 
   await page.addInitScript(() => localStorage.setItem('theme-preference', 'dark'));
   await page.goto('/flows/climate-control');
 
-  const search = page.getByRole('searchbox', { name: 'Find a node' });
+  const search = page.getByRole('searchbox', { name: 'Find a function' });
   await search.fill('and');
   await page.getByRole('button', { name: 'Add And node', exact: true }).click();
+  await search.fill('digital input');
+  await page.getByRole('button', { name: 'Add Digital Input node', exact: true }).click();
+  await search.fill('');
 
-  const contrastByCategory = await page.locator('.flow-node').evaluateAll((nodes) => {
-    const luminance = (color: string): number => {
-      const channels = color.match(/\d+/g)!.slice(0, 3).map(Number);
-      const linear = channels.map((channel) => {
-        const value = channel / 255;
-        return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
-      });
-      return 0.2126 * linear[0]! + 0.7152 * linear[1]! + 0.0722 * linear[2]!;
-    };
+  const paletteCategories = await page.locator('.palette-groups section h3').allTextContents();
+  const contrastByCategory = await page
+    .locator('.flow-node')
+    .evaluateAll((nodes, categories: string[]) => {
+      const luminance = (color: string): number => {
+        const channels = color.match(/\d+/g)!.slice(0, 3).map(Number);
+        const linear = channels.map((channel) => {
+          const value = channel / 255;
+          return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+        });
+        return 0.2126 * linear[0]! + 0.7152 * linear[1]! + 0.0722 * linear[2]!;
+      };
 
-    return Object.fromEntries(
-      nodes.map((node) => {
-        const background = getComputedStyle(node.querySelector('.node-body')!).fill;
-        const foreground = getComputedStyle(node.querySelector('.node-label')!).fill;
-        const lighter = Math.max(luminance(background), luminance(foreground));
-        const darker = Math.min(luminance(background), luminance(foreground));
-        return [node.getAttribute('data-node-category'), (lighter + 0.05) / (darker + 0.05)];
-      })
-    );
-  });
+      return Object.fromEntries(
+        categories.map((category) => {
+          const node = nodes.find(
+            (candidate) => candidate.getAttribute('data-node-category') === category
+          )!;
+          const background = getComputedStyle(node.querySelector('.node-body')!).fill;
+          const foreground = getComputedStyle(node.querySelector('.node-label')!).fill;
+          const lighter = Math.max(luminance(background), luminance(foreground));
+          const darker = Math.min(luminance(background), luminance(foreground));
+          return [category, (lighter + 0.05) / (darker + 0.05)];
+        })
+      );
+    }, paletteCategories);
 
-  // Expected outcome: `Object.keys(contrastByCategory` matches the required structure.
-  // Acceptance criteria: `Object.keys(contrastByCategory` must equal `[ 'logic', 'maths', 'override', 'routing', 'timing' ]`, because this condition proves that
-  // keeps dark-theme function blocks at WCAG AA text contrast.
-  expect(Object.keys(contrastByCategory).sort()).toEqual([
-    'logic',
-    'maths',
-    'override',
-    'routing',
-    'timing'
-  ]);
+  // Expected outcome: every function-block category is represented in the contrast results.
+  // Acceptance criteria: the category keys must equal `['io', 'control', 'timing', 'maths']`,
+  // proving that WCAG AA text contrast is checked across the complete palette taxonomy.
+  expect(Object.keys(contrastByCategory)).toEqual(['io', 'control', 'timing', 'maths']);
+
   for (const ratio of Object.values(contrastByCategory)) {
-
     // Expected outcome: `ratio` satisfies the required boundary.
     // Acceptance criteria: `ratio` must satisfy the asserted boundary against `4.5`, because this condition proves that
     // keeps dark-theme function blocks at WCAG AA text contrast.
@@ -186,7 +191,7 @@ test('keeps dark-theme function blocks at WCAG AA text contrast', async ({ page 
 test('drags a legacy function block from the toolbox onto the canvas', async ({ page }) => {
   await page.goto('/flows/climate-control');
 
-  const search = page.getByRole('searchbox', { name: 'Find a node' });
+  const search = page.getByRole('searchbox', { name: 'Find a function' });
   await search.fill('average');
   const average = page.getByRole('button', { name: 'Add Average node', exact: true });
 

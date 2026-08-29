@@ -168,7 +168,7 @@ const nodeAriaLabel = computed(() => {
   stroke-width: var(--stroke-width-fine);
 }
 
-.flow-node[data-node-category='logic'] .node-body {
+.flow-node[data-node-category='control'] .node-body {
   fill: var(--color-node-logic);
 }
 
@@ -176,11 +176,7 @@ const nodeAriaLabel = computed(() => {
   fill: var(--color-node-maths);
 }
 
-.flow-node[data-node-category='override'] .node-body {
-  fill: var(--color-node-override);
-}
-
-.flow-node[data-node-category='routing'] .node-body {
+.flow-node[data-node-category='io'] .node-body {
   fill: var(--color-node-routing);
 }
 

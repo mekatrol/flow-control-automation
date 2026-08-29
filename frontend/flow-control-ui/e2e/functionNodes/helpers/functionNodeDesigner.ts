@@ -59,7 +59,7 @@ export const createFlow = async (page: Page, name: string): Promise<string> => {
 };
 
 export const addNode = async (page: Page, kind: string): Promise<string> => {
-  const search = page.getByRole('searchbox', { name: 'Find a node' });
+  const search = page.getByRole('searchbox', { name: 'Find a function' });
   await search.fill(kind);
   await page.getByRole('button', { name: `Add ${kind} node`, exact: true }).click();
   const selected = page.locator('.flow-node.selected');

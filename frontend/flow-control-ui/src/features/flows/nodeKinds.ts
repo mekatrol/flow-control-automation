@@ -10,7 +10,7 @@ export interface NodeEditorField {
 export interface NodeKindDefinition {
   kind: FlowNodeKind;
   label: string;
-  category: 'logic' | 'maths' | 'override' | 'routing' | 'timing';
+  category: 'io' | 'control' | 'timing' | 'maths';
   icon: string;
   defaultSize: { width: number; height: number };
   connectors: FlowNodeConnector[];
@@ -54,7 +54,7 @@ const executableDefinition = (
   connectors: FlowNodeConnector[],
   editor: NodeEditorField[] = [],
   defaultConfiguration: NodeKindDefinition['defaultConfiguration'] = {},
-  category: NodeKindDefinition['category'] = 'logic'
+  category: NodeKindDefinition['category'] = 'control'
 ): NodeKindDefinition => ({
   kind,
   label:
@@ -112,7 +112,7 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
       { key: 'activeHighThreshold', label: 'Active high threshold', input: 'number' }
     ],
     { activeLowThreshold: 0, activeHighThreshold: 100 },
-    'routing'
+    'control'
   ),
   [FlowNodeFunctionType.Add]: executableDefinition(
     FlowNodeFunctionType.Add,
@@ -131,14 +131,14 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     [{ id: 'value', label: 'Value', direction: 'output', dataType: 'number', side: 'right' }],
     [{ key: 'pointId', label: 'Input point ID', input: 'text' }],
     { pointId: 'analog-input-point' },
-    'routing'
+    'io'
   ),
   [FlowNodeFunctionType.AnalogOutput]: executableDefinition(
     FlowNodeFunctionType.AnalogOutput,
     [{ id: 'in', label: 'Input', direction: 'input', dataType: 'number', side: 'left' }],
     [{ key: 'pointId', label: 'Output point ID', input: 'text' }],
     { pointId: 'analog-output-point' },
-    'routing'
+    'io'
   ),
   [FlowNodeFunctionType.And]: executableDefinition(FlowNodeFunctionType.And, [
     booleanPort('a', 'A', 'input', 'left'),
@@ -235,19 +235,22 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     FlowNodeFunctionType.DigitalConstant,
     [booleanPort('value', 'Value', 'output', 'right')],
     [{ key: 'value', label: 'Value', input: 'checkbox' }],
-    { value: false }
+    { value: false },
+    'io'
   ),
   [FlowNodeFunctionType.DigitalInput]: executableDefinition(
     FlowNodeFunctionType.DigitalInput,
     [booleanPort('value', 'Value', 'output', 'right')],
     [{ key: 'pointId', label: 'Input point ID', input: 'text' }],
-    { pointId: 'input-point' }
+    { pointId: 'input-point' },
+    'io'
   ),
   [FlowNodeFunctionType.DigitalOutput]: executableDefinition(
     FlowNodeFunctionType.DigitalOutput,
     [booleanPort('in', 'Input', 'input', 'left')],
     [{ key: 'pointId', label: 'Output point ID', input: 'text' }],
-    { pointId: 'output-point' }
+    { pointId: 'output-point' },
+    'io'
   ),
   [FlowNodeFunctionType.DigitalSwitch]: executableDefinition(FlowNodeFunctionType.DigitalSwitch, [
     booleanPort('condition', 'Condition', 'input', 'left'),
@@ -266,7 +269,7 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
       { key: 'highValue', label: 'High analog value', input: 'number' }
     ],
     { lowValue: 0, highValue: 100 },
-    'routing'
+    'control'
   ),
   [FlowNodeFunctionType.Line]: executableDefinition(
     FlowNodeFunctionType.Line,
@@ -341,7 +344,8 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     FlowNodeFunctionType.NumericConstant,
     [{ id: 'value', label: 'Value', direction: 'output', dataType: 'number', side: 'right' }],
     [{ key: 'value', label: 'Value', input: 'number' }],
-    { value: 0 }
+    { value: 0 },
+    'io'
   ),
   [FlowNodeFunctionType.Not]: executableDefinition(FlowNodeFunctionType.Not, [
     booleanPort('in', 'Input', 'input', 'left'),
@@ -359,7 +363,8 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
       booleanPort('value', 'Elapsed', 'output', 'right')
     ],
     [{ key: 'durationMs', label: 'Duration (ms)', input: 'number' }],
-    { durationMs: 1000 }
+    { durationMs: 1000 },
+    'timing'
   ),
   [FlowNodeFunctionType.Override]: executableDefinition(
     FlowNodeFunctionType.Override,
@@ -369,7 +374,7 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     ],
     [],
     {},
-    'override'
+    'control'
   ),
   [FlowNodeFunctionType.Pulse]: executableDefinition(
     FlowNodeFunctionType.Pulse,
@@ -406,7 +411,7 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     ],
     [],
     {},
-    'routing'
+    'control'
   ),
   [FlowNodeFunctionType.Sequence]: executableDefinition(
     FlowNodeFunctionType.Sequence,
@@ -417,7 +422,7 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     ],
     [],
     {},
-    'routing'
+    'control'
   ),
   [FlowNodeFunctionType.Split]: executableDefinition(
     FlowNodeFunctionType.Split,
@@ -427,7 +432,7 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     ],
     [],
     {},
-    'routing'
+    'control'
   ),
   [FlowNodeFunctionType.Timer]: executableDefinition(
     FlowNodeFunctionType.Timer,

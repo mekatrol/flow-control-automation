@@ -162,9 +162,9 @@ test('renders a validated mocked API payload and rejects an invalid one visibly'
   const override = page.locator('[data-node-id="manual-override"]');
 
   // Expected outcome: `override` exposes the required attribute.
-  // Acceptance criteria: `override` must have attribute arguments `'data-node-category', 'override'`, because this condition proves that
+  // Acceptance criteria: `override` must have attribute arguments `'data-node-category', 'control'`, because this condition proves that
   // renders a validated mocked API payload and rejects an invalid one visibly.
-  await expect(override).toHaveAttribute('data-node-category', 'override');
+  await expect(override).toHaveAttribute('data-node-category', 'control');
 
   // Expected outcome: `override.locator('.node-body')` exposes the required attribute.
   // Acceptance criteria: `override.locator('.node-body')` must have attribute arguments `'fill'`, because this condition proves that

@@ -258,7 +258,7 @@ test('validates, saves, and reloads typed node configuration', async ({ page }) 
   // validates, saves, and reloads typed node configuration.
   await expect(page.getByText('Loading latest flow…')).toBeHidden();
 
-  await page.getByRole('searchbox', { name: 'Find a node' }).fill('line');
+  await page.getByRole('searchbox', { name: 'Find a function' }).fill('line');
   await page.getByRole('button', { name: 'Add Line node', exact: true }).click();
   const label = page.getByRole('textbox', { name: 'Node label' });
   await label.fill('   ');

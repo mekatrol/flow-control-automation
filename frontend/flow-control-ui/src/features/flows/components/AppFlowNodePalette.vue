@@ -3,7 +3,7 @@
     <h2>Function blocks</h2>
     <AppFilter layout="stacked" :show-apply="false">
       <label class="app-filter-field">
-        <span>Find a node</span>
+        <span>Find a function</span>
         <input v-model="filter" type="search" placeholder="Search nodes" />
       </label>
     </AppFilter>
@@ -57,9 +57,15 @@ export const groupNodeKinds = (
 ): Partial<Record<NodeKindDefinition['category'], NodeKindDefinition[]>> => {
   // Build groups from the filtered result so empty categories disappear instead
   // of leaving headings with no actions beneath them.
+  const categories: NodeKindDefinition['category'][] = ['io', 'control', 'timing', 'maths'];
   const groups: Partial<Record<NodeKindDefinition['category'], NodeKindDefinition[]>> = {};
-  for (const definition of definitions) {
-    (groups[definition.category] ??= []).push(definition);
+  for (const category of categories) {
+    const categoryDefinitions = definitions
+      .filter((definition) => definition.category === category)
+      .sort((left, right) => left.label.localeCompare(right.label));
+    if (categoryDefinitions.length) {
+      groups[category] = categoryDefinitions;
+    }
   }
   return groups;
 };
