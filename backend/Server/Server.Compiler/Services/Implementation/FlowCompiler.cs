@@ -292,12 +292,12 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         [FlowNodeKind.Xor] = new([new("a", DataDirection.Input, DataType.Boolean), new("b", DataDirection.Input, DataType.Boolean), new("value", DataDirection.Output, DataType.Boolean)]),
         [FlowNodeKind.Xnor] = new([new("a", DataDirection.Input, DataType.Boolean), new("b", DataDirection.Input, DataType.Boolean), new("value", DataDirection.Output, DataType.Boolean)]),
         [FlowNodeKind.NumericConstant] = new([new("value", DataDirection.Output, DataType.Number)]),
-        [FlowNodeKind.Add] = new([new("a", DataDirection.Input, DataType.Number), new("b", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Number)]),
-        [FlowNodeKind.Subtract] = new([new("a", DataDirection.Input, DataType.Number), new("b", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Number)]),
-        [FlowNodeKind.Multiply] = new([new("a", DataDirection.Input, DataType.Number), new("b", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Number)]),
-        [FlowNodeKind.Divide] = new([new("a", DataDirection.Input, DataType.Number), new("b", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Number)]),
-        [FlowNodeKind.Power] = new([new("a", DataDirection.Input, DataType.Number), new("b", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Number)]),
-        [FlowNodeKind.Negate] = new([new("in", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Number)]),
+        [FlowNodeKind.Add] = ArithmeticShape("a", "b"),
+        [FlowNodeKind.Subtract] = ArithmeticShape("a", "b"),
+        [FlowNodeKind.Multiply] = ArithmeticShape("a", "b"),
+        [FlowNodeKind.Divide] = ArithmeticShape("a", "b"),
+        [FlowNodeKind.Power] = ArithmeticShape("a", "b"),
+        [FlowNodeKind.Negate] = ArithmeticShape("in"),
         [FlowNodeKind.Comparator] = new([new("a", DataDirection.Input, DataType.Number), new("b", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Boolean)]),
         [FlowNodeKind.LevelShifter] = new([new("in", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Number)]),
         [FlowNodeKind.QualityGood] = new([new("in", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Boolean)]),
@@ -306,7 +306,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         [FlowNodeKind.Memory] = new([new("in", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Number)]),
         [FlowNodeKind.DigitalOutput] = new([new("in", DataDirection.Input, DataType.Boolean)]),
         [FlowNodeKind.AnalogOutput] = new([new("in", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Number)]),
-        [FlowNodeKind.Average] = new([new("a", DataDirection.Input, DataType.Number), new("b", DataDirection.Input, DataType.Number), new("output", DataDirection.Output, DataType.Number)]),
+        [FlowNodeKind.Average] = new([new("a", DataDirection.Input, DataType.Number), new("b", DataDirection.Input, DataType.Number), new("output", DataDirection.Output, DataType.Number), new("error", DataDirection.Output, DataType.Boolean)]),
         [FlowNodeKind.Calculator] = new([new("a", DataDirection.Input, DataType.Number), new("b", DataDirection.Input, DataType.Number), new("c", DataDirection.Input, DataType.Number), new("output", DataDirection.Output, DataType.Number)]),
         [FlowNodeKind.Clamp] = new([new("input", DataDirection.Input, DataType.Number), new("output", DataDirection.Output, DataType.Number)]),
         [FlowNodeKind.Min] = new([new("a", DataDirection.Input, DataType.Number), new("b", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Number)]),
@@ -325,6 +325,15 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         [FlowNodeKind.A2D] = new([new("in", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Boolean)]),
         [FlowNodeKind.D2A] = new([new("in", DataDirection.Input, DataType.Boolean), new("value", DataDirection.Output, DataType.Number)])
     };
+
+    private static FlowNodeShape ArithmeticShape(params string[] inputs) => new(
+        [.. inputs.Select(id => new FlowPort(id, DataDirection.Input, DataType.Number)),
+         new("value", DataDirection.Output, DataType.Number),
+         new("error", DataDirection.Output, DataType.Boolean)]);
+
+    private static bool IsFallibleArithmetic(FlowNodeKind kind) => kind is
+        FlowNodeKind.Add or FlowNodeKind.Subtract or FlowNodeKind.Multiply or
+        FlowNodeKind.Divide or FlowNodeKind.Power or FlowNodeKind.Negate or FlowNodeKind.Average;
 
     public FlowCompilationResult Compile(FlowCompilationRequest request)
     {
@@ -599,7 +608,9 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             FlowRevision = model.Source.Revision,
             ControllerTemplateId = model.Source.ControllerTemplateId,
             ControllerTemplateRevision = checked((int)model.Source.ControllerTemplateRevision),
-            NodeIndices = model.Slots,
+            NodeIndices = model.Slots
+                .Where(item => model.Schedule.Contains(item.Key, StringComparer.Ordinal))
+                .ToDictionary(item => item.Key, item => item.Value, StringComparer.Ordinal),
             Schedule = model.Schedule,
             MaximumWorkPerScan = checked((uint)model.Instructions.Count),
             WorkingBytes = workingBytes,
@@ -628,13 +639,20 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         // Build a dictionary of node ID -> node for fast lookup during instruction encoding.
         var nodes = source.Nodes.ToDictionary(node => node.Id, StringComparer.Ordinal);
         var slots = BuildTransientSlots(schedule);
+        var arithmeticIds = schedule.Where(id => IsFallibleArithmetic(nodes[id].Kind)).ToArray();
+        var errorSlots = arithmeticIds.Select((id, index) => new { id, slot = checked((ushort)(schedule.Count + index)) })
+            .ToDictionary(item => item.id, item => item.slot, StringComparer.Ordinal);
+        foreach (var (id, slot) in errorSlots)
+        {
+            slots[$"{id}:error"] = slot;
+        }
         var calculatorExpressions = nodes
             .Where(item => item.Value.Kind == FlowNodeKind.Calculator)
             .ToDictionary(item => item.Key, item => ParseCalculatorFormula(item.Value), StringComparer.Ordinal);
         var calculatorTemporaryCount = calculatorExpressions.Values.Sum(CalculatorFormula.OperationCount);
         var memoryIds = GetMemoryNodeIds(schedule, nodes);
         var stateIds = GetStateNodeIds(schedule, nodes);
-        var stateSlots = BuildStateSlots(schedule.Count + calculatorTemporaryCount, stateIds);
+        var stateSlots = BuildStateSlots(schedule.Count + errorSlots.Count + calculatorTemporaryCount, stateIds);
         var points = BuildPoints([.. schedule.Select(id => nodes[id])], request.Target.Points);
         var constants = BuildConstantPool(source);
         var instructions = BuildInstructions(
@@ -642,18 +660,20 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             schedule,
             nodes,
             slots,
+            errorSlots,
             memoryIds,
             stateSlots,
             points,
             constants,
             calculatorExpressions,
-            schedule.Count);
+            schedule.Count + errorSlots.Count);
 
         return new CompilationModel(
             source,
             schedule,
             nodes,
             slots,
+            errorSlots,
             memoryIds,
             stateIds,
             stateSlots,
@@ -912,6 +932,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         IReadOnlyList<string> schedule,
         Dictionary<string, ExecutableFlowNode> nodes,
         Dictionary<string, ushort> slots,
+        Dictionary<string, ushort> errorSlots,
         IReadOnlyList<string> memoryIds,
         Dictionary<string, ushort> stateSlots,
         IReadOnlyList<PointRecord> points,
@@ -1009,6 +1030,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                     id,
                     resultSlotIndex,
                     slots,
+                    errorSlots,
                     stateSlots,
                     points,
                     constants));
@@ -1236,7 +1258,14 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 U16(FlowILV1Format.Unused)))
             .ToList();
 
-        slotRecords.AddRange(Enumerable.Range(model.Schedule.Count, model.CalculatorTemporaryCount)
+        slotRecords.AddRange(Enumerable.Range(model.Schedule.Count, model.ErrorSlots.Count)
+            .Select(index => Concat(
+                [2, (byte)DataType.Boolean],
+                U16(0),
+                U16(index),
+                U16(FlowILV1Format.Unused))));
+
+        slotRecords.AddRange(Enumerable.Range(model.Schedule.Count + model.ErrorSlots.Count, model.CalculatorTemporaryCount)
             .Select(index => Concat(
                 [2, (byte)DataType.Number],
                 U16(0),
@@ -1983,6 +2012,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         string nodeId,
         ushort resultSlotIndex,
         Dictionary<string, ushort> slots,
+        Dictionary<string, ushort> errorSlots,
         Dictionary<string, ushort> stateSlots,
         IReadOnlyList<PointRecord> points,
         ConstantRecord[] constants)
@@ -2000,6 +2030,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         var context = new InstructionCreationContext(
             source,
             slots,
+            errorSlots,
             stateSlots,
             points,
             constants,
@@ -2199,7 +2230,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                         context.ResultSlotIndex,
                         InputSlot(context.Source, context.Slots, context.NodeId, "a"),
                         InputSlot(context.Source, context.Slots, context.NodeId, "b"),
-                        FlowILV1Format.Unused
+                        context.ErrorSlots[context.NodeId]
                     ),
                     context.NodeId,
                     NodeInstructionRole.Primary),
@@ -2211,7 +2242,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             FlowNodeKind.Negate => new(
                 new(FlowOpcode.Negate, context.ResultSlotIndex,
                     InputSlot(context.Source, context.Slots, context.NodeId, "in"),
-                    FlowILV1Format.Unused, FlowILV1Format.Unused),
+                    FlowILV1Format.Unused, context.ErrorSlots[context.NodeId]),
                 context.NodeId, NodeInstructionRole.Primary),
 
             FlowNodeKind.Comparator =>
@@ -2344,7 +2375,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 context.ResultSlotIndex,
                 InputSlot(context.Source, context.Slots, context.NodeId, "a"),
                 InputSlot(context.Source, context.Slots, context.NodeId, "b"),
-                FlowILV1Format.Unused
+                context.ErrorSlots.TryGetValue(context.NodeId, out var errorSlot) ? errorSlot : FlowILV1Format.Unused
             ),
             context.NodeId,
             NodeInstructionRole.Primary);
@@ -2524,8 +2555,14 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         ExecutableFlowSource source,
         Dictionary<string, ushort> slots,
         string targetId,
-        string portId) => slots[source.Connections.Single(connection =>
-            connection.Target.NodeId == targetId && connection.Target.PortId == portId).Source.NodeId];
+        string portId)
+    {
+        var endpoint = source.Connections.Single(connection =>
+            connection.Target.NodeId == targetId && connection.Target.PortId == portId).Source;
+        return endpoint.PortId == "error" && slots.TryGetValue($"{endpoint.NodeId}:error", out var errorSlot)
+            ? errorSlot
+            : slots[endpoint.NodeId];
+    }
 
     /*
      * Return the numeric index of the canonical point/interface record used by
@@ -3661,6 +3698,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
     private sealed record InstructionCreationContext(
         ExecutableFlowSource Source,
         Dictionary<string, ushort> Slots,
+        Dictionary<string, ushort> ErrorSlots,
         Dictionary<string, ushort> StateSlots,
         IReadOnlyList<PointRecord> Points,
         ConstantRecord[] Constants,
@@ -3677,6 +3715,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         List<string> Schedule,
         Dictionary<string, ExecutableFlowNode> Nodes,
         Dictionary<string, ushort> Slots,
+        Dictionary<string, ushort> ErrorSlots,
         string[] MemoryIds,
         string[] StateIds,
         Dictionary<string, ushort> StateSlots,
@@ -3685,7 +3724,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         List<CompiledInstructionV1> Instructions,
         int CalculatorTemporaryCount)
     {
-        public int TotalSlotCount => Schedule.Count + CalculatorTemporaryCount + StateIds.Length;
+        public int TotalSlotCount => Schedule.Count + ErrorSlots.Count + CalculatorTemporaryCount + StateIds.Length;
     }
 
     /*

@@ -435,6 +435,50 @@ public sealed class FlowCompilerTests
         Assert.That(scan.Commands.Single().TypedValue.Number, Is.EqualTo(1.8));
     }
 
+    [Test]
+    public void DivideByZeroHoldsLastGoodValueAndRaisesErrorOutput()
+    {
+        var source = GetSourceFromKind(FlowNodeKind.Divide) with
+        {
+            Nodes =
+            [
+                .. GetSourceFromKind(FlowNodeKind.Divide).Nodes.Select(node => node.Id switch
+                {
+                    "number-a" => node with { Kind = FlowNodeKind.AnalogInput, Configuration = Config("pointId", "input-a") },
+                    "number-b" => node with { Kind = FlowNodeKind.AnalogInput, Configuration = Config("pointId", "input-b") },
+                    _ => node
+                }),
+                new ExecutableFlowNode { Id = "value-output", Kind = FlowNodeKind.AnalogOutput, Configuration = Config("pointId", "value-output") },
+                new ExecutableFlowNode { Id = "error-output", Kind = FlowNodeKind.DigitalOutput, Configuration = Config("pointId", "error-output") }
+            ],
+            Connections =
+            [
+                .. GetSourceFromKind(FlowNodeKind.Divide).Connections,
+                new(new("test-node", "value"), new("value-output", "in")),
+                new(new("test-node", "error"), new("error-output", "in"))
+            ]
+        };
+        var compilation = _compiler.Compile(BuildCompilationRequest(source));
+        using var machine = new ManagedFlowVirtualMachineFactory().Create(compilation.Artifact);
+
+        var good = machine.Scan([new("input-a", FlowVmValue.FromNumber(9)), new("input-b", FlowVmValue.FromNumber(3))], 1);
+        var failed = machine.Scan([new("input-a", FlowVmValue.FromNumber(9)), new("input-b", FlowVmValue.FromNumber(0))], 2);
+        var overflow = machine.Scan([new("input-a", FlowVmValue.FromNumber(double.MaxValue)), new("input-b", FlowVmValue.FromNumber(0.5))], 3);
+        var recovered = machine.Scan([new("input-a", FlowVmValue.FromNumber(-12)), new("input-b", FlowVmValue.FromNumber(3))], 4);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(good.Commands.Single(command => command.PointId == "value-output").TypedValue.Number, Is.EqualTo(3));
+            Assert.That(good.Commands.Single(command => command.PointId == "error-output").TypedValue.Boolean, Is.False);
+            Assert.That(failed.Commands.Single(command => command.PointId == "value-output").TypedValue.Number, Is.EqualTo(3));
+            Assert.That(failed.Commands.Single(command => command.PointId == "error-output").TypedValue.Boolean, Is.True);
+            Assert.That(overflow.Commands.Single(command => command.PointId == "value-output").TypedValue.Number, Is.EqualTo(3));
+            Assert.That(overflow.Commands.Single(command => command.PointId == "error-output").TypedValue.Boolean, Is.True);
+            Assert.That(recovered.Commands.Single(command => command.PointId == "value-output").TypedValue.Number, Is.EqualTo(-4));
+            Assert.That(recovered.Commands.Single(command => command.PointId == "error-output").TypedValue.Boolean, Is.False);
+        });
+    }
+
     [TestCase("a * 9 + c")]
     [TestCase("a + temperature")]
     [TestCase("a / (b - b")]

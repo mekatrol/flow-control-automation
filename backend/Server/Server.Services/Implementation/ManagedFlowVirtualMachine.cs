@@ -22,6 +22,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
     private ulong[] _timerStartedAt;
     private ulong[] _stagedTimerStartedAt;
     private FlowVmValue[] _slots;
+    private FlowVmValue[] _lastSlots;
     private IReadOnlyList<FlowVmInput> _inputs = [];
     private ulong _sampledAt;
     private ulong _scanNumber;
@@ -63,6 +64,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
         _timerStartedAt = new ulong[stateSlots.Length];
         _stagedTimerStartedAt = new ulong[stateSlots.Length];
         _slots = EmptySlots();
+        _lastSlots = EmptySlots();
         StateBase = stateBase;
     }
 
@@ -113,6 +115,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
             _executing = false;
             _inputs = [];
             _slots = EmptySlots();
+            _lastSlots = EmptySlots();
         }
     }
 
@@ -158,7 +161,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
         _inputs = inputs;
         _sampledAt = sampledAtMilliseconds;
         _instructionPointer = 0;
-        _slots = EmptySlots();
+        _slots = [.. _lastSlots];
         _stagedState = [.. _currentState];
         Array.Clear(_stagedStateValid);
         _stagedTimerStartedAt = [.. _timerStartedAt];
@@ -181,6 +184,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
         _currentState = [.. _stagedState];
         _timerStartedAt = [.. _stagedTimerStartedAt];
         _scanNumber++;
+        _lastSlots = [.. _slots];
         _executing = false;
         _inputs = [];
         return new FlowVmScanResult(_scanNumber, _sampledAt, [.. _slots], commands);
@@ -244,15 +248,15 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
                 _slots[instruction.Result] =
                     Value(Constant(instruction.Auxiliary, DataType.Number));
                 break;
-            case FlowOpcode.Add: Number(instruction, a.Number + b.Number, quality); break;
-            case FlowOpcode.Subtract: Number(instruction, a.Number - b.Number, quality); break;
-            case FlowOpcode.Multiply: Number(instruction, a.Number * b.Number, quality); break;
-            case FlowOpcode.Divide: Number(instruction, a.Number / b.Number, quality); break;
-            case FlowOpcode.Power: Number(instruction, Math.Pow(a.Number, b.Number), quality); break;
-            case FlowOpcode.Negate: Number(instruction, -a.Number, a.Quality); break;
+            case FlowOpcode.Add: Add(instruction, a, b, quality); break;
+            case FlowOpcode.Subtract: Subtract(instruction, a, b, quality); break;
+            case FlowOpcode.Multiply: Multiply(instruction, a, b, quality); break;
+            case FlowOpcode.Divide: Divide(instruction, a, b, quality); break;
+            case FlowOpcode.Power: Power(instruction, a, b, quality); break;
+            case FlowOpcode.Negate: Negate(instruction, a); break;
             case FlowOpcode.Calculator: _slots[instruction.Result] = a; break;
             case FlowOpcode.CalculatorInputs: break;
-            case FlowOpcode.Average: Number(instruction, (a.Number / 2D) + (b.Number / 2D), quality); break;
+            case FlowOpcode.Average: Average(instruction, a, b, quality); break;
             case FlowOpcode.Comparator:
                 var compared = instruction.Auxiliary switch { 1 => a.Number < b.Number, 2 => a.Number <= b.Number, 3 => a.Number == b.Number, 4 => a.Number >= b.Number, 5 => a.Number > b.Number, 6 => a.Number != b.Number, _ => throw Error(FlowVmErrorCode.InvalidInstruction, "/instructions/comparison") };
                 _slots[instruction.Result] = FlowVmValue.FromBoolean(compared, quality);
@@ -350,6 +354,69 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
         }
 
         _slots[instruction.Result] = FlowVmValue.FromNumber(value, quality);
+    }
+
+    private void Add(Instruction instruction, FlowVmValue a, FlowVmValue b, DataQuality quality) =>
+        Arithmetic(instruction, a.Number + b.Number, quality);
+
+    private void Subtract(Instruction instruction, FlowVmValue a, FlowVmValue b, DataQuality quality) =>
+        Arithmetic(instruction, a.Number - b.Number, quality);
+
+    private void Multiply(Instruction instruction, FlowVmValue a, FlowVmValue b, DataQuality quality) =>
+        Arithmetic(instruction, a.Number * b.Number, quality);
+
+    private static bool WouldDivideFail(double dividend, double divisor)
+    {
+        if (!double.IsFinite(dividend) ||
+            !double.IsFinite(divisor) ||
+            divisor == 0D)
+        {
+            return true;
+        }
+
+        return Math.Abs(dividend) > double.MaxValue * Math.Abs(divisor);
+    }
+
+    private void Divide(Instruction instruction, FlowVmValue a, FlowVmValue b, DataQuality quality)
+    {
+        if (WouldDivideFail(a.Number, b.Number))
+        {
+            ArithmeticError(instruction);
+            return;
+        }
+
+        Arithmetic(instruction, a.Number / b.Number, quality);
+    }
+
+    private void Power(Instruction instruction, FlowVmValue a, FlowVmValue b, DataQuality quality) =>
+        Arithmetic(instruction, Math.Pow(a.Number, b.Number), quality);
+
+    private void Negate(Instruction instruction, FlowVmValue input) =>
+        Arithmetic(instruction, -input.Number, input.Quality);
+
+    private void Average(Instruction instruction, FlowVmValue a, FlowVmValue b, DataQuality quality) =>
+        Arithmetic(instruction, (a.Number / 2D) + (b.Number / 2D), quality);
+
+    private void Arithmetic(Instruction instruction, double value, DataQuality quality)
+    {
+        if (!double.IsFinite(value))
+        {
+            ArithmeticError(instruction);
+            return;
+        }
+        _slots[instruction.Result] = FlowVmValue.FromNumber(value, quality);
+        SetArithmeticError(instruction, false);
+    }
+
+    private void ArithmeticError(Instruction instruction) => SetArithmeticError(instruction, true);
+
+    private void SetArithmeticError(Instruction instruction, bool value)
+    {
+        if (instruction.Auxiliary != Unused && instruction.Auxiliary < _slots.Length &&
+            _slotDataTypes[instruction.Auxiliary] == DataType.Boolean)
+        {
+            _slots[instruction.Auxiliary] = FlowVmValue.FromBoolean(value);
+        }
     }
 
     private FlowVmExecutionFrame Frame() => new(

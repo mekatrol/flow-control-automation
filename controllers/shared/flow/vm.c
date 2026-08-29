@@ -2,6 +2,7 @@
 
 #include "flow/sha256.h"
 
+#include <float.h>
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -594,9 +595,9 @@ flow_vm_result_t flow_vm_begin_tick(flow_vm_t *vm, const flow_vm_input_frame_t *
         }
     }
 
-    memset(vm->working_slots, 0, sizeof(vm->working_slots));
-    memset(vm->numeric_slots, 0, sizeof(vm->numeric_slots));
-    memset(vm->slot_qualities, 0, sizeof(vm->slot_qualities));
+    memcpy(vm->working_slots, vm->snapshot.slots, sizeof(vm->working_slots));
+    memcpy(vm->numeric_slots, vm->snapshot.numeric_slots, sizeof(vm->numeric_slots));
+    memcpy(vm->slot_qualities, vm->snapshot.slot_qualities, sizeof(vm->slot_qualities));
     memset(vm->staged_state_valid, 0, sizeof(vm->staged_state_valid));
     memset(vm->staged_outputs, 0, sizeof(vm->staged_outputs));
     memcpy(vm->staged_state, vm->current_state, sizeof(vm->staged_state));
@@ -725,7 +726,8 @@ flow_vm_result_t flow_vm_step_instruction(flow_vm_t *vm, flow_vm_execution_view_
 
             if (!isfinite(value))
             {
-                return get_result(FLOW_VM_INPUT_REJECTED, "/arithmeticOverflow");
+                if (instruction->auxiliary != UNUSED_INDEX) vm->working_slots[instruction->auxiliary] = true;
+                break;
             }
 
             vm->numeric_slots[instruction->result] = value;
@@ -733,6 +735,7 @@ flow_vm_result_t flow_vm_step_instruction(flow_vm_t *vm, flow_vm_execution_view_
                 vm->slot_qualities[instruction->operand0] > vm->slot_qualities[instruction->operand1]
                     ? vm->slot_qualities[instruction->operand0]
                     : vm->slot_qualities[instruction->operand1];
+            if (instruction->auxiliary != UNUSED_INDEX) vm->working_slots[instruction->auxiliary] = false;
             break;
         }
 
@@ -745,21 +748,39 @@ flow_vm_result_t flow_vm_step_instruction(flow_vm_t *vm, flow_vm_execution_view_
             double value = 0.0;
             if (instruction->opcode == OPCODE_SUBTRACT) value = left - right;
             else if (instruction->opcode == OPCODE_MULTIPLY) value = left * right;
-            else if (instruction->opcode == OPCODE_DIVIDE) value = left / right;
+            else if (instruction->opcode == OPCODE_DIVIDE)
+            {
+                if (!isfinite(left) || !isfinite(right) || right == 0.0 || fabs(right) < fabs(left) / DBL_MAX)
+                {
+                    if (instruction->auxiliary != UNUSED_INDEX) vm->working_slots[instruction->auxiliary] = true;
+                    break;
+                }
+                value = left / right;
+            }
             else value = pow(left, right);
-            if (!isfinite(value)) return get_result(FLOW_VM_INPUT_REJECTED, "/arithmeticOverflow");
+            if (!isfinite(value))
+            {
+                if (instruction->auxiliary != UNUSED_INDEX) vm->working_slots[instruction->auxiliary] = true;
+                break;
+            }
             vm->numeric_slots[instruction->result] = value;
             vm->slot_qualities[instruction->result] =
                 vm->slot_qualities[instruction->operand0] > vm->slot_qualities[instruction->operand1]
                     ? vm->slot_qualities[instruction->operand0] : vm->slot_qualities[instruction->operand1];
+            if (instruction->auxiliary != UNUSED_INDEX) vm->working_slots[instruction->auxiliary] = false;
             break;
         }
 
         case OPCODE_NEGATE: {
             const double value = -vm->numeric_slots[instruction->operand0];
-            if (!isfinite(value)) return get_result(FLOW_VM_INPUT_REJECTED, "/arithmeticOverflow");
+            if (!isfinite(value))
+            {
+                if (instruction->auxiliary != UNUSED_INDEX) vm->working_slots[instruction->auxiliary] = true;
+                break;
+            }
             vm->numeric_slots[instruction->result] = value;
             vm->slot_qualities[instruction->result] = vm->slot_qualities[instruction->operand0];
+            if (instruction->auxiliary != UNUSED_INDEX) vm->working_slots[instruction->auxiliary] = false;
             break;
         }
 
@@ -778,7 +799,8 @@ flow_vm_result_t flow_vm_step_instruction(flow_vm_t *vm, flow_vm_execution_view_
 
             if (!isfinite(value))
             {
-                return get_result(FLOW_VM_INPUT_REJECTED, "/arithmeticOverflow");
+                if (instruction->auxiliary != UNUSED_INDEX) vm->working_slots[instruction->auxiliary] = true;
+                break;
             }
 
             vm->numeric_slots[instruction->result] = value;
@@ -786,6 +808,7 @@ flow_vm_result_t flow_vm_step_instruction(flow_vm_t *vm, flow_vm_execution_view_
                 vm->slot_qualities[instruction->operand0] > vm->slot_qualities[instruction->operand1]
                     ? vm->slot_qualities[instruction->operand0]
                     : vm->slot_qualities[instruction->operand1];
+            if (instruction->auxiliary != UNUSED_INDEX) vm->working_slots[instruction->auxiliary] = false;
             break;
         }
 

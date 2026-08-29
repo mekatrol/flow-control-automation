@@ -25,6 +25,7 @@ export { test };
 export interface FunctionVector {
   inputs: Record<string, boolean | number>;
   expected: boolean | number;
+  expectedError?: boolean;
 }
 
 export interface FunctionNodeCase {
@@ -67,7 +68,8 @@ export const runFunctionNodeCase = async (
 ): Promise<void> => {
   const definition = getNodeKind(testCase.kind);
   const inputs = definition.connectors.filter(({ direction }) => direction === 'input');
-  const output = definition.connectors.find(({ direction }) => direction === 'output');
+  const outputs = definition.connectors.filter(({ direction }) => direction === 'output');
+  const output = outputs.find(({ id }) => id !== 'error');
   if (!output) throw new Error(`${definition.label} does not expose an output connector.`);
 
   const suffix = `${testInfo.workerIndex}-${Date.now().toString(36)}`;
@@ -95,19 +97,22 @@ export const runFunctionNodeCase = async (
     );
   }
 
-  const numericOutput = output.dataType === 'number';
-  const outputPointId = `${testCase.kind}-result-${suffix}`;
-  const outputNode = await addVirtualPointNode(
-    page,
-    numericOutput ? 'Analog Output' : 'Digital Output',
-    outputPointId
-  );
-  await moveNode(page, outputNode, { x: 504, y: functionY });
-  await connectNodes(
-    page,
-    { nodeId: functionNode, connector: output.label },
-    { nodeId: outputNode, connector: 'Input' }
-  );
+  const outputPointIds: Record<string, string> = {};
+  for (const [index, connector] of outputs.entries()) {
+    const outputPointId = `${testCase.kind}-${connector.id}-${suffix}`;
+    outputPointIds[connector.id] = outputPointId;
+    const outputNode = await addVirtualPointNode(
+      page,
+      connector.dataType === 'number' ? 'Analog Output' : 'Digital Output',
+      outputPointId
+    );
+    await moveNode(page, outputNode, { x: 504, y: functionY + index * 120 });
+    await connectNodes(
+      page,
+      { nodeId: functionNode, connector: connector.label },
+      { nodeId: outputNode, connector: 'Input' }
+    );
+  }
 
   await saveFlow(page, flowId);
   const simulation = await startSimulation(page, flowId);
@@ -122,7 +127,10 @@ export const runFunctionNodeCase = async (
         );
         await applyInputs(page, values);
       }
-      await expectOutput(page, outputPointId, vector.expected);
+      await expectOutput(page, outputPointIds[output.id]!, vector.expected);
+      if (vector.expectedError !== undefined) {
+        await expectOutput(page, outputPointIds.error!, vector.expectedError);
+      }
     }
   } finally {
     await stopSimulation(page, simulation);

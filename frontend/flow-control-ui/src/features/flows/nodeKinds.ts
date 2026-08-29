@@ -36,7 +36,8 @@ const binaryArithmetic = (kind: FlowNodeFunctionType): NodeKindDefinition =>
     [
       { id: 'a', label: 'A', direction: 'input', dataType: 'number', side: 'left' },
       { id: 'b', label: 'B', direction: 'input', dataType: 'number', side: 'left' },
-      { id: 'value', label: 'Value', direction: 'output', dataType: 'number', side: 'right' }
+      { id: 'value', label: 'Value', direction: 'output', dataType: 'number', side: 'right' },
+      { id: 'error', label: 'Error', direction: 'output', dataType: 'boolean', side: 'right' }
     ],
     [], {}, 'maths'
   );
@@ -91,7 +92,8 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     FlowNodeFunctionType.Negate,
     [
       { id: 'in', label: 'Input', direction: 'input', dataType: 'number', side: 'left' },
-      { id: 'value', label: 'Value', direction: 'output', dataType: 'number', side: 'right' }
+      { id: 'value', label: 'Value', direction: 'output', dataType: 'number', side: 'right' },
+      booleanPort('error', 'Error', 'output', 'right')
     ], [], {}, 'maths'
   ),
   [FlowNodeFunctionType.A2D]: executableDefinition(
@@ -112,7 +114,8 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     [
       { id: 'a', label: 'A', direction: 'input', dataType: 'number', side: 'left' },
       { id: 'b', label: 'B', direction: 'input', dataType: 'number', side: 'left' },
-      { id: 'value', label: 'Value', direction: 'output', dataType: 'number', side: 'right' }
+      { id: 'value', label: 'Value', direction: 'output', dataType: 'number', side: 'right' },
+      booleanPort('error', 'Error', 'output', 'right')
     ],
     [],
     {},
@@ -142,7 +145,8 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     [
       { id: 'a', label: 'A', direction: 'input', dataType: 'number', side: 'left' },
       { id: 'b', label: 'B', direction: 'input', dataType: 'number', side: 'left' },
-      { id: 'output', label: 'Average', direction: 'output', dataType: 'number', side: 'right' }
+      { id: 'output', label: 'Average', direction: 'output', dataType: 'number', side: 'right' },
+      booleanPort('error', 'Error', 'output', 'right')
     ],
     [],
     {},

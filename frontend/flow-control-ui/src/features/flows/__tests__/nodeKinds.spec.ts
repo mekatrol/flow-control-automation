@@ -212,4 +212,16 @@ describe('node-kind registry', () => {
       category: 'override'
     });
   });
+
+  it('exposes a connectable Boolean error output on fallible maths nodes', () => {
+    for (const kind of ['add', 'subtract', 'multiply', 'divide', 'power', 'negate', 'average'] as const) {
+      expect(nodeKindRegistry[kind].connectors).toContainEqual({
+        id: 'error',
+        label: 'Error',
+        direction: 'output',
+        dataType: 'boolean',
+        side: 'right'
+      });
+    }
+  });
 });
