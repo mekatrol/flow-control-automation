@@ -34,6 +34,7 @@ export interface FunctionNodeCase {
   kind: FlowNodeKind;
   configuration?: Record<string, NodeConfigurationValue>;
   unconnectedInputs?: string[];
+  pauseSimulation?: boolean;
   vectors: FunctionVector[];
   testLabel?: string;
 }
@@ -123,7 +124,10 @@ export const runFunctionNodeCase = async (
   await saveFlow(page, flowId);
   const simulation = await startSimulation(page, flowId);
   try {
-    if (testCase.vectors.some(({ advanceMs }) => advanceMs !== undefined)) {
+    if (
+      testCase.pauseSimulation ||
+      testCase.vectors.some(({ advanceMs }) => advanceMs !== undefined)
+    ) {
       const response = await page.request.post(
         `/api/flows/${encodeURIComponent(simulation.flowId)}/simulator-sessions/${encodeURIComponent(simulation.sessionId)}/pause`
       );
