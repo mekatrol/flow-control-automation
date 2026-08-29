@@ -101,6 +101,11 @@ describe('node palette filtering and grouping', () => {
     // Acceptance criteria: `groups.maths?.map(({ kind }) => kind)` must equal `[ 'average', 'calculator', 'clamp', 'line', 'max', 'min' ]`, because this condition proves that
     // groups registry entries by authoring category.
     expect(groups.maths?.map(({ kind }) => kind)).toEqual([
+      'subtract',
+      'multiply',
+      'divide',
+      'power',
+      'negate',
       'add',
       'average',
       'calculator',

@@ -422,6 +422,11 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
                 instruction.Auxiliary,
                 instructionIndex),
             FlowOpcode.Add => FlowNodeKind.Add,
+            FlowOpcode.Subtract => FlowNodeKind.Subtract,
+            FlowOpcode.Multiply => FlowNodeKind.Multiply,
+            FlowOpcode.Divide => FlowNodeKind.Divide,
+            FlowOpcode.Power => FlowNodeKind.Power,
+            FlowOpcode.Negate => FlowNodeKind.Negate,
             FlowOpcode.Average => FlowNodeKind.Average,
             FlowOpcode.Comparator => ConfigureComparator(
                 configuration,
@@ -472,10 +477,18 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
             case FlowOpcode.Xor:
             case FlowOpcode.Xnor:
             case FlowOpcode.Add:
+            case FlowOpcode.Subtract:
+            case FlowOpcode.Multiply:
+            case FlowOpcode.Divide:
+            case FlowOpcode.Power:
             case FlowOpcode.Average:
             case FlowOpcode.Comparator:
                 AddInputConnection("a", instruction.Operand0);
                 AddInputConnection("b", instruction.Operand1);
+                break;
+
+            case FlowOpcode.Negate:
+                AddInputConnection("in", instruction.Operand0);
                 break;
 
             case FlowOpcode.LevelShifter:
@@ -1092,6 +1105,9 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
             FlowNodeKind.Memory => [NumberInput("in", "Input"), NumberOutput("value", "Previous value")],
             FlowNodeKind.NumericConstant => [NumberOutput("value", "Value")],
             FlowNodeKind.Add => [NumberInput("a", "A"), NumberInput("b", "B"), NumberOutput("value", "Value")],
+            FlowNodeKind.Subtract or FlowNodeKind.Multiply or FlowNodeKind.Divide or FlowNodeKind.Power =>
+                [NumberInput("a", "A"), NumberInput("b", "B"), NumberOutput("value", "Value")],
+            FlowNodeKind.Negate => [NumberInput("in", "Input"), NumberOutput("value", "Value")],
             FlowNodeKind.Calculator =>
                 [NumberInput("a", "A"), NumberInput("b", "B"), NumberInput("c", "C"), NumberOutput("output", "Output")],
             FlowNodeKind.Comparator => [NumberInput("a", "A"), NumberInput("b", "B"), BooleanOutput("value", "Value")],

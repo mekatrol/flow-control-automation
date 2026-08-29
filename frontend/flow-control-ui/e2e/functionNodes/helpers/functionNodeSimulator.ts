@@ -78,6 +78,9 @@ export const applyAnalogInputs = async (
   );
   await panel.getByRole('button', { name: 'Apply' }).click();
   const response = await applied;
+  const body = (await response.json()) as {
+    io?: { inputs?: Array<{ pointId: string; typedValue: { boolean: boolean; number: number } }> };
+  };
   const request = response.request().postDataJSON() as {
     inputs: Array<{ inputId: string; typedValue: { boolean: boolean; number: number } }>;
   };
@@ -85,6 +88,9 @@ export const applyAnalogInputs = async (
     const submitted = request.inputs.find(({ inputId }) => inputId === pointId)?.typedValue;
     expect(submitted, `Apply must submit ${pointId}.`).toBeDefined();
     expect(typeof expected === 'boolean' ? submitted!.boolean : submitted!.number).toBe(expected);
+    const appliedValue = body.io?.inputs?.find(({ pointId: id }) => id === pointId)?.typedValue;
+    expect(appliedValue, `Simulator must apply ${pointId} before stepping.`).toBeDefined();
+    expect(typeof expected === 'boolean' ? appliedValue!.boolean : appliedValue!.number).toBe(expected);
   }
 };
 
@@ -114,6 +120,9 @@ export const applyInputs = async (
   );
   await panel.getByRole('button', { name: 'Apply' }).click();
   const response = await applied;
+  const body = (await response.json()) as {
+    io?: { inputs?: Array<{ pointId: string; typedValue: { boolean: boolean; number: number } }> };
+  };
   const request = response.request().postDataJSON() as {
     inputs: Array<{ inputId: string; typedValue: { boolean: boolean; number: number } }>;
   };
@@ -121,6 +130,9 @@ export const applyInputs = async (
     const submitted = request.inputs.find(({ inputId }) => inputId === pointId)?.typedValue;
     expect(submitted, `Apply must submit ${pointId}.`).toBeDefined();
     expect(typeof expected === 'boolean' ? submitted!.boolean : submitted!.number).toBe(expected);
+    const appliedValue = body.io?.inputs?.find(({ pointId: id }) => id === pointId)?.typedValue;
+    expect(appliedValue, `Simulator must apply ${pointId} before stepping.`).toBeDefined();
+    expect(typeof expected === 'boolean' ? appliedValue!.boolean : appliedValue!.number).toBe(expected);
   }
 };
 

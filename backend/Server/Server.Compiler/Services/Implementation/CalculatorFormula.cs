@@ -52,7 +52,9 @@ internal static class CalculatorFormula
         private int _position;
         public bool AtEnd => _position >= text.Length;
         public char Current => AtEnd ? '\0' : text[_position];
-        public void SkipWhitespace() { while (!AtEnd && char.IsWhiteSpace(Current))
+        public void SkipWhitespace()
+        {
+            while (!AtEnd && char.IsWhiteSpace(Current))
             {
                 _position++;
             }

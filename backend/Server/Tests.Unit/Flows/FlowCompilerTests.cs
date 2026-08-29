@@ -4,6 +4,7 @@ using Server.Compiler.Contracts;
 using Server.Compiler.Extensions;
 using Server.Compiler.Services;
 using Server.Services.Contracts;
+using Server.Services.Implementation;
 using System.Text.Json;
 using Tests.Unit.Helpers;
 
@@ -32,7 +33,7 @@ public sealed class FlowCompilerTests
 
     private static readonly FlowNodeKind[] FlowFunctionKinds =
     [
-        FlowNodeKind.A2D, FlowNodeKind.Add, FlowNodeKind.AnalogInput, FlowNodeKind.AnalogOutput, FlowNodeKind.And, FlowNodeKind.Average, FlowNodeKind.Calculator, FlowNodeKind.Calendar,
+        FlowNodeKind.A2D, FlowNodeKind.Add, FlowNodeKind.Subtract, FlowNodeKind.Multiply, FlowNodeKind.Divide, FlowNodeKind.Power, FlowNodeKind.Negate, FlowNodeKind.AnalogInput, FlowNodeKind.AnalogOutput, FlowNodeKind.And, FlowNodeKind.Average, FlowNodeKind.Calculator, FlowNodeKind.Calendar,
         FlowNodeKind.Clamp, FlowNodeKind.Comparator, FlowNodeKind.Delay, FlowNodeKind.DigitalConstant, FlowNodeKind.DigitalInput, FlowNodeKind.DigitalOutput,
         FlowNodeKind.DigitalSwitch, FlowNodeKind.Line, FlowNodeKind.LevelShifter, FlowNodeKind.Max, FlowNodeKind.Memory, FlowNodeKind.Min,
         FlowNodeKind.Nand, FlowNodeKind.Nor, FlowNodeKind.Not, FlowNodeKind.NumericConstant, FlowNodeKind.OnDelay, FlowNodeKind.Or, FlowNodeKind.Override, FlowNodeKind.Pulse,
@@ -60,11 +61,11 @@ public sealed class FlowCompilerTests
     {
         var numericInputs = kind switch
         {
-            FlowNodeKind.Add or FlowNodeKind.Average or FlowNodeKind.Comparator or FlowNodeKind.Min or FlowNodeKind.Max => ["a", "b"],
+            FlowNodeKind.Add or FlowNodeKind.Subtract or FlowNodeKind.Multiply or FlowNodeKind.Divide or FlowNodeKind.Power or FlowNodeKind.Average or FlowNodeKind.Comparator or FlowNodeKind.Min or FlowNodeKind.Max => ["a", "b"],
             FlowNodeKind.AnalogSwitch => ["a", "b"],
             FlowNodeKind.Calculator => ["a", "b", "c"],
             FlowNodeKind.Clamp or FlowNodeKind.Line or FlowNodeKind.Split => new[] { "input" },
-            FlowNodeKind.LevelShifter or FlowNodeKind.A2D => ["in"],
+            FlowNodeKind.LevelShifter or FlowNodeKind.A2D or FlowNodeKind.Negate => ["in"],
             FlowNodeKind.AnalogOutput => ["in"],
             FlowNodeKind.Memory or FlowNodeKind.QualityGood => ["in"],
             _ => []
@@ -372,6 +373,66 @@ public sealed class FlowCompilerTests
             Assert.That(result.SlotCount, Is.EqualTo(8));
             Assert.That(result.NodeIndices["test-node"], Is.LessThan(result.SlotCount));
         });
+    }
+
+    [Test]
+    public void DivideExecutesWithBothNumericOperands()
+    {
+        var source = GetSourceFromKind(FlowNodeKind.Divide);
+        source = source with
+        {
+            Nodes = [.. source.Nodes.Select(node => node.Id switch
+            {
+                "number-a" => node with { Configuration = Config("value", 9D) },
+                "number-b" => node with { Configuration = Config("value", 5D) },
+                _ => node
+            })]
+        };
+        var compilation = _compiler.Compile(BuildCompilationRequest(source));
+        using var machine = new ManagedFlowVirtualMachineFactory().Create(compilation.Artifact);
+
+        var scan = machine.Scan([], 1);
+
+        Assert.That(scan.Slots[compilation.NodeIndices["test-node"]].Number, Is.EqualTo(1.8));
+    }
+
+    [Test]
+    public void DivideExecutesWithAnalogPointInputsAndOutput()
+    {
+        var source = GetSourceFromKind(FlowNodeKind.Divide);
+        source = source with
+        {
+            Nodes =
+            [
+                .. source.Nodes.Select(node => node.Id switch
+                {
+                    "number-a" => node with { Kind = FlowNodeKind.AnalogInput, Configuration = Config("pointId", "input-a") },
+                    "number-b" => node with { Kind = FlowNodeKind.AnalogInput, Configuration = Config("pointId", "input-b") },
+                    _ => node
+                }),
+                new ExecutableFlowNode
+                {
+                    Id = "output",
+                    Kind = FlowNodeKind.AnalogOutput,
+                    Configuration = Config("pointId", "output")
+                }
+            ],
+            Connections =
+            [
+                .. source.Connections,
+                new ExecutableFlowConnection(
+                    new ExecutableFlowEndpoint("test-node", "value"),
+                    new ExecutableFlowEndpoint("output", "in"))
+            ]
+        };
+        var compilation = _compiler.Compile(BuildCompilationRequest(source));
+        using var machine = new ManagedFlowVirtualMachineFactory().Create(compilation.Artifact);
+
+        var scan = machine.Scan(
+            [new FlowVmInput("input-a", FlowVmValue.FromNumber(9)), new FlowVmInput("input-b", FlowVmValue.FromNumber(5))],
+            1);
+
+        Assert.That(scan.Commands.Single().TypedValue.Number, Is.EqualTo(1.8));
     }
 
     [TestCase("a * 9 + c")]

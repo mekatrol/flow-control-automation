@@ -6,6 +6,11 @@ export type FlowStatus = 'draft' | 'deployed';
 export enum FlowNodeFunctionType {
   A2D = 'a2d',
   Add = 'add',
+  Subtract = 'subtract',
+  Multiply = 'multiply',
+  Divide = 'divide',
+  Power = 'power',
+  Negate = 'negate',
   AnalogInput = 'analogInput',
   AnalogOutput = 'analogOutput',
   And = 'and',

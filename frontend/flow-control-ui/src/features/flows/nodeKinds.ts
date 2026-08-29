@@ -30,6 +30,16 @@ const numberConnectors = (): FlowNodeConnector[] => [
   { id: 'input', label: 'Values', direction: 'input', dataType: 'number', side: 'left' },
   { id: 'output', label: 'Result', direction: 'output', dataType: 'number', side: 'right' }
 ];
+const binaryArithmetic = (kind: FlowNodeFunctionType): NodeKindDefinition =>
+  executableDefinition(
+    kind,
+    [
+      { id: 'a', label: 'A', direction: 'input', dataType: 'number', side: 'left' },
+      { id: 'b', label: 'B', direction: 'input', dataType: 'number', side: 'left' },
+      { id: 'value', label: 'Value', direction: 'output', dataType: 'number', side: 'right' }
+    ],
+    [], {}, 'maths'
+  );
 const booleanPort = (
   id: string,
   label: string,
@@ -73,6 +83,17 @@ const executableDefinition = (
 });
 
 export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
+  [FlowNodeFunctionType.Subtract]: binaryArithmetic(FlowNodeFunctionType.Subtract),
+  [FlowNodeFunctionType.Multiply]: binaryArithmetic(FlowNodeFunctionType.Multiply),
+  [FlowNodeFunctionType.Divide]: binaryArithmetic(FlowNodeFunctionType.Divide),
+  [FlowNodeFunctionType.Power]: binaryArithmetic(FlowNodeFunctionType.Power),
+  [FlowNodeFunctionType.Negate]: executableDefinition(
+    FlowNodeFunctionType.Negate,
+    [
+      { id: 'in', label: 'Input', direction: 'input', dataType: 'number', side: 'left' },
+      { id: 'value', label: 'Value', direction: 'output', dataType: 'number', side: 'right' }
+    ], [], {}, 'maths'
+  ),
   [FlowNodeFunctionType.A2D]: executableDefinition(
     FlowNodeFunctionType.A2D,
     [

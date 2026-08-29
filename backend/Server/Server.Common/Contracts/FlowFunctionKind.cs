@@ -36,5 +36,10 @@ public enum FlowFunctionKind : byte
     [JsonStringEnumMemberName("a2d")]
     A2D,
     [JsonStringEnumMemberName("d2a")]
-    D2A
+    D2A,
+    Subtract,
+    Multiply,
+    Divide,
+    Power,
+    Negate
 }

@@ -314,6 +314,53 @@ public sealed class FlowDecompilerTests
             new ExecutableFlowEndpoint("calculator", port));
     }
 
+    [TestCase(FlowNodeKind.Subtract)]
+    [TestCase(FlowNodeKind.Multiply)]
+    [TestCase(FlowNodeKind.Divide)]
+    [TestCase(FlowNodeKind.Power)]
+    [TestCase(FlowNodeKind.Negate)]
+    public void RoundTripsDiscreteArithmeticNodesAsPrimaryInstructions(FlowNodeKind kind)
+    {
+        var unary = kind == FlowNodeKind.Negate;
+        var source = new ExecutableFlowSource
+        {
+            Id = $"round-trip-{kind}",
+            Revision = 1,
+            ControllerTemplateId = "arithmetic-target",
+            ControllerTemplateRevision = 1,
+            Nodes = unary
+                ? [ArithmeticConstant("a", 8), ArithmeticNode(kind)]
+                : [ArithmeticConstant("a", 8), ArithmeticConstant("b", 3), ArithmeticNode(kind)],
+            Connections = unary
+                ? [ArithmeticConnection("a", "in")]
+                : [ArithmeticConnection("a", "a"), ArithmeticConnection("b", "b")]
+        };
+        var original = _compiler.Compile(CompilationRequest(source, null));
+
+        var recovered = _decompiler.Decompile(original.Artifact);
+        var recompiled = _compiler.Compile(CompilationRequest(RecoveredSource(recovered), null));
+
+        Assert.That(recovered.Flow.Nodes.Single(node => node.Id == "operation").Kind, Is.EqualTo(kind));
+        AssertArtifactsEqual(original.Artifact.ToArray(), recompiled.Artifact.ToArray());
+
+        static ExecutableFlowNode ArithmeticConstant(string id, double value) => new()
+        {
+            Id = id,
+            Kind = FlowNodeKind.NumericConstant,
+            Label = id,
+            Configuration = Configuration("value", value)
+        };
+        static ExecutableFlowNode ArithmeticNode(FlowNodeKind kind) => new()
+        {
+            Id = "operation",
+            Kind = kind,
+            Label = kind.ToString()
+        };
+        static ExecutableFlowConnection ArithmeticConnection(string source, string port) => new(
+            new ExecutableFlowEndpoint(source, "value"),
+            new ExecutableFlowEndpoint("operation", port));
+    }
+
     [Test]
     public void RejectsCorruptArtifactsBeforeReadingInstructions()
     {

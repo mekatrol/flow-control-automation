@@ -466,8 +466,22 @@ public sealed class FlowDebugService(
         {
             var local = GetLocal(flowId, sessionId);
             await EnsureFrameAsync(local, cancellationToken);
-            var scan = local.Machine.CommitScan();
-            local.Frame = null;
+            FlowVmScanResult scan;
+            try
+            {
+                scan = local.Machine.CommitScan();
+                local.Frame = null;
+            }
+            catch
+            {
+                // A failed instruction must not leave a partially evaluated scan
+                // available for the next simulator step. In particular, analog
+                // inputs initially default to zero, so a Divide node can encounter
+                // 0 / 0 before the operator supplies its first simulated values.
+                local.Machine.AbortScan();
+                local.Frame = null;
+                throw;
+            }
             if (local.Emulator is not null)
             {
                 local.Emulator.Publish(scan);

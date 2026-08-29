@@ -2,7 +2,7 @@ import { defineFunctionNodeTest, test } from './helpers/functionNodeCase';
 
 test(...defineFunctionNodeTest({
   kind: 'delay',
-  configuration: { 'Duration (ms)': 0 },
+  configuration: { 'Duration (ms)': 2000 },
   vectors: [
     { inputs: { input: false }, expected: false },
     { inputs: { input: true }, expected: true },

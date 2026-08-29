@@ -293,6 +293,11 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         [FlowNodeKind.Xnor] = new([new("a", DataDirection.Input, DataType.Boolean), new("b", DataDirection.Input, DataType.Boolean), new("value", DataDirection.Output, DataType.Boolean)]),
         [FlowNodeKind.NumericConstant] = new([new("value", DataDirection.Output, DataType.Number)]),
         [FlowNodeKind.Add] = new([new("a", DataDirection.Input, DataType.Number), new("b", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Number)]),
+        [FlowNodeKind.Subtract] = new([new("a", DataDirection.Input, DataType.Number), new("b", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Number)]),
+        [FlowNodeKind.Multiply] = new([new("a", DataDirection.Input, DataType.Number), new("b", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Number)]),
+        [FlowNodeKind.Divide] = new([new("a", DataDirection.Input, DataType.Number), new("b", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Number)]),
+        [FlowNodeKind.Power] = new([new("a", DataDirection.Input, DataType.Number), new("b", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Number)]),
+        [FlowNodeKind.Negate] = new([new("in", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Number)]),
         [FlowNodeKind.Comparator] = new([new("a", DataDirection.Input, DataType.Number), new("b", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Boolean)]),
         [FlowNodeKind.LevelShifter] = new([new("in", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Number)]),
         [FlowNodeKind.QualityGood] = new([new("in", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Boolean)]),
@@ -1520,7 +1525,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         if (source.Nodes.Any(node =>
                 node.Kind is
                     FlowNodeKind.NumericConstant or
-                    FlowNodeKind.Add or
+                    FlowNodeKind.Add or FlowNodeKind.Subtract or FlowNodeKind.Multiply or FlowNodeKind.Divide or FlowNodeKind.Power or FlowNodeKind.Negate or
                     FlowNodeKind.Comparator or
                     FlowNodeKind.LevelShifter or
                     FlowNodeKind.Average or
@@ -2018,7 +2023,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             FlowNodeKind.Xor or
             FlowNodeKind.Xnor => CreateBooleanInstruction(context, node),
 
-            FlowNodeKind.Add or
+            FlowNodeKind.Add or FlowNodeKind.Subtract or FlowNodeKind.Multiply or FlowNodeKind.Divide or FlowNodeKind.Power or FlowNodeKind.Negate or
             FlowNodeKind.Comparator or
             FlowNodeKind.LevelShifter or
             FlowNodeKind.QualityGood or
@@ -2198,6 +2203,16 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                     ),
                     context.NodeId,
                     NodeInstructionRole.Primary),
+
+            FlowNodeKind.Subtract => CreateBinaryNumericInstruction(context, FlowOpcode.Subtract),
+            FlowNodeKind.Multiply => CreateBinaryNumericInstruction(context, FlowOpcode.Multiply),
+            FlowNodeKind.Divide => CreateBinaryNumericInstruction(context, FlowOpcode.Divide),
+            FlowNodeKind.Power => CreateBinaryNumericInstruction(context, FlowOpcode.Power),
+            FlowNodeKind.Negate => new(
+                new(FlowOpcode.Negate, context.ResultSlotIndex,
+                    InputSlot(context.Source, context.Slots, context.NodeId, "in"),
+                    FlowILV1Format.Unused, FlowILV1Format.Unused),
+                context.NodeId, NodeInstructionRole.Primary),
 
             FlowNodeKind.Comparator =>
                 new(
@@ -3015,7 +3030,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
     {
         if (node.Kind is
             FlowNodeKind.NumericConstant or
-            FlowNodeKind.Add or
+            FlowNodeKind.Add or FlowNodeKind.Subtract or FlowNodeKind.Multiply or FlowNodeKind.Divide or FlowNodeKind.Power or FlowNodeKind.Negate or
             FlowNodeKind.LevelShifter or
             FlowNodeKind.AnalogInput or
             FlowNodeKind.AnalogOutput or
@@ -3343,7 +3358,9 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             {
                 FlowNodeKind.AnalogInput => request.Target.Points.SingleOrDefault(point => point.Id == node.Configuration["pointId"].GetString())?.Units,
                 FlowNodeKind.NumericConstant => null,
-                FlowNodeKind.Add => RequireMatchingUnits(source, units, id, "a", "b"),
+                FlowNodeKind.Add or FlowNodeKind.Subtract => RequireMatchingUnits(source, units, id, "a", "b"),
+                FlowNodeKind.Multiply or FlowNodeKind.Divide or FlowNodeKind.Power => null,
+                FlowNodeKind.Negate => units[SourceNode(source, id, "in")],
                 FlowNodeKind.Comparator => RequireMatchingUnits(source, units, id, "a", "b"),
                 FlowNodeKind.LevelShifter => units[SourceNode(source, id, "in")],
                 FlowNodeKind.Average => units[SourceNode(source, id, "a")],
