@@ -403,7 +403,7 @@ export const flowNodeKinds = Object.keys(nodeKindRegistry) as FlowNodeKind[];
 // Palette availability is intentionally separate from the canonical registry.
 // Hidden kinds must remain registered so existing flows can still be loaded,
 // rendered, edited, and deleted while users are prevented from adding new ones.
-const defaultHiddenFlowNodeKinds = 'calculator';
+const defaultHiddenFlowNodeKinds = '';
 
 // Playwright also imports this registry directly in Node while discovering its
 // function-node cases, where Vite does not provide import.meta.env.
