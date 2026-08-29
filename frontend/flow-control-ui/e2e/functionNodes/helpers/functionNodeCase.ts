@@ -1,4 +1,4 @@
-import type { Page, TestInfo } from '@playwright/test';
+import { expect, type Page, type TestInfo } from '@playwright/test';
 
 import {
   addNode,
@@ -25,6 +25,8 @@ export { test };
 export interface FunctionVector {
   inputs: Record<string, boolean | number>;
   expected: boolean | number;
+  expectedBeforeAdvance?: boolean | number;
+  advanceMs?: number;
   expectedError?: boolean;
 }
 
@@ -117,15 +119,33 @@ export const runFunctionNodeCase = async (
   await saveFlow(page, flowId);
   const simulation = await startSimulation(page, flowId);
   try {
+    if (testCase.vectors.some(({ advanceMs }) => advanceMs !== undefined)) {
+      const response = await page.request.post(
+        `/api/flows/${encodeURIComponent(simulation.flowId)}/simulator-sessions/${encodeURIComponent(simulation.sessionId)}/pause`
+      );
+      expect(response.ok(), await response.text()).toBeTruthy();
+    }
     for (const vector of testCase.vectors) {
+      let values: Record<string, boolean | number> | undefined;
       if (inputs.length) {
-        const values = Object.fromEntries(
+        values = Object.fromEntries(
           Object.entries(vector.inputs).map(([connectorId, value]) => [
             pointIds[connectorId]!,
             value
           ])
         );
         await applyInputs(page, values);
+      }
+      if (vector.expectedBeforeAdvance !== undefined) {
+        await expectOutput(page, outputPointIds[output.id]!, vector.expectedBeforeAdvance);
+      }
+      if (vector.advanceMs !== undefined) {
+        const response = await page.request.post(
+          `/api/flows/${encodeURIComponent(simulation.flowId)}/simulator-sessions/${encodeURIComponent(simulation.sessionId)}/advance`,
+          { data: { milliseconds: vector.advanceMs, scan: true } }
+        );
+        expect(response.ok(), await response.text()).toBeTruthy();
+        if (values) await applyInputs(page, values);
       }
       await expectOutput(page, outputPointIds[output.id]!, vector.expected);
       if (vector.expectedError !== undefined) {

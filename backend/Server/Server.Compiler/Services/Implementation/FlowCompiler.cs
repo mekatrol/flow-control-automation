@@ -764,10 +764,10 @@ internal sealed partial class FlowCompiler : IFlowCompiler
      *
      * These nodes need to remember information between scans. For example:
      *
-     *     OnDelay / Delay / Timer
+     *     OnDelay / Delay / Timer / Pulse
      *         need timer state so timing can continue across scans.
      *
-     *     RisingEdge / Pulse
+     *     RisingEdge
      *         need previous-value/event state so a change can be detected on a
      *         later scan.
      *
@@ -1280,13 +1280,13 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 U16(model.StateSlots[id]),
                 U16(ConstantIndex(model.Constants, GetNumericConstant(model.Nodes[id], "value")))),
 
-            FlowNodeKind.OnDelay or FlowNodeKind.Delay or FlowNodeKind.Timer => Concat(
+            FlowNodeKind.OnDelay or FlowNodeKind.Delay or FlowNodeKind.Timer or FlowNodeKind.Pulse => Concat(
                 [4, 1],
                 U16(0),
                 U16(model.StateSlots[id]),
                 U16(ConstantIndex(model.Constants, GetNumericConstant(model.Nodes[id], "durationMs")))),
 
-            FlowNodeKind.RisingEdge or FlowNodeKind.Pulse => Concat(
+            FlowNodeKind.RisingEdge => Concat(
                 [5, 1],
                 U16(0),
                 U16(model.StateSlots[id]),
@@ -1585,7 +1585,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             capabilities |= FlowILCapability.Quality;
         }
 
-        if (source.Nodes.Any(node => node.Kind is FlowNodeKind.OnDelay or FlowNodeKind.Delay or FlowNodeKind.Timer))
+        if (source.Nodes.Any(node => node.Kind is FlowNodeKind.OnDelay or FlowNodeKind.Delay or FlowNodeKind.Timer or FlowNodeKind.Pulse))
         {
             capabilities |= FlowILCapability.Timer;
         }
@@ -2428,7 +2428,19 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                     context.NodeId,
                     NodeInstructionRole.Primary),
 
-            FlowNodeKind.Delay or FlowNodeKind.Timer =>
+            FlowNodeKind.Delay =>
+                new(
+                    new(
+                        FlowOpcode.Delay,
+                        context.ResultSlotIndex,
+                        InputSlot(context.Source, context.Slots, context.NodeId, "input"),
+                        FlowILV1Format.Unused,
+                        context.StateSlots[context.NodeId]
+                    ),
+                    context.NodeId,
+                    NodeInstructionRole.Primary),
+
+            FlowNodeKind.Timer =>
                 new(
                     new(
                         FlowOpcode.OnDelay,
@@ -2443,7 +2455,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             FlowNodeKind.Pulse =>
                 new(
                     new(
-                        FlowOpcode.RisingEdge,
+                        FlowOpcode.Pulse,
                         context.ResultSlotIndex,
                         InputSlot(context.Source, context.Slots, context.NodeId, "input"),
                         FlowILV1Format.Unused,
@@ -2827,7 +2839,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             ValidateFiniteNumber(node, path, "lowValue");
             ValidateFiniteNumber(node, path, "highValue");
         }
-        else if (node.Kind is FlowNodeKind.OnDelay or FlowNodeKind.Delay or FlowNodeKind.Timer)
+        else if (node.Kind is FlowNodeKind.OnDelay or FlowNodeKind.Delay or FlowNodeKind.Timer or FlowNodeKind.Pulse)
         {
             ValidateFiniteNumber(node, path, "durationMs");
             var duration = node.Configuration["durationMs"].GetDouble();
@@ -2994,11 +3006,11 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             yield return GetNumericConstant(node, "lowValue");
             yield return GetNumericConstant(node, "highValue");
         }
-        else if (node.Kind is FlowNodeKind.OnDelay or FlowNodeKind.Delay or FlowNodeKind.Timer)
+        else if (node.Kind is FlowNodeKind.OnDelay or FlowNodeKind.Delay or FlowNodeKind.Timer or FlowNodeKind.Pulse)
         {
             yield return GetNumericConstant(node, "durationMs");
         }
-        else if (node.Kind is FlowNodeKind.RisingEdge or FlowNodeKind.Pulse)
+        else if (node.Kind is FlowNodeKind.RisingEdge)
         {
             yield return GetBooleanConstant(false);
         }

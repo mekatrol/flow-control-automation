@@ -96,7 +96,7 @@ public sealed class FlowCompilerTests
                 Config("formula", "a * b + c"),
             FlowNodeKind.LevelShifter or FlowNodeKind.Line =>
                 Config(("gain", 1D), ("offset", 0D)),
-            FlowNodeKind.OnDelay or FlowNodeKind.Delay or FlowNodeKind.Timer =>
+            FlowNodeKind.OnDelay or FlowNodeKind.Delay or FlowNodeKind.Timer or FlowNodeKind.Pulse =>
                 Config("durationMs", 100D),
             FlowNodeKind.Clamp => Config(("minimum", 0D), ("maximum", 100D)),
             FlowNodeKind.A2D => Config(("activeLowThreshold", 25D), ("activeHighThreshold", 75D)),
@@ -397,6 +397,57 @@ public sealed class FlowCompilerTests
     }
 
     [Test]
+    public void DelayPostponesBothBooleanStateChangesForTheConfiguredDuration()
+    {
+        var source = GetSourceFromKind(FlowNodeKind.Delay);
+        source = source with
+        {
+            Nodes =
+            [
+                .. source.Nodes.Select(node => node.Id switch
+                {
+                    "boolean-input" => node with
+                    {
+                        Kind = FlowNodeKind.DigitalInput,
+                        Configuration = Config("pointId", "input")
+                    },
+                    "test-node" => node with { Configuration = Config("durationMs", 2_000D) },
+                    _ => node
+                }),
+                new ExecutableFlowNode
+                {
+                    Id = "output",
+                    Kind = FlowNodeKind.DigitalOutput,
+                    Configuration = Config("pointId", "output")
+                }
+            ],
+            Connections =
+            [
+                .. source.Connections,
+                new(new("test-node", "output"), new("output", "in"))
+            ]
+        };
+        var compilation = _compiler.Compile(BuildCompilationRequest(source));
+        using var machine = new ManagedFlowVirtualMachineFactory().Create(compilation.Artifact);
+
+        bool Scan(bool input, ulong sampledAt) => machine
+            .Scan([new("input", input)], sampledAt)
+            .Commands.Single()
+            .TypedValue.Boolean;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Scan(false, 0), Is.False);
+            Assert.That(Scan(true, 0), Is.False);
+            Assert.That(Scan(true, 1_999), Is.False);
+            Assert.That(Scan(true, 2_000), Is.True);
+            Assert.That(Scan(false, 2_000), Is.True);
+            Assert.That(Scan(false, 3_999), Is.True);
+            Assert.That(Scan(false, 4_000), Is.False);
+        });
+    }
+
+    [Test]
     public void DivideExecutesWithAnalogPointInputsAndOutput()
     {
         var source = GetSourceFromKind(FlowNodeKind.Divide);
@@ -476,6 +527,57 @@ public sealed class FlowCompilerTests
             Assert.That(overflow.Commands.Single(command => command.PointId == "error-output").TypedValue.Boolean, Is.True);
             Assert.That(recovered.Commands.Single(command => command.PointId == "value-output").TypedValue.Number, Is.EqualTo(-4));
             Assert.That(recovered.Commands.Single(command => command.PointId == "error-output").TypedValue.Boolean, Is.False);
+        });
+    }
+
+    [Test]
+    public void PulseRemainsOnForTheConfiguredDurationAndRequiresAnotherRisingEdge()
+    {
+        var source = GetSourceFromKind(FlowNodeKind.Pulse);
+        source = source with
+        {
+            Nodes =
+            [
+                .. source.Nodes.Select(node => node.Id switch
+                {
+                    "boolean-input" => node with
+                    {
+                        Kind = FlowNodeKind.DigitalInput,
+                        Configuration = Config("pointId", "input")
+                    },
+                    "test-node" => node with { Configuration = Config("durationMs", 2_000D) },
+                    _ => node
+                }),
+                new ExecutableFlowNode
+                {
+                    Id = "output",
+                    Kind = FlowNodeKind.DigitalOutput,
+                    Configuration = Config("pointId", "output")
+                }
+            ],
+            Connections =
+            [
+                .. source.Connections,
+                new(new("test-node", "output"), new("output", "in"))
+            ]
+        };
+        var compilation = _compiler.Compile(BuildCompilationRequest(source));
+        using var machine = new ManagedFlowVirtualMachineFactory().Create(compilation.Artifact);
+
+        bool Scan(bool input, ulong sampledAt) => machine
+            .Scan([new("input", input)], sampledAt)
+            .Commands.Single()
+            .TypedValue.Boolean;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Scan(false, 0), Is.False);
+            Assert.That(Scan(true, 0), Is.True);
+            Assert.That(Scan(true, 1_999), Is.True);
+            Assert.That(Scan(true, 2_000), Is.False);
+            Assert.That(Scan(true, 3_000), Is.False);
+            Assert.That(Scan(false, 3_000), Is.False);
+            Assert.That(Scan(true, 3_000), Is.True);
         });
     }
 

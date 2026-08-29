@@ -444,7 +444,22 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
                 decoded.Slots,
                 decoded.Constants,
                 instruction.Auxiliary,
-                instructionIndex),
+                instructionIndex,
+                FlowNodeKind.OnDelay),
+            FlowOpcode.Delay => ConfigureTimer(
+                configuration,
+                decoded.Slots,
+                decoded.Constants,
+                instruction.Auxiliary,
+                instructionIndex,
+                FlowNodeKind.Delay),
+            FlowOpcode.Pulse => ConfigureTimer(
+                configuration,
+                decoded.Slots,
+                decoded.Constants,
+                instruction.Auxiliary,
+                instructionIndex,
+                FlowNodeKind.Pulse),
             FlowOpcode.RisingEdge => FlowNodeKind.RisingEdge,
             _ => throw Error(FlowCompilationDiagnosticCode.UnsupportedOpcode, $"/instructions/{instructionIndex}/opcode", instruction.Opcode)
         };
@@ -497,6 +512,11 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
             case FlowOpcode.RisingEdge:
             case FlowOpcode.PointOutput:
                 AddInputConnection("in", instruction.Operand0);
+                break;
+
+            case FlowOpcode.Delay:
+            case FlowOpcode.Pulse:
+                AddInputConnection("input", instruction.Operand0);
                 break;
         }
 
@@ -1042,7 +1062,8 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
         IReadOnlyDictionary<ushort, SlotRecord> slots,
         IReadOnlyList<ConstantRecord> constants,
         ushort stateSlotIndex,
-        int instructionIndex)
+        int instructionIndex,
+        FlowNodeKind kind)
     {
         if (!slots.TryGetValue(stateSlotIndex, out var slot)
             || slot.Kind != FlowSlotKind.TimerState
@@ -1059,7 +1080,7 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
 
         configuration["durationMs"] = JsonSerializer.SerializeToElement(constants[timerState.InitialConstant].Number);
 
-        return FlowNodeKind.OnDelay;
+        return kind;
     }
 
     /*

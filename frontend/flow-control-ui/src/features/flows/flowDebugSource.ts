@@ -91,7 +91,7 @@ const configurationFor = (node: FlowNode): Record<string, unknown> => {
   if (node.kind === 'levelShifter')
     return { gain: Number(node.configuration.gain), offset: Number(node.configuration.offset) };
   if (node.kind === 'onDelay') return { durationMs: Number(node.configuration.durationMs) };
-  if (node.kind === 'delay' || node.kind === 'timer')
+  if (node.kind === 'delay' || node.kind === 'pulse' || node.kind === 'timer')
     return { durationMs: Number(node.configuration.durationMs) };
   if (node.kind === 'clamp')
     return {

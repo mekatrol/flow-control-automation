@@ -44,16 +44,16 @@ describe('default node creation', () => {
     const first = createDefaultNode('pulse', { x: 0, y: 0 }, 0, 'first');
     const second = createDefaultNode('pulse', { x: 0, y: 0 }, 1, 'second');
     first.connectors[0]!.label = 'Changed';
-    first.configuration.durationSeconds = 99;
+    first.configuration.durationMs = 99;
 
     // Expected outcome: `second.connectors[0]!.label` has the required value.
     // Acceptance criteria: `second.connectors[0]!.label` must be `'Changed'`, because this condition proves that
     // does not share mutable connector or configuration defaults.
     expect(second.connectors[0]!.label).not.toBe('Changed');
 
-    // Expected outcome: `second.configuration.durationSeconds` has the required value.
-    // Acceptance criteria: `second.configuration.durationSeconds` must be `30`, because this condition proves that
+    // Expected outcome: `second.configuration.durationMs` has the required value.
+    // Acceptance criteria: `second.configuration.durationMs` must be `1000`, because this condition proves that
     // does not share mutable connector or configuration defaults.
-    expect(second.configuration).toEqual({});
+    expect(second.configuration).toEqual({ durationMs: 1000 });
   });
 });

@@ -47,6 +47,8 @@ enum
     OPCODE_NEGATE               = 35,
     OPCODE_CALCULATOR           = 36,
     OPCODE_CALCULATOR_INPUTS    = 37,
+    OPCODE_DELAY                = 38,
+    OPCODE_PULSE                = 39,
     OPCODE_COMMIT               = 255,
     RETAINED_STATE_RECORD_BYTES = 9,
 };
@@ -487,7 +489,7 @@ flow_vm_result_t flow_vm_prepare(const uint8_t *artifact, size_t artifact_size, 
         instruction->auxiliary             = get_u16(&record[8]);
 
         if (record[1] != 0U || get_u16(&record[10]) != 0U || instruction->opcode == 0U ||
-            (instruction->opcode > OPCODE_CALCULATOR_INPUTS && instruction->opcode != OPCODE_COMMIT) ||
+            (instruction->opcode > OPCODE_PULSE && instruction->opcode != OPCODE_COMMIT) ||
             (instruction->opcode > OPCODE_AVERAGE && instruction->opcode < OPCODE_SUBTRACT))
         {
             return get_result(FLOW_VM_UNKNOWN_OPCODE, "/instructions");
@@ -949,6 +951,83 @@ flow_vm_result_t flow_vm_step_instruction(flow_vm_t *vm, flow_vm_execution_view_
             }
 
             vm->staged_state_valid[state] = true;
+            break;
+        }
+
+        case OPCODE_DELAY: {
+            if (instruction->auxiliary < vm->state_slot_base || instruction->auxiliary - vm->state_slot_base >= vm->state_count)
+            {
+                return get_result(FLOW_VM_INVALID_OPERAND, "/instructions/timer");
+            }
+
+            const uint16_t state = instruction->auxiliary - vm->state_slot_base;
+            bool output          = vm->current_state[state];
+
+            /* A return to the published state cancels a pending transition so short-lived input changes do not leak through. */
+            if (vm->working_slots[instruction->operand0] == output)
+            {
+                vm->staged_timer_started_at_ms[state] = 0U;
+            }
+            else
+            {
+                /* Encode the start time plus one because zero denotes an inactive timer, including when a change begins at clock zero. */
+                if (vm->timer_started_at_ms[state] == 0U)
+                {
+                    vm->staged_timer_started_at_ms[state] = vm->sampled_at_ms + 1U;
+                }
+
+                const uint64_t marker = vm->timer_started_at_ms[state] == 0U
+                                            ? vm->staged_timer_started_at_ms[state]
+                                            : vm->timer_started_at_ms[state];
+                const uint64_t started = marker - 1U;
+
+                /* Publish and retain the new state only after it has remained stable for the complete configured interval. */
+                if (vm->sampled_at_ms >= started && vm->sampled_at_ms - started >= vm->timer_durations_ms[state])
+                {
+                    output                                      = vm->working_slots[instruction->operand0];
+                    vm->staged_state[state]                     = output;
+                    vm->staged_timer_started_at_ms[state]       = 0U;
+                }
+            }
+
+            vm->working_slots[instruction->result] = output;
+            vm->staged_state_valid[state]          = true;
+            break;
+        }
+
+        case OPCODE_PULSE: {
+            if (instruction->auxiliary < vm->state_slot_base || instruction->auxiliary - vm->state_slot_base >= vm->state_count)
+            {
+                return get_result(FLOW_VM_INVALID_OPERAND, "/instructions/timer");
+            }
+
+            const uint16_t state = instruction->auxiliary - vm->state_slot_base;
+            uint64_t marker      = vm->timer_started_at_ms[state];
+
+            /* Only a rising edge starts an idle pulse; triggers received while active do not extend its duration. */
+            if (marker == 0U && vm->working_slots[instruction->operand0] && !vm->current_state[state])
+            {
+                marker                                      = vm->sampled_at_ms + 1U;
+                vm->staged_timer_started_at_ms[state]       = marker;
+            }
+
+            bool active = marker != 0U;
+
+            if (active)
+            {
+                const uint64_t started = marker - 1U;
+
+                /* End the pulse on the first scan at or beyond the configured duration. */
+                if (vm->sampled_at_ms >= started && vm->sampled_at_ms - started >= vm->timer_durations_ms[state])
+                {
+                    active                                      = false;
+                    vm->staged_timer_started_at_ms[state]       = 0U;
+                }
+            }
+
+            vm->working_slots[instruction->result] = active;
+            vm->staged_state[state]                = vm->working_slots[instruction->operand0];
+            vm->staged_state_valid[state]          = true;
             break;
         }
 

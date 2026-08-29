@@ -269,6 +269,8 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
                 break;
             case FlowOpcode.QualityGood: _slots[instruction.Result] = FlowVmValue.FromBoolean(a.Quality == DataQuality.Good); break;
             case FlowOpcode.OnDelay: OnDelay(instruction, a); break;
+            case FlowOpcode.Delay: Delay(instruction, a); break;
+            case FlowOpcode.Pulse: Pulse(instruction, a); break;
             case FlowOpcode.RisingEdge: RisingEdge(instruction, a); break;
             case FlowOpcode.Min: Number(instruction, Math.Min(a.Number, b.Number), quality); break;
             case FlowOpcode.Max: Number(instruction, Math.Max(a.Number, b.Number), quality); break;
@@ -329,6 +331,62 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
             var started = _timerStartedAt[state] == 0 ? _stagedTimerStartedAt[state] : _timerStartedAt[state];
             _slots[instruction.Result] = FlowVmValue.FromBoolean(_sampledAt >= started && _sampledAt - started >= _timerDurations[state], input.Quality);
         }
+        _stagedStateValid[state] = true;
+    }
+
+    private void Delay(Instruction instruction, FlowVmValue input)
+    {
+        var state = State(instruction.Auxiliary);
+        var output = _currentState[state];
+
+        if (input.Boolean == output.Boolean)
+        {
+            _stagedTimerStartedAt[state] = 0;
+        }
+        else
+        {
+            if (_timerStartedAt[state] == 0)
+            {
+                _stagedTimerStartedAt[state] = checked(_sampledAt + 1);
+            }
+
+            var started = (_timerStartedAt[state] == 0 ? _stagedTimerStartedAt[state] : _timerStartedAt[state]) - 1;
+            if (_sampledAt >= started && _sampledAt - started >= _timerDurations[state])
+            {
+                output = input;
+                _stagedState[state] = input;
+                _stagedTimerStartedAt[state] = 0;
+            }
+        }
+
+        _slots[instruction.Result] = output;
+        _stagedStateValid[state] = true;
+    }
+
+    private void Pulse(Instruction instruction, FlowVmValue input)
+    {
+        var state = State(instruction.Auxiliary);
+        var marker = _timerStartedAt[state];
+
+        if (marker == 0 && input.Boolean && !_currentState[state].Boolean)
+        {
+            marker = checked(_sampledAt + 1);
+            _stagedTimerStartedAt[state] = marker;
+        }
+
+        var active = marker != 0;
+        if (active)
+        {
+            var started = marker - 1;
+            if (_sampledAt >= started && _sampledAt - started >= _timerDurations[state])
+            {
+                active = false;
+                _stagedTimerStartedAt[state] = 0;
+            }
+        }
+
+        _slots[instruction.Result] = FlowVmValue.FromBoolean(active, input.Quality);
+        _stagedState[state] = input;
         _stagedStateValid[state] = true;
     }
 

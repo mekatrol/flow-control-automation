@@ -94,7 +94,6 @@ describe('node-kind registry', () => {
           'qualityGood',
           'risingEdge',
           'override',
-          'pulse',
           'analogSwitch',
           'sequence',
           'split',

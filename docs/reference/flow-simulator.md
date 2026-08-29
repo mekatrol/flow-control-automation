@@ -39,7 +39,7 @@ the listed opcode semantics.
 | `if`, `selector` | `SELECT` (23) | stateless typed selection | compiler and portable VM tests |
 | `sequence` | `AND` (4) | stateless ordered Boolean gate | compiler and portable VM tests |
 | `delay`, `timer` | `ON_DELAY` (18) plus state metadata | staged timer state, atomic commit | timer transactional tests |
-| `pulse` | `RISING_EDGE` (19) plus state metadata | one-scan pulse, atomic prior-input commit | event transactional tests |
+| `pulse` | `PULSE` (39) plus timer state | configurable non-retriggerable pulse, atomic prior-input commit | event and timer transactional tests |
 | `schedule`, `calendar` | `CONSTANT` (2) | deterministic enabled-state source | compiler and registry tests |
 | `memory` | `LOAD_STATE` (6), then `STAGE_STATE` (8) | reads current state and stages next state for `COMMIT` | memory golden fixture; debugger abort test |
 | `digitalOutput`, `analogOutput` | `PROPOSE_OUTPUT` (7) | proposed command publishes only at `COMMIT` | compiler point fixtures; VM transactional tests |

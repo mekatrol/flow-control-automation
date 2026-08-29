@@ -354,8 +354,8 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
       booleanPort('input', 'Trigger', 'input', 'left'),
       booleanPort('output', 'Pulse', 'output', 'right')
     ],
-    [],
-    {},
+    [{ key: 'durationMs', label: 'Duration (ms)', input: 'number' }],
+    { durationMs: 1000 },
     'timing'
   ),
   [FlowNodeFunctionType.QualityGood]: executableDefinition(FlowNodeFunctionType.QualityGood, [

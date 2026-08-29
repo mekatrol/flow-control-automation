@@ -33,7 +33,7 @@ export const sampleFlows: FlowDefinition[] = [
           { id: 'input', label: 'Value', direction: 'input', dataType: 'number', side: 'left' },
           { id: 'output', label: 'Pulse', direction: 'output', dataType: 'number', side: 'right' }
         ],
-        configuration: { durationSeconds: 30 }
+        configuration: { durationMs: 30_000 }
       },
       {
         id: 'manual-override',
@@ -112,7 +112,7 @@ export const sampleFlows: FlowDefinition[] = [
             side: 'right'
           }
         ],
-        configuration: { durationSeconds: 900 }
+        configuration: { durationMs: 900_000 }
       }
     ],
     connections: []
