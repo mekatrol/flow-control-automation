@@ -2,8 +2,8 @@ import { defineConfig, devices } from '@playwright/test';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-// Allow parallel worktrees or a developer's existing preview server to coexist
-// with an isolated test run while preserving the usual local default.
+// The npm wrapper supplies an allocated port. Direct Playwright and VS Code
+// extension runs share the stable local default.
 const port = Number(process.env.FLOW_UI_E2E_PORT ?? 5184);
 const baseURL = `http://127.0.0.1:${port}`;
 // Direct Playwright and VS Code extension runs provision the real backend.
@@ -74,9 +74,7 @@ export default defineConfig({
     {
       command: `node ./node_modules/vite/bin/vite.js --host 127.0.0.1 --port ${port} --strictPort`,
       url: baseURL,
-      // A normal mocked run may leave a reusable Vite process without the .NET
-      // proxy target. Backend runs must start their own correctly configured proxy.
-      reuseExistingServer: !process.env.CI && !useDotnetBackend,
+      reuseExistingServer: !process.env.CI,
       timeout: 30_000,
       stdout: 'ignore' as const,
       stderr: 'ignore' as const,
