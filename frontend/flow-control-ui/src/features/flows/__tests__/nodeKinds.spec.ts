@@ -12,7 +12,7 @@ describe('node-kind registry', () => {
     // Expected outcome: `flowNodeKinds` contains the required number of entries.
     // Acceptance criteria: `flowNodeKinds` must contain exactly 36 entries, because this condition proves that
     // contains complete rendering, connector, and editor metadata for every supported kind.
-    expect(flowNodeKinds).toHaveLength(43);
+    expect(flowNodeKinds).toHaveLength(44);
 
     // Expected outcome: `flowNodeKinds` matches the required structure.
     // Acceptance criteria: `flowNodeKinds` must equal `expect.arrayContaining(['and', 'average', 'calculator', 'nand', 'nor', 'not', 'xnor', 'xor']`, because this condition proves that
@@ -83,6 +83,7 @@ describe('node-kind registry', () => {
           'power',
           'negate',
           'average',
+          'counter',
           'and',
           'digitalSwitch',
           'max',
@@ -213,7 +214,15 @@ describe('node-kind registry', () => {
   });
 
   it('exposes a connectable Boolean error output on fallible maths nodes', () => {
-    for (const kind of ['add', 'subtract', 'multiply', 'divide', 'power', 'negate', 'average'] as const) {
+    for (const kind of [
+      'add',
+      'subtract',
+      'multiply',
+      'divide',
+      'power',
+      'negate',
+      'average'
+    ] as const) {
       expect(nodeKindRegistry[kind].connectors).toContainEqual({
         id: 'error',
         label: 'Error',
@@ -222,5 +231,19 @@ describe('node-kind registry', () => {
         side: 'right'
       });
     }
+  });
+
+  it('defines the rising-edge counter connector contract', () => {
+    expect(nodeKindRegistry.counter).toMatchObject({
+      label: 'Counter',
+      category: 'logic',
+      icon: 'counter',
+      connectors: [
+        { id: 'count', label: 'Count', direction: 'input', dataType: 'boolean' },
+        { id: 'reset', label: 'Reset', direction: 'input', dataType: 'boolean' },
+        { id: 'value', label: 'Count', direction: 'output', dataType: 'number' }
+      ],
+      defaultConfiguration: {}
+    });
   });
 });

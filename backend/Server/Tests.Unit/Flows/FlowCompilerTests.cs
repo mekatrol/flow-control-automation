@@ -38,7 +38,7 @@ public sealed class FlowCompilerTests
         FlowNodeKind.DigitalSwitch, FlowNodeKind.Line, FlowNodeKind.LevelShifter, FlowNodeKind.Max, FlowNodeKind.Memory, FlowNodeKind.Min,
         FlowNodeKind.Nand, FlowNodeKind.Nor, FlowNodeKind.Not, FlowNodeKind.NumericConstant, FlowNodeKind.OnDelay, FlowNodeKind.Or, FlowNodeKind.Override, FlowNodeKind.Pulse,
         FlowNodeKind.QualityGood, FlowNodeKind.RisingEdge, FlowNodeKind.Schedule, FlowNodeKind.AnalogSwitch, FlowNodeKind.Sequence, FlowNodeKind.Split ,FlowNodeKind.Timer,
-        FlowNodeKind.D2A, FlowNodeKind.Xnor, FlowNodeKind.Xor
+        FlowNodeKind.D2A, FlowNodeKind.Xnor, FlowNodeKind.Xor, FlowNodeKind.Counter
     ];
 
     private static readonly string FixtureSourceRoot = Path.Combine(
@@ -74,6 +74,7 @@ public sealed class FlowCompilerTests
         string[] booleanInputs = kind switch
         {
             FlowNodeKind.Not or FlowNodeKind.OnDelay or FlowNodeKind.RisingEdge => ["in"],
+            FlowNodeKind.Counter => ["count", "reset"],
             FlowNodeKind.And or FlowNodeKind.Or or FlowNodeKind.Nand or FlowNodeKind.Nor or FlowNodeKind.Xnor or FlowNodeKind.Xor or FlowNodeKind.Sequence => ["a", "b"],
             FlowNodeKind.DigitalSwitch => ["condition", "whenTrue", "whenFalse"],
             FlowNodeKind.AnalogSwitch => ["condition"],

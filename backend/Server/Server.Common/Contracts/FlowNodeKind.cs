@@ -49,5 +49,6 @@ public enum FlowNodeKind : byte
     Multiply,
     Divide,
     Power,
-    Negate
+    Negate,
+    Counter
 }

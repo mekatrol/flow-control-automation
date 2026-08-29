@@ -22,6 +22,7 @@ const supportedKinds = new Set([
   'power',
   'negate',
   'comparator',
+  'counter',
   'levelShifter',
   'qualityGood',
   'onDelay',

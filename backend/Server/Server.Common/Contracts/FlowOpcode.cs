@@ -46,6 +46,7 @@ public enum FlowOpcode : byte
     CalculatorInputs = 37,
     Delay = 38,
     Pulse = 39,
+    Counter = 40,
 
     Commit = byte.MaxValue
 }

@@ -303,6 +303,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         [FlowNodeKind.QualityGood] = new([new("in", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Boolean)]),
         [FlowNodeKind.OnDelay] = new([new("in", DataDirection.Input, DataType.Boolean), new("value", DataDirection.Output, DataType.Boolean)]),
         [FlowNodeKind.RisingEdge] = new([new("in", DataDirection.Input, DataType.Boolean), new("value", DataDirection.Output, DataType.Boolean)]),
+        [FlowNodeKind.Counter] = new([new("count", DataDirection.Input, DataType.Boolean), new("reset", DataDirection.Input, DataType.Boolean), new("value", DataDirection.Output, DataType.Number)]),
         [FlowNodeKind.Memory] = new([new("in", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Number)]),
         [FlowNodeKind.DigitalOutput] = new([new("in", DataDirection.Input, DataType.Boolean)]),
         [FlowNodeKind.AnalogOutput] = new([new("in", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Number)]),
@@ -804,6 +805,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 FlowNodeKind.Memory or
                 FlowNodeKind.OnDelay or
                 FlowNodeKind.RisingEdge or
+                FlowNodeKind.Counter or
                 FlowNodeKind.Delay or
                 FlowNodeKind.Timer or
                 FlowNodeKind.Pulse or
@@ -1292,6 +1294,12 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 U16(model.StateSlots[id]),
                 U16(ConstantIndex(model.Constants, GetBooleanConstant(false)))),
 
+            FlowNodeKind.Counter => Concat(
+                [6, (byte)DataType.Number],
+                U16(0),
+                U16(model.StateSlots[id]),
+                U16(ConstantIndex(model.Constants, new ConstantRecord(DataType.Number, 0D)))),
+
             FlowNodeKind.A2D => Concat(
                 [5, 1],
                 U16(0),
@@ -1355,6 +1363,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             .Where(id => model.Nodes[id].Kind is
                 FlowNodeKind.OnDelay or
                 FlowNodeKind.RisingEdge or
+                FlowNodeKind.Counter or
                 FlowNodeKind.Delay or
                 FlowNodeKind.Timer or
                 FlowNodeKind.Pulse or
@@ -1564,7 +1573,8 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                     FlowNodeKind.Max or
                     FlowNodeKind.Line or
                     FlowNodeKind.AnalogSwitch or
-                    FlowNodeKind.D2A)
+                    FlowNodeKind.D2A or
+                    FlowNodeKind.Counter)
             || points.Any(point => point.DataType == DataType.Number))
         {
             capabilities |= FlowILCapability.Numeric;
@@ -1590,7 +1600,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             capabilities |= FlowILCapability.Timer;
         }
 
-        if (source.Nodes.Any(node => node.Kind is FlowNodeKind.RisingEdge or FlowNodeKind.Pulse))
+        if (source.Nodes.Any(node => node.Kind is FlowNodeKind.RisingEdge or FlowNodeKind.Pulse or FlowNodeKind.Counter))
         {
             capabilities |= FlowILCapability.Event;
         }
@@ -2073,6 +2083,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
 
             FlowNodeKind.OnDelay or
             FlowNodeKind.RisingEdge or
+            FlowNodeKind.Counter or
             FlowNodeKind.Memory or
             FlowNodeKind.Delay or
             FlowNodeKind.Timer or
@@ -2423,6 +2434,18 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                         context.ResultSlotIndex,
                         FlowILV1Format.Unused,
                         FlowILV1Format.Unused,
+                        context.StateSlots[context.NodeId]
+                    ),
+                    context.NodeId,
+                    NodeInstructionRole.Primary),
+
+            FlowNodeKind.Counter =>
+                new(
+                    new(
+                        FlowOpcode.Counter,
+                        context.ResultSlotIndex,
+                        InputSlot(context.Source, context.Slots, context.NodeId, "count"),
+                        InputSlot(context.Source, context.Slots, context.NodeId, "reset"),
                         context.StateSlots[context.NodeId]
                     ),
                     context.NodeId,
@@ -3014,6 +3037,10 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         {
             yield return GetBooleanConstant(false);
         }
+        else if (node.Kind is FlowNodeKind.Counter)
+        {
+            yield return new ConstantRecord(DataType.Number, 0D);
+        }
         else if (node.Kind is FlowNodeKind.Schedule or FlowNodeKind.Calendar)
         {
             yield return GetBooleanConstant(node.Configuration["enabled"].GetBoolean());
@@ -3091,7 +3118,8 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             FlowNodeKind.Max or
             FlowNodeKind.Line or
             FlowNodeKind.AnalogSwitch or
-            FlowNodeKind.D2A)
+                    FlowNodeKind.D2A or
+                    FlowNodeKind.Counter)
         {
             return DataType.Number;
         }

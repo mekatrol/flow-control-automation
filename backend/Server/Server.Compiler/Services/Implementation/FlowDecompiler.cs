@@ -461,6 +461,11 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
                 instructionIndex,
                 FlowNodeKind.Pulse),
             FlowOpcode.RisingEdge => FlowNodeKind.RisingEdge,
+            FlowOpcode.Counter => ValidateCounterState(
+                decoded.Slots,
+                decoded.Constants,
+                instruction.Auxiliary,
+                instructionIndex),
             _ => throw Error(FlowCompilationDiagnosticCode.UnsupportedOpcode, $"/instructions/{instructionIndex}/opcode", instruction.Opcode)
         };
     }
@@ -512,6 +517,11 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
             case FlowOpcode.RisingEdge:
             case FlowOpcode.PointOutput:
                 AddInputConnection("in", instruction.Operand0);
+                break;
+
+            case FlowOpcode.Counter:
+                AddInputConnection("count", instruction.Operand0);
+                AddInputConnection("reset", instruction.Operand1);
                 break;
 
             case FlowOpcode.Delay:
@@ -977,6 +987,23 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
         return FlowNodeKind.Memory;
     }
 
+    private static FlowNodeKind ValidateCounterState(
+        IReadOnlyDictionary<ushort, SlotRecord> slots,
+        IReadOnlyList<ConstantRecord> constants,
+        ushort stateSlotIndex,
+        int instructionIndex)
+    {
+        if (!slots.TryGetValue(stateSlotIndex, out var slot)
+            || slot.Kind != FlowSlotKind.CounterState
+            || slot.InitialConstant >= constants.Count
+            || constants[slot.InitialConstant].DataType != DataType.Number)
+        {
+            throw Error(FlowCompilationDiagnosticCode.InvalidStateSlotOperand, $"/instructions/{instructionIndex}/auxiliary");
+        }
+
+        return FlowNodeKind.Counter;
+    }
+
     /*
      * Recover a numeric constant node configuration from its constant-pool index.
      */
@@ -1135,6 +1162,8 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
             FlowNodeKind.LevelShifter => [NumberInput("in", "Input"), NumberOutput("value", "Value")],
             FlowNodeKind.QualityGood or FlowNodeKind.OnDelay or FlowNodeKind.RisingEdge =>
                 [BooleanInput("in", "Input"), BooleanOutput("value", "Value")],
+            FlowNodeKind.Counter =>
+                [BooleanInput("count", "Count"), BooleanInput("reset", "Reset"), NumberOutput("value", "Count")],
             _ => []
         };
     }

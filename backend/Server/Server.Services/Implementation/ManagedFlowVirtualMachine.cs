@@ -38,7 +38,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
         _points = [.. image.Points];
         _slotDataTypes = [.. image.Slots.Select(item => item.DataType)];
         _instructions = image.Instructions;
-        var stateSlots = image.Slots.Where(item => item.Kind is FlowSlotKind.MemoryState or FlowSlotKind.TimerState or FlowSlotKind.EdgeState).ToArray();
+        var stateSlots = image.Slots.Where(item => item.Kind is FlowSlotKind.MemoryState or FlowSlotKind.TimerState or FlowSlotKind.EdgeState or FlowSlotKind.CounterState).ToArray();
         var stateBase = stateSlots.Length == 0 ? image.Slots.Length : stateSlots.Min(item => item.Index);
 
         if (stateSlots.Select((item, index) => item.Index != stateBase + index).Any(invalid => invalid))
@@ -53,6 +53,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
                     FlowSlotKind.MemoryState => FlowVmValue.FromNumber(Constant(item.InitialConstant, DataType.Number).Number),
                     FlowSlotKind.EdgeState => FlowVmValue.FromBoolean(false),
                     FlowSlotKind.TimerState => FlowVmValue.FromBoolean(false),
+                    FlowSlotKind.CounterState => FlowVmValue.FromNumber(0D),
                     _ => throw Error(FlowVmErrorCode.InvalidInstruction, "/slots/state")
                 })
             ];
@@ -272,6 +273,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
             case FlowOpcode.Delay: Delay(instruction, a); break;
             case FlowOpcode.Pulse: Pulse(instruction, a); break;
             case FlowOpcode.RisingEdge: RisingEdge(instruction, a); break;
+            case FlowOpcode.Counter: Counter(instruction, a, b); break;
             case FlowOpcode.Min: Number(instruction, Math.Min(a.Number, b.Number), quality); break;
             case FlowOpcode.Max: Number(instruction, Math.Max(a.Number, b.Number), quality); break;
             case FlowOpcode.Clamp:
@@ -412,6 +414,29 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
         }
 
         _slots[instruction.Result] = FlowVmValue.FromNumber(value, quality);
+    }
+
+    private void Counter(Instruction instruction, FlowVmValue countInput, FlowVmValue resetInput)
+    {
+        var state = State(instruction.Auxiliary);
+        var encoded = _currentState[state].Number;
+        var count = Math.Floor(encoded / 4D);
+        var previousCount = ((long)encoded & 1) != 0;
+        var previousReset = ((long)encoded & 2) != 0;
+
+        if (resetInput.Boolean && !previousReset)
+        {
+            count = 0D;
+        }
+        else if (countInput.Boolean && !previousCount)
+        {
+            count += 1D;
+        }
+
+        Number(instruction, count, Worse(countInput.Quality, resetInput.Quality));
+        var next = (count * 4D) + (countInput.Boolean ? 1D : 0D) + (resetInput.Boolean ? 2D : 0D);
+        _stagedState[state] = FlowVmValue.FromNumber(next);
+        _stagedStateValid[state] = true;
     }
 
     private void Add(Instruction instruction, FlowVmValue a, FlowVmValue b, DataQuality quality) =>

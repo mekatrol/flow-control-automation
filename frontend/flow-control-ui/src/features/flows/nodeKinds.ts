@@ -39,7 +39,9 @@ const binaryArithmetic = (kind: FlowNodeFunctionType): NodeKindDefinition =>
       { id: 'value', label: 'Value', direction: 'output', dataType: 'number', side: 'right' },
       { id: 'error', label: 'Error', direction: 'output', dataType: 'boolean', side: 'right' }
     ],
-    [], {}, 'maths'
+    [],
+    {},
+    'maths'
   );
 const booleanPort = (
   id: string,
@@ -94,7 +96,10 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
       { id: 'in', label: 'Input', direction: 'input', dataType: 'number', side: 'left' },
       { id: 'value', label: 'Value', direction: 'output', dataType: 'number', side: 'right' },
       booleanPort('error', 'Error', 'output', 'right')
-    ], [], {}, 'maths'
+    ],
+    [],
+    {},
+    'maths'
   ),
   [FlowNodeFunctionType.A2D]: executableDefinition(
     FlowNodeFunctionType.A2D,
@@ -198,6 +203,11 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     ],
     { operator: 'gt' }
   ),
+  [FlowNodeFunctionType.Counter]: executableDefinition(FlowNodeFunctionType.Counter, [
+    booleanPort('count', 'Count', 'input', 'left'),
+    booleanPort('reset', 'Reset', 'input', 'left'),
+    { id: 'value', label: 'Count', direction: 'output', dataType: 'number', side: 'right' }
+  ]),
   [FlowNodeFunctionType.Delay]: executableDefinition(
     FlowNodeFunctionType.Delay,
     [

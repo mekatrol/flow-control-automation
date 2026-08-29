@@ -50,6 +50,7 @@ describe('node palette filtering and grouping', () => {
     expect(filterNodeKinds('logic').map(({ kind }) => kind)).toEqual([
       'and',
       'comparator',
+      'counter',
       'digitalConstant',
       'digitalInput',
       'digitalOutput',

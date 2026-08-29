@@ -19,6 +19,7 @@ export enum FlowNodeFunctionType {
   Calendar = 'calendar',
   Clamp = 'clamp',
   Comparator = 'comparator',
+  Counter = 'counter',
   Delay = 'delay',
   DigitalConstant = 'digitalConstant',
   DigitalInput = 'digitalInput',
