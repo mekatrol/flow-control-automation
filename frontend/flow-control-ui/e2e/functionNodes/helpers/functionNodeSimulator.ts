@@ -26,8 +26,18 @@ export const startSimulation = async (
       sessionId: expect.any(String)
     })
   );
-  await expect(page.getByLabel('Simulation controls').getByRole('status')).toHaveText('running');
-  return { flowId, sessionId: (body as { sessionId: string }).sessionId };
+  const simulation = { flowId, sessionId: (body as { sessionId: string }).sessionId };
+  try {
+    await expect(page.getByLabel('Simulation controls').getByRole('status')).toHaveText('running');
+    return simulation;
+  } catch (error) {
+    // The backend session already exists at this point, but the caller cannot
+    // clean it up until startSimulation returns. Release it here when the UI
+    // fails to reach its expected state so repeated Test Explorer runs do not
+    // exhaust the active-emulator limit.
+    await stopSimulation(page, simulation);
+    throw error;
+  }
 };
 
 export const stopSimulation = async (
