@@ -1,5 +1,5 @@
 <template>
-  <aside class="simulator-io configuration-panel" aria-label="Simulation points">
+  <aside class="simulator-io configuration-panel" aria-label="Simulation points" tabindex="0">
     <header>
       <h2>Simulation points</h2>
       <AppButton

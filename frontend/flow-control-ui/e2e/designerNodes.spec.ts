@@ -214,14 +214,14 @@ test('moves and deletes with the keyboard while safeguarding editable controls',
   await expect(node).toBeVisible();
 
   await node.focus();
-  await page.keyboard.press('ArrowRight');
+  await node.press('ArrowRight');
 
   // Expected outcome: `node` exposes the required attribute.
   // Acceptance criteria: `node` must have attribute arguments `'transform', 'translate(114 110`, because this condition proves that
   // moves and deletes with the keyboard while safeguarding editable controls.
   await expect(node).toHaveAttribute('transform', 'translate(114 110)');
 
-  await page.keyboard.press('Delete');
+  await node.press('Delete');
 
   // Expected outcome: `node` is not exposed to the user.
   // Acceptance criteria: `node` must be hidden, because this condition proves that

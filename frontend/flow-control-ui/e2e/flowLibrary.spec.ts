@@ -27,7 +27,7 @@ test('opens the flow library and navigates to a designer', async ({ page }) => {
   // Expected outcome: `page.getByRole('heading', { name: 'Flows' })` is visible to the user.
   // Acceptance criteria: `page.getByRole('heading', { name: 'Flows' })` must be visible, because this condition proves that
   // opens the flow library and navigates to a designer.
-  await expect(page.getByRole('heading', { name: 'Flows' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Flow List' })).toBeVisible();
   await page.getByRole('link', { name: /Climate control/ }).click();
 
   // Expected outcome: Navigation reaches the required route.

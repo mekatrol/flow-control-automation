@@ -79,7 +79,7 @@ describe('connection graph operations', () => {
     const result = addConnection(
       flow,
       { nodeId: 'temperature-average', connectorId: 'output' },
-      { nodeId: 'manual-override', connectorId: 'input' },
+      { nodeId: 'zone-split', connectorId: 'input' },
       'new-connection'
     );
 
@@ -90,7 +90,7 @@ describe('connection graph operations', () => {
       connection: {
         id: 'new-connection',
         start: { nodeId: 'temperature-average', connectorId: 'output' },
-        end: { nodeId: 'manual-override', connectorId: 'input' }
+        end: { nodeId: 'zone-split', connectorId: 'input' }
       }
     });
   });

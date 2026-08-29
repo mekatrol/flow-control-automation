@@ -20,6 +20,7 @@ const managedServers = process.env.FLOW_UI_E2E_MANAGED_SERVERS === '1';
 
 export default defineConfig({
   testDir: './e2e',
+  testIgnore: useDotnetBackend ? undefined : 'functionNodes/**',
   tsconfig: './tsconfig.app.json',
   fullyParallel: true,
   // Visible browsers are substantially more resource-intensive. With every test and

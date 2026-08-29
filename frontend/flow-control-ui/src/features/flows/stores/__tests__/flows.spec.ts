@@ -250,7 +250,7 @@ describe('flows store', () => {
   it('adds guarded connections and deletes a known connection', () => {
     const store = useFlowsStore();
     const start = { nodeId: 'temperature-average', connectorId: 'output' };
-    const end = { nodeId: 'manual-override', connectorId: 'input' };
+    const end = { nodeId: 'zone-split', connectorId: 'input' };
 
     // Expected outcome: `store.connectNodes('climate-control', start, end, 'new-link')` matches the required structure.
     // Acceptance criteria: `store.connectNodes('climate-control', start, end, 'new-link')` must equal `{ success: true }`, because this condition proves that

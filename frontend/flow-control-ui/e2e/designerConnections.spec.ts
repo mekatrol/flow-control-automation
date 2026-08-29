@@ -24,14 +24,14 @@ test('highlights compatible connectors, previews a link, and rejects invalid com
   // Acceptance criteria: `page.getByRole('button', { name: /Automatic, input, number, compatible destination/ })` must be visible, because this condition proves that
   // highlights compatible connectors, previews a link, and rejects invalid completion.
   await expect(
-    page.getByRole('button', { name: /Automatic, input, number, compatible destination/ })
+    page.getByRole('button', { name: /Source, input, number, compatible destination/ })
   ).toBeVisible();
 
   // Expected outcome: `page.getByRole('button', { name: /Value, input, number, compatible destination/ })` resolves to the required number of elements.
   // Acceptance criteria: `page.getByRole('button', { name: /Value, input, number, compatible destination/ })` must resolve to exactly 0 elements, because this condition proves that
   // highlights compatible connectors, previews a link, and rejects invalid completion.
   await expect(
-    page.getByRole('button', { name: /Value, input, number, compatible destination/ })
+    page.getByRole('button', { name: /Automatic, input, number, compatible destination/ })
   ).toHaveCount(0);
 
   const preview = page.locator('[data-connection-id="connection-preview"] .flow-connection');
@@ -98,7 +98,7 @@ test('creates a connection with the keyboard and deletes a selected connection',
   await page.goto('/flows/climate-control');
 
   const source = page.getByRole('button', { name: /Average, output, number/ });
-  const destination = page.getByRole('button', { name: /Automatic, input, number/ });
+  const destination = page.getByRole('button', { name: /Source, input, number/ });
   await source.focus();
   await page.keyboard.press('Enter');
 
@@ -145,7 +145,7 @@ test('creates a connection with the keyboard and deletes a selected connection',
   await expect(page.getByLabel(/Scrollable designer viewport/)).toBeFocused();
 
   const keyboardConnection = page.getByRole('button', {
-    name: 'Connection from temperature-average to manual-override'
+    name: 'Connection from temperature-average to zone-split'
   });
   await keyboardConnection.focus();
   await page.keyboard.press('Enter');
@@ -173,7 +173,7 @@ test('drags from an output connector to a compatible input connector', async ({ 
   await page.goto('/flows/climate-control');
 
   const source = page.getByRole('button', { name: /Average, output, number/ });
-  const destination = page.getByRole('button', { name: /Automatic, input, number/ });
+  const destination = page.getByRole('button', { name: /Source, input, number/ });
   const sourceBox = await source.boundingBox();
   const destinationBox = await destination.boundingBox();
 

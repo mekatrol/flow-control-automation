@@ -90,7 +90,7 @@ try {
       ...process.env,
       FLOW_UI_E2E_MANAGED_SERVERS: '1',
       FLOW_UI_E2E_PORT: String(port),
-      ...(dotnet ? { FLOW_UI_E2E_BACKEND: 'dotnet' } : {})
+      FLOW_UI_E2E_BACKEND: dotnet ? 'dotnet' : 'mock'
     },
     stdio: 'inherit'
   });
