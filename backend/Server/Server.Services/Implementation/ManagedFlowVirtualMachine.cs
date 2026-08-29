@@ -453,9 +453,8 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
         var encoded = _currentState[state].Number;
         var count = Math.Floor(encoded / 4D);
         var previousCount = ((long)encoded & 1) != 0;
-        var previousReset = ((long)encoded & 2) != 0;
 
-        if (resetInput.Boolean && !previousReset)
+        if (resetInput.Boolean)
         {
             count = 0D;
         }

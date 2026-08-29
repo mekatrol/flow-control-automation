@@ -662,6 +662,49 @@ public sealed class FlowCompilerTests
         Assert.That(count, Is.EqualTo(3D));
     }
 
+    [Test]
+    public void CounterAllowsAnUnconnectedResetAndHoldsZeroWhileResetIsHigh()
+    {
+        var source = GetSourceFromKind(FlowNodeKind.Counter);
+        source = source with
+        {
+            Connections = [.. source.Connections.Where(connection =>
+                connection.Target.NodeId != "test-node" || connection.Target.PortId != "reset")]
+        };
+
+        Assert.DoesNotThrow(() => _compiler.Compile(BuildCompilationRequest(source)));
+
+        var resetSource = new ExecutableFlowSource
+        {
+            Id = "counter-reset-level",
+            Revision = 1,
+            ControllerTemplateId = "fixture",
+            ControllerTemplateRevision = 1,
+            Nodes =
+            [
+                new() { Id = "count-input", Kind = FlowNodeKind.DigitalInput, Configuration = Config("pointId", "count") },
+                new() { Id = "reset-input", Kind = FlowNodeKind.DigitalInput, Configuration = Config("pointId", "reset") },
+                new() { Id = "counter", Kind = FlowNodeKind.Counter },
+                new() { Id = "output", Kind = FlowNodeKind.AnalogOutput, Configuration = Config("pointId", "value") }
+            ],
+            Connections =
+            [
+                new(new("count-input", "value"), new("counter", "count")),
+                new(new("reset-input", "value"), new("counter", "reset")),
+                new(new("counter", "value"), new("output", "in"))
+            ]
+        };
+        var compilation = _compiler.Compile(BuildCompilationRequest(resetSource));
+        using var machine = new ManagedFlowVirtualMachineFactory().Create(compilation.Artifact);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(machine.Scan([new("count", true), new("reset", false)], 0).Commands.Single().TypedValue.Number, Is.EqualTo(1D));
+            Assert.That(machine.Scan([new("count", false), new("reset", true)], 1).Commands.Single().TypedValue.Number, Is.EqualTo(0D));
+            Assert.That(machine.Scan([new("count", true), new("reset", true)], 2).Commands.Single().TypedValue.Number, Is.EqualTo(0D));
+        });
+    }
+
     [TestCase(0.099)]
     [TestCase(1000.001)]
     public void ClockRejectsFrequenciesOutsideTheSupportedRange(double frequencyHz)

@@ -33,6 +33,7 @@ export interface FunctionVector {
 export interface FunctionNodeCase {
   kind: FlowNodeKind;
   configuration?: Record<string, NodeConfigurationValue>;
+  unconnectedInputs?: string[];
   vectors: FunctionVector[];
   testLabel?: string;
 }
@@ -69,7 +70,10 @@ export const runFunctionNodeCase = async (
   testCase: FunctionNodeCase
 ): Promise<void> => {
   const definition = getNodeKind(testCase.kind);
-  const inputs = definition.connectors.filter(({ direction }) => direction === 'input');
+  const inputs = definition.connectors.filter(
+    ({ id, direction }) =>
+      direction === 'input' && !testCase.unconnectedInputs?.includes(id)
+  );
   const outputs = definition.connectors.filter(({ direction }) => direction === 'output');
   const output = outputs.find(({ id }) => id !== 'error');
   if (!output) throw new Error(`${definition.label} does not expose an output connector.`);

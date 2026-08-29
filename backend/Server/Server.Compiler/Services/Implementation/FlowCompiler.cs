@@ -2455,7 +2455,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                         FlowOpcode.Counter,
                         context.ResultSlotIndex,
                         InputSlot(context.Source, context.Slots, context.NodeId, "count"),
-                        InputSlot(context.Source, context.Slots, context.NodeId, "reset"),
+                        OptionalInputSlot(context.Source, context.Slots, context.NodeId, "reset"),
                         context.StateSlots[context.NodeId]
                     ),
                     context.NodeId,
@@ -2621,6 +2621,18 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             : slots[endpoint.NodeId];
     }
 
+    private static ushort OptionalInputSlot(
+        ExecutableFlowSource source,
+        Dictionary<string, ushort> slots,
+        string targetId,
+        string portId)
+    {
+        return source.Connections.Any(connection =>
+            connection.Target.NodeId == targetId && connection.Target.PortId == portId)
+                ? InputSlot(source, slots, targetId, portId)
+                : FlowILV1Format.Unused;
+    }
+
     /*
      * Return the numeric index of the canonical point/interface record used by
      * this node. Instructions store this compact index rather than a point ID.
@@ -2761,6 +2773,10 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             {
                 if (node.Kind == FlowNodeKind.Calculator &&
                     !CalculatorFormula.Variables(ParseCalculatorFormula(node)).Contains(input.Id[0]))
+                {
+                    continue;
+                }
+                if (node.Kind == FlowNodeKind.Counter && input.Id == "reset")
                 {
                     continue;
                 }

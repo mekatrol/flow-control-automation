@@ -528,7 +528,10 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
 
             case FlowOpcode.Counter:
                 AddInputConnection("count", instruction.Operand0);
-                AddInputConnection("reset", instruction.Operand1);
+                if (instruction.Operand1 != FlowILV1Format.Unused)
+                {
+                    AddInputConnection("reset", instruction.Operand1);
+                }
                 break;
 
             case FlowOpcode.Delay:
