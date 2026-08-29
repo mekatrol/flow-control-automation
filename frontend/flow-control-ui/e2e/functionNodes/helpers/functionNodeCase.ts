@@ -128,6 +128,10 @@ export const runFunctionNodeCase = async (
         `/api/flows/${encodeURIComponent(simulation.flowId)}/simulator-sessions/${encodeURIComponent(simulation.sessionId)}/pause`
       );
       expect(response.ok(), await response.text()).toBeTruthy();
+      // The test pauses through the API, so allow the UI's 250 ms session poll
+      // to observe that state before applying inputs. Otherwise the UI still
+      // believes it is running and automatically resumes after each apply.
+      await page.waitForTimeout(300);
     }
     for (const vector of testCase.vectors) {
       let values: Record<string, boolean | number> | undefined;

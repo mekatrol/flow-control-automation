@@ -192,10 +192,11 @@ export const flowSimulatorApi = {
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // Keep the simulator scan cadence comfortably below the shortest phase
-        // of ordinary timing blocks. A 500 ms interval aliases a 2 Hz clock by
-        // sampling the same point in every cycle.
-        body: JSON.stringify({ intervalMilliseconds: 10 })
+        // Keep the simulator scan cadence below the shortest ordinary timing
+        // phase while leaving transient values visible to the UI. A 500 ms
+        // interval aliases a 2 Hz clock, while 10 ms can replace an edge before
+        // the response that produced it has rendered.
+        body: JSON.stringify({ intervalMilliseconds: 50 })
       },
       signal
     ),

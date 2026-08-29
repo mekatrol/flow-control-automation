@@ -16,6 +16,11 @@ export const startSimulation = async (
       response.request().method() === 'POST' &&
       new URL(response.url()).pathname === `/api/flows/${flowId}/simulator-sessions`
   );
+  const running = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'POST' &&
+      new URL(response.url()).pathname.endsWith('/run')
+  );
   await page.getByRole('button', { name: 'Start simulation' }).click();
   const response = await started;
   const body: unknown = await response.json();
@@ -28,6 +33,8 @@ export const startSimulation = async (
   );
   const simulation = { flowId, sessionId: (body as { sessionId: string }).sessionId };
   try {
+    const runResponse = await running;
+    expect(runResponse.ok(), await runResponse.text()).toBeTruthy();
     await expect(page.getByLabel('Simulation controls').getByRole('status')).toHaveText('running');
     return simulation;
   } catch (error) {
