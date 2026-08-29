@@ -1,7 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
 import { createServer } from 'node:net';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 
 const getAvailablePort = (): Promise<number> =>
   new Promise((resolve, reject) => {
@@ -38,7 +36,12 @@ const externalBackendURL = process.env.FLOW_UI_E2E_BACKEND_URL;
 const backendURL =
   externalBackendURL ?? `http://127.0.0.1:${managedServers ? 5018 : await getAvailablePort()}`;
 process.env.FLOW_UI_E2E_BACKEND_URL ??= backendURL;
-const testEncryptionKey = 'AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=';
+// Test Explorer keeps Playwright's web servers alive between runs. Let global
+// setup own the backend instead so its teardown can release the compiled DLL
+// as soon as each run finishes.
+if (useDotnetBackend && !managedServers && !externalBackendURL) {
+  process.env.FLOW_UI_E2E_OWNS_BACKEND = '1';
+}
 const testApiKey = 'flow-control-e2e-administrator-key';
 const isHeaded = process.argv.includes('--headed');
 const runFirefox = process.env.FLOW_UI_E2E_FIREFOX === '1';
@@ -54,7 +57,7 @@ export default defineConfig({
   workers: isHeaded ? 1 : undefined,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
-  globalSetup: useDotnetBackend ? './e2e/globalSetup.ts' : undefined,
+  globalSetup: useDotnetBackend ? './e2e/globalSetup.mjs' : undefined,
   reporter: process.env.CI ? 'github' : 'list',
   use: {
     baseURL,
@@ -79,25 +82,6 @@ export default defineConfig({
     }
   ],
   webServer: managedServers ? [] : ([
-    ...(useDotnetBackend && !externalBackendURL
-      ? [
-          {
-            command: 'dotnet ../../backend/Server/Server.Api/bin/Debug/net10.0/Server.Api.dll',
-            url: `${backendURL}/api/health`,
-            reuseExistingServer: false,
-            timeout: 60_000,
-            stdout: 'ignore' as const,
-            stderr: 'ignore' as const,
-            env: {
-              SERVER_ADDRESS: backendURL,
-              CREDENTIAL_ENCRYPTION_KEY: testEncryptionKey,
-              ApiAccess__Identities__e2e__Key: testApiKey,
-              ApiAccess__Identities__e2e__Permissions__0: '*',
-              ConnectionStrings__FlowControl: `Data Source=${join(tmpdir(), `flow-control-e2e-${process.pid}.db`)}`
-            }
-          }
-        ]
-      : []),
     {
       command: `node ./node_modules/vite/bin/vite.js --host 127.0.0.1 --port ${port} --strictPort`,
       url: baseURL,
