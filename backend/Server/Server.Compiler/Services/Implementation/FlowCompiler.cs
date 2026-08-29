@@ -321,6 +321,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         [FlowNodeKind.Delay] = new([new("input", DataDirection.Input, DataType.Boolean), new("output", DataDirection.Output, DataType.Boolean)]),
         [FlowNodeKind.Timer] = new([new("input", DataDirection.Input, DataType.Boolean), new("output", DataDirection.Output, DataType.Boolean)]),
         [FlowNodeKind.Pulse] = new([new("input", DataDirection.Input, DataType.Boolean), new("output", DataDirection.Output, DataType.Boolean)]),
+        [FlowNodeKind.Clock] = new([new("enable", DataDirection.Input, DataType.Boolean), new("output", DataDirection.Output, DataType.Boolean)]),
         [FlowNodeKind.Schedule] = new([new("output", DataDirection.Output, DataType.Boolean)]),
         [FlowNodeKind.Calendar] = new([new("output", DataDirection.Output, DataType.Boolean)]),
         [FlowNodeKind.A2D] = new([new("in", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Boolean)]),
@@ -809,6 +810,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 FlowNodeKind.Delay or
                 FlowNodeKind.Timer or
                 FlowNodeKind.Pulse or
+                FlowNodeKind.Clock or
                 FlowNodeKind.A2D)
             ];
     }
@@ -1288,6 +1290,12 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 U16(model.StateSlots[id]),
                 U16(ConstantIndex(model.Constants, GetNumericConstant(model.Nodes[id], "durationMs")))),
 
+            FlowNodeKind.Clock => Concat(
+                [4, 1],
+                U16(0),
+                U16(model.StateSlots[id]),
+                U16(ConstantIndex(model.Constants, ClockPeriodConstant(model.Nodes[id])))),
+
             FlowNodeKind.RisingEdge => Concat(
                 [5, 1],
                 U16(0),
@@ -1367,6 +1375,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 FlowNodeKind.Delay or
                 FlowNodeKind.Timer or
                 FlowNodeKind.Pulse or
+                FlowNodeKind.Clock or
                 FlowNodeKind.A2D)
             .Select(id => Concat(
                 [1, 0],
@@ -1595,7 +1604,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             capabilities |= FlowILCapability.Quality;
         }
 
-        if (source.Nodes.Any(node => node.Kind is FlowNodeKind.OnDelay or FlowNodeKind.Delay or FlowNodeKind.Timer or FlowNodeKind.Pulse))
+        if (source.Nodes.Any(node => node.Kind is FlowNodeKind.OnDelay or FlowNodeKind.Delay or FlowNodeKind.Timer or FlowNodeKind.Pulse or FlowNodeKind.Clock))
         {
             capabilities |= FlowILCapability.Timer;
         }
@@ -2088,6 +2097,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             FlowNodeKind.Delay or
             FlowNodeKind.Timer or
             FlowNodeKind.Pulse or
+            FlowNodeKind.Clock or
             FlowNodeKind.A2D => CreateStatefulInstruction(context, node),
 
             FlowNodeKind.DigitalOutput or
@@ -2487,6 +2497,18 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                     context.NodeId,
                     NodeInstructionRole.Primary),
 
+            FlowNodeKind.Clock =>
+                new(
+                    new(
+                        FlowOpcode.Clock,
+                        context.ResultSlotIndex,
+                        InputSlot(context.Source, context.Slots, context.NodeId, "enable"),
+                        ConstantIndex(context.Constants, GetNumericConstant(node, "dutyCycle")),
+                        context.StateSlots[context.NodeId]
+                    ),
+                    context.NodeId,
+                    NodeInstructionRole.Primary),
+
             FlowNodeKind.A2D =>
                 new(
                     new(
@@ -2871,6 +2893,21 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 throw Failure(FlowCompilationDiagnosticCode.InvalidTimerDuration, path, 0, uint.MaxValue);
             }
         }
+        else if (node.Kind == FlowNodeKind.Clock)
+        {
+            ValidateFiniteNumber(node, path, "frequencyHz");
+            ValidateFiniteNumber(node, path, "dutyCycle");
+            var frequency = node.Configuration["frequencyHz"].GetDouble();
+            var dutyCycle = node.Configuration["dutyCycle"].GetDouble();
+            if (node.Configuration.Count != 2 || frequency is < 0.1D or > 1_000D)
+            {
+                throw Failure(FlowCompilationDiagnosticCode.InvalidClockFrequency, path, 0.1, 1_000);
+            }
+            if (dutyCycle is < 0D or > 100D)
+            {
+                throw Failure(FlowCompilationDiagnosticCode.InvalidDutyCycle, path, 0, 100);
+            }
+        }
         else if (node.Kind == FlowNodeKind.Clamp)
         {
             if (node.Configuration.Count != 2)
@@ -3033,6 +3070,11 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         {
             yield return GetNumericConstant(node, "durationMs");
         }
+        else if (node.Kind == FlowNodeKind.Clock)
+        {
+            yield return ClockPeriodConstant(node);
+            yield return GetNumericConstant(node, "dutyCycle");
+        }
         else if (node.Kind is FlowNodeKind.RisingEdge)
         {
             yield return GetBooleanConstant(false);
@@ -3046,6 +3088,9 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             yield return GetBooleanConstant(node.Configuration["enabled"].GetBoolean());
         }
     }
+
+    private static ConstantRecord ClockPeriodConstant(ExecutableFlowNode node) =>
+        new(DataType.Number, 1_000D / node.Configuration["frequencyHz"].GetDouble());
 
     /*
      * Normalize a Boolean literal into the common ConstantRecord representation.

@@ -16,6 +16,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
     private readonly Instruction[] _instructions;
     private readonly FlowVmValue[] _initialState;
     private readonly ulong[] _timerDurations;
+    private readonly double[] _clockPeriods;
     private FlowVmValue[] _currentState;
     private FlowVmValue[] _stagedState;
     private readonly bool[] _stagedStateValid;
@@ -59,6 +60,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
             ];
 
         _timerDurations = [.. stateSlots.Select(item => item.Kind == FlowSlotKind.TimerState ? checked((ulong)Constant(item.InitialConstant, DataType.Number).Number) : 0UL)];
+        _clockPeriods = [.. stateSlots.Select(item => item.Kind == FlowSlotKind.TimerState ? Constant(item.InitialConstant, DataType.Number).Number : 0D)];
         _currentState = [.. _initialState];
         _stagedState = new FlowVmValue[stateSlots.Length];
         _stagedStateValid = new bool[stateSlots.Length];
@@ -272,6 +274,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
             case FlowOpcode.OnDelay: OnDelay(instruction, a); break;
             case FlowOpcode.Delay: Delay(instruction, a); break;
             case FlowOpcode.Pulse: Pulse(instruction, a); break;
+            case FlowOpcode.Clock: Clock(instruction, a); break;
             case FlowOpcode.RisingEdge: RisingEdge(instruction, a); break;
             case FlowOpcode.Counter: Counter(instruction, a, b); break;
             case FlowOpcode.Min: Number(instruction, Math.Min(a.Number, b.Number), quality); break;
@@ -389,6 +392,34 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
 
         _slots[instruction.Result] = FlowVmValue.FromBoolean(active, input.Quality);
         _stagedState[state] = input;
+        _stagedStateValid[state] = true;
+    }
+
+    private void Clock(Instruction instruction, FlowVmValue enable)
+    {
+        var state = State(instruction.Auxiliary);
+        if (!enable.Boolean)
+        {
+            _slots[instruction.Result] = FlowVmValue.FromBoolean(false, enable.Quality);
+            _stagedTimerStartedAt[state] = 0;
+            _stagedState[state] = enable;
+            _stagedStateValid[state] = true;
+            return;
+        }
+
+        var marker = _timerStartedAt[state];
+        if (marker == 0)
+        {
+            marker = checked(_sampledAt + 1);
+            _stagedTimerStartedAt[state] = marker;
+        }
+
+        var elapsed = _sampledAt - (marker - 1);
+        var period = _clockPeriods[state];
+        var dutyCycle = Constant(instruction.Operand1, DataType.Number).Number;
+        var active = dutyCycle >= 100D || (dutyCycle > 0D && elapsed % period < period * dutyCycle / 100D);
+        _slots[instruction.Result] = FlowVmValue.FromBoolean(active, enable.Quality);
+        _stagedState[state] = enable;
         _stagedStateValid[state] = true;
     }
 

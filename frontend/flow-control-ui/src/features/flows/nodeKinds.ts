@@ -208,6 +208,19 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     booleanPort('reset', 'Reset', 'input', 'left'),
     { id: 'value', label: 'Count', direction: 'output', dataType: 'number', side: 'right' }
   ]),
+  [FlowNodeFunctionType.Clock]: executableDefinition(
+    FlowNodeFunctionType.Clock,
+    [
+      booleanPort('enable', 'Enable', 'input', 'left'),
+      booleanPort('output', 'Clock', 'output', 'right')
+    ],
+    [
+      { key: 'frequencyHz', label: 'Frequency (Hz)', input: 'number' },
+      { key: 'dutyCycle', label: 'Duty cycle (%)', input: 'number' }
+    ],
+    { frequencyHz: 1, dutyCycle: 50 },
+    'timing'
+  ),
   [FlowNodeFunctionType.Delay]: executableDefinition(
     FlowNodeFunctionType.Delay,
     [

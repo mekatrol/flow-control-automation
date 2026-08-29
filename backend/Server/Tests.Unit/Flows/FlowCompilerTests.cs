@@ -38,7 +38,7 @@ public sealed class FlowCompilerTests
         FlowNodeKind.DigitalSwitch, FlowNodeKind.Line, FlowNodeKind.LevelShifter, FlowNodeKind.Max, FlowNodeKind.Memory, FlowNodeKind.Min,
         FlowNodeKind.Nand, FlowNodeKind.Nor, FlowNodeKind.Not, FlowNodeKind.NumericConstant, FlowNodeKind.OnDelay, FlowNodeKind.Or, FlowNodeKind.Override, FlowNodeKind.Pulse,
         FlowNodeKind.QualityGood, FlowNodeKind.RisingEdge, FlowNodeKind.Schedule, FlowNodeKind.AnalogSwitch, FlowNodeKind.Sequence, FlowNodeKind.Split ,FlowNodeKind.Timer,
-        FlowNodeKind.D2A, FlowNodeKind.Xnor, FlowNodeKind.Xor, FlowNodeKind.Counter
+        FlowNodeKind.D2A, FlowNodeKind.Xnor, FlowNodeKind.Xor, FlowNodeKind.Counter, FlowNodeKind.Clock
     ];
 
     private static readonly string FixtureSourceRoot = Path.Combine(
@@ -79,6 +79,7 @@ public sealed class FlowCompilerTests
             FlowNodeKind.DigitalSwitch => ["condition", "whenTrue", "whenFalse"],
             FlowNodeKind.AnalogSwitch => ["condition"],
             FlowNodeKind.Override or FlowNodeKind.Delay or FlowNodeKind.Timer or FlowNodeKind.Pulse => ["input"],
+            FlowNodeKind.Clock => ["enable"],
             FlowNodeKind.DigitalOutput or FlowNodeKind.D2A => ["in"],
             _ => []
         };
@@ -99,6 +100,7 @@ public sealed class FlowCompilerTests
                 Config(("gain", 1D), ("offset", 0D)),
             FlowNodeKind.OnDelay or FlowNodeKind.Delay or FlowNodeKind.Timer or FlowNodeKind.Pulse =>
                 Config("durationMs", 100D),
+            FlowNodeKind.Clock => Config(("frequencyHz", 2D), ("dutyCycle", 25D)),
             FlowNodeKind.Clamp => Config(("minimum", 0D), ("maximum", 100D)),
             FlowNodeKind.A2D => Config(("activeLowThreshold", 25D), ("activeHighThreshold", 75D)),
             FlowNodeKind.D2A => Config(("lowValue", 0D), ("highValue", 100D)),
@@ -580,6 +582,100 @@ public sealed class FlowCompilerTests
             Assert.That(Scan(false, 3_000), Is.False);
             Assert.That(Scan(true, 3_000), Is.True);
         });
+    }
+
+    [Test]
+    public void ClockCyclesAtTheConfiguredFrequencyAndDutyCycleWhileEnabled()
+    {
+        var source = GetSourceFromKind(FlowNodeKind.Clock) with
+        {
+            Nodes =
+            [
+                .. GetSourceFromKind(FlowNodeKind.Clock).Nodes.Select(node => node.Id switch
+                {
+                    "boolean-enable" => node with { Kind = FlowNodeKind.DigitalInput, Configuration = Config("pointId", "enable") },
+                    "test-node" => node with { Configuration = Config(("frequencyHz", 2D), ("dutyCycle", 25D)) },
+                    _ => node
+                }),
+                new ExecutableFlowNode { Id = "output", Kind = FlowNodeKind.DigitalOutput, Configuration = Config("pointId", "output") }
+            ],
+            Connections =
+            [
+                .. GetSourceFromKind(FlowNodeKind.Clock).Connections,
+                new(new("test-node", "output"), new("output", "in"))
+            ]
+        };
+        var compilation = _compiler.Compile(BuildCompilationRequest(source));
+        using var machine = new ManagedFlowVirtualMachineFactory().Create(compilation.Artifact);
+
+        bool Scan(bool enabled, ulong sampledAt) => machine
+            .Scan([new("enable", enabled)], sampledAt)
+            .Commands.Single().TypedValue.Boolean;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Scan(false, 0), Is.False);
+            Assert.That(Scan(true, 0), Is.True);
+            Assert.That(Scan(true, 124), Is.True);
+            Assert.That(Scan(true, 125), Is.False);
+            Assert.That(Scan(true, 499), Is.False);
+            Assert.That(Scan(true, 500), Is.True);
+            Assert.That(Scan(false, 600), Is.False);
+            Assert.That(Scan(true, 600), Is.True);
+        });
+    }
+
+    [Test]
+    public void TwoHertzClockContinuallyDrivesCounterAtSimulatorScanCadence()
+    {
+        var source = new ExecutableFlowSource
+        {
+            Id = "clock-counter",
+            Revision = 1,
+            ControllerTemplateId = "fixture",
+            ControllerTemplateRevision = 1,
+            Nodes =
+            [
+                new() { Id = "enable", Kind = FlowNodeKind.DigitalInput, Configuration = Config("pointId", "enable") },
+                new() { Id = "reset", Kind = FlowNodeKind.DigitalConstant, Configuration = Config("value", false) },
+                new() { Id = "clock", Kind = FlowNodeKind.Clock, Configuration = Config(("frequencyHz", 2D), ("dutyCycle", 25D)) },
+                new() { Id = "counter", Kind = FlowNodeKind.Counter },
+                new() { Id = "output", Kind = FlowNodeKind.AnalogOutput, Configuration = Config("pointId", "count") }
+            ],
+            Connections =
+            [
+                new(new("enable", "value"), new("clock", "enable")),
+                new(new("clock", "output"), new("counter", "count")),
+                new(new("reset", "value"), new("counter", "reset")),
+                new(new("counter", "value"), new("output", "in"))
+            ]
+        };
+        var compilation = _compiler.Compile(BuildCompilationRequest(source));
+        using var machine = new ManagedFlowVirtualMachineFactory().Create(compilation.Artifact);
+
+        double count = 0;
+        for (ulong sampledAt = 0; sampledAt <= 1_000; sampledAt += 10)
+        {
+            count = machine.Scan([new("enable", true)], sampledAt).Commands.Single().TypedValue.Number;
+        }
+
+        Assert.That(count, Is.EqualTo(3D));
+    }
+
+    [TestCase(0.099)]
+    [TestCase(1000.001)]
+    public void ClockRejectsFrequenciesOutsideTheSupportedRange(double frequencyHz)
+    {
+        var source = GetSourceFromKind(FlowNodeKind.Clock) with
+        {
+            Nodes = [.. GetSourceFromKind(FlowNodeKind.Clock).Nodes.Select(node => node.Id == "test-node"
+                ? node with { Configuration = Config(("frequencyHz", frequencyHz), ("dutyCycle", 50D)) }
+                : node)]
+        };
+
+        var exception = Assert.Throws<FlowCompilationException>(() => _compiler.Compile(BuildCompilationRequest(source)));
+
+        Assert.That(exception!.Diagnostics.Single().Code, Is.EqualTo(FlowCompilationDiagnosticCode.InvalidClockFrequency));
     }
 
     [TestCase("a * 9 + c")]

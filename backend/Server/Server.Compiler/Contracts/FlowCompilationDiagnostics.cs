@@ -47,6 +47,8 @@ public static class FlowCompilationDiagnostics
                 [FlowCompilationDiagnosticCode.UnexpectedNodeConfiguration] = D(1311, "Unexpected node configuration", "This node requires empty configuration."),
                 [FlowCompilationDiagnosticCode.InvalidFiniteNumber] = D(1312, "Invalid numeric configuration", "A finite number is required."),
                 [FlowCompilationDiagnosticCode.InvalidCalculatorFormula] = D(1313, "Invalid calculator formula", "Formula must use only a, b, c, parentheses, and BODMAS operators (+, -, *, /, ^): {0}"),
+                [FlowCompilationDiagnosticCode.InvalidClockFrequency] = D(1314, "Invalid clock frequency", "Clock frequency must be from {0} through {1} hertz."),
+                [FlowCompilationDiagnosticCode.InvalidDutyCycle] = D(1315, "Invalid duty cycle", "Duty cycle must be from {0} through {1} percent."),
 
                 // Units
                 [FlowCompilationDiagnosticCode.AnalogOutputUnitMismatch] = D(1401, "Analog output unit mismatch", "Analog output units do not match the bound point."),

@@ -23,6 +23,7 @@ const supportedKinds = new Set([
   'negate',
   'comparator',
   'counter',
+  'clock',
   'levelShifter',
   'qualityGood',
   'onDelay',
@@ -94,6 +95,11 @@ const configurationFor = (node: FlowNode): Record<string, unknown> => {
   if (node.kind === 'onDelay') return { durationMs: Number(node.configuration.durationMs) };
   if (node.kind === 'delay' || node.kind === 'pulse' || node.kind === 'timer')
     return { durationMs: Number(node.configuration.durationMs) };
+  if (node.kind === 'clock')
+    return {
+      frequencyHz: Number(node.configuration.frequencyHz),
+      dutyCycle: Number(node.configuration.dutyCycle)
+    };
   if (node.kind === 'clamp')
     return {
       minimum: Number(node.configuration.minimum),

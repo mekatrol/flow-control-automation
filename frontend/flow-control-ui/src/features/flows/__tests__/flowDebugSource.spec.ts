@@ -80,6 +80,19 @@ describe('designer debug source', () => {
     expect(() => createExecutableFlowSource(flow, target)).not.toThrow();
   });
 
+  it('preserves clock frequency and duty cycle in the executable source', () => {
+    const flow = debugFlow();
+    const clock = createDefaultNode('clock', { x: 0, y: 0 }, 1, 'clock');
+    clock.configuration.frequencyHz = 2;
+    clock.configuration.dutyCycle = 25;
+    flow.nodes[1] = clock;
+
+    expect(createExecutableFlowSource(flow, target).nodes[1]?.configuration).toEqual({
+      frequencyHz: 2,
+      dutyCycle: 25
+    });
+  });
+
   it('preserves calculator formulas in the executable source', () => {
     const flow = debugFlow();
     const calculator = createDefaultNode('calculator', { x: 0, y: 0 }, 1, 'calculator');

@@ -460,6 +460,13 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
                 instruction.Auxiliary,
                 instructionIndex,
                 FlowNodeKind.Pulse),
+            FlowOpcode.Clock => ConfigureClock(
+                configuration,
+                decoded.Slots,
+                decoded.Constants,
+                instruction.Operand1,
+                instruction.Auxiliary,
+                instructionIndex),
             FlowOpcode.RisingEdge => FlowNodeKind.RisingEdge,
             FlowOpcode.Counter => ValidateCounterState(
                 decoded.Slots,
@@ -527,6 +534,10 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
             case FlowOpcode.Delay:
             case FlowOpcode.Pulse:
                 AddInputConnection("input", instruction.Operand0);
+                break;
+
+            case FlowOpcode.Clock:
+                AddInputConnection("enable", instruction.Operand0);
                 break;
         }
 
@@ -1110,6 +1121,30 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
         return kind;
     }
 
+    private static FlowNodeKind ConfigureClock(
+        Dictionary<string, JsonElement> configuration,
+        IReadOnlyDictionary<ushort, SlotRecord> slots,
+        IReadOnlyList<ConstantRecord> constants,
+        ushort dutyCycleConstantIndex,
+        ushort stateSlotIndex,
+        int instructionIndex)
+    {
+        if (!slots.TryGetValue(stateSlotIndex, out var slot)
+            || slot.Kind != FlowSlotKind.TimerState
+            || slot.InitialConstant >= constants.Count
+            || constants[slot.InitialConstant].DataType != DataType.Number
+            || dutyCycleConstantIndex >= constants.Count
+            || constants[dutyCycleConstantIndex].DataType != DataType.Number
+            || constants[slot.InitialConstant].Number <= 0D)
+        {
+            Fail(FlowCompilationDiagnosticCode.InvalidTimerOperands, $"/instructions/{instructionIndex}/clock");
+        }
+
+        configuration["frequencyHz"] = JsonSerializer.SerializeToElement(1_000D / constants[slot!.InitialConstant].Number);
+        configuration["dutyCycle"] = JsonSerializer.SerializeToElement(constants[dutyCycleConstantIndex].Number);
+        return FlowNodeKind.Clock;
+    }
+
     /*
      * Convert a binary operand slot number into a designer graph edge.
      *
@@ -1164,6 +1199,7 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
                 [BooleanInput("in", "Input"), BooleanOutput("value", "Value")],
             FlowNodeKind.Counter =>
                 [BooleanInput("count", "Count"), BooleanInput("reset", "Reset"), NumberOutput("value", "Count")],
+            FlowNodeKind.Clock => [BooleanInput("enable", "Enable"), BooleanOutput("output", "Clock")],
             _ => []
         };
     }

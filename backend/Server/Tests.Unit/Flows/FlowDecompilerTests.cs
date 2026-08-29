@@ -362,6 +362,47 @@ public sealed class FlowDecompilerTests
     }
 
     [Test]
+    public void RoundTripsClockFrequencyDutyCycleAndEnableConnection()
+    {
+        var source = new ExecutableFlowSource
+        {
+            Id = "round-trip-clock",
+            Revision = 1,
+            ControllerTemplateId = "clock-target",
+            ControllerTemplateRevision = 1,
+            Nodes =
+            [
+                new ExecutableFlowNode { Id = "enable", Kind = FlowNodeKind.DigitalConstant, Configuration = Configuration("value", true) },
+                new ExecutableFlowNode
+                {
+                    Id = "clock",
+                    Kind = FlowNodeKind.Clock,
+                    Configuration = new Dictionary<string, JsonElement>
+                    {
+                        ["frequencyHz"] = JsonSerializer.SerializeToElement(2D),
+                        ["dutyCycle"] = JsonSerializer.SerializeToElement(25D)
+                    }
+                }
+            ],
+            Connections = [new(new("enable", "value"), new("clock", "enable"))]
+        };
+        var original = _compiler.Compile(CompilationRequest(source, null));
+
+        var recovered = _decompiler.Decompile(original.Artifact);
+        var clock = recovered.Flow.Nodes.Single(node => node.Id == "clock");
+        var recompiled = _compiler.Compile(CompilationRequest(RecoveredSource(recovered), null));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(clock.Kind, Is.EqualTo(FlowNodeKind.Clock));
+            Assert.That(clock.Configuration["frequencyHz"].GetDouble(), Is.EqualTo(2D));
+            Assert.That(clock.Configuration["dutyCycle"].GetDouble(), Is.EqualTo(25D));
+            Assert.That(recovered.Flow.Connections.Single().End.ConnectorId, Is.EqualTo("enable"));
+        });
+        AssertArtifactsEqual(original.Artifact.ToArray(), recompiled.Artifact.ToArray());
+    }
+
+    [Test]
     public void RejectsCorruptArtifactsBeforeReadingInstructions()
     {
         var artifact = GetArtifact("valid-two-button-and");

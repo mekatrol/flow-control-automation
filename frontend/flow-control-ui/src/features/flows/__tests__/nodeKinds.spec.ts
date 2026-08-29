@@ -12,7 +12,7 @@ describe('node-kind registry', () => {
     // Expected outcome: `flowNodeKinds` contains the required number of entries.
     // Acceptance criteria: `flowNodeKinds` must contain exactly 36 entries, because this condition proves that
     // contains complete rendering, connector, and editor metadata for every supported kind.
-    expect(flowNodeKinds).toHaveLength(44);
+    expect(flowNodeKinds).toHaveLength(45);
 
     // Expected outcome: `flowNodeKinds` matches the required structure.
     // Acceptance criteria: `flowNodeKinds` must equal `expect.arrayContaining(['and', 'average', 'calculator', 'nand', 'nor', 'not', 'xnor', 'xor']`, because this condition proves that
@@ -156,7 +156,7 @@ describe('node-kind registry', () => {
    * verifies the observable results required by the scenario.
    */
   it('groups every clock-driven function with the calendar timing category', () => {
-    const relatedKinds = ['delay', 'pulse', 'schedule', 'timer'] as const;
+    const relatedKinds = ['clock', 'delay', 'pulse', 'schedule', 'timer'] as const;
 
     // Expected outcome: `relatedKinds.map((kind) => nodeKindRegistry[kind].category)` matches the required structure.
     // Acceptance criteria: `relatedKinds.map((kind) => nodeKindRegistry[kind].category)` must equal `Array(relatedKinds.length`, because this condition proves that
