@@ -39,6 +39,13 @@ enum
     OPCODE_SELECT               = 23,
     OPCODE_COPY                 = 24,
     OPCODE_AVERAGE              = 27,
+    OPCODE_SUBTRACT             = 31,
+    OPCODE_MULTIPLY             = 32,
+    OPCODE_DIVIDE               = 33,
+    OPCODE_POWER                = 34,
+    OPCODE_NEGATE               = 35,
+    OPCODE_CALCULATOR           = 36,
+    OPCODE_CALCULATOR_INPUTS    = 37,
     OPCODE_COMMIT               = 255,
     RETAINED_STATE_RECORD_BYTES = 9,
 };
@@ -479,7 +486,8 @@ flow_vm_result_t flow_vm_prepare(const uint8_t *artifact, size_t artifact_size, 
         instruction->auxiliary             = get_u16(&record[8]);
 
         if (record[1] != 0U || get_u16(&record[10]) != 0U || instruction->opcode == 0U ||
-            (instruction->opcode > OPCODE_AVERAGE && instruction->opcode != OPCODE_COMMIT))
+            (instruction->opcode > OPCODE_CALCULATOR_INPUTS && instruction->opcode != OPCODE_COMMIT) ||
+            (instruction->opcode > OPCODE_AVERAGE && instruction->opcode < OPCODE_SUBTRACT))
         {
             return get_result(FLOW_VM_UNKNOWN_OPCODE, "/instructions");
         }
@@ -490,7 +498,9 @@ flow_vm_result_t flow_vm_prepare(const uint8_t *artifact, size_t artifact_size, 
              instruction->opcode != OPCODE_CLAMP && instruction->operand1 >= vm->slot_count) ||
             (instruction->opcode == OPCODE_SELECT && instruction->auxiliary >= vm->slot_count) ||
             (instruction->opcode == OPCODE_CLAMP &&
-             (instruction->operand1 >= vm->constant_count || instruction->auxiliary >= vm->constant_count)))
+             (instruction->operand1 >= vm->constant_count || instruction->auxiliary >= vm->constant_count)) ||
+            (instruction->opcode == OPCODE_CALCULATOR_INPUTS &&
+             instruction->auxiliary != UNUSED_INDEX && instruction->auxiliary >= vm->slot_count))
         {
             return get_result(FLOW_VM_INVALID_OPERAND, "/instructions/0/resultSlot");
         }
@@ -725,6 +735,41 @@ flow_vm_result_t flow_vm_step_instruction(flow_vm_t *vm, flow_vm_execution_view_
                     : vm->slot_qualities[instruction->operand1];
             break;
         }
+
+        case OPCODE_SUBTRACT:
+        case OPCODE_MULTIPLY:
+        case OPCODE_DIVIDE:
+        case OPCODE_POWER: {
+            const double left = vm->numeric_slots[instruction->operand0];
+            const double right = vm->numeric_slots[instruction->operand1];
+            double value = 0.0;
+            if (instruction->opcode == OPCODE_SUBTRACT) value = left - right;
+            else if (instruction->opcode == OPCODE_MULTIPLY) value = left * right;
+            else if (instruction->opcode == OPCODE_DIVIDE) value = left / right;
+            else value = pow(left, right);
+            if (!isfinite(value)) return get_result(FLOW_VM_INPUT_REJECTED, "/arithmeticOverflow");
+            vm->numeric_slots[instruction->result] = value;
+            vm->slot_qualities[instruction->result] =
+                vm->slot_qualities[instruction->operand0] > vm->slot_qualities[instruction->operand1]
+                    ? vm->slot_qualities[instruction->operand0] : vm->slot_qualities[instruction->operand1];
+            break;
+        }
+
+        case OPCODE_NEGATE: {
+            const double value = -vm->numeric_slots[instruction->operand0];
+            if (!isfinite(value)) return get_result(FLOW_VM_INPUT_REJECTED, "/arithmeticOverflow");
+            vm->numeric_slots[instruction->result] = value;
+            vm->slot_qualities[instruction->result] = vm->slot_qualities[instruction->operand0];
+            break;
+        }
+
+        case OPCODE_CALCULATOR:
+            vm->working_slots[instruction->result] = vm->working_slots[instruction->operand0];
+            vm->numeric_slots[instruction->result] = vm->numeric_slots[instruction->operand0];
+            vm->slot_qualities[instruction->result] = vm->slot_qualities[instruction->operand0];
+            break;
+        case OPCODE_CALCULATOR_INPUTS:
+            break;
 
         case OPCODE_AVERAGE: {
             /* Halving before addition avoids overflowing when two finite inputs have a finite average. */

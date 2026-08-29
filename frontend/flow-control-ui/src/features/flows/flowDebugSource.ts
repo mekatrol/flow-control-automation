@@ -82,6 +82,7 @@ const configurationFor = (node: FlowNode): Record<string, unknown> => {
   if (node.kind === 'numericConstant' || node.kind === 'memory')
     return { value: Number(node.configuration.value) };
   if (node.kind === 'comparator') return { operator: String(node.configuration.operator) };
+  if (node.kind === 'calculator') return { formula: String(node.configuration.formula) };
   if (node.kind === 'levelShifter')
     return { gain: Number(node.configuration.gain), offset: Number(node.configuration.offset) };
   if (node.kind === 'onDelay') return { durationMs: Number(node.configuration.durationMs) };

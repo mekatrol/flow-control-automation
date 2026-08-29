@@ -21,6 +21,7 @@
 using Server.Common.Contracts;
 using Server.Compiler.Contracts;
 using System.Buffers.Binary;
+using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -162,6 +163,20 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
                 continue;
             }
 
+            if (instruction.Opcode == FlowOpcode.Calculator ||
+                instruction.Opcode == FlowOpcode.CalculatorInputs ||
+                (symbol.Discriminator == 1 && IsCalculatorArithmetic(instruction.Opcode)))
+            {
+                ReconstructCalculator(
+                    decoded,
+                    ref instructionIndex,
+                    nodes,
+                    connections,
+                    slotOwners,
+                    depths);
+                continue;
+            }
+
             RequireSymbol(symbol, instructionIndex, 0);
 
             var configuration = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
@@ -203,6 +218,147 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
 
         return new ReconstructedGraph(nodes, connections);
     }
+
+    private static void ReconstructCalculator(
+        DecodedArtifact decoded,
+        ref int instructionIndex,
+        List<FlowNode> nodes,
+        List<PendingConnection> connections,
+        Dictionary<ushort, FlowEndpoint> slotOwners,
+        Dictionary<string, int> depths)
+    {
+        var firstSymbol = decoded.Symbols[instructionIndex];
+        var nodeId = firstSymbol.NodeId;
+        var expressions = new Dictionary<ushort, string>();
+        var variables = new Dictionary<ushort, char>();
+        var nextVariable = 'a';
+        Instruction? final = null;
+        var finalIndex = instructionIndex;
+
+        for (; finalIndex < decoded.Instructions.Count; finalIndex++)
+        {
+            var instruction = decoded.Instructions[finalIndex];
+            var symbol = decoded.Symbols[finalIndex];
+            if (!string.Equals(symbol.NodeId, nodeId, StringComparison.Ordinal))
+            {
+                Fail(FlowCompilationDiagnosticCode.UnrepresentableSymbol, $"/symbols/{finalIndex}");
+            }
+
+            if (instruction.Opcode == FlowOpcode.Calculator)
+            {
+                RequireSymbol(symbol, finalIndex, 0);
+                final = instruction;
+                break;
+            }
+
+            if (instruction.Opcode == FlowOpcode.CalculatorInputs)
+            {
+                RequireSymbol(symbol, finalIndex, 1);
+                RegisterVariable(instruction.Operand0, 'a');
+                RegisterVariable(instruction.Operand1, 'b');
+                RegisterVariable(instruction.Auxiliary, 'c');
+                continue;
+            }
+
+            RequireSymbol(symbol, finalIndex, 1);
+            if (!IsCalculatorArithmetic(instruction.Opcode))
+            {
+                Fail(FlowCompilationDiagnosticCode.UnsupportedOpcode, $"/instructions/{finalIndex}/opcode");
+            }
+
+            var left = Operand(instruction.Operand0, finalIndex);
+            var expression = instruction.Opcode == FlowOpcode.Negate
+                ? $"(-{left})"
+                : $"({left} {OperatorText(instruction.Opcode)} {Operand(instruction.Operand1, finalIndex)})";
+            expressions[instruction.ResultSlotIndex] = expression;
+        }
+
+        var finalInstruction = final ?? throw Error(
+            FlowCompilationDiagnosticCode.UnrepresentableSymbol,
+            $"/symbols/{instructionIndex}");
+
+        var formula = Operand(finalInstruction.Operand0, finalIndex);
+        foreach (var (slot, variable) in variables.OrderBy(item => item.Value))
+        {
+            AddConnection(connections, slotOwners, slot, nodeId, variable.ToString(), finalIndex);
+        }
+
+        var inputDepth = variables.Keys.Select(slot => depths[slotOwners[slot].NodeId]).DefaultIfEmpty(-1).Max();
+        nodes.Add(new FlowNode
+        {
+            Id = nodeId,
+            Kind = FlowNodeKind.Calculator,
+            Label = firstSymbol.Label,
+            X = firstSymbol.X,
+            Y = firstSymbol.Y,
+            ZOrder = firstSymbol.ZOrder,
+            GroupId = firstSymbol.GroupId.Length == 0 ? null : firstSymbol.GroupId,
+            Connectors = Connectors(FlowNodeKind.Calculator),
+            Configuration = new Dictionary<string, JsonElement>(StringComparer.Ordinal)
+            {
+                ["formula"] = JsonSerializer.SerializeToElement(formula)
+            }
+        });
+        depths[nodeId] = inputDepth + 1;
+        slotOwners[finalInstruction.ResultSlotIndex] = new FlowEndpoint(nodeId, "output");
+        instructionIndex = finalIndex;
+
+        string Operand(ushort slot, int index)
+        {
+            if (expressions.TryGetValue(slot, out var expression))
+            {
+                return expression;
+            }
+
+            if (!slotOwners.ContainsKey(slot))
+            {
+                Fail(FlowCompilationDiagnosticCode.InvalidInputOperand, $"/instructions/{index}");
+            }
+
+            if (!variables.TryGetValue(slot, out var variable))
+            {
+                if (nextVariable > 'c')
+                {
+                    Fail(FlowCompilationDiagnosticCode.InvalidInputOperand, $"/instructions/{index}");
+                }
+
+                variable = nextVariable++;
+                variables[slot] = variable;
+            }
+
+            return variable.ToString();
+        }
+
+        void RegisterVariable(ushort slot, char variable)
+        {
+            if (slot == FlowILV1Format.Unused)
+            {
+                return;
+            }
+
+            if (!slotOwners.ContainsKey(slot) || variables.ContainsKey(slot))
+            {
+                Fail(FlowCompilationDiagnosticCode.InvalidInputOperand, $"/instructions/{finalIndex}");
+            }
+
+            variables[slot] = variable;
+            nextVariable = (char)Math.Max(nextVariable, variable + 1);
+        }
+    }
+
+    private static bool IsCalculatorArithmetic(FlowOpcode opcode) => opcode is
+        FlowOpcode.Add or FlowOpcode.Subtract or FlowOpcode.Multiply or FlowOpcode.Divide or
+        FlowOpcode.Power or FlowOpcode.Negate;
+
+    private static string OperatorText(FlowOpcode opcode) => opcode switch
+    {
+        FlowOpcode.Add => "+",
+        FlowOpcode.Subtract => "-",
+        FlowOpcode.Multiply => "*",
+        FlowOpcode.Divide => "/",
+        FlowOpcode.Power => "^",
+        _ => throw new UnreachableException()
+    };
 
     private static void ValidateFinalCommit(
         List<Instruction> instructions,
@@ -936,6 +1092,8 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
             FlowNodeKind.Memory => [NumberInput("in", "Input"), NumberOutput("value", "Previous value")],
             FlowNodeKind.NumericConstant => [NumberOutput("value", "Value")],
             FlowNodeKind.Add => [NumberInput("a", "A"), NumberInput("b", "B"), NumberOutput("value", "Value")],
+            FlowNodeKind.Calculator =>
+                [NumberInput("a", "A"), NumberInput("b", "B"), NumberInput("c", "C"), NumberOutput("output", "Output")],
             FlowNodeKind.Comparator => [NumberInput("a", "A"), NumberInput("b", "B"), BooleanOutput("value", "Value")],
             FlowNodeKind.LevelShifter => [NumberInput("in", "Input"), NumberOutput("value", "Value")],
             FlowNodeKind.QualityGood or FlowNodeKind.OnDelay or FlowNodeKind.RisingEdge =>

@@ -46,6 +46,7 @@ public static class FlowCompilationDiagnostics
                 [FlowCompilationDiagnosticCode.InvalidEnabledConfiguration] = D(1310, "Invalid enabled setting", "An enabled Boolean is required."),
                 [FlowCompilationDiagnosticCode.UnexpectedNodeConfiguration] = D(1311, "Unexpected node configuration", "This node requires empty configuration."),
                 [FlowCompilationDiagnosticCode.InvalidFiniteNumber] = D(1312, "Invalid numeric configuration", "A finite number is required."),
+                [FlowCompilationDiagnosticCode.InvalidCalculatorFormula] = D(1313, "Invalid calculator formula", "Formula must use only a, b, c, parentheses, and BODMAS operators (+, -, *, /, ^): {0}"),
 
                 // Units
                 [FlowCompilationDiagnosticCode.AnalogOutputUnitMismatch] = D(1401, "Analog output unit mismatch", "Analog output units do not match the bound point."),

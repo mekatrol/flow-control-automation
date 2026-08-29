@@ -62,7 +62,8 @@ public sealed class FlowCompilerTests
         {
             FlowNodeKind.Add or FlowNodeKind.Average or FlowNodeKind.Comparator or FlowNodeKind.Min or FlowNodeKind.Max => ["a", "b"],
             FlowNodeKind.AnalogSwitch => ["a", "b"],
-            FlowNodeKind.Calculator or FlowNodeKind.Clamp or FlowNodeKind.Line or FlowNodeKind.Split => new[] { "input" },
+            FlowNodeKind.Calculator => ["a", "b", "c"],
+            FlowNodeKind.Clamp or FlowNodeKind.Line or FlowNodeKind.Split => new[] { "input" },
             FlowNodeKind.LevelShifter or FlowNodeKind.A2D => ["in"],
             FlowNodeKind.AnalogOutput => ["in"],
             FlowNodeKind.Memory or FlowNodeKind.QualityGood => ["in"],
@@ -90,6 +91,8 @@ public sealed class FlowCompilerTests
                 Config("value", 1D),
             FlowNodeKind.Comparator =>
                 Config("operator", "gt"),
+            FlowNodeKind.Calculator =>
+                Config("formula", "a * b + c"),
             FlowNodeKind.LevelShifter or FlowNodeKind.Line =>
                 Config(("gain", 1D), ("offset", 0D)),
             FlowNodeKind.OnDelay or FlowNodeKind.Delay or FlowNodeKind.Timer =>
@@ -349,6 +352,44 @@ public sealed class FlowCompilerTests
             () => _compiler.Compile(request),
             FlowCompilationDiagnosticCode.MissingPoint,
             $"/points/{source.Nodes[0].Configuration["pointId"].GetString()}");
+    }
+
+    [Test]
+    public void CalculatorCompilesBodmasFormulaIntoArithmeticInstructionsAndTemporarySlots()
+    {
+        var source = GetSourceFromKind(FlowNodeKind.Calculator);
+        var calculator = source.Nodes.Single(node => node.Id == "test-node") with
+        {
+            Configuration = Config("formula", "a + b * (c - a) ^ b")
+        };
+        source = source with { Nodes = [.. source.Nodes.Where(node => node.Id != "test-node"), calculator] };
+
+        var result = _compiler.Compile(BuildCompilationRequest(source));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.InstructionCount, Is.EqualTo(10));
+            Assert.That(result.SlotCount, Is.EqualTo(8));
+            Assert.That(result.NodeIndices["test-node"], Is.LessThan(result.SlotCount));
+        });
+    }
+
+    [TestCase("a * 9 + c")]
+    [TestCase("a + temperature")]
+    [TestCase("a / (b - b")]
+    public void CalculatorRejectsLiteralsUnknownVariablesAndMalformedFormulas(string formula)
+    {
+        var source = GetSourceFromKind(FlowNodeKind.Calculator);
+        var calculator = source.Nodes.Single(node => node.Id == "test-node") with
+        {
+            Configuration = Config("formula", formula)
+        };
+        source = source with { Nodes = [.. source.Nodes.Where(node => node.Id != "test-node"), calculator] };
+
+        AssertDiagnostic(
+            () => _compiler.Compile(BuildCompilationRequest(source)),
+            FlowCompilationDiagnosticCode.InvalidCalculatorFormula,
+            "/nodes/3/configuration/formula");
     }
     private static Dictionary<string, JsonElement> Config(string key, object value) =>
         new() { [key] = JsonSerializer.SerializeToElement(value) };

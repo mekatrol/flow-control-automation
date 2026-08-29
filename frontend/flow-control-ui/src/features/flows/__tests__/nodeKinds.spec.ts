@@ -79,7 +79,6 @@ describe('node-kind registry', () => {
           'add',
           'average',
           'and',
-          'calculator',
           'digitalSwitch',
           'max',
           'min',
@@ -117,14 +116,14 @@ describe('node-kind registry', () => {
     // Expected outcome: `nodeKindRegistry.calculator.connectors` contains the required number of entries.
     // Acceptance criteria: `nodeKindRegistry.calculator.connectors` must contain exactly 4 entries, because this condition proves that
     // preserves the legacy multi-port calculator and split blocks.
-    expect(nodeKindRegistry.calculator.connectors).toHaveLength(2);
+    expect(nodeKindRegistry.calculator.connectors).toHaveLength(4);
 
     // Expected outcome: `nodeKindRegistry.calculator.connectors.filter(({ side }) => side === 'left')` contains the required number of entries.
     // Acceptance criteria: `nodeKindRegistry.calculator.connectors.filter(({ side }) => side === 'left')` must contain exactly 2 entries, because this condition proves that
     // preserves the legacy multi-port calculator and split blocks.
     expect(
       nodeKindRegistry.calculator.connectors.filter(({ side }) => side === 'left')
-    ).toHaveLength(1);
+    ).toHaveLength(3);
 
     // Expected outcome: `nodeKindRegistry.calculator.connectors.filter(({ side }) => side === 'right')` contains the required number of entries.
     // Acceptance criteria: `nodeKindRegistry.calculator.connectors.filter(({ side }) => side === 'right')` must contain exactly 2 entries, because this condition proves that

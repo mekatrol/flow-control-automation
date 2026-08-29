@@ -250,6 +250,71 @@ public sealed class FlowDecompilerTests
     }
 
     [Test]
+    public void RecoversCalculatorFormulaInputsAndIdenticalArithmeticIl()
+    {
+        var source = new ExecutableFlowSource
+        {
+            Id = "calculator-round-trip",
+            Revision = 7,
+            ControllerTemplateId = "calculator-target",
+            ControllerTemplateRevision = 1,
+            Nodes =
+            [
+                Constant("constant-a", 2),
+                Constant("constant-b", 3),
+                Constant("constant-c", 4),
+                new ExecutableFlowNode
+                {
+                    Id = "calculator",
+                    Kind = FlowNodeKind.Calculator,
+                    Label = "BODMAS calculator",
+                    X = 120,
+                    Y = 80,
+                    ZOrder = 3,
+                    Configuration = Configuration("formula", "a + b * (c - a) ^ b")
+                }
+            ],
+            Connections =
+            [
+                Connection("constant-a", "a"),
+                Connection("constant-b", "b"),
+                Connection("constant-c", "c")
+            ]
+        };
+        var original = _compiler.Compile(CompilationRequest(source, null));
+
+        var recovered = _decompiler.Decompile(original.Artifact);
+        var calculator = recovered.Flow.Nodes.Single(node => node.Id == "calculator");
+        var recompiled = _compiler.Compile(CompilationRequest(RecoveredSource(recovered), null));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(calculator.Kind, Is.EqualTo(FlowNodeKind.Calculator));
+            Assert.That(calculator.Configuration["formula"].GetString(),
+                Is.EqualTo("(a + (b * ((c - a) ^ b)))"));
+            Assert.That(calculator.Connectors.Select(connector => connector.Id),
+                Is.EqualTo(new[] { "a", "b", "c", "output" }));
+            Assert.That(recovered.Flow.Connections
+                .Where(connection => connection.End.NodeId == "calculator")
+                .Select(connection => connection.End.ConnectorId),
+                Is.EquivalentTo(new[] { "a", "b", "c" }));
+        });
+        AssertArtifactsEqual(original.Artifact.ToArray(), recompiled.Artifact.ToArray());
+
+        static ExecutableFlowNode Constant(string id, double value) => new()
+        {
+            Id = id,
+            Kind = FlowNodeKind.NumericConstant,
+            Label = id,
+            Configuration = Configuration("value", value)
+        };
+
+        static ExecutableFlowConnection Connection(string sourceId, string port) => new(
+            new ExecutableFlowEndpoint(sourceId, "value"),
+            new ExecutableFlowEndpoint("calculator", port));
+    }
+
+    [Test]
     public void RejectsCorruptArtifactsBeforeReadingInstructions()
     {
         var artifact = GetArtifact("valid-two-button-and");
@@ -294,6 +359,9 @@ public sealed class FlowDecompilerTests
                 FixtureRoot,
                 fixture,
                 "artifact.bin"));
+
+    private static Dictionary<string, JsonElement> Configuration(string key, object value) =>
+        new() { [key] = JsonSerializer.SerializeToElement(value) };
 
     private static FlowCompilationRequest CompilationRequest(
         ExecutableFlowSource source,

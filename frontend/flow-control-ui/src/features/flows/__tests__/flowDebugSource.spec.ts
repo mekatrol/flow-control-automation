@@ -80,6 +80,17 @@ describe('designer debug source', () => {
     expect(() => createExecutableFlowSource(flow, target)).not.toThrow();
   });
 
+  it('preserves calculator formulas in the executable source', () => {
+    const flow = debugFlow();
+    const calculator = createDefaultNode('calculator', { x: 0, y: 0 }, 1, 'calculator');
+    calculator.configuration.formula = '(a + b) * c';
+    flow.nodes[1] = calculator;
+
+    expect(createExecutableFlowSource(flow, target).nodes[1]?.configuration).toEqual({
+      formula: '(a + b) * c'
+    });
+  });
+
   it('copies virtual point declarations from a reactive flow', () => {
     const flow = reactive(debugFlow());
     flow.virtualPointDeclarations = [

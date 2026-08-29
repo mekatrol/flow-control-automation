@@ -37,6 +37,13 @@ public enum FlowOpcode : byte
     A2DLow = 28,
     A2DHigh = 29,
     D2A = 30,
+    Subtract = 31,
+    Multiply = 32,
+    Divide = 33,
+    Power = 34,
+    Negate = 35,
+    Calculator = 36,
+    CalculatorInputs = 37,
 
     Commit = byte.MaxValue
 }

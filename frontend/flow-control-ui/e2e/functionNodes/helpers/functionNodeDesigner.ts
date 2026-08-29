@@ -79,7 +79,12 @@ export const configureSelectedNode = async (
     } else if (typeof value === 'number') {
       await panel.getByRole('spinbutton', { name: label }).fill(String(value));
     } else {
-      await panel.getByRole('combobox', { name: label }).selectOption(value);
+      const textbox = panel.getByRole('textbox', { name: label });
+      if (await textbox.count()) {
+        await textbox.fill(value);
+        await expect(textbox).toHaveValue(value);
+      }
+      else await panel.getByRole('combobox', { name: label }).selectOption(value);
     }
   }
 };

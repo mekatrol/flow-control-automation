@@ -50,6 +50,7 @@ public enum FlowCompilationDiagnosticCode
     InvalidEnabledConfiguration = 1310,
     UnexpectedNodeConfiguration = 1311,
     InvalidFiniteNumber = 1312,
+    InvalidCalculatorFormula = 1313,
 
     // 14xx - unit validation
     AnalogOutputUnitMismatch = 1401,

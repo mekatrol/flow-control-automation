@@ -302,7 +302,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         [FlowNodeKind.DigitalOutput] = new([new("in", DataDirection.Input, DataType.Boolean)]),
         [FlowNodeKind.AnalogOutput] = new([new("in", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Number)]),
         [FlowNodeKind.Average] = new([new("a", DataDirection.Input, DataType.Number), new("b", DataDirection.Input, DataType.Number), new("output", DataDirection.Output, DataType.Number)]),
-        [FlowNodeKind.Calculator] = new([new("input", DataDirection.Input, DataType.Number), new("output", DataDirection.Output, DataType.Number)]),
+        [FlowNodeKind.Calculator] = new([new("a", DataDirection.Input, DataType.Number), new("b", DataDirection.Input, DataType.Number), new("c", DataDirection.Input, DataType.Number), new("output", DataDirection.Output, DataType.Number)]),
         [FlowNodeKind.Clamp] = new([new("input", DataDirection.Input, DataType.Number), new("output", DataDirection.Output, DataType.Number)]),
         [FlowNodeKind.Min] = new([new("a", DataDirection.Input, DataType.Number), new("b", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Number)]),
         [FlowNodeKind.Max] = new([new("a", DataDirection.Input, DataType.Number), new("b", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Number)]),
@@ -562,7 +562,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         var sections = BuildSections(request, model);
         var directory = BuildSectionDirectory(sections, out var artifactLength);
         var capabilities = DetermineRequiredCapabilities(model.Source, model.Points, model.MemoryIds);
-        var workingBytes = checked((uint)((model.Schedule.Count + model.StateIds.Length) * 32));
+        var workingBytes = checked((uint)(model.TotalSlotCount * 32));
         var envelope = BuildEnvelope(
             model.Source,
             sections.Length,
@@ -601,7 +601,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             MaximumSnapshotBytes = 16384,
             SectionCount = checked((uint)sections.Length),
             InstructionCount = checked((uint)model.Instructions.Count),
-            SlotCount = checked((uint)(model.Schedule.Count + model.StateIds.Length)),
+            SlotCount = checked((uint)model.TotalSlotCount),
             PointCount = checked((uint)model.Points.Length),
             StateCount = checked((uint)model.StateIds.Length)
         };
@@ -623,9 +623,13 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         // Build a dictionary of node ID -> node for fast lookup during instruction encoding.
         var nodes = source.Nodes.ToDictionary(node => node.Id, StringComparer.Ordinal);
         var slots = BuildTransientSlots(schedule);
+        var calculatorExpressions = nodes
+            .Where(item => item.Value.Kind == FlowNodeKind.Calculator)
+            .ToDictionary(item => item.Key, item => ParseCalculatorFormula(item.Value), StringComparer.Ordinal);
+        var calculatorTemporaryCount = calculatorExpressions.Values.Sum(CalculatorFormula.OperationCount);
         var memoryIds = GetMemoryNodeIds(schedule, nodes);
         var stateIds = GetStateNodeIds(schedule, nodes);
-        var stateSlots = BuildStateSlots(schedule.Count, stateIds);
+        var stateSlots = BuildStateSlots(schedule.Count + calculatorTemporaryCount, stateIds);
         var points = BuildPoints([.. schedule.Select(id => nodes[id])], request.Target.Points);
         var constants = BuildConstantPool(source);
         var instructions = BuildInstructions(
@@ -636,7 +640,9 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             memoryIds,
             stateSlots,
             points,
-            constants);
+            constants,
+            calculatorExpressions,
+            schedule.Count);
 
         return new CompilationModel(
             source,
@@ -648,7 +654,8 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             stateSlots,
             points,
             constants,
-            instructions);
+            instructions,
+            calculatorTemporaryCount);
     }
 
     /*
@@ -903,11 +910,14 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         IReadOnlyList<string> memoryIds,
         Dictionary<string, ushort> stateSlots,
         IReadOnlyList<PointRecord> points,
-        ConstantRecord[] constants)
+        ConstantRecord[] constants,
+        Dictionary<string, CalculatorFormula.Expression> calculatorExpressions,
+        int firstTemporarySlot)
     {
         // V1Instruction is still a logical C# record at this stage. Each item becomes
         // exactly 12 bytes only when EncodeV1Instruction() is called below.
         var instructions = new List<CompiledInstructionV1>();
+        var nextTemporarySlot = checked((ushort)firstTemporarySlot);
 
         foreach (var id in schedule)
         {
@@ -981,15 +991,23 @@ internal sealed partial class FlowCompiler : IFlowCompiler
              */
             var resultSlotIndex = slots[id];
 
-            instructions.Add(CreatePrimaryInstruction(
-                source,
-                node,
-                id,
-                resultSlotIndex,
-                slots,
-                stateSlots,
-                points,
-                constants));
+            if (node.Kind == FlowNodeKind.Calculator)
+            {
+                instructions.AddRange(CreateCalculatorInstructions(
+                    source, id, resultSlotIndex, slots, calculatorExpressions[id], ref nextTemporarySlot));
+            }
+            else
+            {
+                instructions.Add(CreatePrimaryInstruction(
+                    source,
+                    node,
+                    id,
+                    resultSlotIndex,
+                    slots,
+                    stateSlots,
+                    points,
+                    constants));
+            }
 
             if (node.Kind == FlowNodeKind.A2D)
             {
@@ -1212,6 +1230,13 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 U16(index),
                 U16(FlowILV1Format.Unused)))
             .ToList();
+
+        slotRecords.AddRange(Enumerable.Range(model.Schedule.Count, model.CalculatorTemporaryCount)
+            .Select(index => Concat(
+                [2, (byte)DataType.Number],
+                U16(0),
+                U16(index),
+                U16(FlowILV1Format.Unused))));
 
         slotRecords.AddRange(model.StateIds.Select(id => model.Nodes[id].Kind switch
         {
@@ -1594,7 +1619,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
     private static List<string> GetSchedule(ExecutableFlowSource source)
     {
         /*
-         * Build a lookup table containing every node in the flow. 
+         * Build a lookup table containing every node in the flow.
          * Perform a deterministic Kahn topological sort of the flow graph,
          * ignoring incoming edges to Memory nodes.
          *
@@ -1900,9 +1925,9 @@ internal sealed partial class FlowCompiler : IFlowCompiler
          * reached an indegree of zero. This means they are still waiting on each
          * other through a cyclic dependency and therefore cannot be given a valid
          * execution order.
-         * 
+         *
          * Example cyclic dependency:
-         * 
+         *
          *     InputA ----\
          *                 Add ---> Multiply ---> Output
          *            +---/                        |
@@ -2625,6 +2650,11 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         {
             foreach (var input in shapes[node.Id].Values.Where(port => port.Direction == DataDirection.Input))
             {
+                if (node.Kind == FlowNodeKind.Calculator &&
+                    !CalculatorFormula.Variables(ParseCalculatorFormula(node)).Contains(input.Id[0]))
+                {
+                    continue;
+                }
                 if (!drivers.Contains(new(node.Id, input.Id)))
                 {
                     throw Failure(FlowCompilationDiagnosticCode.MissingInputDriver, $"/nodes/{Escape(node.Id)}/ports/{Escape(input.Id)}");
@@ -2693,6 +2723,22 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 || comparison.GetString() is not ("lt" or "lte" or "eq" or "gte" or "gt" or "ne"))
             {
                 throw Failure(FlowCompilationDiagnosticCode.InvalidComparisonOperator, path);
+            }
+        }
+        else if (node.Kind == FlowNodeKind.Calculator)
+        {
+            if (node.Configuration.Count != 1 ||
+                !node.Configuration.TryGetValue("formula", out var formula) ||
+                formula.ValueKind != JsonValueKind.String ||
+                string.IsNullOrWhiteSpace(formula.GetString()))
+            {
+                throw Failure(FlowCompilationDiagnosticCode.InvalidCalculatorFormula, path, "a formula is required");
+            }
+
+            try { CalculatorFormula.Parse(formula.GetString()!); }
+            catch (FormatException exception)
+            {
+                throw Failure(FlowCompilationDiagnosticCode.InvalidCalculatorFormula, $"{path}/formula", exception.Message);
             }
         }
         else if (node.Kind is FlowNodeKind.LevelShifter or FlowNodeKind.Line)
@@ -2765,6 +2811,78 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             throw Failure(FlowCompilationDiagnosticCode.UnexpectedNodeConfiguration, path);
         }
     }
+
+    private static List<CompiledInstructionV1> CreateCalculatorInstructions(
+        ExecutableFlowSource source,
+        string nodeId,
+        ushort resultSlot,
+        Dictionary<string, ushort> slots,
+        CalculatorFormula.Expression expression,
+        ref ushort nextTemporarySlot)
+    {
+        var instructions = new List<CompiledInstructionV1>();
+        var next = nextTemporarySlot;
+        var variables = CalculatorFormula.Variables(expression);
+        instructions.Add(new(
+            new(FlowOpcode.CalculatorInputs, FlowILV1Format.Unused,
+                variables.Contains('a') ? InputSlot(source, slots, nodeId, "a") : FlowILV1Format.Unused,
+                variables.Contains('b') ? InputSlot(source, slots, nodeId, "b") : FlowILV1Format.Unused,
+                variables.Contains('c') ? InputSlot(source, slots, nodeId, "c") : FlowILV1Format.Unused),
+            nodeId, NodeInstructionRole.Secondary));
+
+        var expressionSlot = Operand(expression);
+        instructions.Add(new(
+            new(FlowOpcode.Calculator, resultSlot, expressionSlot,
+                FlowILV1Format.Unused, FlowILV1Format.Unused),
+            nodeId, NodeInstructionRole.Primary));
+        nextTemporarySlot = next;
+        return instructions;
+
+        ushort Operand(CalculatorFormula.Expression item)
+        {
+            if (item is CalculatorFormula.Expression.Variable input)
+            {
+                return InputSlot(source, slots, nodeId, input.Name.ToString());
+            }
+
+            var temporary = next++;
+            Emit(item, temporary);
+            return temporary;
+        }
+
+        void Emit(CalculatorFormula.Expression item, ushort destination)
+        {
+            switch (item)
+            {
+                case CalculatorFormula.Expression.Unary unary:
+                    instructions.Add(new(
+                        new(FlowOpcode.Negate, destination, Operand(unary.Operand),
+                            FlowILV1Format.Unused, FlowILV1Format.Unused),
+                        nodeId, NodeInstructionRole.Secondary));
+                    break;
+                case CalculatorFormula.Expression.Binary binary:
+                    var left = Operand(binary.Left);
+                    var right = Operand(binary.Right);
+                    var opcode = binary.Operator switch
+                    {
+                        CalculatorFormula.Operator.Add => FlowOpcode.Add,
+                        CalculatorFormula.Operator.Subtract => FlowOpcode.Subtract,
+                        CalculatorFormula.Operator.Multiply => FlowOpcode.Multiply,
+                        CalculatorFormula.Operator.Divide => FlowOpcode.Divide,
+                        CalculatorFormula.Operator.Power => FlowOpcode.Power,
+                        _ => throw new UnreachableException()
+                    };
+                    instructions.Add(new(
+                        new(opcode, destination, left, right, FlowILV1Format.Unused),
+                        nodeId, NodeInstructionRole.Secondary));
+                    break;
+                default: throw new UnreachableException();
+            }
+        }
+    }
+
+    private static CalculatorFormula.Expression ParseCalculatorFormula(ExecutableFlowNode node) =>
+        CalculatorFormula.Parse(node.Configuration["formula"].GetString()!);
 
     /*
      * Require one named configuration property to contain a finite JSON number.
@@ -3229,7 +3347,11 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 FlowNodeKind.Comparator => RequireMatchingUnits(source, units, id, "a", "b"),
                 FlowNodeKind.LevelShifter => units[SourceNode(source, id, "in")],
                 FlowNodeKind.Average => units[SourceNode(source, id, "a")],
-                FlowNodeKind.Calculator or FlowNodeKind.Clamp or FlowNodeKind.Line => units[SourceNode(source, id, "input")],
+                FlowNodeKind.Calculator => CalculatorFormula.Variables(ParseCalculatorFormula(node))
+                    .Order()
+                    .Select(variable => units[SourceNode(source, id, variable.ToString())])
+                    .FirstOrDefault(value => value is not null),
+                FlowNodeKind.Clamp or FlowNodeKind.Line => units[SourceNode(source, id, "input")],
                 FlowNodeKind.Min or FlowNodeKind.Max or FlowNodeKind.AnalogSwitch => RequireMatchingUnits(source, units, id, "a", "b"),
                 _ => null
             };
@@ -3543,7 +3665,11 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         Dictionary<string, ushort> StateSlots,
         PointRecord[] Points,
         ConstantRecord[] Constants,
-        List<CompiledInstructionV1> Instructions);
+        List<CompiledInstructionV1> Instructions,
+        int CalculatorTemporaryCount)
+    {
+        public int TotalSlotCount => Schedule.Count + CalculatorTemporaryCount + StateIds.Length;
+    }
 
     /*
      * Logical, not-yet-serialized representation of one Flow IL v1 instruction.
