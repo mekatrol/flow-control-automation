@@ -174,7 +174,7 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     [{ key: 'pointId', label: 'Output point ID', input: 'text' }],
     { pointId: 'output-point' }
   ),
-  [FlowNodeFunctionType.If]: executableDefinition(FlowNodeFunctionType.If, [
+  [FlowNodeFunctionType.DigitalSwitch]: executableDefinition(FlowNodeFunctionType.DigitalSwitch, [
     booleanPort('condition', 'Condition', 'input', 'left'),
     booleanPort('whenTrue', 'True', 'input', 'left'),
     booleanPort('whenFalse', 'False', 'input', 'left'),
@@ -308,8 +308,8 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     { enabled: true },
     'timing'
   ),
-  [FlowNodeFunctionType.Selector]: executableDefinition(
-    FlowNodeFunctionType.Selector,
+  [FlowNodeFunctionType.AnalogSwitch]: executableDefinition(
+    FlowNodeFunctionType.AnalogSwitch,
     [
       booleanPort('condition', 'Condition', 'input', 'left'),
       { id: 'a', label: 'A', direction: 'input', dataType: 'number', side: 'left' },
@@ -368,7 +368,7 @@ export const flowNodeKinds = Object.keys(nodeKindRegistry) as FlowNodeKind[];
 // Palette availability is intentionally separate from the canonical registry.
 // Hidden kinds must remain registered so existing flows can still be loaded,
 // rendered, edited, and deleted while users are prevented from adding new ones.
-const defaultHiddenFlowNodeKinds = 'calculator,if';
+const defaultHiddenFlowNodeKinds = 'calculator';
 
 // Playwright also imports this registry directly in Node while discovering its
 // function-node cases, where Vite does not provide import.meta.env.
@@ -377,7 +377,7 @@ const configuredHiddenFlowNodeKinds =
   viteEnvironment?.VITE_HIDDEN_FLOW_NODE_KINDS ??
   (viteEnvironment?.MODE === 'test' ? '' : defaultHiddenFlowNodeKinds);
 
-  const hiddenFlowNodeKinds = new Set(
+const hiddenFlowNodeKinds = new Set(
   configuredHiddenFlowNodeKinds
     .split(',')
     .map((kind) => kind.trim())

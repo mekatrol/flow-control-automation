@@ -34,9 +34,9 @@ public sealed class FlowCompilerTests
     [
         FlowNodeKind.Add, FlowNodeKind.AnalogInput, FlowNodeKind.AnalogOutput, FlowNodeKind.And, FlowNodeKind.Average, FlowNodeKind.Calculator, FlowNodeKind.Calendar,
         FlowNodeKind.Clamp, FlowNodeKind.Comparator, FlowNodeKind.Delay, FlowNodeKind.DigitalConstant, FlowNodeKind.DigitalInput, FlowNodeKind.DigitalOutput,
-        FlowNodeKind.If, FlowNodeKind.Line, FlowNodeKind.LevelShifter, FlowNodeKind.Max, FlowNodeKind.Memory, FlowNodeKind.Min,
+        FlowNodeKind.DigitalSwitch, FlowNodeKind.Line, FlowNodeKind.LevelShifter, FlowNodeKind.Max, FlowNodeKind.Memory, FlowNodeKind.Min,
         FlowNodeKind.Nand, FlowNodeKind.Nor, FlowNodeKind.Not, FlowNodeKind.NumericConstant, FlowNodeKind.OnDelay, FlowNodeKind.Or, FlowNodeKind.Override, FlowNodeKind.Pulse,
-        FlowNodeKind.QualityGood, FlowNodeKind.RisingEdge, FlowNodeKind.Schedule, FlowNodeKind.Selector, FlowNodeKind.Sequence, FlowNodeKind.Split ,FlowNodeKind.Timer,
+        FlowNodeKind.QualityGood, FlowNodeKind.RisingEdge, FlowNodeKind.Schedule, FlowNodeKind.AnalogSwitch, FlowNodeKind.Sequence, FlowNodeKind.Split ,FlowNodeKind.Timer,
         FlowNodeKind.Xnor, FlowNodeKind.Xor
     ];
 
@@ -61,7 +61,7 @@ public sealed class FlowCompilerTests
         var numericInputs = kind switch
         {
             FlowNodeKind.Add or FlowNodeKind.Average or FlowNodeKind.Comparator or FlowNodeKind.Min or FlowNodeKind.Max => ["a", "b"],
-            FlowNodeKind.Selector => ["a", "b"],
+            FlowNodeKind.AnalogSwitch => ["a", "b"],
             FlowNodeKind.Calculator or FlowNodeKind.Clamp or FlowNodeKind.Line or FlowNodeKind.Split => new[] { "input" },
             FlowNodeKind.LevelShifter => ["in"],
             FlowNodeKind.AnalogOutput => ["in"],
@@ -73,8 +73,8 @@ public sealed class FlowCompilerTests
         {
             FlowNodeKind.Not or FlowNodeKind.OnDelay or FlowNodeKind.RisingEdge => ["in"],
             FlowNodeKind.And or FlowNodeKind.Or or FlowNodeKind.Nand or FlowNodeKind.Nor or FlowNodeKind.Xnor or FlowNodeKind.Xor or FlowNodeKind.Sequence => ["a", "b"],
-            FlowNodeKind.If => ["condition", "whenTrue", "whenFalse"],
-            FlowNodeKind.Selector => ["condition"],
+            FlowNodeKind.DigitalSwitch => ["condition", "whenTrue", "whenFalse"],
+            FlowNodeKind.AnalogSwitch => ["condition"],
             FlowNodeKind.Override or FlowNodeKind.Delay or FlowNodeKind.Timer or FlowNodeKind.Pulse => ["input"],
             FlowNodeKind.DigitalOutput => ["in"],
             _ => []

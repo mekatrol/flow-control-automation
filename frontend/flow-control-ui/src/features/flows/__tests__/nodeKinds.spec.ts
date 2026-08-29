@@ -80,7 +80,7 @@ describe('node-kind registry', () => {
           'average',
           'and',
           'calculator',
-          'if',
+          'digitalSwitch',
           'max',
           'min',
           'nand',
@@ -91,7 +91,7 @@ describe('node-kind registry', () => {
           'risingEdge',
           'override',
           'pulse',
-          'selector',
+          'analogSwitch',
           'sequence',
           'split',
           'xnor',
@@ -182,12 +182,12 @@ describe('node-kind registry', () => {
     );
 
     // Expected outcome: `routingDefinitions.map(({ kind }) => kind` matches the required structure.
-    // Acceptance criteria: `routingDefinitions.map(({ kind }) => kind` must equal `[ 'selector', 'sequence', 'split' ]`, because this condition proves that
+    // Acceptance criteria: `routingDefinitions.map(({ kind }) => kind` must equal `[ 'analogSwitch', 'sequence', 'split' ]`, because this condition proves that
     // keeps logic and routing blocks in their presentation categories.
     expect(routingDefinitions.map(({ kind }) => kind).sort()).toEqual([
       'analogInput',
       'analogOutput',
-      'selector',
+      'analogSwitch',
       'sequence',
       'split'
     ]);

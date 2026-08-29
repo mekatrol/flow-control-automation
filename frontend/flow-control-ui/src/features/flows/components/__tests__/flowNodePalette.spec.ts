@@ -45,7 +45,7 @@ describe('node palette filtering and grouping', () => {
     expect(filterNodeKinds('PULSE').map(({ kind }) => kind)).toEqual(['pulse']);
 
     // Expected outcome: `filterNodeKinds('logic'` matches the required structure.
-    // Acceptance criteria: `filterNodeKinds('logic'` must equal `[ 'and', 'comparator', 'if', 'nand', 'nor', 'not', 'or', 'xnor', 'xor' ]`, because this condition proves that
+    // Acceptance criteria: `filterNodeKinds('logic'` includes the digital switch and other logic functions, because this condition proves that
     // filters by label and category without case sensitivity.
     expect(filterNodeKinds('logic').map(({ kind }) => kind)).toEqual([
       'and',
@@ -53,7 +53,7 @@ describe('node palette filtering and grouping', () => {
       'digitalConstant',
       'digitalInput',
       'digitalOutput',
-      'if',
+      'digitalSwitch',
       'levelShifter',
       'memory',
       'nand',

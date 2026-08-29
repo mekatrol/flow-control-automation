@@ -29,9 +29,9 @@ public enum FlowOpcode : byte
     Min = 20,
     Max = 21,
     Clamp = 22,
-    Selector = 23,
+    Switch = 23,
     Passthrough = 24,
-    If = 25,
+    DigitalSwitch = 25,
     Sequence = 26,
     Average = 27,
 

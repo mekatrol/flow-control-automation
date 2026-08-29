@@ -307,8 +307,8 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         [FlowNodeKind.Min] = new([new("a", DataDirection.Input, DataType.Number), new("b", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Number)]),
         [FlowNodeKind.Max] = new([new("a", DataDirection.Input, DataType.Number), new("b", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Number)]),
         [FlowNodeKind.Line] = new([new("input", DataDirection.Input, DataType.Number), new("output", DataDirection.Output, DataType.Number)]),
-        [FlowNodeKind.If] = new([new("condition", DataDirection.Input, DataType.Boolean), new("whenTrue", DataDirection.Input, DataType.Boolean), new("whenFalse", DataDirection.Input, DataType.Boolean), new("value", DataDirection.Output, DataType.Boolean)]),
-        [FlowNodeKind.Selector] = new([new("condition", DataDirection.Input, DataType.Boolean), new("a", DataDirection.Input, DataType.Number), new("b", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Number)]),
+        [FlowNodeKind.DigitalSwitch] = new([new("condition", DataDirection.Input, DataType.Boolean), new("whenTrue", DataDirection.Input, DataType.Boolean), new("whenFalse", DataDirection.Input, DataType.Boolean), new("value", DataDirection.Output, DataType.Boolean)]),
+        [FlowNodeKind.AnalogSwitch] = new([new("condition", DataDirection.Input, DataType.Boolean), new("a", DataDirection.Input, DataType.Number), new("b", DataDirection.Input, DataType.Number), new("value", DataDirection.Output, DataType.Number)]),
         [FlowNodeKind.Split] = new([new("input", DataDirection.Input, DataType.Number), new("output", DataDirection.Output, DataType.Number)]),
         [FlowNodeKind.Sequence] = new([new("a", DataDirection.Input, DataType.Boolean), new("b", DataDirection.Input, DataType.Boolean), new("value", DataDirection.Output, DataType.Boolean)]),
         [FlowNodeKind.Override] = new([new("input", DataDirection.Input, DataType.Boolean), new("output", DataDirection.Output, DataType.Boolean)]),
@@ -1488,7 +1488,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                     FlowNodeKind.Min or
                     FlowNodeKind.Max or
                     FlowNodeKind.Line or
-                    FlowNodeKind.Selector)
+                    FlowNodeKind.AnalogSwitch)
             || points.Any(point => point.DataType == DataType.Number))
         {
             capabilities |= FlowILCapability.Numeric;
@@ -1988,8 +1988,8 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             FlowNodeKind.Max or
             FlowNodeKind.Clamp or
             FlowNodeKind.Line or
-            FlowNodeKind.If or
-            FlowNodeKind.Selector or
+            FlowNodeKind.DigitalSwitch or
+            FlowNodeKind.AnalogSwitch or
             FlowNodeKind.Sequence => CreateCalculationInstruction(context, node),
 
             FlowNodeKind.OnDelay or
@@ -2234,10 +2234,10 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                     context.NodeId,
                     NodeInstructionRole.Primary),
 
-            FlowNodeKind.If =>
+            FlowNodeKind.DigitalSwitch =>
                 new(
                     new(
-                        FlowOpcode.Selector,
+                        FlowOpcode.Switch,
                         context.ResultSlotIndex,
                         InputSlot(context.Source, context.Slots, context.NodeId, "condition"),
                         InputSlot(context.Source, context.Slots, context.NodeId, "whenTrue"),
@@ -2246,10 +2246,10 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                     context.NodeId,
                     NodeInstructionRole.Primary),
 
-            FlowNodeKind.Selector =>
+            FlowNodeKind.AnalogSwitch =>
                 new(
                     new(
-                        FlowOpcode.Selector,
+                        FlowOpcode.Switch,
                         context.ResultSlotIndex,
                         InputSlot(context.Source, context.Slots, context.NodeId, "condition"),
                         InputSlot(context.Source, context.Slots, context.NodeId, "a"),
@@ -2812,7 +2812,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             FlowNodeKind.Min or
             FlowNodeKind.Max or
             FlowNodeKind.Line or
-            FlowNodeKind.Selector)
+            FlowNodeKind.AnalogSwitch)
         {
             return DataType.Number;
         }
@@ -3133,7 +3133,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 FlowNodeKind.LevelShifter => units[SourceNode(source, id, "in")],
                 FlowNodeKind.Average => units[SourceNode(source, id, "a")],
                 FlowNodeKind.Calculator or FlowNodeKind.Clamp or FlowNodeKind.Line => units[SourceNode(source, id, "input")],
-                FlowNodeKind.Min or FlowNodeKind.Max or FlowNodeKind.Selector => RequireMatchingUnits(source, units, id, "a", "b"),
+                FlowNodeKind.Min or FlowNodeKind.Max or FlowNodeKind.AnalogSwitch => RequireMatchingUnits(source, units, id, "a", "b"),
                 _ => null
             };
 

@@ -268,7 +268,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
                         Constant(instruction.Auxiliary, DataType.Number).Number),
                     a.Quality);
                 break;
-            case FlowOpcode.Selector:
+            case FlowOpcode.Switch:
                 var selected = a.Boolean ? instruction.Operand1 : instruction.Auxiliary;
                 _slots[instruction.Result] = _slots[selected] with { Quality = Worse(a.Quality, _slots[selected].Quality) };
                 break;

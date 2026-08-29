@@ -42,8 +42,10 @@ test('searches the node palette and adds registry-backed nodes', async ({ page }
   await expect(
     page.getByRole('button', { name: 'Add Calculator node', exact: true })
   ).toBeVisible();
-  await search.fill('if');
-  await expect(page.getByRole('button', { name: 'Add If node', exact: true })).toBeVisible();
+  await search.fill('digital switch');
+  await expect(
+    page.getByRole('button', { name: 'Add Digital Switch node', exact: true })
+  ).toBeVisible();
   await search.fill('timing');
   await page.getByRole('button', { name: 'Add Pulse node', exact: true }).click();
 
