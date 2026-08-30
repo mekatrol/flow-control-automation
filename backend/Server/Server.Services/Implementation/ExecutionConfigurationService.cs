@@ -1,4 +1,4 @@
-using Server.Common;
+﻿using Server.Common;
 using Server.Common.Contracts;
 using Server.Common.Services;
 using Server.Compiler;
@@ -112,7 +112,7 @@ internal sealed partial class ExecutionConfigurationService(
                 throw new ExecutionConfigurationException($"flow '{program.FlowId}' revision {program.FlowRevision} is not available", 409);
             }
 
-            declarations.AddRange(flow.VirtualPointDeclarations);
+            declarations.AddRange(VirtualPointNodes.Declarations(flow.Nodes));
         }
 
         var contracts = MergeContracts(declarations);
@@ -567,7 +567,7 @@ internal sealed partial class ExecutionConfigurationService(
         var requiredRoles = new HashSet<string>(StringComparer.Ordinal);
         foreach (var flow in programs)
         {
-            var virtualKeys = flow.VirtualPointDeclarations.Select(item => item.Key).ToHashSet(StringComparer.Ordinal);
+            var virtualKeys = VirtualPointNodes.Declarations(flow.Nodes).Select(item => item.Key).ToHashSet(StringComparer.Ordinal);
             foreach (var node in flow.Nodes.Where(item => item.Kind is FlowNodeKind.AnalogInput or FlowNodeKind.AnalogOutput or FlowNodeKind.DigitalInput or FlowNodeKind.DigitalOutput))
             {
                 var role = node.Configuration.TryGetValue("pointId", out var value) ? value.GetString() : null;
@@ -609,7 +609,7 @@ internal sealed partial class ExecutionConfigurationService(
         string executionInstanceId,
         string? deploymentId)
     {
-        var virtualKeys = flow.VirtualPointDeclarations.Select(item => item.Key).ToHashSet(StringComparer.Ordinal);
+        var virtualKeys = VirtualPointNodes.Declarations(flow.Nodes).Select(item => item.Key).ToHashSet(StringComparer.Ordinal);
         foreach (var node in flow.Nodes.Where(item => item.Kind is FlowNodeKind.AnalogOutput or FlowNodeKind.DigitalOutput))
         {
             var key = node.Configuration.TryGetValue("pointId", out var value) ? value.GetString() : null;

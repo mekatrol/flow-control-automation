@@ -104,23 +104,48 @@ describe('designer debug source', () => {
     });
   });
 
-  it('copies virtual point declarations from a reactive flow', () => {
+  it('derives virtual point declarations from virtual nodes', () => {
     const flow = reactive(debugFlow());
-    flow.virtualPointDeclarations = [
+    const virtual = createDefaultNode('analogVirtual', { x: 0, y: 0 }, 2, 'virtual');
+    virtual.configuration = {
+      pointId: 'virtual-temperature',
+      units: '°C',
+      persistence: 'volatile',
+      relinquishDefault: null
+    };
+    flow.nodes.push(virtual);
+
+    const source = createExecutableFlowSource(flow, target);
+
+    expect(source.virtualPointDeclarations).toEqual([
       {
         key: 'virtual-temperature',
         valueType: 'analog',
         units: '°C',
         readable: true,
-        commandable: false,
+        commandable: true,
         persistence: 'volatile'
       }
-    ];
+    ]);
+    expect(source.nodes.some((node) => node.id === 'virtual')).toBe(false);
+  });
+
+  it('projects a connected virtual node as a typed runtime input', () => {
+    const flow = debugFlow();
+    const virtual = createDefaultNode('digitalVirtual', { x: 0, y: 0 }, 0, 'virtual');
+    virtual.configuration.pointId = 'shared-enable';
+    flow.nodes[0] = virtual;
+    flow.connections[0]!.start.nodeId = virtual.id;
 
     const source = createExecutableFlowSource(flow, target);
 
-    expect(source.virtualPointDeclarations).toEqual(flow.virtualPointDeclarations);
-    expect(source.virtualPointDeclarations).not.toBe(flow.virtualPointDeclarations);
+    expect(source.nodes[0]).toEqual(
+      expect.objectContaining({
+        id: 'virtual',
+        kind: 'digitalInput',
+        configuration: { pointId: 'shared-enable' }
+      })
+    );
   });
 
   it('changes revision whenever the graph changes', () => {

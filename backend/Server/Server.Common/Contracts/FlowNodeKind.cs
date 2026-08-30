@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 
 namespace Server.Common.Contracts;
 
@@ -19,7 +19,7 @@ public enum FlowNodeKind : byte
     Xnor,
     Memory,
     QualityGood,
-    NumericConstant,
+    AnalogConstant,
     Add,
     Comparator,
     LevelShifter,
@@ -51,5 +51,7 @@ public enum FlowNodeKind : byte
     Power,
     Negate,
     Counter,
-    Clock
+    Clock,
+    AnalogVirtual,
+    DigitalVirtual
 }

@@ -1,4 +1,4 @@
-namespace Server.Common.Contracts;
+﻿namespace Server.Common.Contracts;
 
 /// <summary>
 /// Defines the instruction opcodes used by Flow IL v1.
@@ -18,7 +18,7 @@ public enum FlowOpcode : byte
     Nor = 10,
     Xor = 11,
     Xnor = 12,
-    NumericConstant = 13,
+    AnalogConstant = 13,
     Add = 14,
     Comparator = 15,
     LevelShifter = 16,

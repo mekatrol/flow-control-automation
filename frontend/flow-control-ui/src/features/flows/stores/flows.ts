@@ -8,8 +8,7 @@ import { addConnection as addGraphConnection } from '@/features/flows/graph/conn
 import type {
   FlowConfigurationValue,
   FlowConnectionEndpoint,
-  FlowNode,
-  VirtualPointDeclaration
+  FlowNode
 } from '@/features/flows/types';
 import type { FlowDefinition } from '@/features/flows/types';
 
@@ -171,17 +170,6 @@ export const useFlowsStore = defineStore('flows', () => {
     return true;
   };
 
-  const addVirtualPointDeclaration = (
-    flowId: string,
-    declaration: VirtualPointDeclaration
-  ): boolean => {
-    const flow = findFlow(flowId);
-    if (!flow || flow.virtualPointDeclarations?.some(({ key }) => key === declaration.key))
-      return false;
-    (flow.virtualPointDeclarations ??= []).push(structuredClone(declaration));
-    return true;
-  };
-
   return {
     flows,
     baselineFlows,
@@ -202,7 +190,6 @@ export const useFlowsStore = defineStore('flows', () => {
     deleteConnection,
     addNode,
     updateNodeLabel,
-    updateNodeConfiguration,
-    addVirtualPointDeclaration
+    updateNodeConfiguration
   };
 });

@@ -1,4 +1,4 @@
-using Server.Common.Contracts;
+﻿using Server.Common.Contracts;
 using Server.Compiler;
 using Server.Compiler.Contracts;
 using Server.Compiler.Extensions;
@@ -36,7 +36,7 @@ public sealed class FlowCompilerTests
         FlowNodeKind.A2D, FlowNodeKind.Add, FlowNodeKind.Subtract, FlowNodeKind.Multiply, FlowNodeKind.Divide, FlowNodeKind.Power, FlowNodeKind.Negate, FlowNodeKind.AnalogInput, FlowNodeKind.AnalogOutput, FlowNodeKind.And, FlowNodeKind.Average, FlowNodeKind.Calculator, FlowNodeKind.Calendar,
         FlowNodeKind.Clamp, FlowNodeKind.Comparator, FlowNodeKind.Delay, FlowNodeKind.DigitalConstant, FlowNodeKind.DigitalInput, FlowNodeKind.DigitalOutput,
         FlowNodeKind.DigitalSwitch, FlowNodeKind.Line, FlowNodeKind.LevelShifter, FlowNodeKind.Max, FlowNodeKind.Memory, FlowNodeKind.Min,
-        FlowNodeKind.Nand, FlowNodeKind.Nor, FlowNodeKind.Not, FlowNodeKind.NumericConstant, FlowNodeKind.OnDelay, FlowNodeKind.Or, FlowNodeKind.Override, FlowNodeKind.Pulse,
+        FlowNodeKind.Nand, FlowNodeKind.Nor, FlowNodeKind.Not, FlowNodeKind.AnalogConstant, FlowNodeKind.OnDelay, FlowNodeKind.Or, FlowNodeKind.Override, FlowNodeKind.Pulse,
         FlowNodeKind.QualityGood, FlowNodeKind.RisingEdge, FlowNodeKind.Schedule, FlowNodeKind.AnalogSwitch, FlowNodeKind.Sequence, FlowNodeKind.Split ,FlowNodeKind.Timer,
         FlowNodeKind.D2A, FlowNodeKind.Xnor, FlowNodeKind.Xor, FlowNodeKind.Counter, FlowNodeKind.Clock
     ];
@@ -90,7 +90,7 @@ public sealed class FlowCompilerTests
                 Config("pointId", "test-point"),
             FlowNodeKind.DigitalConstant =>
                 Config("value", true),
-            FlowNodeKind.NumericConstant or FlowNodeKind.Memory =>
+            FlowNodeKind.AnalogConstant or FlowNodeKind.Memory =>
                 Config("value", 1D),
             FlowNodeKind.Comparator =>
                 Config("operator", "gt"),
@@ -115,7 +115,7 @@ public sealed class FlowCompilerTests
         foreach (var port in numericInputs)
         {
             var id = $"number-{port}";
-            nodes.Add(new ExecutableFlowNode { Id = id, Kind = FlowNodeKind.NumericConstant, Configuration = Config("value", 1D) });
+            nodes.Add(new ExecutableFlowNode { Id = id, Kind = FlowNodeKind.AnalogConstant, Configuration = Config("value", 1D) });
             connections.Add(new ExecutableFlowConnection(new ExecutableFlowEndpoint(id, "value"), new ExecutableFlowEndpoint("test-node", port)));
         }
 
@@ -165,6 +165,7 @@ public sealed class FlowCompilerTests
     [TestCase("valid-two-button-and")]
     [TestCase("valid-source-order-permutation")]
     [TestCase("valid-memory-feedback")]
+    [TestCase("valid-numeric-language")]
     public void CompilesGoldenSourceToTheExactCanonicalArtifact(string fixture)
     {
         var result = CompileFixture(fixture);

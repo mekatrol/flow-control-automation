@@ -22,7 +22,7 @@
 
       <label v-for="field in nodeEditorFields" :key="field.key">
         <span>{{ field.label }}</span>
-        <template v-if="field.key === 'pointId'">
+        <template v-if="field.key === 'pointId' && !node.kind.endsWith('Virtual')">
           <input
             type="text"
             :value="node.configuration.pointId"
@@ -45,45 +45,6 @@
           <small v-else-if="!errors.pointId" id="point-lookup-help" class="field-help">
             Search declared compatible points or enter a point ID manually.
           </small>
-          <AppButton
-            class="create-point-button"
-            text="Create new virtual point"
-            :icon="createIcon"
-            @click="openCreatePoint"
-          />
-          <fieldset v-if="showCreatePoint" class="create-point-form">
-            <legend>Create virtual point</legend>
-            <label
-              ><span>Point ID</span
-              ><input
-                v-model="createPointId"
-                type="text"
-                :aria-invalid="Boolean(createPointIdError)"
-            /></label>
-            <small v-if="createPointIdError" role="alert">{{ createPointIdError }}</small>
-            <label v-if="requirement.valueType === 'analog'"
-              ><span>Units</span><input v-model="createUnits" type="text"
-            /></label>
-            <label
-              ><span>Persistence</span
-              ><select v-model="createPersistence">
-                <option value="volatile">volatile</option>
-                <option value="retained">retained</option>
-              </select></label
-            >
-            <label
-              ><span>Optional default</span><input v-model="createDefault" type="text"
-            /></label>
-            <div class="create-point-actions">
-              <AppButton text="Cancel" :icon="cancelIcon" @click="showCreatePoint = false" />
-              <AppButton
-                text="Create"
-                :icon="checkIcon"
-                :disabled="Boolean(createPointIdError)"
-                @click="createVirtualPoint"
-              />
-            </div>
-          </fieldset>
         </template>
         <input
           v-else-if="field.input === 'checkbox'"
@@ -128,14 +89,6 @@ import type { NodeEditorField as EditorField } from '@/features/flows/nodeKinds'
 export const validateNodeLabel = (label: string): string | undefined =>
   label.trim() ? undefined : 'Node label is required.';
 
-export const nextAvailablePointId = (preferred: string, occupiedIds: Iterable<string>): string => {
-  const occupied = new Set(occupiedIds);
-  if (!occupied.has(preferred)) return preferred;
-  let suffix = 2;
-  while (occupied.has(`${preferred}-${suffix}`)) suffix += 1;
-  return `${preferred}-${suffix}`;
-};
-
 // A separator at the end is a valid intermediate state while entering an ID
 // such as "room-temperature". Final validation still requires an alphanumeric
 // final character.
@@ -171,10 +124,6 @@ export const editorValueFromInput = (
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 
 import AppSvg from '@/components/AppSvg.vue';
-import AppButton from '@/components/AppButton.vue';
-import cancelIcon from '@/assets/icons/cancel-icon.svg';
-import checkIcon from '@/assets/icons/check-icon.svg';
-import createIcon from '@/assets/icons/new-icon.svg';
 import { EVENTS } from '@/constants/events';
 import { getNodeIconUrl, getNodeKind } from '@/features/flows/nodeKinds';
 import type { NodeEditorField } from '@/features/flows/nodeKinds';
@@ -187,7 +136,6 @@ import type { PointSummary } from '@/features/catalogues/api/catalogueDto';
 import { catalogueApi } from '@/features/catalogues/api/catalogueApi';
 import {
   pointCompatibilityError,
-  pointRequirement,
   validatePointReference,
   type PointValidationState
 } from '@/features/flows/flowPointValidation';
@@ -202,13 +150,11 @@ const emit = defineEmits<{
   (event: typeof EVENTS.UPDATE_LABEL, label: string): void;
   (event: typeof EVENTS.UPDATE_CONFIGURATION, key: string, value: FlowConfigurationValue): void;
   (event: 'validation', nodeId: string, state: PointValidationState): void;
-  (event: 'createVirtualPoint', declaration: VirtualPointDeclaration): void;
 }>();
 
 const definition = computed(() => getNodeKind(props.node.kind));
 const nodeEditorFields = computed(() => definition.value.editor);
 const errors = ref<Record<string, string>>({});
-const requirement = computed(() => pointRequirement(props.node));
 const declarations = computed(() => {
   const merged = new Map<string, VirtualPointDeclaration>();
   for (const point of [
@@ -221,11 +167,6 @@ const declarations = computed(() => {
 const remotePoints = ref<PointSummary[]>([]);
 const pointDraft = ref(String(props.node.configuration.pointId ?? ''));
 const validationState = ref<PointValidationState>('idle');
-const showCreatePoint = ref(false);
-const createPointId = ref('');
-const createUnits = ref('');
-const createPersistence = ref<'volatile' | 'retained'>('volatile');
-const createDefault = ref('');
 let debounceTimer: number | undefined;
 let lookupController: AbortController | undefined;
 const compatiblePoints = computed(() =>
@@ -309,53 +250,6 @@ const updatePointId = (field: NodeEditorField, event: Event): void => {
     }
     await validatePointId();
   }, 350);
-};
-
-const createPointIdError = computed(() => {
-  const key = createPointId.value.trim();
-  if (!key) return 'Point ID is required.';
-  if (!/^[a-zA-Z0-9](?:[a-zA-Z0-9._-]{0,126}[a-zA-Z0-9])?$/.test(key))
-    return 'Point ID contains unsupported characters.';
-  if (declarations.value.some((point) => point.key === key)) return 'Point ID already exists.';
-  return undefined;
-});
-const openCreatePoint = (): void => {
-  const preferred = pointDraft.value.trim() || 'virtual-point';
-  createPointId.value = nextAvailablePointId(
-    preferred,
-    declarations.value.map((point) => point.key)
-  );
-  showCreatePoint.value = true;
-};
-const createVirtualPoint = (): void => {
-  if (createPointIdError.value) return;
-  const rawDefault = createDefault.value.trim();
-  const relinquishDefault =
-    rawDefault === ''
-      ? undefined
-      : requirement.value.valueType === 'digital'
-        ? rawDefault.toLowerCase() === 'true'
-        : Number(rawDefault);
-  if (typeof relinquishDefault === 'number' && !Number.isFinite(relinquishDefault)) {
-    errors.value.pointId = 'The default must be a number.';
-    return;
-  }
-  emit('createVirtualPoint', {
-    key: createPointId.value.trim(),
-    valueType: requirement.value.valueType,
-    ...(createUnits.value.trim() ? { units: createUnits.value.trim() } : {}),
-    readable: true,
-    commandable: true,
-    persistence: createPersistence.value,
-    ...(relinquishDefault !== undefined ? { relinquishDefault } : {})
-  });
-  emit(EVENTS.UPDATE_CONFIGURATION, 'pointId', createPointId.value.trim());
-  pointDraft.value = createPointId.value.trim();
-  createPointId.value = '';
-  showCreatePoint.value = false;
-  validationState.value = 'valid';
-  delete errors.value.pointId;
-  emit('validation', props.node.id, 'valid');
 };
 
 watch(

@@ -1,4 +1,4 @@
-namespace Server.Common.Contracts;
+﻿namespace Server.Common.Contracts;
 
 public sealed record FlowVersionSnapshot
 {
@@ -8,5 +8,4 @@ public sealed record FlowVersionSnapshot
     public required int Revision { get; init; }
     public IReadOnlyList<FlowNode> Nodes { get; init; } = [];
     public IReadOnlyList<FlowConnection> Connections { get; init; } = [];
-    public IReadOnlyList<VirtualPointDeclaration> VirtualPointDeclarations { get; init; } = [];
 }

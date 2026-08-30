@@ -1,4 +1,4 @@
-using Server.Common;
+﻿using Server.Common;
 using Server.Common.Contracts;
 using Server.Compiler.Contracts;
 using Server.Compiler.Services;
@@ -91,11 +91,16 @@ internal sealed class FlowDeploymentService(
 
             Nodes =
             [
-                .. flow.Nodes.Select(node => new ExecutableFlowNode
+                .. flow.Nodes
+                    .Where(node => !node.Kind.IsVirtual() || flow.Connections.Any(
+                        connection => connection.Start.NodeId == node.Id))
+                    .Select(node => new ExecutableFlowNode
                 {
                     Id = node.Id,
-                    Kind = node.Kind,
-                    Configuration = BindConfiguration(node, physicalPointBindings),
+                    Kind = node.Kind.ExecutableKind(),
+                    Configuration = node.Kind.IsVirtual()
+                        ? VirtualPointConfiguration(node)
+                        : BindConfiguration(node, physicalPointBindings),
                     Label = node.Label,
                     X = node.X,
                     Y = node.Y,
@@ -116,7 +121,7 @@ internal sealed class FlowDeploymentService(
                             connection.End.ConnectorId)))
             ],
 
-            VirtualPointDeclarations = flow.VirtualPointDeclarations
+            VirtualPointDeclarations = VirtualPointNodes.Declarations(flow.Nodes)
         };
     }
 
@@ -139,4 +144,9 @@ internal sealed class FlowDeploymentService(
         };
         return result;
     }
+
+    private static Dictionary<string, JsonElement> VirtualPointConfiguration(FlowNode node) =>
+        node.Configuration.TryGetValue("pointId", out var pointId)
+            ? new Dictionary<string, JsonElement> { ["pointId"] = pointId }
+            : new Dictionary<string, JsonElement>();
 }

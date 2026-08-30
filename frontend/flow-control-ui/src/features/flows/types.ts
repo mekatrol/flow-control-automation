@@ -13,6 +13,7 @@ export enum FlowNodeFunctionType {
   Negate = 'negate',
   AnalogInput = 'analogInput',
   AnalogOutput = 'analogOutput',
+  AnalogVirtual = 'analogVirtual',
   And = 'and',
   Average = 'average',
   Calculator = 'calculator',
@@ -25,6 +26,7 @@ export enum FlowNodeFunctionType {
   DigitalConstant = 'digitalConstant',
   DigitalInput = 'digitalInput',
   DigitalOutput = 'digitalOutput',
+  DigitalVirtual = 'digitalVirtual',
   DigitalSwitch = 'digitalSwitch',
   D2A = 'd2a',
   Line = 'line',
@@ -34,7 +36,7 @@ export enum FlowNodeFunctionType {
   Memory = 'memory',
   Nand = 'nand',
   Nor = 'nor',
-  NumericConstant = 'numericConstant',
+  AnalogConstant = 'analogConstant',
   Not = 'not',
   Or = 'or',
   Override = 'override',
@@ -154,5 +156,33 @@ export interface FlowDefinition {
   revision?: number;
   /** Revision captured by the last successful deployment, when one exists. */
   deployedRevision?: number;
-  virtualPointDeclarations?: VirtualPointDeclaration[];
 }
+
+export const isVirtualPointNode = (node: FlowNode): boolean =>
+  node.kind === FlowNodeFunctionType.AnalogVirtual ||
+  node.kind === FlowNodeFunctionType.DigitalVirtual;
+
+export const virtualPointDeclarationFromNode = (
+  node: FlowNode
+): VirtualPointDeclaration | undefined => {
+  if (!isVirtualPointNode(node)) return undefined;
+  const units = String(node.configuration.units ?? '').trim();
+  const relinquishDefault = node.configuration.relinquishDefault;
+  return {
+    key: String(node.configuration.pointId ?? '').trim(),
+    valueType: node.kind === FlowNodeFunctionType.AnalogVirtual ? 'analog' : 'digital',
+    ...(units ? { units } : {}),
+    readable: true,
+    commandable: true,
+    persistence: node.configuration.persistence === 'retained' ? 'retained' : 'volatile',
+    ...(relinquishDefault !== null && relinquishDefault !== ''
+      ? { relinquishDefault: relinquishDefault as boolean | number }
+      : {})
+  };
+};
+
+export const virtualPointDeclarationsFromNodes = (nodes: FlowNode[]): VirtualPointDeclaration[] =>
+  nodes.flatMap((node) => {
+    const declaration = virtualPointDeclarationFromNode(node);
+    return declaration ? [declaration] : [];
+  });

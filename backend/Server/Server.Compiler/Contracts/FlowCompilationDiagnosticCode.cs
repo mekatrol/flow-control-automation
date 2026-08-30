@@ -1,4 +1,4 @@
-namespace Server.Compiler.Contracts;
+﻿namespace Server.Compiler.Contracts;
 
 /// <summary>
 /// <para>Stable machine-readable Flow compiler diagnostic codes.</para>
@@ -100,7 +100,7 @@ public enum FlowCompilationDiagnosticCode
     UnsupportedBindingKind = 3206,
     InvalidBooleanConstantOperand = 3207,
     InvalidStateSlotOperand = 3208,
-    InvalidNumericConstantOperand = 3209,
+    InvalidAnalogConstantOperand = 3209,
     InvalidComparisonOperand = 3210,
     InvalidLevelShifterOperands = 3211,
     InvalidTimerOperands = 3212,

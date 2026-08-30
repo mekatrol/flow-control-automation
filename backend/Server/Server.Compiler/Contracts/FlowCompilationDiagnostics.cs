@@ -75,7 +75,7 @@ public static class FlowCompilationDiagnostics
                 [FlowCompilationDiagnosticCode.SectionHasTrailingData] = D(3007, "Section has trailing data", "The section contains trailing bytes."),
 
                 // Tables/records
-                [FlowCompilationDiagnosticCode.InvalidConstantValue] = D(3101, "Invalid constant value", "Numeric constants must be finite."),
+                [FlowCompilationDiagnosticCode.InvalidConstantValue] = D(3101, "Invalid constant value", "Analog constants must be finite."),
                 [FlowCompilationDiagnosticCode.UnsupportedConstantEncoding] = D(3102, "Unsupported constant encoding", "Constant encoding is unsupported."),
                 [FlowCompilationDiagnosticCode.InvalidPointEncoding] = D(3103, "Invalid point encoding", "Point binding encoding is unsupported."),
                 [FlowCompilationDiagnosticCode.InvalidSlot] = D(3104, "Invalid slot", "Slot encoding is unsupported or duplicated."),
@@ -95,7 +95,7 @@ public static class FlowCompilationDiagnostics
                 [FlowCompilationDiagnosticCode.UnsupportedBindingKind] = D(3206, "Unsupported binding kind", "Point binding kind is unsupported."),
                 [FlowCompilationDiagnosticCode.InvalidBooleanConstantOperand] = D(3207, "Invalid Boolean constant operand", "Boolean constant index is out of range or has the wrong type."),
                 [FlowCompilationDiagnosticCode.InvalidStateSlotOperand] = D(3208, "Invalid state-slot operand", "State slot is invalid."),
-                [FlowCompilationDiagnosticCode.InvalidNumericConstantOperand] = D(3209, "Invalid numeric constant operand", "Numeric constant index is out of range or has the wrong type."),
+                [FlowCompilationDiagnosticCode.InvalidAnalogConstantOperand] = D(3209, "Invalid analog constant operand", "Analog constant index is out of range or has the wrong type."),
                 [FlowCompilationDiagnosticCode.InvalidComparisonOperand] = D(3210, "Invalid comparison operand", "Comparison operator is invalid."),
                 [FlowCompilationDiagnosticCode.InvalidLevelShifterOperands] = D(3211, "Invalid level-shifter operands", "Level-shifter constants are invalid."),
                 [FlowCompilationDiagnosticCode.InvalidTimerOperands] = D(3212, "Invalid timer operands", "Timer state is invalid."),

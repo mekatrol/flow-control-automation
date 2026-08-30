@@ -1,4 +1,4 @@
-using Server.Common.Contracts;
+﻿using Server.Common.Contracts;
 using Server.Compiler;
 using Server.Compiler.Services;
 using Server.Data.Context;
@@ -204,7 +204,6 @@ internal sealed class FlowDatabaseService(
             Description = snapshot.Description,
             Nodes = snapshot.Nodes,
             Connections = snapshot.Connections,
-            VirtualPointDeclarations = snapshot.VirtualPointDeclarations,
             Status = "deployed",
             DeployedRevision = snapshot.Revision,
             UpdatedAt = Timestamp(),
@@ -253,8 +252,7 @@ internal sealed class FlowDatabaseService(
         UpdatedAt = flow.UpdatedAt,
         Revision = flow.Revision,
         Nodes = flow.Nodes,
-        Connections = flow.Connections,
-        VirtualPointDeclarations = flow.VirtualPointDeclarations
+        Connections = flow.Connections
     };
 
     private static bool MatchesDeployed(Flow flow, FlowVersionSnapshot? deployed) =>
@@ -264,9 +262,7 @@ internal sealed class FlowDatabaseService(
         && JsonSerializer.Serialize(flow.Nodes, FlowControlJson.Options)
             == JsonSerializer.Serialize(deployed.Nodes, FlowControlJson.Options)
         && JsonSerializer.Serialize(flow.Connections, FlowControlJson.Options)
-            == JsonSerializer.Serialize(deployed.Connections, FlowControlJson.Options)
-        && JsonSerializer.Serialize(flow.VirtualPointDeclarations, FlowControlJson.Options)
-            == JsonSerializer.Serialize(deployed.VirtualPointDeclarations, FlowControlJson.Options);
+            == JsonSerializer.Serialize(deployed.Connections, FlowControlJson.Options);
 
     private static string Serialize(Flow flow) =>
         JsonSerializer.Serialize(flow, FlowControlJson.Options);
@@ -301,9 +297,9 @@ internal sealed class FlowDatabaseService(
                 .ToArray();
             var declarations = programs.SelectMany(program =>
                 program.FlowId == saved.Id
-                    ? saved.VirtualPointDeclarations
+                    ? VirtualPointNodes.Declarations(saved.Nodes)
                     : otherFlows.TryGetValue(program.FlowId, out var flow)
-                        ? flow.VirtualPointDeclarations
+                        ? VirtualPointNodes.Declarations(flow.Nodes)
                         : throw new FlowValidationException($"execution context '{definition.Id}' references missing flow '{program.FlowId}'"));
             IReadOnlyList<VirtualPointDeclaration> contracts;
             try

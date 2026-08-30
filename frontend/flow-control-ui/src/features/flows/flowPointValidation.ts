@@ -10,13 +10,20 @@ export interface PointValidationResult {
 }
 
 export const isPointNode = (node: FlowNode): boolean =>
-  ['analogInput', 'analogOutput', 'digitalInput', 'digitalOutput'].includes(node.kind);
+  [
+    'analogInput',
+    'analogOutput',
+    'analogVirtual',
+    'digitalInput',
+    'digitalOutput',
+    'digitalVirtual'
+  ].includes(node.kind);
 
 export const pointRequirement = (
   node: FlowNode
 ): { valueType: 'analog' | 'digital'; readable: boolean } => ({
   valueType: node.kind.startsWith('analog') ? 'analog' : 'digital',
-  readable: node.kind.endsWith('Input')
+  readable: node.kind.endsWith('Input') || node.kind.endsWith('Virtual')
 });
 
 export const pointCompatibilityError = (

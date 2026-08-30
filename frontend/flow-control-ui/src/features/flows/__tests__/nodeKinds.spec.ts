@@ -12,7 +12,7 @@ describe('node-kind registry', () => {
     // Expected outcome: `flowNodeKinds` contains the required number of entries.
     // Acceptance criteria: `flowNodeKinds` must contain exactly 36 entries, because this condition proves that
     // contains complete rendering, connector, and editor metadata for every supported kind.
-    expect(flowNodeKinds).toHaveLength(45);
+    expect(flowNodeKinds).toHaveLength(47);
 
     // Expected outcome: `flowNodeKinds` matches the required structure.
     // Acceptance criteria: `flowNodeKinds` must equal `expect.arrayContaining(['and', 'average', 'calculator', 'nand', 'nor', 'not', 'xnor', 'xor']`, because this condition proves that
@@ -58,10 +58,12 @@ describe('node-kind registry', () => {
       expect(definition.connectors.some(({ direction }) => direction === 'input')).toBe(
         kind !== 'digitalInput' &&
           kind !== 'analogInput' &&
+          kind !== 'digitalVirtual' &&
+          kind !== 'analogVirtual' &&
           kind !== 'calendar' &&
           kind !== 'schedule' &&
           kind !== 'digitalConstant' &&
-          kind !== 'numericConstant'
+          kind !== 'analogConstant'
       );
 
       // Expected outcome: `definition.connectors.some(({ direction }) => direction === 'output')` has the required value.
@@ -181,10 +183,31 @@ describe('node-kind registry', () => {
       'digitalConstant',
       'digitalInput',
       'digitalOutput',
-      'numericConstant'
+      'analogConstant'
     ] as const) {
       expect(nodeKindRegistry[kind].category).toBe('io');
     }
+  });
+
+  it('uses a dedicated icon for each analog and digital constant or virtual point', () => {
+    const pointKinds = [
+      'analogConstant',
+      'digitalConstant',
+      'analogVirtual',
+      'digitalVirtual'
+    ] as const;
+
+    expect(pointKinds.map((kind) => nodeKindRegistry[kind].icon)).toEqual([
+      'analogconstant',
+      'digitalconstant',
+      'analogvirtual',
+      'digitalvirtual'
+    ]);
+  });
+
+  it('uses the outward-facing symbol for analog input and inward-facing symbol for output', () => {
+    expect(nodeKindRegistry.analogInput.icon).toBe('analogoutput');
+    expect(nodeKindRegistry.analogOutput.icon).toBe('analoginput');
   });
 
   it('exposes a connectable Boolean error output on fallible maths nodes', () => {

@@ -242,7 +242,6 @@
           :simulator-mode="workspaceMode === 'simulator'"
           :show-default-values="workspaceMode === 'simulator'"
           @point-validation="setPointValidation"
-          @create-virtual-point="createVirtualPoint"
           @[EVENTS.APPLY_INPUTS_STEP]="applySimulatorInputs"
           @[EVENTS.SET_BREAKPOINT]="setBreakpoint"
           @[EVENTS.RUN_TO_NODE]="runToNode"
@@ -329,6 +328,7 @@ import {
   type PointValidationState
 } from '@/features/flows/flowPointValidation';
 import type { VirtualPointDeclaration } from '@/features/flows/types';
+import { virtualPointDeclarationsFromNodes } from '@/features/flows/types';
 import type { WorkspaceMode } from '@/features/flows/types/flowDesigner';
 import AppFlowWorkspaceNavigation from '@/features/flows/components/designer/AppFlowWorkspaceNavigation.vue';
 
@@ -369,7 +369,7 @@ const mergedPointDeclarations = computed(() => {
   const result = new Map<string, VirtualPointDeclaration>();
   for (const declaration of [
     ...(selectedContext.value?.pointContracts ?? []),
-    ...(flow.value?.virtualPointDeclarations ?? [])
+    ...virtualPointDeclarationsFromNodes(flow.value?.nodes ?? [])
   ])
     result.set(declaration.key, declaration);
   return [...result.values()];
@@ -998,11 +998,6 @@ const validateAllPointReferences = async (): Promise<boolean> => {
   if (!results || controller.signal.aborted) return false;
   nodes.forEach((node, index) => (pointValidation.value[node.id] = results[index]!.state));
   return results.every(({ state }) => state === 'valid');
-};
-
-const createVirtualPoint = (declaration: VirtualPointDeclaration): void => {
-  flowStore.addVirtualPointDeclaration(props.flowId, declaration);
-  void validateAllPointReferences();
 };
 
 const loadExecutionContexts = async (): Promise<void> => {

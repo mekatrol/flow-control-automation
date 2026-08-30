@@ -1,4 +1,4 @@
-using Server.Common.Contracts;
+﻿using Server.Common.Contracts;
 using Server.Services.Contracts;
 using System.Net;
 using System.Net.Http.Json;
@@ -29,15 +29,19 @@ internal sealed class ExecutionConfigurationEndpointTests
 
         var saveResponse = await client.PutAsJsonAsync($"/api/flows/{flow.Id}", flow with
         {
-            VirtualPointDeclarations =
+            Nodes =
             [
-                new VirtualPointDeclaration
+                new FlowNode
                 {
-                    Key = "shared-temperature",
-                    ValueType = FlowPointValueType.Analog,
-                    Readable = true,
-                    Commandable = true,
-                    Persistence = VirtualPointPersistence.Volatile
+                    Id = "shared-temperature",
+                    Kind = FlowNodeKind.AnalogVirtual,
+                    Label = "Shared temperature",
+                    Connectors = [new FlowConnector("value", "Value", DataDirection.Output, DataType.Number, "right")],
+                    Configuration = new Dictionary<string, System.Text.Json.JsonElement>
+                    {
+                        ["pointId"] = System.Text.Json.JsonSerializer.SerializeToElement("shared-temperature"),
+                        ["persistence"] = System.Text.Json.JsonSerializer.SerializeToElement("volatile")
+                    }
                 }
             ]
         }, FlowControlJson.Options);
@@ -74,7 +78,7 @@ internal sealed class ExecutionConfigurationEndpointTests
                 new FlowNode
                 {
                     Id = "constant",
-                    Kind = FlowNodeKind.NumericConstant,
+                    Kind = FlowNodeKind.AnalogConstant,
                     Label = "Setpoint",
                     Connectors = [new FlowConnector("value", "Value", DataDirection.Output, DataType.Number, "right")],
                     Configuration = new Dictionary<string, System.Text.Json.JsonElement>
@@ -92,20 +96,21 @@ internal sealed class ExecutionConfigurationEndpointTests
                     {
                         ["pointId"] = System.Text.Json.JsonSerializer.SerializeToElement("temp-setpoint")
                     }
+                },
+                new FlowNode
+                {
+                    Id = "virtual",
+                    Kind = FlowNodeKind.AnalogVirtual,
+                    Label = "Virtual temperature",
+                    Connectors = [new FlowConnector("value", "Value", DataDirection.Output, DataType.Number, "right")],
+                    Configuration = new Dictionary<string, System.Text.Json.JsonElement>
+                    {
+                        ["pointId"] = System.Text.Json.JsonSerializer.SerializeToElement("temp-setpoint"),
+                        ["persistence"] = System.Text.Json.JsonSerializer.SerializeToElement("retained")
+                    }
                 }
             ],
-            Connections = [new FlowConnection("write", new FlowEndpoint("constant", "value"), new FlowEndpoint("output", "in"))],
-            VirtualPointDeclarations =
-            [
-                new VirtualPointDeclaration
-                {
-                    Key = "temp-setpoint",
-                    ValueType = FlowPointValueType.Analog,
-                    Readable = true,
-                    Commandable = true,
-                    Persistence = VirtualPointPersistence.Retained
-                }
-            ]
+            Connections = [new FlowConnection("write", new FlowEndpoint("constant", "value"), new FlowEndpoint("output", "in"))]
         };
         var savedResponse = await client.PutAsJsonAsync($"/api/flows/{flow.Id}", flow, FlowControlJson.Options);
         Assert.That(savedResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK), await savedResponse.Content.ReadAsStringAsync());

@@ -1,4 +1,4 @@
-using Server.Common.Contracts;
+﻿using Server.Common.Contracts;
 using Server.Compiler;
 using Server.Compiler.Contracts;
 using Server.Compiler.Extensions;
@@ -304,7 +304,7 @@ public sealed class FlowDecompilerTests
         static ExecutableFlowNode Constant(string id, double value) => new()
         {
             Id = id,
-            Kind = FlowNodeKind.NumericConstant,
+            Kind = FlowNodeKind.AnalogConstant,
             Label = id,
             Configuration = Configuration("value", value)
         };
@@ -346,7 +346,7 @@ public sealed class FlowDecompilerTests
         static ExecutableFlowNode ArithmeticConstant(string id, double value) => new()
         {
             Id = id,
-            Kind = FlowNodeKind.NumericConstant,
+            Kind = FlowNodeKind.AnalogConstant,
             Label = id,
             Configuration = Configuration("value", value)
         };

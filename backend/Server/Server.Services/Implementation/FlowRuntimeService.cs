@@ -1,4 +1,4 @@
-using Server.Common.Contracts;
+﻿using Server.Common.Contracts;
 using Server.Compiler.Contracts;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -57,10 +57,10 @@ internal sealed class FlowRuntimeService(
             var writerKeys = flow.Nodes
                 .Where(node => node.Kind is FlowNodeKind.AnalogOutput or FlowNodeKind.DigitalOutput)
                 .Select(node => node.Configuration.TryGetValue("pointId", out var value) ? value.GetString() : null)
-                .Where(key => key is not null && flow.VirtualPointDeclarations.Any(item => item.Key == key))
+                .Where(key => key is not null && VirtualPointNodes.Declarations(flow.Nodes).Any(item => item.Key == key))
                 .Select(key => key!)
                 .ToHashSet(StringComparer.Ordinal);
-            await virtualPoints.ActivateFlowAsync("server", flow.Id, flow.VirtualPointDeclarations, writerKeys, cancellationToken);
+            await virtualPoints.ActivateFlowAsync("server", flow.Id, VirtualPointNodes.Declarations(flow.Nodes), writerKeys, cancellationToken);
             var machine = machines.Create(compilation.Artifact);
             var replacement = new RuntimeInstance(
                 flow,

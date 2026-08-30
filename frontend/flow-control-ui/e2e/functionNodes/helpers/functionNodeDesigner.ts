@@ -79,12 +79,14 @@ export const configureSelectedNode = async (
     } else if (typeof value === 'number') {
       await panel.getByRole('spinbutton', { name: label }).fill(String(value));
     } else {
-      const textbox = panel.getByRole('textbox', { name: label });
-      if (await textbox.count()) {
-        await textbox.fill(value);
-        await expect(textbox).toHaveValue(value);
+      const control = panel.getByText(label, { exact: true }).locator('..').locator('input, select');
+      if ((await control.evaluate((element) => element.tagName)) === 'SELECT')
+        await control.selectOption(value);
+      else {
+        await control.fill(value);
+        await control.blur();
+        await expect(control).toHaveValue(value);
       }
-      else await panel.getByRole('combobox', { name: label }).selectOption(value);
     }
   }
 };
@@ -94,15 +96,14 @@ export const addVirtualPointNode = async (
   kind: PointNodeKind,
   pointId: string
 ): Promise<string> => {
-  const nodeId = await addNode(page, kind);
-  await page.getByRole('button', { name: 'Create new virtual point' }).click();
-  const form = page.getByRole('group', { name: 'Create virtual point' });
-  await form.getByRole('textbox', { name: 'Point ID' }).fill(pointId);
-  await form.getByRole('button', { name: 'Create', exact: true }).click();
-  await expect(
-    page.getByRole('complementary', { name: 'Node configuration' }).locator('input[list]')
-  ).toHaveValue(pointId);
-  return nodeId;
+  const analog = kind.startsWith('Analog');
+  const virtualNodeId = await addNode(page, analog ? 'Analog Virtual' : 'Digital Virtual');
+  await configureSelectedNode(page, { 'Virtual point key': pointId });
+  if (kind.endsWith('Input')) return virtualNodeId;
+
+  const outputNodeId = await addNode(page, kind);
+  await configureSelectedNode(page, { 'Output point ID': pointId });
+  return outputNodeId;
 };
 
 export const connectNodes = async (

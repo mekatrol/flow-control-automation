@@ -1,4 +1,4 @@
-using Server.Common.Contracts;
+﻿using Server.Common.Contracts;
 using Server.Services;
 using Server.Services.Contracts;
 using Server.Services.Implementation;
@@ -92,7 +92,7 @@ public sealed class ManagedFlowVirtualMachineTests
 
         var result = machine.Scan([], 1);
 
-        Assert.That(result.Slots[result.Slots.Count - 1].Boolean, Is.True);
+        Assert.That(result.Slots[4].Boolean, Is.True);
     }
 
     private static IFlowVirtualMachine Machine(string fixture) =>

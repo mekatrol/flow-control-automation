@@ -1,6 +1,11 @@
 import type { ExecutableFlowSource } from '@/features/flows/api/flowDebugApi';
 import type { FlowDebugTarget } from '@/features/flows/debugTargets';
-import type { FlowDefinition, FlowNode } from '@/features/flows/types';
+import {
+  isVirtualPointNode,
+  virtualPointDeclarationsFromNodes,
+  type FlowDefinition,
+  type FlowNode
+} from '@/features/flows/types';
 
 const supportedKinds = new Set([
   'digitalInput',
@@ -12,8 +17,9 @@ const supportedKinds = new Set([
   'nor',
   'xor',
   'xnor',
-  'numericConstant',
+  'analogConstant',
   'analogInput',
+  'analogVirtual',
   'analogOutput',
   'add',
   'subtract',
@@ -30,6 +36,7 @@ const supportedKinds = new Set([
   'risingEdge',
   'memory',
   'digitalOutput',
+  'digitalVirtual',
   'average',
   'calculator',
   'calendar',
@@ -78,7 +85,9 @@ const configurationFor = (node: FlowNode): Record<string, unknown> => {
     node.kind === 'digitalInput' ||
     node.kind === 'digitalOutput' ||
     node.kind === 'analogInput' ||
-    node.kind === 'analogOutput'
+    node.kind === 'analogOutput' ||
+    node.kind === 'analogVirtual' ||
+    node.kind === 'digitalVirtual'
   ) {
     const pointId = node.configuration.pointId;
     if (typeof pointId !== 'string' || !pointId.trim())
@@ -86,7 +95,7 @@ const configurationFor = (node: FlowNode): Record<string, unknown> => {
     return { pointId: pointId.trim() };
   }
   if (node.kind === 'digitalConstant') return { value: Boolean(node.configuration.value) };
-  if (node.kind === 'numericConstant' || node.kind === 'memory')
+  if (node.kind === 'analogConstant' || node.kind === 'memory')
     return { value: Number(node.configuration.value) };
   if (node.kind === 'comparator') return { operator: String(node.configuration.operator) };
   if (node.kind === 'calculator') return { formula: String(node.configuration.formula) };
@@ -149,23 +158,34 @@ export const createExecutableFlowSource = (
         ? 'propagate'
         : 'requireGood'
     },
-    nodes: flow.nodes.map((node) => ({
+    nodes: flow.nodes
+      .filter(
+        (node) =>
+          !isVirtualPointNode(node) ||
+          flow.connections.some((connection) => connection.start.nodeId === node.id)
+      )
+      .map((node) => ({
       id: node.id,
-      kind: node.kind,
+      kind:
+        node.kind === 'analogVirtual'
+          ? 'analogInput'
+          : node.kind === 'digitalVirtual'
+            ? 'digitalInput'
+            : node.kind,
       configuration: configurationFor(node),
       label: node.label,
       x: node.x,
       y: node.y,
       zOrder: node.zOrder,
       ...(node.groupId ? { groupId: node.groupId } : {})
-    })),
+      })),
     connections: flow.connections.map((connection) => ({
       source: { nodeId: connection.start.nodeId, portId: connection.start.connectorId },
       target: { nodeId: connection.end.nodeId, portId: connection.end.connectorId }
     })),
     // Flow definitions come from a reactive Pinia store. Browser structuredClone
     // rejects Vue proxy objects, while declarations contain only scalar fields.
-    virtualPointDeclarations: (flow.virtualPointDeclarations ?? []).map((declaration) => ({
+    virtualPointDeclarations: virtualPointDeclarationsFromNodes(flow.nodes).map((declaration) => ({
       ...declaration
     }))
   };

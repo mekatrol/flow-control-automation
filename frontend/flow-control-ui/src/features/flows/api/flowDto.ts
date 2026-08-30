@@ -6,7 +6,6 @@ import type {
   FlowNodeKind,
   FlowStatus
 } from '@/features/flows/types';
-import type { VirtualPointDeclaration } from '@/features/flows/types';
 import { flowNodeKinds } from '@/features/flows/nodeKinds';
 
 export interface FlowNodeConnectorDto {
@@ -50,7 +49,6 @@ export interface FlowDto {
   connections: FlowConnectionDto[];
   revision?: number;
   deployedRevision?: number;
-  virtualPointDeclarations?: VirtualPointDeclaration[];
 }
 
 // Validation errors include a data path so API failures can identify the exact
@@ -67,8 +65,6 @@ const statuses = new Set<FlowStatus>(['draft', 'deployed']);
 const directions = new Set<ConnectorDirection>(['input', 'output']);
 const dataTypes = new Set<ConnectorDataType>(['any', 'boolean', 'event', 'number', 'string']);
 const sides = new Set<ConnectorSide>(['left', 'right', 'top', 'bottom']);
-const virtualPointTypes = new Set<'analog' | 'digital'>(['analog', 'digital']);
-const virtualPointPersistence = new Set<'volatile' | 'retained'>(['volatile', 'retained']);
 
 const fail = (path: string, reason: string): never => {
   throw new FlowDtoValidationError(`${path}: ${reason}`);
@@ -186,40 +182,6 @@ const parseConnection = (value: unknown, path: string): FlowConnectionDto => {
   };
 };
 
-const parseVirtualPointDeclaration = (value: unknown, path: string): VirtualPointDeclaration => {
-  const item = asRecord(value, path);
-  const valueType = asEnum(item.valueType, virtualPointTypes, `${path}.valueType`);
-  const persistence = asEnum(item.persistence, virtualPointPersistence, `${path}.persistence`);
-  if (typeof item.readable !== 'boolean') fail(`${path}.readable`, 'expected a boolean');
-  if (typeof item.commandable !== 'boolean') fail(`${path}.commandable`, 'expected a boolean');
-  if (!item.readable && !item.commandable) fail(path, 'point must be readable or commandable');
-  if (valueType === 'digital' && item.units !== undefined)
-    fail(`${path}.units`, 'digital points cannot have units');
-  const defaultValue = item.relinquishDefault;
-  if (
-    defaultValue !== undefined &&
-    defaultValue !== null &&
-    !(
-      (valueType === 'analog' &&
-        typeof defaultValue === 'number' &&
-        Number.isFinite(defaultValue)) ||
-      (valueType === 'digital' && typeof defaultValue === 'boolean')
-    )
-  )
-    fail(`${path}.relinquishDefault`, 'value does not match valueType');
-  return {
-    key: asString(item.key, `${path}.key`),
-    valueType,
-    ...(typeof item.units === 'string' && item.units ? { units: item.units } : {}),
-    readable: item.readable as boolean,
-    commandable: item.commandable as boolean,
-    persistence,
-    ...(defaultValue !== undefined
-      ? { relinquishDefault: defaultValue as boolean | number | null }
-      : {})
-  };
-};
-
 const findConnector = (
   nodes: FlowNodeDto[],
   endpoint: FlowConnectionEndpointDto,
@@ -281,18 +243,6 @@ export const parseFlowDto = (value: unknown): FlowDto => {
     (!Number.isInteger(deployedRevision) || deployedRevision < 1)
   )
     fail('flow.deployedRevision', 'expected a positive integer');
-  const virtualPointDeclarations =
-    source.virtualPointDeclarations === undefined
-      ? undefined
-      : asArray(source.virtualPointDeclarations, 'flow.virtualPointDeclarations').map(
-          (item, index) =>
-            parseVirtualPointDeclaration(item, `flow.virtualPointDeclarations[${index}]`)
-        );
-  if (virtualPointDeclarations)
-    assertUnique(
-      virtualPointDeclarations.map((item) => item.key),
-      'flow.virtualPointDeclarations'
-    );
   return {
     id: asString(source.id, 'flow.id'),
     name: asString(source.name, 'flow.name'),
@@ -311,8 +261,7 @@ export const parseFlowDto = (value: unknown): FlowDto => {
     nodes,
     connections,
     ...(revision !== undefined ? { revision } : {}),
-    ...(deployedRevision !== undefined ? { deployedRevision } : {}),
-    ...(virtualPointDeclarations !== undefined ? { virtualPointDeclarations } : {})
+    ...(deployedRevision !== undefined ? { deployedRevision } : {})
   };
 };
 

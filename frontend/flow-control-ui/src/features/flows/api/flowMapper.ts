@@ -7,9 +7,6 @@ import type { FlowDto } from './flowDto';
 const copyFlow = (flow: FlowDefinition | FlowDto): FlowDto => ({
   ...flow,
   ...(flow.revision !== undefined ? { revision: flow.revision } : {}),
-  ...(flow.virtualPointDeclarations !== undefined
-    ? { virtualPointDeclarations: flow.virtualPointDeclarations.map((entry) => ({ ...entry })) }
-    : {}),
   nodes: flow.nodes.map((node) => {
     return {
       ...node,

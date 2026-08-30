@@ -48,10 +48,12 @@ describe('node palette filtering and grouping', () => {
     expect(filterNodeKinds('io').map(({ kind }) => kind)).toEqual([
       'analogInput',
       'analogOutput',
+      'analogVirtual',
       'digitalConstant',
       'digitalInput',
       'digitalOutput',
-      'numericConstant'
+      'digitalVirtual',
+      'analogConstant'
     ]);
 
     // Expected outcome: `filterNodeKinds('missing')` matches the required structure.
@@ -76,12 +78,14 @@ describe('node palette filtering and grouping', () => {
     }
 
     expect(groups.io?.map(({ kind }) => kind)).toEqual([
+      'analogConstant',
       'analogInput',
       'analogOutput',
+      'analogVirtual',
       'digitalConstant',
       'digitalInput',
       'digitalOutput',
-      'numericConstant'
+      'digitalVirtual'
     ]);
 
     // Expected outcome: `groups.maths?.map(({ kind }) => kind)` matches the required structure.

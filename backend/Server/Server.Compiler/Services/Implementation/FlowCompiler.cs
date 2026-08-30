@@ -1,4 +1,4 @@
-/*
+﻿/*
  * FlowCompiler
  * ========================================
  *
@@ -291,7 +291,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         [FlowNodeKind.Nor] = new([new("a", DataDirection.Input, DataType.Boolean), new("b", DataDirection.Input, DataType.Boolean), new("value", DataDirection.Output, DataType.Boolean)]),
         [FlowNodeKind.Xor] = new([new("a", DataDirection.Input, DataType.Boolean), new("b", DataDirection.Input, DataType.Boolean), new("value", DataDirection.Output, DataType.Boolean)]),
         [FlowNodeKind.Xnor] = new([new("a", DataDirection.Input, DataType.Boolean), new("b", DataDirection.Input, DataType.Boolean), new("value", DataDirection.Output, DataType.Boolean)]),
-        [FlowNodeKind.NumericConstant] = new([new("value", DataDirection.Output, DataType.Number)]),
+        [FlowNodeKind.AnalogConstant] = new([new("value", DataDirection.Output, DataType.Number)]),
         [FlowNodeKind.Add] = ArithmeticShape("a", "b"),
         [FlowNodeKind.Subtract] = ArithmeticShape("a", "b"),
         [FlowNodeKind.Multiply] = ArithmeticShape("a", "b"),
@@ -1282,13 +1282,13 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 [3, (byte)DataType.Number],
                 U16(0),
                 U16(model.StateSlots[id]),
-                U16(ConstantIndex(model.Constants, GetNumericConstant(model.Nodes[id], "value")))),
+                U16(ConstantIndex(model.Constants, GetAnalogConstant(model.Nodes[id], "value")))),
 
             FlowNodeKind.OnDelay or FlowNodeKind.Delay or FlowNodeKind.Timer or FlowNodeKind.Pulse => Concat(
                 [4, 1],
                 U16(0),
                 U16(model.StateSlots[id]),
-                U16(ConstantIndex(model.Constants, GetNumericConstant(model.Nodes[id], "durationMs")))),
+                U16(ConstantIndex(model.Constants, GetAnalogConstant(model.Nodes[id], "durationMs")))),
 
             FlowNodeKind.Clock => Concat(
                 [4, 1],
@@ -1571,7 +1571,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
 
         if (source.Nodes.Any(node =>
                 node.Kind is
-                    FlowNodeKind.NumericConstant or
+                    FlowNodeKind.AnalogConstant or
                     FlowNodeKind.Add or FlowNodeKind.Subtract or FlowNodeKind.Multiply or FlowNodeKind.Divide or FlowNodeKind.Power or FlowNodeKind.Negate or
                     FlowNodeKind.Comparator or
                     FlowNodeKind.LevelShifter or
@@ -2061,7 +2061,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             FlowNodeKind.DigitalInput or
             FlowNodeKind.AnalogInput or
             FlowNodeKind.DigitalConstant or
-            FlowNodeKind.NumericConstant or
+            FlowNodeKind.AnalogConstant or
             FlowNodeKind.Schedule or
             FlowNodeKind.Calendar => CreateSourceInstruction(context, node),
 
@@ -2155,14 +2155,14 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                     context.NodeId,
                     NodeInstructionRole.Primary),
 
-            FlowNodeKind.NumericConstant =>
+            FlowNodeKind.AnalogConstant =>
                 new(
                     new(
-                        FlowOpcode.NumericConstant,
+                        FlowOpcode.AnalogConstant,
                         context.ResultSlotIndex,
                         FlowILV1Format.Unused,
                         FlowILV1Format.Unused,
-                        ConstantIndex(context.Constants, GetNumericConstant(node, "value"))
+                        ConstantIndex(context.Constants, GetAnalogConstant(node, "value"))
                     ),
                     context.NodeId,
                     NodeInstructionRole.Primary),
@@ -2284,8 +2284,8 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                         FlowOpcode.LevelShifter,
                         context.ResultSlotIndex,
                         InputSlot(context.Source, context.Slots, context.NodeId, "in"),
-                        ConstantIndex(context.Constants, GetNumericConstant(node, "gain")),
-                        ConstantIndex(context.Constants, GetNumericConstant(node, "offset"))
+                        ConstantIndex(context.Constants, GetAnalogConstant(node, "gain")),
+                        ConstantIndex(context.Constants, GetAnalogConstant(node, "offset"))
                     ),
                     context.NodeId,
                     NodeInstructionRole.Primary),
@@ -2327,8 +2327,8 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                         FlowOpcode.Clamp,
                         context.ResultSlotIndex,
                         InputSlot(context.Source, context.Slots, context.NodeId, "input"),
-                        ConstantIndex(context.Constants, GetNumericConstant(node, "minimum")),
-                        ConstantIndex(context.Constants, GetNumericConstant(node, "maximum"))
+                        ConstantIndex(context.Constants, GetAnalogConstant(node, "minimum")),
+                        ConstantIndex(context.Constants, GetAnalogConstant(node, "maximum"))
                     ),
                     context.NodeId,
                     NodeInstructionRole.Primary),
@@ -2339,8 +2339,8 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                         FlowOpcode.LevelShifter,
                         context.ResultSlotIndex,
                         InputSlot(context.Source, context.Slots, context.NodeId, "input"),
-                        ConstantIndex(context.Constants, GetNumericConstant(node, "gain")),
-                        ConstantIndex(context.Constants, GetNumericConstant(node, "offset"))
+                        ConstantIndex(context.Constants, GetAnalogConstant(node, "gain")),
+                        ConstantIndex(context.Constants, GetAnalogConstant(node, "offset"))
                     ),
                     context.NodeId,
                     NodeInstructionRole.Primary),
@@ -2375,8 +2375,8 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                         FlowOpcode.D2A,
                         context.ResultSlotIndex,
                         InputSlot(context.Source, context.Slots, context.NodeId, "in"),
-                        ConstantIndex(context.Constants, GetNumericConstant(node, "lowValue")),
-                        ConstantIndex(context.Constants, GetNumericConstant(node, "highValue"))
+                        ConstantIndex(context.Constants, GetAnalogConstant(node, "lowValue")),
+                        ConstantIndex(context.Constants, GetAnalogConstant(node, "highValue"))
                     ),
                     context.NodeId,
                     NodeInstructionRole.Primary),
@@ -2503,7 +2503,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                         FlowOpcode.Clock,
                         context.ResultSlotIndex,
                         InputSlot(context.Source, context.Slots, context.NodeId, "enable"),
-                        ConstantIndex(context.Constants, GetNumericConstant(node, "dutyCycle")),
+                        ConstantIndex(context.Constants, GetAnalogConstant(node, "dutyCycle")),
                         context.StateSlots[context.NodeId]
                     ),
                     context.NodeId,
@@ -2516,7 +2516,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                         context.ResultSlotIndex,
                         InputSlot(context.Source, context.Slots, context.NodeId, "in"),
                         context.StateSlots[context.NodeId],
-                        ConstantIndex(context.Constants, GetNumericConstant(node, "activeLowThreshold"))
+                        ConstantIndex(context.Constants, GetAnalogConstant(node, "activeLowThreshold"))
                     ),
                     context.NodeId,
                     NodeInstructionRole.Primary),
@@ -2539,7 +2539,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 resultSlotIndex,
                 InputSlot(source, slots, nodeId, "in"),
                 stateSlots[nodeId],
-                ConstantIndex(constants, GetNumericConstant(node, "activeHighThreshold"))),
+                ConstantIndex(constants, GetAnalogConstant(node, "activeHighThreshold"))),
             nodeId,
             NodeInstructionRole.Secondary);
 
@@ -2796,7 +2796,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
      *
      * Graph validation proves that ports and connections are structurally valid;
      * this method proves that node-specific settings are usable. Examples include
-     * required point/interface IDs, finite numeric constants, comparator operators,
+     * required point/interface IDs, finite analog constants, comparator operators,
      * timer durations, and enabled flags. Keeping these checks here means later
      * instruction generation can read configuration values without repeatedly
      * defending against malformed source data.
@@ -2836,7 +2836,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 throw Failure(FlowCompilationDiagnosticCode.InvalidBooleanConfiguration, path);
             }
         }
-        else if (node.Kind is FlowNodeKind.NumericConstant or FlowNodeKind.Memory)
+        else if (node.Kind is FlowNodeKind.AnalogConstant or FlowNodeKind.Memory)
         {
             ValidateFiniteNumber(node, path, "value");
         }
@@ -3057,39 +3057,39 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         {
             yield return GetBooleanConstant(node.Configuration["value"].GetBoolean());
         }
-        else if (node.Kind is FlowNodeKind.NumericConstant or FlowNodeKind.Memory)
+        else if (node.Kind is FlowNodeKind.AnalogConstant or FlowNodeKind.Memory)
         {
-            yield return GetNumericConstant(node, "value");
+            yield return GetAnalogConstant(node, "value");
         }
         else if (node.Kind is FlowNodeKind.LevelShifter or FlowNodeKind.Line)
         {
-            yield return GetNumericConstant(node, "gain");
-            yield return GetNumericConstant(node, "offset");
+            yield return GetAnalogConstant(node, "gain");
+            yield return GetAnalogConstant(node, "offset");
         }
         else if (node.Kind == FlowNodeKind.Clamp)
         {
-            yield return GetNumericConstant(node, "minimum");
-            yield return GetNumericConstant(node, "maximum");
+            yield return GetAnalogConstant(node, "minimum");
+            yield return GetAnalogConstant(node, "maximum");
         }
         else if (node.Kind == FlowNodeKind.A2D)
         {
-            yield return GetNumericConstant(node, "activeLowThreshold");
-            yield return GetNumericConstant(node, "activeHighThreshold");
+            yield return GetAnalogConstant(node, "activeLowThreshold");
+            yield return GetAnalogConstant(node, "activeHighThreshold");
             yield return GetBooleanConstant(false);
         }
         else if (node.Kind == FlowNodeKind.D2A)
         {
-            yield return GetNumericConstant(node, "lowValue");
-            yield return GetNumericConstant(node, "highValue");
+            yield return GetAnalogConstant(node, "lowValue");
+            yield return GetAnalogConstant(node, "highValue");
         }
         else if (node.Kind is FlowNodeKind.OnDelay or FlowNodeKind.Delay or FlowNodeKind.Timer or FlowNodeKind.Pulse)
         {
-            yield return GetNumericConstant(node, "durationMs");
+            yield return GetAnalogConstant(node, "durationMs");
         }
         else if (node.Kind == FlowNodeKind.Clock)
         {
             yield return ClockPeriodConstant(node);
-            yield return GetNumericConstant(node, "dutyCycle");
+            yield return GetAnalogConstant(node, "dutyCycle");
         }
         else if (node.Kind is FlowNodeKind.RisingEdge)
         {
@@ -3111,7 +3111,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
     /*
      * Normalize a Boolean literal into the common ConstantRecord representation.
      * Boolean false is stored as numeric 0 and true as numeric 1; DataType keeps
-     * that representation distinct from an actual numeric constant.
+     * that representation distinct from an actual analog constant.
      */
     private static ConstantRecord GetBooleanConstant(bool value)
     {
@@ -3122,7 +3122,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
      * Read one numeric configuration property and wrap it in the same internal
      * ConstantRecord representation used to build the canonical constant pool.
      */
-    private static ConstantRecord GetNumericConstant(ExecutableFlowNode node, string key)
+    private static ConstantRecord GetAnalogConstant(ExecutableFlowNode node, string key)
     {
         return new(DataType.Number, node.Configuration[key].GetDouble());
     }
@@ -3166,7 +3166,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
     private static DataType ResultDataType(ExecutableFlowNode node)
     {
         if (node.Kind is
-            FlowNodeKind.NumericConstant or
+            FlowNodeKind.AnalogConstant or
             FlowNodeKind.Add or FlowNodeKind.Subtract or FlowNodeKind.Multiply or FlowNodeKind.Divide or FlowNodeKind.Power or FlowNodeKind.Negate or
             FlowNodeKind.LevelShifter or
             FlowNodeKind.AnalogInput or
@@ -3495,7 +3495,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             var value = node.Kind switch
             {
                 FlowNodeKind.AnalogInput => request.Target.Points.SingleOrDefault(point => point.Id == node.Configuration["pointId"].GetString())?.Units,
-                FlowNodeKind.NumericConstant => null,
+                FlowNodeKind.AnalogConstant => null,
                 FlowNodeKind.Add or FlowNodeKind.Subtract => RequireMatchingUnits(source, units, id, "a", "b"),
                 FlowNodeKind.Multiply or FlowNodeKind.Divide or FlowNodeKind.Power => null,
                 FlowNodeKind.Negate => units[SourceNode(source, id, "in")],

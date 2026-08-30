@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { flowDebugApi, parseDebugSnapshot } from '@/features/flows/api/flowDebugApi';
 import { waitForFetch } from '@/api/waitForFetch';
 
-vi.mock('@/api/waitForFetch', () => ({ waitForFetch: vi.fn() }));
+vi.mock('@/api/waitForFetch', () => ({ waitForFetch: vi.fn<typeof waitForFetch>() }));
 
 // The fixture deliberately preserves its inferred nested shape for mutation tests.
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type

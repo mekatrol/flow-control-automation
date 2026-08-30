@@ -1,4 +1,4 @@
-/*
+﻿/*
  * FlowDecompiler
  * ==========================================
  *
@@ -415,8 +415,8 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
             FlowOpcode.Nor => FlowNodeKind.Nor,
             FlowOpcode.Xor => FlowNodeKind.Xor,
             FlowOpcode.Xnor => FlowNodeKind.Xnor,
-            FlowOpcode.NumericConstant => ConfigureNumber(
-                FlowNodeKind.NumericConstant,
+            FlowOpcode.AnalogConstant => ConfigureNumber(
+                FlowNodeKind.AnalogConstant,
                 configuration,
                 decoded.Constants,
                 instruction.Auxiliary,
@@ -978,7 +978,7 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
 
     /*
      * Recover a Memory node's initial value from the state-slot record referenced by
-     * the Memory instruction. The state slot then points to the numeric constant that
+     * the Memory instruction. The state slot then points to the analog constant that
      * was used to initialise that state when the artifact was compiled.
      */
     private static FlowNodeKind ConfigureState(
@@ -1019,7 +1019,7 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
     }
 
     /*
-     * Recover a numeric constant node configuration from its constant-pool index.
+     * Recover a analog constant node configuration from its constant-pool index.
      */
     private static FlowNodeKind ConfigureNumber(
         FlowNodeKind kind,
@@ -1030,7 +1030,7 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
     {
         if (constantIndex >= constants.Count || constants[constantIndex].DataType != DataType.Number)
         {
-            Fail(FlowCompilationDiagnosticCode.InvalidNumericConstantOperand, $"/instructions/{instructionIndex}/auxiliary");
+            Fail(FlowCompilationDiagnosticCode.InvalidAnalogConstantOperand, $"/instructions/{instructionIndex}/auxiliary");
         }
 
         configuration["value"] = JsonSerializer.SerializeToElement(constants[constantIndex].Number);
@@ -1069,8 +1069,8 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
     }
 
     /*
-     * LevelShifter stores gain and offset as references into the numeric constant
-     * pool. Both references must resolve to numeric constants before reconstructing
+     * LevelShifter stores gain and offset as references into the analog constant
+     * pool. Both references must resolve to analog constants before reconstructing
      * the designer configuration.
      */
     private static FlowNodeKind ConfigureLevelShifter(
@@ -1189,7 +1189,7 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
             FlowNodeKind.And or FlowNodeKind.Or or FlowNodeKind.Nand or FlowNodeKind.Nor or FlowNodeKind.Xor or FlowNodeKind.Xnor =>
                 [BooleanInput("a", "A"), BooleanInput("b", "B"), BooleanOutput("value", "Value")],
             FlowNodeKind.Memory => [NumberInput("in", "Input"), NumberOutput("value", "Previous value")],
-            FlowNodeKind.NumericConstant => [NumberOutput("value", "Value")],
+            FlowNodeKind.AnalogConstant => [NumberOutput("value", "Value")],
             FlowNodeKind.Add => [NumberInput("a", "A"), NumberInput("b", "B"), NumberOutput("value", "Value")],
             FlowNodeKind.Subtract or FlowNodeKind.Multiply or FlowNodeKind.Divide or FlowNodeKind.Power =>
                 [NumberInput("a", "A"), NumberInput("b", "B"), NumberOutput("value", "Value")],

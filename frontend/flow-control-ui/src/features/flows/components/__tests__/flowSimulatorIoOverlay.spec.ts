@@ -8,10 +8,12 @@ import type { FlowDefinition } from '@/features/flows/types';
 
 describe('flow simulator I/O overlay', () => {
   it('edits virtual inputs inside the flow workspace and shows virtual outputs', async () => {
-    const input = createDefaultNode('analogInput', { x: 0, y: 0 }, 0);
+    const input = createDefaultNode('analogVirtual', { x: 0, y: 0 }, 0);
     input.configuration.pointId = 'virtual-input';
-    const output = createDefaultNode('analogOutput', { x: 200, y: 0 }, 1);
+    input.configuration.units = '°C';
+    const output = createDefaultNode('analogVirtual', { x: 200, y: 0 }, 1);
     output.configuration.pointId = 'virtual-output';
+    output.configuration.units = '%';
     const flow: FlowDefinition = {
       id: 'flow-a',
       name: 'Flow',
@@ -20,25 +22,7 @@ describe('flow simulator I/O overlay', () => {
       disabled: false,
       updatedAt: '2026-01-01T00:00:00Z',
       nodes: [input, output],
-      connections: [],
-      virtualPointDeclarations: [
-        {
-          key: 'virtual-input',
-          valueType: 'analog',
-          units: '°C',
-          readable: true,
-          commandable: false,
-          persistence: 'volatile'
-        },
-        {
-          key: 'virtual-output',
-          valueType: 'analog',
-          units: '%',
-          readable: false,
-          commandable: true,
-          persistence: 'volatile'
-        }
-      ]
+      connections: []
     };
     const wrapper = mount(AppFlowSimulatorIoOverlay, {
       props: {

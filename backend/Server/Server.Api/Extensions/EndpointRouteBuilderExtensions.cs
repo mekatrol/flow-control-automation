@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http.Json;
+﻿using Microsoft.AspNetCore.Http.Json;
 using Microsoft.Extensions.Options;
 using Server.Api.Contracts;
 using Server.Common.Contracts;
@@ -280,7 +280,6 @@ public static class EndpointRouteBuilderExtensions
                 Revision = version.Revision,
                 Nodes = version.Nodes,
                 Connections = version.Connections,
-                VirtualPointDeclarations = version.VirtualPointDeclarations,
                 Status = "deployed"
             });
         }

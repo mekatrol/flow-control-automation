@@ -12,11 +12,11 @@
   "nodes": [
     {
       "id": "constant-2",
-      "kind": "numericConstant",
+      "kind": "analogConstant",
       "configuration": {
         "value": 2
       },
-      "label": "Numeric Constant",
+      "label": "Analog Constant",
       "x": 0,
       "y": 0,
       "zOrder": 0

@@ -73,7 +73,11 @@ import type {
   EmulatorSnapshot,
   EmulatorValue
 } from '@/features/flows/api/flowEmulatorApi';
-import type { FlowDefinition, VirtualPointDeclaration } from '@/features/flows/types';
+import {
+  virtualPointDeclarationsFromNodes,
+  type FlowDefinition,
+  type VirtualPointDeclaration
+} from '@/features/flows/types';
 
 interface SimulationPoint {
   pointId: string;
@@ -92,7 +96,8 @@ const draft = reactive<Record<string, string | boolean>>({});
 const dirty = reactive(new Set<string>());
 const inputError = ref('');
 const flowDeclarations = computed(
-  () => new Map((props.flow.virtualPointDeclarations ?? []).map((point) => [point.key, point]))
+  () =>
+    new Map(virtualPointDeclarationsFromNodes(props.flow.nodes).map((point) => [point.key, point]))
 );
 const contextDeclarations = computed(
   () => new Map((props.contextPointContracts ?? []).map((point) => [point.key, point]))
@@ -106,8 +111,13 @@ const points = computed<SimulationPoint[]>(() => {
     outputValues.set(output.outputId, output.effectiveValue);
   const result = new Map<string, SimulationPoint>();
   for (const node of props.flow.nodes) {
-    const input = node.kind === 'analogInput' || node.kind === 'digitalInput';
-    const output = node.kind === 'analogOutput' || node.kind === 'digitalOutput';
+    const virtual = node.kind === 'analogVirtual' || node.kind === 'digitalVirtual';
+    const input =
+      node.kind === 'analogInput' ||
+      node.kind === 'digitalInput' ||
+      (virtual && !outputValues.has(String(node.configuration.pointId ?? '')));
+    const output =
+      node.kind === 'analogOutput' || node.kind === 'digitalOutput' || (virtual && !input);
     if (!input && !output) continue;
     const pointId = String(node.configuration.pointId ?? '');
     if (!pointId || result.has(pointId)) continue;

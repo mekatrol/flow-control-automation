@@ -183,11 +183,10 @@
       <AppFlowNodeConfigurationPanel
         v-else-if="selectedNode"
         :node="selectedNode"
-        :virtual-point-declarations="flow.virtualPointDeclarations"
+        :virtual-point-declarations="virtualPointDeclarations"
         :context-point-contracts="contextPointContracts"
         :execution-context-id="executionContextId"
         @validation="(nodeId, state) => emit('pointValidation', nodeId, state)"
-        @create-virtual-point="(declaration) => emit('createVirtualPoint', declaration)"
         @[EVENTS.UPDATE_LABEL]="handleNodeLabelUpdate"
         @[EVENTS.UPDATE_CONFIGURATION]="handleNodeConfigurationUpdate"
       />
@@ -235,6 +234,7 @@ import type {
   FlowNode as FlowNodeModel,
   VirtualPointDeclaration
 } from '@/features/flows/types';
+import { virtualPointDeclarationsFromNodes } from '@/features/flows/types';
 import type { PointValidationState } from '@/features/flows/flowPointValidation';
 import { flowNodeKinds } from '@/features/flows/nodeKinds';
 import type { FlowRuntimeSnapshot } from '@/features/flows/api/flowRuntimeApi';
@@ -278,7 +278,6 @@ const emit = defineEmits<{
     value: FlowNodeModel['configuration'][string]
   ): void;
   (event: 'pointValidation', nodeId: string, state: PointValidationState): void;
-  (event: 'createVirtualPoint', declaration: VirtualPointDeclaration): void;
   (event: typeof EVENTS.APPLY_INPUTS_STEP, inputs: EmulatorInputChange[]): void;
 }>();
 
@@ -408,13 +407,21 @@ const orderedNodes = computed(() =>
 const selectedNode = computed(() =>
   selectedNodeId.value ? nodesById.value.get(selectedNodeId.value) : undefined
 );
+const virtualPointDeclarations = computed(() =>
+  virtualPointDeclarationsFromNodes(props.flow.nodes)
+);
 const defaultNodeValue = (node: FlowNodeModel): string | undefined => {
-  if (node.kind === 'numericConstant' || node.kind === 'memory')
+  if (node.kind === 'analogConstant' || node.kind === 'memory')
     return String(node.configuration.value ?? 0);
   if (node.kind === 'digitalConstant') return node.configuration.value ? 'On' : 'Off';
-  if (!node.kind.endsWith('Input') && !node.kind.endsWith('Output')) return undefined;
+  if (
+    !node.kind.endsWith('Input') &&
+    !node.kind.endsWith('Output') &&
+    !node.kind.endsWith('Virtual')
+  )
+    return undefined;
   const pointId = String(node.configuration.pointId ?? '');
-  const declaration = props.flow.virtualPointDeclarations?.find((point) => point.key === pointId);
+  const declaration = virtualPointDeclarations.value.find((point) => point.key === pointId);
   if (!declaration) return undefined;
   if (typeof declaration.relinquishDefault === 'number')
     return `${declaration.relinquishDefault}${declaration.units ? ` ${declaration.units}` : ''}`;

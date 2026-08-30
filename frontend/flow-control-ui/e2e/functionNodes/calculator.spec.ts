@@ -2,11 +2,11 @@ import { expect, test } from './helpers/functionNodeTest';
 import { addNode, addVirtualPointNode, configureSelectedNode, connectNodes, createFlow, saveFlow } from './helpers/functionNodeDesigner';
 import { applyAnalogInputs, expectAnalogOutput, startSimulation, stopSimulation } from './helpers/functionNodeSimulator';
 
-const numericConstant = async (
+const analogConstant = async (
   page: Parameters<typeof addNode>[0],
   value: number
 ): Promise<string> => {
-  const id = await addNode(page, 'Numeric Constant');
+  const id = await addNode(page, 'Analog Constant');
   await configureSelectedNode(page, { Value: value });
   return id;
 };
@@ -17,9 +17,9 @@ test('Calculator evaluates y = mx + c at several points on the line', async ({ p
   const flowId = await createFlow(page, `E2E calculator line ${suffix}`);
   const xPoint = `line-x-${suffix}`;
   const yPoint = `line-y-${suffix}`;
-  const m = await numericConstant(page, 2.5);
+  const m = await analogConstant(page, 2.5);
   const x = await addVirtualPointNode(page, 'Analog Input', xPoint);
-  const intercept = await numericConstant(page, -4);
+  const intercept = await analogConstant(page, -4);
   const calculator = await addNode(page, 'Calculator');
   await configureSelectedNode(page, { Formula: 'a * b + c' });
   const output = await addVirtualPointNode(page, 'Analog Output', yPoint);
@@ -49,12 +49,12 @@ test('Two calculators convert Celsius to Fahrenheit using connected constants', 
   const flowId = await createFlow(page, `E2E calculator temperature ${suffix}`);
   const celsiusPoint = `celsius-${suffix}`;
   const fahrenheitPoint = `fahrenheit-${suffix}`;
-  const nine = await numericConstant(page, 9);
-  const five = await numericConstant(page, 5);
+  const nine = await analogConstant(page, 9);
+  const five = await analogConstant(page, 5);
   const ratio = await addNode(page, 'Calculator');
   await configureSelectedNode(page, { Formula: 'a / b' });
   const celsius = await addVirtualPointNode(page, 'Analog Input', celsiusPoint);
-  const thirtyTwo = await numericConstant(page, 32);
+  const thirtyTwo = await analogConstant(page, 32);
   const conversion = await addNode(page, 'Calculator');
   await configureSelectedNode(page, { Formula: 'a * b + c' });
   const output = await addVirtualPointNode(page, 'Analog Output', fahrenheitPoint);

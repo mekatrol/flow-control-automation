@@ -1,4 +1,4 @@
-using Server.Common.Contracts;
+﻿using Server.Common.Contracts;
 using System.Buffers.Binary;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
@@ -247,7 +247,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
             case FlowOpcode.Nor: _slots[instruction.Result] = FlowVmValue.FromBoolean(!(a.Boolean || b.Boolean), quality); break;
             case FlowOpcode.Xor: _slots[instruction.Result] = FlowVmValue.FromBoolean(a.Boolean != b.Boolean, quality); break;
             case FlowOpcode.Xnor: _slots[instruction.Result] = FlowVmValue.FromBoolean(a.Boolean == b.Boolean, quality); break;
-            case FlowOpcode.NumericConstant:
+            case FlowOpcode.AnalogConstant:
                 _slots[instruction.Result] =
                     Value(Constant(instruction.Auxiliary, DataType.Number));
                 break;

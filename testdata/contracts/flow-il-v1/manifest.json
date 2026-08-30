@@ -13,8 +13,8 @@
     },
     {
       "id": "valid-memory-feedback",
-      "artifactLength": 976,
-      "artifactSha256": "5e8fbc080458be5931d4c87f920f3ed3958972046a4a82c373fb04df9a8c7988",
+      "artifactLength": 975,
+      "artifactSha256": "764819a61488ffdb154cf03ef9c37ca0cb7e305d2f7992486f04d99faded2807",
       "expected": {
         "valid": true,
         "reason": "ok",
@@ -33,8 +33,8 @@
     },
     {
       "id": "valid-numeric-language",
-      "artifactLength": 1028,
-      "artifactSha256": "cc6a17339dee2a2d31134a2a20317f254640cd0c3bcc7ffe26d17ab8c4fb326f",
+      "artifactLength": 1034,
+      "artifactSha256": "a4ccc408915d4a194ae7d03dda0416b2fc41ce26daf2ca84724aa4ab2ac7bfba",
       "expected": {
         "valid": true,
         "reason": "ok",

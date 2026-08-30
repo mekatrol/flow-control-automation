@@ -71,13 +71,15 @@ const executableDefinition = (
         ? 'comparator'
         : kind === FlowNodeFunctionType.D2A
           ? 'analogswitch'
-          : kind === FlowNodeFunctionType.DigitalInput
-            ? 'trigger'
-            : kind === FlowNodeFunctionType.DigitalOutput
-              ? 'override'
-              : kind === FlowNodeFunctionType.DigitalConstant
-                ? 'line'
-                : kind.toLowerCase(),
+          : kind === FlowNodeFunctionType.AnalogInput
+            ? 'analogoutput'
+            : kind === FlowNodeFunctionType.AnalogOutput
+              ? 'analoginput'
+              : kind === FlowNodeFunctionType.DigitalInput
+                ? 'trigger'
+                : kind === FlowNodeFunctionType.DigitalOutput
+                  ? 'override'
+                  : kind.toLowerCase(),
   defaultSize: defaultNodeSize(),
   connectors,
   editor,
@@ -138,6 +140,28 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     [{ id: 'in', label: 'Input', direction: 'input', dataType: 'number', side: 'left' }],
     [{ key: 'pointId', label: 'Output point ID', input: 'text' }],
     { pointId: 'analog-output-point' },
+    'io'
+  ),
+  [FlowNodeFunctionType.AnalogVirtual]: executableDefinition(
+    FlowNodeFunctionType.AnalogVirtual,
+    [{ id: 'value', label: 'Value', direction: 'output', dataType: 'number', side: 'right' }],
+    [
+      { key: 'pointId', label: 'Virtual point key', input: 'text' },
+      { key: 'units', label: 'Units', input: 'text' },
+      {
+        key: 'persistence',
+        label: 'Persistence',
+        input: 'select',
+        options: ['volatile', 'retained']
+      },
+      { key: 'relinquishDefault', label: 'Optional default', input: 'number' }
+    ],
+    {
+      pointId: 'analog-virtual-point',
+      units: '',
+      persistence: 'volatile',
+      relinquishDefault: null
+    },
     'io'
   ),
   [FlowNodeFunctionType.And]: executableDefinition(FlowNodeFunctionType.And, [
@@ -252,6 +276,22 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     { pointId: 'output-point' },
     'io'
   ),
+  [FlowNodeFunctionType.DigitalVirtual]: executableDefinition(
+    FlowNodeFunctionType.DigitalVirtual,
+    [booleanPort('value', 'Value', 'output', 'right')],
+    [
+      { key: 'pointId', label: 'Virtual point key', input: 'text' },
+      {
+        key: 'persistence',
+        label: 'Persistence',
+        input: 'select',
+        options: ['volatile', 'retained']
+      },
+      { key: 'relinquishDefault', label: 'Default value', input: 'checkbox' }
+    ],
+    { pointId: 'digital-virtual-point', persistence: 'volatile', relinquishDefault: false },
+    'io'
+  ),
   [FlowNodeFunctionType.DigitalSwitch]: executableDefinition(FlowNodeFunctionType.DigitalSwitch, [
     booleanPort('condition', 'Condition', 'input', 'left'),
     booleanPort('whenTrue', 'True', 'input', 'left'),
@@ -340,8 +380,8 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
     booleanPort('b', 'B', 'input', 'left'),
     booleanPort('value', 'Value', 'output', 'right')
   ]),
-  [FlowNodeFunctionType.NumericConstant]: executableDefinition(
-    FlowNodeFunctionType.NumericConstant,
+  [FlowNodeFunctionType.AnalogConstant]: executableDefinition(
+    FlowNodeFunctionType.AnalogConstant,
     [{ id: 'value', label: 'Value', direction: 'output', dataType: 'number', side: 'right' }],
     [{ key: 'value', label: 'Value', input: 'number' }],
     { value: 0 },
