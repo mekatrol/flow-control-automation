@@ -1,5 +1,8 @@
-import { describe, expect, it } from 'vitest';
-import { parseDebugSnapshot } from '@/features/flows/api/flowDebugApi';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { flowDebugApi, parseDebugSnapshot } from '@/features/flows/api/flowDebugApi';
+import { waitForFetch } from '@/api/waitForFetch';
+
+vi.mock('@/api/waitForFetch', () => ({ waitForFetch: vi.fn() }));
 
 // The fixture deliberately preserves its inferred nested shape for mutation tests.
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
@@ -33,6 +36,8 @@ const snapshot = () => ({
 });
 
 describe('flow debug API contract', () => {
+  beforeEach(() => vi.mocked(waitForFetch).mockReset());
+
   it('parses typed node values and proposed outputs', () => {
     const parsed = parseDebugSnapshot(snapshot());
     expect(parsed.nodes[0]?.typedValue).toEqual({ type: 'boolean', value: true, quality: 'good' });
@@ -47,6 +52,39 @@ describe('flow debug API contract', () => {
     );
     expect(() => parseDebugSnapshot({ ...snapshot(), lifecycleState: 'running-away' })).toThrow(
       /lifecycleState is invalid/
+    );
+  });
+
+  it('does not block the workspace while polling a running session', async () => {
+    vi.mocked(waitForFetch).mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          debugSessionId: '42',
+          flowId: 'flow-a',
+          revision: 7,
+          lifecycleState: 'running',
+          mode: 'manual',
+          tickNumber: 3,
+          leaseRemainingMilliseconds: 30_000,
+          lastReasonCode: 0,
+          lastReason: 'none',
+          lastReasonPath: '',
+          affectedOutputPoints: [],
+          liveOutputEnabled: false,
+          host: 'server',
+          capabilities: {},
+          breakpoints: []
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      )
+    );
+
+    await flowDebugApi.inspect('flow-a', '42');
+
+    expect(waitForFetch).toHaveBeenCalledWith(
+      '/api/flows/flow-a/debug-sessions/42',
+      { method: 'GET', signal: undefined },
+      { trackWait: false }
     );
   });
 });

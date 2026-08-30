@@ -301,10 +301,11 @@ const parseSession = (value: unknown): FlowDebugSession => {
 const request = async <T>(
   url: string,
   init: RequestInit,
-  parse: (value: unknown) => T
+  parse: (value: unknown) => T,
+  trackWait = true
 ): Promise<T> => {
   try {
-    const response = await waitForFetch(url, init);
+    const response = await waitForFetch(url, init, { trackWait });
     if (!response.ok) {
       const body = (await response.json().catch(() => ({}))) as { message?: unknown };
       throw new FlowApiError(
@@ -346,7 +347,8 @@ export const flowDebugApi = {
     request(
       `${base(flowId)}/${encodeURIComponent(sessionId)}`,
       { method: 'GET', signal },
-      parseSession
+      parseSession,
+      false
     ),
   step: (flowId: string, sessionId: string, signal?: AbortSignal) =>
     request(
