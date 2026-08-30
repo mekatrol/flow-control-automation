@@ -1,11 +1,15 @@
 using Server.Common.Contracts;
 using Server.Common.Services;
+using System.Text.Json.Nodes;
 
 namespace Server.Services.Implementation;
 
 internal sealed class PointReadService(
     IPointDefinitionStore definitions,
     IPointSourceService sources,
+    IDnsLookup dns,
+    ICredentialResolver credentials,
+    IHttpProtocolCheck http,
     IVirtualPointRuntimeStore? virtualPoints = null) : IPointReadService
 {
     public async Task<PointRuntimeEnvelope> ReadAsync(
@@ -76,13 +80,100 @@ internal sealed class PointReadService(
             return Unavailable(point, "disconnected", "Referenced point source is disabled.");
         }
 
-        // Live adapter activation is deliberately explicit. Until a driver has
-        // produced a typed sample, the API reports unavailable rather than
-        // presenting a connectivity check or definition default as live data.
+        if (source.Kind == "httpJson")
+        {
+            return await ReadHttpJson(point, source, cancellationToken);
+        }
+
         return Unavailable(
             point,
             "disconnected",
             $"{SourceLabel(source.Kind)} read adapter has not produced a live sample.");
+    }
+
+    private async Task<PointRuntimeEnvelope> ReadHttpJson(
+        FlowPoint point,
+        PointSource source,
+        CancellationToken cancellationToken)
+    {
+        var path = point.Mapping?["path"]?.GetValue<string>();
+        var pointer = point.Mapping?["jsonPointer"]?.GetValue<string>();
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return Unavailable(point, "unconfigured", "HTTP/JSON point mapping has no path.");
+        }
+
+        var endpoint = new Uri(new Uri(source.Connection.BaseUrl!), path);
+        IReadOnlyList<System.Net.IPAddress> addresses;
+        try
+        {
+            addresses = await dns.LookupAsync(endpoint.Host, cancellationToken);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            return Unavailable(point, "disconnected", "HTTP/JSON host lookup failed.");
+        }
+
+        if (addresses.Count == 0 || addresses.Any(address => ConnectivityPolicy.IsForbidden(
+            address,
+            source.Connection.AllowPrivateNetwork == true)))
+        {
+            return Unavailable(point, "disconnected", "HTTP/JSON destination is forbidden or unavailable.");
+        }
+
+        string credential;
+        try
+        {
+            credential = await credentials.ResolveAsync(source.CredentialRef ?? string.Empty, cancellationToken);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            return Unavailable(point, "disconnected", "HTTP/JSON credential could not be resolved.");
+        }
+
+        var result = await http.ReadAsync(source, endpoint, credential, addresses, cancellationToken);
+        if (result.Diagnostic is not null || result.Response is null)
+        {
+            return Unavailable(point, "disconnected", result.Diagnostic ?? "HTTP/JSON response was unavailable.");
+        }
+
+        try
+        {
+            var value = JsonNode.Parse(result.Response.Body);
+            if (!string.IsNullOrEmpty(pointer))
+            {
+                foreach (var rawSegment in pointer.Split('/', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var segment = rawSegment.Replace("~1", "/").Replace("~0", "~");
+                    value = value is JsonArray array && int.TryParse(segment, out var index)
+                        ? array[index]
+                        : value?[segment];
+                }
+            }
+
+            if (value is null)
+            {
+                return Unavailable(point, "bad_data", $"JSON pointer '{pointer}' did not select a value.");
+            }
+
+            var now = DateTimeOffset.UtcNow.ToString("O");
+            return new(
+                point.Id,
+                value.DeepClone(),
+                point.Units,
+                DataQuality.Good,
+                "reliable",
+                null,
+                now,
+                "connected",
+                "live",
+                string.Empty,
+                result.Response);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            return Unavailable(point, "bad_data", "HTTP/JSON response was not valid JSON for this mapping.");
+        }
     }
 
     private static PointRuntimeEnvelope Unavailable(

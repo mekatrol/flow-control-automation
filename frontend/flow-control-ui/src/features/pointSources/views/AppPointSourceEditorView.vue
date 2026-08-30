@@ -83,6 +83,60 @@
           min-height="650px"
           @[EVENTS.DIAGNOSTICS]="setEditorDiagnostics"
         />
+        <section v-if="isHttpJson" class="point-test" aria-labelledby="point-test-heading">
+          <div class="point-test-heading">
+            <div>
+              <p>Interactive test</p>
+              <h2 id="point-test-heading">Test an HTTP JSON point</h2>
+              <p>The point mapping below is combined with the unsaved source YAML above.</p>
+            </div>
+          </div>
+          <AppYamlEditor
+            v-model="pointYaml"
+            label="Test point YAML"
+            help="Define one point and its HTTP path, method, and JSON pointer. Testing does not save it."
+            :schema="pointTestSchema"
+            schema-uri="app://schemas/http-json-point-test-v1.json"
+            min-height="390px"
+            @[EVENTS.DIAGNOSTICS]="setPointDiagnostics"
+          />
+          <div class="point-test-actions">
+            <AppButton
+              :text="pointTesting === 'read' ? 'Reading…' : 'Read point'"
+              :icon="testConnectionIcon"
+              :disabled="pointTestDisabled"
+              @click="testPoint('read')"
+            />
+            <template v-if="pointCommandable">
+              <label for="point-test-value">Value to write</label>
+              <input id="point-test-value" v-model="writeValue" type="text" />
+              <AppButton
+                :text="pointTesting === 'write' ? 'Writing…' : 'Write point'"
+                :icon="checkIcon"
+                :disabled="pointTestDisabled || !writeValue.trim()"
+                @click="testPoint('write')"
+              />
+            </template>
+            <p v-else class="readonly-note">This point is read-only.</p>
+          </div>
+          <section v-if="pointTestResult" class="point-test-result" aria-live="polite">
+            <h3>{{ pointTestResult.operation === 'read' ? 'Read' : 'Write' }} result</h3>
+            <div class="point-value">
+              <span>Point value</span>
+              <strong>{{ displayPointValue }}</strong>
+            </div>
+            <h4>HTTP response</h4>
+            <p>
+              Status: {{ pointTestResult.httpResponse.statusCode }}
+              {{ pointTestResult.httpResponse.reasonPhrase }}
+            </p>
+            <p v-if="pointTestResult.httpResponse.contentType">
+              Content-Type: {{ pointTestResult.httpResponse.contentType }}
+            </p>
+            <pre tabindex="0"><code>{{ pointTestResult.httpResponse.body }}</code></pre>
+          </section>
+          <p v-if="pointTestError" class="request-error" role="alert">{{ pointTestError }}</p>
+        </section>
       </form>
 
       <aside v-if="isNew" class="source-guidance" aria-labelledby="source-guidance-heading">
@@ -147,6 +201,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { parse } from 'yaml';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
 import cancelIcon from '@/assets/icons/cancel-icon.svg';
@@ -162,6 +217,7 @@ import { EVENTS } from '@/constants/events';
 import {
   pointSourceApi,
   type ConnectionTestResult,
+  type PointTestResult,
   type PointSourceKind
 } from '@/features/pointSources/api/pointSourceApi';
 import { pointSourceSchema } from '@/features/pointSources/pointSourceSchema';
@@ -227,7 +283,7 @@ sources:
   {
     kind: 'httpJson',
     name: 'HTTP / JSON',
-    summary: 'Poll a read-only web API that returns JSON.',
+    summary: 'Read and write points through a JSON web API.',
     yaml: `schemaVersion: 1
 sources:
   - id: new-source
@@ -238,6 +294,7 @@ sources:
     connection:
       baseUrl: https://api.example.com
       allowedReadMethods: [GET]
+      allowedWriteMethods: [PUT, POST, PATCH]
       defaultPollMilliseconds: 60000
       followRedirects: false
       maximumResponseBytes: 65536
@@ -265,12 +322,118 @@ const status = ref('');
 const testResult = ref<ConnectionTestResult>();
 const testError = ref('');
 const editorDiagnostics = ref<YamlDiagnostic[]>([]);
+const pointDiagnostics = ref<YamlDiagnostic[]>([]);
+const pointYaml = ref(`schemaVersion: 1
+groups: []
+points:
+  - id: test-temperature
+    name: Test temperature
+    enabled: true
+    implementation: bound
+    direction: input
+    valueType: analog
+    units: celsius
+    readable: true
+    commandable: false
+    persistence: volatile
+    sourceId: new-source
+    mapping:
+      path: /temperature
+      method: GET
+      jsonPointer: /value
+`);
+const writeValue = ref('');
+const pointTesting = ref<'read' | 'write'>();
+const pointTestResult = ref<PointTestResult>();
+const pointTestError = ref('');
+let pointTestController: AbortController | undefined;
+const setPointDiagnostics = (diagnostics: YamlDiagnostic[]): void => {
+  pointDiagnostics.value = diagnostics;
+};
 const setEditorDiagnostics = (diagnostics: YamlDiagnostic[]): void => {
   editorDiagnostics.value = diagnostics;
 };
 const hasEditorErrors = computed(() =>
   editorDiagnostics.value.some(({ severity }) => severity === 'error')
 );
+const parsedSource = computed(() => {
+  try {
+    return parse(yaml.value) as { sources?: { kind?: string }[] };
+  } catch {
+    return undefined;
+  }
+});
+const parsedPoint = computed(() => {
+  try {
+    return parse(pointYaml.value) as { points?: { commandable?: boolean; valueType?: string }[] };
+  } catch {
+    return undefined;
+  }
+});
+const isHttpJson = computed(() => parsedSource.value?.sources?.[0]?.kind === 'httpJson');
+const pointCommandable = computed(() => parsedPoint.value?.points?.[0]?.commandable === true);
+const pointTestDisabled = computed(
+  () =>
+    pointTesting.value !== undefined ||
+    hasEditorErrors.value ||
+    pointDiagnostics.value.some(({ severity }) => severity === 'error')
+);
+const displayPointValue = computed(() => {
+  const value = pointTestResult.value?.value;
+  return typeof value === 'string' ? value : JSON.stringify(value);
+});
+const pointTestSchema = {
+  ...pointSourceSchema,
+  required: ['schemaVersion', 'groups', 'points'],
+  properties: {
+    schemaVersion: { const: 1 },
+    groups: { type: 'array', maxItems: 0 },
+    points: {
+      type: 'array',
+      minItems: 1,
+      maxItems: 1,
+      items: {
+        type: 'object',
+        required: [
+          'id',
+          'name',
+          'enabled',
+          'implementation',
+          'direction',
+          'valueType',
+          'readable',
+          'commandable',
+          'persistence',
+          'sourceId',
+          'mapping'
+        ],
+        properties: {
+          id: { type: 'string' },
+          name: { type: 'string' },
+          enabled: { type: 'boolean' },
+          implementation: { const: 'bound' },
+          direction: { enum: ['input', 'output', 'inputOutput'] },
+          valueType: { enum: ['analog', 'digital', 'multiState', 'integer', 'text'] },
+          units: { type: 'string' },
+          readable: { type: 'boolean' },
+          commandable: { type: 'boolean' },
+          persistence: { enum: ['volatile', 'retained'] },
+          sourceId: { type: 'string' },
+          mapping: {
+            type: 'object',
+            required: ['path', 'method'],
+            properties: {
+              path: { type: 'string', pattern: '^/' },
+              method: { enum: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH'] },
+              jsonPointer: { type: 'string' },
+              valuePointer: { type: 'string' }
+            }
+          }
+        }
+      }
+    }
+  }
+};
 let loadController: AbortController | undefined;
 let testController: AbortController | undefined;
 let allowNavigation = false;
@@ -345,6 +508,38 @@ const testConnection = async (): Promise<void> => {
   }
 };
 const cancelTest = (): void => testController?.abort();
+const testPoint = async (operation: 'read' | 'write'): Promise<void> => {
+  pointTestController?.abort();
+  pointTestController = new AbortController();
+  pointTesting.value = operation;
+  pointTestResult.value = undefined;
+  pointTestError.value = '';
+  try {
+    let value: unknown;
+    if (operation === 'write') {
+      try {
+        value = JSON.parse(writeValue.value);
+      } catch {
+        value = writeValue.value;
+      }
+    }
+    pointTestResult.value = await pointSourceApi.testPoint(
+      yaml.value,
+      pointYaml.value,
+      operation,
+      value,
+      pointTestController.signal,
+      { trackWait: false }
+    );
+    status.value = `Point ${operation} test completed.`;
+  } catch (reason) {
+    if (!pointTestController.signal.aborted)
+      pointTestError.value =
+        reason instanceof Error ? reason.message : `Unable to ${operation} point`;
+  } finally {
+    pointTesting.value = undefined;
+  }
+};
 const remove = async (): Promise<void> => {
   if (!props.sourceId || !window.confirm('Delete this point source?')) return;
   try {
@@ -359,6 +554,7 @@ onMounted(() => void load());
 onBeforeUnmount(() => {
   loadController?.abort();
   testController?.abort();
+  pointTestController?.abort();
 });
 </script>
 
@@ -459,6 +655,62 @@ onBeforeUnmount(() => {
   background: var(--color-surface-raised);
   border: var(--border-width-default) solid var(--color-border-default);
   border-radius: var(--radius-xl);
+}
+
+.point-test {
+  margin-top: var(--space-14);
+  padding: var(--space-10);
+  background: var(--color-surface-subtle);
+  border: var(--border-width-default) solid var(--color-border-default);
+  border-radius: var(--radius-2xl);
+}
+
+.point-test-heading h2 {
+  margin: var(--space-2) 0 var(--space-3);
+}
+.point-test-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4-5);
+  align-items: center;
+  margin-top: var(--space-7);
+}
+.point-test-actions label {
+  font-weight: var(--font-weight-strong);
+}
+.point-test-actions input {
+  min-height: 42px;
+  padding: var(--space-3) var(--space-4);
+  color: var(--color-text-primary);
+  background: var(--color-surface-raised);
+  border: var(--border-width-default) solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+}
+.readonly-note {
+  color: var(--color-text-secondary);
+}
+.point-test-result {
+  margin-top: var(--space-8);
+  padding-top: var(--space-7);
+  border-top: var(--border-width-default) solid var(--color-border-subtle);
+}
+.point-value {
+  display: flex;
+  gap: var(--space-5);
+  align-items: baseline;
+  padding: var(--space-5);
+  background: var(--color-surface-raised);
+  border-radius: var(--radius-lg);
+}
+.point-value span {
+  color: var(--color-text-secondary);
+}
+.point-test-result pre {
+  max-height: 280px;
+  padding: var(--space-5);
+  overflow: auto;
+  background: var(--color-surface-inset);
+  border-radius: var(--radius-lg);
 }
 
 /* Wide-tablet breakpoint (56.25rem): collapses editor columns before content becomes cramped. */

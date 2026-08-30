@@ -34,6 +34,12 @@ const connectionProperties: Record<string, JSONSchema> = {
     uniqueItems: true,
     items: { enum: ['GET', 'HEAD'] }
   },
+  allowedWriteMethods: {
+    type: 'array',
+    uniqueItems: true,
+    items: { enum: ['POST', 'PUT', 'PATCH'] },
+    description: 'HTTP methods that point mappings may use to write values.'
+  },
   defaultPollMilliseconds: { type: 'integer', minimum: 100 },
   followRedirects: { type: 'boolean' },
   maximumResponseBytes: { type: 'integer', minimum: 1, maximum: 10485760 }

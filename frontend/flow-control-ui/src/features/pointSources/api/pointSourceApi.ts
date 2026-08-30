@@ -36,6 +36,17 @@ export interface ConnectionTestResult {
   };
 }
 
+export interface PointTestResult {
+  operation: 'read' | 'write';
+  value: unknown;
+  httpResponse: {
+    statusCode: number;
+    reasonPhrase?: string;
+    contentType?: string;
+    body: string;
+  };
+}
+
 const messageFrom = async (response: Response): Promise<string> => {
   try {
     return (
@@ -47,8 +58,12 @@ const messageFrom = async (response: Response): Promise<string> => {
   }
 };
 
-const request = async (url: string, init?: RequestInit): Promise<Response> => {
-  const response = await waitForFetch(url, init);
+const request = async (
+  url: string,
+  init?: RequestInit,
+  options: { trackWait?: boolean } = {}
+): Promise<Response> => {
+  const response = await waitForFetch(url, init, options);
   if (!response.ok) throw new Error(await messageFrom(response));
   return response;
 };
@@ -58,8 +73,16 @@ export const pointSourceApi = {
     const response = await request('/api/point-sources?page=1&pageSize=50', { signal });
     return response.json() as Promise<PointSourcePage>;
   },
-  async get(id: string, signal?: AbortSignal): Promise<{ yaml: string; revision: number }> {
-    const response = await request(`/api/point-sources/${encodeURIComponent(id)}`, { signal });
+  async get(
+    id: string,
+    signal?: AbortSignal,
+    options: { trackWait?: boolean } = {}
+  ): Promise<{ yaml: string; revision: number }> {
+    const response = await request(
+      `/api/point-sources/${encodeURIComponent(id)}`,
+      { signal },
+      options
+    );
     return {
       yaml: await response.text(),
       revision: Number(response.headers.get('ETag') ?? 0)
@@ -98,6 +121,22 @@ export const pointSourceApi = {
       signal
     });
     return response.json() as Promise<ConnectionTestResult>;
+  },
+  async testPoint(
+    sourceYaml: string,
+    pointYaml: string,
+    operation: 'read' | 'write',
+    value: unknown,
+    signal: AbortSignal,
+    options: { trackWait?: boolean } = {}
+  ): Promise<PointTestResult> {
+    const response = await request('/api/point-sources/test-point', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sourceYaml, pointYaml, operation, value }),
+      signal
+    }, options);
+    return response.json() as Promise<PointTestResult>;
   }
 };
 import { waitForFetch } from '@/api/waitForFetch';

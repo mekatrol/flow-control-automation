@@ -16,4 +16,12 @@ public interface IHttpProtocolCheck
         string credential,
         IReadOnlyList<IPAddress> pinnedAddresses,
         CancellationToken cancellationToken);
+
+    Task<HttpProtocolCheckResult> ReadAsync(
+        PointSource source,
+        Uri endpoint,
+        string credential,
+        IReadOnlyList<IPAddress> pinnedAddresses,
+        CancellationToken cancellationToken) =>
+        CheckAsync(source, credential, pinnedAddresses, cancellationToken);
 }

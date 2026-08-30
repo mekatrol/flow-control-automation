@@ -60,6 +60,13 @@
           @click="validateTemplate"
         />
         <AppButton
+          v-if="kind === 'point'"
+          :text="pointTesting ? 'Stop testing' : 'Test point'"
+          :icon="checkIcon"
+          :disabled="busy || (!pointTesting && hasEditorErrors)"
+          @click="pointTesting ? stopPointTest() : testPoint('read')"
+        />
+        <AppButton
           v-if="!isNew && !readOnly"
           text="Delete"
           :icon="deleteIcon"
@@ -91,6 +98,48 @@
         :read-only="readOnly"
         @[EVENTS.DIAGNOSTICS]="setEditorDiagnostics"
       />
+      <section
+        v-if="kind === 'point' && (pointTesting || pointTestResult || pointTestError)"
+        ref="pointTestPanel"
+        class="point-test-panel"
+        aria-labelledby="point-test-heading"
+        aria-live="polite"
+        tabindex="-1"
+      >
+        <h2 id="point-test-heading">Point test</h2>
+        <p v-if="pointTesting">{{ pointTesting === 'read' ? 'Reading' : 'Writing' }} point…</p>
+        <p v-if="pointTestError" class="request-error" role="alert">{{ pointTestError }}</p>
+        <template v-if="pointTestResult">
+          <div v-if="pointTestUrl" class="tested-request-url">
+            <span>Request URL</span>
+            <code>{{ pointTestUrl }}</code>
+          </div>
+          <div class="tested-value">
+            <span>Point value</span>
+            <strong>{{ displayTestValue }}</strong>
+          </div>
+          <h3>Test response</h3>
+          <p>
+            Status: {{ pointTestResult.httpResponse.statusCode }}
+            {{ pointTestResult.httpResponse.reasonPhrase }}
+          </p>
+          <p v-if="pointTestResult.httpResponse.contentType">
+            Content-Type: {{ pointTestResult.httpResponse.contentType }}
+          </p>
+          <pre tabindex="0"><code>{{ pointTestResult.httpResponse.body }}</code></pre>
+        </template>
+        <div v-if="pointCommandable" class="point-write-controls">
+          <label for="test-point-value">Set point value</label>
+          <input id="test-point-value" v-model="pointWriteValue" type="text" />
+          <AppButton
+            :text="pointTesting === 'write' ? 'Writing…' : 'Write point'"
+            :icon="checkIcon"
+            :disabled="pointTesting !== undefined || !pointWriteValue.trim()"
+            @click="testPoint('write')"
+          />
+        </div>
+        <p v-else class="runtime-diagnostic">This point is read-only.</p>
+      </section>
     </form>
 
     <section
@@ -146,6 +195,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { parse } from 'yaml';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
 import checkIcon from '@/assets/icons/check-icon.svg';
@@ -173,6 +223,7 @@ import {
   pointGroupSchema,
   pointSchema
 } from '@/features/configuration/configurationSchemas';
+import { pointSourceApi, type PointTestResult } from '@/features/pointSources/api/pointSourceApi';
 
 type ResourceKind = 'point' | 'group' | 'controller';
 const props = defineProps<{ kind: ResourceKind; resourceId?: string }>();
@@ -393,10 +444,16 @@ const errorSummary = ref<HTMLElement>();
 const runtime = ref<RuntimeEnvelope>();
 const runtimeLoading = ref(false);
 const runtimePaused = ref(false);
+const pointTesting = ref<'read' | 'write'>();
+const pointTestResult = ref<PointTestResult>();
+const pointTestError = ref('');
+const pointWriteValue = ref('');
+const pointTestUrl = ref('');
+const pointTestPanel = ref<HTMLElement>();
 let allowNavigation = false;
 let loadController: AbortController | undefined;
 let runtimeController: AbortController | undefined;
-let runtimeTimer: number | undefined;
+let pointTestController: AbortController | undefined;
 const dirty = computed(() => yaml.value !== baseline.value);
 const busy = computed(() => saving.value || validating.value);
 const hasEditorErrors = computed(() =>
@@ -417,6 +474,27 @@ const displayValue = computed(() =>
       ? runtime.value.value
       : JSON.stringify(runtime.value.value)
 );
+const pointDefinition = computed(() => {
+  try {
+    return (
+      parse(yaml.value) as {
+        points?: {
+          sourceId?: string;
+          commandable?: boolean;
+          mapping?: { path?: string; method?: string };
+        }[];
+      }
+    ).points?.[0];
+  } catch {
+    return undefined;
+  }
+});
+const pointCommandable = computed(() => pointDefinition.value?.commandable === true);
+const displayTestValue = computed(() => {
+  const value = pointTestResult.value?.value;
+  if (value === null || value === undefined) return 'Unavailable';
+  return typeof value === 'string' ? value : JSON.stringify(value);
+});
 
 const api = computed(() =>
   props.kind === 'point'
@@ -509,6 +587,93 @@ const validateTemplate = async (): Promise<void> => {
     validating.value = false;
   }
 };
+const testPoint = async (operation: 'read' | 'write'): Promise<void> => {
+  const sourceId = pointDefinition.value?.sourceId;
+  pointTestResult.value = undefined;
+  pointTestError.value = '';
+  pointTestUrl.value = '';
+  pointTestController?.abort();
+  pointTestController = new AbortController();
+  const timeout = window.setTimeout(
+    () => pointTestController?.abort('Point test timed out.'),
+    15000
+  );
+  pointTesting.value = operation;
+  try {
+    if (!sourceId) {
+      pointTestError.value = 'The point YAML must reference a point source with sourceId.';
+      return;
+    }
+    const source = await pointSourceApi.get(sourceId, pointTestController.signal, {
+      trackWait: false
+    });
+    const parsedSource = parse(source.yaml) as {
+      sources?: { connection?: { baseUrl?: string } }[];
+    };
+    const baseUrl = parsedSource.sources?.[0]?.connection?.baseUrl;
+    const path = pointDefinition.value?.mapping?.path;
+    if (baseUrl && path) {
+      try {
+        pointTestUrl.value = new URL(path, baseUrl).toString();
+      } catch {
+        pointTestUrl.value = `${baseUrl.replace(/\/$/, '')}/${path.replace(/^\//, '')}`;
+      }
+    }
+    if (operation === 'read' && props.resourceId) {
+      const result = await pointConfigurationApi.runtime(
+        props.resourceId,
+        pointTestController.signal,
+        { trackWait: false }
+      );
+      if (!result.deviceResponse) {
+        throw new Error(result.diagnostic || 'The point device did not return an HTTP response.');
+      }
+      pointTestResult.value = {
+        operation,
+        value: result.value,
+        httpResponse: result.deviceResponse
+      };
+      status.value = 'Point read test completed.';
+      return;
+    }
+    let value: unknown;
+    if (operation === 'write') {
+      try {
+        value = JSON.parse(pointWriteValue.value);
+      } catch {
+        value = pointWriteValue.value;
+      }
+    }
+    pointTestResult.value = await pointSourceApi.testPoint(
+      source.yaml,
+      yaml.value,
+      operation,
+      value,
+      pointTestController.signal,
+      { trackWait: false }
+    );
+    status.value = `Point ${operation} test completed.`;
+  } catch (reason) {
+    pointTestError.value = pointTestController.signal.aborted
+      ? pointTestController.signal.reason === 'Point test stopped by user.'
+        ? 'The point test was stopped.'
+        : 'The point test timed out after 15 seconds.'
+      : reason instanceof Error
+        ? reason.message
+        : `Unable to ${operation} point`;
+  } finally {
+    window.clearTimeout(timeout);
+    pointTesting.value = undefined;
+    await nextTick();
+    pointTestPanel.value?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    pointTestPanel.value?.focus({ preventScroll: true });
+  }
+};
+const stopPointTest = (): void => {
+  if (!pointTestController || !pointTesting.value) return;
+  pointTestController.abort('Point test stopped by user.');
+  status.value = 'Point test stopped.';
+};
 const remove = async (): Promise<void> => {
   if (!props.resourceId || !window.confirm(`Delete this ${singularLabel.value}?`)) return;
   apiError.value = '';
@@ -541,18 +706,16 @@ const loadRuntime = async (): Promise<void> => {
   runtimeController = new AbortController();
   runtimeLoading.value = true;
   try {
-    runtime.value = await pointConfigurationApi.runtime(props.resourceId, runtimeController.signal);
+    runtime.value = await pointConfigurationApi.runtime(
+      props.resourceId,
+      runtimeController.signal,
+      { trackWait: false }
+    );
   } catch (reason) {
     if (!runtimeController.signal.aborted)
       await showFailure(reason, 'Unable to read point runtime');
   } finally {
     runtimeLoading.value = false;
-  }
-};
-const scheduleRuntime = (): void => {
-  window.clearInterval(runtimeTimer);
-  if (props.kind === 'point' && props.resourceId) {
-    runtimeTimer = window.setInterval(() => void loadRuntime(), 5000);
   }
 };
 watch(runtimePaused, (paused) => {
@@ -562,7 +725,6 @@ watch(
   () => props.resourceId,
   () => {
     void loadRuntime();
-    scheduleRuntime();
   }
 );
 watch(error, async (value) => {
@@ -580,13 +742,12 @@ onBeforeRouteLeave(
 onMounted(() => {
   void load().then(() => {
     void loadRuntime();
-    scheduleRuntime();
   });
 });
 onBeforeUnmount(() => {
   loadController?.abort();
   runtimeController?.abort();
-  window.clearInterval(runtimeTimer);
+  pointTestController?.abort();
 });
 </script>
 
@@ -614,6 +775,67 @@ onBeforeUnmount(() => {
   background: var(--color-surface-raised);
   border: var(--border-width-default) solid var(--color-border-default);
   border-radius: var(--radius-2xl);
+}
+
+.point-test-panel {
+  margin-top: var(--space-10);
+  padding: var(--space-10);
+  background: var(--color-surface-subtle);
+  border: var(--border-width-default) solid var(--color-border-default);
+  border-radius: var(--radius-2xl);
+}
+
+.tested-value {
+  display: flex;
+  gap: var(--space-5);
+  align-items: baseline;
+  padding: var(--space-5);
+  background: var(--color-surface-raised);
+  border-radius: var(--radius-lg);
+}
+
+.tested-value span {
+  color: var(--color-text-secondary);
+}
+
+.tested-request-url {
+  display: grid;
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
+  padding: var(--space-5);
+  overflow-wrap: anywhere;
+  background: var(--color-surface-raised);
+  border-radius: var(--radius-lg);
+}
+
+.tested-request-url span {
+  color: var(--color-text-secondary);
+}
+
+.point-test-panel pre {
+  max-height: 280px;
+  padding: var(--space-5);
+  overflow: auto;
+  background: var(--color-surface-inset);
+  border-radius: var(--radius-lg);
+}
+.point-write-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4-5);
+  align-items: center;
+  margin-top: var(--space-8);
+}
+.point-write-controls label {
+  font-weight: var(--font-weight-strong);
+}
+.point-write-controls input {
+  min-height: 42px;
+  padding: var(--space-3) var(--space-4);
+  color: var(--color-text-primary);
+  background: var(--color-surface-raised);
+  border: var(--border-width-default) solid var(--color-border-default);
+  border-radius: var(--radius-lg);
 }
 
 .runtime-panel > div:first-child,

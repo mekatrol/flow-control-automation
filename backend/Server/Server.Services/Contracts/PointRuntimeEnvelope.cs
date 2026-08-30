@@ -13,4 +13,5 @@ public sealed record PointRuntimeEnvelope(
     string? UpdatedAt,
     string ConnectionState,
     string Status,
-    string Diagnostic);
+    string Diagnostic,
+    HttpResponsePreview? DeviceResponse = null);

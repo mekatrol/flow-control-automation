@@ -26,6 +26,16 @@ internal sealed class HttpProtocolCheck(IDnsLookup dns) : IHttpProtocolCheck
                 endpoint.AbsolutePath.TrimEnd('/') + "/api/");
         }
 
+        return await ReadAsync(source, endpoint, credential, pinnedAddresses, cancellationToken);
+    }
+
+    public async Task<HttpProtocolCheckResult> ReadAsync(
+        PointSource source,
+        Uri endpoint,
+        string credential,
+        IReadOnlyList<IPAddress> pinnedAddresses,
+        CancellationToken cancellationToken)
+    {
         var redirects = 0;
         var addresses = pinnedAddresses;
         while (true)

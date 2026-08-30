@@ -14,6 +14,12 @@ export interface RuntimeEnvelope {
   connectionState: string;
   status: 'live' | 'cached' | 'simulated' | 'unavailable';
   diagnostic: string;
+  deviceResponse?: {
+    statusCode: number;
+    reasonPhrase?: string;
+    contentType?: string;
+    body: string;
+  };
 }
 
 export interface ValidationDiagnostic {
@@ -41,8 +47,12 @@ export class YamlResourceError extends Error {
   }
 }
 
-const request = async (url: string, init?: RequestInit): Promise<Response> => {
-  const response = await waitForFetch(url, init);
+const request = async (
+  url: string,
+  init?: RequestInit,
+  options: { trackWait?: boolean } = {}
+): Promise<Response> => {
+  const response = await waitForFetch(url, init, options);
   if (response.ok) return response;
   let message = `Request failed (${response.status})`;
   let details: unknown;
@@ -95,10 +105,16 @@ const yamlApi = (base: string): YamlCrudApi => ({
 
 export const pointConfigurationApi = {
   ...yamlApi('/api/points'),
-  async runtime(id: string, signal?: AbortSignal): Promise<RuntimeEnvelope> {
-    const response = await request(`/api/points/${encodeURIComponent(id)}/runtime`, {
-      signal
-    });
+  async runtime(
+    id: string,
+    signal?: AbortSignal,
+    options: { trackWait?: boolean } = {}
+  ): Promise<RuntimeEnvelope> {
+    const response = await request(
+      `/api/points/${encodeURIComponent(id)}/runtime`,
+      { signal },
+      options
+    );
     return response.json() as Promise<RuntimeEnvelope>;
   }
 };
