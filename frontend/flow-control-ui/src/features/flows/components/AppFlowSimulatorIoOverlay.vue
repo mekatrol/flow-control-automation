@@ -1,5 +1,10 @@
 <template>
-  <aside class="simulator-io configuration-panel" aria-label="Simulation points" tabindex="0">
+  <aside
+    ref="panelElement"
+    class="simulator-io configuration-panel"
+    aria-label="Simulation points"
+    tabindex="0"
+  >
     <header>
       <h2>Simulation points</h2>
       <AppButton
@@ -13,7 +18,12 @@
     <p v-if="!points.length" class="empty">This flow does not use any points.</p>
     <section v-if="virtualPoints.length" aria-labelledby="virtual-points-heading">
       <h3 id="virtual-points-heading">Virtual points</h3>
-      <div v-for="point in virtualPoints" :key="point.pointId" class="point-row">
+      <div
+        v-for="point in virtualPoints"
+        :key="point.pointId"
+        class="point-row"
+        :class="{ selected: point.pointId === selectedPointId }"
+      >
         <span class="point-name">{{ point.pointId }}</span>
         <template v-if="point.direction === 'input'">
           <input
@@ -21,6 +31,7 @@
             v-model="draft[point.pointId]"
             type="checkbox"
             :aria-label="`${point.pointId} simulated value`"
+            :data-point-id="point.pointId"
             @change="markDirty(point.pointId)"
           />
           <input
@@ -29,6 +40,7 @@
             type="text"
             inputmode="decimal"
             :aria-label="`${point.pointId} simulated value`"
+            :data-point-id="point.pointId"
             @input="markDirty(point.pointId)"
           />
           <small>{{ point.declaration.units ?? '' }}</small>
@@ -90,11 +102,13 @@ const props = defineProps<{
   flow: FlowDefinition;
   snapshot?: EmulatorSnapshot;
   contextPointContracts?: VirtualPointDeclaration[];
+  selectedPointId?: string;
 }>();
 const emit = defineEmits<{ (event: 'apply', inputs: EmulatorInputChange[]): void }>();
 const draft = reactive<Record<string, string | boolean>>({});
 const dirty = reactive(new Set<string>());
 const inputError = ref('');
+const panelElement = ref<HTMLElement>();
 const flowDeclarations = computed(
   () =>
     new Map(virtualPointDeclarationsFromNodes(props.flow.nodes).map((point) => [point.key, point]))
@@ -117,11 +131,8 @@ const points = computed<SimulationPoint[]>(() => {
     const virtualWrite =
       virtual && props.flow.connections.some((connection) => connection.end.nodeId === node.id);
     const input =
-      node.kind === 'analogInput' ||
-      node.kind === 'digitalInput' ||
-      (virtualRead && !virtualWrite);
-    const output =
-      node.kind === 'analogOutput' || node.kind === 'digitalOutput' || virtualWrite;
+      node.kind === 'analogInput' || node.kind === 'digitalInput' || (virtualRead && !virtualWrite);
+    const output = node.kind === 'analogOutput' || node.kind === 'digitalOutput' || virtualWrite;
     if (!input && !output) continue;
     const pointId = String(node.configuration.pointId ?? '');
     if (!pointId || result.has(pointId)) continue;
@@ -162,6 +173,17 @@ watch(
           : String(point.value.number);
     }),
   { immediate: true, deep: true }
+);
+watch(
+  () => props.selectedPointId,
+  (pointId) => {
+    if (!pointId) return;
+    const input = [
+      ...(panelElement.value?.querySelectorAll<HTMLInputElement>('[data-point-id]') ?? [])
+    ].find((element) => element.dataset.pointId === pointId);
+    input?.focus();
+  },
+  { immediate: true, flush: 'post' }
 );
 const markDirty = (pointId: string): void => {
   dirty.add(pointId);
@@ -254,6 +276,12 @@ const apply = (): void => {
 }
 .point-row input[type='checkbox'] {
   justify-self: start;
+}
+.point-row.selected {
+  margin-inline: calc(-1 * var(--space-2));
+  padding-inline: var(--space-2);
+  background: var(--color-surface-raised);
+  outline: var(--border-width-default) solid var(--color-action-primary-text);
 }
 .point-row output {
   grid-column: 2 / 4;

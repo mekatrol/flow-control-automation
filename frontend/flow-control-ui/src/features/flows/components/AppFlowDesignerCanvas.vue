@@ -178,6 +178,7 @@
         :flow="flow"
         :snapshot="simulatorIo"
         :context-point-contracts="contextPointContracts"
+        :selected-point-id="selectedVirtualPointId"
         @apply="(inputs) => emit(EVENTS.APPLY_INPUTS_STEP, inputs)"
       />
       <AppFlowNodeConfigurationPanel
@@ -407,6 +408,11 @@ const orderedNodes = computed(() =>
 const selectedNode = computed(() =>
   selectedNodeId.value ? nodesById.value.get(selectedNodeId.value) : undefined
 );
+const selectedVirtualPointId = computed(() => {
+  const node = selectedNode.value;
+  if (!node || (node.kind !== 'analogVirtual' && node.kind !== 'digitalVirtual')) return undefined;
+  return String(node.configuration.pointId ?? '') || undefined;
+});
 const virtualPointDeclarations = computed(() =>
   virtualPointDeclarationsFromNodes(props.flow.nodes)
 );

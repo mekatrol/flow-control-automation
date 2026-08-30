@@ -105,4 +105,37 @@ describe('flow simulator I/O overlay', () => {
       }
     ]);
   });
+
+  it('focuses the editable value when its virtual node is selected', async () => {
+    const input = createDefaultNode('analogVirtual', { x: 0, y: 0 }, 0);
+    input.configuration.pointId = 'virtual-input';
+    const sink = createDefaultNode('analogOutput', { x: 200, y: 0 }, 1);
+    sink.configuration.pointId = 'output';
+    const flow: FlowDefinition = {
+      id: 'flow-a',
+      name: 'Flow',
+      description: '',
+      status: 'draft',
+      disabled: false,
+      updatedAt: '2026-01-01T00:00:00Z',
+      nodes: [input, sink],
+      connections: [
+        {
+          id: 'virtual-input-to-output',
+          start: { nodeId: input.id, connectorId: 'value' },
+          end: { nodeId: sink.id, connectorId: 'in' }
+        }
+      ]
+    };
+    const wrapper = mount(AppFlowSimulatorIoOverlay, {
+      attachTo: document.body,
+      props: { flow }
+    });
+
+    await wrapper.setProps({ selectedPointId: 'virtual-input' });
+
+    const editor = wrapper.get('input[aria-label="virtual-input simulated value"]');
+    expect(document.activeElement).toBe(editor.element);
+    expect(editor.element.closest('.point-row')?.classList.contains('selected')).toBe(true);
+  });
 });
