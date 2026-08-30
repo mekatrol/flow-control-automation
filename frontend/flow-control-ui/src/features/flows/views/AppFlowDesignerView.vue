@@ -328,7 +328,10 @@ import {
   type PointValidationState
 } from '@/features/flows/flowPointValidation';
 import type { VirtualPointDeclaration } from '@/features/flows/types';
-import { virtualPointDeclarationsFromNodes } from '@/features/flows/types';
+import {
+  unconnectedVirtualPoint,
+  virtualPointDeclarationsFromNodes
+} from '@/features/flows/types';
 import type { WorkspaceMode } from '@/features/flows/types/flowDesigner';
 import AppFlowWorkspaceNavigation from '@/features/flows/components/designer/AppFlowWorkspaceNavigation.vue';
 
@@ -1139,6 +1142,13 @@ const saveFlow = async (): Promise<void> => {
   saving.value = true;
   saveError.value = undefined;
   try {
+    const disconnectedVirtual = unconnectedVirtualPoint(payload);
+    if (disconnectedVirtual) {
+      diagnosticNodeId.value = disconnectedVirtual.id;
+      throw new Error(
+        `${disconnectedVirtual.label} must have its Set input, Value output, or both connected.`
+      );
+    }
     const saved = await flowApi.saveFlow(payload);
     // Replace from the server response, rather than assuming the submitted DTO is
     // final; the backend may normalize fields or update its timestamp.

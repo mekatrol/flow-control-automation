@@ -58,8 +58,6 @@ describe('node-kind registry', () => {
       expect(definition.connectors.some(({ direction }) => direction === 'input')).toBe(
         kind !== 'digitalInput' &&
           kind !== 'analogInput' &&
-          kind !== 'digitalVirtual' &&
-          kind !== 'analogVirtual' &&
           kind !== 'calendar' &&
           kind !== 'schedule' &&
           kind !== 'digitalConstant' &&

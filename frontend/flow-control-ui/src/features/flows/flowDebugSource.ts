@@ -3,6 +3,7 @@ import type { FlowDebugTarget } from '@/features/flows/debugTargets';
 import {
   isVirtualPointNode,
   virtualPointDeclarationsFromNodes,
+  unconnectedVirtualPoint,
   type FlowDefinition,
   type FlowNode
 } from '@/features/flows/types';
@@ -145,6 +146,35 @@ export const createExecutableFlowSource = (
     );
   if (flow.nodes.length === 0) throw new FlowDebugSourceError('Add at least one debug node.');
 
+  const disconnectedVirtual = unconnectedVirtualPoint(flow);
+  if (disconnectedVirtual)
+    throw new FlowDebugSourceError(
+      `${disconnectedVirtual.label} (${disconnectedVirtual.id}) must have its Set input, Value output, or both connected.`,
+      disconnectedVirtual.id
+    );
+
+  const virtualUsage = new Map(
+    flow.nodes.filter(isVirtualPointNode).map((node) => {
+      const reads = flow.connections.some((connection) => connection.start.nodeId === node.id);
+      const writes = flow.connections.some((connection) => connection.end.nodeId === node.id);
+      return [node.id, { reads, writes }] as const;
+    })
+  );
+
+  const executableNodes = flow.nodes.flatMap((node) => {
+    if (!isVirtualPointNode(node)) return [node];
+    const usage = virtualUsage.get(node.id)!;
+    const result: FlowNode[] = [];
+    if (usage.reads) result.push(node);
+    if (usage.writes)
+      result.push({
+        ...node,
+        id: usage.reads ? `${node.id}--write` : node.id,
+        kind: node.kind === 'analogVirtual' ? 'analogOutput' : 'digitalOutput'
+      });
+    return result;
+  });
+
   return {
     schemaVersion: 1,
     id: flow.id,
@@ -158,12 +188,7 @@ export const createExecutableFlowSource = (
         ? 'propagate'
         : 'requireGood'
     },
-    nodes: flow.nodes
-      .filter(
-        (node) =>
-          !isVirtualPointNode(node) ||
-          flow.connections.some((connection) => connection.start.nodeId === node.id)
-      )
+    nodes: executableNodes
       .map((node) => ({
       id: node.id,
       kind:
@@ -181,7 +206,14 @@ export const createExecutableFlowSource = (
       })),
     connections: flow.connections.map((connection) => ({
       source: { nodeId: connection.start.nodeId, portId: connection.start.connectorId },
-      target: { nodeId: connection.end.nodeId, portId: connection.end.connectorId }
+      target: {
+        nodeId:
+          virtualUsage.has(connection.end.nodeId) &&
+          virtualUsage.get(connection.end.nodeId)?.reads
+            ? `${connection.end.nodeId}--write`
+            : connection.end.nodeId,
+        portId: connection.end.connectorId
+      }
     })),
     // Flow definitions come from a reactive Pinia store. Browser structuredClone
     // rejects Vue proxy objects, while declarations contain only scalar fields.

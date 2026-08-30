@@ -144,7 +144,10 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
   ),
   [FlowNodeFunctionType.AnalogVirtual]: executableDefinition(
     FlowNodeFunctionType.AnalogVirtual,
-    [{ id: 'value', label: 'Value', direction: 'output', dataType: 'number', side: 'right' }],
+    [
+      { id: 'in', label: 'Set', direction: 'input', dataType: 'number', side: 'left' },
+      { id: 'value', label: 'Value', direction: 'output', dataType: 'number', side: 'right' }
+    ],
     [
       { key: 'pointId', label: 'Virtual point key', input: 'text' },
       { key: 'units', label: 'Units', input: 'text' },
@@ -278,7 +281,7 @@ export const nodeKindRegistry: Record<FlowNodeKind, NodeKindDefinition> = {
   ),
   [FlowNodeFunctionType.DigitalVirtual]: executableDefinition(
     FlowNodeFunctionType.DigitalVirtual,
-    [booleanPort('value', 'Value', 'output', 'right')],
+    [booleanPort('in', 'Set', 'input', 'left'), booleanPort('value', 'Value', 'output', 'right')],
     [
       { key: 'pointId', label: 'Virtual point key', input: 'text' },
       {

@@ -22,7 +22,13 @@ describe('flow simulator I/O overlay', () => {
       disabled: false,
       updatedAt: '2026-01-01T00:00:00Z',
       nodes: [input, output],
-      connections: []
+      connections: [
+        {
+          id: 'virtual-input-to-output',
+          start: { nodeId: input.id, connectorId: 'value' },
+          end: { nodeId: output.id, connectorId: 'in' }
+        }
+      ]
     };
     const wrapper = mount(AppFlowSimulatorIoOverlay, {
       props: {

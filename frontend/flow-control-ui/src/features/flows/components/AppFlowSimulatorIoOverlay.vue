@@ -112,12 +112,16 @@ const points = computed<SimulationPoint[]>(() => {
   const result = new Map<string, SimulationPoint>();
   for (const node of props.flow.nodes) {
     const virtual = node.kind === 'analogVirtual' || node.kind === 'digitalVirtual';
+    const virtualRead =
+      virtual && props.flow.connections.some((connection) => connection.start.nodeId === node.id);
+    const virtualWrite =
+      virtual && props.flow.connections.some((connection) => connection.end.nodeId === node.id);
     const input =
       node.kind === 'analogInput' ||
       node.kind === 'digitalInput' ||
-      (virtual && !outputValues.has(String(node.configuration.pointId ?? '')));
+      (virtualRead && !virtualWrite);
     const output =
-      node.kind === 'analogOutput' || node.kind === 'digitalOutput' || (virtual && !input);
+      node.kind === 'analogOutput' || node.kind === 'digitalOutput' || virtualWrite;
     if (!input && !output) continue;
     const pointId = String(node.configuration.pointId ?? '');
     if (!pointId || result.has(pointId)) continue;

@@ -162,6 +162,15 @@ export const isVirtualPointNode = (node: FlowNode): boolean =>
   node.kind === FlowNodeFunctionType.AnalogVirtual ||
   node.kind === FlowNodeFunctionType.DigitalVirtual;
 
+export const unconnectedVirtualPoint = (flow: FlowDefinition): FlowNode | undefined =>
+  flow.nodes.find(
+    (node) =>
+      isVirtualPointNode(node) &&
+      !flow.connections.some(
+        (connection) => connection.start.nodeId === node.id || connection.end.nodeId === node.id
+      )
+  );
+
 export const virtualPointDeclarationFromNode = (
   node: FlowNode
 ): VirtualPointDeclaration | undefined => {

@@ -114,6 +114,11 @@ describe('designer debug source', () => {
       relinquishDefault: null
     };
     flow.nodes.push(virtual);
+    flow.connections.push({
+      id: 'virtual-to-invert',
+      start: { nodeId: virtual.id, connectorId: 'value' },
+      end: { nodeId: 'invert', connectorId: 'in' }
+    });
 
     const source = createExecutableFlowSource(flow, target);
 
@@ -127,7 +132,9 @@ describe('designer debug source', () => {
         persistence: 'volatile'
       }
     ]);
-    expect(source.nodes.some((node) => node.id === 'virtual')).toBe(false);
+    expect(source.nodes).toContainEqual(
+      expect.objectContaining({ id: 'virtual', kind: 'analogInput' })
+    );
   });
 
   it('projects a connected virtual node as a typed runtime input', () => {
@@ -146,6 +153,65 @@ describe('designer debug source', () => {
         configuration: { pointId: 'shared-enable' }
       })
     );
+  });
+
+  it('projects a virtual Set input as a typed runtime output', () => {
+    const flow = debugFlow();
+    const virtual = createDefaultNode('digitalVirtual', { x: 200, y: 0 }, 3, 'virtual');
+    virtual.configuration.pointId = 'shared-setpoint';
+    flow.nodes.push(virtual);
+    flow.connections.push({
+      id: 'value-to-virtual',
+      start: { nodeId: 'invert', connectorId: 'value' },
+      end: { nodeId: virtual.id, connectorId: 'in' }
+    });
+
+    const source = createExecutableFlowSource(flow, target);
+
+    expect(source.nodes).toContainEqual(
+      expect.objectContaining({
+        id: 'virtual',
+        kind: 'digitalOutput',
+        configuration: { pointId: 'shared-setpoint' }
+      })
+    );
+    expect(source.connections.at(-1)?.target).toEqual({ nodeId: 'virtual', portId: 'in' });
+  });
+
+  it('splits a virtual node connected on both sides into runtime read and write nodes', () => {
+    const flow = debugFlow();
+    const virtual = createDefaultNode('digitalVirtual', { x: 200, y: 0 }, 3, 'virtual');
+    virtual.configuration.pointId = 'shared-enable';
+    flow.nodes.push(virtual);
+    flow.connections.push(
+      {
+        id: 'value-to-virtual',
+        start: { nodeId: 'invert', connectorId: 'value' },
+        end: { nodeId: virtual.id, connectorId: 'in' }
+      },
+      {
+        id: 'virtual-to-output',
+        start: { nodeId: virtual.id, connectorId: 'value' },
+        end: { nodeId: 'output', connectorId: 'in' }
+      }
+    );
+
+    const source = createExecutableFlowSource(flow, target);
+
+    expect(source.nodes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'virtual', kind: 'digitalInput' }),
+        expect.objectContaining({ id: 'virtual--write', kind: 'digitalOutput' })
+      ])
+    );
+    expect(source.connections.at(-2)?.target.nodeId).toBe('virtual--write');
+    expect(source.connections.at(-1)?.source.nodeId).toBe('virtual');
+  });
+
+  it('rejects a virtual node with neither connector used', () => {
+    const flow = debugFlow();
+    flow.nodes.push(createDefaultNode('digitalVirtual', { x: 0, y: 0 }, 3, 'virtual'));
+    expect(() => createExecutableFlowSource(flow, target)).toThrow(/must have its Set input/);
   });
 
   it('changes revision whenever the graph changes', () => {
