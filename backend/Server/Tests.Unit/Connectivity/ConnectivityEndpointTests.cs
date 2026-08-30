@@ -114,6 +114,52 @@ internal sealed class ConnectivityEndpointTests
             // Acceptance criteria: `http.Calls` must equal `1`, because this condition proves that
             // private network opt in passes with injected protocol checks.
             Assert.That(http.Calls, Is.EqualTo(1));
+
+            Assert.That(result.HttpResponse!.StatusCode, Is.EqualTo(200));
+            Assert.That(result.HttpResponse.Body, Is.EqualTo("{\"intensity\":100}"));
+        });
+    }
+
+    [Test]
+    public async Task HttpUsesPort80AndDnsLookupHonorsConnectTimeout()
+    {
+        var tcp = new FakeTcp();
+        await using (var factory = Factory(
+            dns: new FakeDns(IPAddress.Parse("192.168.1.20")),
+            tcp: tcp))
+        {
+            using var client = factory.CreateClient();
+            var source = ValidHttpSource() with
+            {
+                Connection = ValidHttpSource().Connection with
+                {
+                    BaseUrl = "http://lego-train.lan",
+                    AllowPrivateNetwork = true
+                }
+            };
+
+            using var response = await TestUnsaved(client, source);
+            var result = await response.Content.ReadFromJsonAsync<ConnectivityResult>(
+                FlowControlJson.Options);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result!.Status, Is.EqualTo("passed"));
+                Assert.That(tcp.Port, Is.EqualTo(80));
+            });
+        }
+
+        await using var timeoutFactory = Factory(dns: new FakeDns(hang: true));
+        using var timeoutClient = timeoutFactory.CreateClient();
+        using var timeoutResponse = await TestUnsaved(timeoutClient, ValidHttpSource());
+        var timeoutResult = await timeoutResponse.Content.ReadFromJsonAsync<ConnectivityResult>(
+            FlowControlJson.Options);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(timeoutResult!.Status, Is.EqualTo("failed"));
+            Assert.That(timeoutResult.Stages[^1].Name, Is.EqualTo("dns"));
+            Assert.That(timeoutResult.Stages[^1].Diagnostic, Is.EqualTo("host lookup timed out"));
         });
     }
 
@@ -317,11 +363,12 @@ internal sealed class ConnectivityEndpointTests
     private static Api.FlowControlApplicationFactory Factory(
         FakeDns? dns = null,
         FakeHttpCheck? http = null,
+        FakeTcp? tcp = null,
         ICredentialResolver? resolver = null) =>
         new(services =>
         {
             Replace<IDnsLookup>(services, dns ?? new FakeDns(IPAddress.Parse("8.8.8.8")));
-            Replace<ITcpConnectionFactory>(services, new FakeTcp());
+            Replace<ITcpConnectionFactory>(services, tcp ?? new FakeTcp());
             Replace<ITlsHandshake>(services, new FakeTls());
             Replace<IHttpProtocolCheck>(services, http ?? new FakeHttpCheck());
             Replace<IMqttProtocolCheck>(services, new FakeMqttCheck());
@@ -373,28 +420,43 @@ internal sealed class ConnectivityEndpointTests
 
     private sealed class FakeDns(
         IPAddress? address = null,
-        bool cancel = false) : IDnsLookup
+        bool cancel = false,
+        bool hang = false) : IDnsLookup
     {
         public IReadOnlyList<IPAddress> Addresses { get; set; } =
             address is null ? [] : [address];
 
-        public Task<IReadOnlyList<IPAddress>> LookupAsync(
+        public async Task<IReadOnlyList<IPAddress>> LookupAsync(
             string host,
-            CancellationToken cancellationToken) =>
-            cancel
-                ? Task.FromCanceled<IReadOnlyList<IPAddress>>(
-                    new CancellationToken(canceled: true))
-                : Task.FromResult(Addresses);
+            CancellationToken cancellationToken)
+        {
+            if (cancel)
+            {
+                throw new OperationCanceledException(new CancellationToken(canceled: true));
+            }
+
+            if (hang)
+            {
+                await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            }
+
+            return Addresses;
+        }
     }
 
     private sealed class FakeTcp : ITcpConnectionFactory
     {
+        public int? Port { get; private set; }
+
         public Task<Stream> ConnectAsync(
             string host,
             int port,
             TimeSpan timeout,
-            CancellationToken cancellationToken) =>
-            Task.FromResult<Stream>(new MemoryStream());
+            CancellationToken cancellationToken)
+        {
+            Port = port;
+            return Task.FromResult<Stream>(new MemoryStream());
+        }
     }
 
     private sealed class FakeTls : ITlsHandshake
@@ -413,7 +475,7 @@ internal sealed class ConnectivityEndpointTests
 
         public string? CredentialReceived { get; private set; }
 
-        public Task<string?> CheckAsync(
+        public Task<HttpProtocolCheckResult> CheckAsync(
             PointSource source,
             string credential,
             IReadOnlyList<IPAddress> pinnedAddresses,
@@ -421,7 +483,9 @@ internal sealed class ConnectivityEndpointTests
         {
             Calls++;
             CredentialReceived = credential;
-            return Task.FromResult<string?>(null);
+            return Task.FromResult(new HttpProtocolCheckResult(
+                null,
+                new HttpResponsePreview(200, "OK", "application/json", "{\"intensity\":100}")));
         }
     }
 

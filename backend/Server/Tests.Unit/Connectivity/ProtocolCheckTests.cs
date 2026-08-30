@@ -31,7 +31,7 @@ internal sealed class ProtocolCheckTests
             },
         };
 
-        var diagnostic = await check.CheckAsync(
+        var result = await check.CheckAsync(
             source,
             "bearer-value",
             [IPAddress.Loopback],
@@ -47,7 +47,7 @@ internal sealed class ProtocolCheckTests
             // Acceptance criteria: `diagnostic` must equal `"HTTP response exceeded the configured size limit"`, because this condition proves that
             // http check pins address sends bearer and enforces response limit.
             Assert.That(
-                diagnostic,
+                result.Diagnostic,
                 Is.EqualTo("HTTP response exceeded the configured size limit"));
 
             // Expected outcome: `request` includes the required content.
@@ -80,7 +80,7 @@ internal sealed class ProtocolCheckTests
             },
         };
 
-        var diagnostic = await check.CheckAsync(
+        var result = await check.CheckAsync(
             source,
             string.Empty,
             [IPAddress.Loopback],
@@ -89,7 +89,7 @@ internal sealed class ProtocolCheckTests
         // Expected outcome: `diagnostic` has the required value.
         // Acceptance criteria: `diagnostic` must equal `"redirect destination is forbidden"`, because this condition proves that
         // redirect destination is revalidated before connection.
-        Assert.That(diagnostic, Is.EqualTo("redirect destination is forbidden"));
+        Assert.That(result.Diagnostic, Is.EqualTo("redirect destination is forbidden"));
     }
 
     /// <summary>

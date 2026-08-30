@@ -3,7 +3,11 @@ import type { JSONSchema } from '@/components/yaml/MonacoYaml';
 /* oxlint-disable unicorn/no-thenable -- `then` is a required JSON Schema conditional keyword. */
 
 const connectionProperties: Record<string, JSONSchema> = {
-  baseUrl: { type: 'string', pattern: '^https://', description: 'HTTPS base URL for the service.' },
+  baseUrl: {
+    type: 'string',
+    pattern: '^https?://',
+    description: 'HTTP or HTTPS base URL for the service.'
+  },
   subscribeEvents: { type: 'boolean' },
   brokerUrl: {
     type: 'string',

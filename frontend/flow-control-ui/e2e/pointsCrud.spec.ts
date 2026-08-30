@@ -67,7 +67,7 @@ test('creates, reloads and honestly presents an unavailable point value', async 
   // Acceptance criteria: `page.locator('.monaco-editor')` must be visible, because this condition proves that
   // creates, reloads and honestly presents an unavailable point value.
   await expect(page.locator('.monaco-editor')).toBeVisible({ timeout: 60_000 });
-  await page.getByLabel('Start with a point example').selectOption('Digital retained');
+  await page.getByLabel('Start with a point example').selectOption('DV — Digital virtual');
   await page.getByRole('button', { name: 'Save' }).press('Enter');
 
   // Expected outcome: Navigation reaches the required route.

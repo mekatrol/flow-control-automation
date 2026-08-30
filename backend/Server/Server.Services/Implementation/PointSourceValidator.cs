@@ -108,7 +108,7 @@ internal sealed partial class PointSourceValidator : IPointSourceValidator
 
         var allowedScheme = source.Kind == "mqtt"
             ? uri.Scheme is "mqtt" or "mqtts"
-            : uri.Scheme == Uri.UriSchemeHttps;
+            : uri.Scheme is "http" or "https";
         if (!allowedScheme)
         {
             throw new PointSourceValidationException("connection URL scheme is not allowed");

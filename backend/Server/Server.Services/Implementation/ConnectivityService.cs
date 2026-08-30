@@ -21,11 +21,13 @@ internal sealed class ConnectivityService(
     {
         var started = Stopwatch.GetTimestamp();
         var stages = new List<ConnectivityStage>();
+        HttpResponsePreview? httpResponse = null;
         ConnectivityResult Result(string status) =>
             new(
                 status,
                 (long)Stopwatch.GetElapsedTime(started).TotalMilliseconds,
-                stages);
+                stages,
+                httpResponse);
         ConnectivityResult Failed(string name, string diagnostic)
         {
             stages.Add(new(name, "failed", diagnostic));
@@ -50,10 +52,23 @@ internal sealed class ConnectivityService(
             source.Kind == "mqtt"
                 ? source.Connection.BrokerUrl!
                 : source.Connection.BaseUrl!);
+        var connectTimeout = TimeSpan.FromMilliseconds(
+            source.Timeouts.ConnectMilliseconds);
         IReadOnlyList<IPAddress> addresses;
+        using var dnsTimeout = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken);
+        dnsTimeout.CancelAfter(connectTimeout);
         try
         {
-            addresses = await dns.LookupAsync(target.Host, cancellationToken);
+            addresses = await dns.LookupAsync(target.Host, dnsTimeout.Token);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return Failed("dns", "connection test cancelled");
+        }
+        catch (OperationCanceledException) when (dnsTimeout.IsCancellationRequested)
+        {
+            return Failed("dns", "host lookup timed out");
         }
         catch (OperationCanceledException)
         {
@@ -84,11 +99,10 @@ internal sealed class ConnectivityService(
             {
                 "mqtts" => 8883,
                 "mqtt" => 1883,
+                "http" => 80,
                 _ => 443,
             }
             : target.Port;
-        var connectTimeout = TimeSpan.FromMilliseconds(
-            source.Timeouts.ConnectMilliseconds);
         Stream connection;
         try
         {
@@ -160,17 +174,24 @@ internal sealed class ConnectivityService(
             string? diagnostic;
             try
             {
-                diagnostic = source.Kind == "mqtt"
-                    ? await mqtt.CheckAsync(
+                if (source.Kind == "mqtt")
+                {
+                    diagnostic = await mqtt.CheckAsync(
                         connection,
                         source,
                         credential,
-                        cancellationToken)
-                    : await http.CheckAsync(
+                        cancellationToken);
+                }
+                else
+                {
+                    var check = await http.CheckAsync(
                         source,
                         credential,
                         addresses,
                         cancellationToken);
+                    diagnostic = check.Diagnostic;
+                    httpResponse = check.Response;
+                }
             }
             catch (OperationCanceledException)
             {

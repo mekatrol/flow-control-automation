@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
+using System.Text;
 
 namespace Server.Services.Implementation;
 
@@ -11,7 +12,7 @@ internal sealed class HttpProtocolCheck(IDnsLookup dns) : IHttpProtocolCheck
     private const int DefaultMaximumResponseBytes = 64 << 10;
     private const int MaximumRedirects = 3;
 
-    public async Task<string?> CheckAsync(
+    public async Task<HttpProtocolCheckResult> CheckAsync(
         PointSource source,
         string credential,
         IReadOnlyList<IPAddress> pinnedAddresses,
@@ -53,11 +54,11 @@ internal sealed class HttpProtocolCheck(IDnsLookup dns) : IHttpProtocolCheck
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                return "connection test cancelled";
+                return new("connection test cancelled");
             }
             catch
             {
-                return "HTTP protocol check failed";
+                return new("HTTP protocol check failed");
             }
 
             using (response)
@@ -68,7 +69,7 @@ internal sealed class HttpProtocolCheck(IDnsLookup dns) : IHttpProtocolCheck
                 {
                     if (redirects >= MaximumRedirects)
                     {
-                        return "too many redirects";
+                        return new("too many redirects");
                     }
 
                     endpoint = response.Headers.Location.IsAbsoluteUri
@@ -80,23 +81,23 @@ internal sealed class HttpProtocolCheck(IDnsLookup dns) : IHttpProtocolCheck
                     }
                     catch (OperationCanceledException)
                     {
-                        return "connection test cancelled";
+                        return new("connection test cancelled");
                     }
                     catch
                     {
-                        return "redirect host lookup failed";
+                        return new("redirect host lookup failed");
                     }
 
                     if (addresses.Count == 0)
                     {
-                        return "redirect host lookup failed";
+                        return new("redirect host lookup failed");
                     }
 
                     if (addresses.Any(address => ConnectivityPolicy.IsForbidden(
                         address,
                         source.Connection.AllowPrivateNetwork == true)))
                     {
-                        return "redirect destination is forbidden";
+                        return new("redirect destination is forbidden");
                     }
 
                     redirects++;
@@ -105,6 +106,7 @@ internal sealed class HttpProtocolCheck(IDnsLookup dns) : IHttpProtocolCheck
 
                 var maximumBytes = source.Connection.MaximumResponseBytes
                     ?? DefaultMaximumResponseBytes;
+                await using var preview = new MemoryStream();
                 try
                 {
                     await using var body =
@@ -122,31 +124,41 @@ internal sealed class HttpProtocolCheck(IDnsLookup dns) : IHttpProtocolCheck
                         total += read;
                         if (total > maximumBytes)
                         {
-                            return "HTTP response exceeded the configured size limit";
+                            return new("HTTP response exceeded the configured size limit");
                         }
+
+                        await preview.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
                     }
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
-                    return "connection test cancelled";
+                    return new("connection test cancelled");
                 }
                 catch
                 {
-                    return "HTTP response could not be read";
+                    return new("HTTP response could not be read");
                 }
+
+                var responsePreview = new HttpResponsePreview(
+                    (int)response.StatusCode,
+                    response.ReasonPhrase,
+                    response.Content.Headers.ContentType?.ToString(),
+                    Encoding.UTF8.GetString(preview.ToArray()));
 
                 if (response.StatusCode is HttpStatusCode.Unauthorized
                     or HttpStatusCode.Forbidden)
                 {
-                    return "authentication was rejected";
+                    return new("authentication was rejected", responsePreview);
                 }
 
                 if ((int)response.StatusCode >= 400)
                 {
-                    return $"HTTP protocol check returned status {(int)response.StatusCode}";
+                    return new(
+                        $"HTTP protocol check returned status {(int)response.StatusCode}",
+                        responsePreview);
                 }
 
-                return null;
+                return new(null, responsePreview);
             }
         }
     }

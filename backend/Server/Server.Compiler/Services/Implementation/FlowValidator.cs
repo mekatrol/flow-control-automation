@@ -37,7 +37,9 @@ internal partial class FlowValidator : IFlowValidator
             throw new FlowValidationException($"unsupported flow status \"{flow.Status}\"");
         }
 
-        ValidateVirtualPoints(VirtualPointNodes.Declarations(flow.Nodes));
+        ValidateVirtualPoints(
+            VirtualPointNodes.Declarations(flow.Nodes),
+            allowUnmapped: flow.Status == "draft");
 
         if (flow.Revision < 1)
         {
@@ -151,11 +153,19 @@ internal partial class FlowValidator : IFlowValidator
         }
     }
 
-    private static void ValidateVirtualPoints(IReadOnlyList<VirtualPointDeclaration> declarations)
+    private static void ValidateVirtualPoints(
+        IReadOnlyList<VirtualPointDeclaration> declarations,
+        bool allowUnmapped)
     {
         var keys = new HashSet<string>(StringComparer.Ordinal);
         foreach (var (item, index) in declarations.Select((item, index) => (item, index)))
         {
+            if (allowUnmapped &&
+                (string.IsNullOrWhiteSpace(item.Key) || keys.Contains(item.Key)))
+            {
+                continue;
+            }
+
             if (string.IsNullOrWhiteSpace(item.Key) || !keys.Add(item.Key))
             {
                 throw new FlowValidationException($"virtualPointDeclarations[{index}].key must be non-empty and unique");

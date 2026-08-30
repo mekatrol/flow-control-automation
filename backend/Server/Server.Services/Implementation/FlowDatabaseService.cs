@@ -300,7 +300,9 @@ internal sealed class FlowDatabaseService(
                     ? VirtualPointNodes.Declarations(saved.Nodes)
                     : otherFlows.TryGetValue(program.FlowId, out var flow)
                         ? VirtualPointNodes.Declarations(flow.Nodes)
-                        : throw new FlowValidationException($"execution context '{definition.Id}' references missing flow '{program.FlowId}'"));
+                        : throw new FlowValidationException($"execution context '{definition.Id}' references missing flow '{program.FlowId}'"))
+                .Where(declaration => !string.IsNullOrWhiteSpace(declaration.Key))
+                .DistinctBy(declaration => declaration.Key, StringComparer.Ordinal);
             IReadOnlyList<VirtualPointDeclaration> contracts;
             try
             {

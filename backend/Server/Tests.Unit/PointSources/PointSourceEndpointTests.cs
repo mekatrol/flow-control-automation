@@ -332,6 +332,34 @@ internal sealed class PointSourceEndpointTests
     }
 
     /// <summary>
+    /// Purpose: Ensures HTTP JSON sources can connect directly to devices on a private LAN.
+    /// </summary>
+    [Test]
+    public async Task HttpJsonSourceAllowsHttpBaseUrl()
+    {
+        await using var factory = new Api.FlowControlApplicationFactory();
+        using var client = factory.CreateClient();
+        var source = ValidHttpSource() with
+        {
+            Id = "lego-train",
+            Name = "Lego train control",
+            Connection = ValidHttpSource().Connection with
+            {
+                BaseUrl = "http://lego-train.lan",
+                AllowPrivateNetwork = true
+            }
+        };
+
+        using var response = await SendYaml(
+            client,
+            HttpMethod.Post,
+            "/api/point-sources",
+            source);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+    }
+
+    /// <summary>
     /// Purpose: Protects the behavioral contract that update requires if match and matching path.
     /// Description: Arranges the inputs for update requires if match and matching path, exercises the relevant operation,
     /// and verifies the observable results required by that scenario.

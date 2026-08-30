@@ -11,7 +11,7 @@ public interface IHttpProtocolCheck
     /// <param name="pinnedAddresses">The non-empty, duplicate-free DNS results that passed SSRF policy; redirects must be independently resolved and validated.</param>
     /// <param name="cancellationToken">Cancels request, response, and redirect processing within the overall test budget.</param>
     /// <returns>Optional bounded server identity safe for diagnostics, or <see langword="null"/> when no identity is available.</returns>
-    Task<string?> CheckAsync(
+    Task<HttpProtocolCheckResult> CheckAsync(
         PointSource source,
         string credential,
         IReadOnlyList<IPAddress> pinnedAddresses,

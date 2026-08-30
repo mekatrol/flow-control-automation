@@ -224,12 +224,88 @@ const editorHelp = computed(() =>
 
 const pointExamples = [
   {
-    name: 'Analog virtual',
+    name: 'AI — Analog input',
     yaml: `schemaVersion: 1
 groups: []
 points:
-  - id: new-analog
-    name: New analog point
+  - id: new-analog-input
+    name: New analog input
+    enabled: true
+    implementation: bound
+    direction: input
+    valueType: analog
+    units: percent
+    readable: true
+    commandable: false
+    persistence: volatile
+    sourceId: point-source
+    mapping: {channel: AI-1}
+`
+  },
+  {
+    name: 'DI — Digital input',
+    yaml: `schemaVersion: 1
+groups: []
+points:
+  - id: new-digital-input
+    name: New digital input
+    enabled: true
+    implementation: bound
+    direction: input
+    valueType: digital
+    stateLabels: {false: "Off", true: "On"}
+    readable: true
+    commandable: false
+    persistence: volatile
+    sourceId: point-source
+    mapping: {channel: DI-1}
+`
+  },
+  {
+    name: 'AO — Analog output',
+    yaml: `schemaVersion: 1
+groups: []
+points:
+  - id: new-analog-output
+    name: New analog output
+    enabled: true
+    implementation: bound
+    direction: output
+    valueType: analog
+    units: percent
+    readable: true
+    commandable: true
+    persistence: volatile
+    sourceId: point-source
+    mapping: {channel: AO-1}
+`
+  },
+  {
+    name: 'DO — Digital output',
+    yaml: `schemaVersion: 1
+groups: []
+points:
+  - id: new-digital-output
+    name: New digital output
+    enabled: true
+    implementation: bound
+    direction: output
+    valueType: digital
+    stateLabels: {false: "Off", true: "On"}
+    readable: true
+    commandable: true
+    persistence: volatile
+    sourceId: point-source
+    mapping: {channel: DO-1}
+`
+  },
+  {
+    name: 'AV — Analog virtual',
+    yaml: `schemaVersion: 1
+groups: []
+points:
+  - id: new-analog-virtual
+    name: New analog virtual point
     enabled: true
     implementation: virtual
     direction: value
@@ -237,16 +313,17 @@ points:
     units: percent
     readable: true
     commandable: true
-    persistence: volatile
+    persistence: retained
+    relinquishDefault: 0
 `
   },
   {
-    name: 'Digital retained',
+    name: 'DV — Digital virtual',
     yaml: `schemaVersion: 1
 groups: []
 points:
-  - id: new-digital
-    name: New digital point
+  - id: new-digital-virtual
+    name: New digital virtual point
     enabled: true
     implementation: virtual
     direction: value
@@ -256,43 +333,6 @@ points:
     commandable: true
     persistence: retained
     relinquishDefault: false
-`
-  },
-  {
-    name: 'HTTP/JSON bound input',
-    yaml: `schemaVersion: 1
-groups: []
-points:
-  - id: new-http-input
-    name: New HTTP input
-    enabled: true
-    implementation: bound
-    direction: input
-    valueType: analog
-    readable: true
-    commandable: false
-    persistence: volatile
-    sourceId: http-source
-    mapping: {path: /value, method: GET, selector: $.value}
-`
-  },
-  {
-    name: 'MQTT text input',
-    yaml: `schemaVersion: 1
-groups: []
-points:
-  - id: new-mqtt-input
-    name: New MQTT input
-    enabled: true
-    implementation: bound
-    direction: input
-    valueType: text
-    readable: true
-    commandable: false
-    persistence: volatile
-    sourceId: mqtt-source
-    mapping: {topic: plant/value, selector: $.value}
-    limits: {maxLength: 256}
 `
   }
 ];

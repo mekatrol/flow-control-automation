@@ -28,6 +28,12 @@ export interface ConnectionTestResult {
   status: 'passed' | 'failed';
   durationMilliseconds: number;
   stages: ConnectionTestStage[];
+  httpResponse?: {
+    statusCode: number;
+    reasonPhrase?: string;
+    contentType?: string;
+    body: string;
+  };
 }
 
 const messageFrom = async (response: Response): Promise<string> => {

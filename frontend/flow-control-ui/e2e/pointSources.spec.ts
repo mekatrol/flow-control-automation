@@ -54,6 +54,12 @@ test('catalogue and YAML editor support create, test, retry, and keyboard use', 
           : {
               status: 'passed',
               durationMilliseconds: 8,
+              httpResponse: {
+                statusCode: 200,
+                reasonPhrase: 'OK',
+                contentType: 'application/json',
+                body: '{"intensity":100}'
+              },
               stages: [
                 { name: 'dns', status: 'passed' },
                 { name: 'tcp', status: 'passed' },
@@ -143,6 +149,8 @@ test('catalogue and YAML editor support create, test, retry, and keyboard use', 
   // Acceptance criteria: "Connection test: passed" is visible because every stage in the
   // second mocked diagnostic succeeds and the latest result must supersede the first.
   await expect(page.getByRole('heading', { name: 'Connection test: passed' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'HTTP response' })).toBeVisible();
+  await expect(page.getByText('{"intensity":100}')).toBeVisible();
   await page.getByRole('button', { name: 'Save' }).press('Enter');
 
   // Expected outcome: Saving a new source transitions to its stable detail route.

@@ -34,6 +34,46 @@
           <AppButton v-if="testing" text="Cancel test" :icon="cancelIcon" @click="cancelTest" />
           <AppButton v-if="!isNew" text="Delete" :icon="deleteIcon" @click="remove" />
         </div>
+        <section
+          v-if="testing || testResult || testError"
+          class="test-result"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          <h2 v-if="testing">Connection test in progress…</h2>
+          <template v-else-if="testResult">
+            <h2>Connection test: {{ testResult.status }}</h2>
+            <p>Completed in {{ testResult.durationMilliseconds }} ms.</p>
+            <ol>
+              <li v-for="stage in testResult.stages" :key="stage.name">
+                <strong>{{ stage.name }}</strong
+                >: {{ stage.status }}<span v-if="stage.diagnostic"> — {{ stage.diagnostic }}</span>
+              </li>
+            </ol>
+            <section v-if="testResult.httpResponse" class="http-response-preview">
+              <h3>HTTP response</h3>
+              <p>
+                Status: {{ testResult.httpResponse.statusCode }}
+                {{ testResult.httpResponse.reasonPhrase }}
+              </p>
+              <p v-if="testResult.httpResponse.contentType">
+                Content-Type: {{ testResult.httpResponse.contentType }}
+              </p>
+              <pre tabindex="0"><code>{{ testResult.httpResponse.body }}</code></pre>
+            </section>
+            <AppButton
+              v-if="testResult.status === 'failed'"
+              text="Retry test"
+              :icon="retryIcon"
+              @click="testConnection"
+            />
+          </template>
+          <template v-else>
+            <h2>Connection test: failed</h2>
+            <p>{{ testError }}</p>
+            <AppButton text="Retry test" :icon="retryIcon" @click="testConnection" />
+          </template>
+        </section>
         <AppYamlEditor
           v-model="yaml"
           label="Point source YAML"
@@ -101,21 +141,6 @@
       </aside>
     </div>
 
-    <section v-if="testResult" class="test-result" aria-live="polite" aria-atomic="true">
-      <h2>Connection test: {{ testResult.status }}</h2>
-      <ol>
-        <li v-for="stage in testResult.stages" :key="stage.name">
-          <strong>{{ stage.name }}</strong
-          >: {{ stage.status }}<span v-if="stage.diagnostic"> — {{ stage.diagnostic }}</span>
-        </li>
-      </ol>
-      <AppButton
-        v-if="testResult.status === 'failed'"
-        text="Retry test"
-        :icon="retryIcon"
-        @click="testConnection"
-      />
-    </section>
     <p class="visually-hidden" role="status" aria-live="polite">{{ status }}</p>
   </section>
 </template>
@@ -238,6 +263,7 @@ const testing = ref(false);
 const error = ref('');
 const status = ref('');
 const testResult = ref<ConnectionTestResult>();
+const testError = ref('');
 const editorDiagnostics = ref<YamlDiagnostic[]>([]);
 const setEditorDiagnostics = (diagnostics: YamlDiagnostic[]): void => {
   editorDiagnostics.value = diagnostics;
@@ -252,6 +278,7 @@ const dirty = computed(() => yaml.value !== baseline.value);
 const useSelectedExample = (): void => {
   yaml.value = selectedExample.value.yaml;
   testResult.value = undefined;
+  testError.value = '';
   status.value = `${selectedExample.value.name} example loaded into the editor.`;
 };
 onBeforeRouteLeave(
@@ -299,14 +326,20 @@ const testConnection = async (): Promise<void> => {
   testController = new AbortController();
   testing.value = true;
   error.value = '';
+  testError.value = '';
   testResult.value = undefined;
   status.value = 'Connection test started.';
   try {
     testResult.value = await pointSourceApi.test(yaml.value, testController.signal);
     status.value = `Connection test ${testResult.value.status}.`;
   } catch (reason) {
-    if (testController.signal.aborted) status.value = 'Connection test cancelled.';
-    else error.value = reason instanceof Error ? reason.message : 'Connection test failed';
+    if (testController.signal.aborted) {
+      status.value = 'Connection test cancelled.';
+      testError.value = 'The connection test was cancelled.';
+    } else {
+      testError.value = reason instanceof Error ? reason.message : 'Connection test failed';
+      status.value = `Connection test failed: ${testError.value}`;
+    }
   } finally {
     testing.value = false;
   }

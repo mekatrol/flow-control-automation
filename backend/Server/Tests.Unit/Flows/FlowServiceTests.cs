@@ -94,6 +94,60 @@ public sealed class FlowServiceTests
         Assert.That(saved.Name, Is.EqualTo("Heating & Cooling"));
     }
 
+    [Test]
+    public async Task SavesDraftWithIncompleteVirtualOutputMappings()
+    {
+        await using var provider = await CreateInitializedProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var service = scope.ServiceProvider.GetRequiredService<IFlowService>();
+        var created = await service.CreateAsync("Incomplete output", CancellationToken.None);
+        var draft = created with
+        {
+            Nodes =
+            [
+                new FlowNode
+                {
+                    Id = "digital-output",
+                    Kind = FlowNodeKind.DigitalVirtual,
+                    Label = "Unmapped digital output",
+                    Configuration = new Dictionary<string, JsonElement>
+                    {
+                        ["pointId"] = JsonSerializer.SerializeToElement(string.Empty)
+                    }
+                },
+                new FlowNode
+                {
+                    Id = "digital-output-2",
+                    Kind = FlowNodeKind.DigitalVirtual,
+                    Label = "Provisional digital output",
+                    Configuration = new Dictionary<string, JsonElement>
+                    {
+                        ["pointId"] = JsonSerializer.SerializeToElement("digital-virtual-point")
+                    }
+                },
+                new FlowNode
+                {
+                    Id = "digital-output-3",
+                    Kind = FlowNodeKind.DigitalVirtual,
+                    Label = "Duplicate provisional digital output",
+                    Configuration = new Dictionary<string, JsonElement>
+                    {
+                        ["pointId"] = JsonSerializer.SerializeToElement("digital-virtual-point")
+                    }
+                }
+            ]
+        };
+
+        var saved = await service.SaveAsync(created.Id, draft, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(saved.Status, Is.EqualTo("draft"));
+            Assert.That(saved.Nodes, Has.Count.EqualTo(3));
+            Assert.That(saved.Nodes[0].Configuration["pointId"].GetString(), Is.Empty);
+        });
+    }
+
     /// <summary>
     /// Purpose: Protects the behavioral contract that lists with case insensitive filtering sorting and page clamping.
     /// Description: Arranges the inputs for lists with case insensitive filtering sorting and page clamping, exercises the relevant operation,
