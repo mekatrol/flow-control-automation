@@ -5,10 +5,19 @@ import { describe, expect, it } from 'vitest';
 import {
   editorValueFromInput,
   nextAvailablePointId,
+  validatePointIdDraft,
   validateNodeLabel
 } from '@/features/flows/components/AppFlowNodeConfigurationPanel.vue';
 
 describe('node configuration validation', () => {
+  it('allows a trailing hyphen while a point ID is being typed', () => {
+    expect(validatePointIdDraft('analog-')).toBeUndefined();
+    expect(validatePointIdDraft('analog-input-point')).toBeUndefined();
+    expect(validatePointIdDraft('analog input')).toBe(
+      'Point ID contains unsupported characters.'
+    );
+  });
+
   it('suggests a new point ID when the selected point already exists', () => {
     expect(nextAvailablePointId('analog-input-point', ['analog-input-point'])).toBe(
       'analog-input-point-2'

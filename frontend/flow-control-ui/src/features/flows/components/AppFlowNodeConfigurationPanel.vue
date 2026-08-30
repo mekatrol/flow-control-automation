@@ -136,6 +136,16 @@ export const nextAvailablePointId = (preferred: string, occupiedIds: Iterable<st
   return `${preferred}-${suffix}`;
 };
 
+// A separator at the end is a valid intermediate state while entering an ID
+// such as "room-temperature". Final validation still requires an alphanumeric
+// final character.
+export const validatePointIdDraft = (value: string): string | undefined => {
+  const key = value.trim();
+  if (!key) return 'Point ID is required.';
+  if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/.test(key))
+    return 'Point ID contains unsupported characters.';
+};
+
 export const editorValueFromInput = (
   field: EditorField,
   target: HTMLInputElement | HTMLSelectElement
@@ -273,19 +283,23 @@ const validatePointId = async (): Promise<void> => {
 const updatePointId = (field: NodeEditorField, event: Event): void => {
   const target = event.target as HTMLInputElement;
   pointDraft.value = target.value;
-  const error = pointIdError(target.value);
+  const error = validatePointIdDraft(target.value);
   if (error) {
     errors.value.pointId = error;
     validationState.value = 'invalid';
     emit('validation', props.node.id, 'invalid');
   } else {
     delete errors.value.pointId;
-    emit(EVENTS.UPDATE_CONFIGURATION, field.key, target.value.trim());
+    if (!pointIdError(target.value))
+      emit(EVENTS.UPDATE_CONFIGURATION, field.key, target.value.trim());
     validationState.value = 'pending';
     emit('validation', props.node.id, 'pending');
   }
   window.clearTimeout(debounceTimer);
   debounceTimer = window.setTimeout(async () => {
+    // Leave a syntactically incomplete separator suffix alone while the user
+    // is typing. The blur handler applies the strict, finished-ID rule.
+    if (validatePointIdDraft(target.value) === undefined && pointIdError(target.value)) return;
     try {
       remotePoints.value = (
         await catalogueApi.points({ filter: target.value, page: 1, pageSize: 20 })
