@@ -51,7 +51,7 @@ internal sealed class FlowCompilationTargetResolver(
 
         var allPoints = await pointDefinitions.ListPointsAsync(cancellationToken);
         var pointsById = allPoints.ToDictionary(point => point.Id, StringComparer.Ordinal);
-        foreach (var declaration in source.VirtualPointDeclarations)
+        foreach (var declaration in source.VirtualPointDefinitions)
         {
             pointsById.TryAdd(declaration.Key, VirtualPoint(declaration));
         }
@@ -74,7 +74,7 @@ internal sealed class FlowCompilationTargetResolver(
         };
     }
 
-    private static VirtualAutomationPoint VirtualPoint(VirtualPointDeclaration declaration) => new()
+    private static VirtualAutomationPoint VirtualPoint(VirtualPointDefinition declaration) => new()
     {
         Id = declaration.Key,
         Name = declaration.Key,
@@ -114,7 +114,7 @@ internal sealed class FlowCompilationTargetResolver(
             }
         }
 
-        if (source.VirtualPointDeclarations.Count == 0)
+        if (source.VirtualPointDefinitions.Count == 0)
         {
             return;
         }
@@ -124,7 +124,7 @@ internal sealed class FlowCompilationTargetResolver(
             throw Failure(FlowCompilationDiagnosticCode.UnsupportedTargetPointCapability, "/virtualPointDeclarations", ControllerRuntimeFeatureType.VirtualPoints);
         }
 
-        foreach (var declaration in source.VirtualPointDeclarations)
+        foreach (var declaration in source.VirtualPointDefinitions)
         {
             if (!template.PointTypes.Contains(declaration.ValueType))
             {

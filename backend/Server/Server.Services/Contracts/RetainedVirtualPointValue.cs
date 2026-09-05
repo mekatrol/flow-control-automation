@@ -4,4 +4,4 @@ public sealed record RetainedVirtualPointValue(
     FlowVmValue Value,
     string Timestamp,
     ulong Version,
-    Server.Common.Models.VirtualPointDeclaration Contract);
+    Server.Common.Models.VirtualPointDefinition Contract);

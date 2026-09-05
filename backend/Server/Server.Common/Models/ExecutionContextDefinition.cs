@@ -6,6 +6,6 @@ public sealed record ExecutionContextDefinition
     public required string Name { get; init; }
     public int Revision { get; init; } = 1;
     public IReadOnlyList<ExecutionContextProgram> Programs { get; init; } = [];
-    public IReadOnlyList<VirtualPointDeclaration> PointContracts { get; init; } = [];
+    public IReadOnlyList<VirtualPointDefinition> PointContracts { get; init; } = [];
     public string SchedulingPolicy { get; init; } = "independent";
 }

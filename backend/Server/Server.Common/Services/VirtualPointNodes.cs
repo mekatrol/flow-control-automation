@@ -16,11 +16,11 @@ public static class VirtualPointNodes
         _ => nodeType
     };
 
-    public static IReadOnlyList<VirtualPointDeclaration> Declarations(
+    public static IReadOnlyList<VirtualPointDefinition> Declarations(
         IEnumerable<FlowNode> nodes) =>
         [.. nodes.Where(node => node.NodeType.IsVirtual()).Select(Declaration)];
 
-    private static VirtualPointDeclaration Declaration(FlowNode node)
+    private static VirtualPointDefinition Declaration(FlowNode node)
     {
         var analog = node.NodeType == FlowNodeType.AnalogVirtual;
         var persistence = Text(node, "persistence") == "retained"
@@ -28,7 +28,7 @@ public static class VirtualPointNodes
             : VirtualPointPersistenceType.Volatile;
         var units = analog ? Text(node, "units") : null;
 
-        return new VirtualPointDeclaration
+        return new VirtualPointDefinition
         {
             Key = Text(node, "pointId") ?? string.Empty,
             ValueType = analog ? AutomationPointValueType.Analog : AutomationPointValueType.Digital,

@@ -15,7 +15,7 @@ public sealed class VirtualPointRuntimeStore(
     public async Task ActivateFlowAsync(
         string executionInstanceId,
         string flowId,
-        IReadOnlyList<VirtualPointDeclaration> declarations,
+        IReadOnlyList<VirtualPointDefinition> declarations,
         IReadOnlySet<string> writerKeys,
         CancellationToken cancellationToken)
     {
@@ -290,21 +290,21 @@ public sealed class VirtualPointRuntimeStore(
         Version = cell.Version
     };
 
-    private static FlowVmValue? Default(VirtualPointDeclaration contract) => contract.RelinquishDefault is not { } value ? null :
+    private static FlowVmValue? Default(VirtualPointDefinition contract) => contract.RelinquishDefault is not { } value ? null :
         contract.ValueType == AutomationPointValueType.Analog && value.TryGetDouble(out var number)
             ? FlowVmValue.FromNumber(number)
             : value.ValueKind is System.Text.Json.JsonValueKind.True or System.Text.Json.JsonValueKind.False
                 ? FlowVmValue.FromBoolean(value.GetBoolean()) : null;
 
-    private static bool Compatible(VirtualPointDeclaration left, VirtualPointDeclaration right) =>
+    private static bool Compatible(VirtualPointDefinition left, VirtualPointDefinition right) =>
         left.ValueType == right.ValueType && left.Units == right.Units && left.Persistence == right.Persistence
         && System.Text.Json.JsonSerializer.Serialize(left.RelinquishDefault) == System.Text.Json.JsonSerializer.Serialize(right.RelinquishDefault);
 
-    private sealed class Cell(string executionInstanceId, VirtualPointDeclaration contract)
+    private sealed class Cell(string executionInstanceId, VirtualPointDefinition contract)
     {
         public string ExecutionInstanceId { get; } = executionInstanceId;
         public string PointKey { get; } = contract.Key;
-        public VirtualPointDeclaration Contract { get; } = contract;
+        public VirtualPointDefinition Contract { get; } = contract;
         public HashSet<string> Readers { get; } = new(StringComparer.Ordinal);
         public string? WriterFlowId { get; set; }
         public FlowVmValue? Value { get; set; }

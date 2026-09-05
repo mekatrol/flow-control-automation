@@ -156,7 +156,7 @@ internal partial class FlowValidator : IFlowValidator
     }
 
     private static void ValidateVirtualPoints(
-        IReadOnlyList<VirtualPointDeclaration> declarations,
+        IReadOnlyList<VirtualPointDefinition> declarations,
         bool allowUnmapped)
     {
         var keys = new HashSet<string>(StringComparer.Ordinal);

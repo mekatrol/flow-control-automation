@@ -18,5 +18,5 @@ public sealed record ExecutableFlowSource
 
     public IReadOnlyList<ExecutableFlowConnection> Connections { get; init; } = [];
 
-    public IReadOnlyList<VirtualPointDeclaration> VirtualPointDeclarations { get; init; } = [];
+    public IReadOnlyList<VirtualPointDefinition> VirtualPointDefinitions { get; init; } = [];
 }

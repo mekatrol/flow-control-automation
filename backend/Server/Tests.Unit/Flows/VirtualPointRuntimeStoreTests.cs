@@ -161,7 +161,7 @@ public sealed class VirtualPointRuntimeStoreTests
         });
     }
 
-    private static VirtualPointDeclaration Analog(string key) => new()
+    private static VirtualPointDefinition Analog(string key) => new()
     {
         Key = key,
         ValueType = AutomationPointValueType.Analog,
@@ -170,7 +170,7 @@ public sealed class VirtualPointRuntimeStoreTests
         Persistence = VirtualPointPersistenceType.Volatile
     };
 
-    private static VirtualPointDeclaration Digital(string key) => Analog(key) with { ValueType = AutomationPointValueType.Digital };
+    private static VirtualPointDefinition Digital(string key) => Analog(key) with { ValueType = AutomationPointValueType.Digital };
 
     private sealed class RetainedStore : IVirtualPointRetainedStore
     {

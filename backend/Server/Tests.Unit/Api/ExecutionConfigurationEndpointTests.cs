@@ -174,16 +174,16 @@ internal sealed class ExecutionConfigurationEndpointTests
             deployments.Add((await deploymentResponse.Content.ReadFromJsonAsync<ExecutionContextDeployment>(FlowControlJson.Options))!);
         }
 
-        var east = await client.GetFromJsonAsync<List<VirtualPointAllocation>>("/api/execution-instances/east/virtual-points", FlowControlJson.Options);
-        var west = await client.GetFromJsonAsync<List<VirtualPointAllocation>>("/api/execution-instances/west/virtual-points", FlowControlJson.Options);
+        var east = await client.GetFromJsonAsync<List<AllocatedVirtualPoint>>("/api/execution-instances/east/virtual-points", FlowControlJson.Options);
+        var west = await client.GetFromJsonAsync<List<AllocatedVirtualPoint>>("/api/execution-instances/west/virtual-points", FlowControlJson.Options);
         Assert.Multiple(() =>
         {
             Assert.That(east, Has.Count.EqualTo(1));
             Assert.That(west, Has.Count.EqualTo(1));
             Assert.That(east![0].ExecutionInstanceId, Is.EqualTo("east"));
             Assert.That(west![0].ExecutionInstanceId, Is.EqualTo("west"));
-            Assert.That(east[0].PointKey, Is.EqualTo("temp-setpoint"));
-            Assert.That(west[0].PointKey, Is.EqualTo("temp-setpoint"));
+            Assert.That(east[0].Definition.Key, Is.EqualTo("temp-setpoint"));
+            Assert.That(west[0].Definition.Key, Is.EqualTo("temp-setpoint"));
             Assert.That(deployments, Has.All.Matches<ExecutionContextDeployment>(item => item.CompiledPrograms.Count == 1));
             Assert.That(deployments[0].CompiledPrograms[0].ExecutionInstanceId, Is.EqualTo("east"));
             Assert.That(deployments[1].CompiledPrograms[0].ExecutionInstanceId, Is.EqualTo("west"));

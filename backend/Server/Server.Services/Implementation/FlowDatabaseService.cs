@@ -304,7 +304,7 @@ internal sealed class FlowDatabaseService(
                         : throw new FlowValidationException($"execution context '{definition.Id}' references missing flow '{program.FlowId}'"))
                 .Where(declaration => !string.IsNullOrWhiteSpace(declaration.Key))
                 .DistinctBy(declaration => declaration.Key, StringComparer.Ordinal);
-            IReadOnlyList<VirtualPointDeclaration> contracts;
+            IReadOnlyList<VirtualPointDefinition> contracts;
             try
             {
                 contracts = ExecutionConfigurationService.MergeContracts(declarations);

@@ -104,7 +104,7 @@ internal sealed partial class ExecutionConfigurationService(
             Fail("program revisions must be positive");
         }
 
-        var declarations = new List<VirtualPointDeclaration>();
+        var declarations = new List<VirtualPointDefinition>();
         foreach (var program in definition.Programs)
         {
             var flowEntity = await context.Flows.AsNoTracking().SingleOrDefaultAsync(item => item.Id == program.FlowId, cancellationToken)
@@ -276,17 +276,21 @@ internal sealed partial class ExecutionConfigurationService(
         await context.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<IReadOnlyList<VirtualPointAllocation>> ListAllocationsAsync(string instanceId, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<AllocatedVirtualPoint>> ListAllocationsAsync(string instanceId, CancellationToken cancellationToken)
     {
         _ = await GetInstanceAsync(instanceId, cancellationToken);
+
         var deployments = await context.ExecutionContextDeployments.AsNoTracking()
             .Where(item => item.ExecutionInstanceId == instanceId && item.Json.Contains("\"status\":\"active\""))
             .ToListAsync(cancellationToken);
+
         var contexts = await context.ExecutionContexts.AsNoTracking().ToDictionaryAsync(item => item.Id, cancellationToken);
-        var declarations = deployments.Select(Deserialize<ExecutionContextDeployment>)
+
+        var definitions = deployments.Select(Deserialize<ExecutionContextDeployment>)
             .Select(item => contexts.TryGetValue(item.ExecutionContextId, out var entity) ? Deserialize<ExecutionContextDefinition>(entity) : null)
             .Where(item => item is not null).SelectMany(item => item!.PointContracts);
-        return [.. MergeContracts(declarations).Select(contract => new VirtualPointAllocation(instanceId, contract.Key, contract))];
+
+        return [.. MergeContracts(definitions).Select(definition => new AllocatedVirtualPoint(instanceId, definition))];
     }
 
     private async Task<T> Save<T, TEntity>(DbSet<TEntity> set, string id, T value, bool create, CancellationToken cancellationToken)
@@ -369,9 +373,9 @@ internal sealed partial class ExecutionConfigurationService(
     private async Task Delete<TEntity>(DbSet<TEntity> set, string id, string kind, CancellationToken token) where TEntity : BaseEntity
     { var entity = await Find(set, id, kind, token); set.Remove(entity); await context.SaveChangesAsync(token); }
 
-    internal static IReadOnlyList<VirtualPointDeclaration> MergeContracts(IEnumerable<VirtualPointDeclaration> source)
+    internal static IReadOnlyList<VirtualPointDefinition> MergeContracts(IEnumerable<VirtualPointDefinition> source)
     {
-        var result = new Dictionary<string, VirtualPointDeclaration>(StringComparer.Ordinal);
+        var result = new Dictionary<string, VirtualPointDefinition>(StringComparer.Ordinal);
         foreach (var declaration in source)
         {
             ValidateDeclaration(declaration);
@@ -409,12 +413,12 @@ internal sealed partial class ExecutionConfigurationService(
         return [.. result.Values.OrderBy(item => item.Key, StringComparer.Ordinal)];
     }
 
-    private static bool Compatible(VirtualPointDeclaration left, VirtualPointDeclaration right) =>
+    private static bool Compatible(VirtualPointDefinition left, VirtualPointDefinition right) =>
         left.ValueType == right.ValueType && left.Units == right.Units && left.Persistence == right.Persistence
         && JsonSerializer.Serialize(left.RelinquishDefault) == JsonSerializer.Serialize(right.RelinquishDefault);
-    private static bool ContractsEqual(IReadOnlyList<VirtualPointDeclaration> left, IReadOnlyList<VirtualPointDeclaration> right) =>
+    private static bool ContractsEqual(IReadOnlyList<VirtualPointDefinition> left, IReadOnlyList<VirtualPointDefinition> right) =>
         left.Count == right.Count && left.OrderBy(item => item.Key).Zip(right.OrderBy(item => item.Key)).All(pair => pair.First == pair.Second);
-    private static void ValidateDeclaration(VirtualPointDeclaration item)
+    private static void ValidateDeclaration(VirtualPointDefinition item)
     {
         ValidateId(item.Key, "virtual point key");
         if (item.ValueType is not (AutomationPointValueType.Analog or AutomationPointValueType.Digital))
@@ -642,7 +646,7 @@ internal sealed partial class ExecutionConfigurationService(
 
     private sealed record WriterOwner(string FlowId, string? DeploymentId);
 
-    private static void ValidateTemplateCapabilities(ControllerTemplate template, IReadOnlyList<VirtualPointDeclaration> contracts)
+    private static void ValidateTemplateCapabilities(ControllerTemplate template, IReadOnlyList<VirtualPointDefinition> contracts)
     {
         if (contracts.Count == 0)
         {

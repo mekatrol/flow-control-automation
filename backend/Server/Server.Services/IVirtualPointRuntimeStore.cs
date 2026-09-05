@@ -4,7 +4,7 @@ namespace Server.Services;
 
 public interface IVirtualPointRuntimeStore
 {
-    Task ActivateFlowAsync(string executionInstanceId, string flowId, IReadOnlyList<VirtualPointDeclaration> declarations, IReadOnlySet<string> writerKeys, CancellationToken cancellationToken);
+    Task ActivateFlowAsync(string executionInstanceId, string flowId, IReadOnlyList<VirtualPointDefinition> declarations, IReadOnlySet<string> writerKeys, CancellationToken cancellationToken);
     void ReleaseFlow(string executionInstanceId, string flowId);
     bool TrySnapshot(string executionInstanceId, string pointKey, out VirtualPointRuntimeValue value);
     Task CommitAsync(string executionInstanceId, string flowId, IReadOnlyList<FlowVmCommand> commands, CancellationToken cancellationToken);
