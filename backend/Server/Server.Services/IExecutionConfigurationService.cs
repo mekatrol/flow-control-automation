@@ -16,5 +16,5 @@ public interface IExecutionConfigurationService
     Task<ExecutionContextDeployment> SaveDeploymentAsync(ExecutionContextDeployment deployment, bool create, CancellationToken cancellationToken);
     Task DeleteDeploymentAsync(string contextId, string deploymentId, CancellationToken cancellationToken);
     Task<IReadOnlyList<AllocatedVirtualPoint>> ListAllocationsAsync(string instanceId, CancellationToken cancellationToken);
-    Task<PointResolution> ResolvePointAsync(string pointKey, string? contextId, string? instanceId, CancellationToken cancellationToken);
+    Task<PointAvailability> ResolvePointAsync(string pointKey, string? contextId, string? instanceId, CancellationToken cancellationToken);
 }

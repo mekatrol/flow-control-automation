@@ -27,7 +27,7 @@ internal sealed partial class ExecutionConfigurationService(
     public async Task<IReadOnlyList<ExecutionContextDefinition>> ListContextsAsync(CancellationToken cancellationToken) =>
         [.. (await context.ExecutionContexts.AsNoTracking().OrderBy(item => item.Key).ToListAsync(cancellationToken)).Select(Deserialize<ExecutionContextDefinition>)];
 
-    public async Task<PointResolution> ResolvePointAsync(string pointKey, string? contextId, string? instanceId, CancellationToken cancellationToken)
+    public async Task<PointAvailability> ResolvePointAsync(string pointKey, string? contextId, string? instanceId, CancellationToken cancellationToken)
     {
         ValidateId(pointKey, "pointKey");
         ExecutionContextDefinition? definition = null;
@@ -45,7 +45,7 @@ internal sealed partial class ExecutionConfigurationService(
 
         if (contract is not null)
         {
-            return new PointResolution
+            return new PointAvailability
             {
                 ExecutionContextId = contextId,
                 ExecutionInstanceId = instanceId,
@@ -66,8 +66,8 @@ internal sealed partial class ExecutionConfigurationService(
         catch (PointDefinitionNotFoundException) { }
 
         return point is null
-            ? new PointResolution { ExecutionContextId = contextId, ExecutionInstanceId = instanceId, PointKey = pointKey }
-            : new PointResolution
+            ? new PointAvailability { ExecutionContextId = contextId, ExecutionInstanceId = instanceId, PointKey = pointKey }
+            : new PointAvailability
             {
                 ExecutionContextId = contextId,
                 ExecutionInstanceId = instanceId,
