@@ -117,7 +117,7 @@ export const runFunctionNodeCase = async (
     await connectNodes(
       page,
       { nodeId: functionNode, connector: connector.label },
-      { nodeId: outputNode, connector: 'Input' }
+      { nodeId: outputNode, connector: 'Set' }
     );
   }
 

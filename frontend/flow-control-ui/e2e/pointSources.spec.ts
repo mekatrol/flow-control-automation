@@ -40,6 +40,7 @@ test.beforeEach(async ({ page }) => {
 test('catalogue and YAML editor support create, test, retry, and keyboard use', async ({
   page
 }) => {
+  const sourceEditor = page.getByRole('group', { name: 'Point source YAML', exact: true });
   let tests = 0;
   await page.route('/api/point-sources/test', async (route) => {
     tests++;
@@ -98,7 +99,7 @@ test('catalogue and YAML editor support create, test, retry, and keyboard use', 
   // Expected outcome: The new-source route presents its YAML editor.
   // Acceptance criteria: Monaco is visible because source configuration must be available
   // for review and editing after keyboard activation of the "New source" link.
-  await expect(page.locator('.monaco-editor')).toBeVisible({
+  await expect(sourceEditor.locator('.monaco-editor')).toBeVisible({
     timeout: 60_000
   });
   await page.getByRole('radio', { name: /MQTT/ }).check();
@@ -112,7 +113,7 @@ test('catalogue and YAML editor support create, test, retry, and keyboard use', 
   // Expected outcome: Loading the MQTT example replaces the active editor configuration.
   // Acceptance criteria: The editor contains `kind: mqtt` because "Use this example"
   // must copy the selected example into the source being configured.
-  await expect(page.locator('.monaco-editor .view-lines')).toContainText('kind: mqtt');
+  await expect(sourceEditor.locator('.monaco-editor .view-lines')).toContainText('kind: mqtt');
   await page.getByRole('radio', { name: /HTTP \/ JSON/ }).check();
 
   // Expected outcome: Selecting HTTP presents a read-only request policy.
@@ -126,7 +127,7 @@ test('catalogue and YAML editor support create, test, retry, and keyboard use', 
   // Expected outcome: Loading the selected HTTP example replaces the editor configuration.
   // Acceptance criteria: The rendered YAML contains `kind: httpJson` because the selected
   // example must become the active configuration before it can be tested or saved.
-  await expect(page.locator('.monaco-editor .view-lines')).toContainText('kind: httpJson');
+  await expect(sourceEditor.locator('.monaco-editor .view-lines')).toContainText('kind: httpJson');
 
   // Expected outcome: A valid loaded example is eligible for persistence.
   // Acceptance criteria: Save is enabled because the HTTP example satisfies the point-source
@@ -161,7 +162,7 @@ test('catalogue and YAML editor support create, test, retry, and keyboard use', 
   // Expected outcome: The detail route displays the server-returned persisted configuration.
   // Acceptance criteria: The editor contains "Weather API" because the GET for `weather`
   // returns that normalized source and the route must reload it rather than retain the draft.
-  await expect(page.locator('.monaco-editor .view-lines')).toContainText('Weather API');
+  await expect(sourceEditor.locator('.monaco-editor .view-lines')).toContainText('Weather API');
 });
 
 /**
@@ -173,15 +174,16 @@ test('catalogue and YAML editor support create, test, retry, and keyboard use', 
 test('reports schema and indentation errors before a source can be tested or saved', async ({
   page
 }) => {
+  const sourceEditor = page.getByRole('group', { name: 'Point source YAML', exact: true });
   await page.goto('/point-sources/new');
 
   // Expected outcome: The validation scenario starts with an interactive YAML editor.
   // Acceptance criteria: Monaco is visible because malformed YAML must be entered through
   // the same editor and worker validation path used by real source configuration.
-  await expect(page.locator('.monaco-editor')).toBeVisible({
+  await expect(sourceEditor.locator('.monaco-editor')).toBeVisible({
     timeout: 60_000
   });
-  await page.locator('.monaco-editor .view-lines').click();
+  await sourceEditor.locator('.monaco-editor .view-lines').click();
   await page.keyboard.press('ControlOrMeta+A');
   await page.keyboard.insertText(`schemaVersion: 1
 sources:

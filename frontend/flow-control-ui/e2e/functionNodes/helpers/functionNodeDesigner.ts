@@ -99,11 +99,7 @@ export const addVirtualPointNode = async (
   const analog = kind.startsWith('Analog');
   const virtualNodeId = await addNode(page, analog ? 'Analog Virtual' : 'Digital Virtual');
   await configureSelectedNode(page, { 'Virtual point key': pointId });
-  if (kind.endsWith('Input')) return virtualNodeId;
-
-  const outputNodeId = await addNode(page, kind);
-  await configureSelectedNode(page, { 'Output point ID': pointId });
-  return outputNodeId;
+  return virtualNodeId;
 };
 
 export const connectNodes = async (
@@ -127,13 +123,15 @@ export const connectNodes = async (
 };
 
 export const saveFlow = async (page: Page, flowId: string): Promise<void> => {
-  const saved = page.waitForResponse(
-    (response) =>
-      response.request().method() === 'PUT' &&
-      new URL(response.url()).pathname === `/api/flows/${flowId}` &&
-      response.ok()
-  );
-  await page.getByRole('button', { name: 'Save flow' }).click();
-  await saved;
+  const [response] = await Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.request().method() === 'PUT' &&
+        new URL(response.url()).pathname === `/api/flows/${flowId}`,
+      { timeout: 10_000 }
+    ),
+    page.getByRole('button', { name: 'Save flow' }).click()
+  ]);
+  expect(response.ok(), await response.text()).toBeTruthy();
   await expect(page.getByText('Unsaved changes', { exact: true })).toBeHidden();
 };

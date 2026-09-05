@@ -1,28 +1,32 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
+import { parse } from 'yaml';
+
+const pointId = 'new-digital-virtual';
 
 const pointYaml = `schemaVersion: 1
 groups: []
 points:
-  - id: new-digital
-    name: New digital point
+  - id: ${pointId}
+    name: New digital virtual point
     enabled: true
     implementation: virtual
     direction: value
-    valueType: analog
-    units: percent
+    valueType: digital
+    stateLabels: {false: "Off", true: "On"}
     readable: true
     commandable: true
-    persistence: volatile
+    persistence: retained
+    relinquishDefault: false
 `;
 
 test.beforeEach(async ({ page }) => {
-  await page.route('**/api/points/new-digital/runtime', async (route) => {
+  await page.route(`**/api/points/${pointId}/runtime`, async (route) => {
     await route.fulfill({
       json: {
-        pointId: 'new-digital',
+        pointId,
         value: null,
-        units: 'percent',
+        units: null,
         quality: 'unavailable',
         reliability: 'not_initialized',
         sourceTimestamp: null,
@@ -33,7 +37,7 @@ test.beforeEach(async ({ page }) => {
       }
     });
   });
-  await page.route('**/api/points/new-digital', async (route) => {
+  await page.route(`**/api/points/${pointId}`, async (route) => {
     await route.fulfill({
       status: 200,
       body: pointYaml,
@@ -68,12 +72,16 @@ test('creates, reloads and honestly presents an unavailable point value', async 
   // creates, reloads and honestly presents an unavailable point value.
   await expect(page.locator('.monaco-editor')).toBeVisible({ timeout: 60_000 });
   await page.getByLabel('Start with a point example').selectOption('DV — Digital virtual');
+  const creationRequest = page.waitForRequest(
+    (request) => new URL(request.url()).pathname === '/api/points' && request.method() === 'POST'
+  );
   await page.getByRole('button', { name: 'Save' }).press('Enter');
+  expect(parse((await creationRequest).postData()!)).toEqual(parse(pointYaml));
 
   // Expected outcome: Navigation reaches the required route.
-  // Acceptance criteria: the page URL must match `'/points/room-value'`, because this condition proves that
+  // Acceptance criteria: the page URL must match the created point ID, because this condition proves that
   // creates, reloads and honestly presents an unavailable point value.
-  await expect(page).toHaveURL('/points/new-digital');
+  await expect(page).toHaveURL(`/points/${pointId}`);
 
   // Expected outcome: `page.getByRole('heading', { name: 'Live point value' })` is visible to the user.
   // Acceptance criteria: `page.getByRole('heading', { name: 'Live point value' })` must be visible, because this condition proves that

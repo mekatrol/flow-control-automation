@@ -27,7 +27,7 @@ test('Calculator evaluates y = mx + c at several points on the line', async ({ p
   await connectNodes(page, { nodeId: m, connector: 'Value' }, { nodeId: calculator, connector: 'A' });
   await connectNodes(page, { nodeId: x, connector: 'Value' }, { nodeId: calculator, connector: 'B' });
   await connectNodes(page, { nodeId: intercept, connector: 'Value' }, { nodeId: calculator, connector: 'C' });
-  await connectNodes(page, { nodeId: calculator, connector: 'Output' }, { nodeId: output, connector: 'Input' });
+  await connectNodes(page, { nodeId: calculator, connector: 'Output' }, { nodeId: output, connector: 'Set' });
   await saveFlow(page, flowId);
   const savedFlow = await (await page.request.get(`/api/flows/${flowId}`)).json();
   expect(savedFlow.nodes.find((node: { id: string }) => node.id === calculator)?.configuration)
@@ -64,7 +64,7 @@ test('Two calculators convert Celsius to Fahrenheit using connected constants', 
   await connectNodes(page, { nodeId: celsius, connector: 'Value' }, { nodeId: conversion, connector: 'A' });
   await connectNodes(page, { nodeId: ratio, connector: 'Output' }, { nodeId: conversion, connector: 'B' });
   await connectNodes(page, { nodeId: thirtyTwo, connector: 'Value' }, { nodeId: conversion, connector: 'C' });
-  await connectNodes(page, { nodeId: conversion, connector: 'Output' }, { nodeId: output, connector: 'Input' });
+  await connectNodes(page, { nodeId: conversion, connector: 'Output' }, { nodeId: output, connector: 'Set' });
   await saveFlow(page, flowId);
 
   const simulation = await startSimulation(page, flowId);
