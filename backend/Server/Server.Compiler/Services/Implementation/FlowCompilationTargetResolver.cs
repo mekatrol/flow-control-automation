@@ -55,7 +55,7 @@ internal sealed class FlowCompilationTargetResolver(
         {
             pointsById.TryAdd(declaration.Key, VirtualPoint(declaration));
         }
-        var resolvedPoints = new List<FlowPoint>();
+        var resolvedPoints = new List<VirtualAutomationPoint>();
         foreach (var reference in PointReferences(source))
         {
             if (!pointsById.TryGetValue(reference.PointId, out var point))
@@ -74,7 +74,7 @@ internal sealed class FlowCompilationTargetResolver(
         };
     }
 
-    private static FlowPoint VirtualPoint(VirtualPointDeclaration declaration) => new()
+    private static VirtualAutomationPoint VirtualPoint(VirtualPointDeclaration declaration) => new()
     {
         Id = declaration.Key,
         Name = declaration.Key,
@@ -82,7 +82,6 @@ internal sealed class FlowCompilationTargetResolver(
         Implementation = "virtual",
         Direction = DataDirectionType.Value,
         ValueType = declaration.ValueType,
-        PointSourceType = PointSourceType.Virtual,
         Units = declaration.Units,
         Readable = declaration.Readable,
         Commandable = declaration.Commandable,
@@ -97,7 +96,7 @@ internal sealed class FlowCompilationTargetResolver(
         ValidatedControllerTemplate template)
     {
         if (!ControllerCapabilitiesSupport.SupportsConnector(template, ConnectorDataType.Boolean)
-            || !template.PointTypes.Contains(FlowPointValueType.Digital))
+            || !template.PointTypes.Contains(AutomationPointValueType.Digital))
         {
             throw Failure(FlowCompilationDiagnosticCode.UnsupportedTargetConnectorCapability, "/controllerTemplateId");
         }
@@ -184,13 +183,13 @@ internal sealed class FlowCompilationTargetResolver(
             ? value.GetString()
             : null;
 
-    private static void ValidatePoint(PointReference reference, FlowPoint point)
+    private static void ValidatePoint(PointReference reference, VirtualAutomationPoint point)
     {
         var virtualValue = string.Equals(point.Implementation, "virtual", StringComparison.Ordinal)
             && point.Direction == DataDirectionType.Value;
 
         var valid = point.Enabled
-            && point.ValueType == (reference.IsAnalog ? FlowPointValueType.Analog : FlowPointValueType.Digital)
+            && point.ValueType == (reference.IsAnalog ? AutomationPointValueType.Analog : AutomationPointValueType.Digital)
             && (reference.IsInput
                 ? point.Readable && (point.Direction == DataDirectionType.Input || virtualValue)
                 : point.Commandable && (point.Direction == DataDirectionType.Output || virtualValue));

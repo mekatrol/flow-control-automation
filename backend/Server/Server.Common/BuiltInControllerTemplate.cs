@@ -17,7 +17,7 @@ public static class BuiltInControllerTemplate
         Revision = 1,
         Capabilities = new ControllerCapabilities
         {
-            PointTypes = [FlowPointValueType.Analog, FlowPointValueType.Digital, FlowPointValueType.MultiState, FlowPointValueType.Integer, FlowPointValueType.Text],
+            PointTypes = [AutomationPointValueType.Analog, AutomationPointValueType.Digital, AutomationPointValueType.MultiState, AutomationPointValueType.Integer, AutomationPointValueType.Text],
             PointDirections = [DataDirectionType.Input, DataDirectionType.Output, DataDirectionType.InputOutput, DataDirectionType.Value],
             PointFeatures =
             [

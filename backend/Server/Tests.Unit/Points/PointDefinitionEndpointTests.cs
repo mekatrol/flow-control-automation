@@ -192,13 +192,13 @@ internal sealed class PointDefinitionEndpointTests
             Assert.That(created.StatusCode, Is.EqualTo(HttpStatusCode.Created));
         }
 
-        var page = await client.GetFromJsonAsync<PaginatedResult<FlowPoint>>(
+        var page = await client.GetFromJsonAsync<PaginatedResult<VirtualAutomationPoint>>(
             "/api/points?page=2&pageSize=10&filter=TEMPERATURE&sort=descending",
             FlowControlJson.Options);
-        var grouped = await client.GetFromJsonAsync<PaginatedResult<FlowPoint>>(
+        var grouped = await client.GetFromJsonAsync<PaginatedResult<VirtualAutomationPoint>>(
             "/api/points?pageSize=10&groupId=plant",
             FlowControlJson.Options);
-        var standalone = await client.GetFromJsonAsync<PaginatedResult<FlowPoint>>(
+        var standalone = await client.GetFromJsonAsync<PaginatedResult<VirtualAutomationPoint>>(
             "/api/points?pageSize=10&groupId=",
             FlowControlJson.Options);
 
@@ -422,7 +422,7 @@ internal sealed class PointDefinitionEndpointTests
         await AssertError(missing, HttpStatusCode.NotFound, "not_found");
     }
 
-    private static FlowPoint Point(string id, string name, string? groupId = null) => new()
+    private static VirtualAutomationPoint Point(string id, string name, string? groupId = null) => new()
     {
         Id = id,
         Name = name,
@@ -430,8 +430,7 @@ internal sealed class PointDefinitionEndpointTests
         GroupId = groupId,
         Implementation = "virtual",
         Direction = DataDirectionType.Value,
-        ValueType = FlowPointValueType.Analog,
-        PointSourceType = PointSourceType.Virtual,
+        ValueType = AutomationPointValueType.Analog,
         Readable = true,
         Persistence = "volatile"
     };

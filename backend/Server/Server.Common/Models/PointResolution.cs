@@ -9,7 +9,7 @@ public sealed record PointResolution
     public required string PointKey { get; init; }
     public bool Exists { get; init; }
     public string? Implementation { get; init; }
-    public FlowPointValueType? ValueType { get; init; }
+    public AutomationPointValueType? ValueType { get; init; }
     public bool Readable { get; init; }
     public bool Commandable { get; init; }
     public string? Units { get; init; }

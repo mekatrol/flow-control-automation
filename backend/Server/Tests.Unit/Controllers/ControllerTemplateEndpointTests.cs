@@ -172,8 +172,8 @@ internal sealed class ControllerTemplateEndpointTests
                 Capabilities = Template().Capabilities with
                 {
                     PointTypes = [
-                        FlowPointValueType.Analog,
-                        FlowPointValueType.Analog
+                        AutomationPointValueType.Analog,
+                        AutomationPointValueType.Analog
                     ],
                 },
             });
@@ -294,7 +294,7 @@ internal sealed class ControllerTemplateEndpointTests
         Name = "Compact",
         Capabilities = new()
         {
-            PointTypes = [FlowPointValueType.Digital],
+            PointTypes = [AutomationPointValueType.Digital],
             PointDirections = [DataDirectionType.Input, DataDirectionType.Output],
             PointFeatures = [ControllerPointFeatureType.Read, ControllerPointFeatureType.Command],
             ConnectorDataTypes = [ConnectorDataType.Boolean],

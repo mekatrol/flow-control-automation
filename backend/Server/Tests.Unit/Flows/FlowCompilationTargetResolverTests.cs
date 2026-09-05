@@ -117,7 +117,7 @@ public sealed class FlowCompilationTargetResolverTests
 
     private static ResolverContext Resolver(
         ControllerTemplate template,
-        IReadOnlyList<FlowPoint> points) =>
+        IReadOnlyList<VirtualAutomationPoint> points) =>
         Resolver(template, new StubPointStore(points));
 
     private static ResolverContext Resolver(
@@ -188,7 +188,7 @@ public sealed class FlowCompilationTargetResolverTests
         {
             PointTypes =
             [
-                FlowPointValueType.Digital
+                AutomationPointValueType.Digital
             ],
             PointDirections =
             [
@@ -220,19 +220,19 @@ public sealed class FlowCompilationTargetResolverTests
         }
     };
 
-    private static FlowPoint Input(string id) =>
+    private static VirtualAutomationPoint Input(string id) =>
         Point(
             id,
             DataDirectionType.Input,
             readable: true);
 
-    private static FlowPoint Output(string id) =>
+    private static VirtualAutomationPoint Output(string id) =>
         Point(
             id,
             DataDirectionType.Output,
             commandable: true);
 
-    private static FlowPoint VirtualValue(
+    private static VirtualAutomationPoint VirtualValue(
         string id,
         bool readable = false,
         bool commandable = false) =>
@@ -245,7 +245,7 @@ public sealed class FlowCompilationTargetResolverTests
             Implementation = "virtual"
         };
 
-    private static FlowPoint Point(
+    private static VirtualAutomationPoint Point(
         string id,
         DataDirectionType direction,
         bool readable = false,
@@ -256,8 +256,7 @@ public sealed class FlowCompilationTargetResolverTests
             Enabled = true,
             Implementation = "bound",
             Direction = direction,
-            ValueType = FlowPointValueType.Digital,
-            PointSourceType = PointSourceType.Virtual,
+            ValueType = AutomationPointValueType.Digital,
             Readable = readable,
             Commandable = commandable,
             Persistence = "volatile"
@@ -340,30 +339,30 @@ public sealed class FlowCompilationTargetResolverTests
     }
 
     private sealed class StubPointStore(
-        IReadOnlyList<FlowPoint> points) : IPointDefinitionStore
+        IReadOnlyList<VirtualAutomationPoint> points) : IPointDefinitionStore
     {
         public int ListCallCount { get; private set; }
 
-        public Task<IReadOnlyList<FlowPoint>> ListPointsAsync(
+        public Task<IReadOnlyList<VirtualAutomationPoint>> ListPointsAsync(
             CancellationToken cancellationToken)
         {
             ListCallCount++;
             return Task.FromResult(points);
         }
 
-        public Task<FlowPoint> GetPointAsync(
+        public Task<VirtualAutomationPoint> GetPointAsync(
             string id,
             CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
-        public Task<FlowPoint> CreatePointAsync(
-            FlowPoint point,
+        public Task<VirtualAutomationPoint> CreatePointAsync(
+            VirtualAutomationPoint point,
             CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
-        public Task<FlowPoint> UpdatePointAsync(
+        public Task<VirtualAutomationPoint> UpdatePointAsync(
             string id,
-            FlowPoint point,
+            VirtualAutomationPoint point,
             int revision,
             CancellationToken cancellationToken) =>
             throw new NotSupportedException();
@@ -401,7 +400,7 @@ public sealed class FlowCompilationTargetResolverTests
             CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
-        public Task<IReadOnlyList<FlowPoint>> MakePointsStandaloneAsync(
+        public Task<IReadOnlyList<VirtualAutomationPoint>> MakePointsStandaloneAsync(
             string groupId,
             int groupRevision,
             CancellationToken cancellationToken) =>

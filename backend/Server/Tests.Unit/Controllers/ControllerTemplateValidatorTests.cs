@@ -44,7 +44,7 @@ internal sealed class ControllerTemplateValidatorTests
             // Expected outcome: `validated.PointTypes` contains the required values.
             // Acceptance criteria: `validated.PointTypes` must be equivalent to `[PointValueType.Digital]`, because this condition proves that
             // constrained fixture parses and validates as typed capabilities.
-            Assert.That(validated.PointTypes, Is.EquivalentTo([FlowPointValueType.Digital]));
+            Assert.That(validated.PointTypes, Is.EquivalentTo([AutomationPointValueType.Digital]));
 
             // Expected outcome: `validated.PointDirections` contains the required values.
             // Acceptance criteria: `validated.PointDirections` must be equivalent to `[PointDirection.Input, PointDirection.Output]`, because this condition proves that
@@ -97,7 +97,7 @@ internal sealed class ControllerTemplateValidatorTests
             // Expected outcome: `validated.PointTypes` contains the required values.
             // Acceptance criteria: `validated.PointTypes` must be equivalent to `Enum.GetValues<PointValueType>(`, because this condition proves that
             // default is read only and exhaustive.
-            Assert.That(validated.PointTypes, Is.EquivalentTo(Enum.GetValues<FlowPointValueType>()));
+            Assert.That(validated.PointTypes, Is.EquivalentTo(Enum.GetValues<AutomationPointValueType>()));
 
             // Expected outcome: `validated.PointDirections` contains the required values.
             // Acceptance criteria: `validated.PointDirections` must be equivalent to `Enum.GetValues<PointDirection>(`, because this condition proves that
@@ -183,7 +183,7 @@ internal sealed class ControllerTemplateValidatorTests
         var capabilities = Capabilities();
         capabilities = capability switch
         {
-            "pointTypes" => capabilities with { PointTypes = [(FlowPointValueType)byte.MaxValue] },
+            "pointTypes" => capabilities with { PointTypes = [(AutomationPointValueType)byte.MaxValue] },
             "pointDirections" => capabilities with { PointDirections = [(DataDirectionType)byte.MaxValue] },
             "pointFeatures" => capabilities with { PointFeatures = [(ControllerPointFeatureType)byte.MaxValue] },
             "connectorDataTypes" => capabilities with { ConnectorDataTypes = [(ConnectorDataType)byte.MaxValue] },
@@ -224,7 +224,7 @@ internal sealed class ControllerTemplateValidatorTests
         var capabilities = Capabilities();
         capabilities = capability switch
         {
-            "pointTypes" => capabilities with { PointTypes = [FlowPointValueType.Digital, FlowPointValueType.Digital] },
+            "pointTypes" => capabilities with { PointTypes = [AutomationPointValueType.Digital, AutomationPointValueType.Digital] },
             "pointDirections" => capabilities with { PointDirections = [DataDirectionType.Input, DataDirectionType.Input] },
             "pointFeatures" => capabilities with { PointFeatures = [ControllerPointFeatureType.Read, ControllerPointFeatureType.Read] },
             "connectorDataTypes" => capabilities with
@@ -355,7 +355,7 @@ internal sealed class ControllerTemplateValidatorTests
             Assert.That(
                 ControllerCapabilitiesSupport.SupportsPoint(
                     template,
-                    FlowPointValueType.Digital,
+                    AutomationPointValueType.Digital,
                     DataDirectionType.Input),
                 Is.True);
 
@@ -365,7 +365,7 @@ internal sealed class ControllerTemplateValidatorTests
             Assert.That(
                 ControllerCapabilitiesSupport.SupportsPoint(
                     template,
-                    FlowPointValueType.Analog,
+                    AutomationPointValueType.Analog,
                     DataDirectionType.Input),
                 Is.False);
 
@@ -499,7 +499,7 @@ internal sealed class ControllerTemplateValidatorTests
 
     private static ControllerCapabilities Capabilities() => new()
     {
-        PointTypes = [FlowPointValueType.Digital],
+        PointTypes = [AutomationPointValueType.Digital],
         PointDirections = [DataDirectionType.Input, DataDirectionType.Output],
         PointFeatures = [ControllerPointFeatureType.Read, ControllerPointFeatureType.Command],
         ConnectorDataTypes = [ConnectorDataType.Boolean],

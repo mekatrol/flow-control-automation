@@ -15,13 +15,13 @@ public static class PointCompatibility
             or DataDirectionType.InputOutput
             or DataDirectionType.Value;
 
-    public static bool SupportsUnits(FlowPointValueType valueType) =>
-        valueType is FlowPointValueType.Analog or FlowPointValueType.Integer;
+    public static bool SupportsUnits(AutomationPointValueType valueType) =>
+        valueType is AutomationPointValueType.Analog or AutomationPointValueType.Integer;
 
     public static bool ValuesAreCompatible(
-        FlowPointValueType source,
+        AutomationPointValueType source,
         string? sourceUnits,
-        FlowPointValueType target,
+        AutomationPointValueType target,
         string? targetUnits) =>
         source == target
         && (!SupportsUnits(source)

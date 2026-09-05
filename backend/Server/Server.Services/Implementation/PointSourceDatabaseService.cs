@@ -240,8 +240,8 @@ internal sealed class PointSourceDatabaseService(
         JsonSerializer.Deserialize<PointGroup>(entity.Json, FlowControlJson.Options)
         ?? throw new InvalidOperationException($"Stored point group {entity.Id} is null.");
 
-    private static FlowPoint DeserializePoint(PointEntity entity) =>
-        JsonSerializer.Deserialize<FlowPoint>(entity.Json, FlowControlJson.Options)
+    private static VirtualAutomationPoint DeserializePoint(PointEntity entity) =>
+        JsonSerializer.Deserialize<VirtualAutomationPoint>(entity.Json, FlowControlJson.Options)
         ?? throw new InvalidOperationException($"Stored point {entity.Id} is null.");
 
     private static bool IsUniqueConstraint(DbUpdateException exception) =>

@@ -16,7 +16,7 @@ public interface IAutomationPoint
 
     DataDirectionType Direction { get; init; }
 
-    FlowPointValueType ValueType { get; init; }
+    AutomationPointValueType ValueType { get; init; }
 
-    PointSourceType PointSourceType { get; init; }
+    PointSourceType PointSourceType { get; }
 }

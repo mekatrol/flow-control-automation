@@ -4,10 +4,10 @@ using Server.Common.Types;
 namespace Server.Services.Contracts;
 
 public sealed record ValidatedPointDefinition(
-    FlowPoint Source,
+    VirtualAutomationPoint Source,
     PointImplementation Implementation,
     DataDirectionType Direction,
-    FlowPointValueType ValueType,
+    AutomationPointValueType ValueType,
     PointPersistence Persistence,
     PointLimits? Limits,
     DigitalStateLabels? DigitalLabels,

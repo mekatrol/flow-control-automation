@@ -768,7 +768,7 @@ public sealed class FlowCompilerTests
                     Name = "Fixture target",
                     Revision = checked((int)source.ControllerTemplateRevision)
                 },
-                new HashSet<FlowPointValueType> { FlowPointValueType.Digital, FlowPointValueType.Analog },
+                new HashSet<AutomationPointValueType> { AutomationPointValueType.Digital, AutomationPointValueType.Analog },
                 new HashSet<DataDirectionType> { DataDirectionType.Input, DataDirectionType.Output },
                 new HashSet<ControllerPointFeatureType>(),
                 new HashSet<ConnectorDataType> { ConnectorDataType.Boolean, ConnectorDataType.Number },
@@ -777,17 +777,16 @@ public sealed class FlowCompilerTests
                 new HashSet<ControllerRuntimeFeatureType>()),
             Points = [.. source.Nodes
                 .Where(node => node.Kind is FlowNodeType.DigitalInput or FlowNodeType.DigitalOutput or FlowNodeType.AnalogInput or FlowNodeType.AnalogOutput)
-                .Select(node => new FlowPoint
+                .Select(node => new VirtualAutomationPoint
                 {
                     Id = node.Configuration["pointId"].GetString()!,
                     Name = node.Configuration["pointId"].GetString()!,
                     Enabled = true,
                     Implementation = "bound",
                     Direction = node.Kind is FlowNodeType.DigitalInput or FlowNodeType.AnalogInput ? DataDirectionType.Input : DataDirectionType.Output,
-                    ValueType = node.Kind is FlowNodeType.AnalogInput or FlowNodeType.AnalogOutput ? FlowPointValueType.Analog : FlowPointValueType.Digital,
+                    ValueType = node.Kind is FlowNodeType.AnalogInput or FlowNodeType.AnalogOutput ? AutomationPointValueType.Analog : AutomationPointValueType.Digital,
                     Readable = node.Kind is FlowNodeType.DigitalInput or FlowNodeType.AnalogInput,
                     Commandable = node.Kind is FlowNodeType.DigitalOutput or FlowNodeType.AnalogOutput,
-                    PointSourceType = PointSourceType.Physical,
                     Persistence = "volatile",
                     Revision = 1
                 })

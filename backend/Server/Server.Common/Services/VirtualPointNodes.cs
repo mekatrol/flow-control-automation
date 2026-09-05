@@ -30,7 +30,7 @@ public static class VirtualPointNodes
         return new VirtualPointDeclaration
         {
             Key = Text(node, "pointId") ?? string.Empty,
-            ValueType = analog ? FlowPointValueType.Analog : FlowPointValueType.Digital,
+            ValueType = analog ? AutomationPointValueType.Analog : AutomationPointValueType.Digital,
             Units = string.IsNullOrWhiteSpace(units) ? null : units,
             Readable = true,
             Commandable = true,

@@ -3331,7 +3331,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
      */
     private static PointRecord[] BuildPoints(
         IReadOnlyList<ExecutableFlowNode> nodes,
-        IReadOnlyList<FlowPoint> resolvedPoints) =>
+        IReadOnlyList<VirtualAutomationPoint> resolvedPoints) =>
     [
         .. nodes
             .Where(node => node.Kind is
@@ -3385,7 +3385,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
     /// </summary>
     private static PointBindingType PointBinding(
         ExecutableFlowNode node,
-        IReadOnlyList<FlowPoint> resolvedPoints)
+        IReadOnlyList<VirtualAutomationPoint> resolvedPoints)
     {
         var pointId = node.Configuration["pointId"].GetString();
         var point = resolvedPoints.SingleOrDefault(candidate => candidate.Id == pointId);
@@ -3400,7 +3400,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
     /// </summary>
     private static string? PointUnits(
         ExecutableFlowNode node,
-        IReadOnlyList<FlowPoint> resolvedPoints)
+        IReadOnlyList<VirtualAutomationPoint> resolvedPoints)
     {
         if (node.Configuration.TryGetValue("units", out var units))
         {

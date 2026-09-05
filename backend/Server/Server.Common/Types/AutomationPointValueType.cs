@@ -3,7 +3,7 @@ namespace Server.Common.Types;
 /// <summary>
 /// Specifies the value representation of an automation point.
 /// </summary>
-public enum FlowPointValueType : byte
+public enum AutomationPointValueType : byte
 {
     /// <summary>
     /// Represents a numeric measurement or continuously varying value.

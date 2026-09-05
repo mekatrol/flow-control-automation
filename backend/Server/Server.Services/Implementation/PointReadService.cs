@@ -93,7 +93,7 @@ internal sealed class PointReadService(
     }
 
     private async Task<PointRuntimeEnvelope> ReadHttpJson(
-        FlowPoint point,
+        VirtualAutomationPoint point,
         PointSource source,
         CancellationToken cancellationToken)
     {
@@ -178,7 +178,7 @@ internal sealed class PointReadService(
     }
 
     private static PointRuntimeEnvelope Unavailable(
-        FlowPoint point,
+        VirtualAutomationPoint point,
         string reliability,
         string diagnostic) =>
         new(

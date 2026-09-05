@@ -4,7 +4,7 @@ namespace Server.Common.Models;
 
 public sealed record ValidatedControllerTemplate(
     ControllerTemplate Source,
-    IReadOnlySet<FlowPointValueType> PointTypes,
+    IReadOnlySet<AutomationPointValueType> PointTypes,
     IReadOnlySet<DataDirectionType> PointDirections,
     IReadOnlySet<ControllerPointFeatureType> PointFeatures,
     IReadOnlySet<ConnectorDataType> ConnectorDataTypes,

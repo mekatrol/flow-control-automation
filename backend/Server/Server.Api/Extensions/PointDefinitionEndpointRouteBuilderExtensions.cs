@@ -57,7 +57,7 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
         }
 
         var all = await definitions.ListPointsAsync(cancellationToken);
-        IEnumerable<FlowPoint> filtered = all;
+        IEnumerable<VirtualAutomationPoint> filtered = all;
         if (!string.IsNullOrWhiteSpace(options.Value!.Filter))
         {
             filtered = filtered.Where(point =>
@@ -321,7 +321,7 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
             var value = await operation();
             var revision = value switch
             {
-                FlowPoint point => point.Revision,
+                VirtualAutomationPoint point => point.Revision,
                 PointGroup group => group.Revision,
                 _ => throw new InvalidOperationException("Unsupported point resource."),
             };

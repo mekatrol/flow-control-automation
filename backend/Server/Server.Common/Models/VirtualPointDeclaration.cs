@@ -6,7 +6,7 @@ namespace Server.Common.Models;
 public sealed record VirtualPointDeclaration
 {
     public required string Key { get; init; }
-    public required FlowPointValueType ValueType { get; init; }
+    public required AutomationPointValueType ValueType { get; init; }
     public string? Units { get; init; }
     public bool Readable { get; init; }
     public bool Commandable { get; init; }

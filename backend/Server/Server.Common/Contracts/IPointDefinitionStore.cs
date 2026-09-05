@@ -4,15 +4,15 @@ namespace Server.Common.Contracts;
 
 public interface IPointDefinitionStore
 {
-    Task<IReadOnlyList<FlowPoint>> ListPointsAsync(CancellationToken cancellationToken);
+    Task<IReadOnlyList<VirtualAutomationPoint>> ListPointsAsync(CancellationToken cancellationToken);
 
-    Task<FlowPoint> GetPointAsync(string id, CancellationToken cancellationToken);
+    Task<VirtualAutomationPoint> GetPointAsync(string id, CancellationToken cancellationToken);
 
-    Task<FlowPoint> CreatePointAsync(FlowPoint point, CancellationToken cancellationToken);
+    Task<VirtualAutomationPoint> CreatePointAsync(VirtualAutomationPoint point, CancellationToken cancellationToken);
 
-    Task<FlowPoint> UpdatePointAsync(
+    Task<VirtualAutomationPoint> UpdatePointAsync(
         string id,
-        FlowPoint point,
+        VirtualAutomationPoint point,
         int revision,
         CancellationToken cancellationToken);
 
@@ -34,7 +34,7 @@ public interface IPointDefinitionStore
 
     Task DeleteGroupAsync(string id, int revision, CancellationToken cancellationToken);
 
-    Task<IReadOnlyList<FlowPoint>> MakePointsStandaloneAsync(
+    Task<IReadOnlyList<VirtualAutomationPoint>> MakePointsStandaloneAsync(
         string groupId,
         int groupRevision,
         CancellationToken cancellationToken);

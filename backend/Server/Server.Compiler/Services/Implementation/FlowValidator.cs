@@ -173,7 +173,7 @@ internal partial class FlowValidator : IFlowValidator
                 throw new FlowValidationException($"virtualPointDeclarations[{index}].key must be non-empty and unique");
             }
 
-            if (item.ValueType is not (FlowPointValueType.Analog or FlowPointValueType.Digital))
+            if (item.ValueType is not (AutomationPointValueType.Analog or AutomationPointValueType.Digital))
             {
                 throw new FlowValidationException($"virtualPointDeclarations[{index}].valueType must be analog or digital");
             }
@@ -183,13 +183,13 @@ internal partial class FlowValidator : IFlowValidator
                 throw new FlowValidationException($"virtualPointDeclarations[{index}] must be readable or commandable");
             }
 
-            if (item.ValueType == FlowPointValueType.Digital && item.Units is not null)
+            if (item.ValueType == AutomationPointValueType.Digital && item.Units is not null)
             {
                 throw new FlowValidationException($"virtualPointDeclarations[{index}].units are only valid for analog points");
             }
 
             if (item.RelinquishDefault is { } value &&
-                (item.ValueType == FlowPointValueType.Analog
+                (item.ValueType == AutomationPointValueType.Analog
                     ? value.ValueKind != JsonValueKind.Number || !value.TryGetDouble(out var number) || !double.IsFinite(number)
                     : value.ValueKind is not (JsonValueKind.True or JsonValueKind.False)))
             {

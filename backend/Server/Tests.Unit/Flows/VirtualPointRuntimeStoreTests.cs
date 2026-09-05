@@ -164,13 +164,13 @@ public sealed class VirtualPointRuntimeStoreTests
     private static VirtualPointDeclaration Analog(string key) => new()
     {
         Key = key,
-        ValueType = FlowPointValueType.Analog,
+        ValueType = AutomationPointValueType.Analog,
         Readable = true,
         Commandable = true,
         Persistence = VirtualPointPersistenceType.Volatile
     };
 
-    private static VirtualPointDeclaration Digital(string key) => Analog(key) with { ValueType = FlowPointValueType.Digital };
+    private static VirtualPointDeclaration Digital(string key) => Analog(key) with { ValueType = AutomationPointValueType.Digital };
 
     private sealed class RetainedStore : IVirtualPointRetainedStore
     {

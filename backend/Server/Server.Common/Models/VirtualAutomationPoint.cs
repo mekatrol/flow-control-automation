@@ -1,29 +1,14 @@
-using Server.Common.Contracts;
 using Server.Common.Types;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
 namespace Server.Common.Models;
 
-public sealed record FlowPoint : IAutomationPoint
+public sealed record VirtualAutomationPoint : AutomationPoint
 {
-    public required string Id { get; init; }
-
-    public required string Name { get; init; }
-
-    public string? Description { get; init; }
-
-    public bool Enabled { get; set; }
-
-    public string? GroupId { get; set; }
+    public override PointSourceType PointSourceType => PointSourceType.Virtual;
 
     public required string Implementation { get; init; }
-
-    public required DataDirectionType Direction { get; init; }
-
-    public required FlowPointValueType ValueType { get; init; }
-
-    public required PointSourceType PointSourceType { get; init; }
 
     public string? Units { get; init; }
 

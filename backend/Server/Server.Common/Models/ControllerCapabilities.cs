@@ -4,7 +4,7 @@ namespace Server.Common.Models;
 
 public sealed record ControllerCapabilities
 {
-    public IReadOnlyList<FlowPointValueType> PointTypes { get; init; } = [];
+    public IReadOnlyList<AutomationPointValueType> PointTypes { get; init; } = [];
     public IReadOnlyList<DataDirectionType> PointDirections { get; init; } = [];
     public IReadOnlyList<ControllerPointFeatureType> PointFeatures { get; init; } = [];
     public IReadOnlyList<ConnectorDataType> ConnectorDataTypes { get; init; } = [];

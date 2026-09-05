@@ -336,7 +336,7 @@ internal sealed class PointDefinitionStoreTests
     {
         await using var factory = new FlowControlApplicationFactory();
         _ = factory.CreateClient();
-        FlowPoint created;
+        VirtualAutomationPoint created;
         await using (var setupScope = factory.Services.CreateAsyncScope())
         {
             created = await setupScope.ServiceProvider
@@ -428,7 +428,7 @@ internal sealed class PointDefinitionStoreTests
         Name = name
     };
 
-    private static FlowPoint VirtualPoint(
+    private static VirtualAutomationPoint VirtualPoint(
         string id,
         string name,
         string? groupId = null) => new()
@@ -439,13 +439,12 @@ internal sealed class PointDefinitionStoreTests
             GroupId = groupId,
             Implementation = "virtual",
             Direction = DataDirectionType.Value,
-            ValueType = FlowPointValueType.Analog,
-            PointSourceType = PointSourceType.Physical,
+            ValueType = AutomationPointValueType.Analog,
             Readable = true,
             Persistence = "volatile"
         };
 
-    private static FlowPoint BoundPoint(string id, string? groupId) => new()
+    private static VirtualAutomationPoint BoundPoint(string id, string? groupId) => new()
     {
         Id = id,
         Name = id,
@@ -453,8 +452,7 @@ internal sealed class PointDefinitionStoreTests
         GroupId = groupId,
         Implementation = "bound",
         Direction = DataDirectionType.Input,
-        ValueType = FlowPointValueType.Analog,
-        PointSourceType = PointSourceType.Remote,
+        ValueType = AutomationPointValueType.Analog,
         Readable = true,
         Persistence = "volatile",
         Mapping = new System.Text.Json.Nodes.JsonObject

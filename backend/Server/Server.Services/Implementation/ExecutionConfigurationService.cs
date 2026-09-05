@@ -60,7 +60,7 @@ internal sealed partial class ExecutionConfigurationService(
             };
         }
 
-        FlowPoint? point = null;
+        VirtualAutomationPoint? point = null;
         try { point = await pointDefinitions.GetPointAsync(pointKey, cancellationToken); }
         catch (PointDefinitionNotFoundException) { }
 
@@ -416,7 +416,7 @@ internal sealed partial class ExecutionConfigurationService(
     private static void ValidateDeclaration(VirtualPointDeclaration item)
     {
         ValidateId(item.Key, "virtual point key");
-        if (item.ValueType is not (FlowPointValueType.Analog or FlowPointValueType.Digital))
+        if (item.ValueType is not (AutomationPointValueType.Analog or AutomationPointValueType.Digital))
         {
             Fail($"virtual point '{item.Key}' must be analog or digital");
         }
@@ -426,12 +426,12 @@ internal sealed partial class ExecutionConfigurationService(
             Fail($"virtual point '{item.Key}' must be readable or commandable");
         }
 
-        if (item.ValueType == FlowPointValueType.Digital && item.Units is not null)
+        if (item.ValueType == AutomationPointValueType.Digital && item.Units is not null)
         {
             Fail($"digital virtual point '{item.Key}' cannot have units");
         }
 
-        if (item.RelinquishDefault is { } value && (item.ValueType == FlowPointValueType.Analog ? value.ValueKind != JsonValueKind.Number || !value.TryGetDouble(out var number) || !double.IsFinite(number) : value.ValueKind is not (JsonValueKind.True or JsonValueKind.False)))
+        if (item.RelinquishDefault is { } value && (item.ValueType == AutomationPointValueType.Analog ? value.ValueKind != JsonValueKind.Number || !value.TryGetDouble(out var number) || !double.IsFinite(number) : value.ValueKind is not (JsonValueKind.True or JsonValueKind.False)))
         {
             Fail($"virtual point '{item.Key}' default does not match its type");
         }
@@ -591,7 +591,7 @@ internal sealed partial class ExecutionConfigurationService(
 
                 var analog = node.Kind is FlowNodeType.AnalogInput or FlowNodeType.AnalogOutput;
                 var input = node.Kind is FlowNodeType.AnalogInput or FlowNodeType.DigitalInput;
-                if (point.ValueType != (analog ? FlowPointValueType.Analog : FlowPointValueType.Digital)
+                if (point.ValueType != (analog ? AutomationPointValueType.Analog : AutomationPointValueType.Digital)
                     || (input ? !point.Readable : !point.Commandable))
                 {
                     throw new ExecutionConfigurationException($"physical point role '{role}' resolves to an incompatible point", 422);

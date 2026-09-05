@@ -75,7 +75,7 @@ public sealed class VirtualPointRuntimeStore(
                     cell = new Cell(executionInstanceId, declaration);
                     if (retained.GetValueOrDefault(declaration.Key) is { } restored)
                     {
-                        var expected = declaration.ValueType == FlowPointValueType.Analog ? DataType.Number : DataType.Boolean;
+                        var expected = declaration.ValueType == AutomationPointValueType.Analog ? DataType.Number : DataType.Boolean;
                         if (restored.Value.DataType == expected && Compatible(declaration, restored.Contract))
                         {
                             cell.Value = restored.Value;
@@ -161,7 +161,7 @@ public sealed class VirtualPointRuntimeStore(
                         throw new VirtualPointWriterConflictException(executionInstanceId, command.PointId, cell.WriterFlowId ?? "none");
                     }
 
-                    var expected = cell.Contract.ValueType == FlowPointValueType.Analog ? DataType.Number : DataType.Boolean;
+                    var expected = cell.Contract.ValueType == AutomationPointValueType.Analog ? DataType.Number : DataType.Boolean;
                     if (command.TypedValue.DataType != expected)
                     {
                         throw new InvalidOperationException($"Command for virtual point '{command.PointId}' has the wrong value type.");
@@ -250,7 +250,7 @@ public sealed class VirtualPointRuntimeStore(
                         throw new ExecutionConfigurationException($"retained backup point '{pointKey}' is not allocated as retained", 422, "incompatible_retained_backup");
                     }
 
-                    var expected = cell.Contract.ValueType == FlowPointValueType.Analog ? DataType.Number : DataType.Boolean;
+                    var expected = cell.Contract.ValueType == AutomationPointValueType.Analog ? DataType.Number : DataType.Boolean;
                     if (retained.Value.DataType != expected || !Compatible(cell.Contract, retained.Contract))
                     {
                         throw new ExecutionConfigurationException($"retained backup point '{pointKey}' has the wrong type", 422, "incompatible_retained_backup");
@@ -291,7 +291,7 @@ public sealed class VirtualPointRuntimeStore(
     };
 
     private static FlowVmValue? Default(VirtualPointDeclaration contract) => contract.RelinquishDefault is not { } value ? null :
-        contract.ValueType == FlowPointValueType.Analog && value.TryGetDouble(out var number)
+        contract.ValueType == AutomationPointValueType.Analog && value.TryGetDouble(out var number)
             ? FlowVmValue.FromNumber(number)
             : value.ValueKind is System.Text.Json.JsonValueKind.True or System.Text.Json.JsonValueKind.False
                 ? FlowVmValue.FromBoolean(value.GetBoolean()) : null;

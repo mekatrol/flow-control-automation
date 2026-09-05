@@ -468,10 +468,10 @@ public sealed class FlowDecompilerTests
                             checked(
                                 (int)source.ControllerTemplateRevision)
                     },
-                    new HashSet<FlowPointValueType>
+                    new HashSet<AutomationPointValueType>
                     {
-                        FlowPointValueType.Digital,
-                        FlowPointValueType.Analog
+                        AutomationPointValueType.Digital,
+                        AutomationPointValueType.Analog
                     },
                     new HashSet<DataDirectionType>
                     {
@@ -497,7 +497,7 @@ public sealed class FlowDecompilerTests
                                 FlowNodeType.DigitalOutput or
                                 FlowNodeType.AnalogInput or
                                 FlowNodeType.AnalogOutput)
-                        .Select(node => new FlowPoint
+                        .Select(node => new VirtualAutomationPoint
                         {
                             Id =
                                 node.Configuration["pointId"]
@@ -523,10 +523,8 @@ public sealed class FlowDecompilerTests
                                     .StartsWith(
                                         "analog",
                                         StringComparison.Ordinal)
-                                    ? FlowPointValueType.Analog
-                                    : FlowPointValueType.Digital,
-
-                            PointSourceType = PointSourceType.Physical,
+                                    ? AutomationPointValueType.Analog
+                                    : AutomationPointValueType.Digital,
 
                             Units =
                                 node.Kind.ToString()

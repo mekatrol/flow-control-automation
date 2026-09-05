@@ -7,7 +7,7 @@ public static class ControllerCapabilitiesSupport
 {
     public static bool SupportsPoint(
         ValidatedControllerTemplate template,
-        FlowPointValueType valueType,
+        AutomationPointValueType valueType,
         DataDirectionType direction) =>
         template.PointTypes.Contains(valueType)
         && template.PointDirections.Contains(direction);
