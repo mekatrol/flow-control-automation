@@ -1,6 +1,6 @@
+using Server.Common.Types;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Server.Common.Types;
 
 namespace Server.Common.Models;
 

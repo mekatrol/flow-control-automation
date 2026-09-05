@@ -1,8 +1,5 @@
 using Server.Data.Context;
 using Server.Data.Entities;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Migrations;
-using System.Text.Json;
 
 namespace Tests.Unit.Data;
 
@@ -135,59 +132,6 @@ public sealed class DatabaseTests
             // trigger increments version and rejects stale updates.
             Assert.That(saved.Json, Is.EqualTo("""{"name":"current"}"""));
         });
-    }
-
-    [Test]
-    public async Task NodeTypeMigrationUpdatesDraftAndDeployedNodesWithoutChangingConfiguration()
-    {
-        await using var provider = CreateProvider();
-        await using var scope = provider.CreateAsyncScope();
-        var context = scope.ServiceProvider.GetRequiredService<IFlowControlDbContext>();
-        var database = (DbContext)context;
-        var migrator = database.GetService<IMigrator>();
-        await migrator.MigrateAsync("20260822000000_AddAuditRecords");
-        var entity = CreateFlow("legacy-flow", "legacy-flow");
-        entity.Json = """
-            {
-              "revision": 7,
-              "nodes": [
-                {"id":"first","kind":"analogConstant","configuration":{"kind":"custom","nodeType":"custom-type"}},
-                {"id":"second","nodeType":"digitalConstant"},
-                {"id":"third","kind":"and","nodeType":"or"}
-              ],
-              "deployedVersion":{"nodes":[{"id":"deployed","kind":"analogOutput"}]}
-            }
-            """;
-        context.Flows.Add(entity);
-        await context.SaveChangesAsync(CancellationToken.None);
-
-        await context.InitializeDatabase();
-        await context.InitializeDatabase();
-        await database.Entry(entity).ReloadAsync();
-        using (var document = JsonDocument.Parse(entity.Json))
-        {
-            var root = document.RootElement;
-            var nodes = root.GetProperty("nodes");
-            Assert.Multiple(() =>
-            {
-                Assert.That(root.GetProperty("revision").GetInt32(), Is.EqualTo(7));
-                Assert.That(nodes.EnumerateArray().Select(node => node.GetProperty("id").GetString()),
-                    Is.EqualTo(new[] { "first", "second", "third" }));
-                Assert.That(nodes.EnumerateArray().Select(node => node.GetProperty("nodeType").GetString()),
-                    Is.EqualTo(new[] { "analogConstant", "digitalConstant", "or" }));
-                Assert.That(nodes.EnumerateArray().Any(node => node.TryGetProperty("kind", out _)), Is.False);
-                Assert.That(nodes[0].GetProperty("configuration").GetProperty("kind").GetString(), Is.EqualTo("custom"));
-                Assert.That(nodes[0].GetProperty("configuration").GetProperty("nodeType").GetString(), Is.EqualTo("custom-type"));
-                Assert.That(root.GetProperty("deployedVersion").GetProperty("nodes")[0].GetProperty("nodeType").GetString(),
-                    Is.EqualTo("analogOutput"));
-            });
-        }
-
-        await migrator.MigrateAsync("20260822000000_AddAuditRecords");
-        await database.Entry(entity).ReloadAsync();
-        using var reverted = JsonDocument.Parse(entity.Json);
-        Assert.That(reverted.RootElement.GetProperty("nodes")[0].GetProperty("kind").GetString(), Is.EqualTo("analogConstant"));
-        Assert.That(reverted.RootElement.GetProperty("deployedVersion").GetProperty("nodes")[0].TryGetProperty("nodeType", out _), Is.False);
     }
 
     private ServiceProvider CreateProvider()

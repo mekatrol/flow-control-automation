@@ -69,7 +69,11 @@ internal sealed class ExecutionConfigurationEndpointTests
 
         var serverInstances = await client.GetFromJsonAsync<List<ExecutionInstance>>("/api/execution-instances", FlowControlJson.Options);
         Assert.That(serverInstances, Has.Count.EqualTo(1));
-        Assert.That(serverInstances![0].Id, Is.EqualTo("server"));
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(serverInstances![0].Id, Is.EqualTo("server"));
+            Assert.That(serverInstances[0].ExecutionInstanceType, Is.EqualTo(ExecutionInstanceType.Server));
+        }
 
         var createdFlowResponse = await client.PostAsJsonAsync("/api/flows", new { name = "Virtual writer" });
         var flow = (await createdFlowResponse.Content.ReadFromJsonAsync<Flow>(FlowControlJson.Options))! with

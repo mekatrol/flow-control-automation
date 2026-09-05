@@ -36,4 +36,8 @@
     </Content>
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Remove="..\..\..\testdata\contracts\flows\**" />
+  </ItemGroup>
+
 </Project>

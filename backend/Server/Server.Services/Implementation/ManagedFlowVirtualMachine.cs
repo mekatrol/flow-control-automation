@@ -460,7 +460,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
         }
         else if (countInput.Boolean && !previousCount)
         {
-            count += 1D;
+            count++;
         }
 
         Number(instruction, count, Worse(countInput.Quality, resetInput.Quality));

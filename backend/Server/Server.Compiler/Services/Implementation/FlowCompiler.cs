@@ -3381,7 +3381,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
     ];
 
     /// <summary>
-    /// Resolves a distinct physical, virtual, or legacy-interface wire binding from the compiled target.
+    /// Resolves a distinct physical, virtual wire binding from the compiled target.
     /// </summary>
     private static PointBindingType PointBinding(
         ExecutableFlowNode node,

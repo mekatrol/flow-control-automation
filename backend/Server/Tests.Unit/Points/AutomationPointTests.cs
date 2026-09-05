@@ -1,12 +1,12 @@
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Nodes;
 using Server.Common.Contracts;
 using Server.Common.Models;
 using Server.Common.Types;
 using Server.Services;
 using Server.Services.Contracts;
 using Server.Services.Implementation;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Tests.Unit.Api;
 
 namespace Tests.Unit.Points;
@@ -107,8 +107,10 @@ internal sealed class AutomationPointTests
         {
             SafeDisablePolicy = new JsonObject
             {
-                ["startup"] = "stop_driving", ["shutdown"] = "stop_driving",
-                ["communicationLoss"] = "stop_driving", ["disable"] = "stop_driving"
+                ["startup"] = "stop_driving",
+                ["shutdown"] = "stop_driving",
+                ["communicationLoss"] = "stop_driving",
+                ["disable"] = "stop_driving"
             }
         };
         Assert.That(validator.Validate(output, context).SafetyPolicy, Is.Not.Null);
@@ -161,21 +163,34 @@ internal sealed class AutomationPointTests
     {
         PointSourceType.Virtual => new VirtualAutomationPoint
         {
-            Id = "virtual-point", Name = "Virtual", Enabled = true,
-            Direction = DataDirectionType.Value, ValueType = AutomationPointValueType.Analog,
-            Readable = true, Persistence = "volatile"
+            Id = "virtual-point",
+            Name = "Virtual",
+            Enabled = true,
+            Direction = DataDirectionType.Value,
+            ValueType = AutomationPointValueType.Analog,
+            Readable = true,
+            Persistence = "volatile"
         },
         PointSourceType.Physical => new PhysicalAutomationPoint
         {
-            Id = "physical-point", Name = "Physical", Enabled = true,
-            Direction = DataDirectionType.Input, ValueType = AutomationPointValueType.Analog,
-            Readable = true, Persistence = "volatile"
+            Id = "physical-point",
+            Name = "Physical",
+            Enabled = true,
+            Direction = DataDirectionType.Input,
+            ValueType = AutomationPointValueType.Analog,
+            Readable = true,
+            Persistence = "volatile"
         },
         PointSourceType.Remote => new RemoteAutomationPoint
         {
-            Id = "remote-point", Name = "Remote", Enabled = true,
-            Direction = DataDirectionType.Input, ValueType = AutomationPointValueType.Analog,
-            Readable = true, Persistence = "volatile", SourceId = "mqtt",
+            Id = "remote-point",
+            Name = "Remote",
+            Enabled = true,
+            Direction = DataDirectionType.Input,
+            ValueType = AutomationPointValueType.Analog,
+            Readable = true,
+            Persistence = "volatile",
+            SourceId = "mqtt",
             Mapping = new JsonObject { ["stateTopic"] = "sensor/temperature" }
         },
         _ => throw new ArgumentOutOfRangeException(nameof(sourceType))
@@ -183,7 +198,10 @@ internal sealed class AutomationPointTests
 
     private static PointSource Source() => new()
     {
-        Id = "mqtt", Name = "MQTT", Enabled = true, Kind = "mqtt",
+        Id = "mqtt",
+        Name = "MQTT",
+        Enabled = true,
+        Kind = "mqtt",
         Connection = new PointSourceConnection { BrokerUrl = "mqtt://localhost:1883", Qos = 0 },
         Timeouts = new PointSourceTimeouts { ConnectMilliseconds = 1000 }
     };

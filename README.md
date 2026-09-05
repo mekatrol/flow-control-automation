@@ -148,6 +148,10 @@ Deployment environments should provide the same setting through the
 manager. Losing or rotating the key without re-encrypting stored credentials
 makes those credentials unreadable.
 
+### Database migrations
+
+See [`database-migrations.md`](docs/development/database-migrations.md)
+
 ### Backend tasks
 
 The repository provides these VS Code tasks:

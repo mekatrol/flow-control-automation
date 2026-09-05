@@ -130,12 +130,16 @@ export const pointSourceApi = {
     signal: AbortSignal,
     options: { trackWait?: boolean } = {}
   ): Promise<PointTestResult> {
-    const response = await request('/api/point-sources/test-point', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sourceYaml, pointYaml, operation, value }),
-      signal
-    }, options);
+    const response = await request(
+      '/api/point-sources/test-point',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sourceYaml, pointYaml, operation, value }),
+        signal
+      },
+      options
+    );
     return response.json() as Promise<PointTestResult>;
   }
 };
