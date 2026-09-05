@@ -27,6 +27,7 @@ public static class VirtualPointNodes
             ? VirtualPointPersistenceType.Retained
             : VirtualPointPersistenceType.Volatile;
         var units = analog ? Text(node, "units") : null;
+
         return new VirtualPointDeclaration
         {
             Key = Text(node, "pointId") ?? string.Empty,

@@ -135,6 +135,7 @@ internal sealed class ExecutionConfigurationEndpointTests
         var resolution = await client.GetFromJsonAsync<PointResolution>(
             "/api/point-resolution/temp-setpoint?executionContextId=climate&executionInstanceId=server",
             FlowControlJson.Options);
+
         Assert.Multiple(() =>
         {
             Assert.That(resolution!.Exists, Is.True);

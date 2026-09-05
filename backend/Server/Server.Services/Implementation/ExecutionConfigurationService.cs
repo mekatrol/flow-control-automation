@@ -42,6 +42,7 @@ internal sealed partial class ExecutionConfigurationService(
         }
 
         var contract = definition?.PointContracts.SingleOrDefault(item => item.Key == pointKey);
+
         if (contract is not null)
         {
             return new PointResolution
