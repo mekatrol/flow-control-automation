@@ -90,9 +90,10 @@ public sealed class FcpControllerDebugTransportTests
 
     private sealed class RecordingFcpClient(byte[]? snapshot = null) : IFcpClient
     {
+        private readonly List<byte> _operations = [];
         private readonly List<byte> _uploaded = [];
 
-        public IReadOnlyList<byte> Operations { get; } = [];
+        public IReadOnlyList<byte> Operations => _operations;
         public IReadOnlyList<byte> Uploaded => _uploaded;
         public IReadOnlyList<string> LiveOutputPoints { get; private set; } = [];
 
@@ -101,7 +102,7 @@ public sealed class FcpControllerDebugTransportTests
             ReadOnlyMemory<byte> payload,
             CancellationToken cancellationToken)
         {
-            ((List<byte>)Operations).Add(operation);
+            _operations.Add(operation);
             return Task.FromResult(operation switch
             {
                 0x50 => Begin(),
