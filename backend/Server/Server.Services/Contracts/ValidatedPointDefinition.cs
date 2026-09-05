@@ -1,4 +1,5 @@
 using Server.Common.Contracts;
+using Server.Common.Models;
 
 namespace Server.Services.Contracts;
 

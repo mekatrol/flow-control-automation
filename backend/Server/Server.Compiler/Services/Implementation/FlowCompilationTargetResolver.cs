@@ -1,5 +1,6 @@
 using Server.Common;
 using Server.Common.Contracts;
+using Server.Common.Models;
 using Server.Common.Services;
 using Server.Compiler.Contracts;
 
@@ -81,6 +82,7 @@ internal sealed class FlowCompilationTargetResolver(
         Implementation = "virtual",
         Direction = DataDirection.Value,
         ValueType = declaration.ValueType,
+        PointSourceType = PointSourceType.Virtual,
         Units = declaration.Units,
         Readable = declaration.Readable,
         Commandable = declaration.Commandable,

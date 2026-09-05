@@ -1,4 +1,5 @@
 ﻿using Server.Common.Contracts;
+using Server.Common.Models;
 using System.Buffers.Binary;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;

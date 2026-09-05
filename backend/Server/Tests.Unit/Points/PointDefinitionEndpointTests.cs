@@ -1,4 +1,5 @@
 using Server.Common.Contracts;
+using Server.Common.Models;
 using Server.Services.Contracts;
 using System.Net;
 using System.Net.Http.Json;
@@ -429,6 +430,7 @@ internal sealed class PointDefinitionEndpointTests
         Implementation = "virtual",
         Direction = DataDirection.Value,
         ValueType = FlowPointValueType.Analog,
+        PointSourceType = PointSourceType.Remote,
         Readable = true,
         Persistence = "volatile"
     };

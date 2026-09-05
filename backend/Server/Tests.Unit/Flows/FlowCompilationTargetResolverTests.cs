@@ -1,5 +1,6 @@
 using Server.Common;
 using Server.Common.Contracts;
+using Server.Common.Models;
 using Server.Common.Services;
 using Server.Compiler;
 using Server.Compiler.Contracts;
@@ -256,6 +257,7 @@ public sealed class FlowCompilationTargetResolverTests
             Implementation = "bound",
             Direction = direction,
             ValueType = FlowPointValueType.Digital,
+            PointSourceType = PointSourceType.Virtual,
             Readable = readable,
             Commandable = commandable,
             Persistence = "volatile"

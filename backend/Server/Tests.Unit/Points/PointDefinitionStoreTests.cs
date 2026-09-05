@@ -1,4 +1,5 @@
 using Server.Common.Contracts;
+using Server.Common.Models;
 using Server.Common.Services;
 using Server.Data.Context;
 using Server.Data.Entities;
@@ -439,6 +440,7 @@ internal sealed class PointDefinitionStoreTests
             Implementation = "virtual",
             Direction = DataDirection.Value,
             ValueType = FlowPointValueType.Analog,
+            PointSourceType = PointSourceType.Physical,
             Readable = true,
             Persistence = "volatile"
         };
@@ -452,6 +454,7 @@ internal sealed class PointDefinitionStoreTests
         Implementation = "bound",
         Direction = DataDirection.Input,
         ValueType = FlowPointValueType.Analog,
+        PointSourceType = PointSourceType.Remote,
         Readable = true,
         Persistence = "volatile",
         Mapping = new System.Text.Json.Nodes.JsonObject

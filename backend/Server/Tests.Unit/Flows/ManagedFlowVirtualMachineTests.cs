@@ -1,4 +1,4 @@
-﻿using Server.Common.Contracts;
+﻿using Server.Common.Models;
 using Server.Services;
 using Server.Services.Contracts;
 using Server.Services.Implementation;

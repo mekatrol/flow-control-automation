@@ -1,5 +1,6 @@
 using Server.Common;
 using Server.Common.Contracts;
+using Server.Common.Models;
 using Server.Common.Services;
 using Server.Compiler.Services.Implementation;
 using Server.Services;

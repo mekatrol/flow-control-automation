@@ -1,4 +1,5 @@
 ﻿using Server.Common.Contracts;
+using Server.Common.Models;
 using Server.Compiler;
 using Server.Compiler.Contracts;
 using Server.Compiler.Extensions;
@@ -786,6 +787,7 @@ public sealed class FlowCompilerTests
                     ValueType = node.Kind is FlowNodeKind.AnalogInput or FlowNodeKind.AnalogOutput ? FlowPointValueType.Analog : FlowPointValueType.Digital,
                     Readable = node.Kind is FlowNodeKind.DigitalInput or FlowNodeKind.AnalogInput,
                     Commandable = node.Kind is FlowNodeKind.DigitalOutput or FlowNodeKind.AnalogOutput,
+                    PointSourceType = PointSourceType.Physical,
                     Persistence = "volatile",
                     Revision = 1
                 })

@@ -1,9 +1,10 @@
+using Server.Common.Models;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
 namespace Server.Common.Contracts;
 
-public sealed record FlowPoint
+public sealed record FlowPoint : IAutomationPoint
 {
     public required string Id { get; init; }
 
@@ -11,15 +12,17 @@ public sealed record FlowPoint
 
     public string? Description { get; init; }
 
-    public bool Enabled { get; init; }
+    public bool Enabled { get; set; }
 
-    public string? GroupId { get; init; }
+    public string? GroupId { get; set; }
 
     public required string Implementation { get; init; }
 
     public required DataDirection Direction { get; init; }
 
     public required FlowPointValueType ValueType { get; init; }
+
+    public required PointSourceType PointSourceType { get; init; }
 
     public string? Units { get; init; }
 

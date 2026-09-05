@@ -1,4 +1,5 @@
 using Server.Common.Contracts;
+using Server.Common.Models;
 using Server.Services;
 using Server.Services.Contracts;
 using Server.Services.Implementation;
@@ -504,6 +505,7 @@ internal sealed class PointDefinitionValidatorTests
             Implementation = "bound",
             Direction = direction,
             ValueType = FlowPointValueType.Analog,
+            PointSourceType = PointSourceType.Remote,
             Readable = readable,
             Commandable = commandable,
             Persistence = "volatile",
@@ -520,6 +522,7 @@ internal sealed class PointDefinitionValidatorTests
         Implementation = "virtual",
         Direction = DataDirection.Value,
         ValueType = valueType,
+        PointSourceType = PointSourceType.Virtual,
         StateLabels = valueType switch
         {
             FlowPointValueType.Digital => new JsonObject { ["false"] = "Off", ["true"] = "On" },

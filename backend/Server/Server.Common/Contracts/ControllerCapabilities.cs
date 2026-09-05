@@ -1,3 +1,5 @@
+using Server.Common.Models;
+
 namespace Server.Common.Contracts;
 
 public sealed record ControllerCapabilities

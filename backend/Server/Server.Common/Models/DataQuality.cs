@@ -1,4 +1,4 @@
-namespace Server.Common.Contracts;
+namespace Server.Common.Models;
 
 public enum DataQuality : byte
 {

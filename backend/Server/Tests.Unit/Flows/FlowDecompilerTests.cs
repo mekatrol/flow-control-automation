@@ -1,4 +1,5 @@
 ﻿using Server.Common.Contracts;
+using Server.Common.Models;
 using Server.Compiler;
 using Server.Compiler.Contracts;
 using Server.Compiler.Extensions;
@@ -297,7 +298,7 @@ public sealed class FlowDecompilerTests
             Assert.That(recovered.Flow.Connections
                 .Where(connection => connection.End.NodeId == "calculator")
                 .Select(connection => connection.End.ConnectorId),
-                Is.EquivalentTo(new[] { "a", "b", "c" }));
+                Is.EquivalentTo(["a", "b", "c"]));
         });
         AssertArtifactsEqual(original.Artifact.ToArray(), recompiled.Artifact.ToArray());
 
@@ -524,6 +525,8 @@ public sealed class FlowDecompilerTests
                                         StringComparison.Ordinal)
                                     ? FlowPointValueType.Analog
                                     : FlowPointValueType.Digital,
+
+                            PointSourceType = PointSourceType.Physical,
 
                             Units =
                                 node.Kind.ToString()

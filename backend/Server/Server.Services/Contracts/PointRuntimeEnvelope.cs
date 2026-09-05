@@ -1,4 +1,4 @@
-using Server.Common.Contracts;
+using Server.Common.Models;
 using System.Text.Json.Nodes;
 
 namespace Server.Services.Contracts;
