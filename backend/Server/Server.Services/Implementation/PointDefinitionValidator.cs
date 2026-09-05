@@ -17,26 +17,26 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
     {
         ValidateIdentity(point.Id, point.Name, "point");
 
-        var implementation = ParseImplementation(point.Implementation);
+        var sourceType = ParseLegacySourceType(point.Implementation);
         var direction = point.Direction;
         var valueType = point.ValueType;
         var persistence = ParsePersistence(point.Persistence);
-        ValidateCapabilities(point, implementation, direction);
+        ValidateCapabilities(point, sourceType, direction);
 
         var limits = ParseLimits(point.Limits, valueType);
         var (digitalLabels, multiStateLabels) = ParseLabels(point.StateLabels, valueType);
         ValidateUnits(point.Units, valueType);
         ValidateValue(point.RelinquishDefault, valueType, limits, multiStateLabels,
-            "relinquishDefault", required: implementation == PointImplementation.Virtual
+            "relinquishDefault", required: sourceType == PointSourceType.Virtual
                 && persistence == PointPersistence.Retained);
 
-        var (sourceKind, mapping) = ValidateBinding(point, implementation, context);
+        var (sourceKind, mapping) = ValidateBinding(point, sourceType, context);
         var safety = ParseSafetyPolicy(
             point.SafeDisablePolicy,
-            point.Commandable && implementation == PointImplementation.Bound);
+            point.Commandable && sourceType == PointSourceType.Remote);
 
         return new ValidatedPointDefinition(
-            point, implementation, direction, valueType, persistence, limits,
+            point, sourceType, direction, valueType, persistence, limits,
             digitalLabels, multiStateLabels, safety, sourceKind, mapping);
     }
 
@@ -113,15 +113,15 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
 
     private static void ValidateCapabilities(
         VirtualAutomationPoint point,
-        PointImplementation implementation,
+        PointSourceType sourceType,
         DataDirectionType direction)
     {
-        if (implementation == PointImplementation.Virtual && direction != DataDirectionType.Value)
+        if (sourceType == PointSourceType.Virtual && direction != DataDirectionType.Value)
         {
             Fail("virtual points must use value direction");
         }
 
-        if (implementation == PointImplementation.Bound && direction == DataDirectionType.Value)
+        if (sourceType == PointSourceType.Remote && direction == DataDirectionType.Value)
         {
             Fail("bound points cannot use value direction");
         }
@@ -154,10 +154,10 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
 
     private static (PointSourceKind? Kind, PointMapping? Mapping) ValidateBinding(
         VirtualAutomationPoint point,
-        PointImplementation implementation,
+        PointSourceType sourceType,
         PointValidationContext context)
     {
-        if (implementation == PointImplementation.Virtual)
+        if (sourceType == PointSourceType.Virtual)
         {
             if (point.SourceId is not null || point.Mapping is not null)
             {
@@ -667,10 +667,12 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
         }
     }
 
-    private static PointImplementation ParseImplementation(string value) => value switch
+    // Until point documents support the three concrete automation point classes,
+    // translate the legacy wire discriminator here. Bound catalogue points use remote sources.
+    private static PointSourceType ParseLegacySourceType(string value) => value switch
     {
-        "virtual" => PointImplementation.Virtual,
-        "bound" => PointImplementation.Bound,
+        "virtual" => PointSourceType.Virtual,
+        "bound" => PointSourceType.Remote,
         _ => throw new PointDefinitionValidationException("implementation is invalid"),
     };
 

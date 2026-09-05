@@ -5,7 +5,7 @@ namespace Server.Services.Contracts;
 
 public sealed record ValidatedPointDefinition(
     VirtualAutomationPoint Source,
-    PointImplementation Implementation,
+    PointSourceType PointSourceType,
     DataDirectionType Direction,
     AutomationPointValueType ValueType,
     PointPersistence Persistence,

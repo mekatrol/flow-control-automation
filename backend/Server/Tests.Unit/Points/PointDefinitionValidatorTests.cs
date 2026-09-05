@@ -64,6 +64,15 @@ internal sealed class PointDefinitionValidatorTests
         // contract fixture validates and produces typed mappings.
         Assert.Multiple(() =>
         {
+            Assert.That(validated.Select(point => point.PointSourceType), Is.EqualTo(new[]
+            {
+                PointSourceType.Remote,
+                PointSourceType.Remote,
+                PointSourceType.Virtual,
+                PointSourceType.Virtual,
+                PointSourceType.Remote
+            }));
+
             Assert.That(document.Points.Select(point => point.PointSourceType), Is.EqualTo(new[]
             {
                 PointSourceType.Virtual,
