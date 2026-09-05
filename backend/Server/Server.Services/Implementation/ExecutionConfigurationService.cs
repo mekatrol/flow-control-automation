@@ -151,17 +151,17 @@ internal sealed partial class ExecutionConfigurationService(
             Fail("name must be non-empty");
         }
 
-        if (instance.Kind == ExecutionInstanceType.Server && (instance.ControllerTemplateId is not null || instance.ControllerTemplateRevision is not null))
+        if (instance.ExecutionInstanceType == ExecutionInstanceType.Server && (instance.ControllerTemplateId is not null || instance.ControllerTemplateRevision is not null))
         {
             Fail("server instances cannot reference a controller template");
         }
 
-        if (instance.Kind == ExecutionInstanceType.Controller && (string.IsNullOrWhiteSpace(instance.ControllerTemplateId) || instance.ControllerTemplateRevision is null or < 1))
+        if (instance.ExecutionInstanceType == ExecutionInstanceType.Controller && (string.IsNullOrWhiteSpace(instance.ControllerTemplateId) || instance.ControllerTemplateRevision is null or < 1))
         {
             Fail("controller instances require a controller template id and revision");
         }
 
-        if (instance.Kind == ExecutionInstanceType.Controller)
+        if (instance.ExecutionInstanceType == ExecutionInstanceType.Controller)
         {
             ControllerTemplate template;
             try { template = await controllerTemplates.GetAsync(instance.ControllerTemplateId!, cancellationToken); }
@@ -175,7 +175,7 @@ internal sealed partial class ExecutionConfigurationService(
             }
         }
 
-        if (instance.Id == "server" && (!create || instance.Kind != ExecutionInstanceType.Server))
+        if (instance.Id == "server" && (!create || instance.ExecutionInstanceType != ExecutionInstanceType.Server))
         {
             throw new ExecutionConfigurationException("the built-in server instance cannot be changed", 409);
         }
@@ -448,7 +448,7 @@ internal sealed partial class ExecutionConfigurationService(
             throw new ExecutionConfigurationException($"execution instance '{instance.Id}' is disabled", 409);
         }
 
-        if (instance.Kind == ExecutionInstanceType.Controller)
+        if (instance.ExecutionInstanceType == ExecutionInstanceType.Controller)
         {
             ControllerTemplate template;
             try { template = await controllerTemplates.GetAsync(instance.ControllerTemplateId!, cancellationToken); }
@@ -498,10 +498,10 @@ internal sealed partial class ExecutionConfigurationService(
             AddWriters(writers, flow, instance.Id, deployment.Id);
         }
 
-        var templateId = instance.Kind == ExecutionInstanceType.Controller
+        var templateId = instance.ExecutionInstanceType == ExecutionInstanceType.Controller
             ? instance.ControllerTemplateId!
             : BuiltInControllerTemplate.Id;
-        var templateRevision = instance.Kind == ExecutionInstanceType.Controller
+        var templateRevision = instance.ExecutionInstanceType == ExecutionInstanceType.Controller
             ? instance.ControllerTemplateRevision!.Value
             : BuiltInControllerTemplate.Default.Revision;
         var bindings = deployment.PhysicalPointBindings.ToDictionary(item => item.Role, item => item.PointId, StringComparer.Ordinal);
@@ -570,7 +570,7 @@ internal sealed partial class ExecutionConfigurationService(
         foreach (var flow in programs)
         {
             var virtualKeys = VirtualPointNodes.Declarations(flow.Nodes).Select(item => item.Key).ToHashSet(StringComparer.Ordinal);
-            foreach (var node in flow.Nodes.Where(item => item.Kind is FlowNodeType.AnalogInput or FlowNodeType.AnalogOutput or FlowNodeType.DigitalInput or FlowNodeType.DigitalOutput))
+            foreach (var node in flow.Nodes.Where(item => item.NodeType is FlowNodeType.AnalogInput or FlowNodeType.AnalogOutput or FlowNodeType.DigitalInput or FlowNodeType.DigitalOutput))
             {
                 var role = node.Configuration.TryGetValue("pointId", out var value) ? value.GetString() : null;
                 if (role is null || virtualKeys.Contains(role))
@@ -589,8 +589,8 @@ internal sealed partial class ExecutionConfigurationService(
                     throw new ExecutionConfigurationException($"physical point role '{role}' resolves to a missing or disabled point", 422);
                 }
 
-                var analog = node.Kind is FlowNodeType.AnalogInput or FlowNodeType.AnalogOutput;
-                var input = node.Kind is FlowNodeType.AnalogInput or FlowNodeType.DigitalInput;
+                var analog = node.NodeType is FlowNodeType.AnalogInput or FlowNodeType.AnalogOutput;
+                var input = node.NodeType is FlowNodeType.AnalogInput or FlowNodeType.DigitalInput;
                 if (point.ValueType != (analog ? AutomationPointValueType.Analog : AutomationPointValueType.Digital)
                     || (input ? !point.Readable : !point.Commandable))
                 {
@@ -612,7 +612,7 @@ internal sealed partial class ExecutionConfigurationService(
         string? deploymentId)
     {
         var virtualKeys = VirtualPointNodes.Declarations(flow.Nodes).Select(item => item.Key).ToHashSet(StringComparer.Ordinal);
-        foreach (var node in flow.Nodes.Where(item => item.Kind is FlowNodeType.AnalogOutput or FlowNodeType.DigitalOutput))
+        foreach (var node in flow.Nodes.Where(item => item.NodeType is FlowNodeType.AnalogOutput or FlowNodeType.DigitalOutput))
         {
             var key = node.Configuration.TryGetValue("pointId", out var value) ? value.GetString() : null;
             if (key is null || !virtualKeys.Contains(key))

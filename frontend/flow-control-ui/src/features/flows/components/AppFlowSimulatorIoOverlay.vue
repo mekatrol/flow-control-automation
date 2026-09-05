@@ -25,9 +25,9 @@
         :class="{ selected: point.pointId === selectedPointId }"
       >
         <span class="point-name">{{ point.pointId }}</span>
-        <template v-if="point.direction === 'input'">
+        <template v-if="point.direction === DataDirectionType.Input">
           <input
-            v-if="point.declaration.valueType === 'digital'"
+            v-if="point.declaration.valueType === AutomationPointValueType.Digital"
             v-model="draft[point.pointId]"
             type="checkbox"
             :aria-label="`${point.pointId} simulated value`"
@@ -52,9 +52,9 @@
       <h3 id="connected-points-heading">Connected points</h3>
       <div v-for="point in connectedPoints" :key="point.pointId" class="point-row">
         <span class="point-name">{{ point.pointId }}</span>
-        <template v-if="point.direction === 'input'">
+        <template v-if="point.direction === DataDirectionType.Input">
           <input
-            v-if="point.declaration.valueType === 'digital'"
+            v-if="point.declaration.valueType === AutomationPointValueType.Digital"
             v-model="draft[point.pointId]"
             type="checkbox"
             :aria-label="`${point.pointId} simulated value`"
@@ -77,6 +77,10 @@
 </template>
 
 <script setup lang="ts">
+import { FlowNodeType, DataType } from '@/types/serverTypes';
+
+import { AutomationPointValueType, DataDirectionType, DataQualityType } from '@/types/serverTypes';
+
 import { computed, reactive, ref, watch } from 'vue';
 import applyIcon from '@/assets/icons/check-icon.svg';
 import AppButton from '@/components/AppButton.vue';
@@ -94,7 +98,7 @@ import {
 interface SimulationPoint {
   pointId: string;
   declaration: VirtualPointDeclaration;
-  direction: 'input' | 'output';
+  direction: typeof DataDirectionType.Input | typeof DataDirectionType.Output;
   value: EmulatorValue;
   connected: boolean;
 }
@@ -125,50 +129,58 @@ const points = computed<SimulationPoint[]>(() => {
     outputValues.set(output.outputId, output.effectiveValue);
   const result = new Map<string, SimulationPoint>();
   for (const node of props.flow.nodes) {
-    const virtual = node.kind === 'analogVirtual' || node.kind === 'digitalVirtual';
+    const virtual =
+      node.nodeType === FlowNodeType.AnalogVirtual || node.nodeType === FlowNodeType.DigitalVirtual;
     const virtualRead =
       virtual && props.flow.connections.some((connection) => connection.start.nodeId === node.id);
     const virtualWrite =
       virtual && props.flow.connections.some((connection) => connection.end.nodeId === node.id);
     const input =
-      node.kind === 'analogInput' || node.kind === 'digitalInput' || (virtualRead && !virtualWrite);
-    const output = node.kind === 'analogOutput' || node.kind === 'digitalOutput' || virtualWrite;
+      node.nodeType === FlowNodeType.AnalogInput ||
+      node.nodeType === FlowNodeType.DigitalInput ||
+      (virtualRead && !virtualWrite);
+    const output =
+      node.nodeType === FlowNodeType.AnalogOutput ||
+      node.nodeType === FlowNodeType.DigitalOutput ||
+      virtualWrite;
     if (!input && !output) continue;
     const pointId = String(node.configuration.pointId ?? '');
     if (!pointId || result.has(pointId)) continue;
     const flowDeclaration = flowDeclarations.value.get(pointId);
     const declaration = flowDeclaration ?? contextDeclarations.value.get(pointId);
     if (!declaration) continue;
-    const numeric = declaration.valueType === 'analog';
+    const numeric = declaration.valueType === AutomationPointValueType.Analog;
     const fallback: EmulatorValue = {
-      dataType: numeric ? 'number' : 'boolean',
+      dataType: numeric ? DataType.Number : DataType.Boolean,
       boolean: !numeric && Boolean(declaration.relinquishDefault),
       number:
         numeric && typeof declaration.relinquishDefault === 'number'
           ? declaration.relinquishDefault
           : 0,
-      quality: 'good'
+      quality: DataQualityType.Good
     };
     result.set(pointId, {
       pointId,
       declaration,
-      direction: input ? 'input' : 'output',
+      direction: input ? DataDirectionType.Input : DataDirectionType.Output,
       value: (input ? inputValues : outputValues).get(pointId) ?? fallback,
       connected: !flowDeclaration
     });
   }
   return [...result.values()];
 });
-const inputs = computed(() => points.value.filter((point) => point.direction === 'input'));
+const inputs = computed(() =>
+  points.value.filter((point) => point.direction === DataDirectionType.Input)
+);
 const virtualPoints = computed(() => points.value.filter((point) => !point.connected));
 const connectedPoints = computed(() => points.value.filter((point) => point.connected));
 watch(
   points,
   (values) =>
     values.forEach((point) => {
-      if (point.direction !== 'input' || dirty.has(point.pointId)) return;
+      if (point.direction !== DataDirectionType.Input || dirty.has(point.pointId)) return;
       draft[point.pointId] =
-        point.declaration.valueType === 'digital'
+        point.declaration.valueType === AutomationPointValueType.Digital
           ? point.value.boolean
           : String(point.value.number);
     }),
@@ -189,7 +201,7 @@ const markDirty = (pointId: string): void => {
   dirty.add(pointId);
 };
 const display = (point: SimulationPoint): string =>
-  point.declaration.valueType === 'analog'
+  point.declaration.valueType === AutomationPointValueType.Analog
     ? `${point.value.number}${point.declaration.units ? ` ${point.declaration.units}` : ''}`
     : point.value.boolean
       ? 'On'
@@ -197,7 +209,8 @@ const display = (point: SimulationPoint): string =>
 const apply = (): void => {
   const invalid = inputs.value.find(
     (point) =>
-      point.declaration.valueType === 'analog' && !Number.isFinite(Number(draft[point.pointId]))
+      point.declaration.valueType === AutomationPointValueType.Analog &&
+      !Number.isFinite(Number(draft[point.pointId]))
   );
   if (invalid) {
     inputError.value = `Enter a valid number for ${invalid.pointId}.`;
@@ -210,13 +223,16 @@ const apply = (): void => {
       inputId: point.pointId,
       typedValue: {
         ...point.value,
-        dataType: point.declaration.valueType === 'digital' ? 'boolean' : 'number',
+        dataType:
+          point.declaration.valueType === AutomationPointValueType.Digital
+            ? DataType.Boolean
+            : DataType.Number,
         boolean:
-          point.declaration.valueType === 'digital'
+          point.declaration.valueType === AutomationPointValueType.Digital
             ? Boolean(draft[point.pointId])
             : point.value.boolean,
         number:
-          point.declaration.valueType === 'analog'
+          point.declaration.valueType === AutomationPointValueType.Analog
             ? Number(draft[point.pointId])
             : point.value.number
       }

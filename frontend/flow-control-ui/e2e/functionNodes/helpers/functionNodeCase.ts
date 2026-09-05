@@ -16,8 +16,8 @@ import {
   startSimulation,
   stopSimulation
 } from './functionNodeSimulator';
-import { getNodeKind } from '@/features/flows/nodeKinds';
-import type { FlowNodeKind } from '@/features/flows/types';
+import { getNodeTypeDefinition } from '@/features/flows/nodeTypes';
+import type { FlowNodeType } from '@/features/flows/types';
 import { test } from './functionNodeTest';
 
 export { test };
@@ -31,7 +31,7 @@ export interface FunctionVector {
 }
 
 export interface FunctionNodeCase {
-  kind: FlowNodeKind;
+  nodeType: FlowNodeType;
   configuration?: Record<string, NodeConfigurationValue>;
   unconnectedInputs?: string[];
   pauseSimulation?: boolean;
@@ -40,10 +40,10 @@ export interface FunctionNodeCase {
 }
 
 export const booleanBinaryCase = (
-  kind: FunctionNodeCase['kind'],
+  nodeType: FunctionNodeCase['nodeType'],
   expected: [boolean, boolean, boolean, boolean]
 ): FunctionNodeCase => ({
-  kind,
+  nodeType,
   vectors: [
     { inputs: { a: false, b: false }, expected: expected[0] },
     { inputs: { a: false, b: true }, expected: expected[1] },
@@ -55,7 +55,7 @@ export const booleanBinaryCase = (
 export const defineFunctionNodeTest = (
   testCase: FunctionNodeCase
 ): readonly [string, ({ page }: { page: Page }, testInfo: TestInfo) => Promise<void>] => {
-  const label = testCase.testLabel ?? getNodeKind(testCase.kind).label;
+  const label = testCase.testLabel ?? getNodeTypeDefinition(testCase.nodeType).label;
   return [
     `${label} evaluates virtual inputs and publishes its virtual output`,
     async ({ page }, testInfo) => {
@@ -70,10 +70,9 @@ export const runFunctionNodeCase = async (
   testInfo: TestInfo,
   testCase: FunctionNodeCase
 ): Promise<void> => {
-  const definition = getNodeKind(testCase.kind);
+  const definition = getNodeTypeDefinition(testCase.nodeType);
   const inputs = definition.connectors.filter(
-    ({ id, direction }) =>
-      direction === 'input' && !testCase.unconnectedInputs?.includes(id)
+    ({ id, direction }) => direction === 'input' && !testCase.unconnectedInputs?.includes(id)
   );
   const outputs = definition.connectors.filter(({ direction }) => direction === 'output');
   const output = outputs.find(({ id }) => id !== 'error');
@@ -89,7 +88,7 @@ export const runFunctionNodeCase = async (
   const pointIds: Record<string, string> = {};
   for (const [index, connector] of inputs.entries()) {
     const numeric = connector.dataType === 'number';
-    const pointId = `${testCase.kind}-${connector.id}-${suffix}`;
+    const pointId = `${testCase.nodeType}-${connector.id}-${suffix}`;
     pointIds[connector.id] = pointId;
     const pointNode = await addVirtualPointNode(
       page,
@@ -106,7 +105,7 @@ export const runFunctionNodeCase = async (
 
   const outputPointIds: Record<string, string> = {};
   for (const [index, connector] of outputs.entries()) {
-    const outputPointId = `${testCase.kind}-${connector.id}-${suffix}`;
+    const outputPointId = `${testCase.nodeType}-${connector.id}-${suffix}`;
     outputPointIds[connector.id] = outputPointId;
     const outputNode = await addVirtualPointNode(
       page,

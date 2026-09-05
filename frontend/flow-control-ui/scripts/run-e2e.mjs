@@ -59,34 +59,39 @@ const stop = (child) => {
 
 try {
   if (dotnet && !process.env.FLOW_UI_E2E_BACKEND_URL) {
-    start(
-      'dotnet',
-      [backendDll],
-      {
-        SERVER_ADDRESS: backendURL,
-        CREDENTIAL_ENCRYPTION_KEY: 'AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=',
-        CONTROLLER_DATA_FILE: `${process.env.TEMP}/flow-control-controllers-${process.pid}.json`,
-        ConnectionStrings__FlowControl: `Data Source=${process.env.TEMP}/flow-control-e2e-${process.pid}.db`,
-        ApiAccess__Identities__e2e__Key: apiKey,
-        ApiAccess__Identities__e2e__Permissions__0: '*'
-      }
-    );
+    start('dotnet', [backendDll], {
+      SERVER_ADDRESS: backendURL,
+      CREDENTIAL_ENCRYPTION_KEY: 'AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=',
+      CONTROLLER_DATA_FILE: `${process.env.TEMP}/flow-control-controllers-${process.pid}.json`,
+      ConnectionStrings__FlowControl: `Data Source=${process.env.TEMP}/flow-control-e2e-${process.pid}.db`,
+      ApiAccess__Identities__e2e__Key: apiKey,
+      ApiAccess__Identities__e2e__Permissions__0: '*'
+    });
     await waitFor(`${backendURL}/api/health`);
   }
   start(
     process.execPath,
-    ['./node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', String(port), '--strictPort'],
+    [
+      './node_modules/vite/bin/vite.js',
+      '--host',
+      '127.0.0.1',
+      '--port',
+      String(port),
+      '--strictPort'
+    ],
     {
       FLOW_UI_E2E: '1',
       // E2E exercises every registered function through the same palette users see.
-      VITE_HIDDEN_FLOW_NODE_KINDS: '',
+      VITE_HIDDEN_FLOW_NODE_TYPES: '',
       VITE_FLOW_CONTROL_API_KEY: apiKey,
       ...(dotnet ? { VITE_API_PROXY: backendURL } : {})
     }
   );
   await waitFor(`http://127.0.0.1:${port}`);
 
-  const playwrightCli = fileURLToPath(new URL('../node_modules/@playwright/test/cli.js', import.meta.url));
+  const playwrightCli = fileURLToPath(
+    new URL('../node_modules/@playwright/test/cli.js', import.meta.url)
+  );
   const result = spawnSync(process.execPath, [playwrightCli, 'test', ...forwarded], {
     env: {
       ...process.env,

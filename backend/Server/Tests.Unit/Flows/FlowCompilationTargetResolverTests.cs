@@ -169,7 +169,7 @@ public sealed class FlowCompilationTargetResolverTests
         return new ExecutableFlowNode
         {
             Id = id,
-            Kind = kind,
+            NodeType = kind,
             Configuration = new Dictionary<string, JsonElement>
             {
                 ["pointId"] = document.RootElement

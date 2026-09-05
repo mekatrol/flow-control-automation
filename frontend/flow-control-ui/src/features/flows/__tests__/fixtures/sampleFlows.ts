@@ -11,7 +11,7 @@ export const sampleFlows: FlowDefinition[] = [
     nodes: [
       {
         id: 'temperature-average',
-        kind: 'calculator',
+        nodeType: 'calculator',
         label: 'Average temperature',
         x: 90,
         y: 110,
@@ -24,7 +24,7 @@ export const sampleFlows: FlowDefinition[] = [
       },
       {
         id: 'comfort-pulse',
-        kind: 'pulse',
+        nodeType: 'pulse',
         label: 'Comfort pulse',
         x: 430,
         y: 220,
@@ -37,7 +37,7 @@ export const sampleFlows: FlowDefinition[] = [
       },
       {
         id: 'manual-override',
-        kind: 'override',
+        nodeType: 'override',
         label: 'Manual override',
         x: 780,
         y: 320,
@@ -56,7 +56,7 @@ export const sampleFlows: FlowDefinition[] = [
       },
       {
         id: 'zone-split',
-        kind: 'split',
+        nodeType: 'split',
         label: 'Zone outputs',
         x: 780,
         y: 90,
@@ -91,7 +91,7 @@ export const sampleFlows: FlowDefinition[] = [
     nodes: [
       {
         id: 'watering-pulse',
-        kind: 'pulse',
+        nodeType: 'pulse',
         label: 'Watering pulse',
         x: 120,
         y: 120,

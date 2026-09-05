@@ -2,7 +2,7 @@ import { defineFunctionNodeTest, test } from './helpers/functionNodeCase';
 
 test(
   ...defineFunctionNodeTest({
-    kind: 'add',
+    nodeType: 'add',
     vectors: [
       { inputs: { a: 2, b: 3 }, expected: 5, expectedError: false },
       { inputs: { a: 0, b: 0 }, expected: 0, expectedError: false },

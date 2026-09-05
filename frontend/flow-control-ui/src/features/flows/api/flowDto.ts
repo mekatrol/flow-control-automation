@@ -1,24 +1,24 @@
+import { DataDirectionType, DataType } from '@/types/serverTypes';
 import type {
-  ConnectorDataType,
   ConnectorDirection,
   ConnectorSide,
   FlowConfigurationValue,
-  FlowNodeKind,
+  FlowNodeType,
   FlowStatus
 } from '@/features/flows/types';
-import { flowNodeKinds } from '@/features/flows/nodeKinds';
+import { flowNodeTypes } from '@/features/flows/nodeTypes';
 
 export interface FlowNodeConnectorDto {
   id: string;
   label: string;
   direction: ConnectorDirection;
-  dataType: ConnectorDataType;
+  dataType: DataType;
   side: ConnectorSide;
 }
 
 export interface FlowNodeDto {
   id: string;
-  kind: FlowNodeKind;
+  nodeType: FlowNodeType;
   label: string;
   x: number;
   y: number;
@@ -60,10 +60,10 @@ export class FlowDtoValidationError extends Error {
   }
 }
 
-const nodeKinds = new Set<FlowNodeKind>(flowNodeKinds);
+const nodeTypes = new Set<FlowNodeType>(flowNodeTypes);
 const statuses = new Set<FlowStatus>(['draft', 'deployed']);
-const directions = new Set<ConnectorDirection>(['input', 'output']);
-const dataTypes = new Set<ConnectorDataType>(['any', 'boolean', 'event', 'number', 'string']);
+const directions = new Set<ConnectorDirection>([DataDirectionType.Input, DataDirectionType.Output]);
+const dataTypes = new Set<DataType>(Object.values(DataType));
 const sides = new Set<ConnectorSide>(['left', 'right', 'top', 'bottom']);
 
 const fail = (path: string, reason: string): never => {
@@ -100,8 +100,8 @@ const asEnum = <Value extends string>(value: unknown, allowed: Set<Value>, path:
   return text as Value;
 };
 
-const asNodeKind = (value: unknown, path: string): FlowNodeKind => {
-  return asEnum(value, nodeKinds, path);
+const asNodeType = (value: unknown, path: string): FlowNodeType => {
+  return asEnum(value, nodeTypes, path);
 };
 
 const assertUnique = (ids: string[], path: string): void => {
@@ -155,7 +155,7 @@ const parseNode = (value: unknown, path: string): FlowNodeDto => {
   );
   return {
     id: asString(source.id, `${path}.id`),
-    kind: asNodeKind(source.kind, `${path}.kind`),
+    nodeType: asNodeType(source.nodeType, `${path}.nodeType`),
     label: asString(source.label, `${path}.label`),
     x: asFiniteNumber(source.x, `${path}.x`),
     y: asFiniteNumber(source.y, `${path}.y`),
@@ -220,9 +220,15 @@ export const parseFlowDto = (value: unknown): FlowDto => {
     const path = `flow.connections[${index}]`;
     const start = findConnector(nodes, connection.start, `${path}.start`);
     const end = findConnector(nodes, connection.end, `${path}.end`);
-    if (start.direction !== 'output') fail(`${path}.start`, 'must reference an output connector');
-    if (end.direction !== 'input') fail(`${path}.end`, 'must reference an input connector');
-    if (start.dataType !== 'any' && end.dataType !== 'any' && start.dataType !== end.dataType) {
+    if (start.direction !== DataDirectionType.Output)
+      fail(`${path}.start`, 'must reference an output connector');
+    if (end.direction !== DataDirectionType.Input)
+      fail(`${path}.end`, 'must reference an input connector');
+    if (
+      start.dataType !== DataType.Any &&
+      end.dataType !== DataType.Any &&
+      start.dataType !== end.dataType
+    ) {
       fail(path, `connector types “${start.dataType}” and “${end.dataType}” are incompatible`);
     }
   });

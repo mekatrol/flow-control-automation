@@ -2,7 +2,7 @@ import { defineFunctionNodeTest, test } from './helpers/functionNodeCase';
 
 test(
   ...defineFunctionNodeTest({
-    kind: 'clock',
+    nodeType: 'clock',
     configuration: { 'Frequency (Hz)': 2, 'Duty cycle (%)': 25 },
     vectors: [
       { inputs: { enable: false }, expected: false },

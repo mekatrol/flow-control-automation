@@ -242,7 +242,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
      * NODE PORT SHAPES
      * ================
      *
-     * Defines the expected input/output port layout for every supported node kind.
+     * Defines the expected input/output port layout for every supported node type.
      *
      * Each FlowNodeType maps to a FlowNodeShape definition describing:
      *
@@ -643,7 +643,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         // Build a dictionary of node ID -> node for fast lookup during instruction encoding.
         var nodes = source.Nodes.ToDictionary(node => node.Id, StringComparer.Ordinal);
         var slots = BuildTransientSlots(schedule);
-        var arithmeticIds = schedule.Where(id => IsFallibleArithmetic(nodes[id].Kind)).ToArray();
+        var arithmeticIds = schedule.Where(id => IsFallibleArithmetic(nodes[id].NodeType)).ToArray();
         var errorSlots = arithmeticIds.Select((id, index) => new { id, slot = checked((ushort)(schedule.Count + index)) })
             .ToDictionary(item => item.id, item => item.slot, StringComparer.Ordinal);
         foreach (var (id, slot) in errorSlots)
@@ -651,7 +651,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             slots[$"{id}:error"] = slot;
         }
         var calculatorExpressions = nodes
-            .Where(item => item.Value.Kind == FlowNodeType.Calculator)
+            .Where(item => item.Value.NodeType == FlowNodeType.Calculator)
             .ToDictionary(item => item.Key, item => ParseCalculatorFormula(item.Value), StringComparer.Ordinal);
         var calculatorTemporaryCount = calculatorExpressions.Values.Sum(CalculatorFormula.OperationCount);
         var memoryIds = GetMemoryNodeIds(schedule, nodes);
@@ -756,7 +756,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         IEnumerable<string> schedule,
         Dictionary<string, ExecutableFlowNode> nodes)
     {
-        return [.. schedule.Where(id => nodes[id].Kind == FlowNodeType.Memory)];
+        return [.. schedule.Where(id => nodes[id].NodeType == FlowNodeType.Memory)];
     }
 
     /*
@@ -804,7 +804,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         Dictionary<string, ExecutableFlowNode> nodes)
     {
         return [.. schedule
-            .Where(id => nodes[id].Kind is
+            .Where(id => nodes[id].NodeType is
                 FlowNodeType.Memory or
                 FlowNodeType.OnDelay or
                 FlowNodeType.RisingEdge or
@@ -972,7 +972,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
              * +--------------------+
              * | ExecutableFlowNode |
              * |                    |
-             * | Kind               |
+             * | NodeType               |
              * | Configuration      |
              * | Label              |
              * | position, etc.     |
@@ -1023,7 +1023,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
              */
             var resultSlotIndex = slots[id];
 
-            if (node.Kind == FlowNodeType.Calculator)
+            if (node.NodeType == FlowNodeType.Calculator)
             {
                 instructions.AddRange(CreateCalculatorInstructions(
                     source, id, resultSlotIndex, slots, calculatorExpressions[id], ref nextTemporarySlot));
@@ -1042,7 +1042,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                     constants));
             }
 
-            if (node.Kind == FlowNodeType.A2D)
+            if (node.NodeType == FlowNodeType.A2D)
             {
                 instructions.Add(CreateA2DHighInstruction(
                     source, node, id, resultSlotIndex, slots, stateSlots, constants));
@@ -1278,7 +1278,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 U16(index),
                 U16(FlowILV1Format.Unused))));
 
-        slotRecords.AddRange(model.StateIds.Select(id => model.Nodes[id].Kind switch
+        slotRecords.AddRange(model.StateIds.Select(id => model.Nodes[id].NodeType switch
         {
             FlowNodeType.Memory => Concat(
                 [3, (byte)DataType.Number],
@@ -1356,7 +1356,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             .ToList();
 
         commitRecords.AddRange(model.Schedule
-            .Where(id => model.Nodes[id].Kind is
+            .Where(id => model.Nodes[id].NodeType is
                 FlowNodeType.DigitalOutput or
                 FlowNodeType.AnalogOutput)
             .Select(id => Concat(
@@ -1370,7 +1370,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 U16(0))));
 
         commitRecords.AddRange(model.StateIds
-            .Where(id => model.Nodes[id].Kind is
+            .Where(id => model.Nodes[id].NodeType is
                 FlowNodeType.OnDelay or
                 FlowNodeType.RisingEdge or
                 FlowNodeType.Counter or
@@ -1556,13 +1556,13 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             capabilities |= FlowILCapabilityType.Outputs;
         }
 
-        if (memoryIds.Length > 0 || source.Nodes.Any(node => node.Kind == FlowNodeType.A2D))
+        if (memoryIds.Length > 0 || source.Nodes.Any(node => node.NodeType == FlowNodeType.A2D))
         {
             capabilities |= FlowILCapabilityType.State;
         }
 
         if (source.Nodes.Any(node =>
-            node.Kind is
+            node.NodeType is
                 FlowNodeType.Nand or
                 FlowNodeType.Nor or
                 FlowNodeType.Xor or
@@ -1572,7 +1572,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         }
 
         if (source.Nodes.Any(node =>
-                node.Kind is
+                node.NodeType is
                     FlowNodeType.AnalogConstant or
                     FlowNodeType.Add or FlowNodeType.Subtract or FlowNodeType.Multiply or FlowNodeType.Divide or FlowNodeType.Power or FlowNodeType.Negate or
                     FlowNodeType.Comparator or
@@ -1591,27 +1591,27 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             capabilities |= FlowILCapabilityType.Numeric;
         }
 
-        if (source.Nodes.Any(node => node.Kind is FlowNodeType.Comparator or FlowNodeType.A2D))
+        if (source.Nodes.Any(node => node.NodeType is FlowNodeType.Comparator or FlowNodeType.A2D))
         {
             capabilities |= FlowILCapabilityType.Comparison;
         }
 
-        if (source.Nodes.Any(node => node.Kind == FlowNodeType.LevelShifter))
+        if (source.Nodes.Any(node => node.NodeType == FlowNodeType.LevelShifter))
         {
             capabilities |= FlowILCapabilityType.LevelShifter;
         }
 
-        if (source.Nodes.Any(node => node.Kind == FlowNodeType.QualityGood))
+        if (source.Nodes.Any(node => node.NodeType == FlowNodeType.QualityGood))
         {
             capabilities |= FlowILCapabilityType.Quality;
         }
 
-        if (source.Nodes.Any(node => node.Kind is FlowNodeType.OnDelay or FlowNodeType.Delay or FlowNodeType.Timer or FlowNodeType.Pulse or FlowNodeType.Clock))
+        if (source.Nodes.Any(node => node.NodeType is FlowNodeType.OnDelay or FlowNodeType.Delay or FlowNodeType.Timer or FlowNodeType.Pulse or FlowNodeType.Clock))
         {
             capabilities |= FlowILCapabilityType.Timer;
         }
 
-        if (source.Nodes.Any(node => node.Kind is FlowNodeType.RisingEdge or FlowNodeType.Pulse or FlowNodeType.Counter))
+        if (source.Nodes.Any(node => node.NodeType is FlowNodeType.RisingEdge or FlowNodeType.Pulse or FlowNodeType.Counter))
         {
             capabilities |= FlowILCapabilityType.Event;
         }
@@ -1804,7 +1804,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
              * By ignoring dependencies INTO Memory, Memory can supply its
              * previously committed value first.
              */
-            if (nodes[connection.Target.NodeId].Kind == FlowNodeType.Memory)
+            if (nodes[connection.Target.NodeId].NodeType == FlowNodeType.Memory)
             {
                 continue;
             }
@@ -2058,7 +2058,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             nodeId,
             resultSlotIndex);
 
-        return node.Kind switch
+        return node.NodeType switch
         {
             FlowNodeType.DigitalInput or
             FlowNodeType.AnalogInput or
@@ -2117,7 +2117,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         InstructionCreationContext context,
         ExecutableFlowNode node)
     {
-        return node.Kind switch
+        return node.NodeType switch
         {
             FlowNodeType.DigitalInput =>
                 new(
@@ -2195,7 +2195,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         InstructionCreationContext context,
         ExecutableFlowNode node)
     {
-        return node.Kind switch
+        return node.NodeType switch
         {
             FlowNodeType.Not =>
                 new(
@@ -2244,7 +2244,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         InstructionCreationContext context,
         ExecutableFlowNode node)
     {
-        return node.Kind switch
+        return node.NodeType switch
         {
             FlowNodeType.Add =>
                 new(
@@ -2413,7 +2413,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         InstructionCreationContext context,
         ExecutableFlowNode node)
     {
-        return node.Kind switch
+        return node.NodeType switch
         {
             FlowNodeType.OnDelay =>
                 new(
@@ -2554,7 +2554,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         InstructionCreationContext context,
         ExecutableFlowNode node)
     {
-        return node.Kind switch
+        return node.NodeType switch
         {
             FlowNodeType.DigitalOutput =>
                 new(
@@ -2640,7 +2640,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
      * this node. Instructions store this compact index rather than a point ID.
      *
      * Physical I/O nodes identify a binding with configuration["pointId"], while
-     * The lookup also includes direction, data type, and node kind so two records with the
+     * The lookup also includes direction, data type, and node type so two records with the
      * same textual ID cannot be confused when they represent different bindings.
      *
      *     node configuration ID
@@ -2663,7 +2663,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 item.point.Id == pointId &&
                 item.point.Direction == direction &&
                 item.point.DataType == type &&
-                item.point.Kind == node.Kind).index
+                item.point.NodeType == node.NodeType).index
             );
     }
 
@@ -2701,7 +2701,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
      * This pass establishes the assumptions used by later compiler code:
      *
      *     - every node ID is valid and unique
-     *     - every node kind is supported
+     *     - every node type is supported
      *     - node configuration is valid for that kind
      *     - every connection references real ports
      *     - connections run Output -> Input
@@ -2736,9 +2736,9 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 throw Failure(FlowCompilationDiagnosticCode.DuplicateNode, $"/nodes/{index}/id", node.Id);
             }
 
-            if (!Shapes.TryGetValue(node.Kind, out var shape))
+            if (!Shapes.TryGetValue(node.NodeType, out var shape))
             {
-                throw Failure(FlowCompilationDiagnosticCode.UnsupportedNode, $"/nodes/{index}/kind", node.Kind);
+                throw Failure(FlowCompilationDiagnosticCode.UnsupportedNode, $"/nodes/{index}/nodeType", node.NodeType);
             }
 
             ValidateConfiguration(node, index);
@@ -2773,12 +2773,12 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         {
             foreach (var input in shapes[node.Id].Values.Where(port => port.Direction == DataDirectionType.Input))
             {
-                if (node.Kind == FlowNodeType.Calculator &&
+                if (node.NodeType == FlowNodeType.Calculator &&
                     !CalculatorFormula.Variables(ParseCalculatorFormula(node)).Contains(input.Id[0]))
                 {
                     continue;
                 }
-                if (node.Kind == FlowNodeType.Counter && input.Id == "reset")
+                if (node.NodeType == FlowNodeType.Counter && input.Id == "reset")
                 {
                     continue;
                 }
@@ -2794,7 +2794,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
     }
 
     /*
-     * Validate the configuration object for one node according to its node kind.
+     * Validate the configuration object for one node according to its node type.
      *
      * Graph validation proves that ports and connections are structurally valid;
      * this method proves that node-specific settings are usable. Examples include
@@ -2806,7 +2806,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
     private static void ValidateConfiguration(ExecutableFlowNode node, int index)
     {
         var path = $"/nodes/{index}/configuration";
-        if (node.Kind is FlowNodeType.DigitalInput or FlowNodeType.DigitalOutput or FlowNodeType.AnalogInput or FlowNodeType.AnalogOutput)
+        if (node.NodeType is FlowNodeType.DigitalInput or FlowNodeType.DigitalOutput or FlowNodeType.AnalogInput or FlowNodeType.AnalogOutput)
         {
             if (!node.Configuration.TryGetValue("pointId", out var point)
                 || point.ValueKind != JsonValueKind.String
@@ -2829,7 +2829,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             const int MaxIdentifierBytes = 63;
             ValidateIdentifier(pointId, $"{path}/pointId", MaxIdentifierBytes);
         }
-        else if (node.Kind == FlowNodeType.DigitalConstant)
+        else if (node.NodeType == FlowNodeType.DigitalConstant)
         {
             if (node.Configuration.Count != 1
                 || !node.Configuration.TryGetValue("value", out var value)
@@ -2838,11 +2838,11 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 throw Failure(FlowCompilationDiagnosticCode.InvalidBooleanConfiguration, path);
             }
         }
-        else if (node.Kind is FlowNodeType.AnalogConstant or FlowNodeType.Memory)
+        else if (node.NodeType is FlowNodeType.AnalogConstant or FlowNodeType.Memory)
         {
             ValidateFiniteNumber(node, path, "value");
         }
-        else if (node.Kind == FlowNodeType.Comparator)
+        else if (node.NodeType == FlowNodeType.Comparator)
         {
             if (node.Configuration.Count != 1
                 || !node.Configuration.TryGetValue("operator", out var comparison)
@@ -2852,7 +2852,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 throw Failure(FlowCompilationDiagnosticCode.InvalidComparisonOperator, path);
             }
         }
-        else if (node.Kind == FlowNodeType.Calculator)
+        else if (node.NodeType == FlowNodeType.Calculator)
         {
             if (node.Configuration.Count != 1 ||
                 !node.Configuration.TryGetValue("formula", out var formula) ||
@@ -2868,7 +2868,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 throw Failure(FlowCompilationDiagnosticCode.InvalidCalculatorFormula, $"{path}/formula", exception.Message);
             }
         }
-        else if (node.Kind is FlowNodeType.LevelShifter or FlowNodeType.Line)
+        else if (node.NodeType is FlowNodeType.LevelShifter or FlowNodeType.Line)
         {
             if (node.Configuration.Count != 2)
             {
@@ -2878,7 +2878,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             ValidateFiniteNumber(node, path, "gain");
             ValidateFiniteNumber(node, path, "offset");
         }
-        else if (node.Kind == FlowNodeType.A2D)
+        else if (node.NodeType == FlowNodeType.A2D)
         {
             if (node.Configuration.Count != 2)
             {
@@ -2892,7 +2892,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 throw Failure(FlowCompilationDiagnosticCode.InvalidClampRange, path);
             }
         }
-        else if (node.Kind == FlowNodeType.D2A)
+        else if (node.NodeType == FlowNodeType.D2A)
         {
             if (node.Configuration.Count != 2)
             {
@@ -2902,7 +2902,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             ValidateFiniteNumber(node, path, "lowValue");
             ValidateFiniteNumber(node, path, "highValue");
         }
-        else if (node.Kind is FlowNodeType.OnDelay or FlowNodeType.Delay or FlowNodeType.Timer or FlowNodeType.Pulse)
+        else if (node.NodeType is FlowNodeType.OnDelay or FlowNodeType.Delay or FlowNodeType.Timer or FlowNodeType.Pulse)
         {
             ValidateFiniteNumber(node, path, "durationMs");
             var duration = node.Configuration["durationMs"].GetDouble();
@@ -2911,7 +2911,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 throw Failure(FlowCompilationDiagnosticCode.InvalidTimerDuration, path, 0, uint.MaxValue);
             }
         }
-        else if (node.Kind == FlowNodeType.Clock)
+        else if (node.NodeType == FlowNodeType.Clock)
         {
             ValidateFiniteNumber(node, path, "frequencyHz");
             ValidateFiniteNumber(node, path, "dutyCycle");
@@ -2926,7 +2926,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 throw Failure(FlowCompilationDiagnosticCode.InvalidDutyCycle, path, 0, 100);
             }
         }
-        else if (node.Kind == FlowNodeType.Clamp)
+        else if (node.NodeType == FlowNodeType.Clamp)
         {
             if (node.Configuration.Count != 2)
             {
@@ -2940,7 +2940,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 throw Failure(FlowCompilationDiagnosticCode.InvalidClampRange, path);
             }
         }
-        else if (node.Kind is FlowNodeType.Schedule or FlowNodeType.Calendar)
+        else if (node.NodeType is FlowNodeType.Schedule or FlowNodeType.Calendar)
         {
             if (node.Configuration.Count != 1 || !node.Configuration.TryGetValue("enabled", out var enabled) ||
                 enabled.ValueKind is not (JsonValueKind.True or JsonValueKind.False))
@@ -3055,53 +3055,53 @@ internal sealed partial class FlowCompiler : IFlowCompiler
      */
     private static IEnumerable<ConstantRecord> ConstantsFor(ExecutableFlowNode node)
     {
-        if (node.Kind == FlowNodeType.DigitalConstant)
+        if (node.NodeType == FlowNodeType.DigitalConstant)
         {
             yield return GetBooleanConstant(node.Configuration["value"].GetBoolean());
         }
-        else if (node.Kind is FlowNodeType.AnalogConstant or FlowNodeType.Memory)
+        else if (node.NodeType is FlowNodeType.AnalogConstant or FlowNodeType.Memory)
         {
             yield return GetAnalogConstant(node, "value");
         }
-        else if (node.Kind is FlowNodeType.LevelShifter or FlowNodeType.Line)
+        else if (node.NodeType is FlowNodeType.LevelShifter or FlowNodeType.Line)
         {
             yield return GetAnalogConstant(node, "gain");
             yield return GetAnalogConstant(node, "offset");
         }
-        else if (node.Kind == FlowNodeType.Clamp)
+        else if (node.NodeType == FlowNodeType.Clamp)
         {
             yield return GetAnalogConstant(node, "minimum");
             yield return GetAnalogConstant(node, "maximum");
         }
-        else if (node.Kind == FlowNodeType.A2D)
+        else if (node.NodeType == FlowNodeType.A2D)
         {
             yield return GetAnalogConstant(node, "activeLowThreshold");
             yield return GetAnalogConstant(node, "activeHighThreshold");
             yield return GetBooleanConstant(false);
         }
-        else if (node.Kind == FlowNodeType.D2A)
+        else if (node.NodeType == FlowNodeType.D2A)
         {
             yield return GetAnalogConstant(node, "lowValue");
             yield return GetAnalogConstant(node, "highValue");
         }
-        else if (node.Kind is FlowNodeType.OnDelay or FlowNodeType.Delay or FlowNodeType.Timer or FlowNodeType.Pulse)
+        else if (node.NodeType is FlowNodeType.OnDelay or FlowNodeType.Delay or FlowNodeType.Timer or FlowNodeType.Pulse)
         {
             yield return GetAnalogConstant(node, "durationMs");
         }
-        else if (node.Kind == FlowNodeType.Clock)
+        else if (node.NodeType == FlowNodeType.Clock)
         {
             yield return ClockPeriodConstant(node);
             yield return GetAnalogConstant(node, "dutyCycle");
         }
-        else if (node.Kind is FlowNodeType.RisingEdge)
+        else if (node.NodeType is FlowNodeType.RisingEdge)
         {
             yield return GetBooleanConstant(false);
         }
-        else if (node.Kind is FlowNodeType.Counter)
+        else if (node.NodeType is FlowNodeType.Counter)
         {
             yield return new ConstantRecord(DataType.Number, 0D);
         }
-        else if (node.Kind is FlowNodeType.Schedule or FlowNodeType.Calendar)
+        else if (node.NodeType is FlowNodeType.Schedule or FlowNodeType.Calendar)
         {
             yield return GetBooleanConstant(node.Configuration["enabled"].GetBoolean());
         }
@@ -3161,13 +3161,13 @@ internal sealed partial class FlowCompiler : IFlowCompiler
     /*
      * Determine the data type stored in a node's transient result slot.
      *
-     * Known numeric node kinds produce Number; the remaining supported executable node
+     * Known numeric node types produce Number; the remaining supported executable node
      * kinds produce Boolean. This value is written into the slot table and is also
      * used when resolving output point bindings.
      */
     private static DataType ResultDataType(ExecutableFlowNode node)
     {
-        if (node.Kind is
+        if (node.NodeType is
             FlowNodeType.AnalogConstant or
             FlowNodeType.Add or FlowNodeType.Subtract or FlowNodeType.Multiply or FlowNodeType.Divide or FlowNodeType.Power or FlowNodeType.Negate or
             FlowNodeType.LevelShifter or
@@ -3246,7 +3246,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
     private static void ValidatePointReferences(IReadOnlyList<ExecutableFlowNode> nodes)
     {
         var outputPoints = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var node in nodes.Where(node => node.Kind is FlowNodeType.DigitalOutput or FlowNodeType.AnalogOutput))
+        foreach (var node in nodes.Where(node => node.NodeType is FlowNodeType.DigitalOutput or FlowNodeType.AnalogOutput))
         {
             var pointId = node.Configuration["pointId"].GetString()!;
             if (!outputPoints.Add(pointId))
@@ -3280,7 +3280,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
 
         foreach (var connection in source.Connections)
         {
-            if (nodes[connection.Target.NodeId].Kind == FlowNodeType.Memory)
+            if (nodes[connection.Target.NodeId].NodeType == FlowNodeType.Memory)
             {
                 continue;
             }
@@ -3334,7 +3334,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         IReadOnlyList<AutomationPoint> resolvedPoints) =>
     [
         .. nodes
-            .Where(node => node.Kind is
+            .Where(node => node.NodeType is
                 FlowNodeType.DigitalInput or
                 FlowNodeType.DigitalOutput or
                 FlowNodeType.AnalogInput or
@@ -3344,7 +3344,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 node.Configuration["pointId"].GetString()!,
 
                 // Direction
-                node.Kind switch
+                node.NodeType switch
                 {
                     FlowNodeType.DigitalInput => DataDirectionType.Input,
                     FlowNodeType.AnalogInput => DataDirectionType.Input,
@@ -3354,7 +3354,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 },
 
                 // Type
-                node.Kind switch
+                node.NodeType switch
                 {
                     FlowNodeType.DigitalInput or
                     FlowNodeType.DigitalOutput
@@ -3372,10 +3372,10 @@ internal sealed partial class FlowCompiler : IFlowCompiler
 
                 PointBinding(node, resolvedPoints),
 
-                // Kind
-                node.Kind))
+                // NodeType
+                node.NodeType))
             .Distinct()
-            .OrderBy(point => point.Kind)
+            .OrderBy(point => point.NodeType)
             .ThenBy(point => point.Id, StringComparer.Ordinal)
             .ThenBy(point => point.Direction)
     ];
@@ -3494,7 +3494,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         {
             var node = nodes[id];
 
-            var value = node.Kind switch
+            var value = node.NodeType switch
             {
                 FlowNodeType.AnalogInput => request.Target.Points.SingleOrDefault(point => point.Id == node.Configuration["pointId"].GetString())?.Units,
                 FlowNodeType.AnalogConstant => null,
@@ -3515,7 +3515,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
 
             units[id] = value;
 
-            if (node.Kind == FlowNodeType.AnalogOutput)
+            if (node.NodeType == FlowNodeType.AnalogOutput)
             {
                 var inputUnits = units[SourceNode(source, id, "in")];
 
@@ -3727,7 +3727,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
     }
 
     /// <summary>
-    /// Generates a human-friendly label from <c>node.Kind</c> when <c>node.Label</c> is blank.
+    /// Generates a human-friendly label from <c>node.NodeType</c> when <c>node.Label</c> is blank.
     /// <para>
     /// Examples:
     /// <c>digitalInput</c> → <c>Digital Input</c>,
@@ -3743,11 +3743,11 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             return node.Label;
         }
 
-        var value = CaptialCaseBoundaryRegex().Replace(node.Kind.ToString(), " $1").Trim();
+        var value = CaptialCaseBoundaryRegex().Replace(node.NodeType.ToString(), " $1").Trim();
 
         return value.Length > 0
             ? char.ToUpperInvariant(value[0]) + value[1..]
-            : node.Kind.ToString();
+            : node.NodeType.ToString();
     }
 
     [GeneratedRegex("([A-Z])", RegexOptions.CultureInvariant)]
@@ -3778,7 +3778,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         None = byte.MaxValue
     }
 
-    /* Describes the complete set of connection ports exposed by one node kind. */
+    /* Describes the complete set of connection ports exposed by one node type. */
     private sealed record FlowNodeShape(IReadOnlyList<FlowPort> Ports);
 
     /* Describes one named node connection point: its ID, direction, and value type. */
@@ -3788,7 +3788,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
     private sealed record FlowPortKey(string NodeId, string PortId);
 
     /* Canonical compiler representation of one physical or virtual point binding. */
-    private sealed record PointRecord(string Id, DataDirectionType Direction, DataType DataType, string? Units, PointBindingType BindingKind, FlowNodeType Kind);
+    private sealed record PointRecord(string Id, DataDirectionType Direction, DataType DataType, string? Units, PointBindingType BindingKind, FlowNodeType NodeType);
 
     /* Typed literal stored in the canonical constant pool before binary encoding. */
     private sealed record ConstantRecord(DataType DataType, double Number);

@@ -422,18 +422,18 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
         };
 
         private static IEnumerable<FlowVmInput> InitialInputs(ExecutableFlowSource source) => source.Nodes
-            .Where(node => node.Kind is FlowNodeType.DigitalInput or FlowNodeType.AnalogInput
+            .Where(node => node.NodeType is FlowNodeType.DigitalInput or FlowNodeType.AnalogInput
                 && node.Configuration.TryGetValue("pointId", out _))
             .Select(node => new
             {
                 PointId = node.Configuration["pointId"].GetString(),
-                node.Kind
+                node.NodeType
             })
             .Where(static item => !string.IsNullOrEmpty(item.PointId))
             .DistinctBy(static item => item.PointId, StringComparer.Ordinal)
             .Select(static item => new FlowVmInput(
                 item.PointId!,
-                item.Kind == FlowNodeType.AnalogInput
+                item.NodeType == FlowNodeType.AnalogInput
                     ? FlowVmValue.FromNumber(0)
                     : FlowVmValue.FromBoolean(false)));
 

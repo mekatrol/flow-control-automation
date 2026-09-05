@@ -10,14 +10,14 @@
     <div v-if="Object.keys(groups).length" class="palette-groups">
       <section v-for="(definitions, category) in groups" :key="category">
         <h3>{{ category }}</h3>
-        <div v-for="definition in definitions" :key="definition.kind" class="palette-item">
+        <div v-for="definition in definitions" :key="definition.nodeType" class="palette-item">
           <AppButton
             class="palette-add-button"
             :text="definition.label"
             draggable="true"
             :aria-label="`Add ${definition.label} node`"
-            @click="emit(EVENTS.ADD, definition.kind)"
-            @dragstart="startPaletteDrag(definition.kind, $event)"
+            @click="emit(EVENTS.ADD, definition.nodeType)"
+            @dragstart="startPaletteDrag(definition.nodeType, $event)"
           >
             <template #icon>
               <AppSvg :src="getNodeIconUrl(definition.icon)" size="100%" />
@@ -26,24 +26,24 @@
         </div>
       </section>
     </div>
-    <p v-else>No node kinds match “{{ filter }}”.</p>
+    <p v-else>No node types match “{{ filter }}”.</p>
   </aside>
 </template>
 
 <script lang="ts">
 import {
   getNodeIconUrl,
-  getNodeKind,
-  paletteNodeKinds,
-  type NodeKindDefinition
-} from '@/features/flows/nodeKinds';
+  getNodeTypeDefinition,
+  paletteNodeTypes,
+  type FlowNodeTypeDefinition
+} from '@/features/flows/nodeTypes';
 
-export const filterNodeKinds = (query: string): NodeKindDefinition[] => {
+export const filterNodeTypes = (query: string): FlowNodeTypeDefinition[] => {
   const search = query.trim().toLocaleLowerCase();
   // Search the registry rather than rendered labels so filtering remains a pure,
   // testable operation and category names are searchable as well as node names.
-  return paletteNodeKinds
-    .map(getNodeKind)
+  return paletteNodeTypes
+    .map(getNodeTypeDefinition)
     .filter(
       (definition) =>
         !search ||
@@ -52,13 +52,13 @@ export const filterNodeKinds = (query: string): NodeKindDefinition[] => {
     );
 };
 
-export const groupNodeKinds = (
-  definitions: NodeKindDefinition[]
-): Partial<Record<NodeKindDefinition['category'], NodeKindDefinition[]>> => {
+export const groupNodeTypes = (
+  definitions: FlowNodeTypeDefinition[]
+): Partial<Record<FlowNodeTypeDefinition['category'], FlowNodeTypeDefinition[]>> => {
   // Build groups from the filtered result so empty categories disappear instead
   // of leaving headings with no actions beneath them.
-  const categories: NodeKindDefinition['category'][] = ['io', 'control', 'timing', 'maths'];
-  const groups: Partial<Record<NodeKindDefinition['category'], NodeKindDefinition[]>> = {};
+  const categories: FlowNodeTypeDefinition['category'][] = ['io', 'control', 'timing', 'maths'];
+  const groups: Partial<Record<FlowNodeTypeDefinition['category'], FlowNodeTypeDefinition[]>> = {};
   for (const category of categories) {
     const categoryDefinitions = definitions
       .filter((definition) => definition.category === category)
@@ -78,16 +78,16 @@ import AppButton from '@/components/AppButton.vue';
 import AppFilter from '@/components/AppFilter.vue';
 import AppSvg from '@/components/AppSvg.vue';
 import { EVENTS } from '@/constants/events';
-import type { FlowNodeKind } from '@/features/flows/types';
+import type { FlowNodeType } from '@/features/flows/types';
 
 const emit = defineEmits<{
-  (event: typeof EVENTS.ADD, kind: FlowNodeKind): void;
+  (event: typeof EVENTS.ADD, type: FlowNodeType): void;
 }>();
 const filter = ref('');
-const groups = computed(() => groupNodeKinds(filterNodeKinds(filter.value)));
+const groups = computed(() => groupNodeTypes(filterNodeTypes(filter.value)));
 
-const startPaletteDrag = (kind: FlowNodeKind, event: DragEvent): void => {
-  event.dataTransfer?.setData('application/x-flow-node-function-type', kind);
+const startPaletteDrag = (type: FlowNodeType, event: DragEvent): void => {
+  event.dataTransfer?.setData('application/x-flow-node-function-type', type);
   if (event.dataTransfer) event.dataTransfer.effectAllowed = 'copy';
 };
 </script>

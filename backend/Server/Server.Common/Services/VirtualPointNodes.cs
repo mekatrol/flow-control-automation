@@ -6,23 +6,23 @@ namespace Server.Common.Services;
 
 public static class VirtualPointNodes
 {
-    public static bool IsVirtual(this FlowNodeType kind) =>
-        kind is FlowNodeType.AnalogVirtual or FlowNodeType.DigitalVirtual;
+    public static bool IsVirtual(this FlowNodeType nodeType) =>
+        nodeType is FlowNodeType.AnalogVirtual or FlowNodeType.DigitalVirtual;
 
-    public static FlowNodeType ExecutableKind(this FlowNodeType kind) => kind switch
+    public static FlowNodeType ExecutableNodeType(this FlowNodeType nodeType) => nodeType switch
     {
         FlowNodeType.AnalogVirtual => FlowNodeType.AnalogInput,
         FlowNodeType.DigitalVirtual => FlowNodeType.DigitalInput,
-        _ => kind
+        _ => nodeType
     };
 
     public static IReadOnlyList<VirtualPointDeclaration> Declarations(
         IEnumerable<FlowNode> nodes) =>
-        [.. nodes.Where(node => node.Kind.IsVirtual()).Select(Declaration)];
+        [.. nodes.Where(node => node.NodeType.IsVirtual()).Select(Declaration)];
 
     private static VirtualPointDeclaration Declaration(FlowNode node)
     {
-        var analog = node.Kind == FlowNodeType.AnalogVirtual;
+        var analog = node.NodeType == FlowNodeType.AnalogVirtual;
         var persistence = Text(node, "persistence") == "retained"
             ? VirtualPointPersistenceType.Retained
             : VirtualPointPersistenceType.Volatile;

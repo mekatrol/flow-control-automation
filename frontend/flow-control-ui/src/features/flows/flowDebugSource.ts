@@ -1,3 +1,5 @@
+import { FlowNodeType } from '@/types/serverTypes';
+import { FlowExecutionModeType, InputQualityPolicyType } from '@/types/serverTypes';
 import type { ExecutableFlowSource } from '@/features/flows/api/flowDebugApi';
 import type { FlowDebugTarget } from '@/features/flows/debugTargets';
 import {
@@ -8,54 +10,54 @@ import {
   type FlowNode
 } from '@/features/flows/types';
 
-const supportedKinds = new Set([
-  'digitalInput',
-  'digitalConstant',
-  'not',
-  'and',
-  'or',
-  'nand',
-  'nor',
-  'xor',
-  'xnor',
-  'analogConstant',
-  'analogInput',
-  'analogVirtual',
-  'analogOutput',
-  'add',
-  'subtract',
-  'multiply',
-  'divide',
-  'power',
-  'negate',
-  'comparator',
-  'counter',
-  'clock',
-  'levelShifter',
-  'qualityGood',
-  'onDelay',
-  'risingEdge',
-  'memory',
-  'digitalOutput',
-  'digitalVirtual',
-  'average',
-  'calculator',
-  'calendar',
-  'clamp',
-  'delay',
-  'digitalSwitch',
-  'line',
-  'max',
-  'min',
-  'override',
-  'pulse',
-  'schedule',
-  'analogSwitch',
-  'sequence',
-  'split',
-  'timer',
-  'a2d',
-  'd2a'
+const supportedNodeTypes = new Set<FlowNodeType>([
+  FlowNodeType.DigitalInput,
+  FlowNodeType.DigitalConstant,
+  FlowNodeType.Not,
+  FlowNodeType.And,
+  FlowNodeType.Or,
+  FlowNodeType.Nand,
+  FlowNodeType.Nor,
+  FlowNodeType.Xor,
+  FlowNodeType.Xnor,
+  FlowNodeType.AnalogConstant,
+  FlowNodeType.AnalogInput,
+  FlowNodeType.AnalogVirtual,
+  FlowNodeType.AnalogOutput,
+  FlowNodeType.Add,
+  FlowNodeType.Subtract,
+  FlowNodeType.Multiply,
+  FlowNodeType.Divide,
+  FlowNodeType.Power,
+  FlowNodeType.Negate,
+  FlowNodeType.Comparator,
+  FlowNodeType.Counter,
+  FlowNodeType.Clock,
+  FlowNodeType.LevelShifter,
+  FlowNodeType.QualityGood,
+  FlowNodeType.OnDelay,
+  FlowNodeType.RisingEdge,
+  FlowNodeType.Memory,
+  FlowNodeType.DigitalOutput,
+  FlowNodeType.DigitalVirtual,
+  FlowNodeType.Average,
+  FlowNodeType.Calculator,
+  FlowNodeType.Calendar,
+  FlowNodeType.Clamp,
+  FlowNodeType.Delay,
+  FlowNodeType.DigitalSwitch,
+  FlowNodeType.Line,
+  FlowNodeType.Max,
+  FlowNodeType.Min,
+  FlowNodeType.Override,
+  FlowNodeType.Pulse,
+  FlowNodeType.Schedule,
+  FlowNodeType.AnalogSwitch,
+  FlowNodeType.Sequence,
+  FlowNodeType.Split,
+  FlowNodeType.Timer,
+  FlowNodeType.A2D,
+  FlowNodeType.D2A
 ]);
 
 export class FlowDebugSourceError extends Error {
@@ -83,51 +85,59 @@ export const graphRevision = (flow: FlowDefinition): number => {
 
 const configurationFor = (node: FlowNode): Record<string, unknown> => {
   if (
-    node.kind === 'digitalInput' ||
-    node.kind === 'digitalOutput' ||
-    node.kind === 'analogInput' ||
-    node.kind === 'analogOutput' ||
-    node.kind === 'analogVirtual' ||
-    node.kind === 'digitalVirtual'
+    node.nodeType === FlowNodeType.DigitalInput ||
+    node.nodeType === FlowNodeType.DigitalOutput ||
+    node.nodeType === FlowNodeType.AnalogInput ||
+    node.nodeType === FlowNodeType.AnalogOutput ||
+    node.nodeType === FlowNodeType.AnalogVirtual ||
+    node.nodeType === FlowNodeType.DigitalVirtual
   ) {
     const pointId = node.configuration.pointId;
     if (typeof pointId !== 'string' || !pointId.trim())
       throw new FlowDebugSourceError(`${node.label} (${node.id}) requires a point ID.`, node.id);
     return { pointId: pointId.trim() };
   }
-  if (node.kind === 'digitalConstant') return { value: Boolean(node.configuration.value) };
-  if (node.kind === 'analogConstant' || node.kind === 'memory')
+  if (node.nodeType === FlowNodeType.DigitalConstant)
+    return { value: Boolean(node.configuration.value) };
+  if (node.nodeType === FlowNodeType.AnalogConstant || node.nodeType === FlowNodeType.Memory)
     return { value: Number(node.configuration.value) };
-  if (node.kind === 'comparator') return { operator: String(node.configuration.operator) };
-  if (node.kind === 'calculator') return { formula: String(node.configuration.formula) };
-  if (node.kind === 'levelShifter')
+  if (node.nodeType === FlowNodeType.Comparator)
+    return { operator: String(node.configuration.operator) };
+  if (node.nodeType === FlowNodeType.Calculator)
+    return { formula: String(node.configuration.formula) };
+  if (node.nodeType === FlowNodeType.LevelShifter)
     return { gain: Number(node.configuration.gain), offset: Number(node.configuration.offset) };
-  if (node.kind === 'onDelay') return { durationMs: Number(node.configuration.durationMs) };
-  if (node.kind === 'delay' || node.kind === 'pulse' || node.kind === 'timer')
+  if (node.nodeType === FlowNodeType.OnDelay)
     return { durationMs: Number(node.configuration.durationMs) };
-  if (node.kind === 'clock')
+  if (
+    node.nodeType === FlowNodeType.Delay ||
+    node.nodeType === FlowNodeType.Pulse ||
+    node.nodeType === FlowNodeType.Timer
+  )
+    return { durationMs: Number(node.configuration.durationMs) };
+  if (node.nodeType === FlowNodeType.Clock)
     return {
       frequencyHz: Number(node.configuration.frequencyHz),
       dutyCycle: Number(node.configuration.dutyCycle)
     };
-  if (node.kind === 'clamp')
+  if (node.nodeType === FlowNodeType.Clamp)
     return {
       minimum: Number(node.configuration.minimum),
       maximum: Number(node.configuration.maximum)
     };
-  if (node.kind === 'line')
+  if (node.nodeType === FlowNodeType.Line)
     return { gain: Number(node.configuration.gain), offset: Number(node.configuration.offset) };
-  if (node.kind === 'a2d')
+  if (node.nodeType === FlowNodeType.A2D)
     return {
       activeLowThreshold: Number(node.configuration.activeLowThreshold),
       activeHighThreshold: Number(node.configuration.activeHighThreshold)
     };
-  if (node.kind === 'd2a')
+  if (node.nodeType === FlowNodeType.D2A)
     return {
       lowValue: Number(node.configuration.lowValue),
       highValue: Number(node.configuration.highValue)
     };
-  if (node.kind === 'schedule' || node.kind === 'calendar')
+  if (node.nodeType === FlowNodeType.Schedule || node.nodeType === FlowNodeType.Calendar)
     return { enabled: Boolean(node.configuration.enabled) };
   return {};
 };
@@ -138,10 +148,10 @@ export const createExecutableFlowSource = (
 ): ExecutableFlowSource => {
   if (!target.controllerTemplateId || !target.controllerTemplateRevision)
     throw new FlowDebugSourceError('Choose a compatible execution target.');
-  const unsupported = flow.nodes.find((node) => !supportedKinds.has(node.kind));
+  const unsupported = flow.nodes.find((node) => !supportedNodeTypes.has(node.nodeType));
   if (unsupported)
     throw new FlowDebugSourceError(
-      `${unsupported.label} (${unsupported.id}) uses unsupported debug function “${unsupported.kind}”.`,
+      `${unsupported.label} (${unsupported.id}) uses unsupported debug function “${unsupported.nodeType}”.`,
       unsupported.id
     );
   if (flow.nodes.length === 0) throw new FlowDebugSourceError('Add at least one debug node.');
@@ -170,7 +180,10 @@ export const createExecutableFlowSource = (
       result.push({
         ...node,
         id: usage.reads ? `${node.id}--write` : node.id,
-        kind: node.kind === 'analogVirtual' ? 'analogOutput' : 'digitalOutput'
+        nodeType:
+          node.nodeType === FlowNodeType.AnalogVirtual
+            ? FlowNodeType.AnalogOutput
+            : FlowNodeType.DigitalOutput
       });
     return result;
   });
@@ -182,34 +195,32 @@ export const createExecutableFlowSource = (
     controllerTemplateId: target.controllerTemplateId,
     controllerTemplateRevision: target.controllerTemplateRevision,
     execution: {
-      mode: 'manual',
+      mode: FlowExecutionModeType.Manual,
       intervalMs: 0,
-      inputQualityPolicy: flow.nodes.some((node) => node.kind === 'qualityGood')
-        ? 'propagate'
-        : 'requireGood'
+      inputQualityPolicy: flow.nodes.some((node) => node.nodeType === FlowNodeType.QualityGood)
+        ? InputQualityPolicyType.Propagate
+        : InputQualityPolicyType.RequireGood
     },
-    nodes: executableNodes
-      .map((node) => ({
+    nodes: executableNodes.map((node) => ({
       id: node.id,
-      kind:
-        node.kind === 'analogVirtual'
-          ? 'analogInput'
-          : node.kind === 'digitalVirtual'
-            ? 'digitalInput'
-            : node.kind,
+      nodeType:
+        node.nodeType === FlowNodeType.AnalogVirtual
+          ? FlowNodeType.AnalogInput
+          : node.nodeType === FlowNodeType.DigitalVirtual
+            ? FlowNodeType.DigitalInput
+            : node.nodeType,
       configuration: configurationFor(node),
       label: node.label,
       x: node.x,
       y: node.y,
       zOrder: node.zOrder,
       ...(node.groupId ? { groupId: node.groupId } : {})
-      })),
+    })),
     connections: flow.connections.map((connection) => ({
       source: { nodeId: connection.start.nodeId, portId: connection.start.connectorId },
       target: {
         nodeId:
-          virtualUsage.has(connection.end.nodeId) &&
-          virtualUsage.get(connection.end.nodeId)?.reads
+          virtualUsage.has(connection.end.nodeId) && virtualUsage.get(connection.end.nodeId)?.reads
             ? `${connection.end.nodeId}--write`
             : connection.end.nodeId,
         portId: connection.end.connectorId

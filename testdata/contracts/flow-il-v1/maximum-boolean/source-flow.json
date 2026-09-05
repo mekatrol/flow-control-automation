@@ -12,7 +12,7 @@
   "nodes": [
     {
       "id": "constant-000",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -23,7 +23,7 @@
     },
     {
       "id": "constant-001",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -34,7 +34,7 @@
     },
     {
       "id": "constant-002",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -45,7 +45,7 @@
     },
     {
       "id": "constant-003",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -56,7 +56,7 @@
     },
     {
       "id": "constant-004",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -67,7 +67,7 @@
     },
     {
       "id": "constant-005",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -78,7 +78,7 @@
     },
     {
       "id": "constant-006",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -89,7 +89,7 @@
     },
     {
       "id": "constant-007",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -100,7 +100,7 @@
     },
     {
       "id": "constant-008",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -111,7 +111,7 @@
     },
     {
       "id": "constant-009",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -122,7 +122,7 @@
     },
     {
       "id": "constant-010",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -133,7 +133,7 @@
     },
     {
       "id": "constant-011",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -144,7 +144,7 @@
     },
     {
       "id": "constant-012",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -155,7 +155,7 @@
     },
     {
       "id": "constant-013",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -166,7 +166,7 @@
     },
     {
       "id": "constant-014",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -177,7 +177,7 @@
     },
     {
       "id": "constant-015",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -188,7 +188,7 @@
     },
     {
       "id": "constant-016",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -199,7 +199,7 @@
     },
     {
       "id": "constant-017",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -210,7 +210,7 @@
     },
     {
       "id": "constant-018",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -221,7 +221,7 @@
     },
     {
       "id": "constant-019",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -232,7 +232,7 @@
     },
     {
       "id": "constant-020",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -243,7 +243,7 @@
     },
     {
       "id": "constant-021",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -254,7 +254,7 @@
     },
     {
       "id": "constant-022",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -265,7 +265,7 @@
     },
     {
       "id": "constant-023",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -276,7 +276,7 @@
     },
     {
       "id": "constant-024",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -287,7 +287,7 @@
     },
     {
       "id": "constant-025",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -298,7 +298,7 @@
     },
     {
       "id": "constant-026",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -309,7 +309,7 @@
     },
     {
       "id": "constant-027",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -320,7 +320,7 @@
     },
     {
       "id": "constant-028",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -331,7 +331,7 @@
     },
     {
       "id": "constant-029",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -342,7 +342,7 @@
     },
     {
       "id": "constant-030",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -353,7 +353,7 @@
     },
     {
       "id": "constant-031",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -364,7 +364,7 @@
     },
     {
       "id": "constant-032",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -375,7 +375,7 @@
     },
     {
       "id": "constant-033",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -386,7 +386,7 @@
     },
     {
       "id": "constant-034",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -397,7 +397,7 @@
     },
     {
       "id": "constant-035",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -408,7 +408,7 @@
     },
     {
       "id": "constant-036",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -419,7 +419,7 @@
     },
     {
       "id": "constant-037",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -430,7 +430,7 @@
     },
     {
       "id": "constant-038",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -441,7 +441,7 @@
     },
     {
       "id": "constant-039",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -452,7 +452,7 @@
     },
     {
       "id": "constant-040",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -463,7 +463,7 @@
     },
     {
       "id": "constant-041",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -474,7 +474,7 @@
     },
     {
       "id": "constant-042",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -485,7 +485,7 @@
     },
     {
       "id": "constant-043",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -496,7 +496,7 @@
     },
     {
       "id": "constant-044",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -507,7 +507,7 @@
     },
     {
       "id": "constant-045",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -518,7 +518,7 @@
     },
     {
       "id": "constant-046",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -529,7 +529,7 @@
     },
     {
       "id": "constant-047",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -540,7 +540,7 @@
     },
     {
       "id": "constant-048",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -551,7 +551,7 @@
     },
     {
       "id": "constant-049",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -562,7 +562,7 @@
     },
     {
       "id": "constant-050",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -573,7 +573,7 @@
     },
     {
       "id": "constant-051",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -584,7 +584,7 @@
     },
     {
       "id": "constant-052",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -595,7 +595,7 @@
     },
     {
       "id": "constant-053",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -606,7 +606,7 @@
     },
     {
       "id": "constant-054",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -617,7 +617,7 @@
     },
     {
       "id": "constant-055",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -628,7 +628,7 @@
     },
     {
       "id": "constant-056",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -639,7 +639,7 @@
     },
     {
       "id": "constant-057",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -650,7 +650,7 @@
     },
     {
       "id": "constant-058",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -661,7 +661,7 @@
     },
     {
       "id": "constant-059",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -672,7 +672,7 @@
     },
     {
       "id": "constant-060",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -683,7 +683,7 @@
     },
     {
       "id": "constant-061",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -694,7 +694,7 @@
     },
     {
       "id": "constant-062",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -705,7 +705,7 @@
     },
     {
       "id": "constant-063",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -716,7 +716,7 @@
     },
     {
       "id": "constant-064",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -727,7 +727,7 @@
     },
     {
       "id": "constant-065",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -738,7 +738,7 @@
     },
     {
       "id": "constant-066",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -749,7 +749,7 @@
     },
     {
       "id": "constant-067",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -760,7 +760,7 @@
     },
     {
       "id": "constant-068",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -771,7 +771,7 @@
     },
     {
       "id": "constant-069",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -782,7 +782,7 @@
     },
     {
       "id": "constant-070",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -793,7 +793,7 @@
     },
     {
       "id": "constant-071",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -804,7 +804,7 @@
     },
     {
       "id": "constant-072",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -815,7 +815,7 @@
     },
     {
       "id": "constant-073",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -826,7 +826,7 @@
     },
     {
       "id": "constant-074",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -837,7 +837,7 @@
     },
     {
       "id": "constant-075",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -848,7 +848,7 @@
     },
     {
       "id": "constant-076",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -859,7 +859,7 @@
     },
     {
       "id": "constant-077",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -870,7 +870,7 @@
     },
     {
       "id": "constant-078",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -881,7 +881,7 @@
     },
     {
       "id": "constant-079",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -892,7 +892,7 @@
     },
     {
       "id": "constant-080",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -903,7 +903,7 @@
     },
     {
       "id": "constant-081",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -914,7 +914,7 @@
     },
     {
       "id": "constant-082",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -925,7 +925,7 @@
     },
     {
       "id": "constant-083",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -936,7 +936,7 @@
     },
     {
       "id": "constant-084",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -947,7 +947,7 @@
     },
     {
       "id": "constant-085",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -958,7 +958,7 @@
     },
     {
       "id": "constant-086",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -969,7 +969,7 @@
     },
     {
       "id": "constant-087",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -980,7 +980,7 @@
     },
     {
       "id": "constant-088",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -991,7 +991,7 @@
     },
     {
       "id": "constant-089",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -1002,7 +1002,7 @@
     },
     {
       "id": "constant-090",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -1013,7 +1013,7 @@
     },
     {
       "id": "constant-091",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -1024,7 +1024,7 @@
     },
     {
       "id": "constant-092",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -1035,7 +1035,7 @@
     },
     {
       "id": "constant-093",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -1046,7 +1046,7 @@
     },
     {
       "id": "constant-094",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -1057,7 +1057,7 @@
     },
     {
       "id": "constant-095",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -1068,7 +1068,7 @@
     },
     {
       "id": "constant-096",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -1079,7 +1079,7 @@
     },
     {
       "id": "constant-097",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -1090,7 +1090,7 @@
     },
     {
       "id": "constant-098",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -1101,7 +1101,7 @@
     },
     {
       "id": "constant-099",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -1112,7 +1112,7 @@
     },
     {
       "id": "constant-100",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -1123,7 +1123,7 @@
     },
     {
       "id": "constant-101",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -1134,7 +1134,7 @@
     },
     {
       "id": "constant-102",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -1145,7 +1145,7 @@
     },
     {
       "id": "constant-103",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -1156,7 +1156,7 @@
     },
     {
       "id": "constant-104",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -1167,7 +1167,7 @@
     },
     {
       "id": "constant-105",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -1178,7 +1178,7 @@
     },
     {
       "id": "constant-106",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -1189,7 +1189,7 @@
     },
     {
       "id": "constant-107",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -1200,7 +1200,7 @@
     },
     {
       "id": "constant-108",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -1211,7 +1211,7 @@
     },
     {
       "id": "constant-109",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -1222,7 +1222,7 @@
     },
     {
       "id": "constant-110",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -1233,7 +1233,7 @@
     },
     {
       "id": "constant-111",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -1244,7 +1244,7 @@
     },
     {
       "id": "constant-112",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -1255,7 +1255,7 @@
     },
     {
       "id": "constant-113",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -1266,7 +1266,7 @@
     },
     {
       "id": "constant-114",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -1277,7 +1277,7 @@
     },
     {
       "id": "constant-115",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -1288,7 +1288,7 @@
     },
     {
       "id": "constant-116",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -1299,7 +1299,7 @@
     },
     {
       "id": "constant-117",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -1310,7 +1310,7 @@
     },
     {
       "id": "constant-118",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -1321,7 +1321,7 @@
     },
     {
       "id": "constant-119",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -1332,7 +1332,7 @@
     },
     {
       "id": "constant-120",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -1343,7 +1343,7 @@
     },
     {
       "id": "constant-121",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -1354,7 +1354,7 @@
     },
     {
       "id": "constant-122",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -1365,7 +1365,7 @@
     },
     {
       "id": "constant-123",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -1376,7 +1376,7 @@
     },
     {
       "id": "constant-124",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -1387,7 +1387,7 @@
     },
     {
       "id": "constant-125",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -1398,7 +1398,7 @@
     },
     {
       "id": "constant-126",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -1409,7 +1409,7 @@
     },
     {
       "id": "constant-127",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },

@@ -1,3 +1,4 @@
+import { DataDirectionType, DataType } from '@/types/serverTypes';
 import type {
   FlowConnection,
   FlowConnectionEndpoint,
@@ -24,9 +25,11 @@ export const connectorsAreCompatible = (
 ): boolean =>
   // Connections always carry data from an output to an input. The `any` type is
   // an explicit wildcard so generic routing nodes can accept a concrete type.
-  start.direction === 'output' &&
-  end.direction === 'input' &&
-  (start.dataType === 'any' || end.dataType === 'any' || start.dataType === end.dataType);
+  start.direction === DataDirectionType.Output &&
+  end.direction === DataDirectionType.Input &&
+  (start.dataType === DataType.Any ||
+    end.dataType === DataType.Any ||
+    start.dataType === end.dataType);
 
 export const validateConnection = (
   flow: FlowDefinition,

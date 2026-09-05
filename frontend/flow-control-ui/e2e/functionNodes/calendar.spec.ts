@@ -1,7 +1,9 @@
 import { defineFunctionNodeTest, test } from './helpers/functionNodeCase';
 
-test(...defineFunctionNodeTest({
-  kind: 'calendar',
-  configuration: { Enabled: true },
-  vectors: [{ inputs: {}, expected: true }]
-}));
+test(
+  ...defineFunctionNodeTest({
+    nodeType: 'calendar',
+    configuration: { Enabled: true },
+    vectors: [{ inputs: {}, expected: true }]
+  })
+);

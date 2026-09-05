@@ -182,7 +182,8 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
             RequireSymbol(symbol, instructionIndex, 0);
 
             var configuration = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
-            var kind = ConfigureNode(
+
+            var nodeType = DetermineNodeType(
                 decoded,
                 instruction,
                 configuration,
@@ -204,13 +205,13 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
             nodes.Add(new FlowNode
             {
                 Id = symbol.NodeId,
-                Kind = kind,
+                NodeType = nodeType,
                 Label = symbol.Label,
                 X = symbol.X,
                 Y = symbol.Y,
                 ZOrder = symbol.ZOrder,
                 GroupId = symbol.GroupId.Length == 0 ? null : symbol.GroupId,
-                Connectors = Connectors(kind),
+                Connectors = Connectors(nodeType),
                 Configuration = configuration
             });
 
@@ -289,7 +290,7 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
         nodes.Add(new FlowNode
         {
             Id = nodeId,
-            Kind = FlowNodeType.Calculator,
+            NodeType = FlowNodeType.Calculator,
             Label = firstSymbol.Label,
             X = firstSymbol.X,
             Y = firstSymbol.Y,
@@ -375,10 +376,10 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
 
     /*
      * Convert one VM opcode and its referenced tables back into the closest/current
-     * designer node kind and configuration. Configure* helpers recover configuration
+     * designer node type and configuration. Configure* helpers recover configuration
      * values stored indirectly in constants, point bindings, or state-slot records.
      */
-    private static FlowNodeType ConfigureNode(
+    private static FlowNodeType DetermineNodeType(
         DecodedArtifact decoded,
         Instruction instruction,
         Dictionary<string, JsonElement> configuration,
@@ -386,7 +387,7 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
     {
         return instruction.Opcode switch
         {
-            FlowOpcodeType.PointInput => ConfigurePoint(
+            FlowOpcodeType.PointInput => DetermineNodeType(
                 configuration,
                 decoded.Points,
                 instruction.Auxiliary,
@@ -407,7 +408,7 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
                 decoded.Constants,
                 instruction.Auxiliary,
                 instructionIndex),
-            FlowOpcodeType.PointOutput => ConfigurePoint(
+            FlowOpcodeType.PointOutput => DetermineNodeType(
                 configuration,
                 decoded.Points,
                 instruction.Auxiliary,
@@ -914,7 +915,7 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
      * instruction auxiliary field. The binding direction is checked because the same
      * PointInput/PointOutput encoding is used for both Boolean and numeric points.
      */
-    private static FlowNodeType ConfigurePoint(
+    private static FlowNodeType DetermineNodeType(
         Dictionary<string, JsonElement> configuration,
         IReadOnlyList<PointRecord> points,
         ushort pointIndex,
@@ -1176,7 +1177,7 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
 
     /*
      * Recreate the connector definitions expected by the designer for a recovered
-     * node kind. These are authoring-model ports, not the VM slot references used
+     * node type. These are authoring-model ports, not the VM slot references used
      * while decoding section 4.
      */
     private static IReadOnlyList<FlowConnector> Connectors(FlowNodeType kind)

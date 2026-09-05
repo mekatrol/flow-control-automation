@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { flowNodeKinds, getNodeKind } from '@/features/flows/nodeKinds';
+import { flowNodeTypes, getNodeTypeDefinition } from '@/features/flows/nodeTypes';
 import { flowTutorials, parseTutorial } from '@/features/flows/tutorialCatalogue';
 
 describe('flow tutorial catalogue', () => {
@@ -10,16 +10,18 @@ describe('flow tutorial catalogue', () => {
    */
   it('contains one current-schema tutorial for every executable function', () => {
     // Arrange: Derive coverage from the same canonical registry used by the palette.
-    const executableKinds = flowNodeKinds.filter((kind) => getNodeKind(kind).executable).sort();
+    const executableNodeTypes = flowNodeTypes
+      .filter((nodeType) => getNodeTypeDefinition(nodeType).executable)
+      .sort();
 
     // Act: Parse every repository-owned entry through the strict current-version parser.
-    const tutorialKinds = flowTutorials
-      .map((tutorial) => parseTutorial(tutorial).functionKind)
+    const tutorialNodeTypes = flowTutorials
+      .map((tutorial) => parseTutorial(tutorial).nodeType)
       .sort();
 
     // Assert: Coverage is exact, without unknown or duplicate function tutorials.
-    expect(tutorialKinds).toEqual(executableKinds);
-    expect(new Set(tutorialKinds).size).toBe(tutorialKinds.length);
+    expect(tutorialNodeTypes).toEqual(executableNodeTypes);
+    expect(new Set(tutorialNodeTypes).size).toBe(tutorialNodeTypes.length);
   });
 
   /**
@@ -28,8 +30,8 @@ describe('flow tutorial catalogue', () => {
    */
   it('uses disposable ordinary flow fixtures containing the advertised block', () => {
     for (const tutorial of flowTutorials) {
-      expect(tutorial.flow.id).toBe(`tutorial-${tutorial.functionKind}`);
-      expect(tutorial.flow.nodes.some((node) => node.kind === tutorial.functionKind)).toBe(true);
+      expect(tutorial.flow.id).toBe(`tutorial-${tutorial.nodeType}`);
+      expect(tutorial.flow.nodes.some((node) => node.nodeType === tutorial.nodeType)).toBe(true);
       expect(tutorial.guidance.length).toBeGreaterThan(0);
     }
   });

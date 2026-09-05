@@ -7,7 +7,7 @@ public sealed record ExecutableFlowNode
 {
     public required string Id { get; init; }
 
-    public required FlowNodeType Kind { get; init; }
+    public required FlowNodeType NodeType { get; init; }
 
     public IReadOnlyDictionary<string, JsonElement> Configuration { get; init; }
         = new Dictionary<string, JsonElement>();

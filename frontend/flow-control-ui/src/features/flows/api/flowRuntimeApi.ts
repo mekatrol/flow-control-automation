@@ -1,3 +1,5 @@
+import { isEnumValue } from '@/types/serverTypes';
+import { DataQualityType, DataType } from '@/types/serverTypes';
 import { FlowApiError } from './flowApi';
 
 export type FlowRuntimeState = 'stopped' | 'running' | 'error';
@@ -12,10 +14,10 @@ export interface NodeRuntimeSnapshot {
 }
 
 export interface RuntimeTypedValue {
-  dataType: 'any' | 'boolean' | 'number' | 'string' | 'event';
+  dataType: DataType;
   boolean: boolean;
   number: number;
-  quality: 'good' | 'bad' | 'uncertain' | 'unavailable';
+  quality: DataQualityType;
 }
 
 export interface FlowRuntimeSnapshot {
@@ -27,7 +29,7 @@ export interface FlowRuntimeSnapshot {
 
 export interface ConnectorRuntimeValue {
   value: string;
-  quality: string;
+  quality: DataQualityType;
   units?: string;
   state: 'committed' | 'paused-frame';
 }
@@ -64,11 +66,11 @@ export const parseFlowRuntimeSnapshot = (payload: unknown): FlowRuntimeSnapshot 
         throw new TypeError(`Runtime node ${nodeId} has an invalid typed value.`);
       const typed = candidate.typedValue;
       if (
-        !['any', 'boolean', 'number', 'string', 'event'].includes(String(typed.dataType)) ||
+        !isEnumValue(DataType, typed.dataType) ||
         typeof typed.boolean !== 'boolean' ||
         typeof typed.number !== 'number' ||
         !Number.isFinite(typed.number) ||
-        !['good', 'bad', 'uncertain', 'unavailable'].includes(String(typed.quality))
+        !isEnumValue(DataQualityType, typed.quality)
       )
         throw new TypeError(`Runtime node ${nodeId} has an invalid typed value.`);
     }

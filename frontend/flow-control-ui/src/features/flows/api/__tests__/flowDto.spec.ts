@@ -10,6 +10,14 @@ import {
 const validFlow = (): unknown => structuredClone(sampleFlows[0]);
 
 describe('flow DTO validation', () => {
+  it('requires nodeType instead of the old kind field', () => {
+    const payload = validFlow() as { nodes: Record<string, unknown>[] };
+    const node = payload.nodes[0]!;
+    node.kind = node.nodeType;
+    delete node.nodeType;
+    expect(() => parseFlowDto(payload)).toThrow(/nodeType/);
+  });
+
   /**
    * Purpose: Protects the behavioral contract that accepts a valid graph payload.
    * Description: Exercises accepts a valid graph payload from its arranged starting state and
@@ -24,7 +32,7 @@ describe('flow DTO validation', () => {
 
   it('rejects obsolete node aliases instead of migrating them', () => {
     const payload = validFlow() as (typeof sampleFlows)[number];
-    (payload.nodes[0] as unknown as { kind: string }).kind = 'invert';
+    (payload.nodes[0] as unknown as { nodeType: string }).nodeType = 'invert';
     expect(() => parseFlowDto(payload)).toThrow(/unsupported value “invert”/);
   });
 

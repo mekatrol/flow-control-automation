@@ -266,6 +266,10 @@
 </template>
 
 <script setup lang="ts">
+import { DataType } from '@/types/serverTypes';
+
+import { DataDirectionType, DataQualityType } from '@/types/serverTypes';
+
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
@@ -324,14 +328,13 @@ import {
 } from '@/features/flows/api/executionContextApi';
 import {
   isPointNode,
+  isInputPointNode,
+  isOutputPointNode,
   validatePointReference,
   type PointValidationState
 } from '@/features/flows/flowPointValidation';
 import type { VirtualPointDeclaration } from '@/features/flows/types';
-import {
-  unconnectedVirtualPoint,
-  virtualPointDeclarationsFromNodes
-} from '@/features/flows/types';
+import { unconnectedVirtualPoint, virtualPointDeclarationsFromNodes } from '@/features/flows/types';
 import type { WorkspaceMode } from '@/features/flows/types/flowDesigner';
 import AppFlowWorkspaceNavigation from '@/features/flows/components/designer/AppFlowWorkspaceNavigation.vue';
 
@@ -508,9 +511,9 @@ const simulatorNodeRuntime = computed(() => {
         const node = snapshotsByNode.get(flowNode.id);
         const inspected = inspectedValues[flowNode.id];
         const pointId = String(flowNode.configuration.pointId ?? '');
-        const ioValue = flowNode.kind.endsWith('Input')
+        const ioValue = isInputPointNode(flowNode)
           ? inputValues.get(pointId)
-          : flowNode.kind.endsWith('Output')
+          : isOutputPointNode(flowNode)
             ? outputValues.get(pointId)
             : undefined;
         const typed = node?.typedValue ?? inspected;
@@ -559,10 +562,12 @@ const debugConnectorValues = computed(() => {
     const node = currentFlow.nodes.find((candidate) => candidate.id === nodeSnapshot.nodeId);
     if (!node || !nodeSnapshot.typedValue) continue;
     const typed = nodeSnapshot.typedValue;
-    const text = typed.type === 'number' ? String(typed.number) : String(typed.value);
+    const text = typed.type === DataType.Number ? String(typed.number) : String(typed.value);
     const units = undefined;
     values[node.id] = {};
-    for (const connector of node.connectors.filter((candidate) => candidate.direction === 'output'))
+    for (const connector of node.connectors.filter(
+      (candidate) => candidate.direction === DataDirectionType.Output
+    ))
       values[node.id]![connector.id] = {
         value: text,
         quality: nodeSnapshot.quality,
@@ -573,12 +578,14 @@ const debugConnectorValues = computed(() => {
   for (const [nodeId, typed] of Object.entries(debugInspection.value?.nodeValues ?? {})) {
     const node = currentFlow.nodes.find((candidate) => candidate.id === nodeId);
     if (!node) continue;
-    const text = typed.type === 'number' ? String(typed.number) : String(typed.value);
+    const text = typed.type === DataType.Number ? String(typed.number) : String(typed.value);
     values[nodeId] ??= {};
-    for (const connector of node.connectors.filter((candidate) => candidate.direction === 'output'))
+    for (const connector of node.connectors.filter(
+      (candidate) => candidate.direction === DataDirectionType.Output
+    ))
       values[nodeId]![connector.id] = {
         value: text,
-        quality: typed.quality ?? 'good',
+        quality: typed.quality ?? DataQualityType.Good,
         state: 'paused-frame'
       };
   }

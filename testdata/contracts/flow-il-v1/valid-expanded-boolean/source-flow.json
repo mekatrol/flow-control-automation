@@ -12,7 +12,7 @@
   "nodes": [
     {
       "id": "constant-false",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": false
       },
@@ -23,7 +23,7 @@
     },
     {
       "id": "constant-true",
-      "kind": "digitalConstant",
+      "nodeType": "digitalConstant",
       "configuration": {
         "value": true
       },
@@ -34,7 +34,7 @@
     },
     {
       "id": "nand-1",
-      "kind": "nand",
+      "nodeType": "nand",
       "configuration": {},
       "label": "Nand",
       "x": 0,
@@ -43,7 +43,7 @@
     },
     {
       "id": "nor-1",
-      "kind": "nor",
+      "nodeType": "nor",
       "configuration": {},
       "label": "Nor",
       "x": 0,
@@ -52,7 +52,7 @@
     },
     {
       "id": "xor-1",
-      "kind": "xor",
+      "nodeType": "xor",
       "configuration": {},
       "label": "Xor",
       "x": 0,
@@ -61,7 +61,7 @@
     },
     {
       "id": "xnor-1",
-      "kind": "xnor",
+      "nodeType": "xnor",
       "configuration": {},
       "label": "Xnor",
       "x": 0,
@@ -70,7 +70,7 @@
     },
     {
       "id": "output-nand",
-      "kind": "digitalOutput",
+      "nodeType": "digitalOutput",
       "configuration": {
         "pointId": "output-nand"
       },
@@ -81,7 +81,7 @@
     },
     {
       "id": "output-nor",
-      "kind": "digitalOutput",
+      "nodeType": "digitalOutput",
       "configuration": {
         "pointId": "output-nor"
       },
@@ -92,7 +92,7 @@
     },
     {
       "id": "output-xor",
-      "kind": "digitalOutput",
+      "nodeType": "digitalOutput",
       "configuration": {
         "pointId": "output-xor"
       },
@@ -103,7 +103,7 @@
     },
     {
       "id": "output-xnor",
-      "kind": "digitalOutput",
+      "nodeType": "digitalOutput",
       "configuration": {
         "pointId": "output-xnor"
       },

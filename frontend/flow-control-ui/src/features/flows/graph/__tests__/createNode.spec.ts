@@ -12,11 +12,11 @@ describe('default node creation', () => {
     const node = createDefaultNode('calculator', { x: 120, y: 144 }, 4, 'node-5');
 
     // Expected outcome: `node` contains the required object fields.
-    // Acceptance criteria: `node` must match the object `{ id: 'node-5', kind: 'calculator', label: 'New Calculator', x: 120, y: 144, zOrder: 4, configuration: { operation: 'ave`, because this condition proves that
+    // Acceptance criteria: `node` must match the object `{ id: 'node-5', nodeType: 'calculator', label: 'New Calculator', x: 120, y: 144, zOrder: 4, configuration: { operation: 'ave`, because this condition proves that
     // creates a serialisable node from registry defaults and a supplied ID.
     expect(node).toMatchObject({
       id: 'node-5',
-      kind: 'calculator',
+      nodeType: 'calculator',
       label: 'New Calculator',
       x: 120,
       y: 144,

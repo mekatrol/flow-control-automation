@@ -109,7 +109,7 @@ public sealed class FlowServiceTests
                 new FlowNode
                 {
                     Id = "digital-output",
-                    Kind = FlowNodeType.DigitalVirtual,
+                    NodeType = FlowNodeType.DigitalVirtual,
                     Label = "Unmapped digital output",
                     Configuration = new Dictionary<string, JsonElement>
                     {
@@ -119,7 +119,7 @@ public sealed class FlowServiceTests
                 new FlowNode
                 {
                     Id = "digital-output-2",
-                    Kind = FlowNodeType.DigitalVirtual,
+                    NodeType = FlowNodeType.DigitalVirtual,
                     Label = "Provisional digital output",
                     Configuration = new Dictionary<string, JsonElement>
                     {
@@ -129,7 +129,7 @@ public sealed class FlowServiceTests
                 new FlowNode
                 {
                     Id = "digital-output-3",
-                    Kind = FlowNodeType.DigitalVirtual,
+                    NodeType = FlowNodeType.DigitalVirtual,
                     Label = "Duplicate provisional digital output",
                     Configuration = new Dictionary<string, JsonElement>
                     {
@@ -227,7 +227,7 @@ public sealed class FlowServiceTests
                     new FlowNode
                     {
                         Id = "node",
-                        Kind = FlowNodeType.Unknown,
+                        NodeType = FlowNodeType.Unknown,
                         Label = "Node"
                     },
                 ],
@@ -396,7 +396,7 @@ public sealed class FlowServiceTests
     private static FlowNode Node(string id, DataDirectionType direction, DataType dataType) => new()
     {
         Id = id,
-        Kind = FlowNodeType.And,
+        NodeType = FlowNodeType.And,
         Label = id,
         Connectors =
         [

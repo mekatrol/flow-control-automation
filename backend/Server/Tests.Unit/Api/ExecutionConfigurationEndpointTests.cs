@@ -35,7 +35,7 @@ internal sealed class ExecutionConfigurationEndpointTests
                 new FlowNode
                 {
                     Id = "shared-temperature",
-                    Kind = FlowNodeType.AnalogVirtual,
+                    NodeType = FlowNodeType.AnalogVirtual,
                     Label = "Shared temperature",
                     Connectors = [new FlowConnector("value", "Value", DataDirectionType.Output, DataType.Number, "right")],
                     Configuration = new Dictionary<string, System.Text.Json.JsonElement>
@@ -79,7 +79,7 @@ internal sealed class ExecutionConfigurationEndpointTests
                 new FlowNode
                 {
                     Id = "constant",
-                    Kind = FlowNodeType.AnalogConstant,
+                    NodeType = FlowNodeType.AnalogConstant,
                     Label = "Setpoint",
                     Connectors = [new FlowConnector("value", "Value", DataDirectionType.Output, DataType.Number, "right")],
                     Configuration = new Dictionary<string, System.Text.Json.JsonElement>
@@ -90,7 +90,7 @@ internal sealed class ExecutionConfigurationEndpointTests
                 new FlowNode
                 {
                     Id = "output",
-                    Kind = FlowNodeType.AnalogOutput,
+                    NodeType = FlowNodeType.AnalogOutput,
                     Label = "Temperature setpoint",
                     Connectors = [new FlowConnector("in", "Input", DataDirectionType.Input, DataType.Number, "left")],
                     Configuration = new Dictionary<string, System.Text.Json.JsonElement>
@@ -101,7 +101,7 @@ internal sealed class ExecutionConfigurationEndpointTests
                 new FlowNode
                 {
                     Id = "virtual",
-                    Kind = FlowNodeType.AnalogVirtual,
+                    NodeType = FlowNodeType.AnalogVirtual,
                     Label = "Virtual temperature",
                     Connectors = [new FlowConnector("value", "Value", DataDirectionType.Output, DataType.Number, "right")],
                     Configuration = new Dictionary<string, System.Text.Json.JsonElement>
@@ -152,7 +152,7 @@ internal sealed class ExecutionConfigurationEndpointTests
             {
                 Id = instanceId,
                 Name = instanceId,
-                Kind = ExecutionInstanceType.Controller,
+                ExecutionInstanceType = ExecutionInstanceType.Controller,
                 ControllerTemplateId = "default",
                 ControllerTemplateRevision = 1
             }, FlowControlJson.Options);

@@ -1,3 +1,5 @@
+import { DataType } from '@/types/serverTypes';
+import { DataQualityType } from '@/types/serverTypes';
 import type { ExecutableFlowSource } from './flowDebugApi';
 
 export interface EmulatorSnapshot {
@@ -13,7 +15,7 @@ export interface EmulatorSnapshot {
     outputId: string;
     proposedValue: EmulatorValue;
     effectiveValue: EmulatorValue;
-    quality: string;
+    quality: DataQualityType;
     units?: string;
     lastChangeScan: number;
   }[];
@@ -21,12 +23,12 @@ export interface EmulatorSnapshot {
 }
 
 export interface EmulatorValue {
-  dataType?: 'boolean' | 'number';
+  dataType?: typeof DataType.Boolean | typeof DataType.Number;
   /** Legacy client-side fixtures used `type`; accept it while reading old snapshots. */
-  type?: 'boolean' | 'number';
+  type?: typeof DataType.Boolean | typeof DataType.Number;
   boolean: boolean;
   number: number;
-  quality: 'good' | 'bad' | 'stale' | 'unavailable';
+  quality: DataQualityType;
 }
 
 export interface EmulatorInputChange {

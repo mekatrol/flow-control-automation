@@ -57,7 +57,7 @@ internal sealed class FlowRuntimeService(
         {
             cancellationToken.ThrowIfCancellationRequested();
             var writerKeys = flow.Nodes
-                .Where(node => node.Kind is FlowNodeType.AnalogOutput or FlowNodeType.DigitalOutput)
+                .Where(node => node.NodeType is FlowNodeType.AnalogOutput or FlowNodeType.DigitalOutput)
                 .Select(node => node.Configuration.TryGetValue("pointId", out var value) ? value.GetString() : null)
                 .Where(key => key is not null && VirtualPointNodes.Declarations(flow.Nodes).Any(item => item.Key == key))
                 .Select(key => key!)

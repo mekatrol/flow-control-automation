@@ -51,7 +51,7 @@ public sealed class FlowDecompilerTests
                 .. recovered.Flow.Nodes.Select(node => new ExecutableFlowNode
                 {
                     Id = node.Id,
-                    Kind = node.Kind,
+                    NodeType = node.NodeType,
                     Configuration = node.Configuration,
                     Label = node.Label,
                     X = node.X,
@@ -204,7 +204,7 @@ public sealed class FlowDecompilerTests
         Assert.Multiple(() =>
         {
             Assert.That(
-                memory.Kind,
+                memory.NodeType,
                 Is.EqualTo(FlowNodeType.Memory));
 
             Assert.That(
@@ -267,7 +267,7 @@ public sealed class FlowDecompilerTests
                 new ExecutableFlowNode
                 {
                     Id = "calculator",
-                    Kind = FlowNodeType.Calculator,
+                    NodeType = FlowNodeType.Calculator,
                     Label = "BODMAS calculator",
                     X = 120,
                     Y = 80,
@@ -290,7 +290,7 @@ public sealed class FlowDecompilerTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(calculator.Kind, Is.EqualTo(FlowNodeType.Calculator));
+            Assert.That(calculator.NodeType, Is.EqualTo(FlowNodeType.Calculator));
             Assert.That(calculator.Configuration["formula"].GetString(),
                 Is.EqualTo("(a + (b * ((c - a) ^ b)))"));
             Assert.That(calculator.Connectors.Select(connector => connector.Id),
@@ -305,7 +305,7 @@ public sealed class FlowDecompilerTests
         static ExecutableFlowNode Constant(string id, double value) => new()
         {
             Id = id,
-            Kind = FlowNodeType.AnalogConstant,
+            NodeType = FlowNodeType.AnalogConstant,
             Label = id,
             Configuration = Configuration("value", value)
         };
@@ -341,20 +341,20 @@ public sealed class FlowDecompilerTests
         var recovered = _decompiler.Decompile(original.Artifact);
         var recompiled = _compiler.Compile(CompilationRequest(RecoveredSource(recovered), null));
 
-        Assert.That(recovered.Flow.Nodes.Single(node => node.Id == "operation").Kind, Is.EqualTo(kind));
+        Assert.That(recovered.Flow.Nodes.Single(node => node.Id == "operation").NodeType, Is.EqualTo(kind));
         AssertArtifactsEqual(original.Artifact.ToArray(), recompiled.Artifact.ToArray());
 
         static ExecutableFlowNode ArithmeticConstant(string id, double value) => new()
         {
             Id = id,
-            Kind = FlowNodeType.AnalogConstant,
+            NodeType = FlowNodeType.AnalogConstant,
             Label = id,
             Configuration = Configuration("value", value)
         };
         static ExecutableFlowNode ArithmeticNode(FlowNodeType kind) => new()
         {
             Id = "operation",
-            Kind = kind,
+            NodeType = kind,
             Label = kind.ToString()
         };
         static ExecutableFlowConnection ArithmeticConnection(string source, string port) => new(
@@ -373,11 +373,11 @@ public sealed class FlowDecompilerTests
             ControllerTemplateRevision = 1,
             Nodes =
             [
-                new ExecutableFlowNode { Id = "enable", Kind = FlowNodeType.DigitalConstant, Configuration = Configuration("value", true) },
+                new ExecutableFlowNode { Id = "enable", NodeType = FlowNodeType.DigitalConstant, Configuration = Configuration("value", true) },
                 new ExecutableFlowNode
                 {
                     Id = "clock",
-                    Kind = FlowNodeType.Clock,
+                    NodeType = FlowNodeType.Clock,
                     Configuration = new Dictionary<string, JsonElement>
                     {
                         ["frequencyHz"] = JsonSerializer.SerializeToElement(2D),
@@ -395,7 +395,7 @@ public sealed class FlowDecompilerTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(clock.Kind, Is.EqualTo(FlowNodeType.Clock));
+            Assert.That(clock.NodeType, Is.EqualTo(FlowNodeType.Clock));
             Assert.That(clock.Configuration["frequencyHz"].GetDouble(), Is.EqualTo(2D));
             Assert.That(clock.Configuration["dutyCycle"].GetDouble(), Is.EqualTo(25D));
             Assert.That(recovered.Flow.Connections.Single().End.ConnectorId, Is.EqualTo("enable"));
@@ -492,7 +492,7 @@ public sealed class FlowDecompilerTests
                 [
                     .. source.Nodes
                         .Where(node =>
-                            node.Kind is
+                            node.NodeType is
                                 FlowNodeType.DigitalInput or
                                 FlowNodeType.DigitalOutput or
                                 FlowNodeType.AnalogInput or
@@ -509,7 +509,7 @@ public sealed class FlowDecompilerTests
 
                             Enabled = true,
                             Direction =
-                                node.Kind.ToString()
+                                node.NodeType.ToString()
                                     .EndsWith(
                                         "Input",
                                         StringComparison.Ordinal)
@@ -517,7 +517,7 @@ public sealed class FlowDecompilerTests
                                     : DataDirectionType.Output,
 
                             ValueType =
-                                node.Kind.ToString()
+                                node.NodeType.ToString()
                                     .StartsWith(
                                         "analog",
                                         StringComparison.Ordinal)
@@ -525,7 +525,7 @@ public sealed class FlowDecompilerTests
                                     : AutomationPointValueType.Digital,
 
                             Units =
-                                node.Kind.ToString()
+                                node.NodeType.ToString()
                                     .StartsWith(
                                         "analog",
                                         StringComparison.Ordinal)
@@ -533,13 +533,13 @@ public sealed class FlowDecompilerTests
                                     : null,
 
                             Readable =
-                                node.Kind.ToString()
+                                node.NodeType.ToString()
                                     .EndsWith(
                                         "Input",
                                         StringComparison.Ordinal),
 
                             Commandable =
-                                node.Kind.ToString()
+                                node.NodeType.ToString()
                                     .EndsWith(
                                         "Output",
                                         StringComparison.Ordinal),

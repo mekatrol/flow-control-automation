@@ -26,7 +26,7 @@
               {{ inputLabel(input.pointId) }}
               <span v-if="virtualPoints.has(input.pointId)" class="point-kind">Virtual</span>
             </legend>
-            <label v-if="input.typedValue.type === 'boolean'" class="value-toggle"
+            <label v-if="input.typedValue.type === DataType.Boolean" class="value-toggle"
               ><input v-model="inputDraft(input.pointId).boolean" type="checkbox" /><span>{{
                 inputDraft(input.pointId).boolean ? 'On' : 'Off'
               }}</span></label
@@ -115,6 +115,10 @@
 </template>
 
 <script setup lang="ts">
+import { DataType } from '@/types/serverTypes';
+
+import { AutomationPointValueType, DataQualityType } from '@/types/serverTypes';
+
 import advanceIcon from '@/assets/icons/chevron-right-icon.svg';
 import powerCycleIcon from '@/assets/icons/power-cycle-icon.svg';
 import refreshIcon from '@/assets/icons/refresh-icon.svg';
@@ -139,20 +143,22 @@ const emit = defineEmits<{
   (event: typeof EVENTS.RESET, powerCycle: boolean): void;
   (event: typeof EVENTS.RESET_INPUTS): void;
 }>();
-const qualities = ['good', 'bad', 'stale', 'unavailable'] as const;
+const qualities = Object.values(DataQualityType);
 const draft = reactive<Record<string, EmulatorValue>>({});
 const error = ref<string>();
 const virtualPoints = computed(
   () => new Map((props.virtualPointDeclarations ?? []).map((point) => [point.key, point]))
 );
 const defaultValue = (point: VirtualPointDeclaration): EmulatorValue => ({
-  type: point.valueType === 'analog' ? 'number' : 'boolean',
-  boolean: point.valueType === 'digital' ? Boolean(point.relinquishDefault) : false,
+  type: point.valueType === AutomationPointValueType.Analog ? DataType.Number : DataType.Boolean,
+  boolean:
+    point.valueType === AutomationPointValueType.Digital ? Boolean(point.relinquishDefault) : false,
   number:
-    point.valueType === 'analog' && typeof point.relinquishDefault === 'number'
+    point.valueType === AutomationPointValueType.Analog &&
+    typeof point.relinquishDefault === 'number'
       ? point.relinquishDefault
       : 0,
-  quality: 'good'
+  quality: DataQualityType.Good
 });
 const editableInputs = computed(() => {
   const inputs = new Map((props.snapshot?.inputs ?? []).map((input) => [input.pointId, input]));
@@ -168,7 +174,12 @@ const latestOutputs = computed(() => {
   return history.filter((item) => item.scanNumber === scan);
 });
 const inputDraft = (id: string): EmulatorValue =>
-  draft[id] ?? { type: 'boolean', boolean: false, number: 0, quality: 'unavailable' };
+  draft[id] ?? {
+    type: DataType.Boolean,
+    boolean: false,
+    number: 0,
+    quality: DataQualityType.Unavailable
+  };
 watch(
   editableInputs,
   (inputs) => inputs?.forEach((input) => (draft[input.pointId] = { ...input.typedValue })),
@@ -178,7 +189,7 @@ const inputLabel = (id: string): string => id;
 const inputUnits = (id: string): string => virtualPoints.value.get(id)?.units ?? '';
 const outputLabel = (id: string): string => id;
 const displayValue = (value: EmulatorValue): string =>
-  value.type === 'number' ? String(value.number) : value.boolean ? 'On' : 'Off';
+  value.type === DataType.Number ? String(value.number) : value.boolean ? 'On' : 'Off';
 const applyAndStep = (): void => {
   const changes = editableInputs.value.map(({ pointId }) => ({
     inputId: pointId,
@@ -186,7 +197,7 @@ const applyAndStep = (): void => {
   }));
   if (
     changes.some(
-      ({ typedValue }) => typedValue.type === 'number' && !Number.isFinite(typedValue.number)
+      ({ typedValue }) => typedValue.type === DataType.Number && !Number.isFinite(typedValue.number)
     )
   ) {
     error.value = 'Numeric inputs must be finite.';

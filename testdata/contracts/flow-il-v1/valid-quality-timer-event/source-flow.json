@@ -12,7 +12,7 @@
   "nodes": [
     {
       "id": "input-01-node",
-      "kind": "digitalInput",
+      "nodeType": "digitalInput",
       "configuration": {
         "pointId": "input-01"
       },
@@ -23,7 +23,7 @@
     },
     {
       "id": "quality-1",
-      "kind": "qualityGood",
+      "nodeType": "qualityGood",
       "configuration": {},
       "label": "Quality Good",
       "x": 0,
@@ -32,7 +32,7 @@
     },
     {
       "id": "timer-1",
-      "kind": "onDelay",
+      "nodeType": "onDelay",
       "configuration": {
         "durationMs": 100
       },
@@ -43,7 +43,7 @@
     },
     {
       "id": "edge-1",
-      "kind": "risingEdge",
+      "nodeType": "risingEdge",
       "configuration": {},
       "label": "Rising Edge",
       "x": 0,

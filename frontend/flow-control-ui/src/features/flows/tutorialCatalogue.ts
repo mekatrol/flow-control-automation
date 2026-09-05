@@ -1,12 +1,12 @@
 import { createDefaultNode } from '@/features/flows/graph/createNode';
-import { flowNodeKinds, getNodeKind } from '@/features/flows/nodeKinds';
-import type { FlowDefinition, FlowNodeKind } from '@/features/flows/types';
+import { flowNodeTypes, getNodeTypeDefinition } from '@/features/flows/nodeTypes';
+import type { FlowDefinition, FlowNodeType } from '@/features/flows/types';
 
 export interface FlowTutorial {
   schemaVersion: 1;
   id: string;
   title: string;
-  functionKind: FlowNodeKind;
+  nodeType: FlowNodeType;
   category: string;
   objective: string;
   prerequisites: string[];
@@ -14,24 +14,24 @@ export interface FlowTutorial {
   flow: FlowDefinition;
 }
 
-const tutorialFlow = (kind: FlowNodeKind): FlowDefinition => ({
-  id: `tutorial-${kind}`,
-  name: `${getNodeKind(kind).label} tutorial`,
-  description: `Disposable simulator example for ${getNodeKind(kind).label}.`,
+const tutorialFlow = (nodeType: FlowNodeType): FlowDefinition => ({
+  id: `tutorial-${nodeType}`,
+  name: `${getNodeTypeDefinition(nodeType).label} tutorial`,
+  description: `Disposable simulator example for ${getNodeTypeDefinition(nodeType).label}.`,
   status: 'draft',
   disabled: false,
   updatedAt: '2026-08-15T00:00:00.000Z',
-  nodes: [createDefaultNode(kind, { x: 240, y: 160 }, 0, `tutorial-${kind}-node`)],
+  nodes: [createDefaultNode(nodeType, { x: 240, y: 160 }, 0, `tutorial-${nodeType}-node`)],
   connections: []
 });
 
-const createTutorial = (kind: FlowNodeKind): FlowTutorial => {
-  const definition = getNodeKind(kind);
+const createTutorial = (nodeType: FlowNodeType): FlowTutorial => {
+  const definition = getNodeTypeDefinition(nodeType);
   return {
     schemaVersion: 1,
-    id: `${kind}-basics`,
+    id: `${nodeType}-basics`,
     title: `${definition.label} basics`,
-    functionKind: kind,
+    nodeType: nodeType,
     category: definition.category,
     objective: `Understand how the ${definition.label} block transforms its inputs during a scan.`,
     prerequisites: ['Simulator basics'],
@@ -53,7 +53,7 @@ const createTutorial = (kind: FlowNodeKind): FlowTutorial => {
         observation: `The ${definition.label} output changes according to its portable VM semantics.`
       }
     ],
-    flow: tutorialFlow(kind)
+    flow: tutorialFlow(nodeType)
   };
 };
 
@@ -65,8 +65,8 @@ export const parseTutorial = (value: unknown): FlowTutorial => {
     item.schemaVersion !== 1 ||
     typeof item.id !== 'string' ||
     typeof item.title !== 'string' ||
-    typeof item.functionKind !== 'string' ||
-    !flowNodeKinds.includes(item.functionKind as FlowNodeKind) ||
+    typeof item.nodeType !== 'string' ||
+    !flowNodeTypes.some((nodeType) => nodeType === item.nodeType) ||
     typeof item.category !== 'string' ||
     typeof item.objective !== 'string' ||
     !Array.isArray(item.prerequisites) ||
@@ -75,15 +75,15 @@ export const parseTutorial = (value: unknown): FlowTutorial => {
     item.flow === null
   )
     throw new TypeError('Tutorial fields are invalid or unsupported.');
-  if (!item.flow.nodes.some((node) => node.kind === item.functionKind))
+  if (!item.flow.nodes.some((node) => node.nodeType === item.nodeType))
     throw new TypeError('Tutorial flow does not contain its function block.');
   return item as FlowTutorial;
 };
 
-export const flowTutorials: FlowTutorial[] = flowNodeKinds
-  .filter((kind) => getNodeKind(kind).executable)
+export const flowTutorials: FlowTutorial[] = flowNodeTypes
+  .filter((nodeType) => getNodeTypeDefinition(nodeType).executable)
   .map(createTutorial)
   .map(parseTutorial);
 
-export const tutorialForKind = (kind: FlowNodeKind): FlowTutorial | undefined =>
-  flowTutorials.find((tutorial) => tutorial.functionKind === kind);
+export const tutorialForNodeType = (nodeType: FlowNodeType): FlowTutorial | undefined =>
+  flowTutorials.find((tutorial) => tutorial.nodeType === nodeType);

@@ -12,7 +12,7 @@
   "nodes": [
     {
       "id": "analog-in",
-      "kind": "analogInput",
+      "nodeType": "analogInput",
       "configuration": {
         "pointId": "temperature"
       },
@@ -23,7 +23,7 @@
     },
     {
       "id": "shift",
-      "kind": "levelShifter",
+      "nodeType": "levelShifter",
       "configuration": {
         "gain": 2,
         "offset": 1
@@ -36,7 +36,7 @@
     },
     {
       "id": "analog-out",
-      "kind": "analogOutput",
+      "nodeType": "analogOutput",
       "configuration": {
         "pointId": "command"
       },

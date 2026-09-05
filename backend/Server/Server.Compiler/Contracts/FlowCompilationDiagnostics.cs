@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.Globalization;
 
 namespace Server.Compiler.Contracts;
@@ -23,7 +23,7 @@ public static class FlowCompilationDiagnostics
 
                 // Graph
                 [FlowCompilationDiagnosticCode.DuplicateNode] = D(1101, "Duplicate node", "Node ID \"{0}\" is duplicated."),
-                [FlowCompilationDiagnosticCode.UnsupportedNode] = D(1102, "Unsupported node", "Node kind \"{0}\" is unsupported."),
+                [FlowCompilationDiagnosticCode.UnsupportedNode] = D(1102, "Unsupported node", "Node type \"{0}\" is unsupported."),
                 [FlowCompilationDiagnosticCode.EndpointNotFound] = D(1103, "Endpoint not found", "The referenced connection endpoint does not exist."),
                 [FlowCompilationDiagnosticCode.InvalidConnectionDirection] = D(1104, "Invalid connection direction", "A connection must run from an output port to an input port."),
                 [FlowCompilationDiagnosticCode.ConnectionTypeMismatch] = D(1105, "Connection type mismatch", "Connected ports must use the same value type."),

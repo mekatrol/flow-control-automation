@@ -2,7 +2,7 @@ import { defineFunctionNodeTest, test } from './helpers/functionNodeCase';
 
 test(
   ...defineFunctionNodeTest({
-    kind: 'clamp',
+    nodeType: 'clamp',
     testLabel: 'clamp [positive min, positive max]',
     configuration: { Minimum: 0, Maximum: 100 },
     vectors: [
@@ -15,7 +15,7 @@ test(
 
 test(
   ...defineFunctionNodeTest({
-    kind: 'clamp',
+    nodeType: 'clamp',
     testLabel: 'clamp [negative min, positive max]',
     configuration: { Minimum: -100, Maximum: 100 },
     vectors: [
@@ -29,7 +29,7 @@ test(
 
 test(
   ...defineFunctionNodeTest({
-    kind: 'clamp',
+    nodeType: 'clamp',
     testLabel: 'clamp [negative min, negative max]',
     configuration: { Minimum: -100, Maximum: -1 },
     vectors: [

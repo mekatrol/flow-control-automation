@@ -22,7 +22,7 @@
 
       <label v-for="field in nodeEditorFields" :key="field.key">
         <span>{{ field.label }}</span>
-        <template v-if="field.key === 'pointId' && !node.kind.endsWith('Virtual')">
+        <template v-if="field.key === 'pointId' && !isVirtualPointNode(node)">
           <input
             type="text"
             :value="node.configuration.pointId"
@@ -83,8 +83,10 @@
 </template>
 
 <script lang="ts">
+import { DataDirectionType, PointSourceType } from '@/types/serverTypes';
+
 import type { FlowConfigurationValue as EditorValue } from '@/features/flows/types';
-import type { NodeEditorField as EditorField } from '@/features/flows/nodeKinds';
+import type { NodeEditorField as EditorField } from '@/features/flows/nodeTypes';
 
 export const validateNodeLabel = (label: string): string | undefined =>
   label.trim() ? undefined : 'Node label is required.';
@@ -121,12 +123,13 @@ export const editorValueFromInput = (
 </script>
 
 <script setup lang="ts">
+import { isVirtualPointNode } from '@/features/flows/types';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 
 import AppSvg from '@/components/AppSvg.vue';
 import { EVENTS } from '@/constants/events';
-import { getNodeIconUrl, getNodeKind } from '@/features/flows/nodeKinds';
-import type { NodeEditorField } from '@/features/flows/nodeKinds';
+import { getNodeIconUrl, getNodeTypeDefinition } from '@/features/flows/nodeTypes';
+import type { NodeEditorField } from '@/features/flows/nodeTypes';
 import type {
   FlowConfigurationValue,
   FlowNode,
@@ -152,7 +155,7 @@ const emit = defineEmits<{
   (event: 'validation', nodeId: string, state: PointValidationState): void;
 }>();
 
-const definition = computed(() => getNodeKind(props.node.kind));
+const definition = computed(() => getNodeTypeDefinition(props.node.nodeType));
 const nodeEditorFields = computed(() => definition.value.editor);
 const errors = ref<Record<string, string>>({});
 const declarations = computed(() => {
@@ -175,9 +178,9 @@ const compatiblePoints = computed(() =>
       ...point,
       id: point.key,
       name: point.key,
-      pointSourceType: 'virtual' as const,
+      pointSourceType: PointSourceType.Virtual,
       enabled: true,
-      direction: 'value' as const,
+      direction: DataDirectionType.Value,
       revision: 0
     })),
     ...remotePoints.value

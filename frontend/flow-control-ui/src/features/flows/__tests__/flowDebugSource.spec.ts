@@ -49,17 +49,25 @@ describe('designer debug source', () => {
     expect(source.nodes).toEqual([
       {
         id: 'input',
-        kind: 'digitalInput',
+        nodeType: 'digitalInput',
         configuration: { pointId: 'button-1' },
         label: 'New Digital Input',
         x: 0,
         y: 0,
         zOrder: 0
       },
-      { id: 'invert', kind: 'not', configuration: {}, label: 'New Not', x: 200, y: 0, zOrder: 1 },
+      {
+        id: 'invert',
+        nodeType: 'not',
+        configuration: {},
+        label: 'New Not',
+        x: 200,
+        y: 0,
+        zOrder: 1
+      },
       {
         id: 'output',
-        kind: 'digitalOutput',
+        nodeType: 'digitalOutput',
         configuration: { pointId: 'relay-1' },
         label: 'New Digital Output',
         x: 400,
@@ -133,7 +141,7 @@ describe('designer debug source', () => {
       }
     ]);
     expect(source.nodes).toContainEqual(
-      expect.objectContaining({ id: 'virtual', kind: 'analogInput' })
+      expect.objectContaining({ id: 'virtual', nodeType: 'analogInput' })
     );
   });
 
@@ -149,7 +157,7 @@ describe('designer debug source', () => {
     expect(source.nodes[0]).toEqual(
       expect.objectContaining({
         id: 'virtual',
-        kind: 'digitalInput',
+        nodeType: 'digitalInput',
         configuration: { pointId: 'shared-enable' }
       })
     );
@@ -171,7 +179,7 @@ describe('designer debug source', () => {
     expect(source.nodes).toContainEqual(
       expect.objectContaining({
         id: 'virtual',
-        kind: 'digitalOutput',
+        nodeType: 'digitalOutput',
         configuration: { pointId: 'shared-setpoint' }
       })
     );
@@ -200,8 +208,8 @@ describe('designer debug source', () => {
 
     expect(source.nodes).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ id: 'virtual', kind: 'digitalInput' }),
-        expect.objectContaining({ id: 'virtual--write', kind: 'digitalOutput' })
+        expect.objectContaining({ id: 'virtual', nodeType: 'digitalInput' }),
+        expect.objectContaining({ id: 'virtual--write', nodeType: 'digitalOutput' })
       ])
     );
     expect(source.connections.at(-2)?.target.nodeId).toBe('virtual--write');

@@ -9,7 +9,7 @@
     "nodes": [
       {
         "id": "pulse-1",
-        "kind": "pulse",
+        "nodeType": "pulse",
         "label": "Every minute",
         "x": 20,
         "y": 40,
@@ -21,7 +21,7 @@
       },
       {
         "id": "delay-1",
-        "kind": "delay",
+        "nodeType": "delay",
         "label": "Delay",
         "x": 240,
         "y": 40,

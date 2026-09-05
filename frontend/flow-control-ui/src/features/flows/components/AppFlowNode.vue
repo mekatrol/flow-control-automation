@@ -27,7 +27,7 @@
         rx="2"
       />
       <AppFlowNodeIcon :icon="definition.icon" />
-      <AppFlowNodeLabel :label="node.label" :kind-label="definition.label" />
+      <AppFlowNodeLabel :label="node.label" :type-label="definition.label" />
       <AppFlowNodeStatus
         v-if="status"
         :status="status"
@@ -96,7 +96,7 @@ import AppFlowNodeStatus from './AppFlowNodeStatus.vue';
 import AppFlowConnector from './AppFlowConnector.vue';
 import { layoutConnectors } from '@/features/flows/geometry/connectorLayout';
 import { EVENTS } from '@/constants/events';
-import { getNodeKind } from '@/features/flows/nodeKinds';
+import { getNodeTypeDefinition } from '@/features/flows/nodeTypes';
 import type { FlowConnectionEndpoint, FlowNode } from '@/features/flows/types';
 import type { ConnectorRuntimeValue } from '@/features/flows/api/flowRuntimeApi';
 
@@ -126,9 +126,9 @@ const emit = defineEmits<{
 // SVG group has no native control semantics, the template also supplies focus,
 // button behaviour, and an announced selected state.
 const transform = computed(() => `translate(${props.node.x} ${props.node.y})`);
-const definition = computed(() => getNodeKind(props.node.kind));
+const definition = computed(() => getNodeTypeDefinition(props.node.nodeType));
 const connectorLayouts = computed(() =>
-  // Connector coordinates come from the kind's declared size rather than the
+  // Connector coordinates come from the type's declared size rather than the
   // browser's measured pixels, so persisted paths remain deterministic at zoom.
   layoutConnectors(
     props.node.connectors,

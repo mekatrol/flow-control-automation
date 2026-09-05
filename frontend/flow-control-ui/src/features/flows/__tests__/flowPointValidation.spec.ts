@@ -3,9 +3,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { validatePointReference } from '@/features/flows/flowPointValidation';
 import type { FlowNode, VirtualPointDeclaration } from '@/features/flows/types';
 
-const node = (kind: FlowNode['kind'], pointId: string): FlowNode => ({
+const node = (nodeType: FlowNode['nodeType'], pointId: string): FlowNode => ({
   id: 'point-node',
-  kind,
+  nodeType,
   label: 'Point',
   x: 0,
   y: 0,

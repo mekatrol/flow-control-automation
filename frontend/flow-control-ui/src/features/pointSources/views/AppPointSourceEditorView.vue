@@ -200,6 +200,14 @@
 </template>
 
 <script setup lang="ts">
+import { DataDirectionType } from '@/types/serverTypes';
+
+import {
+  AutomationPointValueType,
+  VirtualPointPersistenceType,
+  PointSourceType
+} from '@/types/serverTypes';
+
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { parse } from 'yaml';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
@@ -411,13 +419,15 @@ const pointTestSchema = {
           id: { type: 'string' },
           name: { type: 'string' },
           enabled: { type: 'boolean' },
-          pointSourceType: { const: 'remote' },
-          direction: { enum: ['input', 'output', 'inputOutput'] },
-          valueType: { enum: ['analog', 'digital', 'multiState', 'integer', 'text'] },
+          pointSourceType: { const: PointSourceType.Remote },
+          direction: {
+            enum: [DataDirectionType.Input, DataDirectionType.Output, DataDirectionType.InputOutput]
+          },
+          valueType: { enum: Object.values(AutomationPointValueType) },
           units: { type: 'string' },
           readable: { type: 'boolean' },
           commandable: { type: 'boolean' },
-          persistence: { enum: ['volatile', 'retained'] },
+          persistence: { enum: Object.values(VirtualPointPersistenceType) },
           sourceId: { type: 'string' },
           mapping: {
             type: 'object',

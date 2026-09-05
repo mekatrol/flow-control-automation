@@ -95,7 +95,7 @@ public sealed class FlowEmulatorServiceTests
         {
             Nodes =
             [
-                Source().Nodes[0] with { Kind = FlowNodeType.AnalogInput }
+                Source().Nodes[0] with { NodeType = FlowNodeType.AnalogInput }
             ]
         };
         var created = await service.CreateAsync(source, default);
@@ -121,7 +121,7 @@ public sealed class FlowEmulatorServiceTests
             new ExecutableFlowNode
             {
                 Id = "input",
-                Kind = FlowNodeType.DigitalInput,
+                NodeType = FlowNodeType.DigitalInput,
                 Configuration = new Dictionary<string, JsonElement>
                 {
                     ["pointId"] = JsonSerializer.SerializeToElement("input-01")

@@ -58,7 +58,7 @@ public sealed class FlowCompilerTests
         "contracts",
         "flow-il-v1");
 
-    private static ExecutableFlowSource GetSourceFromKind(FlowNodeType kind)
+    private static ExecutableFlowSource GetSourceFromNodeType(FlowNodeType kind)
     {
         var numericInputs = kind switch
         {
@@ -116,18 +116,18 @@ public sealed class FlowCompilerTests
         foreach (var port in numericInputs)
         {
             var id = $"number-{port}";
-            nodes.Add(new ExecutableFlowNode { Id = id, Kind = FlowNodeType.AnalogConstant, Configuration = Config("value", 1D) });
+            nodes.Add(new ExecutableFlowNode { Id = id, NodeType = FlowNodeType.AnalogConstant, Configuration = Config("value", 1D) });
             connections.Add(new ExecutableFlowConnection(new ExecutableFlowEndpoint(id, "value"), new ExecutableFlowEndpoint("test-node", port)));
         }
 
         foreach (var port in booleanInputs)
         {
             var id = $"boolean-{port}";
-            nodes.Add(new ExecutableFlowNode { Id = id, Kind = FlowNodeType.DigitalConstant, Configuration = Config("value", true) });
+            nodes.Add(new ExecutableFlowNode { Id = id, NodeType = FlowNodeType.DigitalConstant, Configuration = Config("value", true) });
             connections.Add(new ExecutableFlowConnection(new ExecutableFlowEndpoint(id, "value"), new ExecutableFlowEndpoint("test-node", port)));
         }
 
-        nodes.Add(new ExecutableFlowNode { Id = "test-node", Kind = kind, Configuration = configuration });
+        nodes.Add(new ExecutableFlowNode { Id = "test-node", NodeType = kind, Configuration = configuration });
 
         return new ExecutableFlowSource
         {
@@ -148,7 +148,7 @@ public sealed class FlowCompilerTests
     public void EveryExecutableTutorialKindCompilesThroughTheNormalCompiler(FlowNodeType kind)
     {
         // Arrange: Create a current-schema fixture with typed constant drivers and canonical configuration.
-        var source = GetSourceFromKind(kind);
+        var source = GetSourceFromNodeType(kind);
 
         // Act: Compile through the production compiler rather than test-specific semantics.
         var compilationRequest = BuildCompilationRequest(source);
@@ -201,8 +201,8 @@ public sealed class FlowCompilerTests
         source = source with
         {
             Nodes = [.. source.Nodes.Select(node =>
-            node.Kind == FlowNodeType.And
-                ? node with { Kind = kind }
+            node.NodeType == FlowNodeType.And
+                ? node with { NodeType = kind }
                 : node)]
         };
 
@@ -263,7 +263,7 @@ public sealed class FlowCompilerTests
         {
             Nodes =
             [
-                ReadSource("valid-two-button-and").Nodes[0] with { Kind = FlowNodeType.Unknown }
+                ReadSource("valid-two-button-and").Nodes[0] with { NodeType = FlowNodeType.Unknown }
             ],
             Connections = []
         };
@@ -271,7 +271,7 @@ public sealed class FlowCompilerTests
         AssertDiagnostic(
             () => _compiler.Compile(BuildCompilationRequest(source)),
             FlowCompilationDiagnosticCode.UnsupportedNode,
-            "/nodes/0/kind");
+            "/nodes/0/nodeType");
     }
 
     [Test]
@@ -281,8 +281,8 @@ public sealed class FlowCompilerTests
         {
             Nodes =
             [
-                new ExecutableFlowNode { Id = "not-a", Kind = FlowNodeType.Not },
-                new ExecutableFlowNode { Id = "not-b", Kind = FlowNodeType.Not }
+                new ExecutableFlowNode { Id = "not-a", NodeType = FlowNodeType.Not },
+                new ExecutableFlowNode { Id = "not-b", NodeType = FlowNodeType.Not }
             ],
             Connections =
             [
@@ -373,7 +373,7 @@ public sealed class FlowCompilerTests
     [Test]
     public void CalculatorCompilesBodmasFormulaIntoArithmeticInstructionsAndTemporarySlots()
     {
-        var source = GetSourceFromKind(FlowNodeType.Calculator);
+        var source = GetSourceFromNodeType(FlowNodeType.Calculator);
         var calculator = source.Nodes.Single(node => node.Id == "test-node") with
         {
             Configuration = Config("formula", "a + b * (c - a) ^ b")
@@ -393,7 +393,7 @@ public sealed class FlowCompilerTests
     [Test]
     public void DivideExecutesWithBothNumericOperands()
     {
-        var source = GetSourceFromKind(FlowNodeType.Divide);
+        var source = GetSourceFromNodeType(FlowNodeType.Divide);
         source = source with
         {
             Nodes = [.. source.Nodes.Select(node => node.Id switch
@@ -414,7 +414,7 @@ public sealed class FlowCompilerTests
     [Test]
     public void DelayPostponesBothBooleanStateChangesForTheConfiguredDuration()
     {
-        var source = GetSourceFromKind(FlowNodeType.Delay);
+        var source = GetSourceFromNodeType(FlowNodeType.Delay);
         source = source with
         {
             Nodes =
@@ -423,7 +423,7 @@ public sealed class FlowCompilerTests
                 {
                     "boolean-input" => node with
                     {
-                        Kind = FlowNodeType.DigitalInput,
+                        NodeType = FlowNodeType.DigitalInput,
                         Configuration = Config("pointId", "input")
                     },
                     "test-node" => node with { Configuration = Config("durationMs", 2_000D) },
@@ -432,7 +432,7 @@ public sealed class FlowCompilerTests
                 new ExecutableFlowNode
                 {
                     Id = "output",
-                    Kind = FlowNodeType.DigitalOutput,
+                    NodeType = FlowNodeType.DigitalOutput,
                     Configuration = Config("pointId", "output")
                 }
             ],
@@ -465,21 +465,21 @@ public sealed class FlowCompilerTests
     [Test]
     public void DivideExecutesWithAnalogPointInputsAndOutput()
     {
-        var source = GetSourceFromKind(FlowNodeType.Divide);
+        var source = GetSourceFromNodeType(FlowNodeType.Divide);
         source = source with
         {
             Nodes =
             [
                 .. source.Nodes.Select(node => node.Id switch
                 {
-                    "number-a" => node with { Kind = FlowNodeType.AnalogInput, Configuration = Config("pointId", "input-a") },
-                    "number-b" => node with { Kind = FlowNodeType.AnalogInput, Configuration = Config("pointId", "input-b") },
+                    "number-a" => node with { NodeType = FlowNodeType.AnalogInput, Configuration = Config("pointId", "input-a") },
+                    "number-b" => node with { NodeType = FlowNodeType.AnalogInput, Configuration = Config("pointId", "input-b") },
                     _ => node
                 }),
                 new ExecutableFlowNode
                 {
                     Id = "output",
-                    Kind = FlowNodeType.AnalogOutput,
+                    NodeType = FlowNodeType.AnalogOutput,
                     Configuration = Config("pointId", "output")
                 }
             ],
@@ -504,22 +504,22 @@ public sealed class FlowCompilerTests
     [Test]
     public void DivideByZeroHoldsLastGoodValueAndRaisesErrorOutput()
     {
-        var source = GetSourceFromKind(FlowNodeType.Divide) with
+        var source = GetSourceFromNodeType(FlowNodeType.Divide) with
         {
             Nodes =
             [
-                .. GetSourceFromKind(FlowNodeType.Divide).Nodes.Select(node => node.Id switch
+                .. GetSourceFromNodeType(FlowNodeType.Divide).Nodes.Select(node => node.Id switch
                 {
-                    "number-a" => node with { Kind = FlowNodeType.AnalogInput, Configuration = Config("pointId", "input-a") },
-                    "number-b" => node with { Kind = FlowNodeType.AnalogInput, Configuration = Config("pointId", "input-b") },
+                    "number-a" => node with { NodeType = FlowNodeType.AnalogInput, Configuration = Config("pointId", "input-a") },
+                    "number-b" => node with { NodeType = FlowNodeType.AnalogInput, Configuration = Config("pointId", "input-b") },
                     _ => node
                 }),
-                new ExecutableFlowNode { Id = "value-output", Kind = FlowNodeType.AnalogOutput, Configuration = Config("pointId", "value-output") },
-                new ExecutableFlowNode { Id = "error-output", Kind = FlowNodeType.DigitalOutput, Configuration = Config("pointId", "error-output") }
+                new ExecutableFlowNode { Id = "value-output", NodeType = FlowNodeType.AnalogOutput, Configuration = Config("pointId", "value-output") },
+                new ExecutableFlowNode { Id = "error-output", NodeType = FlowNodeType.DigitalOutput, Configuration = Config("pointId", "error-output") }
             ],
             Connections =
             [
-                .. GetSourceFromKind(FlowNodeType.Divide).Connections,
+                .. GetSourceFromNodeType(FlowNodeType.Divide).Connections,
                 new(new("test-node", "value"), new("value-output", "in")),
                 new(new("test-node", "error"), new("error-output", "in"))
             ]
@@ -548,7 +548,7 @@ public sealed class FlowCompilerTests
     [Test]
     public void PulseRemainsOnForTheConfiguredDurationAndRequiresAnotherRisingEdge()
     {
-        var source = GetSourceFromKind(FlowNodeType.Pulse);
+        var source = GetSourceFromNodeType(FlowNodeType.Pulse);
         source = source with
         {
             Nodes =
@@ -557,7 +557,7 @@ public sealed class FlowCompilerTests
                 {
                     "boolean-input" => node with
                     {
-                        Kind = FlowNodeType.DigitalInput,
+                        NodeType = FlowNodeType.DigitalInput,
                         Configuration = Config("pointId", "input")
                     },
                     "test-node" => node with { Configuration = Config("durationMs", 2_000D) },
@@ -566,7 +566,7 @@ public sealed class FlowCompilerTests
                 new ExecutableFlowNode
                 {
                     Id = "output",
-                    Kind = FlowNodeType.DigitalOutput,
+                    NodeType = FlowNodeType.DigitalOutput,
                     Configuration = Config("pointId", "output")
                 }
             ],
@@ -599,21 +599,21 @@ public sealed class FlowCompilerTests
     [Test]
     public void ClockCyclesAtTheConfiguredFrequencyAndDutyCycleWhileEnabled()
     {
-        var source = GetSourceFromKind(FlowNodeType.Clock) with
+        var source = GetSourceFromNodeType(FlowNodeType.Clock) with
         {
             Nodes =
             [
-                .. GetSourceFromKind(FlowNodeType.Clock).Nodes.Select(node => node.Id switch
+                .. GetSourceFromNodeType(FlowNodeType.Clock).Nodes.Select(node => node.Id switch
                 {
-                    "boolean-enable" => node with { Kind = FlowNodeType.DigitalInput, Configuration = Config("pointId", "enable") },
+                    "boolean-enable" => node with { NodeType = FlowNodeType.DigitalInput, Configuration = Config("pointId", "enable") },
                     "test-node" => node with { Configuration = Config(("frequencyHz", 2D), ("dutyCycle", 25D)) },
                     _ => node
                 }),
-                new ExecutableFlowNode { Id = "output", Kind = FlowNodeType.DigitalOutput, Configuration = Config("pointId", "output") }
+                new ExecutableFlowNode { Id = "output", NodeType = FlowNodeType.DigitalOutput, Configuration = Config("pointId", "output") }
             ],
             Connections =
             [
-                .. GetSourceFromKind(FlowNodeType.Clock).Connections,
+                .. GetSourceFromNodeType(FlowNodeType.Clock).Connections,
                 new(new("test-node", "output"), new("output", "in"))
             ]
         };
@@ -648,11 +648,11 @@ public sealed class FlowCompilerTests
             ControllerTemplateRevision = 1,
             Nodes =
             [
-                new() { Id = "enable", Kind = FlowNodeType.DigitalInput, Configuration = Config("pointId", "enable") },
-                new() { Id = "reset", Kind = FlowNodeType.DigitalConstant, Configuration = Config("value", false) },
-                new() { Id = "clock", Kind = FlowNodeType.Clock, Configuration = Config(("frequencyHz", 2D), ("dutyCycle", 25D)) },
-                new() { Id = "counter", Kind = FlowNodeType.Counter },
-                new() { Id = "output", Kind = FlowNodeType.AnalogOutput, Configuration = Config("pointId", "count") }
+                new() { Id = "enable", NodeType = FlowNodeType.DigitalInput, Configuration = Config("pointId", "enable") },
+                new() { Id = "reset", NodeType = FlowNodeType.DigitalConstant, Configuration = Config("value", false) },
+                new() { Id = "clock", NodeType = FlowNodeType.Clock, Configuration = Config(("frequencyHz", 2D), ("dutyCycle", 25D)) },
+                new() { Id = "counter", NodeType = FlowNodeType.Counter },
+                new() { Id = "output", NodeType = FlowNodeType.AnalogOutput, Configuration = Config("pointId", "count") }
             ],
             Connections =
             [
@@ -677,7 +677,7 @@ public sealed class FlowCompilerTests
     [Test]
     public void CounterAllowsAnUnconnectedResetAndHoldsZeroWhileResetIsHigh()
     {
-        var source = GetSourceFromKind(FlowNodeType.Counter);
+        var source = GetSourceFromNodeType(FlowNodeType.Counter);
         source = source with
         {
             Connections = [.. source.Connections.Where(connection =>
@@ -694,10 +694,10 @@ public sealed class FlowCompilerTests
             ControllerTemplateRevision = 1,
             Nodes =
             [
-                new() { Id = "count-input", Kind = FlowNodeType.DigitalInput, Configuration = Config("pointId", "count") },
-                new() { Id = "reset-input", Kind = FlowNodeType.DigitalInput, Configuration = Config("pointId", "reset") },
-                new() { Id = "counter", Kind = FlowNodeType.Counter },
-                new() { Id = "output", Kind = FlowNodeType.AnalogOutput, Configuration = Config("pointId", "value") }
+                new() { Id = "count-input", NodeType = FlowNodeType.DigitalInput, Configuration = Config("pointId", "count") },
+                new() { Id = "reset-input", NodeType = FlowNodeType.DigitalInput, Configuration = Config("pointId", "reset") },
+                new() { Id = "counter", NodeType = FlowNodeType.Counter },
+                new() { Id = "output", NodeType = FlowNodeType.AnalogOutput, Configuration = Config("pointId", "value") }
             ],
             Connections =
             [
@@ -721,9 +721,9 @@ public sealed class FlowCompilerTests
     [TestCase(1000.001)]
     public void ClockRejectsFrequenciesOutsideTheSupportedRange(double frequencyHz)
     {
-        var source = GetSourceFromKind(FlowNodeType.Clock) with
+        var source = GetSourceFromNodeType(FlowNodeType.Clock) with
         {
-            Nodes = [.. GetSourceFromKind(FlowNodeType.Clock).Nodes.Select(node => node.Id == "test-node"
+            Nodes = [.. GetSourceFromNodeType(FlowNodeType.Clock).Nodes.Select(node => node.Id == "test-node"
                 ? node with { Configuration = Config(("frequencyHz", frequencyHz), ("dutyCycle", 50D)) }
                 : node)]
         };
@@ -738,7 +738,7 @@ public sealed class FlowCompilerTests
     [TestCase("a / (b - b")]
     public void CalculatorRejectsLiteralsUnknownVariablesAndMalformedFormulas(string formula)
     {
-        var source = GetSourceFromKind(FlowNodeType.Calculator);
+        var source = GetSourceFromNodeType(FlowNodeType.Calculator);
         var calculator = source.Nodes.Single(node => node.Id == "test-node") with
         {
             Configuration = Config("formula", formula)
@@ -786,16 +786,16 @@ public sealed class FlowCompilerTests
                 new HashSet<ExecutionModeType>(),
                 new HashSet<ControllerRuntimeFeatureType>()),
             Points = [.. source.Nodes
-                .Where(node => node.Kind is FlowNodeType.DigitalInput or FlowNodeType.DigitalOutput or FlowNodeType.AnalogInput or FlowNodeType.AnalogOutput)
+                .Where(node => node.NodeType is FlowNodeType.DigitalInput or FlowNodeType.DigitalOutput or FlowNodeType.AnalogInput or FlowNodeType.AnalogOutput)
                 .Select(node => new PhysicalAutomationPoint
                 {
                     Id = node.Configuration["pointId"].GetString()!,
                     Name = node.Configuration["pointId"].GetString()!,
                     Enabled = true,
-                    Direction = node.Kind is FlowNodeType.DigitalInput or FlowNodeType.AnalogInput ? DataDirectionType.Input : DataDirectionType.Output,
-                    ValueType = node.Kind is FlowNodeType.AnalogInput or FlowNodeType.AnalogOutput ? AutomationPointValueType.Analog : AutomationPointValueType.Digital,
-                    Readable = node.Kind is FlowNodeType.DigitalInput or FlowNodeType.AnalogInput,
-                    Commandable = node.Kind is FlowNodeType.DigitalOutput or FlowNodeType.AnalogOutput,
+                    Direction = node.NodeType is FlowNodeType.DigitalInput or FlowNodeType.AnalogInput ? DataDirectionType.Input : DataDirectionType.Output,
+                    ValueType = node.NodeType is FlowNodeType.AnalogInput or FlowNodeType.AnalogOutput ? AutomationPointValueType.Analog : AutomationPointValueType.Digital,
+                    Readable = node.NodeType is FlowNodeType.DigitalInput or FlowNodeType.AnalogInput,
+                    Commandable = node.NodeType is FlowNodeType.DigitalOutput or FlowNodeType.AnalogOutput,
                     Persistence = "volatile",
                     Revision = 1
                 })

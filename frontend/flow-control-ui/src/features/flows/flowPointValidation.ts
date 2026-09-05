@@ -1,6 +1,9 @@
+import type { VirtualPointValueType } from '@/features/flows/types';
+import { AutomationPointValueType, FlowNodeType } from '@/types/serverTypes';
 import { executionContextApi } from '@/features/flows/api/executionContextApi';
 import type { PointSummary } from '@/features/catalogues/api/catalogueDto';
 import type { FlowNode, VirtualPointDeclaration } from '@/features/flows/types';
+import { isVirtualPointNode } from '@/features/flows/types';
 
 export type PointValidationState = 'idle' | 'pending' | 'valid' | 'invalid' | 'unavailable';
 export interface PointValidationResult {
@@ -10,20 +13,24 @@ export interface PointValidationResult {
 }
 
 export const isPointNode = (node: FlowNode): boolean =>
-  [
-    'analogInput',
-    'analogOutput',
-    'analogVirtual',
-    'digitalInput',
-    'digitalOutput',
-    'digitalVirtual'
-  ].includes(node.kind);
+  isInputPointNode(node) || isOutputPointNode(node) || isVirtualPointNode(node);
+
+export const isInputPointNode = (node: FlowNode): boolean =>
+  node.nodeType === FlowNodeType.AnalogInput || node.nodeType === FlowNodeType.DigitalInput;
+
+export const isOutputPointNode = (node: FlowNode): boolean =>
+  node.nodeType === FlowNodeType.AnalogOutput || node.nodeType === FlowNodeType.DigitalOutput;
 
 export const pointRequirement = (
   node: FlowNode
-): { valueType: 'analog' | 'digital'; readable: boolean } => ({
-  valueType: node.kind.startsWith('analog') ? 'analog' : 'digital',
-  readable: node.kind.endsWith('Input') || node.kind.endsWith('Virtual')
+): { valueType: VirtualPointValueType; readable: boolean } => ({
+  valueType:
+    node.nodeType === FlowNodeType.AnalogInput ||
+    node.nodeType === FlowNodeType.AnalogOutput ||
+    node.nodeType === FlowNodeType.AnalogVirtual
+      ? AutomationPointValueType.Analog
+      : AutomationPointValueType.Digital,
+  readable: isInputPointNode(node) || isVirtualPointNode(node)
 });
 
 export const pointCompatibilityError = (

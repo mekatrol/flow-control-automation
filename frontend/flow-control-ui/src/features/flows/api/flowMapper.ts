@@ -1,5 +1,6 @@
+import { FlowNodeType } from '@/types/serverTypes';
 import type { FlowDefinition } from '@/features/flows/types';
-import { nodeKindRegistry } from '@/features/flows/nodeKinds';
+import { nodeTypeRegistry } from '@/features/flows/nodeTypes';
 import type { FlowDto } from './flowDto';
 
 // API data and editable data must not share nested objects. Editing a connector or
@@ -10,8 +11,11 @@ const copyFlow = (flow: FlowDefinition | FlowDto): FlowDto => ({
   ...(flow.revision !== undefined ? { revision: flow.revision } : {}),
   nodes: flow.nodes.map((node) => {
     const connectors = node.connectors.map((connector) => ({ ...connector }));
-    if (node.kind === 'analogVirtual' || node.kind === 'digitalVirtual') {
-      for (const connector of nodeKindRegistry[node.kind].connectors)
+    if (
+      node.nodeType === FlowNodeType.AnalogVirtual ||
+      node.nodeType === FlowNodeType.DigitalVirtual
+    ) {
+      for (const connector of nodeTypeRegistry[node.nodeType].connectors)
         if (!connectors.some(({ id }) => id === connector.id)) connectors.push({ ...connector });
     }
     return {

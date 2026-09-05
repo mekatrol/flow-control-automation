@@ -34,7 +34,7 @@ internal sealed class FlowDeploymentService(
         });
 
         var inputPointIds = source.Nodes
-            .Where(node => node.Kind == FlowNodeType.DigitalInput)
+            .Where(node => node.NodeType == FlowNodeType.DigitalInput)
             .Select(node => node.Configuration["pointId"].GetString()!)
             .Distinct(StringComparer.Ordinal)
             .Order(StringComparer.Ordinal)
@@ -86,7 +86,7 @@ internal sealed class FlowDeploymentService(
                 Mode = FlowExecutionModeType.Manual,
                 IntervalMs = 0,
                 InputQualityPolicy = flow.Nodes.Any(
-                    node => node.Kind == FlowNodeType.QualityGood)
+                    node => node.NodeType == FlowNodeType.QualityGood)
                         ? InputQualityPolicyType.Propagate
                         : InputQualityPolicyType.RequireGood
             },
@@ -94,13 +94,13 @@ internal sealed class FlowDeploymentService(
             Nodes =
             [
                 .. flow.Nodes
-                    .Where(node => !node.Kind.IsVirtual() || flow.Connections.Any(
+                    .Where(node => !node.NodeType.IsVirtual() || flow.Connections.Any(
                         connection => connection.Start.NodeId == node.Id))
                     .Select(node => new ExecutableFlowNode
                 {
                     Id = node.Id,
-                    Kind = node.Kind.ExecutableKind(),
-                    Configuration = node.Kind.IsVirtual()
+                    NodeType = node.NodeType.ExecutableNodeType(),
+                    Configuration = node.NodeType.IsVirtual()
                         ? VirtualPointConfiguration(node)
                         : BindConfiguration(node, physicalPointBindings),
                     Label = node.Label,
@@ -150,5 +150,5 @@ internal sealed class FlowDeploymentService(
     private static Dictionary<string, JsonElement> VirtualPointConfiguration(FlowNode node) =>
         node.Configuration.TryGetValue("pointId", out var pointId)
             ? new Dictionary<string, JsonElement> { ["pointId"] = pointId }
-            : new Dictionary<string, JsonElement>();
+            : [];
 }

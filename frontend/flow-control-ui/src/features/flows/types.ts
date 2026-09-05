@@ -1,72 +1,23 @@
+import {
+  FlowNodeType,
+  DataDirectionType,
+  AutomationPointValueType,
+  VirtualPointPersistenceType,
+  type DataType
+} from '@/types/serverTypes';
+
 export type FlowStatus = 'draft' | 'deployed';
 
-// These are the function blocks supported by the legacy flow engine. The enum
-// is also the persisted wire value, so adding a block does not require a second
-// translation table between the toolbox, graph, and API payload.
-export enum FlowNodeFunctionType {
-  A2D = 'a2d',
-  Add = 'add',
-  Subtract = 'subtract',
-  Multiply = 'multiply',
-  Divide = 'divide',
-  Power = 'power',
-  Negate = 'negate',
-  AnalogInput = 'analogInput',
-  AnalogOutput = 'analogOutput',
-  AnalogVirtual = 'analogVirtual',
-  And = 'and',
-  Average = 'average',
-  Calculator = 'calculator',
-  Calendar = 'calendar',
-  Clamp = 'clamp',
-  Comparator = 'comparator',
-  Counter = 'counter',
-  Clock = 'clock',
-  Delay = 'delay',
-  DigitalConstant = 'digitalConstant',
-  DigitalInput = 'digitalInput',
-  DigitalOutput = 'digitalOutput',
-  DigitalVirtual = 'digitalVirtual',
-  DigitalSwitch = 'digitalSwitch',
-  D2A = 'd2a',
-  Line = 'line',
-  LevelShifter = 'levelShifter',
-  Max = 'max',
-  Min = 'min',
-  Memory = 'memory',
-  Nand = 'nand',
-  Nor = 'nor',
-  AnalogConstant = 'analogConstant',
-  Not = 'not',
-  Or = 'or',
-  Override = 'override',
-  OnDelay = 'onDelay',
-  Pulse = 'pulse',
-  QualityGood = 'qualityGood',
-  RisingEdge = 'risingEdge',
-  Schedule = 'schedule',
-  AnalogSwitch = 'analogSwitch',
-  Sequence = 'sequence',
-  Split = 'split',
-  Timer = 'timer',
-  Xnor = 'xnor',
-  Xor = 'xor'
-}
+export { FlowNodeType, DataType } from '@/types/serverTypes';
 
-// Persisted flow JSON contains the enum's string values, not enum members.
-// Keep those wire values assignable while deriving the union from the enum so
-// the accepted kinds cannot drift from the registry.
-export type FlowNodeKind = `${FlowNodeFunctionType}`;
-
-export type ConnectorDirection = 'input' | 'output';
-
-export type ConnectorDataType = 'any' | 'boolean' | 'event' | 'number' | 'string';
+export type ConnectorDirection = typeof DataDirectionType.Input | typeof DataDirectionType.Output;
 
 export type ConnectorSide = 'left' | 'right' | 'top' | 'bottom';
 
 export type FlowConfigurationValue = boolean | number | string | null;
-export type VirtualPointValueType = 'analog' | 'digital';
-export type VirtualPointPersistence = 'volatile' | 'retained';
+export type VirtualPointValueType =
+  | typeof AutomationPointValueType.Analog
+  | typeof AutomationPointValueType.Digital;
 
 export interface VirtualPointDeclaration {
   key: string;
@@ -74,7 +25,7 @@ export interface VirtualPointDeclaration {
   units?: string;
   readable: boolean;
   commandable: boolean;
-  persistence: VirtualPointPersistence;
+  persistence: VirtualPointPersistenceType;
   relinquishDefault?: boolean | number | null;
 }
 
@@ -90,7 +41,7 @@ export interface FlowNodeConnector {
   /** Whether graph edges leave or enter this connector. */
   direction: ConnectorDirection;
   /** Value contract used for connection compatibility; `any` accepts every supported data type. */
-  dataType: ConnectorDataType;
+  dataType: DataType;
   /** Node edge on which the connector is rendered. */
   side: ConnectorSide;
 }
@@ -99,8 +50,8 @@ export interface FlowNodeConnector {
 export interface FlowNode {
   /** Stable non-empty identifier unique within the flow. */
   id: string;
-  /** Supported registry kind that determines behavior, connectors, and configuration schema. */
-  kind: FlowNodeKind;
+  /** Supported registry type that determines behavior, connectors, and configuration schema. */
+  nodeType: FlowNodeType;
   /** User-visible non-empty node label. */
   label: string;
   /** Horizontal canvas coordinate in CSS pixels; finite values may be negative on the unbounded workspace. */
@@ -113,7 +64,7 @@ export interface FlowNode {
   groupId?: string;
   /** Connectors in stable registry/display order with IDs unique within this node. */
   connectors: FlowNodeConnector[];
-  /** Kind-specific persisted values validated by the matching node registry definition. */
+  /** Type-specific persisted values validated by the matching node registry definition. */
   configuration: Record<string, FlowConfigurationValue>;
 }
 
@@ -159,8 +110,7 @@ export interface FlowDefinition {
 }
 
 export const isVirtualPointNode = (node: FlowNode): boolean =>
-  node.kind === FlowNodeFunctionType.AnalogVirtual ||
-  node.kind === FlowNodeFunctionType.DigitalVirtual;
+  node.nodeType === FlowNodeType.AnalogVirtual || node.nodeType === FlowNodeType.DigitalVirtual;
 
 export const unconnectedVirtualPoint = (flow: FlowDefinition): FlowNode | undefined =>
   flow.nodes.find(
@@ -179,11 +129,17 @@ export const virtualPointDeclarationFromNode = (
   const relinquishDefault = node.configuration.relinquishDefault;
   return {
     key: String(node.configuration.pointId ?? '').trim(),
-    valueType: node.kind === FlowNodeFunctionType.AnalogVirtual ? 'analog' : 'digital',
+    valueType:
+      node.nodeType === FlowNodeType.AnalogVirtual
+        ? AutomationPointValueType.Analog
+        : AutomationPointValueType.Digital,
     ...(units ? { units } : {}),
     readable: true,
     commandable: true,
-    persistence: node.configuration.persistence === 'retained' ? 'retained' : 'volatile',
+    persistence:
+      node.configuration.persistence === VirtualPointPersistenceType.Retained
+        ? VirtualPointPersistenceType.Retained
+        : VirtualPointPersistenceType.Volatile,
     ...(relinquishDefault !== null && relinquishDefault !== ''
       ? { relinquishDefault: relinquishDefault as boolean | number }
       : {})

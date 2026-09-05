@@ -1,3 +1,10 @@
+import {
+  FlowFunctionType,
+  DataDirectionType,
+  ConnectorDataType,
+  ControllerRuntimeFeatureType
+} from '@/types/serverTypes';
+import { AutomationPointValueType } from '@/types/serverTypes';
 import type { ControllerTemplateSummary } from '@/features/catalogues/api/catalogueDto';
 
 export interface FlowDebugTarget {
@@ -8,16 +15,22 @@ export interface FlowDebugTarget {
   controllerTemplateRevision?: number;
 }
 
-const requiredFunctions = ['and', 'not', 'or', 'readPoint', 'writePoint'];
+const requiredFunctions = [
+  FlowFunctionType.And,
+  FlowFunctionType.Not,
+  FlowFunctionType.Or,
+  FlowFunctionType.ReadPoint,
+  FlowFunctionType.WritePoint
+];
 
 export const isControllerDebugCompatible = (template: ControllerTemplateSummary): boolean =>
   template.id !== 'default' &&
   template.revision > 0 &&
-  template.capabilities.pointTypes.includes('digital') &&
-  template.capabilities.pointDirections.includes('input') &&
-  template.capabilities.pointDirections.includes('output') &&
-  template.capabilities.connectorDataTypes.includes('boolean') &&
-  template.capabilities.runtimeFeatures.includes('physicalPoints') &&
+  template.capabilities.pointTypes.includes(AutomationPointValueType.Digital) &&
+  template.capabilities.pointDirections.includes(DataDirectionType.Input) &&
+  template.capabilities.pointDirections.includes(DataDirectionType.Output) &&
+  template.capabilities.connectorDataTypes.includes(ConnectorDataType.Boolean) &&
+  template.capabilities.runtimeFeatures.includes(ControllerRuntimeFeatureType.PhysicalPoints) &&
   requiredFunctions.every((kind) => template.capabilities.flowFunctions.includes(kind));
 
 export const getFlowDebugTargets = (

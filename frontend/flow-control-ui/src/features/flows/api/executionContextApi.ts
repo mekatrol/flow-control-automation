@@ -1,3 +1,9 @@
+import {
+  AutomationPointValueType,
+  PointSourceType,
+  DataDirectionType,
+  isEnumValue
+} from '@/types/serverTypes';
 import { waitForFetch } from '@/api/waitForFetch';
 import type { VirtualPointDeclaration } from '@/features/flows/types';
 import type { PointSummary } from '@/features/catalogues/api/catalogueDto';
@@ -78,15 +84,16 @@ export const executionContextApi = {
       { signal }
     );
     await requireOk(response, 'Unable to resolve point');
-    const body = (await response.json()) as Record<string, unknown>;
+    const payload: unknown = await response.json();
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload))
+      throw new Error('Point resolution is malformed.');
+    const body = payload as Record<string, unknown>;
     if (body.exists === false) return undefined;
     if (
       body.exists !== true ||
       typeof body.pointKey !== 'string' ||
-      (body.pointSourceType !== 'virtual' &&
-        body.pointSourceType !== 'physical' &&
-        body.pointSourceType !== 'remote') ||
-      !['analog', 'digital', 'multiState', 'integer', 'text'].includes(String(body.valueType))
+      !isEnumValue(PointSourceType, body.pointSourceType) ||
+      !isEnumValue(AutomationPointValueType, body.valueType)
     )
       throw new Error('Point resolution is malformed.');
     return {
@@ -94,8 +101,11 @@ export const executionContextApi = {
       name: body.pointKey,
       enabled: body.enabled === true,
       pointSourceType: body.pointSourceType,
-      direction: body.pointSourceType === 'virtual' ? 'value' : 'inputOutput',
-      valueType: body.valueType as PointSummary['valueType'],
+      direction:
+        body.pointSourceType === PointSourceType.Virtual
+          ? DataDirectionType.Value
+          : DataDirectionType.InputOutput,
+      valueType: body.valueType,
       units: typeof body.units === 'string' ? body.units : undefined,
       readable: body.readable === true,
       commandable: body.commandable === true,

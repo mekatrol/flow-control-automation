@@ -196,6 +196,10 @@
 </template>
 
 <script setup lang="ts">
+import { FlowNodeType } from '@/types/serverTypes';
+
+import { AutomationPointValueType, DataDirectionType } from '@/types/serverTypes';
+
 import { computed, nextTick, ref, watch } from 'vue';
 
 import breakpointIcon from '@/assets/icons/breakpoint-icon.svg';
@@ -221,7 +225,7 @@ import {
   useNodeDragging
 } from '@/features/flows/composables/useNodeDragging';
 import { layoutConnectors, type Point } from '@/features/flows/geometry/connectorLayout';
-import { getNodeKind } from '@/features/flows/nodeKinds';
+import { getNodeTypeDefinition } from '@/features/flows/nodeTypes';
 import { canReorderNode, type ZOrderCommand } from '@/features/flows/graph/zOrder';
 import { interpretDesignerKey } from '@/features/flows/graph/keyboardCommands';
 import { validateConnection } from '@/features/flows/graph/connections';
@@ -236,8 +240,8 @@ import type {
   VirtualPointDeclaration
 } from '@/features/flows/types';
 import { virtualPointDeclarationsFromNodes } from '@/features/flows/types';
-import type { PointValidationState } from '@/features/flows/flowPointValidation';
-import { flowNodeKinds } from '@/features/flows/nodeKinds';
+import { isPointNode, type PointValidationState } from '@/features/flows/flowPointValidation';
+import { flowNodeTypes } from '@/features/flows/nodeTypes';
 import type { FlowRuntimeSnapshot } from '@/features/flows/api/flowRuntimeApi';
 import type { ConnectorRuntimeValue } from '@/features/flows/api/flowRuntimeApi';
 import type { FlowDebugBreakpoint } from '@/features/flows/api/flowDebugApi';
@@ -342,7 +346,7 @@ const nodesById = computed(() => new Map(props.flow.nodes.map((node) => [node.id
 const connectorPoint = (nodeId: string, connectorId: string): Point | undefined => {
   const node = nodesById.value.get(nodeId);
   if (!node) return undefined;
-  const size = getNodeKind(node.kind).defaultSize;
+  const size = getNodeTypeDefinition(node.nodeType).defaultSize;
   const layout = layoutConnectors(node.connectors, size.width, size.height).find(
     ({ connector }) => connector.id === connectorId
   );
@@ -410,22 +414,22 @@ const selectedNode = computed(() =>
 );
 const selectedVirtualPointId = computed(() => {
   const node = selectedNode.value;
-  if (!node || (node.kind !== 'analogVirtual' && node.kind !== 'digitalVirtual')) return undefined;
+  if (
+    !node ||
+    (node.nodeType !== FlowNodeType.AnalogVirtual && node.nodeType !== FlowNodeType.DigitalVirtual)
+  )
+    return undefined;
   return String(node.configuration.pointId ?? '') || undefined;
 });
 const virtualPointDeclarations = computed(() =>
   virtualPointDeclarationsFromNodes(props.flow.nodes)
 );
 const defaultNodeValue = (node: FlowNodeModel): string | undefined => {
-  if (node.kind === 'analogConstant' || node.kind === 'memory')
+  if (node.nodeType === FlowNodeType.AnalogConstant || node.nodeType === FlowNodeType.Memory)
     return String(node.configuration.value ?? 0);
-  if (node.kind === 'digitalConstant') return node.configuration.value ? 'On' : 'Off';
-  if (
-    !node.kind.endsWith('Input') &&
-    !node.kind.endsWith('Output') &&
-    !node.kind.endsWith('Virtual')
-  )
-    return undefined;
+  if (node.nodeType === FlowNodeType.DigitalConstant)
+    return node.configuration.value ? 'On' : 'Off';
+  if (!isPointNode(node)) return undefined;
   const pointId = String(node.configuration.pointId ?? '');
   const declaration = virtualPointDeclarations.value.find((point) => point.key === pointId);
   if (!declaration) return undefined;
@@ -433,7 +437,7 @@ const defaultNodeValue = (node: FlowNodeModel): string | undefined => {
     return `${declaration.relinquishDefault}${declaration.units ? ` ${declaration.units}` : ''}`;
   if (typeof declaration.relinquishDefault === 'boolean')
     return declaration.relinquishDefault ? 'On' : 'Off';
-  return declaration.valueType === 'analog'
+  return declaration.valueType === AutomationPointValueType.Analog
     ? `0${declaration.units ? ` ${declaration.units}` : ''}`
     : 'Off';
 };
@@ -451,39 +455,39 @@ const canMoveBack = computed(() =>
 
 const handleNodeSelection = (nodeId: FlowNodeModel['id']): void => selectNode(nodeId);
 const handleConnectionSelection = (connectionId: string): void => selectConnection(connectionId);
-const handleAddNode = (kind: FlowNodeModel['kind']): void => {
+const handleAddNode = (type: FlowNodeModel['nodeType']): void => {
   const zOrder = Math.max(-1, ...props.flow.nodes.map((node) => node.zOrder)) + 1;
   // Stagger new nodes so repeated additions do not completely cover each other.
   // Wrapping after eight additions keeps the starting position within the canvas.
   const offset = (props.flow.nodes.length % 8) * 24;
-  const node = createDefaultNode(kind, { x: 48 + offset, y: 72 + offset }, zOrder);
+  const node = createDefaultNode(type, { x: 48 + offset, y: 72 + offset }, zOrder);
   emit(EVENTS.ADD_NODE, node);
   selectNode(node.id);
 };
-const addNodeAt = (kind: FlowNodeModel['kind'], position: Point): void => {
+const addNodeAt = (type: FlowNodeModel['nodeType'], position: Point): void => {
   const zOrder = Math.max(-1, ...props.flow.nodes.map((node) => node.zOrder)) + 1;
-  const size = getNodeKind(kind).defaultSize;
+  const size = getNodeTypeDefinition(type).defaultSize;
   const constrained = constrainNodePosition(position, {
     width: viewBoxSize.value.width,
     height: viewBoxSize.value.height,
     nodeWidth: size.width,
     nodeHeight: size.height
   });
-  const node = createDefaultNode(kind, constrained, zOrder);
+  const node = createDefaultNode(type, constrained, zOrder);
   emit(EVENTS.ADD_NODE, node);
   selectNode(node.id);
 };
 
 const handlePaletteDrop = (event: DragEvent): void => {
   event.preventDefault();
-  const kind = event.dataTransfer?.getData('application/x-flow-node-function-type');
-  if (!kind || !flowNodeKinds.includes(kind as FlowNodeModel['kind'])) return;
+  const type = event.dataTransfer?.getData('application/x-flow-node-function-type');
+  if (!type || !flowNodeTypes.some((nodeType) => nodeType === type)) return;
   const point = pointerToCanvas(event as unknown as PointerEvent);
   if (!point) return;
-  const size = getNodeKind(kind as FlowNodeModel['kind']).defaultSize;
+  const size = getNodeTypeDefinition(type as FlowNodeModel['nodeType']).defaultSize;
   // Centre the new block under the cursor instead of placing its top-left corner
   // there, which makes the drop position match the user's drag intent.
-  addNodeAt(kind as FlowNodeModel['kind'], {
+  addNodeAt(type as FlowNodeModel['nodeType'], {
     x: point.x - size.width / 2,
     y: point.y - size.height / 2
   });
@@ -519,7 +523,7 @@ const handleCanvasKeydown = (event: KeyboardEvent): void => {
   if (!nodeId) return;
   const node = nodesById.value.get(nodeId);
   if (!node) return;
-  const size = getNodeKind(node.kind).defaultSize;
+  const size = getNodeTypeDefinition(node.nodeType).defaultSize;
   const position = constrainNodePosition(
     { x: node.x + command.deltaX, y: node.y + command.deltaY },
     {
@@ -538,7 +542,7 @@ const handleConnectorActivate = (endpoint: FlowConnectionEndpoint): void => {
   if (!connector || !point) return;
 
   if (!connectionStart.value) {
-    if (connector.direction !== 'output') {
+    if (connector.direction !== DataDirectionType.Output) {
       reportConnectionError('Start a connection from an output connector.');
       return;
     }
@@ -637,7 +641,7 @@ const handlePointerMove = (event: PointerEvent): void => {
   if (!state || state.pointerId !== event.pointerId) return;
   const node = nodesById.value.get(state.nodeId);
   if (!node) return;
-  const size = getNodeKind(node.kind).defaultSize;
+  const size = getNodeTypeDefinition(node.nodeType).defaultSize;
   const position = calculateDraggedPosition(
     state,
     point,

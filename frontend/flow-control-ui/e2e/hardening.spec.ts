@@ -121,7 +121,7 @@ test('creates, edits, saves, deploys, and reloads a flow as one critical journey
 test('renders a large validated graph without dropping nodes or connections', async ({ page }) => {
   const nodes: FlowNode[] = Array.from({ length: 120 }, (_, index) => ({
     id: `node-${index}`,
-    kind: 'calculator',
+    nodeType: 'calculator',
     label: `Calculation ${index}`,
     x: 20 + (index % 5) * 230,
     y: 20 + (index % 8) * 65,

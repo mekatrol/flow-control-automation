@@ -401,7 +401,7 @@ public sealed class FlowDebugService(
 
     private static IReadOnlyList<string> GetAffectedOutputPoints(ExecutableFlowSource source) =>
         [.. source.Nodes
-            .Where(node => node.Kind == FlowNodeType.DigitalOutput)
+            .Where(node => node.NodeType == FlowNodeType.DigitalOutput)
             .OrderBy(node => node.Id, StringComparer.Ordinal)
             .Select(node => node.Configuration.TryGetValue("pointId", out var pointId) ? pointId.GetString() : null)
             .Where(pointId => !string.IsNullOrEmpty(pointId))
@@ -522,7 +522,7 @@ public sealed class FlowDebugService(
         else
         {
             var ids = local.Source.Nodes
-                .Where(node => node.Kind == FlowNodeType.DigitalInput)
+                .Where(node => node.NodeType == FlowNodeType.DigitalInput)
                 .Select(node => node.Configuration["pointId"].GetString()!)
                 .Distinct(StringComparer.Ordinal)
                 .Order(StringComparer.Ordinal)

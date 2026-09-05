@@ -12,7 +12,7 @@
   "nodes": [
     {
       "id": "input-01-node",
-      "kind": "digitalInput",
+      "nodeType": "digitalInput",
       "configuration": {
         "pointId": "input-01"
       },
@@ -23,7 +23,7 @@
     },
     {
       "id": "input-08-node",
-      "kind": "digitalInput",
+      "nodeType": "digitalInput",
       "configuration": {
         "pointId": "input-08"
       },
@@ -34,7 +34,7 @@
     },
     {
       "id": "and-main",
-      "kind": "and",
+      "nodeType": "and",
       "configuration": {},
       "label": "And",
       "x": 0,
@@ -43,7 +43,7 @@
     },
     {
       "id": "output-01-node",
-      "kind": "digitalOutput",
+      "nodeType": "digitalOutput",
       "configuration": {
         "pointId": "output-01"
       },

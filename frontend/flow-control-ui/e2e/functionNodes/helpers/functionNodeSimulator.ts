@@ -5,10 +5,7 @@ export interface StartedSimulation {
   sessionId: string;
 }
 
-export const startSimulation = async (
-  page: Page,
-  flowId: string
-): Promise<StartedSimulation> => {
+export const startSimulation = async (page: Page, flowId: string): Promise<StartedSimulation> => {
   await page.getByRole('link', { name: 'Simulate' }).click();
   await expect(page).toHaveURL(new RegExp(`/flows/${flowId}/simulator$`));
   const started = page.waitForResponse(
@@ -18,8 +15,7 @@ export const startSimulation = async (
   );
   const running = page.waitForResponse(
     (response) =>
-      response.request().method() === 'POST' &&
-      new URL(response.url()).pathname.endsWith('/run')
+      response.request().method() === 'POST' && new URL(response.url()).pathname.endsWith('/run')
   );
   await page.getByRole('button', { name: 'Start simulation' }).click();
   const response = await started;
@@ -47,10 +43,7 @@ export const startSimulation = async (
   }
 };
 
-export const stopSimulation = async (
-  page: Page,
-  simulation: StartedSimulation
-): Promise<void> => {
+export const stopSimulation = async (page: Page, simulation: StartedSimulation): Promise<void> => {
   const path = `/api/flows/${encodeURIComponent(simulation.flowId)}/simulator-sessions/${encodeURIComponent(simulation.sessionId)}`;
   const stopped = page.waitForResponse(
     (response) =>
@@ -97,7 +90,9 @@ export const applyAnalogInputs = async (
     expect(typeof expected === 'boolean' ? submitted!.boolean : submitted!.number).toBe(expected);
     const appliedValue = body.io?.inputs?.find(({ pointId: id }) => id === pointId)?.typedValue;
     expect(appliedValue, `Simulator must apply ${pointId} before stepping.`).toBeDefined();
-    expect(typeof expected === 'boolean' ? appliedValue!.boolean : appliedValue!.number).toBe(expected);
+    expect(typeof expected === 'boolean' ? appliedValue!.boolean : appliedValue!.number).toBe(
+      expected
+    );
   }
 };
 
@@ -139,7 +134,9 @@ export const applyInputs = async (
     expect(typeof expected === 'boolean' ? submitted!.boolean : submitted!.number).toBe(expected);
     const appliedValue = body.io?.inputs?.find(({ pointId: id }) => id === pointId)?.typedValue;
     expect(appliedValue, `Simulator must apply ${pointId} before stepping.`).toBeDefined();
-    expect(typeof expected === 'boolean' ? appliedValue!.boolean : appliedValue!.number).toBe(expected);
+    expect(typeof expected === 'boolean' ? appliedValue!.boolean : appliedValue!.number).toBe(
+      expected
+    );
   }
 };
 

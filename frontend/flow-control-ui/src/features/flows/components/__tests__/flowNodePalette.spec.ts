@@ -4,10 +4,10 @@ import { describe, expect, it } from 'vitest';
 import { mount } from '@vue/test-utils';
 
 import AppFlowNodePalette, {
-  filterNodeKinds,
-  groupNodeKinds
+  filterNodeTypes,
+  groupNodeTypes
 } from '@/features/flows/components/AppFlowNodePalette.vue';
-import { flowNodeKinds, paletteNodeKinds } from '@/features/flows/nodeKinds';
+import { flowNodeTypes, paletteNodeTypes } from '@/features/flows/nodeTypes';
 
 describe('node palette filtering and grouping', () => {
   it('offers one add action per function without learn actions', () => {
@@ -16,8 +16,8 @@ describe('node palette filtering and grouping', () => {
     });
 
     const addActions = wrapper.findAll('button.palette-add-button');
-    expect(addActions).toHaveLength(paletteNodeKinds.length);
-    expect(paletteNodeKinds).toEqual(flowNodeKinds);
+    expect(addActions).toHaveLength(paletteNodeTypes.length);
+    expect(paletteNodeTypes).toEqual(flowNodeTypes);
     expect(addActions.every((action) => action.classes('palette-add-button'))).toBe(true);
     expect(wrapper.text()).not.toContain('Learn');
     expect(wrapper.find('button.app-filter-apply').exists()).toBe(false);
@@ -39,13 +39,13 @@ describe('node palette filtering and grouping', () => {
    * verifies the observable results required by the scenario.
    */
   it('filters by label and category without case sensitivity', () => {
-    // Expected outcome: `filterNodeKinds('PULSE'` matches the required structure.
-    // Acceptance criteria: `filterNodeKinds('PULSE'` must equal `['pulse']`, because this condition proves that
+    // Expected outcome: `filterNodeTypes('PULSE'` matches the required structure.
+    // Acceptance criteria: `filterNodeTypes('PULSE'` must equal `['pulse']`, because this condition proves that
     // filters by label and category without case sensitivity.
-    expect(filterNodeKinds('PULSE').map(({ kind }) => kind)).toEqual(['pulse']);
+    expect(filterNodeTypes('PULSE').map(({ nodeType }) => nodeType)).toEqual(['pulse']);
 
-    expect(filterNodeKinds('CONTROL')).not.toHaveLength(0);
-    expect(filterNodeKinds('io').map(({ kind }) => kind)).toEqual([
+    expect(filterNodeTypes('CONTROL')).not.toHaveLength(0);
+    expect(filterNodeTypes('io').map(({ nodeType }) => nodeType)).toEqual([
       'analogInput',
       'analogOutput',
       'analogVirtual',
@@ -56,10 +56,10 @@ describe('node palette filtering and grouping', () => {
       'analogConstant'
     ]);
 
-    // Expected outcome: `filterNodeKinds('missing')` matches the required structure.
-    // Acceptance criteria: `filterNodeKinds('missing')` must equal `[]`, because this condition proves that
+    // Expected outcome: `filterNodeTypes('missing')` matches the required structure.
+    // Acceptance criteria: `filterNodeTypes('missing')` must equal `[]`, because this condition proves that
     // filters by label and category without case sensitivity.
-    expect(filterNodeKinds('missing')).toEqual([]);
+    expect(filterNodeTypes('missing')).toEqual([]);
   });
 
   /**
@@ -68,7 +68,7 @@ describe('node palette filtering and grouping', () => {
    * verifies the observable results required by the scenario.
    */
   it('groups registry entries by authoring category', () => {
-    const groups = groupNodeKinds(filterNodeKinds(''));
+    const groups = groupNodeTypes(filterNodeTypes(''));
 
     expect(Object.keys(groups)).toEqual(['io', 'control', 'timing', 'maths']);
 
@@ -77,7 +77,7 @@ describe('node palette filtering and grouping', () => {
       expect(labels).toEqual([...labels].sort((left, right) => left.localeCompare(right)));
     }
 
-    expect(groups.io?.map(({ kind }) => kind)).toEqual([
+    expect(groups.io?.map(({ nodeType }) => nodeType)).toEqual([
       'analogConstant',
       'analogInput',
       'analogOutput',
@@ -88,10 +88,10 @@ describe('node palette filtering and grouping', () => {
       'digitalVirtual'
     ]);
 
-    // Expected outcome: `groups.maths?.map(({ kind }) => kind)` matches the required structure.
-    // Acceptance criteria: `groups.maths?.map(({ kind }) => kind)` must equal `[ 'average', 'calculator', 'clamp', 'line', 'max', 'min' ]`, because this condition proves that
+    // Expected outcome: `groups.maths?.map(({ nodeType }) => nodeType)` matches the required structure.
+    // Acceptance criteria: `groups.maths?.map(({ nodeType }) => nodeType)` must equal `[ 'average', 'calculator', 'clamp', 'line', 'max', 'min' ]`, because this condition proves that
     // groups registry entries by authoring category.
-    expect(groups.maths?.map(({ kind }) => kind)).toEqual([
+    expect(groups.maths?.map(({ nodeType }) => nodeType)).toEqual([
       'add',
       'average',
       'calculator',

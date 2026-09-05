@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  readonly VITE_HIDDEN_FLOW_NODE_KINDS?: string;
+  readonly VITE_HIDDEN_FLOW_NODE_TYPES?: string;
 }
 
 interface ImportMeta {

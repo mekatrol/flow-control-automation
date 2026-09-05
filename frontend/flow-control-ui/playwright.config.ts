@@ -69,9 +69,7 @@ export default defineConfig({
       name: 'desktop-chromium',
       use: { ...devices['Desktop Chrome'] }
     },
-    ...(runFirefox
-      ? [{ name: 'desktop-firefox', use: { ...devices['Desktop Firefox'] } }]
-      : []),
+    ...(runFirefox ? [{ name: 'desktop-firefox', use: { ...devices['Desktop Firefox'] } }] : []),
     {
       name: 'desktop-edge',
       use: { ...devices['Desktop Edge'], channel: 'msedge' }
@@ -81,20 +79,22 @@ export default defineConfig({
       use: { ...devices['Pixel 7'] }
     }
   ],
-  webServer: managedServers ? [] : ([
-    {
-      command: `node ./node_modules/vite/bin/vite.js --host 127.0.0.1 --port ${port} --strictPort`,
-      url: baseURL,
-      reuseExistingServer: !process.env.CI,
-      timeout: 30_000,
-      stdout: 'ignore' as const,
-      stderr: 'ignore' as const,
-      env: {
-        FLOW_UI_E2E: '1',
-        VITE_HIDDEN_FLOW_NODE_KINDS: '',
-        VITE_FLOW_CONTROL_API_KEY: testApiKey,
-        ...(useDotnetBackend ? { VITE_API_PROXY: backendURL } : {})
-      }
-    }
-  ])
+  webServer: managedServers
+    ? []
+    : [
+        {
+          command: `node ./node_modules/vite/bin/vite.js --host 127.0.0.1 --port ${port} --strictPort`,
+          url: baseURL,
+          reuseExistingServer: !process.env.CI,
+          timeout: 30_000,
+          stdout: 'ignore' as const,
+          stderr: 'ignore' as const,
+          env: {
+            FLOW_UI_E2E: '1',
+            VITE_HIDDEN_FLOW_NODE_TYPES: '',
+            VITE_FLOW_CONTROL_API_KEY: testApiKey,
+            ...(useDotnetBackend ? { VITE_API_PROXY: backendURL } : {})
+          }
+        }
+      ]
 });

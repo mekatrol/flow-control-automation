@@ -1,9 +1,9 @@
 <template>
-  <text class="node-label" x="46" y="35">{{ kindLabel || label }}</text>
+  <text class="node-label" x="46" y="35">{{ typeLabel || label }}</text>
 </template>
 
 <script setup lang="ts">
-defineProps<{ label: string; kindLabel: string }>();
+defineProps<{ label: string; typeLabel: string }>();
 </script>
 
 <style scoped>

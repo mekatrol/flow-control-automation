@@ -87,12 +87,12 @@ public sealed class FlowDebugServiceTests
             new ExecutableFlowNode
             {
                 Id = "constant",
-                Kind = FlowNodeType.DigitalConstant
+                NodeType = FlowNodeType.DigitalConstant
             },
             new ExecutableFlowNode
             {
                 Id = "output",
-                Kind = FlowNodeType.DigitalOutput,
+                NodeType = FlowNodeType.DigitalOutput,
                 Configuration = new Dictionary<string, JsonElement>
                 {
                     ["pointId"] = JsonSerializer.SerializeToElement("output-01")

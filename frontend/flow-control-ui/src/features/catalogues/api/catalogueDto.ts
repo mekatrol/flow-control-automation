@@ -1,6 +1,13 @@
-export type PointSourceType = 'virtual' | 'physical' | 'remote';
-export type PointDirection = 'input' | 'output' | 'inputOutput' | 'value';
-export type PointValueType = 'analog' | 'digital' | 'multiState' | 'integer' | 'text';
+import {
+  ControllerPointFeatureType,
+  ConnectorDataType,
+  FlowFunctionType,
+  ExecutionModeType,
+  ControllerRuntimeFeatureType
+} from '@/types/serverTypes';
+import { VirtualPointPersistenceType } from '@/types/serverTypes';
+import { PointSourceType, DataDirectionType, AutomationPointValueType } from '@/types/serverTypes';
+export { PointSourceType, DataDirectionType, AutomationPointValueType } from '@/types/serverTypes';
 
 export interface PointSummary {
   id: string;
@@ -9,8 +16,8 @@ export interface PointSummary {
   enabled: boolean;
   groupId?: string;
   pointSourceType: PointSourceType;
-  direction: PointDirection;
-  valueType: PointValueType;
+  direction: DataDirectionType;
+  valueType: AutomationPointValueType;
   units?: string;
   readable: boolean;
   commandable: boolean;
@@ -35,13 +42,13 @@ export interface ControllerTemplateSummary {
   description?: string;
   readOnly: boolean;
   capabilities: {
-    pointTypes: string[];
-    pointDirections: string[];
-    pointFeatures: string[];
-    connectorDataTypes: string[];
-    flowFunctions: string[];
-    executionModes: string[];
-    runtimeFeatures: string[];
+    pointTypes: AutomationPointValueType[];
+    pointDirections: DataDirectionType[];
+    pointFeatures: ControllerPointFeatureType[];
+    connectorDataTypes: ConnectorDataType[];
+    flowFunctions: FlowFunctionType[];
+    executionModes: ExecutionModeType[];
+    runtimeFeatures: ControllerRuntimeFeatureType[];
   };
   limits: {
     maxFlows?: number;
@@ -96,9 +103,9 @@ const enumeration = <T extends string>(value: unknown, values: readonly T[], pat
   return parsed as T;
 };
 
-const stringArray = (value: unknown, path: string): string[] => {
+const enumArray = <T extends string>(value: unknown, values: readonly T[], path: string): T[] => {
   if (!Array.isArray(value)) throw new Error(`${path} must be an array`);
-  return value.map((item, index) => string(item, `${path}[${index}]`));
+  return value.map((item, index) => enumeration(item, values, `${path}[${index}]`));
 };
 
 const optionalPositiveInteger = (value: unknown, path: string): number | undefined => {
@@ -110,7 +117,7 @@ const optionalPositiveInteger = (value: unknown, path: string): number | undefin
 
 export const parsePoint = (value: unknown, path = 'point'): PointSummary => {
   const item = object(value, path);
-  enumeration(item.persistence, ['volatile', 'retained'], `${path}.persistence`);
+  enumeration(item.persistence, Object.values(VirtualPointPersistenceType), `${path}.persistence`);
   for (const field of ['mapping', 'limits', 'safeDisablePolicy'] as const) {
     if (item[field] !== undefined && item[field] !== null) object(item[field], `${path}.${field}`);
   }
@@ -127,17 +134,13 @@ export const parsePoint = (value: unknown, path = 'point'): PointSummary => {
     groupId: optionalString(item.groupId, `${path}.groupId`),
     pointSourceType: enumeration(
       item.pointSourceType,
-      ['virtual', 'physical', 'remote'],
+      Object.values(PointSourceType),
       `${path}.pointSourceType`
     ),
-    direction: enumeration(
-      item.direction,
-      ['input', 'output', 'inputOutput', 'value'],
-      `${path}.direction`
-    ),
+    direction: enumeration(item.direction, Object.values(DataDirectionType), `${path}.direction`),
     valueType: enumeration(
       item.valueType,
-      ['analog', 'digital', 'multiState', 'integer', 'text'],
+      Object.values(AutomationPointValueType),
       `${path}.valueType`
     ),
     units: optionalString(item.units, `${path}.units`),
@@ -180,23 +183,39 @@ export const parseControllerTemplate = (
     description: optionalString(item.description, `${path}.description`),
     readOnly: boolean(item.readOnly, `${path}.readOnly`),
     capabilities: {
-      pointTypes: stringArray(capabilities.pointTypes, `${path}.capabilities.pointTypes`),
-      pointDirections: stringArray(
+      pointTypes: enumArray(
+        capabilities.pointTypes,
+        Object.values(AutomationPointValueType),
+        `${path}.capabilities.pointTypes`
+      ),
+      pointDirections: enumArray(
         capabilities.pointDirections,
+        Object.values(DataDirectionType),
         `${path}.capabilities.pointDirections`
       ),
-      pointFeatures: stringArray(capabilities.pointFeatures, `${path}.capabilities.pointFeatures`),
-      connectorDataTypes: stringArray(
+      pointFeatures: enumArray(
+        capabilities.pointFeatures,
+        Object.values(ControllerPointFeatureType),
+        `${path}.capabilities.pointFeatures`
+      ),
+      connectorDataTypes: enumArray(
         capabilities.connectorDataTypes,
+        Object.values(ConnectorDataType),
         `${path}.capabilities.connectorDataTypes`
       ),
-      flowFunctions: stringArray(capabilities.flowFunctions, `${path}.capabilities.flowFunctions`),
-      executionModes: stringArray(
+      flowFunctions: enumArray(
+        capabilities.flowFunctions,
+        Object.values(FlowFunctionType),
+        `${path}.capabilities.flowFunctions`
+      ),
+      executionModes: enumArray(
         capabilities.executionModes,
+        Object.values(ExecutionModeType),
         `${path}.capabilities.executionModes`
       ),
-      runtimeFeatures: stringArray(
+      runtimeFeatures: enumArray(
         capabilities.runtimeFeatures,
+        Object.values(ControllerRuntimeFeatureType),
         `${path}.capabilities.runtimeFeatures`
       )
     },

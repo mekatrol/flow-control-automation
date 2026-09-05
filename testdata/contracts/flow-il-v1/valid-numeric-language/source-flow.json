@@ -12,7 +12,7 @@
   "nodes": [
     {
       "id": "constant-2",
-      "kind": "analogConstant",
+      "nodeType": "analogConstant",
       "configuration": {
         "value": 2
       },
@@ -23,7 +23,7 @@
     },
     {
       "id": "constant-3",
-      "kind": "analogConstant",
+      "nodeType": "analogConstant",
       "configuration": {
         "value": 3
       },
@@ -34,7 +34,7 @@
     },
     {
       "id": "add-1",
-      "kind": "add",
+      "nodeType": "add",
       "configuration": {},
       "label": "Add",
       "x": 0,
@@ -43,7 +43,7 @@
     },
     {
       "id": "shift-1",
-      "kind": "levelShifter",
+      "nodeType": "levelShifter",
       "configuration": {
         "gain": 2,
         "offset": -1
@@ -55,7 +55,7 @@
     },
     {
       "id": "compare-1",
-      "kind": "comparator",
+      "nodeType": "comparator",
       "configuration": {
         "operator": "gt"
       },

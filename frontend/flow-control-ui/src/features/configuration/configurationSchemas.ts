@@ -1,3 +1,16 @@
+import {
+  ControllerPointFeatureType,
+  ConnectorDataType,
+  FlowFunctionType,
+  ExecutionModeType,
+  ControllerRuntimeFeatureType
+} from '@/types/serverTypes';
+import {
+  AutomationPointValueType,
+  DataDirectionType,
+  VirtualPointPersistenceType,
+  PointSourceType
+} from '@/types/serverTypes';
 import type { JSONSchema } from '@/components/yaml/MonacoYaml';
 
 const identifier = { type: 'string', pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$' } as const;
@@ -33,13 +46,13 @@ export const pointSchema: JSONSchema = {
           description: { type: 'string' },
           enabled: { type: 'boolean' },
           groupId: identifier,
-          pointSourceType: { enum: ['virtual', 'physical', 'remote'] },
-          direction: { enum: ['input', 'output', 'inputOutput', 'value'] },
-          valueType: { enum: ['analog', 'digital', 'multiState', 'integer', 'text'] },
+          pointSourceType: { enum: Object.values(PointSourceType) },
+          direction: { enum: Object.values(DataDirectionType) },
+          valueType: { enum: Object.values(AutomationPointValueType) },
           units: { type: 'string' },
           readable: { type: 'boolean' },
           commandable: { type: 'boolean' },
-          persistence: { enum: ['volatile', 'retained'] },
+          persistence: { enum: Object.values(VirtualPointPersistenceType) },
           sourceId: identifier,
           mapping: { type: 'object' },
           limits: { type: 'object' },
@@ -100,7 +113,22 @@ export const controllerTemplateSchema: JSONSchema = {
         'flowFunctions',
         'executionModes',
         'runtimeFeatures'
-      ]
+      ],
+      properties: {
+        pointTypes: { type: 'array', items: { enum: Object.values(AutomationPointValueType) } },
+        pointDirections: { type: 'array', items: { enum: Object.values(DataDirectionType) } },
+        pointFeatures: {
+          type: 'array',
+          items: { enum: Object.values(ControllerPointFeatureType) }
+        },
+        connectorDataTypes: { type: 'array', items: { enum: Object.values(ConnectorDataType) } },
+        flowFunctions: { type: 'array', items: { enum: Object.values(FlowFunctionType) } },
+        executionModes: { type: 'array', items: { enum: Object.values(ExecutionModeType) } },
+        runtimeFeatures: {
+          type: 'array',
+          items: { enum: Object.values(ControllerRuntimeFeatureType) }
+        }
+      }
     },
     limits: { type: 'object' }
   }

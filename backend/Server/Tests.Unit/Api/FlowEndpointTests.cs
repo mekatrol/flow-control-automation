@@ -54,7 +54,7 @@ internal sealed class FlowEndpointTests
                 new FlowNode
                 {
                     Id = "pulse-1",
-                    Kind = FlowNodeType.Pulse,
+                    NodeType = FlowNodeType.Pulse,
                     Label = "Every minute",
                     X = 10,
                     Y = 20,
@@ -331,7 +331,7 @@ internal sealed class FlowEndpointTests
                 new FlowNode
                 {
                     Id = "constant-true",
-                    Kind = FlowNodeType.DigitalConstant,
+                    NodeType = FlowNodeType.DigitalConstant,
                     Label = "Constant true",
                     Connectors = [new FlowConnector("value", "Value", DataDirectionType.Output, DataType.Boolean, "right")],
                     Configuration = new Dictionary<string, JsonElement>
@@ -470,7 +470,7 @@ internal sealed class FlowEndpointTests
                 new ExecutableFlowNode
                 {
                     Id = "constant",
-                    Kind = FlowNodeType.DigitalConstant,
+                    NodeType = FlowNodeType.DigitalConstant,
                     Configuration = new Dictionary<string, JsonElement>
                     {
                         ["value"] = JsonSerializer.SerializeToElement(true)
@@ -512,7 +512,7 @@ internal sealed class FlowEndpointTests
                 new FlowNode
                 {
                     Id = "constant-true",
-                    Kind = FlowNodeType.DigitalConstant,
+                    NodeType = FlowNodeType.DigitalConstant,
                     Label = "Constant true",
                     Connectors = [new FlowConnector("value", "Value", DataDirectionType.Output, DataType.Boolean, "right")],
                     Configuration = new Dictionary<string, JsonElement>

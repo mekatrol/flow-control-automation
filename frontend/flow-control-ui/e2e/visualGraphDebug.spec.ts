@@ -12,7 +12,7 @@ const flow = {
   nodes: [
     {
       id: 'constant',
-      kind: 'digitalConstant',
+      nodeType: 'digitalConstant',
       label: 'Enabled',
       x: 100,
       y: 100,

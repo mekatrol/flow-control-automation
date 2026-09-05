@@ -6,7 +6,7 @@ namespace Server.Common.Models;
 public sealed record FlowNode
 {
     public required string Id { get; init; }
-    public required FlowNodeType Kind { get; init; }
+    public required FlowNodeType NodeType { get; init; }
     public string Label { get; init; } = string.Empty;
     public double X { get; init; }
     public double Y { get; init; }

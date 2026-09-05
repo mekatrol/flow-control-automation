@@ -12,7 +12,7 @@
   "nodes": [
     {
       "id": "constant-2",
-      "kind": "analogConstant",
+      "nodeType": "analogConstant",
       "configuration": {
         "value": 2
       },
@@ -23,7 +23,7 @@
     },
     {
       "id": "memory-1",
-      "kind": "memory",
+      "nodeType": "memory",
       "configuration": {
         "value": 2
       },
@@ -34,7 +34,7 @@
     },
     {
       "id": "output-01-node",
-      "kind": "analogOutput",
+      "nodeType": "analogOutput",
       "configuration": {
         "pointId": "output-01"
       },

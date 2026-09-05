@@ -1,3 +1,5 @@
+import { DataType, DataQualityType, FlowNodeType, isEnumValue } from '@/types/serverTypes';
+import { FlowExecutionModeType, InputQualityPolicyType } from '@/types/serverTypes';
 import { FlowApiError } from './flowApi';
 import { waitForFetch } from '@/api/waitForFetch';
 
@@ -12,23 +14,23 @@ export type DebugLifecycleState =
   | 'running';
 
 export interface DebugTypedValue {
-  type: string;
+  type: DataType;
   value?: boolean;
   number?: number;
-  quality?: string;
+  quality?: DataQualityType;
 }
 
 export interface DebugNodeSnapshot {
   nodeId: string;
   state: string;
-  quality: string;
+  quality: DataQualityType;
   typedValue?: DebugTypedValue;
 }
 
 export interface DebugProposedOutput {
   pointId: string;
   state: string;
-  quality: string;
+  quality: DataQualityType;
   proposedValue?: boolean;
   proposedNumber?: number;
   typedValue?: DebugTypedValue;
@@ -115,13 +117,13 @@ export interface ExecutableFlowSource {
   controllerTemplateId: string;
   controllerTemplateRevision: number;
   execution: {
-    mode: 'manual';
+    mode: FlowExecutionModeType;
     intervalMs: number;
-    inputQualityPolicy: 'requireGood' | 'propagate';
+    inputQualityPolicy: InputQualityPolicyType;
   };
   nodes: {
     id: string;
-    kind: string;
+    nodeType: FlowNodeType;
     configuration: Record<string, unknown>;
     label: string;
     x: number;
@@ -151,9 +153,17 @@ const string = (value: unknown, path: string): string => {
   if (typeof value !== 'string') throw new TypeError(`${path} must be a string.`);
   return value;
 };
+const enumValue = <T extends string>(
+  enumeration: Readonly<Record<string, T>>,
+  value: unknown,
+  path: string
+): T => {
+  if (!isEnumValue(enumeration, value)) throw new TypeError(`${path} is invalid.`);
+  return value;
+};
 const parseTypedValue = (value: unknown, path: string): DebugTypedValue => {
   if (!isRecord(value)) throw new TypeError(`${path} is invalid.`);
-  const dataType = text(value.dataType, `${path}.dataType`);
+  const dataType = enumValue(DataType, value.dataType, `${path}.dataType`);
   if (value.value !== null && value.value !== undefined && typeof value.value !== 'boolean')
     throw new TypeError(`${path}.value is invalid.`);
   if (value.number !== null && value.number !== undefined && typeof value.number !== 'number')
@@ -162,7 +172,9 @@ const parseTypedValue = (value: unknown, path: string): DebugTypedValue => {
     type: dataType,
     ...(typeof value.value === 'boolean' ? { value: value.value } : {}),
     ...(typeof value.number === 'number' ? { number: value.number } : {}),
-    ...(typeof value.quality === 'string' ? { quality: value.quality } : {})
+    ...(value.quality !== undefined && value.quality !== null
+      ? { quality: enumValue(DataQualityType, value.quality, `${path}.quality`) }
+      : {})
   };
 };
 const lifecycle = (value: unknown): DebugLifecycleState => {
@@ -185,7 +197,7 @@ const parseNode = (value: unknown, index: number): DebugNodeSnapshot => {
   return {
     nodeId: text(value.nodeId, `nodes[${index}].nodeId`),
     state: text(value.state, `nodes[${index}].state`),
-    quality: text(value.quality, `nodes[${index}].quality`),
+    quality: enumValue(DataQualityType, value.quality, `nodes[${index}].quality`),
     ...(typedValue ? { typedValue } : {})
   };
 };
@@ -221,7 +233,7 @@ export const parseDebugSnapshot = (value: unknown): DebugRuntimeSnapshot => {
       return {
         pointId: text(item.pointId, `proposedOutputs[${index}].pointId`),
         state: text(item.state, `proposedOutputs[${index}].state`),
-        quality: text(item.quality, `proposedOutputs[${index}].quality`),
+        quality: enumValue(DataQualityType, item.quality, `proposedOutputs[${index}].quality`),
         proposedValue: item.proposedValue
       };
     }),

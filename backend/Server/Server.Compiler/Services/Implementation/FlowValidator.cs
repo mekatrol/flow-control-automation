@@ -9,7 +9,7 @@ namespace Server.Compiler.Services.Implementation;
 
 internal partial class FlowValidator : IFlowValidator
 {
-    private static readonly HashSet<FlowNodeType> ValidKinds =
+    private static readonly HashSet<FlowNodeType> ValidNodeTypes =
     [
         FlowNodeType.A2D, FlowNodeType.Add, FlowNodeType.Subtract, FlowNodeType.Multiply, FlowNodeType.Divide, FlowNodeType.Power, FlowNodeType.Negate, FlowNodeType.AnalogInput, FlowNodeType.AnalogOutput, FlowNodeType.And, FlowNodeType.Average, FlowNodeType.Calculator, FlowNodeType.Calendar, FlowNodeType.Clamp, FlowNodeType.Comparator,
         FlowNodeType.Delay, FlowNodeType.DigitalConstant, FlowNodeType.DigitalInput, FlowNodeType.DigitalOutput, FlowNodeType.DigitalSwitch,
@@ -73,9 +73,9 @@ internal partial class FlowValidator : IFlowValidator
                 throw new FlowValidationException($"nodes: duplicate id \"{node.Id}\"");
             }
 
-            if (!ValidKinds.Contains(node.Kind))
+            if (!ValidNodeTypes.Contains(node.NodeType))
             {
-                throw new FlowValidationException($"nodes[{nodeIndex}]: unsupported kind");
+                throw new FlowValidationException($"nodes[{nodeIndex}]: unsupported node type");
             }
 
             if (!double.IsFinite(node.X)

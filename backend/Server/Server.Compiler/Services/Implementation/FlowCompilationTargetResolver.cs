@@ -101,7 +101,7 @@ internal sealed class FlowCompilationTargetResolver(
         }
 
         var functions = source.Nodes
-            .Select(node => RequiredFunction(node.Kind))
+            .Select(node => RequiredFunction(node.NodeType))
             .OfType<FlowFunctionType>()
             .Distinct()
             .Order();
@@ -169,14 +169,14 @@ internal sealed class FlowCompilationTargetResolver(
             .Where(item => item.PointId is not null)
             .Select(item => new PointReference(
                 item.PointId!,
-                item.Node.Kind is FlowNodeType.DigitalInput or FlowNodeType.AnalogInput,
-                item.Node.Kind.ToString().StartsWith("Analog", StringComparison.Ordinal)))
+                item.Node.NodeType is FlowNodeType.DigitalInput or FlowNodeType.AnalogInput,
+                item.Node.NodeType.ToString().StartsWith("Analog", StringComparison.Ordinal)))
             .Distinct()
             .OrderBy(reference => reference.PointId, StringComparer.Ordinal)
             .ThenBy(reference => reference.IsInput ? 0 : 1)];
 
     private static string? PointId(ExecutableFlowNode node) =>
-        node.Kind is FlowNodeType.DigitalInput or FlowNodeType.DigitalOutput or FlowNodeType.AnalogInput or FlowNodeType.AnalogOutput &&
+        node.NodeType is FlowNodeType.DigitalInput or FlowNodeType.DigitalOutput or FlowNodeType.AnalogInput or FlowNodeType.AnalogOutput &&
         node.Configuration.TryGetValue("pointId", out var value) &&
         value.ValueKind == System.Text.Json.JsonValueKind.String
             ? value.GetString()

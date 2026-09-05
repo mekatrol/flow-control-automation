@@ -1,6 +1,6 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 
-type PointNodeKind = 'Analog Input' | 'Analog Output' | 'Digital Input' | 'Digital Output';
+type PointNodeLabel = 'Analog Input' | 'Analog Output' | 'Digital Input' | 'Digital Output';
 export type NodeConfigurationValue = boolean | number | string;
 
 const nodeGroup = (page: Page, nodeId: string): Locator =>
@@ -58,10 +58,10 @@ export const createFlow = async (page: Page, name: string): Promise<string> => {
   return new URL(page.url()).pathname.split('/').at(-2)!;
 };
 
-export const addNode = async (page: Page, kind: string): Promise<string> => {
+export const addNode = async (page: Page, nodeLabel: string): Promise<string> => {
   const search = page.getByRole('searchbox', { name: 'Find a function' });
-  await search.fill(kind);
-  await page.getByRole('button', { name: `Add ${kind} node`, exact: true }).click();
+  await search.fill(nodeLabel);
+  await page.getByRole('button', { name: `Add ${nodeLabel} node`, exact: true }).click();
   const selected = page.locator('.flow-node.selected');
   await expect(selected).toBeVisible();
   return (await selected.getAttribute('data-node-id'))!;
@@ -79,7 +79,10 @@ export const configureSelectedNode = async (
     } else if (typeof value === 'number') {
       await panel.getByRole('spinbutton', { name: label }).fill(String(value));
     } else {
-      const control = panel.getByText(label, { exact: true }).locator('..').locator('input, select');
+      const control = panel
+        .getByText(label, { exact: true })
+        .locator('..')
+        .locator('input, select');
       if ((await control.evaluate((element) => element.tagName)) === 'SELECT')
         await control.selectOption(value);
       else {
@@ -93,10 +96,10 @@ export const configureSelectedNode = async (
 
 export const addVirtualPointNode = async (
   page: Page,
-  kind: PointNodeKind,
+  nodeLabel: PointNodeLabel,
   pointId: string
 ): Promise<string> => {
-  const analog = kind.startsWith('Analog');
+  const analog = nodeLabel.startsWith('Analog');
   const virtualNodeId = await addNode(page, analog ? 'Analog Virtual' : 'Digital Virtual');
   await configureSelectedNode(page, { 'Virtual point key': pointId });
   return virtualNodeId;
@@ -110,10 +113,9 @@ export const connectNodes = async (
   const sourceConnector = nodeGroup(page, source.nodeId).getByRole('button', {
     name: new RegExp(`^${source.connector}, output,`)
   });
-  const destinationConnector = nodeGroup(page, destination.nodeId).getByRole(
-    'button',
-    { name: new RegExp(`^${destination.connector}, input,`) }
-  );
+  const destinationConnector = nodeGroup(page, destination.nodeId).getByRole('button', {
+    name: new RegExp(`^${destination.connector}, input,`)
+  });
   const connectionCount = await page.locator('[data-connection-id]').count();
   await sourceConnector.focus();
   await sourceConnector.press('Enter');
