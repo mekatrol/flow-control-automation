@@ -30,7 +30,7 @@ describe('PointsCatalogueView', () => {
                 name: 'Temperature',
                 enabled: true,
                 groupId: 'room',
-                implementation: 'bound',
+                pointSourceType: 'remote',
                 direction: 'input',
                 valueType: 'analog',
                 units: 'deg_c',

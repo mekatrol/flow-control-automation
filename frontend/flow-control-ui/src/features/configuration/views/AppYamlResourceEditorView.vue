@@ -282,7 +282,7 @@ points:
   - id: new-analog-input
     name: New analog input
     enabled: true
-    implementation: bound
+    pointSourceType: remote
     direction: input
     valueType: analog
     units: percent
@@ -301,7 +301,7 @@ points:
   - id: new-digital-input
     name: New digital input
     enabled: true
-    implementation: bound
+    pointSourceType: remote
     direction: input
     valueType: digital
     stateLabels: {false: "Off", true: "On"}
@@ -320,7 +320,7 @@ points:
   - id: new-analog-output
     name: New analog output
     enabled: true
-    implementation: bound
+    pointSourceType: remote
     direction: output
     valueType: analog
     units: percent
@@ -339,7 +339,7 @@ points:
   - id: new-digital-output
     name: New digital output
     enabled: true
-    implementation: bound
+    pointSourceType: remote
     direction: output
     valueType: digital
     stateLabels: {false: "Off", true: "On"}
@@ -358,7 +358,7 @@ points:
   - id: new-analog-virtual
     name: New analog virtual point
     enabled: true
-    implementation: virtual
+    pointSourceType: virtual
     direction: value
     valueType: analog
     units: percent
@@ -376,7 +376,7 @@ points:
   - id: new-digital-virtual
     name: New digital virtual point
     enabled: true
-    implementation: virtual
+    pointSourceType: virtual
     direction: value
     valueType: digital
     stateLabels: {false: "Off", true: "On"}
@@ -406,7 +406,7 @@ capabilities:
   connectorDataTypes: [boolean]
   flowFunctions: [and, readPoint, writePoint]
   executionModes: [interval]
-  runtimeFeatures: [boundPoints]
+  runtimeFeatures: [physicalPoints]
 limits:
   maxFlows: 8
   maxNodesPerFlow: 64

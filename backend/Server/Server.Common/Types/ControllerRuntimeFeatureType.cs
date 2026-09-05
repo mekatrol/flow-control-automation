@@ -13,7 +13,7 @@ public enum ControllerRuntimeFeatureType : byte
     /// <summary>
     /// Supports binding flow points to controller points.
     /// </summary>
-    BoundPoints,
+    PhysicalPoints,
 
     /// <summary>
     /// Supports resolving competing commands for a point.

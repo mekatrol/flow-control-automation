@@ -109,14 +109,14 @@ timeouts, reconnect behaviour, and a credential reference. It never contains a
 literal secret. One source can serve many standalone points, multiple groups,
 and all members of those groups.
 
-A bound point maps to a source-relative entity, topic, JSON selector, or device
+A remote point maps to a source-relative entity, topic, JSON selector, or device
 address. A group can select a source and shared mapping defaults so members can
 share a subscription, poll, or atomic/batched operation. A point may inherit
 the group source or select one explicitly when group rules allow it. Deleting
 or changing a source is blocked while incompatible point/group references
 remain.
 
-Point sources are implemented before bound-point authoring. While editing an
+Point sources are implemented before remote-point authoring. While editing an
 unsaved or saved source, the user can test connectivity in real time. The test
 reports cancellable DNS, TCP, TLS, authentication, and protocol stages with
 latency and redacted diagnostics. It is strictly read-only: it cannot publish
@@ -162,7 +162,7 @@ Version 1 declares:
   quality, alarms, and trends;
 - connector data types and canonical flow-function kinds;
 - event and interval execution modes;
-- runtime features such as virtual/bound points, command arbitration, and
+- runtime features such as virtual/remote points, command arbitration, and
   quality propagation; and
 - optional limits for flow, node, connection, and minimum interval capacity.
 
@@ -216,7 +216,7 @@ capabilities:
     - xor
   executionModes: [event, interval]
   runtimeFeatures:
-    [virtual_points, bound_points, command_arbitration, quality_propagation]
+    [virtual_points, physical_points, command_arbitration, quality_propagation]
 limits:
   maxFlows: null
   maxNodesPerFlow: null

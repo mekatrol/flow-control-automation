@@ -12,12 +12,12 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
     private const long MaximumSafeInteger = 9_007_199_254_740_991;
 
     public ValidatedPointDefinition Validate(
-        VirtualAutomationPoint point,
+        AutomationPoint point,
         PointValidationContext context)
     {
         ValidateIdentity(point.Id, point.Name, "point");
 
-        var sourceType = ParseLegacySourceType(point.Implementation);
+        var sourceType = point.PointSourceType;
         var direction = point.Direction;
         var valueType = point.ValueType;
         var persistence = ParsePersistence(point.Persistence);
@@ -33,7 +33,7 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
         var (sourceKind, mapping) = ValidateBinding(point, sourceType, context);
         var safety = ParseSafetyPolicy(
             point.SafeDisablePolicy,
-            point.Commandable && sourceType == PointSourceType.Remote);
+            point.Commandable && sourceType != PointSourceType.Virtual);
 
         return new ValidatedPointDefinition(
             point, sourceType, direction, valueType, persistence, limits,
@@ -112,7 +112,7 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
     }
 
     private static void ValidateCapabilities(
-        VirtualAutomationPoint point,
+        AutomationPoint point,
         PointSourceType sourceType,
         DataDirectionType direction)
     {
@@ -121,9 +121,9 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
             Fail("virtual points must use value direction");
         }
 
-        if (sourceType == PointSourceType.Remote && direction == DataDirectionType.Value)
+        if (sourceType != PointSourceType.Virtual && direction == DataDirectionType.Value)
         {
-            Fail("bound points cannot use value direction");
+            Fail("physical and remote points cannot use value direction");
         }
 
         if (point.Commandable && !PointCompatibility.CanCommand(direction))
@@ -153,28 +153,28 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
     }
 
     private static (PointSourceKind? Kind, PointMapping? Mapping) ValidateBinding(
-        VirtualAutomationPoint point,
+        AutomationPoint point,
         PointSourceType sourceType,
         PointValidationContext context)
     {
-        if (sourceType == PointSourceType.Virtual)
+        if (sourceType != PointSourceType.Remote)
         {
             if (point.SourceId is not null || point.Mapping is not null)
             {
-                Fail("virtual points cannot have a source or mapping");
+                Fail($"{sourceType} points cannot have a remote source or mapping");
             }
 
             if (point.GroupId is not null)
             {
-                if (!context.Groups.TryGetValue(point.GroupId, out var virtualGroup))
+                if (!context.Groups.TryGetValue(point.GroupId, out var localGroup))
                 {
                     Fail($"groupId \"{point.GroupId}\" does not exist");
                 }
 
-                if (virtualGroup!.SourceId is not null
-                    || virtualGroup.MappingDefaults.Count != 0)
+                if (localGroup!.SourceId is not null
+                    || localGroup.MappingDefaults.Count != 0)
                 {
-                    Fail("virtual points cannot join a source-bound group");
+                    Fail($"{sourceType} points cannot join a group with a remote source");
                 }
             }
 
@@ -198,7 +198,7 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
         var sourceId = point.SourceId ?? inheritedSourceId;
         if (sourceId is null)
         {
-            Fail("bound point requires an existing direct or inherited source");
+            Fail("remote point requires an existing direct or inherited source");
         }
 
         if (!context.Sources.TryGetValue(sourceId!, out var source))
@@ -209,7 +209,7 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
         var pointMapping = point.Mapping;
         if (pointMapping is null)
         {
-            Fail("bound point requires mapping");
+            Fail("remote point requires mapping");
         }
 
         RejectCredentialLiterals(pointMapping!, "mapping");
@@ -218,7 +218,7 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
     }
 
     private static PointMapping ParseMapping(
-        VirtualAutomationPoint point,
+        AutomationPoint point,
         PointSourceKind kind,
         JsonObject mapping) =>
         kind switch
@@ -234,7 +234,7 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
             _ => throw new InvalidOperationException("Unsupported source kind."),
         };
 
-    private static MqttPointMapping ParseMqttMapping(VirtualAutomationPoint point, JsonObject mapping)
+    private static MqttPointMapping ParseMqttMapping(AutomationPoint point, JsonObject mapping)
     {
         var stateTopic = point.Readable
             ? RequiredString(mapping, "stateTopic")
@@ -256,7 +256,7 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
             OptionalString(mapping, "jsonPointer"));
     }
 
-    private static HttpJsonPointMapping ParseHttpMapping(VirtualAutomationPoint point, JsonObject mapping)
+    private static HttpJsonPointMapping ParseHttpMapping(AutomationPoint point, JsonObject mapping)
     {
         var path = RequiredString(mapping, "path");
         if (!path.StartsWith('/')
@@ -666,15 +666,6 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
             Fail($"{path} is outside configured limits");
         }
     }
-
-    // Until point documents support the three concrete automation point classes,
-    // translate the legacy wire discriminator here. Bound catalogue points use remote sources.
-    private static PointSourceType ParseLegacySourceType(string value) => value switch
-    {
-        "virtual" => PointSourceType.Virtual,
-        "bound" => PointSourceType.Remote,
-        _ => throw new PointDefinitionValidationException("implementation is invalid"),
-    };
 
     private static PointPersistence ParsePersistence(string value) => value switch
     {

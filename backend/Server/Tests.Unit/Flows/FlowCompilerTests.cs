@@ -236,7 +236,17 @@ public sealed class FlowCompilerTests
         {
             Target = request.Target with
             {
-                Points = [.. request.Target.Points.Select(point => point with { Implementation = "virtual" })]
+                Points = [.. request.Target.Points.Select(point => new VirtualAutomationPoint
+                {
+                    Id = point.Id,
+                    Name = point.Name,
+                    Direction = point.Direction,
+                    ValueType = point.ValueType,
+                    Persistence = point.Persistence,
+                    Readable = point.Readable,
+                    Commandable = point.Commandable,
+                    Enabled = point.Enabled
+                })]
             }
         };
         var artifact = _compiler.Compile(request).Artifact.ToArray();
@@ -777,12 +787,11 @@ public sealed class FlowCompilerTests
                 new HashSet<ControllerRuntimeFeatureType>()),
             Points = [.. source.Nodes
                 .Where(node => node.Kind is FlowNodeType.DigitalInput or FlowNodeType.DigitalOutput or FlowNodeType.AnalogInput or FlowNodeType.AnalogOutput)
-                .Select(node => new VirtualAutomationPoint
+                .Select(node => new PhysicalAutomationPoint
                 {
                     Id = node.Configuration["pointId"].GetString()!,
                     Name = node.Configuration["pointId"].GetString()!,
                     Enabled = true,
-                    Implementation = "bound",
                     Direction = node.Kind is FlowNodeType.DigitalInput or FlowNodeType.AnalogInput ? DataDirectionType.Input : DataDirectionType.Output,
                     ValueType = node.Kind is FlowNodeType.AnalogInput or FlowNodeType.AnalogOutput ? AutomationPointValueType.Analog : AutomationPointValueType.Digital,
                     Readable = node.Kind is FlowNodeType.DigitalInput or FlowNodeType.AnalogInput,

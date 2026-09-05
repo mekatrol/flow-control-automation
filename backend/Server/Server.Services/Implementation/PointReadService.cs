@@ -28,7 +28,7 @@ internal sealed class PointReadService(
             return Unavailable(point, "not_readable", "Point is not configured for reads.");
         }
 
-        if (point.Implementation == "virtual")
+        if (point.PointSourceType == PointSourceType.Virtual)
         {
             if (virtualPoints is not null && virtualPoints.TrySnapshot("server", point.Id, out var snapshot))
             {
@@ -51,6 +51,11 @@ internal sealed class PointReadService(
                 point,
                 "not_initialized",
                 "Virtual point has no commissioned runtime value.");
+        }
+
+        if (point.PointSourceType == PointSourceType.Physical)
+        {
+            return Unavailable(point, "unconfigured", "Physical point has no commissioned hardware read adapter.");
         }
 
         var sourceId = point.SourceId;
@@ -93,7 +98,7 @@ internal sealed class PointReadService(
     }
 
     private async Task<PointRuntimeEnvelope> ReadHttpJson(
-        VirtualAutomationPoint point,
+        AutomationPoint point,
         PointSource source,
         CancellationToken cancellationToken)
     {
@@ -178,7 +183,7 @@ internal sealed class PointReadService(
     }
 
     private static PointRuntimeEnvelope Unavailable(
-        VirtualAutomationPoint point,
+        AutomationPoint point,
         string reliability,
         string diagnostic) =>
         new(

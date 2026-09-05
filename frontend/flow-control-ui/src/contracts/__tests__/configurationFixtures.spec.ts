@@ -24,7 +24,7 @@ const pointFields = new Set([
   'description',
   'enabled',
   'groupId',
-  'implementation',
+  'pointSourceType',
   'direction',
   'valueType',
   'units',

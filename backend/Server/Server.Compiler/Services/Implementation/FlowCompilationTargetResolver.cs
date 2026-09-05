@@ -55,7 +55,7 @@ internal sealed class FlowCompilationTargetResolver(
         {
             pointsById.TryAdd(declaration.Key, VirtualPoint(declaration));
         }
-        var resolvedPoints = new List<VirtualAutomationPoint>();
+        var resolvedPoints = new List<AutomationPoint>();
         foreach (var reference in PointReferences(source))
         {
             if (!pointsById.TryGetValue(reference.PointId, out var point))
@@ -79,7 +79,6 @@ internal sealed class FlowCompilationTargetResolver(
         Id = declaration.Key,
         Name = declaration.Key,
         Enabled = true,
-        Implementation = "virtual",
         Direction = DataDirectionType.Value,
         ValueType = declaration.ValueType,
         Units = declaration.Units,
@@ -183,9 +182,9 @@ internal sealed class FlowCompilationTargetResolver(
             ? value.GetString()
             : null;
 
-    private static void ValidatePoint(PointReference reference, VirtualAutomationPoint point)
+    private static void ValidatePoint(PointReference reference, AutomationPoint point)
     {
-        var virtualValue = string.Equals(point.Implementation, "virtual", StringComparison.Ordinal)
+        var virtualValue = point.PointSourceType == PointSourceType.Virtual
             && point.Direction == DataDirectionType.Value;
 
         var valid = point.Enabled

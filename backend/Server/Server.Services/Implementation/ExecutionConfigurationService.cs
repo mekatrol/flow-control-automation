@@ -50,7 +50,7 @@ internal sealed partial class ExecutionConfigurationService(
                 ExecutionInstanceId = instanceId,
                 PointKey = pointKey,
                 Exists = true,
-                Implementation = "virtual",
+                PointSourceType = PointSourceType.Virtual,
                 ValueType = contract.ValueType,
                 Readable = contract.Readable,
                 Commandable = contract.Commandable,
@@ -60,7 +60,7 @@ internal sealed partial class ExecutionConfigurationService(
             };
         }
 
-        VirtualAutomationPoint? point = null;
+        AutomationPoint? point = null;
         try { point = await pointDefinitions.GetPointAsync(pointKey, cancellationToken); }
         catch (PointDefinitionNotFoundException) { }
 
@@ -72,7 +72,7 @@ internal sealed partial class ExecutionConfigurationService(
                 ExecutionInstanceId = instanceId,
                 PointKey = pointKey,
                 Exists = true,
-                Implementation = point.Implementation,
+                PointSourceType = point.PointSourceType,
                 ValueType = point.ValueType,
                 Readable = point.Readable,
                 Commandable = point.Commandable,

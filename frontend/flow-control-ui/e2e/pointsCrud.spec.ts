@@ -10,7 +10,7 @@ points:
   - id: ${pointId}
     name: New digital virtual point
     enabled: true
-    implementation: virtual
+    pointSourceType: virtual
     direction: value
     valueType: digital
     stateLabels: {false: "Off", true: "On"}

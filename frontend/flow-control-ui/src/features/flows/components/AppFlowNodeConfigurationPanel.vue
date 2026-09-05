@@ -35,7 +35,7 @@
           />
           <datalist :id="`${node.id}-compatible-points`">
             <option v-for="point in compatiblePoints" :key="point.id" :value="point.id">
-              {{ point.name }} · {{ point.implementation }} · {{ point.valueType
+              {{ point.name }} · {{ point.pointSourceType }} · {{ point.valueType
               }}{{ point.units ? ` · ${point.units}` : '' }}
             </option>
           </datalist>
@@ -175,7 +175,7 @@ const compatiblePoints = computed(() =>
       ...point,
       id: point.key,
       name: point.key,
-      implementation: 'virtual' as const,
+      pointSourceType: 'virtual' as const,
       enabled: true,
       direction: 'value' as const,
       revision: 0

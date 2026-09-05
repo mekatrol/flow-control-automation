@@ -19,7 +19,7 @@ test.beforeEach(async ({ page }) => {
               connectorDataTypes: ['any', 'boolean', 'event', 'number', 'string'],
               flowFunctions: ['and', 'readPoint', 'writePoint'],
               executionModes: ['event', 'interval'],
-              runtimeFeatures: ['virtualPoints', 'boundPoints']
+              runtimeFeatures: ['virtualPoints', 'physicalPoints']
             },
             limits: {
               maxFlows: null,

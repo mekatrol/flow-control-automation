@@ -83,7 +83,9 @@ export const executionContextApi = {
     if (
       body.exists !== true ||
       typeof body.pointKey !== 'string' ||
-      (body.implementation !== 'virtual' && body.implementation !== 'bound') ||
+      (body.pointSourceType !== 'virtual' &&
+        body.pointSourceType !== 'physical' &&
+        body.pointSourceType !== 'remote') ||
       !['analog', 'digital', 'multiState', 'integer', 'text'].includes(String(body.valueType))
     )
       throw new Error('Point resolution is malformed.');
@@ -91,8 +93,8 @@ export const executionContextApi = {
       id: body.pointKey,
       name: body.pointKey,
       enabled: body.enabled === true,
-      implementation: body.implementation,
-      direction: body.implementation === 'virtual' ? 'value' : 'inputOutput',
+      pointSourceType: body.pointSourceType,
+      direction: body.pointSourceType === 'virtual' ? 'value' : 'inputOutput',
       valueType: body.valueType as PointSummary['valueType'],
       units: typeof body.units === 'string' ? body.units : undefined,
       readable: body.readable === true,

@@ -8,7 +8,7 @@ This file is the compact parity reference for the fixtures under
 
 | Contract | Values |
 | --- | --- |
-| Point implementation | `virtual`, `bound` |
+| Point source type | `virtual`, `physical`, `remote` |
 | Point direction | `input`, `output`, `input_output`, `value` |
 | Point value type | `analog`, `digital`, `multi_state`, `integer`, `text` |
 | Point persistence | `volatile`, `retained` |
@@ -40,6 +40,6 @@ unless an explicit conversion function is introduced.
 - JSON files represent normalized internal persistence.
 - Revisions and timestamps appear only in normalized JSON.
 - Fixtures deliberately cover standalone and grouped points, all initial point
-  value types, virtual and bound implementations, and all initial source kinds.
+  value types, virtual, physical, and remote source types, and all initial source kinds.
 - Files under `invalid/` must remain rejected as the strict parsers are added.
 

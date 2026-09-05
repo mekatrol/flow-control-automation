@@ -17,7 +17,7 @@ const template = (
     connectorDataTypes: ['boolean'],
     flowFunctions: ['and', 'not', 'or', 'readPoint', 'writePoint'],
     executionModes: ['interval'],
-    runtimeFeatures: ['boundPoints']
+    runtimeFeatures: ['physicalPoints']
   },
   limits: {},
   revision: 3,

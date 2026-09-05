@@ -11,7 +11,6 @@ points:
     name: Outside air temperature
     description: Standalone HTTP temperature
     enabled: true
-    implementation: bound
     pointSourceType: remote
     direction: input
     valueType: analog
@@ -29,7 +28,6 @@ points:
     description: Grouped digital output
     enabled: true
     groupId: air-handler
-    implementation: bound
     pointSourceType: remote
     direction: output
     valueType: digital
@@ -52,7 +50,6 @@ points:
     name: Operating mode
     description: Retained virtual mode
     enabled: true
-    implementation: virtual
     pointSourceType: virtual
     direction: value
     valueType: multiState
@@ -71,7 +68,6 @@ points:
     name: Filter hours
     description: Volatile integer counter
     enabled: true
-    implementation: virtual
     pointSourceType: virtual
     direction: value
     valueType: integer
@@ -86,7 +82,6 @@ points:
     name: Plant status
     description: MQTT text status
     enabled: true
-    implementation: bound
     pointSourceType: remote
     direction: input
     valueType: text

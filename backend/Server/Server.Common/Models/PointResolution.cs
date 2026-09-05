@@ -8,7 +8,7 @@ public sealed record PointResolution
     public string? ExecutionInstanceId { get; init; }
     public required string PointKey { get; init; }
     public bool Exists { get; init; }
-    public string? Implementation { get; init; }
+    public PointSourceType? PointSourceType { get; init; }
     public AutomationPointValueType? ValueType { get; init; }
     public bool Readable { get; init; }
     public bool Commandable { get; init; }

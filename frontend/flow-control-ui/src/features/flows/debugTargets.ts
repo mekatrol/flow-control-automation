@@ -17,7 +17,7 @@ export const isControllerDebugCompatible = (template: ControllerTemplateSummary)
   template.capabilities.pointDirections.includes('input') &&
   template.capabilities.pointDirections.includes('output') &&
   template.capabilities.connectorDataTypes.includes('boolean') &&
-  template.capabilities.runtimeFeatures.includes('boundPoints') &&
+  template.capabilities.runtimeFeatures.includes('physicalPoints') &&
   requiredFunctions.every((kind) => template.capabilities.flowFunctions.includes(kind));
 
 export const getFlowDebugTargets = (

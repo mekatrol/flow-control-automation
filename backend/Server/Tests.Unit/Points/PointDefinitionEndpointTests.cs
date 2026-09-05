@@ -192,13 +192,13 @@ internal sealed class PointDefinitionEndpointTests
             Assert.That(created.StatusCode, Is.EqualTo(HttpStatusCode.Created));
         }
 
-        var page = await client.GetFromJsonAsync<PaginatedResult<VirtualAutomationPoint>>(
+        var page = await client.GetFromJsonAsync<PaginatedResult<AutomationPoint>>(
             "/api/points?page=2&pageSize=10&filter=TEMPERATURE&sort=descending",
             FlowControlJson.Options);
-        var grouped = await client.GetFromJsonAsync<PaginatedResult<VirtualAutomationPoint>>(
+        var grouped = await client.GetFromJsonAsync<PaginatedResult<AutomationPoint>>(
             "/api/points?pageSize=10&groupId=plant",
             FlowControlJson.Options);
-        var standalone = await client.GetFromJsonAsync<PaginatedResult<VirtualAutomationPoint>>(
+        var standalone = await client.GetFromJsonAsync<PaginatedResult<AutomationPoint>>(
             "/api/points?pageSize=10&groupId=",
             FlowControlJson.Options);
 
@@ -276,7 +276,7 @@ internal sealed class PointDefinitionEndpointTests
                 name: Point
                 name: Duplicate
                 enabled: true
-                implementation: virtual
+                pointSourceType: virtual
                 pointSourceType: virtual
                 direction: value
                 valueType: analog
@@ -428,7 +428,6 @@ internal sealed class PointDefinitionEndpointTests
         Name = name,
         Enabled = true,
         GroupId = groupId,
-        Implementation = "virtual",
         Direction = DataDirectionType.Value,
         ValueType = AutomationPointValueType.Analog,
         Readable = true,

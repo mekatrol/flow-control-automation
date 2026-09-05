@@ -235,7 +235,7 @@ internal sealed class ControllerTemplateValidatorTests
             "executionModes" => capabilities with { ExecutionModes = [ExecutionModeType.Interval, ExecutionModeType.Interval] },
             "runtimeFeatures" => capabilities with
             {
-                RuntimeFeatures = [ControllerRuntimeFeatureType.BoundPoints, ControllerRuntimeFeatureType.BoundPoints],
+                RuntimeFeatures = [ControllerRuntimeFeatureType.PhysicalPoints, ControllerRuntimeFeatureType.PhysicalPoints],
             },
             _ => throw new ArgumentOutOfRangeException(nameof(capability)),
         };
@@ -409,7 +409,7 @@ internal sealed class ControllerTemplateValidatorTests
             Assert.That(
                 ControllerCapabilitiesSupport.SupportsRuntimeFeature(
                     template,
-                    ControllerRuntimeFeatureType.BoundPoints),
+                    ControllerRuntimeFeatureType.PhysicalPoints),
                 Is.True);
         });
     }
@@ -505,7 +505,7 @@ internal sealed class ControllerTemplateValidatorTests
         ConnectorDataTypes = [ConnectorDataType.Boolean],
         FlowFunctions = [FlowFunctionType.And, FlowFunctionType.ReadPoint, FlowFunctionType.WritePoint],
         ExecutionModes = [ExecutionModeType.Interval],
-        RuntimeFeatures = [ControllerRuntimeFeatureType.BoundPoints]
+        RuntimeFeatures = [ControllerRuntimeFeatureType.PhysicalPoints]
     };
 
     private static string Fixture(string file) =>

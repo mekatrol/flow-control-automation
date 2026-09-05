@@ -4,7 +4,7 @@ using Server.Common.Types;
 namespace Server.Services.Contracts;
 
 public sealed record ValidatedPointDefinition(
-    VirtualAutomationPoint Source,
+    AutomationPoint Source,
     PointSourceType PointSourceType,
     DataDirectionType Direction,
     AutomationPointValueType ValueType,

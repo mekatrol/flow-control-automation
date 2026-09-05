@@ -300,7 +300,7 @@ internal sealed class ControllerTemplateEndpointTests
             ConnectorDataTypes = [ConnectorDataType.Boolean],
             FlowFunctions = [FlowFunctionType.And, FlowFunctionType.ReadPoint, FlowFunctionType.WritePoint],
             ExecutionModes = [ExecutionModeType.Interval],
-            RuntimeFeatures = [ControllerRuntimeFeatureType.BoundPoints]
+            RuntimeFeatures = [ControllerRuntimeFeatureType.PhysicalPoints]
         },
         Limits = new()
         {

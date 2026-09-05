@@ -7,7 +7,7 @@ interface CataloguePoint {
   name: string;
   enabled: boolean;
   groupId: string | null;
-  implementation: string;
+  pointSourceType: string;
   direction: string;
   valueType: string;
   units: string | null;
@@ -23,7 +23,7 @@ const point = (index: number): CataloguePoint => ({
   name: `Point ${String(index).padStart(2, '0')}`,
   enabled: index % 2 === 0,
   groupId: index === 1 ? 'room' : null,
-  implementation: index === 1 ? 'bound' : 'virtual',
+  pointSourceType: index === 1 ? 'remote' : 'virtual',
   direction: index === 1 ? 'input' : 'value',
   valueType: index === 1 ? 'analog' : 'digital',
   units: index === 1 ? 'deg_c' : null,

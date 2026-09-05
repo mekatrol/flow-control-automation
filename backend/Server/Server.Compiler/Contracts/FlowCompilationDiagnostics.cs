@@ -51,7 +51,7 @@ public static class FlowCompilationDiagnostics
                 [FlowCompilationDiagnosticCode.InvalidDutyCycle] = D(1315, "Invalid duty cycle", "Duty cycle must be from {0} through {1} percent."),
 
                 // Units
-                [FlowCompilationDiagnosticCode.AnalogOutputUnitMismatch] = D(1401, "Analog output unit mismatch", "Analog output units do not match the bound point."),
+                [FlowCompilationDiagnosticCode.AnalogOutputUnitMismatch] = D(1401, "Analog output unit mismatch", "Analog output units do not match the referenced point."),
                 [FlowCompilationDiagnosticCode.NumericOperandUnitMismatch] = D(1403, "Numeric operand unit mismatch", "Numeric operands require identical units."),
 
                 // Target

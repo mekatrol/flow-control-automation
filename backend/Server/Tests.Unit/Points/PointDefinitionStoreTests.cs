@@ -202,7 +202,7 @@ internal sealed class PointDefinitionStoreTests
         var group = await store.CreateGroupAsync(
             Group("plant", "Plant") with { SourceId = "http" },
             default);
-        var point = await store.CreatePointAsync(BoundPoint("sensor", group.Id), default);
+        var point = await store.CreatePointAsync(RemotePoint("sensor", group.Id), default);
 
         // Expected outcome: The invalid operation is rejected.
         // Acceptance criteria: the operation must throw PointDefinitionConflictException, because this condition proves that
@@ -261,7 +261,7 @@ internal sealed class PointDefinitionStoreTests
         var group = await store.CreateGroupAsync(
             Group("plant", "Plant") with { SourceId = "http" },
             default);
-        _ = await store.CreatePointAsync(BoundPoint("sensor", group.Id), default);
+        _ = await store.CreatePointAsync(RemotePoint("sensor", group.Id), default);
 
         // Expected outcome: The invalid operation is rejected.
         // Acceptance criteria: the operation must throw PointDefinitionValidationException, because this condition proves that
@@ -297,7 +297,7 @@ internal sealed class PointDefinitionStoreTests
         await using var scope = factory.Services.CreateAsyncScope();
         var store = scope.ServiceProvider.GetRequiredService<IPointDefinitionStore>();
         _ = await store.CreatePointAsync(
-            BoundPoint("sensor", groupId: null) with { SourceId = source.Id },
+            RemotePoint("sensor", groupId: null) with { SourceId = source.Id },
             default);
         var sources = scope.ServiceProvider.GetRequiredService<IPointSourceService>();
 
@@ -336,7 +336,7 @@ internal sealed class PointDefinitionStoreTests
     {
         await using var factory = new FlowControlApplicationFactory();
         _ = factory.CreateClient();
-        VirtualAutomationPoint created;
+        AutomationPoint created;
         await using (var setupScope = factory.Services.CreateAsyncScope())
         {
             created = await setupScope.ServiceProvider
@@ -437,20 +437,18 @@ internal sealed class PointDefinitionStoreTests
             Name = name,
             Enabled = true,
             GroupId = groupId,
-            Implementation = "virtual",
             Direction = DataDirectionType.Value,
             ValueType = AutomationPointValueType.Analog,
             Readable = true,
             Persistence = "volatile"
         };
 
-    private static VirtualAutomationPoint BoundPoint(string id, string? groupId) => new()
+    private static RemoteAutomationPoint RemotePoint(string id, string? groupId) => new()
     {
         Id = id,
         Name = id,
         Enabled = true,
         GroupId = groupId,
-        Implementation = "bound",
         Direction = DataDirectionType.Input,
         ValueType = AutomationPointValueType.Analog,
         Readable = true,

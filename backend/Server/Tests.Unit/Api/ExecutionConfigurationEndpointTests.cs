@@ -134,7 +134,7 @@ internal sealed class ExecutionConfigurationEndpointTests
         Assert.Multiple(() =>
         {
             Assert.That(resolution!.Exists, Is.True);
-            Assert.That(resolution.Implementation, Is.EqualTo("virtual"));
+            Assert.That(resolution.PointSourceType, Is.EqualTo(PointSourceType.Virtual));
             Assert.That(resolution.ValueType, Is.EqualTo(AutomationPointValueType.Analog));
             Assert.That(resolution.ExecutionContextId, Is.EqualTo("climate"));
             Assert.That(resolution.ExecutionInstanceId, Is.EqualTo("server"));

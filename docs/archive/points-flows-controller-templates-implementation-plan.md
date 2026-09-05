@@ -82,7 +82,7 @@ adapters early enough to test connectivity and read mapped input values. It
 does not yet enable arbitrary output writes or field-protocol drivers. Point
 blocks are valid graph endpoints, but deployment must report any runtime
 limitation explicitly; it must never pretend that an unreadable or disconnected
-bound point is live.
+remote point is live.
 
 ### Runtime release (portable-IL phases followed by phases 10-13)
 
@@ -167,7 +167,7 @@ The initial `PointDefinition` contract is:
 ```text
 id, name, description, enabled
 groupId?
-implementation            virtual | bound
+pointSourceType           virtual | physical | remote
 direction                 input | output | input_output | value
 valueType                 analog | digital | multi_state | integer | text
 units?
@@ -230,7 +230,7 @@ C# validation and frontend DTO validation must apply the same rules:
 - `output` points are commandable, with readability determined by readback;
 - `input_output` and virtual `value` points may be both;
 - virtual points have no external binding;
-- bound points require a valid source either directly or through their group
+- remote points require a valid source either directly or through their group
   and a mapping compatible with that source kind;
 - a retained virtual point has a valid `relinquishDefault`; and
 - output definitions require explicit startup, shutdown, communication-loss,
@@ -296,7 +296,7 @@ are read-only: no publish, Home Assistant service call, command-topic write, or
 mutating HTTP request is permitted.
 
 List endpoints support server-side `filter`, `page`, `pageSize`, and `sort`, as
-well as point filters for `groupId`, `implementation`, `direction`,
+well as point filters for `groupId`, `pointSourceType`, `direction`,
 `valueType`, and `enabled`. Use the existing page response shape. Use `400` for
 malformed input, `404` for unknown resources, `409` for revision/reference
 conflicts, and `500` for persistence failure. Error responses retain the
@@ -431,7 +431,7 @@ capabilities:
   flowFunctions: [] # replaced by the complete catalogue shown in flows.md
   executionModes: [event, interval]
   runtimeFeatures:
-    [virtual_points, bound_points, command_arbitration, quality_propagation]
+    [virtual_points, physical_points, command_arbitration, quality_propagation]
 limits:
   maxFlows: null
   maxNodesPerFlow: null
@@ -533,7 +533,7 @@ new persisted concepts.
 
 - Add canonical version-1 point/group/source YAML fixtures plus normalized
   internal JSON fixtures covering every value and source type,
-  standalone/grouped points, virtual/bound implementations, and invalid cases.
+  standalone/grouped points, virtual/physical/remote source types, and invalid cases.
 - Add version-1 controller-template YAML fixtures for the exhaustive built-in
   target, constrained physical targets, and syntax/semantic failures.
 - Add legacy flow fixtures that contain only current node kinds.
@@ -564,7 +564,7 @@ pass.
 
 **Completed:** 25 July 2026.
 
-**Purpose:** Define and verify reusable external systems before bound points or
+**Purpose:** Define and verify reusable external systems before remote points or
 groups can map values from them.
 
 **Implementation**
@@ -836,7 +836,7 @@ value on its definition screen.
   read-only Home Assistant entity reads, MQTT state subscriptions, and
   HTTP/JSON reads. Share connections safely where possible and mark every
   timeout, disconnect, parse failure, or stale sample with explicit quality.
-- After a bound point is saved, start its read-only adapter and show the live
+- After a remote point is saved, start its read-only adapter and show the live
   typed runtime envelope on the same point definition screen. Subscribe where
   the source supports it; otherwise poll. Show value, units, quality,
   reliability, source timestamp, age, connection state, and
@@ -1043,9 +1043,9 @@ execute virtual-point reads/writes safely.
 
 - Add `e2e/pointRuntime.spec.ts`: deploy a virtual-point flow, observe typed
   values and quality, restart persistence fixtures, share one source across
-  multiple points/groups, and preserve honest disconnected/stale bound states.
+  multiple points/groups, and preserve honest disconnected/stale remote states.
 
-**Commit gate:** Runtime reads mapped bound inputs and supports virtual points,
+**Commit gate:** Runtime reads mapped remote inputs and supports virtual points,
 but cannot write external equipment until command and safe-output phases.
 
 **Suggested commit:** `feat(points): execute virtual point values`
@@ -1081,7 +1081,7 @@ release protected commands.
 
 ### Phase 12 - Binding/driver expansion and point-group I/O
 
-**Purpose:** Expand beyond initial read adapters and connect safe bound outputs
+**Purpose:** Expand beyond initial read adapters and connect safe remote outputs
 without coupling protocols to the core model.
 
 **Implementation**

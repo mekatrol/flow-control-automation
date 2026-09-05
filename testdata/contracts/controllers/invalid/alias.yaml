@@ -10,6 +10,6 @@ capabilities: &capabilities
   connectorDataTypes: [boolean]
   flowFunctions: [readPoint]
   executionModes: [interval]
-  runtimeFeatures: [boundPoints]
+  runtimeFeatures: [physicalPoints]
 limits: *capabilities
 

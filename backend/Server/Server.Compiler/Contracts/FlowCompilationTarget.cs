@@ -8,5 +8,5 @@ namespace Server.Compiler.Contracts;
 public sealed record FlowCompilationTarget
 {
     public required ValidatedControllerTemplate ControllerTemplate { get; init; }
-    public IReadOnlyList<VirtualAutomationPoint> Points { get; init; } = [];
+    public IReadOnlyList<AutomationPoint> Points { get; init; } = [];
 }

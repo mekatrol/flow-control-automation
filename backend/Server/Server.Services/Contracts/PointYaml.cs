@@ -4,7 +4,7 @@ namespace Server.Services.Contracts;
 
 public static class PointYaml
 {
-    public static VirtualAutomationPoint Parse(ReadOnlySpan<byte> yaml)
+    public static AutomationPoint Parse(ReadOnlySpan<byte> yaml)
     {
         var document = ConfigurationYaml.Parse<PointDocument>(
             yaml,
@@ -19,7 +19,7 @@ public static class PointYaml
         return document.Points[0];
     }
 
-    public static string Render(VirtualAutomationPoint point)
+    public static string Render(AutomationPoint point)
     {
         ArgumentNullException.ThrowIfNull(point);
         return ConfigurationYaml.Render(new PointDocument
@@ -28,7 +28,7 @@ public static class PointYaml
         });
     }
 
-    private static VirtualAutomationPoint ForTransport(VirtualAutomationPoint point) => point with
+    private static AutomationPoint ForTransport(AutomationPoint point) => point with
     {
         Revision = 0,
         CreatedAt = null,

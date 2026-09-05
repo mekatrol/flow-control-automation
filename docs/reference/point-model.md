@@ -60,10 +60,10 @@ quality, and timestamp when those details affect control decisions.
 ## Independent classification axes
 
 “Point type” is often used to mean several different things. The data model
-should use separate fields for implementation, direction, value type, and
+should use separate fields for source type, direction, value type, and
 electrical behaviour.
 
-### Implementation
+### Source type
 
 #### Virtual
 
@@ -83,27 +83,22 @@ or operator intent. Intermediate calculated values may instead be volatile and
 reset when the engine restarts. Persistence is therefore a separate
 configuration field, not implied by being virtual.
 
-#### Bound
+#### Physical
 
-A bound point connects to something outside the flow engine. The binding may
-represent:
+A physical point represents local controller I/O, such as a digital input,
+relay, or analog output. It uses `PhysicalAutomationPoint` and the
+`physical` source type. Hardware-specific configuration is implemented
+separately from the remote-source catalogue.
 
-- local controller I/O;
-- a remote PLC, DDC, or building controller;
-- BACnet, Modbus, KNX, or another field protocol;
-- an MQTT topic;
-- a Home Assistant entity;
-- an HTTP or vendor API;
-- a database, message bus, or another flow-controller instance.
+#### Remote
 
-“Physical” alone is too narrow because an MQTT value or API property is external
-but may not correspond to a wire. The UI may display friendlier subtypes such as
-**Physical I/O** and **External system**, while the engine treats both as bound
-points with different drivers.
+A remote point uses `RemoteAutomationPoint` and obtains or exposes a value
+through an external protocol or service, such as MQTT, Home Assistant,
+HTTP, or a remote building controller. Its source type is `remote`.
 
 ### Point sources and mappings
 
-A bound point does not duplicate server or broker connection settings. It
+A remote point does not duplicate server or broker connection settings. It
 references a reusable point source and supplies only its point-specific mapping.
 Initial source kinds are:
 
@@ -145,7 +140,7 @@ Reference arrows point toward the dependency:
 
 Therefore a source must exist before a group can reference it, and a group must
 exist before a grouped point can reference the group. The group layer is
-optional: a standalone bound point can reference an existing source directly.
+optional: a standalone remote point can reference an existing source directly.
 Virtual points have no source dependency.
 
 Later field-protocol and controller drivers use the same boundary. A source can
@@ -258,7 +253,7 @@ id                    stable machine identifier
 name                  unique display name within its scope
 description           optional operator/engineering description
 enabled               whether the point participates in runtime processing
-implementation        virtual | bound
+pointSourceType        virtual | physical | remote
 direction             input | output | input_output | value
 value_type            analog | digital | multi_state | integer | text
 units                 engineering-unit identifier, when applicable
@@ -267,7 +262,7 @@ readable              whether clients and flows may read it
 commandable           whether authorised clients and flows may command it
 persistence           volatile | retained
 relinquish_default    value used when no command is active
-source_id             reusable source reference, for bound points
+source_id             reusable source reference, for remote points
 mapping               source-relative entity/topic/path/address configuration
 limits                valid range, clamp/reject policy, and rate limits
 alarm                  optional alarm configuration
@@ -410,7 +405,7 @@ restart from one that does not.
 
 ## Input processing
 
-Bound inputs commonly need a pipeline with practical
+Remote inputs commonly need a pipeline with practical
 separation of field input, conditioning, and control use:
 
 ```text
@@ -574,7 +569,7 @@ The source can serve many points and groups.
 ### Supply-air temperature
 
 ```text
-implementation: bound
+pointSourceType: remote
 direction: input
 value_type: analog
 units: degC
@@ -592,7 +587,7 @@ temperature without disabling the flows that consume it.
 ### Occupied cooling setpoint
 
 ```text
-implementation: virtual
+pointSourceType: virtual
 direction: value
 value_type: analog
 units: degC
@@ -609,7 +604,7 @@ by the configured command policy.
 ### Pump enable
 
 ```text
-implementation: bound
+pointSourceType: remote
 direction: output
 value_type: digital
 states: stopped/running
@@ -627,7 +622,7 @@ raised if command and feedback disagree after the start delay.
 ### Open-collector alarm output
 
 ```text
-implementation: bound
+pointSourceType: remote
 direction: output
 value_type: digital
 states: released/asserted
@@ -656,7 +651,7 @@ On restart:
 - retained virtual values are restored;
 - volatile values return to their configured defaults;
 - only commands explicitly configured for restart retention are restored;
-- bound inputs remain uncertain/bad until refreshed;
+- remote inputs remain uncertain/bad until refreshed;
 - outputs reconcile the command table before any write; and
 - drivers report connection state rather than presenting cached data as live.
 
@@ -670,7 +665,7 @@ The point manager should show, at a glance:
 
 - name, value, units, and state text;
 - quality and last-update age;
-- implementation and binding;
+- source type and binding;
 - in-service, alarm, and override indicators;
 - effective command source and priority; and
 - read/write capability.

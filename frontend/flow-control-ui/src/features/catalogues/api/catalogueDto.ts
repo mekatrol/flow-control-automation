@@ -1,4 +1,4 @@
-export type PointImplementation = 'virtual' | 'bound';
+export type PointSourceType = 'virtual' | 'physical' | 'remote';
 export type PointDirection = 'input' | 'output' | 'inputOutput' | 'value';
 export type PointValueType = 'analog' | 'digital' | 'multiState' | 'integer' | 'text';
 
@@ -8,7 +8,7 @@ export interface PointSummary {
   description?: string;
   enabled: boolean;
   groupId?: string;
-  implementation: PointImplementation;
+  pointSourceType: PointSourceType;
   direction: PointDirection;
   valueType: PointValueType;
   units?: string;
@@ -125,10 +125,10 @@ export const parsePoint = (value: unknown, path = 'point'): PointSummary => {
     description: optionalString(item.description, `${path}.description`),
     enabled: boolean(item.enabled, `${path}.enabled`),
     groupId: optionalString(item.groupId, `${path}.groupId`),
-    implementation: enumeration(
-      item.implementation,
-      ['virtual', 'bound'],
-      `${path}.implementation`
+    pointSourceType: enumeration(
+      item.pointSourceType,
+      ['virtual', 'physical', 'remote'],
+      `${path}.pointSourceType`
     ),
     direction: enumeration(
       item.direction,

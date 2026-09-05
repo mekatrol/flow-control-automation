@@ -73,13 +73,13 @@ internal sealed class PointDefinitionValidatorTests
                 PointSourceType.Remote
             }));
 
-            Assert.That(document.Points.Select(point => point.PointSourceType), Is.EqualTo(new[]
+            Assert.That(document.Points.Select(point => point.GetType()), Is.EqualTo(new[]
             {
-                PointSourceType.Virtual,
-                PointSourceType.Virtual,
-                PointSourceType.Virtual,
-                PointSourceType.Virtual,
-                PointSourceType.Virtual
+                typeof(RemoteAutomationPoint),
+                typeof(RemoteAutomationPoint),
+                typeof(VirtualAutomationPoint),
+                typeof(VirtualAutomationPoint),
+                typeof(RemoteAutomationPoint)
             }));
 
             // Expected outcome: `validated[0].Mapping` has the required runtime type.
@@ -110,35 +110,35 @@ internal sealed class PointDefinitionValidatorTests
     }
 
     /// <summary>
-    /// Purpose: Protects the behavioral contract that bound direction capability combinations are accepted.
-    /// Description: Arranges the inputs for bound direction capability combinations are accepted, exercises the relevant operation,
+    /// Purpose: Protects the behavioral contract that remote direction capability combinations are accepted.
+    /// Description: Arranges the inputs for remote direction capability combinations are accepted, exercises the relevant operation,
     /// and verifies the observable results required by that scenario.
     /// </summary>
     [TestCase(DataDirectionType.Input, true, false)]
     [TestCase(DataDirectionType.Output, false, true)]
     [TestCase(DataDirectionType.Output, true, true)]
     [TestCase(DataDirectionType.InputOutput, true, true)]
-    public void BoundDirectionCapabilityCombinations_AreAccepted(
+    public void RemoteDirectionCapabilityCombinations_AreAccepted(
         DataDirectionType direction,
         bool readable,
         bool commandable)
     {
-        var point = BoundPoint(direction, readable, commandable) with
+        var point = RemotePoint(direction, readable, commandable) with
         {
             SafeDisablePolicy = commandable ? Safety() : null,
         };
 
         // Expected outcome: The supported operation is accepted.
         // Acceptance criteria: the operation must complete without throwing an exception, because this condition proves that
-        // bound direction capability combinations are accepted.
+        // remote direction capability combinations are accepted.
         Assert.That(
             () => _validator.Validate(point, Context()),
             Throws.Nothing);
     }
 
     /// <summary>
-    /// Purpose: Protects the behavioral contract that invalid bound direction capability combinations are rejected.
-    /// Description: Arranges the inputs for invalid bound direction capability combinations are rejected, exercises the relevant operation,
+    /// Purpose: Protects the behavioral contract that invalid remote direction capability combinations are rejected.
+    /// Description: Arranges the inputs for invalid remote direction capability combinations are rejected, exercises the relevant operation,
     /// and verifies the observable results required by that scenario.
     /// </summary>
     [TestCase(DataDirectionType.Input, false, false)]
@@ -151,14 +151,14 @@ internal sealed class PointDefinitionValidatorTests
         bool readable,
         bool commandable)
     {
-        var point = BoundPoint(direction, readable, commandable) with
+        var point = RemotePoint(direction, readable, commandable) with
         {
             SafeDisablePolicy = commandable ? Safety() : null,
         };
 
         // Expected outcome: The invalid operation is rejected.
         // Acceptance criteria: the operation must throw PointDefinitionValidationException, because this condition proves that
-        // invalid bound direction capability combinations are rejected.
+        // invalid remote direction capability combinations are rejected.
         Assert.That(
             () => _validator.Validate(point, Context()),
             Throws.TypeOf<PointDefinitionValidationException>());
@@ -282,18 +282,18 @@ internal sealed class PointDefinitionValidatorTests
     }
 
     /// <summary>
-    /// Purpose: Protects the behavioral contract that bound point resolves inherited source and rejects conflicts.
-    /// Description: Arranges the inputs for bound point resolves inherited source and rejects conflicts, exercises the relevant operation,
+    /// Purpose: Protects the behavioral contract that remote point resolves inherited source and rejects conflicts.
+    /// Description: Arranges the inputs for remote point resolves inherited source and rejects conflicts, exercises the relevant operation,
     /// and verifies the observable results required by that scenario.
     /// </summary>
     [Test]
-    public void BoundPoint_ResolvesInheritedSourceAndRejectsConflicts()
+    public void RemotePoint_ResolvesInheritedSourceAndRejectsConflicts()
     {
         var groups = new Dictionary<string, PointGroup>
         {
             ["group"] = new() { Id = "group", Name = "Group", SourceId = "ha" }
         };
-        var inherited = BoundPoint(DataDirectionType.Input, true, false) with
+        var inherited = RemotePoint(DataDirectionType.Input, true, false) with
         {
             GroupId = "group",
             SourceId = null,
@@ -303,12 +303,12 @@ internal sealed class PointDefinitionValidatorTests
 
         // Expected outcome: All related outcomes satisfy their contracts.
         // Acceptance criteria: every assertion in the group must pass, because this condition proves that
-        // bound point resolves inherited source and rejects conflicts.
+        // remote point resolves inherited source and rejects conflicts.
         Assert.Multiple(() =>
         {
             // Expected outcome: the asserted result has the required value.
             // Acceptance criteria: the asserted result must equal `PointSourceKind.HomeAssistant`, because this condition proves that
-            // bound point resolves inherited source and rejects conflicts.
+            // remote point resolves inherited source and rejects conflicts.
             Assert.That(
                 _validator.Validate(
                     inherited,
@@ -317,7 +317,7 @@ internal sealed class PointDefinitionValidatorTests
 
             // Expected outcome: The invalid operation is rejected.
             // Acceptance criteria: the operation must throw PointDefinitionValidationException, because this condition proves that
-            // bound point resolves inherited source and rejects conflicts.
+            // remote point resolves inherited source and rejects conflicts.
             Assert.That(
                 () => _validator.Validate(
                     conflicting,
@@ -334,13 +334,13 @@ internal sealed class PointDefinitionValidatorTests
     [Test]
     public void SourceMappings_RequireCapabilitiesAndRejectCredentialLiterals()
     {
-        var missingCommandTopic = BoundPoint(DataDirectionType.Output, false, true) with
+        var missingCommandTopic = RemotePoint(DataDirectionType.Output, false, true) with
         {
             SourceId = "mqtt",
             Mapping = new JsonObject { ["stateTopic"] = "state" },
             SafeDisablePolicy = Safety(),
         };
-        var credential = BoundPoint(DataDirectionType.Input, true, false) with
+        var credential = RemotePoint(DataDirectionType.Input, true, false) with
         {
             Mapping = new JsonObject
             {
@@ -499,7 +499,7 @@ internal sealed class PointDefinitionValidatorTests
             new Dictionary<string, PointGroup>(StringComparer.Ordinal),
             _sources);
 
-    private static VirtualAutomationPoint BoundPoint(
+    private static RemoteAutomationPoint RemotePoint(
         DataDirectionType direction,
         bool readable,
         bool commandable)
@@ -515,12 +515,11 @@ internal sealed class PointDefinitionValidatorTests
             mqttMapping["commandTopic"] = "point/command";
         }
 
-        return new VirtualAutomationPoint
+        return new RemoteAutomationPoint
         {
             Id = "point",
             Name = "Point",
             Enabled = true,
-            Implementation = "bound",
             Direction = direction,
             ValueType = AutomationPointValueType.Analog,
             Readable = readable,
@@ -536,7 +535,6 @@ internal sealed class PointDefinitionValidatorTests
         Id = "point",
         Name = "Point",
         Enabled = true,
-        Implementation = "virtual",
         Direction = DataDirectionType.Value,
         ValueType = valueType,
         StateLabels = valueType switch

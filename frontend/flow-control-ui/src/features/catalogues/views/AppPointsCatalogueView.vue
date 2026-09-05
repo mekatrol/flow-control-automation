@@ -41,7 +41,7 @@
             <th scope="col">Name</th>
             <th scope="col">Membership</th>
             <th scope="col">Source</th>
-            <th scope="col">Implementation</th>
+            <th scope="col">Source type</th>
             <th scope="col">Direction</th>
             <th scope="col">Value type</th>
             <th scope="col">Capabilities</th>
@@ -58,7 +58,7 @@
             </th>
             <td>{{ point.groupId ? `Group: ${point.groupId}` : 'Standalone' }}</td>
             <td>{{ point.sourceId || (point.groupId ? 'Inherited from group' : 'None') }}</td>
-            <td>{{ label(point.implementation) }}</td>
+            <td>{{ label(point.pointSourceType) }}</td>
             <td>{{ label(point.direction) }}</td>
             <td>
               {{ label(point.valueType) }}

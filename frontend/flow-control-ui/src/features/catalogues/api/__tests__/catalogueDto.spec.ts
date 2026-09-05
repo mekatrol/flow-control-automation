@@ -12,7 +12,7 @@ const point = {
   description: 'Measured temperature',
   enabled: true,
   groupId: 'room',
-  implementation: 'bound',
+  pointSourceType: 'remote',
   direction: 'input',
   valueType: 'analog',
   units: 'deg_c',
@@ -36,7 +36,7 @@ const template = {
     connectorDataTypes: ['number'],
     flowFunctions: ['readPoint'],
     executionModes: ['event'],
-    runtimeFeatures: ['boundPoints']
+    runtimeFeatures: ['physicalPoints']
   },
   limits: {
     maxFlows: null,
@@ -99,7 +99,7 @@ describe('catalogue DTO parsing', () => {
    */
   it.each([
     [{ ...point, enabled: 'yes' }, /point.enabled/],
-    [{ ...point, implementation: 'physical' }, /point.implementation/],
+    [{ ...point, pointSourceType: 'unknown' }, /point.pointSourceType/],
     [{ ...point, direction: 'sideways' }, /point.direction/],
     [{ ...point, valueType: 'float' }, /point.valueType/],
     [{ ...point, revision: 1.5 }, /point.revision/],

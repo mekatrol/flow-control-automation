@@ -191,7 +191,7 @@ points:
   - id: ${id}
     name: ${name}
     enabled: true
-${groupId ? `    groupId: ${groupId}\n` : ''}    implementation: bound
+${groupId ? `    groupId: ${groupId}\n` : ''}    pointSourceType: remote
     direction: input
     valueType: analog
     readable: true

@@ -329,7 +329,7 @@ points:
   - id: test-temperature
     name: Test temperature
     enabled: true
-    implementation: bound
+    pointSourceType: remote
     direction: input
     valueType: analog
     units: celsius
@@ -398,7 +398,7 @@ const pointTestSchema = {
           'id',
           'name',
           'enabled',
-          'implementation',
+          'pointSourceType',
           'direction',
           'valueType',
           'readable',
@@ -411,7 +411,7 @@ const pointTestSchema = {
           id: { type: 'string' },
           name: { type: 'string' },
           enabled: { type: 'boolean' },
-          implementation: { const: 'bound' },
+          pointSourceType: { const: 'remote' },
           direction: { enum: ['input', 'output', 'inputOutput'] },
           valueType: { enum: ['analog', 'digital', 'multiState', 'integer', 'text'] },
           units: { type: 'string' },

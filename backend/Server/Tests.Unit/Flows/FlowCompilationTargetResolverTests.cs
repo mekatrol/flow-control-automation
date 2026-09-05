@@ -117,7 +117,7 @@ public sealed class FlowCompilationTargetResolverTests
 
     private static ResolverContext Resolver(
         ControllerTemplate template,
-        IReadOnlyList<VirtualAutomationPoint> points) =>
+        IReadOnlyList<AutomationPoint> points) =>
         Resolver(template, new StubPointStore(points));
 
     private static ResolverContext Resolver(
@@ -215,18 +215,18 @@ public sealed class FlowCompilationTargetResolverTests
             ],
             RuntimeFeatures =
             [
-                ControllerRuntimeFeatureType.BoundPoints
+                ControllerRuntimeFeatureType.PhysicalPoints
             ]
         }
     };
 
-    private static VirtualAutomationPoint Input(string id) =>
+    private static PhysicalAutomationPoint Input(string id) =>
         Point(
             id,
             DataDirectionType.Input,
             readable: true);
 
-    private static VirtualAutomationPoint Output(string id) =>
+    private static PhysicalAutomationPoint Output(string id) =>
         Point(
             id,
             DataDirectionType.Output,
@@ -235,17 +235,19 @@ public sealed class FlowCompilationTargetResolverTests
     private static VirtualAutomationPoint VirtualValue(
         string id,
         bool readable = false,
-        bool commandable = false) =>
-        Point(
-            id,
-            DataDirectionType.Value,
-            readable,
-            commandable) with
+        bool commandable = false) => new()
         {
-            Implementation = "virtual"
+            Id = id,
+            Name = id,
+            Enabled = true,
+            Direction = DataDirectionType.Value,
+            ValueType = AutomationPointValueType.Digital,
+            Readable = readable,
+            Commandable = commandable,
+            Persistence = "volatile"
         };
 
-    private static VirtualAutomationPoint Point(
+    private static PhysicalAutomationPoint Point(
         string id,
         DataDirectionType direction,
         bool readable = false,
@@ -254,7 +256,6 @@ public sealed class FlowCompilationTargetResolverTests
             Id = id,
             Name = id,
             Enabled = true,
-            Implementation = "bound",
             Direction = direction,
             ValueType = AutomationPointValueType.Digital,
             Readable = readable,
@@ -339,30 +340,30 @@ public sealed class FlowCompilationTargetResolverTests
     }
 
     private sealed class StubPointStore(
-        IReadOnlyList<VirtualAutomationPoint> points) : IPointDefinitionStore
+        IReadOnlyList<AutomationPoint> points) : IPointDefinitionStore
     {
         public int ListCallCount { get; private set; }
 
-        public Task<IReadOnlyList<VirtualAutomationPoint>> ListPointsAsync(
+        public Task<IReadOnlyList<AutomationPoint>> ListPointsAsync(
             CancellationToken cancellationToken)
         {
             ListCallCount++;
             return Task.FromResult(points);
         }
 
-        public Task<VirtualAutomationPoint> GetPointAsync(
+        public Task<AutomationPoint> GetPointAsync(
             string id,
             CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
-        public Task<VirtualAutomationPoint> CreatePointAsync(
-            VirtualAutomationPoint point,
+        public Task<AutomationPoint> CreatePointAsync(
+            AutomationPoint point,
             CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
-        public Task<VirtualAutomationPoint> UpdatePointAsync(
+        public Task<AutomationPoint> UpdatePointAsync(
             string id,
-            VirtualAutomationPoint point,
+            AutomationPoint point,
             int revision,
             CancellationToken cancellationToken) =>
             throw new NotSupportedException();
@@ -400,7 +401,7 @@ public sealed class FlowCompilationTargetResolverTests
             CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
-        public Task<IReadOnlyList<VirtualAutomationPoint>> MakePointsStandaloneAsync(
+        public Task<IReadOnlyList<AutomationPoint>> MakePointsStandaloneAsync(
             string groupId,
             int groupRevision,
             CancellationToken cancellationToken) =>

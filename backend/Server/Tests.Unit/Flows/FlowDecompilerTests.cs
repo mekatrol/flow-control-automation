@@ -497,7 +497,7 @@ public sealed class FlowDecompilerTests
                                 FlowNodeType.DigitalOutput or
                                 FlowNodeType.AnalogInput or
                                 FlowNodeType.AnalogOutput)
-                        .Select(node => new VirtualAutomationPoint
+                        .Select(node => new PhysicalAutomationPoint
                         {
                             Id =
                                 node.Configuration["pointId"]
@@ -508,8 +508,6 @@ public sealed class FlowDecompilerTests
                                     .GetString()!,
 
                             Enabled = true,
-                            Implementation = "bound",
-
                             Direction =
                                 node.Kind.ToString()
                                     .EndsWith(

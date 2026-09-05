@@ -36,7 +36,7 @@ public static class BuiltInControllerTemplate
             RuntimeFeatures =
             [
                 ControllerRuntimeFeatureType.VirtualPoints,
-                ControllerRuntimeFeatureType.BoundPoints,
+                ControllerRuntimeFeatureType.PhysicalPoints,
                 ControllerRuntimeFeatureType.CommandArbitration,
                 ControllerRuntimeFeatureType.QualityPropagation
             ]

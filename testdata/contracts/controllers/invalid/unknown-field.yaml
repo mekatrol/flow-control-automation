@@ -10,7 +10,7 @@ capabilities:
   connectorDataTypes: [boolean]
   flowFunctions: [readPoint]
   executionModes: [interval]
-  runtimeFeatures: [boundPoints]
+  runtimeFeatures: [physicalPoints]
 limits:
   maxFlows: 1
   maxNodesPerFlow: 8
