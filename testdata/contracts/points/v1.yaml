@@ -12,6 +12,7 @@ points:
     description: Standalone HTTP temperature
     enabled: true
     implementation: bound
+    pointSourceType: remote
     direction: input
     valueType: analog
     units: degC
@@ -29,6 +30,7 @@ points:
     enabled: true
     groupId: air-handler
     implementation: bound
+    pointSourceType: remote
     direction: output
     valueType: digital
     stateLabels:
@@ -51,6 +53,7 @@ points:
     description: Retained virtual mode
     enabled: true
     implementation: virtual
+    pointSourceType: virtual
     direction: value
     valueType: multiState
     stateLabels:
@@ -69,6 +72,7 @@ points:
     description: Volatile integer counter
     enabled: true
     implementation: virtual
+    pointSourceType: virtual
     direction: value
     valueType: integer
     units: h
@@ -83,6 +87,7 @@ points:
     description: MQTT text status
     enabled: true
     implementation: bound
+    pointSourceType: remote
     direction: input
     valueType: text
     readable: true

@@ -17,7 +17,7 @@ public static class ConfigurationYaml
     private static readonly IReadOnlySet<string> PointFields = new HashSet<string>(
         [
             "id", "name", "description", "enabled", "groupId", "implementation", "direction",
-            "valueType", "units", "stateLabels", "readable", "commandable", "persistence",
+            "valueType", "pointSourceType", "units", "stateLabels", "readable", "commandable", "persistence",
             "relinquishDefault", "sourceId", "mapping", "limits", "safeDisablePolicy",
         ]);
     private static readonly IReadOnlySet<string> SourceRootFields =

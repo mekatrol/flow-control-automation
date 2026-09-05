@@ -1,4 +1,4 @@
-using Server.Common.Models;
+using Server.Common.Types;
 
 namespace Server.Services.Contracts;
 
@@ -8,7 +8,7 @@ public sealed record EmulatorOutputSample(
     string OutputId,
     FlowVmValue ProposedValue,
     FlowVmValue EffectiveValue,
-    DataQuality Quality,
+    DataQualityType Quality,
     string? Units,
     ulong LastChangeScan,
     string ArbitrationOwner,

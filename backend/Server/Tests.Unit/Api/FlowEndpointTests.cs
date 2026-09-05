@@ -1,6 +1,6 @@
 using Server.Common;
-using Server.Common.Contracts;
 using Server.Common.Models;
+using Server.Common.Types;
 using Server.Services.Contracts;
 using System.Net;
 using System.Net.Http.Json;
@@ -54,7 +54,7 @@ internal sealed class FlowEndpointTests
                 new FlowNode
                 {
                     Id = "pulse-1",
-                    Kind = FlowNodeKind.Pulse,
+                    Kind = FlowNodeType.Pulse,
                     Label = "Every minute",
                     X = 10,
                     Y = 20,
@@ -331,9 +331,9 @@ internal sealed class FlowEndpointTests
                 new FlowNode
                 {
                     Id = "constant-true",
-                    Kind = FlowNodeKind.DigitalConstant,
+                    Kind = FlowNodeType.DigitalConstant,
                     Label = "Constant true",
-                    Connectors = [new FlowConnector("value", "Value", DataDirection.Output, DataType.Boolean, "right")],
+                    Connectors = [new FlowConnector("value", "Value", DataDirectionType.Output, DataType.Boolean, "right")],
                     Configuration = new Dictionary<string, JsonElement>
                     {
                         ["value"] = JsonSerializer.SerializeToElement(true)
@@ -470,7 +470,7 @@ internal sealed class FlowEndpointTests
                 new ExecutableFlowNode
                 {
                     Id = "constant",
-                    Kind = FlowNodeKind.DigitalConstant,
+                    Kind = FlowNodeType.DigitalConstant,
                     Configuration = new Dictionary<string, JsonElement>
                     {
                         ["value"] = JsonSerializer.SerializeToElement(true)
@@ -512,9 +512,9 @@ internal sealed class FlowEndpointTests
                 new FlowNode
                 {
                     Id = "constant-true",
-                    Kind = FlowNodeKind.DigitalConstant,
+                    Kind = FlowNodeType.DigitalConstant,
                     Label = "Constant true",
-                    Connectors = [new FlowConnector("value", "Value", DataDirection.Output, DataType.Boolean, "right")],
+                    Connectors = [new FlowConnector("value", "Value", DataDirectionType.Output, DataType.Boolean, "right")],
                     Configuration = new Dictionary<string, JsonElement>
                     {
                         ["value"] = JsonSerializer.SerializeToElement(true)

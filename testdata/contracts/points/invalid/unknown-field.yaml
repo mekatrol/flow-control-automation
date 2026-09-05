@@ -6,6 +6,7 @@ points:
     description: Contains a field outside the version 1 contract
     enabled: true
     implementation: virtual
+    pointSourceType: virtual
     direction: value
     valueType: digital
     readable: true

@@ -1,9 +1,9 @@
-using Server.Common.Models;
+using Server.Common.Types;
 
 namespace Server.Services.Contracts;
 
 public sealed record DebugNodeSnapshot(
     string NodeId,
     string State,
-    DataQuality Quality,
+    DataQualityType Quality,
     DebugTypedValue? TypedValue);

@@ -1,8 +1,8 @@
-using Server.Common.Contracts;
+using Server.Common.Types;
 
 namespace Server.Common.Services;
 
 public static class FlowNodeRegistry
 {
-    public static IReadOnlySet<FlowFunctionKind> Functions { get; } = Enum.GetValues<FlowFunctionKind>().ToHashSet();
+    public static IReadOnlySet<FlowFunctionType> Functions { get; } = Enum.GetValues<FlowFunctionType>().ToHashSet();
 }

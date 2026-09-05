@@ -1,4 +1,4 @@
-using Server.Common.Contracts;
+using Server.Common.Models;
 
 namespace Server.Compiler.Contracts;
 

@@ -1,6 +1,8 @@
-﻿using Server.Common;
+using Server.Common;
 using Server.Common.Contracts;
+using Server.Common.Models;
 using Server.Common.Services;
+using Server.Common.Types;
 using Server.Compiler;
 using Server.Compiler.Contracts;
 using Server.Compiler.Services;
@@ -149,17 +151,17 @@ internal sealed partial class ExecutionConfigurationService(
             Fail("name must be non-empty");
         }
 
-        if (instance.Kind == ExecutionInstanceKind.Server && (instance.ControllerTemplateId is not null || instance.ControllerTemplateRevision is not null))
+        if (instance.Kind == ExecutionInstanceType.Server && (instance.ControllerTemplateId is not null || instance.ControllerTemplateRevision is not null))
         {
             Fail("server instances cannot reference a controller template");
         }
 
-        if (instance.Kind == ExecutionInstanceKind.Controller && (string.IsNullOrWhiteSpace(instance.ControllerTemplateId) || instance.ControllerTemplateRevision is null or < 1))
+        if (instance.Kind == ExecutionInstanceType.Controller && (string.IsNullOrWhiteSpace(instance.ControllerTemplateId) || instance.ControllerTemplateRevision is null or < 1))
         {
             Fail("controller instances require a controller template id and revision");
         }
 
-        if (instance.Kind == ExecutionInstanceKind.Controller)
+        if (instance.Kind == ExecutionInstanceType.Controller)
         {
             ControllerTemplate template;
             try { template = await controllerTemplates.GetAsync(instance.ControllerTemplateId!, cancellationToken); }
@@ -173,7 +175,7 @@ internal sealed partial class ExecutionConfigurationService(
             }
         }
 
-        if (instance.Id == "server" && (!create || instance.Kind != ExecutionInstanceKind.Server))
+        if (instance.Id == "server" && (!create || instance.Kind != ExecutionInstanceType.Server))
         {
             throw new ExecutionConfigurationException("the built-in server instance cannot be changed", 409);
         }
@@ -229,7 +231,7 @@ internal sealed partial class ExecutionConfigurationService(
             Fail("physical point bindings require non-empty roles and point ids");
         }
 
-        if (deployment.Status == ExecutionContextDeploymentStatus.Active)
+        if (deployment.Status == ExecutionContextDeploymentStatusType.Active)
         {
             var compiledPrograms = await ValidateAndCompileActiveDeploymentAsync(deployment, definition, instance, cancellationToken);
             deployment = deployment with { CompiledPrograms = compiledPrograms };
@@ -250,7 +252,7 @@ internal sealed partial class ExecutionConfigurationService(
             Updated = timeProvider.GetUtcNow()
         };
         var saved = await SaveDeployment(entity, deployment, create, cancellationToken);
-        if (saved.Status == ExecutionContextDeploymentStatus.Active)
+        if (saved.Status == ExecutionContextDeploymentStatusType.Active)
         {
             foreach (var program in definition.Programs.DistinctBy(item => item.FlowId))
             {
@@ -394,7 +396,7 @@ internal sealed partial class ExecutionConfigurationService(
                 "virtual_point_limit_exceeded",
                 new { limit = MaximumVirtualPointsPerContext, actual = result.Count });
         }
-        var retainedCount = result.Values.Count(item => item.Persistence == VirtualPointPersistence.Retained);
+        var retainedCount = result.Values.Count(item => item.Persistence == VirtualPointPersistenceType.Retained);
         if (retainedCount > _maximumRetainedVirtualPointsPerContext)
         {
             throw new ExecutionConfigurationException(
@@ -446,7 +448,7 @@ internal sealed partial class ExecutionConfigurationService(
             throw new ExecutionConfigurationException($"execution instance '{instance.Id}' is disabled", 409);
         }
 
-        if (instance.Kind == ExecutionInstanceKind.Controller)
+        if (instance.Kind == ExecutionInstanceType.Controller)
         {
             ControllerTemplate template;
             try { template = await controllerTemplates.GetAsync(instance.ControllerTemplateId!, cancellationToken); }
@@ -469,7 +471,7 @@ internal sealed partial class ExecutionConfigurationService(
                 .Where(item => item.ExecutionInstanceId == instance.Id && item.Id != deployment.Id)
                 .ToListAsync(cancellationToken))
             .Select(Deserialize<ExecutionContextDeployment>)
-            .Where(item => item.Status == ExecutionContextDeploymentStatus.Active)
+            .Where(item => item.Status == ExecutionContextDeploymentStatusType.Active)
             .ToList();
         var contextEntities = await context.ExecutionContexts.AsNoTracking().ToDictionaryAsync(item => item.Id, cancellationToken);
         var activeDefinitions = otherDeployments
@@ -496,10 +498,10 @@ internal sealed partial class ExecutionConfigurationService(
             AddWriters(writers, flow, instance.Id, deployment.Id);
         }
 
-        var templateId = instance.Kind == ExecutionInstanceKind.Controller
+        var templateId = instance.Kind == ExecutionInstanceType.Controller
             ? instance.ControllerTemplateId!
             : BuiltInControllerTemplate.Id;
-        var templateRevision = instance.Kind == ExecutionInstanceKind.Controller
+        var templateRevision = instance.Kind == ExecutionInstanceType.Controller
             ? instance.ControllerTemplateRevision!.Value
             : BuiltInControllerTemplate.Default.Revision;
         var bindings = deployment.PhysicalPointBindings.ToDictionary(item => item.Role, item => item.PointId, StringComparer.Ordinal);
@@ -568,7 +570,7 @@ internal sealed partial class ExecutionConfigurationService(
         foreach (var flow in programs)
         {
             var virtualKeys = VirtualPointNodes.Declarations(flow.Nodes).Select(item => item.Key).ToHashSet(StringComparer.Ordinal);
-            foreach (var node in flow.Nodes.Where(item => item.Kind is FlowNodeKind.AnalogInput or FlowNodeKind.AnalogOutput or FlowNodeKind.DigitalInput or FlowNodeKind.DigitalOutput))
+            foreach (var node in flow.Nodes.Where(item => item.Kind is FlowNodeType.AnalogInput or FlowNodeType.AnalogOutput or FlowNodeType.DigitalInput or FlowNodeType.DigitalOutput))
             {
                 var role = node.Configuration.TryGetValue("pointId", out var value) ? value.GetString() : null;
                 if (role is null || virtualKeys.Contains(role))
@@ -587,8 +589,8 @@ internal sealed partial class ExecutionConfigurationService(
                     throw new ExecutionConfigurationException($"physical point role '{role}' resolves to a missing or disabled point", 422);
                 }
 
-                var analog = node.Kind is FlowNodeKind.AnalogInput or FlowNodeKind.AnalogOutput;
-                var input = node.Kind is FlowNodeKind.AnalogInput or FlowNodeKind.DigitalInput;
+                var analog = node.Kind is FlowNodeType.AnalogInput or FlowNodeType.AnalogOutput;
+                var input = node.Kind is FlowNodeType.AnalogInput or FlowNodeType.DigitalInput;
                 if (point.ValueType != (analog ? FlowPointValueType.Analog : FlowPointValueType.Digital)
                     || (input ? !point.Readable : !point.Commandable))
                 {
@@ -610,7 +612,7 @@ internal sealed partial class ExecutionConfigurationService(
         string? deploymentId)
     {
         var virtualKeys = VirtualPointNodes.Declarations(flow.Nodes).Select(item => item.Key).ToHashSet(StringComparer.Ordinal);
-        foreach (var node in flow.Nodes.Where(item => item.Kind is FlowNodeKind.AnalogOutput or FlowNodeKind.DigitalOutput))
+        foreach (var node in flow.Nodes.Where(item => item.Kind is FlowNodeType.AnalogOutput or FlowNodeType.DigitalOutput))
         {
             var key = node.Configuration.TryGetValue("pointId", out var value) ? value.GetString() : null;
             if (key is null || !virtualKeys.Contains(key))
@@ -646,7 +648,7 @@ internal sealed partial class ExecutionConfigurationService(
             return;
         }
 
-        if (!template.Capabilities.RuntimeFeatures.Contains(ControllerRuntimeFeature.VirtualPoints))
+        if (!template.Capabilities.RuntimeFeatures.Contains(ControllerRuntimeFeatureType.VirtualPoints))
         {
             throw new ExecutionConfigurationException($"controller template '{template.Id}' does not support virtual points", 422);
         }
@@ -658,8 +660,8 @@ internal sealed partial class ExecutionConfigurationService(
                 throw new ExecutionConfigurationException($"controller template '{template.Id}' does not support {contract.ValueType} virtual point '{contract.Key}'", 422);
             }
 
-            if (contract.Persistence == VirtualPointPersistence.Retained
-                && !template.Capabilities.PointFeatures.Contains(ControllerPointFeature.Retain))
+            if (contract.Persistence == VirtualPointPersistenceType.Retained
+                && !template.Capabilities.PointFeatures.Contains(ControllerPointFeatureType.Retain))
             {
                 throw new ExecutionConfigurationException($"controller template '{template.Id}' cannot retain virtual point '{contract.Key}'", 422);
             }

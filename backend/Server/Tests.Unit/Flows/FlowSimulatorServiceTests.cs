@@ -1,4 +1,5 @@
-using Server.Common.Contracts;
+using Server.Common.Models;
+using Server.Common.Types;
 using Server.Compiler.Contracts;
 using Server.Compiler.Services;
 using Server.Services;
@@ -89,7 +90,7 @@ public sealed class FlowSimulatorServiceTests
         Revision = 7,
         ControllerTemplateId = "controller-a",
         ControllerTemplateRevision = 1,
-        Nodes = [new ExecutableFlowNode { Id = "constant", Kind = FlowNodeKind.DigitalConstant }]
+        Nodes = [new ExecutableFlowNode { Id = "constant", Kind = FlowNodeType.DigitalConstant }]
     };
 
     private sealed class Resolver : IFlowCompilationTargetResolver
@@ -137,7 +138,7 @@ public sealed class FlowSimulatorServiceTests
         public FlowVmExecutionFrame BeginScan(IReadOnlyList<FlowVmInput> inputs, ulong sampledAtMilliseconds)
         {
             _sampledAt = sampledAtMilliseconds;
-            return new(0, FlowOpcode.Commit, true, [], [], [], []);
+            return new(0, FlowOpcodeType.Commit, true, [], [], [], []);
         }
         public FlowVmExecutionFrame StepInstruction() => throw new NotSupportedException();
         public FlowVmScanResult CommitScan() => new(++_scan, _sampledAt, [true], [new FlowVmCommand("output", true)]);

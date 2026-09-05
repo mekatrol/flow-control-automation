@@ -1,20 +1,19 @@
-using Server.Common.Contracts;
-using Server.Common.Models;
+using Server.Common.Types;
 
 namespace Server.Services.Implementation;
 
 public static class PointCompatibility
 {
-    public static bool CanRead(DataDirection direction) =>
-        direction is DataDirection.Input
-            or DataDirection.Output
-            or DataDirection.InputOutput
-            or DataDirection.Value;
+    public static bool CanRead(DataDirectionType direction) =>
+        direction is DataDirectionType.Input
+            or DataDirectionType.Output
+            or DataDirectionType.InputOutput
+            or DataDirectionType.Value;
 
-    public static bool CanCommand(DataDirection direction) =>
-        direction is DataDirection.Output
-            or DataDirection.InputOutput
-            or DataDirection.Value;
+    public static bool CanCommand(DataDirectionType direction) =>
+        direction is DataDirectionType.Output
+            or DataDirectionType.InputOutput
+            or DataDirectionType.Value;
 
     public static bool SupportsUnits(FlowPointValueType valueType) =>
         valueType is FlowPointValueType.Analog or FlowPointValueType.Integer;

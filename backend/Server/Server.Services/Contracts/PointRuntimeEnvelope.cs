@@ -1,4 +1,4 @@
-using Server.Common.Models;
+using Server.Common.Types;
 using System.Text.Json.Nodes;
 
 namespace Server.Services.Contracts;
@@ -7,7 +7,7 @@ public sealed record PointRuntimeEnvelope(
     string PointId,
     JsonNode? Value,
     string? Units,
-    DataQuality Quality,
+    DataQualityType Quality,
     string Reliability,
     string? SourceTimestamp,
     string? UpdatedAt,

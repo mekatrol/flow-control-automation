@@ -1,5 +1,5 @@
-using Server.Common.Contracts;
 using Server.Common.Models;
+using Server.Common.Types;
 using Server.Services.Contracts;
 using System.Net;
 using System.Net.Http.Json;
@@ -277,6 +277,7 @@ internal sealed class PointDefinitionEndpointTests
                 name: Duplicate
                 enabled: true
                 implementation: virtual
+                pointSourceType: virtual
                 direction: value
                 valueType: analog
                 readable: true
@@ -404,7 +405,7 @@ internal sealed class PointDefinitionEndpointTests
             // Expected outcome: `runtime?.Quality` has the required value.
             // Acceptance criteria: `runtime?.Quality` must equal `"unavailable"`, because this condition proves that
             // runtime envelope never fabricates an uninitialized value.
-            Assert.That(runtime?.Quality, Is.EqualTo(DataQuality.Unavailable));
+            Assert.That(runtime?.Quality, Is.EqualTo(DataQualityType.Unavailable));
 
             // Expected outcome: `runtime?.Reliability` has the required value.
             // Acceptance criteria: `runtime?.Reliability` must equal `"not_initialized"`, because this condition proves that
@@ -428,9 +429,9 @@ internal sealed class PointDefinitionEndpointTests
         Enabled = true,
         GroupId = groupId,
         Implementation = "virtual",
-        Direction = DataDirection.Value,
+        Direction = DataDirectionType.Value,
         ValueType = FlowPointValueType.Analog,
-        PointSourceType = PointSourceType.Remote,
+        PointSourceType = PointSourceType.Virtual,
         Readable = true,
         Persistence = "volatile"
     };

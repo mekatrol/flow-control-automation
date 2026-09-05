@@ -1,7 +1,7 @@
 using Server.Common;
-using Server.Common.Contracts;
 using Server.Common.Models;
 using Server.Common.Services;
+using Server.Common.Types;
 using Server.Compiler.Services.Implementation;
 using Server.Services;
 using Server.Services.Contracts;
@@ -51,19 +51,19 @@ internal sealed class ControllerTemplateValidatorTests
             // constrained fixture parses and validates as typed capabilities.
             Assert.That(
                 validated.PointDirections,
-                Is.EquivalentTo([DataDirection.Input, DataDirection.Output]));
+                Is.EquivalentTo([DataDirectionType.Input, DataDirectionType.Output]));
 
             // Expected outcome: `validated.FlowFunctions` includes the required content.
             // Acceptance criteria: `validated.FlowFunctions` must contain `"readPoint"`, because this condition proves that
             // constrained fixture parses and validates as typed capabilities.
-            Assert.That(validated.FlowFunctions, Does.Contain(FlowFunctionKind.ReadPoint));
+            Assert.That(validated.FlowFunctions, Does.Contain(FlowFunctionType.ReadPoint));
 
             // Expected outcome: `validated.ExecutionModes` contains the required values.
-            // Acceptance criteria: `validated.ExecutionModes` must be equivalent to `[ExecutionMode.Interval]`, because this condition proves that
+            // Acceptance criteria: `validated.ExecutionModes` must be equivalent to `[ExecutionModeType.Interval]`, because this condition proves that
             // constrained fixture parses and validates as typed capabilities.
             Assert.That(
                 validated.ExecutionModes,
-                Is.EquivalentTo([ExecutionMode.Interval]));
+                Is.EquivalentTo([ExecutionModeType.Interval]));
         });
     }
 
@@ -104,14 +104,14 @@ internal sealed class ControllerTemplateValidatorTests
             // default is read only and exhaustive.
             Assert.That(
                 validated.PointDirections,
-                Is.EquivalentTo(Enum.GetValues<DataDirection>()));
+                Is.EquivalentTo(Enum.GetValues<DataDirectionType>()));
 
             // Expected outcome: `validated.PointFeatures` contains the required values.
-            // Acceptance criteria: `validated.PointFeatures` must be equivalent to `Enum.GetValues<ControllerPointFeature>(`, because this condition proves that
+            // Acceptance criteria: `validated.PointFeatures` must be equivalent to `Enum.GetValues<ControllerPointFeatureType>(`, because this condition proves that
             // default is read only and exhaustive.
             Assert.That(
                 validated.PointFeatures,
-                Is.EquivalentTo(Enum.GetValues<ControllerPointFeature>()));
+                Is.EquivalentTo(Enum.GetValues<ControllerPointFeatureType>()));
 
             // Expected outcome: `validated.ConnectorDataTypes` contains the required values.
             // Acceptance criteria: `validated.ConnectorDataTypes` must be equivalent to `Enum.GetValues<ConnectorDataType>(`, because this condition proves that
@@ -121,18 +121,18 @@ internal sealed class ControllerTemplateValidatorTests
                 Is.EquivalentTo(Enum.GetValues<ConnectorDataType>()));
 
             // Expected outcome: `validated.ExecutionModes` contains the required values.
-            // Acceptance criteria: `validated.ExecutionModes` must be equivalent to `Enum.GetValues<ExecutionMode>(`, because this condition proves that
+            // Acceptance criteria: `validated.ExecutionModes` must be equivalent to `Enum.GetValues<ExecutionModeType>(`, because this condition proves that
             // default is read only and exhaustive.
             Assert.That(
                 validated.ExecutionModes,
-                Is.EquivalentTo(Enum.GetValues<ExecutionMode>()));
+                Is.EquivalentTo(Enum.GetValues<ExecutionModeType>()));
 
             // Expected outcome: `validated.RuntimeFeatures` contains the required values.
-            // Acceptance criteria: `validated.RuntimeFeatures` must be equivalent to `Enum.GetValues<ControllerRuntimeFeature>(`, because this condition proves that
+            // Acceptance criteria: `validated.RuntimeFeatures` must be equivalent to `Enum.GetValues<ControllerRuntimeFeatureType>(`, because this condition proves that
             // default is read only and exhaustive.
             Assert.That(
                 validated.RuntimeFeatures,
-                Is.EquivalentTo(Enum.GetValues<ControllerRuntimeFeature>()));
+                Is.EquivalentTo(Enum.GetValues<ControllerRuntimeFeatureType>()));
 
             // Expected outcome: `validated.FlowFunctions` contains the required values.
             // Acceptance criteria: `validated.FlowFunctions` must be equivalent to `FlowNodeRegistry.Functions`, because this condition proves that
@@ -184,12 +184,12 @@ internal sealed class ControllerTemplateValidatorTests
         capabilities = capability switch
         {
             "pointTypes" => capabilities with { PointTypes = [(FlowPointValueType)byte.MaxValue] },
-            "pointDirections" => capabilities with { PointDirections = [(DataDirection)byte.MaxValue] },
-            "pointFeatures" => capabilities with { PointFeatures = [(ControllerPointFeature)byte.MaxValue] },
+            "pointDirections" => capabilities with { PointDirections = [(DataDirectionType)byte.MaxValue] },
+            "pointFeatures" => capabilities with { PointFeatures = [(ControllerPointFeatureType)byte.MaxValue] },
             "connectorDataTypes" => capabilities with { ConnectorDataTypes = [(ConnectorDataType)byte.MaxValue] },
-            "flowFunctions" => capabilities with { FlowFunctions = [(FlowFunctionKind)byte.MaxValue] },
-            "executionModes" => capabilities with { ExecutionModes = [(ExecutionMode)byte.MaxValue] },
-            "runtimeFeatures" => capabilities with { RuntimeFeatures = [(ControllerRuntimeFeature)byte.MaxValue] },
+            "flowFunctions" => capabilities with { FlowFunctions = [(FlowFunctionType)byte.MaxValue] },
+            "executionModes" => capabilities with { ExecutionModes = [(ExecutionModeType)byte.MaxValue] },
+            "runtimeFeatures" => capabilities with { RuntimeFeatures = [(ControllerRuntimeFeatureType)byte.MaxValue] },
             _ => throw new ArgumentOutOfRangeException(nameof(capability)),
         };
 
@@ -225,17 +225,17 @@ internal sealed class ControllerTemplateValidatorTests
         capabilities = capability switch
         {
             "pointTypes" => capabilities with { PointTypes = [FlowPointValueType.Digital, FlowPointValueType.Digital] },
-            "pointDirections" => capabilities with { PointDirections = [DataDirection.Input, DataDirection.Input] },
-            "pointFeatures" => capabilities with { PointFeatures = [ControllerPointFeature.Read, ControllerPointFeature.Read] },
+            "pointDirections" => capabilities with { PointDirections = [DataDirectionType.Input, DataDirectionType.Input] },
+            "pointFeatures" => capabilities with { PointFeatures = [ControllerPointFeatureType.Read, ControllerPointFeatureType.Read] },
             "connectorDataTypes" => capabilities with
             {
                 ConnectorDataTypes = [ConnectorDataType.Boolean, ConnectorDataType.Boolean],
             },
-            "flowFunctions" => capabilities with { FlowFunctions = [FlowFunctionKind.And, FlowFunctionKind.And] },
-            "executionModes" => capabilities with { ExecutionModes = [ExecutionMode.Interval, ExecutionMode.Interval] },
+            "flowFunctions" => capabilities with { FlowFunctions = [FlowFunctionType.And, FlowFunctionType.And] },
+            "executionModes" => capabilities with { ExecutionModes = [ExecutionModeType.Interval, ExecutionModeType.Interval] },
             "runtimeFeatures" => capabilities with
             {
-                RuntimeFeatures = [ControllerRuntimeFeature.BoundPoints, ControllerRuntimeFeature.BoundPoints],
+                RuntimeFeatures = [ControllerRuntimeFeatureType.BoundPoints, ControllerRuntimeFeatureType.BoundPoints],
             },
             _ => throw new ArgumentOutOfRangeException(nameof(capability)),
         };
@@ -356,7 +356,7 @@ internal sealed class ControllerTemplateValidatorTests
                 ControllerCapabilitiesSupport.SupportsPoint(
                     template,
                     FlowPointValueType.Digital,
-                    DataDirection.Input),
+                    DataDirectionType.Input),
                 Is.True);
 
             // Expected outcome: the asserted result rejects the prohibited condition.
@@ -366,7 +366,7 @@ internal sealed class ControllerTemplateValidatorTests
                 ControllerCapabilitiesSupport.SupportsPoint(
                     template,
                     FlowPointValueType.Analog,
-                    DataDirection.Input),
+                    DataDirectionType.Input),
                 Is.False);
 
             // Expected outcome: the asserted result confirms the required condition.
@@ -375,7 +375,7 @@ internal sealed class ControllerTemplateValidatorTests
             Assert.That(
                 ControllerCapabilitiesSupport.SupportsPointFeature(
                     template,
-                    ControllerPointFeature.Read),
+                    ControllerPointFeatureType.Read),
                 Is.True);
 
             // Expected outcome: the asserted result confirms the required condition.
@@ -391,7 +391,7 @@ internal sealed class ControllerTemplateValidatorTests
             // Acceptance criteria: `ControllerCapabilitiesSupport.SupportsFunction(template` must be true, because this condition proves that
             // capability predicates use typed validated sets.
             Assert.That(
-                ControllerCapabilitiesSupport.SupportsFunction(template, FlowFunctionKind.And),
+                ControllerCapabilitiesSupport.SupportsFunction(template, FlowFunctionType.And),
                 Is.True);
 
             // Expected outcome: the asserted result rejects the prohibited condition.
@@ -400,7 +400,7 @@ internal sealed class ControllerTemplateValidatorTests
             Assert.That(
                 ControllerCapabilitiesSupport.SupportsExecutionMode(
                     template,
-                    ExecutionMode.Event),
+                    ExecutionModeType.Event),
                 Is.False);
 
             // Expected outcome: the asserted result confirms the required condition.
@@ -409,7 +409,7 @@ internal sealed class ControllerTemplateValidatorTests
             Assert.That(
                 ControllerCapabilitiesSupport.SupportsRuntimeFeature(
                     template,
-                    ControllerRuntimeFeature.BoundPoints),
+                    ControllerRuntimeFeatureType.BoundPoints),
                 Is.True);
         });
     }
@@ -500,12 +500,12 @@ internal sealed class ControllerTemplateValidatorTests
     private static ControllerCapabilities Capabilities() => new()
     {
         PointTypes = [FlowPointValueType.Digital],
-        PointDirections = [DataDirection.Input, DataDirection.Output],
-        PointFeatures = [ControllerPointFeature.Read, ControllerPointFeature.Command],
+        PointDirections = [DataDirectionType.Input, DataDirectionType.Output],
+        PointFeatures = [ControllerPointFeatureType.Read, ControllerPointFeatureType.Command],
         ConnectorDataTypes = [ConnectorDataType.Boolean],
-        FlowFunctions = [FlowFunctionKind.And, FlowFunctionKind.ReadPoint, FlowFunctionKind.WritePoint],
-        ExecutionModes = [ExecutionMode.Interval],
-        RuntimeFeatures = [ControllerRuntimeFeature.BoundPoints]
+        FlowFunctions = [FlowFunctionType.And, FlowFunctionType.ReadPoint, FlowFunctionType.WritePoint],
+        ExecutionModes = [ExecutionModeType.Interval],
+        RuntimeFeatures = [ControllerRuntimeFeatureType.BoundPoints]
     };
 
     private static string Fixture(string file) =>

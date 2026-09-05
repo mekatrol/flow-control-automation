@@ -1,4 +1,4 @@
-using Server.Common.Services;
+using Server.Common.Contracts;
 using Server.Compiler.Services;
 using Server.Data.Extensions;
 using Server.Services.Implementation;

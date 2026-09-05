@@ -1,4 +1,4 @@
-using Server.Common.Contracts;
+using Server.Common.Models;
 using Server.Data.Context;
 using Server.Data.Entities;
 using System.Globalization;

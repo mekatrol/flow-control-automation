@@ -1,5 +1,6 @@
-﻿using Server.Common.Contracts;
 using Server.Common.Models;
+using Server.Common.Services;
+using Server.Common.Types;
 using Server.Compiler.Contracts;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -56,7 +57,7 @@ internal sealed class FlowRuntimeService(
         {
             cancellationToken.ThrowIfCancellationRequested();
             var writerKeys = flow.Nodes
-                .Where(node => node.Kind is FlowNodeKind.AnalogOutput or FlowNodeKind.DigitalOutput)
+                .Where(node => node.Kind is FlowNodeType.AnalogOutput or FlowNodeType.DigitalOutput)
                 .Select(node => node.Configuration.TryGetValue("pointId", out var value) ? value.GetString() : null)
                 .Where(key => key is not null && VirtualPointNodes.Declarations(flow.Nodes).Any(item => item.Key == key))
                 .Select(key => key!)

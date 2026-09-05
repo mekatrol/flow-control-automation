@@ -1,4 +1,5 @@
-using Server.Common.Contracts;
+using Server.Common.Models;
+using Server.Common.Types;
 using Server.Compiler.Contracts;
 using Server.Compiler.Services;
 using Server.Services;
@@ -86,12 +87,12 @@ public sealed class FlowDebugServiceTests
             new ExecutableFlowNode
             {
                 Id = "constant",
-                Kind = FlowNodeKind.DigitalConstant
+                Kind = FlowNodeType.DigitalConstant
             },
             new ExecutableFlowNode
             {
                 Id = "output",
-                Kind = FlowNodeKind.DigitalOutput,
+                Kind = FlowNodeType.DigitalOutput,
                 Configuration = new Dictionary<string, JsonElement>
                 {
                     ["pointId"] = JsonSerializer.SerializeToElement("output-01")

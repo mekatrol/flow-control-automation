@@ -1,6 +1,6 @@
 using Server.Api.Contracts;
-using Server.Common.Contracts;
 using Server.Common.Models;
+using Server.Common.Types;
 using Server.Services.Contracts;
 using System.Net;
 using System.Net.Http.Json;
@@ -295,12 +295,12 @@ internal sealed class ControllerTemplateEndpointTests
         Capabilities = new()
         {
             PointTypes = [FlowPointValueType.Digital],
-            PointDirections = [DataDirection.Input, DataDirection.Output],
-            PointFeatures = [ControllerPointFeature.Read, ControllerPointFeature.Command],
+            PointDirections = [DataDirectionType.Input, DataDirectionType.Output],
+            PointFeatures = [ControllerPointFeatureType.Read, ControllerPointFeatureType.Command],
             ConnectorDataTypes = [ConnectorDataType.Boolean],
-            FlowFunctions = [FlowFunctionKind.And, FlowFunctionKind.ReadPoint, FlowFunctionKind.WritePoint],
-            ExecutionModes = [ExecutionMode.Interval],
-            RuntimeFeatures = [ControllerRuntimeFeature.BoundPoints]
+            FlowFunctions = [FlowFunctionType.And, FlowFunctionType.ReadPoint, FlowFunctionType.WritePoint],
+            ExecutionModes = [ExecutionModeType.Interval],
+            RuntimeFeatures = [ControllerRuntimeFeatureType.BoundPoints]
         },
         Limits = new()
         {

@@ -1,4 +1,4 @@
-using Server.Common.Models;
+using Server.Common.Types;
 using System.Text.Json;
 
 namespace Server.Services.Implementation;
@@ -23,7 +23,7 @@ internal sealed class ServerFlowPointAdapter(
             {
                 result[index] = new FlowVmInput(
                     pointIds[index],
-                    snapshot.Value ?? FlowVmValue.FromBoolean(false, DataQuality.Unavailable));
+                    snapshot.Value ?? FlowVmValue.FromBoolean(false, DataQualityType.Unavailable));
                 continue;
             }
             var envelope = await reader.ReadAsync(pointIds[index], cancellationToken);
@@ -46,11 +46,11 @@ internal sealed class ServerFlowPointAdapter(
         }
     }
 
-    private static FlowVmValue ParseValue(string? json, DataQuality quality)
+    private static FlowVmValue ParseValue(string? json, DataQualityType quality)
     {
         if (json is null)
         {
-            return FlowVmValue.FromBoolean(false, DataQuality.Bad);
+            return FlowVmValue.FromBoolean(false, DataQualityType.Bad);
         }
 
         try
@@ -62,12 +62,12 @@ internal sealed class ServerFlowPointAdapter(
                 JsonValueKind.False => FlowVmValue.FromBoolean(false, quality),
                 JsonValueKind.Number when document.RootElement.TryGetDouble(out var number) && double.IsFinite(number) =>
                     FlowVmValue.FromNumber(number, quality),
-                _ => FlowVmValue.FromBoolean(false, DataQuality.Bad)
+                _ => FlowVmValue.FromBoolean(false, DataQualityType.Bad)
             };
         }
         catch (JsonException)
         {
-            return FlowVmValue.FromBoolean(false, DataQuality.Bad);
+            return FlowVmValue.FromBoolean(false, DataQualityType.Bad);
         }
     }
 }

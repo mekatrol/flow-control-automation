@@ -1,4 +1,7 @@
-﻿/*
+using Server.Common;
+using Server.Common.Models;
+using Server.Common.Types;
+/*
  * FlowDecompiler
  * ==========================================
  *
@@ -18,8 +21,6 @@
  * as untrusted bytes and checks bounds before converting fields into C# values.
  */
 
-using Server.Common.Contracts;
-using Server.Common.Models;
 using Server.Compiler.Contracts;
 using System.Buffers.Binary;
 using System.Diagnostics;
@@ -91,14 +92,14 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
 
         // Decode sections in canonical ID order. Section() copies exactly the
         // directory-declared payload range into a bounded SectionReader.
-        var constants = ReadConstants(Section(bytes, sections, FlowILSectionId.Constants));
-        var points = ReadPoints(Section(bytes, sections, FlowILSectionId.Points));
-        var slots = ReadSlots(Section(bytes, sections, FlowILSectionId.Slots));
-        var instructions = ReadInstructions(Section(bytes, sections, FlowILSectionId.Instructions));
-        ValidateCommitPlan(Section(bytes, sections, FlowILSectionId.CommitPlan));
-        var symbols = ReadSymbols(Section(bytes, sections, FlowILSectionId.Symbols), instructions.Count);
-        ValidateDebugMap(Section(bytes, sections, FlowILSectionId.DebugMap));
-        var dependencies = ReadDependencies(Section(bytes, sections, FlowILSectionId.Dependencies));
+        var constants = ReadConstants(Section(bytes, sections, FlowILSectionIdType.Constants));
+        var points = ReadPoints(Section(bytes, sections, FlowILSectionIdType.Points));
+        var slots = ReadSlots(Section(bytes, sections, FlowILSectionIdType.Slots));
+        var instructions = ReadInstructions(Section(bytes, sections, FlowILSectionIdType.Instructions));
+        ValidateCommitPlan(Section(bytes, sections, FlowILSectionIdType.CommitPlan));
+        var symbols = ReadSymbols(Section(bytes, sections, FlowILSectionIdType.Symbols), instructions.Count);
+        ValidateDebugMap(Section(bytes, sections, FlowILSectionIdType.DebugMap));
+        var dependencies = ReadDependencies(Section(bytes, sections, FlowILSectionIdType.Dependencies));
 
         var templates = dependencies.Where(item => item.Kind == FlowDependencyKind.ControllerTemplate).ToArray();
 
@@ -142,7 +143,7 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
 
             // Commit is an execution-boundary instruction, not a designer node.
             // It is therefore consumed/validated but never added to nodes[].
-            if (instruction.Opcode == FlowOpcode.Commit)
+            if (instruction.Opcode == FlowOpcodeType.Commit)
             {
                 ValidateFinalCommit(decoded.Instructions, symbol, instructionIndex);
                 continue;
@@ -151,7 +152,7 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
             // MemoryCommit is an additional VM instruction for an existing source
             // Memory node. It contributes the Memory input connection but does not
             // create a second designer node.
-            if (instruction.Opcode == FlowOpcode.MemoryCommit)
+            if (instruction.Opcode == FlowOpcodeType.MemoryCommit)
             {
                 RequireSymbol(symbol, instructionIndex, 1);
                 AddConnection(
@@ -164,8 +165,8 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
                 continue;
             }
 
-            if (instruction.Opcode == FlowOpcode.Calculator ||
-                instruction.Opcode == FlowOpcode.CalculatorInputs ||
+            if (instruction.Opcode == FlowOpcodeType.Calculator ||
+                instruction.Opcode == FlowOpcodeType.CalculatorInputs ||
                 (symbol.Discriminator == 1 && IsCalculatorArithmetic(instruction.Opcode)))
             {
                 ReconstructCalculator(
@@ -245,14 +246,14 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
                 Fail(FlowCompilationDiagnosticCode.UnrepresentableSymbol, $"/symbols/{finalIndex}");
             }
 
-            if (instruction.Opcode == FlowOpcode.Calculator)
+            if (instruction.Opcode == FlowOpcodeType.Calculator)
             {
                 RequireSymbol(symbol, finalIndex, 0);
                 final = instruction;
                 break;
             }
 
-            if (instruction.Opcode == FlowOpcode.CalculatorInputs)
+            if (instruction.Opcode == FlowOpcodeType.CalculatorInputs)
             {
                 RequireSymbol(symbol, finalIndex, 1);
                 RegisterVariable(instruction.Operand0, 'a');
@@ -268,7 +269,7 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
             }
 
             var left = Operand(instruction.Operand0, finalIndex);
-            var expression = instruction.Opcode == FlowOpcode.Negate
+            var expression = instruction.Opcode == FlowOpcodeType.Negate
                 ? $"(-{left})"
                 : $"({left} {OperatorText(instruction.Opcode)} {Operand(instruction.Operand1, finalIndex)})";
             expressions[instruction.ResultSlotIndex] = expression;
@@ -288,13 +289,13 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
         nodes.Add(new FlowNode
         {
             Id = nodeId,
-            Kind = FlowNodeKind.Calculator,
+            Kind = FlowNodeType.Calculator,
             Label = firstSymbol.Label,
             X = firstSymbol.X,
             Y = firstSymbol.Y,
             ZOrder = firstSymbol.ZOrder,
             GroupId = firstSymbol.GroupId.Length == 0 ? null : firstSymbol.GroupId,
-            Connectors = Connectors(FlowNodeKind.Calculator),
+            Connectors = Connectors(FlowNodeType.Calculator),
             Configuration = new Dictionary<string, JsonElement>(StringComparer.Ordinal)
             {
                 ["formula"] = JsonSerializer.SerializeToElement(formula)
@@ -347,17 +348,17 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
         }
     }
 
-    private static bool IsCalculatorArithmetic(FlowOpcode opcode) => opcode is
-        FlowOpcode.Add or FlowOpcode.Subtract or FlowOpcode.Multiply or FlowOpcode.Divide or
-        FlowOpcode.Power or FlowOpcode.Negate;
+    private static bool IsCalculatorArithmetic(FlowOpcodeType opcode) => opcode is
+        FlowOpcodeType.Add or FlowOpcodeType.Subtract or FlowOpcodeType.Multiply or FlowOpcodeType.Divide or
+        FlowOpcodeType.Power or FlowOpcodeType.Negate;
 
-    private static string OperatorText(FlowOpcode opcode) => opcode switch
+    private static string OperatorText(FlowOpcodeType opcode) => opcode switch
     {
-        FlowOpcode.Add => "+",
-        FlowOpcode.Subtract => "-",
-        FlowOpcode.Multiply => "*",
-        FlowOpcode.Divide => "/",
-        FlowOpcode.Power => "^",
+        FlowOpcodeType.Add => "+",
+        FlowOpcodeType.Subtract => "-",
+        FlowOpcodeType.Multiply => "*",
+        FlowOpcodeType.Divide => "/",
+        FlowOpcodeType.Power => "^",
         _ => throw new UnreachableException()
     };
 
@@ -377,7 +378,7 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
      * designer node kind and configuration. Configure* helpers recover configuration
      * values stored indirectly in constants, point bindings, or state-slot records.
      */
-    private static FlowNodeKind ConfigureNode(
+    private static FlowNodeType ConfigureNode(
         DecodedArtifact decoded,
         Instruction instruction,
         Dictionary<string, JsonElement> configuration,
@@ -385,91 +386,91 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
     {
         return instruction.Opcode switch
         {
-            FlowOpcode.PointInput => ConfigurePoint(
+            FlowOpcodeType.PointInput => ConfigurePoint(
                 configuration,
                 decoded.Points,
                 instruction.Auxiliary,
-                DataDirection.Input,
+                DataDirectionType.Input,
                 instructionIndex),
-            FlowOpcode.DigitalConstant => ConfigureBoolean(
-                FlowNodeKind.DigitalConstant,
+            FlowOpcodeType.DigitalConstant => ConfigureBoolean(
+                FlowNodeType.DigitalConstant,
                 configuration,
                 decoded.Constants,
                 instruction.Auxiliary,
                 instructionIndex),
-            FlowOpcode.Not => FlowNodeKind.Not,
-            FlowOpcode.And => FlowNodeKind.And,
-            FlowOpcode.Or => FlowNodeKind.Or,
-            FlowOpcode.Memory => ConfigureState(
+            FlowOpcodeType.Not => FlowNodeType.Not,
+            FlowOpcodeType.And => FlowNodeType.And,
+            FlowOpcodeType.Or => FlowNodeType.Or,
+            FlowOpcodeType.Memory => ConfigureState(
                 configuration,
                 decoded.Slots,
                 decoded.Constants,
                 instruction.Auxiliary,
                 instructionIndex),
-            FlowOpcode.PointOutput => ConfigurePoint(
+            FlowOpcodeType.PointOutput => ConfigurePoint(
                 configuration,
                 decoded.Points,
                 instruction.Auxiliary,
-                DataDirection.Output,
+                DataDirectionType.Output,
                 instructionIndex),
-            FlowOpcode.Nand => FlowNodeKind.Nand,
-            FlowOpcode.Nor => FlowNodeKind.Nor,
-            FlowOpcode.Xor => FlowNodeKind.Xor,
-            FlowOpcode.Xnor => FlowNodeKind.Xnor,
-            FlowOpcode.AnalogConstant => ConfigureNumber(
-                FlowNodeKind.AnalogConstant,
+            FlowOpcodeType.Nand => FlowNodeType.Nand,
+            FlowOpcodeType.Nor => FlowNodeType.Nor,
+            FlowOpcodeType.Xor => FlowNodeType.Xor,
+            FlowOpcodeType.Xnor => FlowNodeType.Xnor,
+            FlowOpcodeType.AnalogConstant => ConfigureNumber(
+                FlowNodeType.AnalogConstant,
                 configuration,
                 decoded.Constants,
                 instruction.Auxiliary,
                 instructionIndex),
-            FlowOpcode.Add => FlowNodeKind.Add,
-            FlowOpcode.Subtract => FlowNodeKind.Subtract,
-            FlowOpcode.Multiply => FlowNodeKind.Multiply,
-            FlowOpcode.Divide => FlowNodeKind.Divide,
-            FlowOpcode.Power => FlowNodeKind.Power,
-            FlowOpcode.Negate => FlowNodeKind.Negate,
-            FlowOpcode.Average => FlowNodeKind.Average,
-            FlowOpcode.Comparator => ConfigureComparator(
+            FlowOpcodeType.Add => FlowNodeType.Add,
+            FlowOpcodeType.Subtract => FlowNodeType.Subtract,
+            FlowOpcodeType.Multiply => FlowNodeType.Multiply,
+            FlowOpcodeType.Divide => FlowNodeType.Divide,
+            FlowOpcodeType.Power => FlowNodeType.Power,
+            FlowOpcodeType.Negate => FlowNodeType.Negate,
+            FlowOpcodeType.Average => FlowNodeType.Average,
+            FlowOpcodeType.Comparator => ConfigureComparator(
                 configuration,
                 instruction.Auxiliary,
                 instructionIndex),
-            FlowOpcode.LevelShifter => ConfigureLevelShifter(
+            FlowOpcodeType.LevelShifter => ConfigureLevelShifter(
                 configuration,
                 decoded.Constants,
                 instruction.Operand1,
                 instruction.Auxiliary,
                 instructionIndex),
-            FlowOpcode.QualityGood => FlowNodeKind.QualityGood,
-            FlowOpcode.OnDelay => ConfigureTimer(
+            FlowOpcodeType.QualityGood => FlowNodeType.QualityGood,
+            FlowOpcodeType.OnDelay => ConfigureTimer(
                 configuration,
                 decoded.Slots,
                 decoded.Constants,
                 instruction.Auxiliary,
                 instructionIndex,
-                FlowNodeKind.OnDelay),
-            FlowOpcode.Delay => ConfigureTimer(
+                FlowNodeType.OnDelay),
+            FlowOpcodeType.Delay => ConfigureTimer(
                 configuration,
                 decoded.Slots,
                 decoded.Constants,
                 instruction.Auxiliary,
                 instructionIndex,
-                FlowNodeKind.Delay),
-            FlowOpcode.Pulse => ConfigureTimer(
+                FlowNodeType.Delay),
+            FlowOpcodeType.Pulse => ConfigureTimer(
                 configuration,
                 decoded.Slots,
                 decoded.Constants,
                 instruction.Auxiliary,
                 instructionIndex,
-                FlowNodeKind.Pulse),
-            FlowOpcode.Clock => ConfigureClock(
+                FlowNodeType.Pulse),
+            FlowOpcodeType.Clock => ConfigureClock(
                 configuration,
                 decoded.Slots,
                 decoded.Constants,
                 instruction.Operand1,
                 instruction.Auxiliary,
                 instructionIndex),
-            FlowOpcode.RisingEdge => FlowNodeKind.RisingEdge,
-            FlowOpcode.Counter => ValidateCounterState(
+            FlowOpcodeType.RisingEdge => FlowNodeType.RisingEdge,
+            FlowOpcodeType.Counter => ValidateCounterState(
                 decoded.Slots,
                 decoded.Constants,
                 instruction.Auxiliary,
@@ -494,40 +495,40 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
 
         switch (instruction.Opcode)
         {
-            case FlowOpcode.Not:
+            case FlowOpcodeType.Not:
                 AddInputConnection("in", instruction.Operand0);
                 break;
 
-            case FlowOpcode.And:
-            case FlowOpcode.Or:
-            case FlowOpcode.Nand:
-            case FlowOpcode.Nor:
-            case FlowOpcode.Xor:
-            case FlowOpcode.Xnor:
-            case FlowOpcode.Add:
-            case FlowOpcode.Subtract:
-            case FlowOpcode.Multiply:
-            case FlowOpcode.Divide:
-            case FlowOpcode.Power:
-            case FlowOpcode.Average:
-            case FlowOpcode.Comparator:
+            case FlowOpcodeType.And:
+            case FlowOpcodeType.Or:
+            case FlowOpcodeType.Nand:
+            case FlowOpcodeType.Nor:
+            case FlowOpcodeType.Xor:
+            case FlowOpcodeType.Xnor:
+            case FlowOpcodeType.Add:
+            case FlowOpcodeType.Subtract:
+            case FlowOpcodeType.Multiply:
+            case FlowOpcodeType.Divide:
+            case FlowOpcodeType.Power:
+            case FlowOpcodeType.Average:
+            case FlowOpcodeType.Comparator:
                 AddInputConnection("a", instruction.Operand0);
                 AddInputConnection("b", instruction.Operand1);
                 break;
 
-            case FlowOpcode.Negate:
+            case FlowOpcodeType.Negate:
                 AddInputConnection("in", instruction.Operand0);
                 break;
 
-            case FlowOpcode.LevelShifter:
-            case FlowOpcode.QualityGood:
-            case FlowOpcode.OnDelay:
-            case FlowOpcode.RisingEdge:
-            case FlowOpcode.PointOutput:
+            case FlowOpcodeType.LevelShifter:
+            case FlowOpcodeType.QualityGood:
+            case FlowOpcodeType.OnDelay:
+            case FlowOpcodeType.RisingEdge:
+            case FlowOpcodeType.PointOutput:
                 AddInputConnection("in", instruction.Operand0);
                 break;
 
-            case FlowOpcode.Counter:
+            case FlowOpcodeType.Counter:
                 AddInputConnection("count", instruction.Operand0);
                 if (instruction.Operand1 != FlowILV1Format.Unused)
                 {
@@ -535,12 +536,12 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
                 }
                 break;
 
-            case FlowOpcode.Delay:
-            case FlowOpcode.Pulse:
+            case FlowOpcodeType.Delay:
+            case FlowOpcodeType.Pulse:
                 AddInputConnection("input", instruction.Operand0);
                 break;
 
-            case FlowOpcode.Clock:
+            case FlowOpcodeType.Clock:
                 AddInputConnection("enable", instruction.Operand0);
                 break;
         }
@@ -744,19 +745,19 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
             var id = reader.String8($"/points/{i}/id");
             var units = reader.String8AllowEmpty($"/points/{i}/units");
 
-            var direction = (DataDirection)prefix[0];
+            var direction = (DataDirectionType)prefix[0];
             var dataType = (DataType)prefix[1];
-            var qualityPolicy = (InputQualityPolicy)prefix[2];
-            var bindingKind = (PointBindingKind)prefix[3];
+            var qualityPolicy = (InputQualityPolicyType)prefix[2];
+            var bindingKind = (PointBindingType)prefix[3];
 
-            if (direction is not (DataDirection.Input or DataDirection.Output)
+            if (direction is not (DataDirectionType.Input or DataDirectionType.Output)
                 || dataType is not (DataType.Boolean or DataType.Number)
                 || qualityPolicy is not (
-                    InputQualityPolicy.RequireGood or
-                    InputQualityPolicy.Propagate)
+                    InputQualityPolicyType.RequireGood or
+                    InputQualityPolicyType.Propagate)
                 || bindingKind is not (
-                    PointBindingKind.ControllerPoint or
-                    PointBindingKind.VirtualPoint))
+                    PointBindingType.ControllerPoint or
+                    PointBindingType.VirtualPoint))
             {
                 Fail(FlowCompilationDiagnosticCode.InvalidPointEncoding, $"/points/{i}");
             }
@@ -786,7 +787,7 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
             var record = reader.Fixed(8, $"/slots/{i}");
 
             var slot = new SlotRecord(
-                (FlowSlotKind)record[0],
+                (FlowSlotType)record[0],
                 record[1],
                 U16(record, 6));
 
@@ -824,7 +825,7 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
             }
 
             values.Add(new Instruction(
-                (FlowOpcode)record[0],
+                (FlowOpcodeType)record[0],
                 U16(record, 2),
                 U16(record, 4),
                 U16(record, 6),
@@ -913,11 +914,11 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
      * instruction auxiliary field. The binding direction is checked because the same
      * PointInput/PointOutput encoding is used for both Boolean and numeric points.
      */
-    private static FlowNodeKind ConfigurePoint(
+    private static FlowNodeType ConfigurePoint(
         Dictionary<string, JsonElement> configuration,
         IReadOnlyList<PointRecord> points,
         ushort pointIndex,
-        DataDirection direction,
+        DataDirectionType direction,
         int instructionIndex)
     {
         if (pointIndex >= points.Count || points[pointIndex].Direction != direction)
@@ -929,13 +930,13 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
 
         return point.BindingKind switch
         {
-            PointBindingKind.ControllerPoint or PointBindingKind.VirtualPoint =>
+            PointBindingType.ControllerPoint or PointBindingType.VirtualPoint =>
                 ConfigureControllerPoint(),
 
             _ => throw Error(FlowCompilationDiagnosticCode.UnsupportedBindingKind, $"/instructions/{instructionIndex}/auxiliary")
         };
 
-        FlowNodeKind ConfigureControllerPoint()
+        FlowNodeType ConfigureControllerPoint()
         {
             configuration["pointId"] =
                 JsonSerializer.SerializeToElement(point.Id);
@@ -947,12 +948,12 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
             }
 
             return point.DataType == DataType.Number
-                ? direction == DataDirection.Input
-                    ? FlowNodeKind.AnalogInput
-                    : FlowNodeKind.AnalogOutput
-                : direction == DataDirection.Input
-                    ? FlowNodeKind.DigitalInput
-                    : FlowNodeKind.DigitalOutput;
+                ? direction == DataDirectionType.Input
+                    ? FlowNodeType.AnalogInput
+                    : FlowNodeType.AnalogOutput
+                : direction == DataDirectionType.Input
+                    ? FlowNodeType.DigitalInput
+                    : FlowNodeType.DigitalOutput;
         }
     }
 
@@ -960,8 +961,8 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
      * Recover a Boolean constant node configuration from the constant-pool index
      * stored in the instruction auxiliary field.
      */
-    private static FlowNodeKind ConfigureBoolean(
-        FlowNodeKind kind,
+    private static FlowNodeType ConfigureBoolean(
+        FlowNodeType kind,
         Dictionary<string, JsonElement> configuration,
         IReadOnlyList<ConstantRecord> constants,
         ushort constantIndex,
@@ -982,7 +983,7 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
      * the Memory instruction. The state slot then points to the analog constant that
      * was used to initialise that state when the artifact was compiled.
      */
-    private static FlowNodeKind ConfigureState(
+    private static FlowNodeType ConfigureState(
         Dictionary<string, JsonElement> configuration,
         IReadOnlyDictionary<ushort, SlotRecord> slots,
         IReadOnlyList<ConstantRecord> constants,
@@ -990,7 +991,7 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
         int instructionIndex)
     {
         if (!slots.TryGetValue(stateSlotIndex, out var slot)
-            || slot.Kind != FlowSlotKind.MemoryState
+            || slot.Kind != FlowSlotType.MemoryState
             || slot.InitialConstant >= constants.Count
             || constants[slot.InitialConstant].DataType != DataType.Number)
         {
@@ -999,31 +1000,31 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
 
         configuration["value"] = JsonSerializer.SerializeToElement(constants[slot.InitialConstant].Number);
 
-        return FlowNodeKind.Memory;
+        return FlowNodeType.Memory;
     }
 
-    private static FlowNodeKind ValidateCounterState(
+    private static FlowNodeType ValidateCounterState(
         IReadOnlyDictionary<ushort, SlotRecord> slots,
         IReadOnlyList<ConstantRecord> constants,
         ushort stateSlotIndex,
         int instructionIndex)
     {
         if (!slots.TryGetValue(stateSlotIndex, out var slot)
-            || slot.Kind != FlowSlotKind.CounterState
+            || slot.Kind != FlowSlotType.CounterState
             || slot.InitialConstant >= constants.Count
             || constants[slot.InitialConstant].DataType != DataType.Number)
         {
             throw Error(FlowCompilationDiagnosticCode.InvalidStateSlotOperand, $"/instructions/{instructionIndex}/auxiliary");
         }
 
-        return FlowNodeKind.Counter;
+        return FlowNodeType.Counter;
     }
 
     /*
      * Recover a analog constant node configuration from its constant-pool index.
      */
-    private static FlowNodeKind ConfigureNumber(
-        FlowNodeKind kind,
+    private static FlowNodeType ConfigureNumber(
+        FlowNodeType kind,
         Dictionary<string, JsonElement> configuration,
         IReadOnlyList<ConstantRecord> constants,
         ushort constantIndex,
@@ -1043,7 +1044,7 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
      * Convert the compact comparator code stored in the instruction back to the
      * designer's textual operator value.
      */
-    private static FlowNodeKind ConfigureComparator(
+    private static FlowNodeType ConfigureComparator(
         Dictionary<string, JsonElement> configuration,
         ushort comparatorCode,
         int instructionIndex)
@@ -1066,7 +1067,7 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
 
         configuration["operator"] = JsonSerializer.SerializeToElement(comparator);
 
-        return FlowNodeKind.Comparator;
+        return FlowNodeType.Comparator;
     }
 
     /*
@@ -1074,7 +1075,7 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
      * pool. Both references must resolve to analog constants before reconstructing
      * the designer configuration.
      */
-    private static FlowNodeKind ConfigureLevelShifter(
+    private static FlowNodeType ConfigureLevelShifter(
         Dictionary<string, JsonElement> configuration,
         IReadOnlyList<ConstantRecord> constants,
         ushort gainConstantIndex,
@@ -1092,23 +1093,23 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
         configuration["gain"] = JsonSerializer.SerializeToElement(constants[gainConstantIndex].Number);
         configuration["offset"] = JsonSerializer.SerializeToElement(constants[offsetConstantIndex].Number);
 
-        return FlowNodeKind.LevelShifter;
+        return FlowNodeType.LevelShifter;
     }
 
     /*
      * Recover timer configuration from the TimerState slot referenced by the VM
      * instruction. The slot's initial constant contains the configured duration.
      */
-    private static FlowNodeKind ConfigureTimer(
+    private static FlowNodeType ConfigureTimer(
         Dictionary<string, JsonElement> configuration,
         IReadOnlyDictionary<ushort, SlotRecord> slots,
         IReadOnlyList<ConstantRecord> constants,
         ushort stateSlotIndex,
         int instructionIndex,
-        FlowNodeKind kind)
+        FlowNodeType kind)
     {
         if (!slots.TryGetValue(stateSlotIndex, out var slot)
-            || slot.Kind != FlowSlotKind.TimerState
+            || slot.Kind != FlowSlotType.TimerState
             || slot.InitialConstant >= constants.Count
             || constants[slot.InitialConstant].DataType != DataType.Number)
         {
@@ -1125,7 +1126,7 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
         return kind;
     }
 
-    private static FlowNodeKind ConfigureClock(
+    private static FlowNodeType ConfigureClock(
         Dictionary<string, JsonElement> configuration,
         IReadOnlyDictionary<ushort, SlotRecord> slots,
         IReadOnlyList<ConstantRecord> constants,
@@ -1134,7 +1135,7 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
         int instructionIndex)
     {
         if (!slots.TryGetValue(stateSlotIndex, out var slot)
-            || slot.Kind != FlowSlotKind.TimerState
+            || slot.Kind != FlowSlotType.TimerState
             || slot.InitialConstant >= constants.Count
             || constants[slot.InitialConstant].DataType != DataType.Number
             || dutyCycleConstantIndex >= constants.Count
@@ -1146,7 +1147,7 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
 
         configuration["frequencyHz"] = JsonSerializer.SerializeToElement(1_000D / constants[slot!.InitialConstant].Number);
         configuration["dutyCycle"] = JsonSerializer.SerializeToElement(constants[dutyCycleConstantIndex].Number);
-        return FlowNodeKind.Clock;
+        return FlowNodeType.Clock;
     }
 
     /*
@@ -1178,54 +1179,54 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
      * node kind. These are authoring-model ports, not the VM slot references used
      * while decoding section 4.
      */
-    private static IReadOnlyList<FlowConnector> Connectors(FlowNodeKind kind)
+    private static IReadOnlyList<FlowConnector> Connectors(FlowNodeType kind)
     {
         return kind switch
         {
-            FlowNodeKind.DigitalInput or FlowNodeKind.DigitalConstant => [BooleanOutput("value", "Value")],
-            FlowNodeKind.AnalogInput => [NumberOutput("value", "Value")],
-            FlowNodeKind.DigitalOutput => [BooleanInput("in", "Input")],
-            FlowNodeKind.AnalogOutput => [NumberInput("in", "Input")],
-            FlowNodeKind.Not => [BooleanInput("in", "Input"), BooleanOutput("value", "Value")],
-            FlowNodeKind.And or FlowNodeKind.Or or FlowNodeKind.Nand or FlowNodeKind.Nor or FlowNodeKind.Xor or FlowNodeKind.Xnor =>
+            FlowNodeType.DigitalInput or FlowNodeType.DigitalConstant => [BooleanOutput("value", "Value")],
+            FlowNodeType.AnalogInput => [NumberOutput("value", "Value")],
+            FlowNodeType.DigitalOutput => [BooleanInput("in", "Input")],
+            FlowNodeType.AnalogOutput => [NumberInput("in", "Input")],
+            FlowNodeType.Not => [BooleanInput("in", "Input"), BooleanOutput("value", "Value")],
+            FlowNodeType.And or FlowNodeType.Or or FlowNodeType.Nand or FlowNodeType.Nor or FlowNodeType.Xor or FlowNodeType.Xnor =>
                 [BooleanInput("a", "A"), BooleanInput("b", "B"), BooleanOutput("value", "Value")],
-            FlowNodeKind.Memory => [NumberInput("in", "Input"), NumberOutput("value", "Previous value")],
-            FlowNodeKind.AnalogConstant => [NumberOutput("value", "Value")],
-            FlowNodeKind.Add => [NumberInput("a", "A"), NumberInput("b", "B"), NumberOutput("value", "Value")],
-            FlowNodeKind.Subtract or FlowNodeKind.Multiply or FlowNodeKind.Divide or FlowNodeKind.Power =>
+            FlowNodeType.Memory => [NumberInput("in", "Input"), NumberOutput("value", "Previous value")],
+            FlowNodeType.AnalogConstant => [NumberOutput("value", "Value")],
+            FlowNodeType.Add => [NumberInput("a", "A"), NumberInput("b", "B"), NumberOutput("value", "Value")],
+            FlowNodeType.Subtract or FlowNodeType.Multiply or FlowNodeType.Divide or FlowNodeType.Power =>
                 [NumberInput("a", "A"), NumberInput("b", "B"), NumberOutput("value", "Value")],
-            FlowNodeKind.Negate => [NumberInput("in", "Input"), NumberOutput("value", "Value")],
-            FlowNodeKind.Calculator =>
+            FlowNodeType.Negate => [NumberInput("in", "Input"), NumberOutput("value", "Value")],
+            FlowNodeType.Calculator =>
                 [NumberInput("a", "A"), NumberInput("b", "B"), NumberInput("c", "C"), NumberOutput("output", "Output")],
-            FlowNodeKind.Comparator => [NumberInput("a", "A"), NumberInput("b", "B"), BooleanOutput("value", "Value")],
-            FlowNodeKind.LevelShifter => [NumberInput("in", "Input"), NumberOutput("value", "Value")],
-            FlowNodeKind.QualityGood or FlowNodeKind.OnDelay or FlowNodeKind.RisingEdge =>
+            FlowNodeType.Comparator => [NumberInput("a", "A"), NumberInput("b", "B"), BooleanOutput("value", "Value")],
+            FlowNodeType.LevelShifter => [NumberInput("in", "Input"), NumberOutput("value", "Value")],
+            FlowNodeType.QualityGood or FlowNodeType.OnDelay or FlowNodeType.RisingEdge =>
                 [BooleanInput("in", "Input"), BooleanOutput("value", "Value")],
-            FlowNodeKind.Counter =>
+            FlowNodeType.Counter =>
                 [BooleanInput("count", "Count"), BooleanInput("reset", "Reset"), NumberOutput("value", "Count")],
-            FlowNodeKind.Clock => [BooleanInput("enable", "Enable"), BooleanOutput("output", "Clock")],
+            FlowNodeType.Clock => [BooleanInput("enable", "Enable"), BooleanOutput("output", "Clock")],
             _ => []
         };
     }
 
     private static FlowConnector BooleanInput(string id, string label)
     {
-        return new(id, label, DataDirection.Input, DataType.Boolean, "left");
+        return new(id, label, DataDirectionType.Input, DataType.Boolean, "left");
     }
 
     private static FlowConnector BooleanOutput(string id, string label)
     {
-        return new(id, label, DataDirection.Output, DataType.Boolean, "right");
+        return new(id, label, DataDirectionType.Output, DataType.Boolean, "right");
     }
 
     private static FlowConnector NumberInput(string id, string label)
     {
-        return new(id, label, DataDirection.Input, DataType.Number, "left");
+        return new(id, label, DataDirectionType.Input, DataType.Number, "left");
     }
 
     private static FlowConnector NumberOutput(string id, string label)
     {
-        return new(id, label, DataDirection.Output, DataType.Number, "right");
+        return new(id, label, DataDirectionType.Output, DataType.Number, "right");
     }
 
     private static string Label(string value)
@@ -1269,7 +1270,7 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
      * Copying the payload gives SectionReader an isolated byte range whose End()
      * check can reliably reject trailing bytes.
      */
-    private static SectionReader Section(ReadOnlySpan<byte> artifact, SectionInfo[] sections, FlowILSectionId id)
+    private static SectionReader Section(ReadOnlySpan<byte> artifact, SectionInfo[] sections, FlowILSectionIdType id)
     {
         var section = sections[(int)id - 1];
 
@@ -1418,10 +1419,10 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
 
     /* Decoded physical or virtual point binding from section 2. */
     private sealed record PointRecord(
-        DataDirection Direction,
+        DataDirectionType Direction,
         DataType DataType,
-        InputQualityPolicy QualityPolicy,
-        PointBindingKind BindingKind,
+        InputQualityPolicyType QualityPolicy,
+        PointBindingType BindingKind,
         string Id,
         string Units);
 
@@ -1429,7 +1430,7 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
     private sealed record ConstantRecord(DataType DataType, double Number);
 
     /* Decoded state/transient slot layout record from section 3. */
-    private sealed record SlotRecord(FlowSlotKind Kind, byte Type, ushort InitialConstant);
+    private sealed record SlotRecord(FlowSlotType Kind, byte Type, ushort InitialConstant);
 
     /* Authoring identity/layout metadata associated with one instruction. */
     private sealed record SymbolRecord(byte Discriminator, string NodeId, string Label, double X, double Y, double ZOrder, string GroupId);

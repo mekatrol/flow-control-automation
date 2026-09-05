@@ -1,5 +1,6 @@
-﻿using Server.Common.Contracts;
 using Server.Common.Models;
+using Server.Common.Services;
+using Server.Common.Types;
 using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -8,18 +9,18 @@ namespace Server.Compiler.Services.Implementation;
 
 internal partial class FlowValidator : IFlowValidator
 {
-    private static readonly HashSet<FlowNodeKind> ValidKinds =
+    private static readonly HashSet<FlowNodeType> ValidKinds =
     [
-        FlowNodeKind.A2D, FlowNodeKind.Add, FlowNodeKind.Subtract, FlowNodeKind.Multiply, FlowNodeKind.Divide, FlowNodeKind.Power, FlowNodeKind.Negate, FlowNodeKind.AnalogInput, FlowNodeKind.AnalogOutput, FlowNodeKind.And, FlowNodeKind.Average, FlowNodeKind.Calculator, FlowNodeKind.Calendar, FlowNodeKind.Clamp, FlowNodeKind.Comparator,
-        FlowNodeKind.Delay, FlowNodeKind.DigitalConstant, FlowNodeKind.DigitalInput, FlowNodeKind.DigitalOutput, FlowNodeKind.DigitalSwitch,
-        FlowNodeKind.LevelShifter, FlowNodeKind.Line, FlowNodeKind.Max, FlowNodeKind.Memory, FlowNodeKind.Min, FlowNodeKind.Nand, FlowNodeKind.Nor, FlowNodeKind.Not, FlowNodeKind.AnalogConstant, FlowNodeKind.Or, FlowNodeKind.Override,
-        FlowNodeKind.Pulse, FlowNodeKind.Schedule, FlowNodeKind.AnalogSwitch, FlowNodeKind.Sequence, FlowNodeKind.Split,
-        FlowNodeKind.D2A, FlowNodeKind.OnDelay, FlowNodeKind.QualityGood, FlowNodeKind.RisingEdge, FlowNodeKind.Timer, FlowNodeKind.Xnor, FlowNodeKind.Xor, FlowNodeKind.Counter, FlowNodeKind.Clock, FlowNodeKind.AnalogVirtual, FlowNodeKind.DigitalVirtual,
+        FlowNodeType.A2D, FlowNodeType.Add, FlowNodeType.Subtract, FlowNodeType.Multiply, FlowNodeType.Divide, FlowNodeType.Power, FlowNodeType.Negate, FlowNodeType.AnalogInput, FlowNodeType.AnalogOutput, FlowNodeType.And, FlowNodeType.Average, FlowNodeType.Calculator, FlowNodeType.Calendar, FlowNodeType.Clamp, FlowNodeType.Comparator,
+        FlowNodeType.Delay, FlowNodeType.DigitalConstant, FlowNodeType.DigitalInput, FlowNodeType.DigitalOutput, FlowNodeType.DigitalSwitch,
+        FlowNodeType.LevelShifter, FlowNodeType.Line, FlowNodeType.Max, FlowNodeType.Memory, FlowNodeType.Min, FlowNodeType.Nand, FlowNodeType.Nor, FlowNodeType.Not, FlowNodeType.AnalogConstant, FlowNodeType.Or, FlowNodeType.Override,
+        FlowNodeType.Pulse, FlowNodeType.Schedule, FlowNodeType.AnalogSwitch, FlowNodeType.Sequence, FlowNodeType.Split,
+        FlowNodeType.D2A, FlowNodeType.OnDelay, FlowNodeType.QualityGood, FlowNodeType.RisingEdge, FlowNodeType.Timer, FlowNodeType.Xnor, FlowNodeType.Xor, FlowNodeType.Counter, FlowNodeType.Clock, FlowNodeType.AnalogVirtual, FlowNodeType.DigitalVirtual,
     ];
 
     private static readonly HashSet<string> ValidStatuses = ["draft", "deployed"];
 
-    private static readonly HashSet<DataDirection> ValidDirections = [DataDirection.Input, DataDirection.Output];
+    private static readonly HashSet<DataDirectionType> ValidDirections = [DataDirectionType.Input, DataDirectionType.Output];
 
     private static readonly HashSet<DataType> ValidDataTypes =
         [DataType.Any, DataType.Boolean, DataType.Event, DataType.Number, DataType.String];
@@ -138,7 +139,7 @@ internal partial class FlowValidator : IFlowValidator
                 throw new FlowValidationException($"connections[{index}]: endpoint does not exist");
             }
 
-            if (start.Direction != DataDirection.Output || end.Direction != DataDirection.Input)
+            if (start.Direction != DataDirectionType.Output || end.Direction != DataDirectionType.Input)
             {
                 throw new FlowValidationException(
                     $"connections[{index}]: connection must run from output to input");

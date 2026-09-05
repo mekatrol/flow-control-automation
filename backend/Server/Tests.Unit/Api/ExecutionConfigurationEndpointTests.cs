@@ -1,5 +1,5 @@
-﻿using Server.Common.Contracts;
 using Server.Common.Models;
+using Server.Common.Types;
 using Server.Services.Contracts;
 using System.Net;
 using System.Net.Http.Json;
@@ -35,9 +35,9 @@ internal sealed class ExecutionConfigurationEndpointTests
                 new FlowNode
                 {
                     Id = "shared-temperature",
-                    Kind = FlowNodeKind.AnalogVirtual,
+                    Kind = FlowNodeType.AnalogVirtual,
                     Label = "Shared temperature",
-                    Connectors = [new FlowConnector("value", "Value", DataDirection.Output, DataType.Number, "right")],
+                    Connectors = [new FlowConnector("value", "Value", DataDirectionType.Output, DataType.Number, "right")],
                     Configuration = new Dictionary<string, System.Text.Json.JsonElement>
                     {
                         ["pointId"] = System.Text.Json.JsonSerializer.SerializeToElement("shared-temperature"),
@@ -79,9 +79,9 @@ internal sealed class ExecutionConfigurationEndpointTests
                 new FlowNode
                 {
                     Id = "constant",
-                    Kind = FlowNodeKind.AnalogConstant,
+                    Kind = FlowNodeType.AnalogConstant,
                     Label = "Setpoint",
-                    Connectors = [new FlowConnector("value", "Value", DataDirection.Output, DataType.Number, "right")],
+                    Connectors = [new FlowConnector("value", "Value", DataDirectionType.Output, DataType.Number, "right")],
                     Configuration = new Dictionary<string, System.Text.Json.JsonElement>
                     {
                         ["value"] = System.Text.Json.JsonSerializer.SerializeToElement(21.5)
@@ -90,9 +90,9 @@ internal sealed class ExecutionConfigurationEndpointTests
                 new FlowNode
                 {
                     Id = "output",
-                    Kind = FlowNodeKind.AnalogOutput,
+                    Kind = FlowNodeType.AnalogOutput,
                     Label = "Temperature setpoint",
-                    Connectors = [new FlowConnector("in", "Input", DataDirection.Input, DataType.Number, "left")],
+                    Connectors = [new FlowConnector("in", "Input", DataDirectionType.Input, DataType.Number, "left")],
                     Configuration = new Dictionary<string, System.Text.Json.JsonElement>
                     {
                         ["pointId"] = System.Text.Json.JsonSerializer.SerializeToElement("temp-setpoint")
@@ -101,9 +101,9 @@ internal sealed class ExecutionConfigurationEndpointTests
                 new FlowNode
                 {
                     Id = "virtual",
-                    Kind = FlowNodeKind.AnalogVirtual,
+                    Kind = FlowNodeType.AnalogVirtual,
                     Label = "Virtual temperature",
-                    Connectors = [new FlowConnector("value", "Value", DataDirection.Output, DataType.Number, "right")],
+                    Connectors = [new FlowConnector("value", "Value", DataDirectionType.Output, DataType.Number, "right")],
                     Configuration = new Dictionary<string, System.Text.Json.JsonElement>
                     {
                         ["pointId"] = System.Text.Json.JsonSerializer.SerializeToElement("temp-setpoint"),
@@ -152,7 +152,7 @@ internal sealed class ExecutionConfigurationEndpointTests
             {
                 Id = instanceId,
                 Name = instanceId,
-                Kind = ExecutionInstanceKind.Controller,
+                Kind = ExecutionInstanceType.Controller,
                 ControllerTemplateId = "default",
                 ControllerTemplateRevision = 1
             }, FlowControlJson.Options);
@@ -163,7 +163,7 @@ internal sealed class ExecutionConfigurationEndpointTests
                 ExecutionContextId = "climate",
                 ExecutionContextRevision = createdContext.Revision,
                 ExecutionInstanceId = instanceId,
-                Status = ExecutionContextDeploymentStatus.Active
+                Status = ExecutionContextDeploymentStatusType.Active
             }, FlowControlJson.Options);
             Assert.That(deploymentResponse.StatusCode, Is.EqualTo(HttpStatusCode.Created), await deploymentResponse.Content.ReadAsStringAsync());
             deployments.Add((await deploymentResponse.Content.ReadFromJsonAsync<ExecutionContextDeployment>(FlowControlJson.Options))!);

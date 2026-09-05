@@ -1,4 +1,4 @@
-﻿using Server.Common.Models;
+using Server.Common.Types;
 using Server.Services;
 using Server.Services.Contracts;
 using Server.Services.Implementation;
@@ -78,7 +78,7 @@ public sealed class ManagedFlowVirtualMachineTests
         using var machine = Machine("valid-two-button-and");
 
         FlowVmScanResult action() => machine.Scan(
-            [new("input-01", FlowVmValue.FromBoolean(true, DataQuality.Bad)), new("input-08", true)],
+            [new("input-01", FlowVmValue.FromBoolean(true, DataQualityType.Bad)), new("input-08", true)],
             1);
 
         Assert.That((Func<FlowVmScanResult>)action, Throws.TypeOf<FlowVmException>()

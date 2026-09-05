@@ -1,5 +1,5 @@
-using Server.Common.Contracts;
 using Server.Common.Models;
+using Server.Common.Types;
 using Server.Compiler.Contracts;
 using Server.Compiler.Services;
 using Server.Services;
@@ -82,8 +82,8 @@ public sealed class FlowEmulatorServiceTests
         Assert.Multiple(() =>
         {
             Assert.That(snapshot.OutputHistory[^1].ProposedValue.Boolean, Is.True);
-            Assert.That(snapshot.OutputHistory[^1].EffectiveValue.Quality, Is.EqualTo(DataQuality.Bad));
-            Assert.That(snapshot.OutputHistory[^1].Quality, Is.EqualTo(DataQuality.Bad));
+            Assert.That(snapshot.OutputHistory[^1].EffectiveValue.Quality, Is.EqualTo(DataQualityType.Bad));
+            Assert.That(snapshot.OutputHistory[^1].Quality, Is.EqualTo(DataQualityType.Bad));
         });
     }
 
@@ -95,7 +95,7 @@ public sealed class FlowEmulatorServiceTests
         {
             Nodes =
             [
-                Source().Nodes[0] with { Kind = FlowNodeKind.AnalogInput }
+                Source().Nodes[0] with { Kind = FlowNodeType.AnalogInput }
             ]
         };
         var created = await service.CreateAsync(source, default);
@@ -121,7 +121,7 @@ public sealed class FlowEmulatorServiceTests
             new ExecutableFlowNode
             {
                 Id = "input",
-                Kind = FlowNodeKind.DigitalInput,
+                Kind = FlowNodeType.DigitalInput,
                 Configuration = new Dictionary<string, JsonElement>
                 {
                     ["pointId"] = JsonSerializer.SerializeToElement("input-01")

@@ -1,5 +1,5 @@
-using Server.Common.Contracts;
 using Server.Common.Models;
+using Server.Common.Types;
 using Server.Compiler.Contracts;
 using Server.Compiler.Services;
 using System.Collections.Concurrent;
@@ -315,7 +315,7 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
                 {
                     _inputs[input.PointId] = new FlowVmInput(
                         input.PointId,
-                        input.TypedValue with { Quality = DataQuality.Unavailable });
+                        input.TypedValue with { Quality = DataQualityType.Unavailable });
                 }
             }
             var scan = _machine.Scan([.. _inputs.Values.OrderBy(input => input.PointId, StringComparer.Ordinal)], _clock);
@@ -328,8 +328,8 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
             foreach (var command in scan.Commands)
             {
                 var failed = _fault == "output_failure";
-                var quality = failed ? DataQuality.Bad : command.TypedValue.Quality;
-                var effective = failed ? command.TypedValue with { Quality = DataQuality.Bad } : command.TypedValue;
+                var quality = failed ? DataQualityType.Bad : command.TypedValue.Quality;
+                var effective = failed ? command.TypedValue with { Quality = DataQualityType.Bad } : command.TypedValue;
 
                 var previous = _outputs.LastOrDefault(output => output.OutputId == command.PointId);
 
@@ -388,10 +388,10 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
                 }
 
                 if (change.TypedValue.Quality is not (
-                        DataQuality.Good or
-                        DataQuality.Bad or
-                        DataQuality.Uncertain or
-                        DataQuality.Unavailable)
+                        DataQualityType.Good or
+                        DataQualityType.Bad or
+                        DataQualityType.Uncertain or
+                        DataQualityType.Unavailable)
                     )
                 {
                     throw new ArgumentException($"Input '{change.InputId}' has unsupported quality.", nameof(changes));
@@ -422,7 +422,7 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
         };
 
         private static IEnumerable<FlowVmInput> InitialInputs(ExecutableFlowSource source) => source.Nodes
-            .Where(node => node.Kind is FlowNodeKind.DigitalInput or FlowNodeKind.AnalogInput
+            .Where(node => node.Kind is FlowNodeType.DigitalInput or FlowNodeType.AnalogInput
                 && node.Configuration.TryGetValue("pointId", out _))
             .Select(node => new
             {
@@ -433,7 +433,7 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
             .DistinctBy(static item => item.PointId, StringComparer.Ordinal)
             .Select(static item => new FlowVmInput(
                 item.PointId!,
-                item.Kind == FlowNodeKind.AnalogInput
+                item.Kind == FlowNodeType.AnalogInput
                     ? FlowVmValue.FromNumber(0)
                     : FlowVmValue.FromBoolean(false)));
 

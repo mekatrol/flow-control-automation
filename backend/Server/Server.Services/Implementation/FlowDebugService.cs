@@ -1,5 +1,5 @@
-using Server.Common.Contracts;
 using Server.Common.Models;
+using Server.Common.Types;
 using Server.Compiler.Contracts;
 using Server.Compiler.Services;
 using System.Globalization;
@@ -401,7 +401,7 @@ public sealed class FlowDebugService(
 
     private static IReadOnlyList<string> GetAffectedOutputPoints(ExecutableFlowSource source) =>
         [.. source.Nodes
-            .Where(node => node.Kind == FlowNodeKind.DigitalOutput)
+            .Where(node => node.Kind == FlowNodeType.DigitalOutput)
             .OrderBy(node => node.Id, StringComparer.Ordinal)
             .Select(node => node.Configuration.TryGetValue("pointId", out var pointId) ? pointId.GetString() : null)
             .Where(pointId => !string.IsNullOrEmpty(pointId))
@@ -522,7 +522,7 @@ public sealed class FlowDebugService(
         else
         {
             var ids = local.Source.Nodes
-                .Where(node => node.Kind == FlowNodeKind.DigitalInput)
+                .Where(node => node.Kind == FlowNodeType.DigitalInput)
                 .Select(node => node.Configuration["pointId"].GetString()!)
                 .Distinct(StringComparer.Ordinal)
                 .Order(StringComparer.Ordinal)
@@ -635,7 +635,7 @@ public sealed class FlowDebugService(
             .Select(pair => new DebugNodeSnapshot(
                 pair.Key,
                 "evaluated",
-                DataQuality.Good,
+                DataQualityType.Good,
                 DebugValue(scan.Slots[pair.Value])))],
         ProposedOutputs = [.. scan.Commands.Select(command => new DebugProposedOutput(
             command.PointId,

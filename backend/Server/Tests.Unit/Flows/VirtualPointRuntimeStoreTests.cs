@@ -1,5 +1,5 @@
-using Server.Common.Contracts;
 using Server.Common.Models;
+using Server.Common.Types;
 using Server.Services;
 using Server.Services.Contracts;
 using Server.Services.Implementation;
@@ -69,7 +69,7 @@ public sealed class VirtualPointRuntimeStoreTests
         {
             Assert.That(store.TrySnapshot("server", contract.Key, out var initial), Is.True);
             Assert.That(initial.Value?.Number, Is.EqualTo(18.0));
-            Assert.That(initial.Quality, Is.EqualTo(DataQuality.Good));
+            Assert.That(initial.Quality, Is.EqualTo(DataQualityType.Good));
         }
 
         store.ReleaseFlow("server", "first");
@@ -80,7 +80,7 @@ public sealed class VirtualPointRuntimeStoreTests
     public async Task RestoresRetainedValuesAcrossRuntimeStoreRecreation()
     {
         var persistence = new RetainedStore();
-        var contract = Analog("retained") with { Persistence = VirtualPointPersistence.Retained };
+        var contract = Analog("retained") with { Persistence = VirtualPointPersistenceType.Retained };
         var first = new VirtualPointRuntimeStore(TimeProvider.System, persistence);
         await first.ActivateFlowAsync("east", "writer", [contract], new HashSet<string> { contract.Key }, default);
         await first.CommitAsync("east", "writer", [new FlowVmCommand(contract.Key, FlowVmValue.FromNumber(19.75))], default);
@@ -92,7 +92,7 @@ public sealed class VirtualPointRuntimeStoreTests
         {
             Assert.That(restored.TrySnapshot("east", contract.Key, out var value), Is.True);
             Assert.That(value.Value?.Number, Is.EqualTo(19.75));
-            Assert.That(value.Quality, Is.EqualTo(DataQuality.Good));
+            Assert.That(value.Quality, Is.EqualTo(DataQualityType.Good));
             Assert.That(value.Version, Is.EqualTo(1));
         });
     }
@@ -101,18 +101,18 @@ public sealed class VirtualPointRuntimeStoreTests
     public async Task ClearsAndRestoresOnlyCompatibleInstanceQualifiedRetainedBackups()
     {
         var persistence = new RetainedStore();
-        var contract = Analog("retained") with { Persistence = VirtualPointPersistence.Retained };
+        var contract = Analog("retained") with { Persistence = VirtualPointPersistenceType.Retained };
         var store = new VirtualPointRuntimeStore(TimeProvider.System, persistence);
         await store.ActivateFlowAsync("east", "writer", [contract], new HashSet<string> { contract.Key }, default);
         await store.CommitAsync("east", "writer", [new FlowVmCommand(contract.Key, FlowVmValue.FromNumber(7.5))], default);
         var backup = await persistence.ListAsync("east", default);
 
         await store.ClearRetainedAsync("east", default);
-        Assert.That(store.List("east").Single().Quality, Is.EqualTo(DataQuality.Unavailable));
+        Assert.That(store.List("east").Single().Quality, Is.EqualTo(DataQualityType.Unavailable));
         await store.RestoreRetainedAsync("east", backup, default);
         Assert.That(store.List("east").Single().Value?.Number, Is.EqualTo(7.5));
 
-        var incompatible = backup.ToDictionary(item => item.Key, item => item.Value with { Contract = Digital(item.Key) with { Persistence = VirtualPointPersistence.Retained } });
+        var incompatible = backup.ToDictionary(item => item.Key, item => item.Value with { Contract = Digital(item.Key) with { Persistence = VirtualPointPersistenceType.Retained } });
         Assert.ThrowsAsync<ExecutionConfigurationException>(() => store.RestoreRetainedAsync("east", incompatible, default));
     }
 
@@ -131,7 +131,7 @@ public sealed class VirtualPointRuntimeStoreTests
         Assert.Multiple(() =>
         {
             Assert.That(value.Value, Is.Null);
-            Assert.That(value.Quality, Is.EqualTo(DataQuality.Unavailable));
+            Assert.That(value.Quality, Is.EqualTo(DataQualityType.Unavailable));
             Assert.That(value.Version, Is.Zero);
         });
     }
@@ -156,7 +156,7 @@ public sealed class VirtualPointRuntimeStoreTests
         {
             Assert.That(values, Has.Count.EqualTo(2));
             Assert.That(values, Has.All.Property(nameof(VirtualPointRuntimeValue.Version)).EqualTo(100));
-            Assert.That(values, Has.All.Property(nameof(VirtualPointRuntimeValue.Quality)).EqualTo(DataQuality.Good));
+            Assert.That(values, Has.All.Property(nameof(VirtualPointRuntimeValue.Quality)).EqualTo(DataQualityType.Good));
             Assert.That(values.Select(item => item.Timestamp), Has.All.Not.Null.And.Not.Empty);
         });
     }
@@ -167,7 +167,7 @@ public sealed class VirtualPointRuntimeStoreTests
         ValueType = FlowPointValueType.Analog,
         Readable = true,
         Commandable = true,
-        Persistence = VirtualPointPersistence.Volatile
+        Persistence = VirtualPointPersistenceType.Volatile
     };
 
     private static VirtualPointDeclaration Digital(string key) => Analog(key) with { ValueType = FlowPointValueType.Digital };

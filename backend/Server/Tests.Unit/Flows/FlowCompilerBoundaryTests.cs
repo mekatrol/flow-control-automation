@@ -1,4 +1,5 @@
-using Server.Common.Contracts;
+using Server.Common.Models;
+using Server.Common.Types;
 using Server.Compiler;
 using Server.Compiler.Contracts;
 using Server.Compiler.Services;
@@ -22,7 +23,7 @@ public sealed class FlowCompilerBoundaryTests
             FlowCompilationDiagnostics.Create(
                 FlowCompilationDiagnosticCode.UnsupportedNode,
                 "/nodes/example",
-                FlowNodeKind.Unknown)
+                FlowNodeType.Unknown)
         };
 
         var exception = new FlowCompilationException(diagnostics);
@@ -84,7 +85,7 @@ public sealed class FlowCompilerBoundaryTests
             Assert.That(source!.SchemaVersion, Is.EqualTo(1));
             Assert.That(source.Id, Is.EqualTo("two-button-and"));
             Assert.That(source.Revision, Is.EqualTo(7));
-            Assert.That(source.Execution.Mode, Is.EqualTo(FlowExecutionMode.Manual));
+            Assert.That(source.Execution.Mode, Is.EqualTo(FlowExecutionModeType.Manual));
             Assert.That(source.Nodes, Has.Count.EqualTo(4));
             Assert.That(source.Connections, Has.Count.EqualTo(3));
         });

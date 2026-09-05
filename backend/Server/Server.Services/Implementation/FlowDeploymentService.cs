@@ -1,5 +1,7 @@
-﻿using Server.Common;
-using Server.Common.Contracts;
+using Server.Common;
+using Server.Common.Models;
+using Server.Common.Services;
+using Server.Common.Types;
 using Server.Compiler.Contracts;
 using Server.Compiler.Services;
 using System.Buffers.Binary;
@@ -32,7 +34,7 @@ internal sealed class FlowDeploymentService(
         });
 
         var inputPointIds = source.Nodes
-            .Where(node => node.Kind == FlowNodeKind.DigitalInput)
+            .Where(node => node.Kind == FlowNodeType.DigitalInput)
             .Select(node => node.Configuration["pointId"].GetString()!)
             .Distinct(StringComparer.Ordinal)
             .Order(StringComparer.Ordinal)
@@ -81,12 +83,12 @@ internal sealed class FlowDeploymentService(
             {
                 // The artifact is a deterministic single-scan program.
                 // The server host owns the 100 ms interval used to invoke it.
-                Mode = FlowExecutionMode.Manual,
+                Mode = FlowExecutionModeType.Manual,
                 IntervalMs = 0,
                 InputQualityPolicy = flow.Nodes.Any(
-                    node => node.Kind == FlowNodeKind.QualityGood)
-                        ? InputQualityPolicy.Propagate
-                        : InputQualityPolicy.RequireGood
+                    node => node.Kind == FlowNodeType.QualityGood)
+                        ? InputQualityPolicyType.Propagate
+                        : InputQualityPolicyType.RequireGood
             },
 
             Nodes =

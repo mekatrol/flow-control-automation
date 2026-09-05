@@ -1,12 +1,12 @@
-using Server.Common.Contracts;
 using Server.Common.Models;
+using Server.Common.Types;
 
 namespace Server.Services.Contracts;
 
 public sealed record ValidatedPointDefinition(
     FlowPoint Source,
     PointImplementation Implementation,
-    DataDirection Direction,
+    DataDirectionType Direction,
     FlowPointValueType ValueType,
     PointPersistence Persistence,
     PointLimits? Limits,

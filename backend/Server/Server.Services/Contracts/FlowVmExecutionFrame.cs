@@ -1,10 +1,10 @@
-using Server.Common.Contracts;
+using Server.Common.Types;
 
 namespace Server.Services.Contracts;
 
 public sealed record FlowVmExecutionFrame(
     ushort InstructionIndex,
-    FlowOpcode Opcode,
+    FlowOpcodeType Opcode,
     bool IsAtCommit,
     IReadOnlyList<FlowVmValue> Slots,
     IReadOnlyList<bool> CurrentState,

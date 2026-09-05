@@ -1,11 +1,11 @@
-using Server.Common.Models;
+using Server.Common.Types;
 
 namespace Server.Services.Contracts;
 
 public sealed record DebugProposedOutput(
     string PointId,
     string State,
-    DataQuality Quality,
+    DataQualityType Quality,
     bool ProposedValue,
     double? ProposedNumber = null,
     FlowVmValue? TypedValue = null);

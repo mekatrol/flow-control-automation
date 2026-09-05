@@ -1,0 +1,18 @@
+using Server.Common.Types;
+using System.Text.Json;
+
+namespace Server.Common.Models;
+
+public sealed record FlowNode
+{
+    public required string Id { get; init; }
+    public required FlowNodeType Kind { get; init; }
+    public string Label { get; init; } = string.Empty;
+    public double X { get; init; }
+    public double Y { get; init; }
+    public double ZOrder { get; init; }
+    public string? GroupId { get; init; }
+    public IReadOnlyList<FlowConnector> Connectors { get; init; } = [];
+    public IReadOnlyDictionary<string, JsonElement> Configuration { get; init; }
+        = new Dictionary<string, JsonElement>();
+}

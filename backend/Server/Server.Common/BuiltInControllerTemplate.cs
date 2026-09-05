@@ -1,6 +1,6 @@
-using Server.Common.Contracts;
 using Server.Common.Models;
 using Server.Common.Services;
+using Server.Common.Types;
 
 namespace Server.Common;
 
@@ -18,27 +18,27 @@ public static class BuiltInControllerTemplate
         Capabilities = new ControllerCapabilities
         {
             PointTypes = [FlowPointValueType.Analog, FlowPointValueType.Digital, FlowPointValueType.MultiState, FlowPointValueType.Integer, FlowPointValueType.Text],
-            PointDirections = [DataDirection.Input, DataDirection.Output, DataDirection.InputOutput, DataDirection.Value],
+            PointDirections = [DataDirectionType.Input, DataDirectionType.Output, DataDirectionType.InputOutput, DataDirectionType.Value],
             PointFeatures =
             [
-                ControllerPointFeature.Read,
-                ControllerPointFeature.Command,
-                ControllerPointFeature.Retain,
-                ControllerPointFeature.Override,
-                ControllerPointFeature.Relinquish,
-                ControllerPointFeature.Quality,
-                ControllerPointFeature.Alarms,
-                ControllerPointFeature.Trends,
+                ControllerPointFeatureType.Read,
+                ControllerPointFeatureType.Command,
+                ControllerPointFeatureType.Retain,
+                ControllerPointFeatureType.Override,
+                ControllerPointFeatureType.Relinquish,
+                ControllerPointFeatureType.Quality,
+                ControllerPointFeatureType.Alarms,
+                ControllerPointFeatureType.Trends,
             ],
             ConnectorDataTypes = [ConnectorDataType.Any, ConnectorDataType.Boolean, ConnectorDataType.Event, ConnectorDataType.Number, ConnectorDataType.String],
             FlowFunctions = [.. FlowNodeRegistry.Functions],
-            ExecutionModes = [ExecutionMode.Event, ExecutionMode.Interval],
+            ExecutionModes = [ExecutionModeType.Event, ExecutionModeType.Interval],
             RuntimeFeatures =
             [
-                ControllerRuntimeFeature.VirtualPoints,
-                ControllerRuntimeFeature.BoundPoints,
-                ControllerRuntimeFeature.CommandArbitration,
-                ControllerRuntimeFeature.QualityPropagation
+                ControllerRuntimeFeatureType.VirtualPoints,
+                ControllerRuntimeFeatureType.BoundPoints,
+                ControllerRuntimeFeatureType.CommandArbitration,
+                ControllerRuntimeFeatureType.QualityPropagation
             ]
         }
     };

@@ -1,4 +1,4 @@
-using Server.Common.Models;
+using Server.Common.Types;
 using System.Buffers.Binary;
 using System.Text;
 
@@ -53,7 +53,7 @@ public static class DebugSnapshotDecoder
         {
             var nodeId = reader.ReadString();
             var nodeState = Name(NodeStateNames, reader.ReadByte(), "node state");
-            var quality = (DataQuality)reader.ReadByte();
+            var quality = (DataQualityType)reader.ReadByte();
             var dataType = (DataType)reader.ReadByte();
             var isPresent = reader.ReadBoolean();
 
@@ -66,7 +66,7 @@ public static class DebugSnapshotDecoder
                 }
                 : null;
 
-            if (!nodeIds.Add(nodeId) || (nodeState == "evaluated" && quality == DataQuality.Good && typedValue is null))
+            if (!nodeIds.Add(nodeId) || (nodeState == "evaluated" && quality == DataQualityType.Good && typedValue is null))
             {
                 throw Protocol("node snapshot is duplicated or missing a required value");
             }
@@ -81,7 +81,7 @@ public static class DebugSnapshotDecoder
         {
             var pointId = reader.ReadString();
             var outputState = Name(NodeStateNames, reader.ReadByte(), "output state");
-            var quality = (DataQuality)reader.ReadByte();
+            var quality = (DataQualityType)reader.ReadByte();
             var dataType = (DataType)reader.ReadByte();
             var boolean = dataType == DataType.Boolean && reader.ReadBoolean();
             var number = dataType == DataType.Number ? reader.ReadDouble() : (double?)null;

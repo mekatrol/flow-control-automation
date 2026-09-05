@@ -1,4 +1,5 @@
-using Server.Common.Contracts;
+using Server.Common.Models;
+using Server.Common.Types;
 using Server.Compiler.Contracts;
 using Server.Compiler.Services;
 using Server.Services;
@@ -49,7 +50,7 @@ public sealed class LocalFlowDebuggerTests
         Revision = 1,
         ControllerTemplateId = "controller-a",
         ControllerTemplateRevision = 1,
-        Nodes = [new ExecutableFlowNode { Id = "constant", Kind = FlowNodeKind.DigitalConstant }]
+        Nodes = [new ExecutableFlowNode { Id = "constant", Kind = FlowNodeType.DigitalConstant }]
     };
 
     private sealed class Resolver : IFlowCompilationTargetResolver
@@ -131,7 +132,7 @@ public sealed class LocalFlowDebuggerTests
 
         private FlowVmExecutionFrame Frame() => new(
             _stepped ? (ushort)1 : (ushort)0,
-            _stepped ? FlowOpcode.Commit : FlowOpcode.PointInput,
+            _stepped ? FlowOpcodeType.Commit : FlowOpcodeType.PointInput,
             _stepped,
             [_stepped],
             [],

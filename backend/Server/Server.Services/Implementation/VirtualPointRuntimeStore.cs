@@ -1,5 +1,5 @@
-using Server.Common.Contracts;
 using Server.Common.Models;
+using Server.Common.Types;
 using System.Globalization;
 
 namespace Server.Services.Implementation;
@@ -24,7 +24,7 @@ public sealed class VirtualPointRuntimeStore(
         var retained = new Dictionary<string, RetainedVirtualPointValue?>(StringComparer.Ordinal);
         if (retainedStore is not null)
         {
-            foreach (var declaration in merged.Where(item => item.Persistence == VirtualPointPersistence.Retained))
+            foreach (var declaration in merged.Where(item => item.Persistence == VirtualPointPersistenceType.Retained))
             {
                 retained[declaration.Key] = await retainedStore.ReadAsync(executionInstanceId, declaration.Key, cancellationToken);
             }
@@ -110,7 +110,7 @@ public sealed class VirtualPointRuntimeStore(
             }
             foreach (var identity in _cells
                 .Where(item => item.Key.InstanceId == executionInstanceId
-                    && item.Value.Contract.Persistence == VirtualPointPersistence.Volatile
+                    && item.Value.Contract.Persistence == VirtualPointPersistenceType.Volatile
                     && item.Value.WriterFlowId is null
                     && item.Value.Readers.Count == 0)
                 .Select(item => item.Key)
@@ -171,7 +171,7 @@ public sealed class VirtualPointRuntimeStore(
                 var timestamp = timeProvider.GetUtcNow().ToString("O", CultureInfo.InvariantCulture);
                 retainedWrites = proposed
                     .Where(command => _cells.TryGetValue((executionInstanceId, command.PointId), out var cell)
-                        && cell.Contract.Persistence == VirtualPointPersistence.Retained)
+                        && cell.Contract.Persistence == VirtualPointPersistenceType.Retained)
                     .ToDictionary(
                         command => command.PointId,
                         command =>
@@ -222,7 +222,7 @@ public sealed class VirtualPointRuntimeStore(
             _gate.EnterWriteLock();
             try
             {
-                foreach (var cell in _cells.Values.Where(item => item.ExecutionInstanceId == executionInstanceId && item.Contract.Persistence == VirtualPointPersistence.Retained))
+                foreach (var cell in _cells.Values.Where(item => item.ExecutionInstanceId == executionInstanceId && item.Contract.Persistence == VirtualPointPersistenceType.Retained))
                 {
                     cell.Value = null;
                     cell.Timestamp = null;
@@ -245,7 +245,7 @@ public sealed class VirtualPointRuntimeStore(
                 foreach (var (pointKey, retained) in values)
                 {
                     if (!_cells.TryGetValue((executionInstanceId, pointKey), out var cell)
-                        || cell.Contract.Persistence != VirtualPointPersistence.Retained)
+                        || cell.Contract.Persistence != VirtualPointPersistenceType.Retained)
                     {
                         throw new ExecutionConfigurationException($"retained backup point '{pointKey}' is not allocated as retained", 422, "incompatible_retained_backup");
                     }
@@ -256,7 +256,7 @@ public sealed class VirtualPointRuntimeStore(
                         throw new ExecutionConfigurationException($"retained backup point '{pointKey}' has the wrong type", 422, "incompatible_retained_backup");
                     }
                 }
-                foreach (var cell in _cells.Values.Where(item => item.ExecutionInstanceId == executionInstanceId && item.Contract.Persistence == VirtualPointPersistence.Retained))
+                foreach (var cell in _cells.Values.Where(item => item.ExecutionInstanceId == executionInstanceId && item.Contract.Persistence == VirtualPointPersistenceType.Retained))
                 {
                     if (values.TryGetValue(cell.PointKey, out var retained))
                     {
@@ -282,11 +282,11 @@ public sealed class VirtualPointRuntimeStore(
         PointKey = cell.PointKey,
         Contract = cell.Contract,
         Value = cell.Value ?? Default(cell.Contract),
-        Quality = cell.Value is not null || cell.Contract.RelinquishDefault is not null ? DataQuality.Good : DataQuality.Unavailable,
+        Quality = cell.Value is not null || cell.Contract.RelinquishDefault is not null ? DataQualityType.Good : DataQualityType.Unavailable,
         Timestamp = cell.Timestamp,
         WriterFlowId = cell.WriterFlowId,
         ReaderFlowIds = [.. cell.Readers.Order(StringComparer.Ordinal)],
-        Retained = cell.Contract.Persistence == VirtualPointPersistence.Retained,
+        Retained = cell.Contract.Persistence == VirtualPointPersistenceType.Retained,
         Version = cell.Version
     };
 

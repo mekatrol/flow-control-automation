@@ -1,7 +1,7 @@
 using Server.Common;
 using Server.Common.Contracts;
 using Server.Common.Models;
-using Server.Common.Services;
+using Server.Common.Types;
 using Server.Compiler.Contracts;
 
 namespace Server.Compiler.Services.Implementation;
@@ -80,13 +80,13 @@ internal sealed class FlowCompilationTargetResolver(
         Name = declaration.Key,
         Enabled = true,
         Implementation = "virtual",
-        Direction = DataDirection.Value,
+        Direction = DataDirectionType.Value,
         ValueType = declaration.ValueType,
         PointSourceType = PointSourceType.Virtual,
         Units = declaration.Units,
         Readable = declaration.Readable,
         Commandable = declaration.Commandable,
-        Persistence = declaration.Persistence == VirtualPointPersistence.Retained ? "retained" : "volatile",
+        Persistence = declaration.Persistence == VirtualPointPersistenceType.Retained ? "retained" : "volatile",
         RelinquishDefault = declaration.RelinquishDefault is { } value
             ? System.Text.Json.Nodes.JsonNode.Parse(value.GetRawText()) : null,
         Revision = 1
@@ -104,7 +104,7 @@ internal sealed class FlowCompilationTargetResolver(
 
         var functions = source.Nodes
             .Select(node => RequiredFunction(node.Kind))
-            .OfType<FlowFunctionKind>()
+            .OfType<FlowFunctionType>()
             .Distinct()
             .Order();
 
@@ -121,9 +121,9 @@ internal sealed class FlowCompilationTargetResolver(
             return;
         }
 
-        if (!template.RuntimeFeatures.Contains(ControllerRuntimeFeature.VirtualPoints))
+        if (!template.RuntimeFeatures.Contains(ControllerRuntimeFeatureType.VirtualPoints))
         {
-            throw Failure(FlowCompilationDiagnosticCode.UnsupportedTargetPointCapability, "/virtualPointDeclarations", ControllerRuntimeFeature.VirtualPoints);
+            throw Failure(FlowCompilationDiagnosticCode.UnsupportedTargetPointCapability, "/virtualPointDeclarations", ControllerRuntimeFeatureType.VirtualPoints);
         }
 
         foreach (var declaration in source.VirtualPointDeclarations)
@@ -133,20 +133,20 @@ internal sealed class FlowCompilationTargetResolver(
                 throw Failure(FlowCompilationDiagnosticCode.UnsupportedTargetPointCapability, $"/virtualPointDeclarations/{Escape(declaration.Key)}/valueType", declaration.ValueType);
             }
 
-            if (declaration.Readable && !template.PointFeatures.Contains(ControllerPointFeature.Read))
+            if (declaration.Readable && !template.PointFeatures.Contains(ControllerPointFeatureType.Read))
             {
-                throw Failure(FlowCompilationDiagnosticCode.UnsupportedTargetPointCapability, $"/virtualPointDeclarations/{Escape(declaration.Key)}/readable", ControllerPointFeature.Read);
+                throw Failure(FlowCompilationDiagnosticCode.UnsupportedTargetPointCapability, $"/virtualPointDeclarations/{Escape(declaration.Key)}/readable", ControllerPointFeatureType.Read);
             }
 
-            if (declaration.Commandable && !template.PointFeatures.Contains(ControllerPointFeature.Command))
+            if (declaration.Commandable && !template.PointFeatures.Contains(ControllerPointFeatureType.Command))
             {
-                throw Failure(FlowCompilationDiagnosticCode.UnsupportedTargetPointCapability, $"/virtualPointDeclarations/{Escape(declaration.Key)}/commandable", ControllerPointFeature.Command);
+                throw Failure(FlowCompilationDiagnosticCode.UnsupportedTargetPointCapability, $"/virtualPointDeclarations/{Escape(declaration.Key)}/commandable", ControllerPointFeatureType.Command);
             }
 
-            if (declaration.Persistence == VirtualPointPersistence.Retained
-                && !template.PointFeatures.Contains(ControllerPointFeature.Retain))
+            if (declaration.Persistence == VirtualPointPersistenceType.Retained
+                && !template.PointFeatures.Contains(ControllerPointFeatureType.Retain))
             {
-                throw Failure(FlowCompilationDiagnosticCode.UnsupportedTargetPointCapability, $"/virtualPointDeclarations/{Escape(declaration.Key)}/persistence", ControllerPointFeature.Retain);
+                throw Failure(FlowCompilationDiagnosticCode.UnsupportedTargetPointCapability, $"/virtualPointDeclarations/{Escape(declaration.Key)}/persistence", ControllerPointFeatureType.Retain);
             }
         }
     }
@@ -171,14 +171,14 @@ internal sealed class FlowCompilationTargetResolver(
             .Where(item => item.PointId is not null)
             .Select(item => new PointReference(
                 item.PointId!,
-                item.Node.Kind is FlowNodeKind.DigitalInput or FlowNodeKind.AnalogInput,
+                item.Node.Kind is FlowNodeType.DigitalInput or FlowNodeType.AnalogInput,
                 item.Node.Kind.ToString().StartsWith("Analog", StringComparison.Ordinal)))
             .Distinct()
             .OrderBy(reference => reference.PointId, StringComparer.Ordinal)
             .ThenBy(reference => reference.IsInput ? 0 : 1)];
 
     private static string? PointId(ExecutableFlowNode node) =>
-        node.Kind is FlowNodeKind.DigitalInput or FlowNodeKind.DigitalOutput or FlowNodeKind.AnalogInput or FlowNodeKind.AnalogOutput &&
+        node.Kind is FlowNodeType.DigitalInput or FlowNodeType.DigitalOutput or FlowNodeType.AnalogInput or FlowNodeType.AnalogOutput &&
         node.Configuration.TryGetValue("pointId", out var value) &&
         value.ValueKind == System.Text.Json.JsonValueKind.String
             ? value.GetString()
@@ -187,13 +187,13 @@ internal sealed class FlowCompilationTargetResolver(
     private static void ValidatePoint(PointReference reference, FlowPoint point)
     {
         var virtualValue = string.Equals(point.Implementation, "virtual", StringComparison.Ordinal)
-            && point.Direction == DataDirection.Value;
+            && point.Direction == DataDirectionType.Value;
 
         var valid = point.Enabled
             && point.ValueType == (reference.IsAnalog ? FlowPointValueType.Analog : FlowPointValueType.Digital)
             && (reference.IsInput
-                ? point.Readable && (point.Direction == DataDirection.Input || virtualValue)
-                : point.Commandable && (point.Direction == DataDirection.Output || virtualValue));
+                ? point.Readable && (point.Direction == DataDirectionType.Input || virtualValue)
+                : point.Commandable && (point.Direction == DataDirectionType.Output || virtualValue));
 
         if (!valid)
         {
@@ -207,15 +207,15 @@ internal sealed class FlowCompilationTargetResolver(
         }
     }
 
-    private static FlowFunctionKind? RequiredFunction(FlowNodeKind kind) => kind switch
+    private static FlowFunctionType? RequiredFunction(FlowNodeType kind) => kind switch
     {
-        FlowNodeKind.DigitalInput => FlowFunctionKind.ReadPoint,
-        FlowNodeKind.AnalogInput => FlowFunctionKind.ReadPoint,
-        FlowNodeKind.DigitalOutput => FlowFunctionKind.WritePoint,
-        FlowNodeKind.AnalogOutput => FlowFunctionKind.WritePoint,
-        FlowNodeKind.Not => FlowFunctionKind.Not,
-        FlowNodeKind.And => FlowFunctionKind.And,
-        FlowNodeKind.Or => FlowFunctionKind.Or,
+        FlowNodeType.DigitalInput => FlowFunctionType.ReadPoint,
+        FlowNodeType.AnalogInput => FlowFunctionType.ReadPoint,
+        FlowNodeType.DigitalOutput => FlowFunctionType.WritePoint,
+        FlowNodeType.AnalogOutput => FlowFunctionType.WritePoint,
+        FlowNodeType.Not => FlowFunctionType.Not,
+        FlowNodeType.And => FlowFunctionType.And,
+        FlowNodeType.Or => FlowFunctionType.Or,
         _ => null
     };
 

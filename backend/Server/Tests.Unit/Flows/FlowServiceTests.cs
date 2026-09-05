@@ -1,5 +1,5 @@
-using Server.Common.Contracts;
 using Server.Common.Models;
+using Server.Common.Types;
 using Server.Compiler;
 using Server.Compiler.Extensions;
 using Server.Data.Context;
@@ -109,7 +109,7 @@ public sealed class FlowServiceTests
                 new FlowNode
                 {
                     Id = "digital-output",
-                    Kind = FlowNodeKind.DigitalVirtual,
+                    Kind = FlowNodeType.DigitalVirtual,
                     Label = "Unmapped digital output",
                     Configuration = new Dictionary<string, JsonElement>
                     {
@@ -119,7 +119,7 @@ public sealed class FlowServiceTests
                 new FlowNode
                 {
                     Id = "digital-output-2",
-                    Kind = FlowNodeKind.DigitalVirtual,
+                    Kind = FlowNodeType.DigitalVirtual,
                     Label = "Provisional digital output",
                     Configuration = new Dictionary<string, JsonElement>
                     {
@@ -129,7 +129,7 @@ public sealed class FlowServiceTests
                 new FlowNode
                 {
                     Id = "digital-output-3",
-                    Kind = FlowNodeKind.DigitalVirtual,
+                    Kind = FlowNodeType.DigitalVirtual,
                     Label = "Duplicate provisional digital output",
                     Configuration = new Dictionary<string, JsonElement>
                     {
@@ -227,7 +227,7 @@ public sealed class FlowServiceTests
                     new FlowNode
                     {
                         Id = "node",
-                        Kind = FlowNodeKind.Unknown,
+                        Kind = FlowNodeType.Unknown,
                         Label = "Node"
                     },
                 ],
@@ -271,8 +271,8 @@ public sealed class FlowServiceTests
         {
             Nodes =
             [
-                Node("source", DataDirection.Output, DataType.Number),
-                Node("target", DataDirection.Input, DataType.String),
+                Node("source", DataDirectionType.Output, DataType.Number),
+                Node("target", DataDirectionType.Input, DataType.String),
             ],
             Connections =
             [
@@ -300,7 +300,7 @@ public sealed class FlowServiceTests
             Connections = [],
             Nodes =
             [
-                Node("source", DataDirection.Output, DataType.Number) with
+                Node("source", DataDirectionType.Output, DataType.Number) with
                 {
                     Configuration = new Dictionary<string, JsonElement>
                     {
@@ -393,10 +393,10 @@ public sealed class FlowServiceTests
         return provider;
     }
 
-    private static FlowNode Node(string id, DataDirection direction, DataType dataType) => new()
+    private static FlowNode Node(string id, DataDirectionType direction, DataType dataType) => new()
     {
         Id = id,
-        Kind = FlowNodeKind.And,
+        Kind = FlowNodeType.And,
         Label = id,
         Connectors =
         [

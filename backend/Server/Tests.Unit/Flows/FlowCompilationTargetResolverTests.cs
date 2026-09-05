@@ -1,7 +1,7 @@
 using Server.Common;
 using Server.Common.Contracts;
 using Server.Common.Models;
-using Server.Common.Services;
+using Server.Common.Types;
 using Server.Compiler;
 using Server.Compiler.Contracts;
 using Server.Compiler.Extensions;
@@ -147,8 +147,8 @@ public sealed class FlowCompilationTargetResolverTests
         ControllerTemplateRevision = 3,
         Nodes =
         [
-            Node("input-node", FlowNodeKind.DigitalInput, "input-01"),
-            Node("output-node", FlowNodeKind.DigitalOutput, "output-01")
+            Node("input-node", FlowNodeType.DigitalInput, "input-01"),
+            Node("output-node", FlowNodeType.DigitalOutput, "output-01")
         ],
         Connections =
         [
@@ -160,7 +160,7 @@ public sealed class FlowCompilationTargetResolverTests
 
     private static ExecutableFlowNode Node(
         string id,
-        FlowNodeKind kind,
+        FlowNodeType kind,
         string pointId)
     {
         using var document =
@@ -192,13 +192,13 @@ public sealed class FlowCompilationTargetResolverTests
             ],
             PointDirections =
             [
-                DataDirection.Input,
-                DataDirection.Output
+                DataDirectionType.Input,
+                DataDirectionType.Output
             ],
             PointFeatures =
             [
-                ControllerPointFeature.Read,
-                ControllerPointFeature.Command
+                ControllerPointFeatureType.Read,
+                ControllerPointFeatureType.Command
             ],
             ConnectorDataTypes =
             [
@@ -206,16 +206,16 @@ public sealed class FlowCompilationTargetResolverTests
             ],
             FlowFunctions =
             [
-                FlowFunctionKind.ReadPoint,
-                FlowFunctionKind.WritePoint
+                FlowFunctionType.ReadPoint,
+                FlowFunctionType.WritePoint
             ],
             ExecutionModes =
             [
-                ExecutionMode.Interval
+                ExecutionModeType.Interval
             ],
             RuntimeFeatures =
             [
-                ControllerRuntimeFeature.BoundPoints
+                ControllerRuntimeFeatureType.BoundPoints
             ]
         }
     };
@@ -223,13 +223,13 @@ public sealed class FlowCompilationTargetResolverTests
     private static FlowPoint Input(string id) =>
         Point(
             id,
-            DataDirection.Input,
+            DataDirectionType.Input,
             readable: true);
 
     private static FlowPoint Output(string id) =>
         Point(
             id,
-            DataDirection.Output,
+            DataDirectionType.Output,
             commandable: true);
 
     private static FlowPoint VirtualValue(
@@ -238,7 +238,7 @@ public sealed class FlowCompilationTargetResolverTests
         bool commandable = false) =>
         Point(
             id,
-            DataDirection.Value,
+            DataDirectionType.Value,
             readable,
             commandable) with
         {
@@ -247,7 +247,7 @@ public sealed class FlowCompilationTargetResolverTests
 
     private static FlowPoint Point(
         string id,
-        DataDirection direction,
+        DataDirectionType direction,
         bool readable = false,
         bool commandable = false) => new()
         {

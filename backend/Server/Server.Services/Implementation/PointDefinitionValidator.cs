@@ -1,5 +1,5 @@
-using Server.Common.Contracts;
 using Server.Common.Models;
+using Server.Common.Types;
 using System.Globalization;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -114,14 +114,14 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
     private static void ValidateCapabilities(
         FlowPoint point,
         PointImplementation implementation,
-        DataDirection direction)
+        DataDirectionType direction)
     {
-        if (implementation == PointImplementation.Virtual && direction != DataDirection.Value)
+        if (implementation == PointImplementation.Virtual && direction != DataDirectionType.Value)
         {
             Fail("virtual points must use value direction");
         }
 
-        if (implementation == PointImplementation.Bound && direction == DataDirection.Value)
+        if (implementation == PointImplementation.Bound && direction == DataDirectionType.Value)
         {
             Fail("bound points cannot use value direction");
         }
@@ -131,22 +131,22 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
             Fail($"{point.Direction} points cannot be commandable");
         }
 
-        if (direction == DataDirection.Input && (!point.Readable || point.Commandable))
+        if (direction == DataDirectionType.Input && (!point.Readable || point.Commandable))
         {
             Fail("input points must be readable and not commandable");
         }
 
-        if (direction == DataDirection.Output && !point.Commandable)
+        if (direction == DataDirectionType.Output && !point.Commandable)
         {
             Fail("output points must be commandable");
         }
 
-        if (direction == DataDirection.InputOutput && (!point.Readable || !point.Commandable))
+        if (direction == DataDirectionType.InputOutput && (!point.Readable || !point.Commandable))
         {
             Fail("input_output points must be readable and commandable");
         }
 
-        if (direction == DataDirection.Value && !point.Readable && !point.Commandable)
+        if (direction == DataDirectionType.Value && !point.Readable && !point.Commandable)
         {
             Fail("value points must be readable or commandable");
         }

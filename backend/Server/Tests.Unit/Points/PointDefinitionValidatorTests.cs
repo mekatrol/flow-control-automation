@@ -1,5 +1,5 @@
-using Server.Common.Contracts;
 using Server.Common.Models;
+using Server.Common.Types;
 using Server.Services;
 using Server.Services.Contracts;
 using Server.Services.Implementation;
@@ -64,6 +64,15 @@ internal sealed class PointDefinitionValidatorTests
         // contract fixture validates and produces typed mappings.
         Assert.Multiple(() =>
         {
+            Assert.That(document.Points.Select(point => point.PointSourceType), Is.EqualTo(new[]
+            {
+                PointSourceType.Remote,
+                PointSourceType.Remote,
+                PointSourceType.Virtual,
+                PointSourceType.Virtual,
+                PointSourceType.Remote
+            }));
+
             // Expected outcome: `validated[0].Mapping` has the required runtime type.
             // Acceptance criteria: `validated[0].Mapping` must be a HttpJsonPointMapping, because this condition proves that
             // contract fixture validates and produces typed mappings.
@@ -96,12 +105,12 @@ internal sealed class PointDefinitionValidatorTests
     /// Description: Arranges the inputs for bound direction capability combinations are accepted, exercises the relevant operation,
     /// and verifies the observable results required by that scenario.
     /// </summary>
-    [TestCase(DataDirection.Input, true, false)]
-    [TestCase(DataDirection.Output, false, true)]
-    [TestCase(DataDirection.Output, true, true)]
-    [TestCase(DataDirection.InputOutput, true, true)]
+    [TestCase(DataDirectionType.Input, true, false)]
+    [TestCase(DataDirectionType.Output, false, true)]
+    [TestCase(DataDirectionType.Output, true, true)]
+    [TestCase(DataDirectionType.InputOutput, true, true)]
     public void BoundDirectionCapabilityCombinations_AreAccepted(
-        DataDirection direction,
+        DataDirectionType direction,
         bool readable,
         bool commandable)
     {
@@ -123,13 +132,13 @@ internal sealed class PointDefinitionValidatorTests
     /// Description: Arranges the inputs for invalid bound direction capability combinations are rejected, exercises the relevant operation,
     /// and verifies the observable results required by that scenario.
     /// </summary>
-    [TestCase(DataDirection.Input, false, false)]
-    [TestCase(DataDirection.Input, true, true)]
-    [TestCase(DataDirection.Output, true, false)]
-    [TestCase(DataDirection.InputOutput, true, false)]
-    [TestCase(DataDirection.Value, true, true)]
+    [TestCase(DataDirectionType.Input, false, false)]
+    [TestCase(DataDirectionType.Input, true, true)]
+    [TestCase(DataDirectionType.Output, true, false)]
+    [TestCase(DataDirectionType.InputOutput, true, false)]
+    [TestCase(DataDirectionType.Value, true, true)]
     public void InvalidBoundDirectionCapabilityCombinations_AreRejected(
-        DataDirection direction,
+        DataDirectionType direction,
         bool readable,
         bool commandable)
     {
@@ -275,7 +284,7 @@ internal sealed class PointDefinitionValidatorTests
         {
             ["group"] = new() { Id = "group", Name = "Group", SourceId = "ha" }
         };
-        var inherited = BoundPoint(DataDirection.Input, true, false) with
+        var inherited = BoundPoint(DataDirectionType.Input, true, false) with
         {
             GroupId = "group",
             SourceId = null,
@@ -316,13 +325,13 @@ internal sealed class PointDefinitionValidatorTests
     [Test]
     public void SourceMappings_RequireCapabilitiesAndRejectCredentialLiterals()
     {
-        var missingCommandTopic = BoundPoint(DataDirection.Output, false, true) with
+        var missingCommandTopic = BoundPoint(DataDirectionType.Output, false, true) with
         {
             SourceId = "mqtt",
             Mapping = new JsonObject { ["stateTopic"] = "state" },
             SafeDisablePolicy = Safety(),
         };
-        var credential = BoundPoint(DataDirection.Input, true, false) with
+        var credential = BoundPoint(DataDirectionType.Input, true, false) with
         {
             Mapping = new JsonObject
             {
@@ -410,12 +419,12 @@ internal sealed class PointDefinitionValidatorTests
             // Expected outcome: `PointCompatibility.CanRead(PointDirection.Input` confirms the required condition.
             // Acceptance criteria: `PointCompatibility.CanRead(PointDirection.Input` must be true, because this condition proves that
             // compatibility predicates require exact type and numeric units.
-            Assert.That(PointCompatibility.CanRead(DataDirection.Input), Is.True);
+            Assert.That(PointCompatibility.CanRead(DataDirectionType.Input), Is.True);
 
             // Expected outcome: `PointCompatibility.CanCommand(PointDirection.Input` rejects the prohibited condition.
             // Acceptance criteria: `PointCompatibility.CanCommand(PointDirection.Input` must be false, because this condition proves that
             // compatibility predicates require exact type and numeric units.
-            Assert.That(PointCompatibility.CanCommand(DataDirection.Input), Is.False);
+            Assert.That(PointCompatibility.CanCommand(DataDirectionType.Input), Is.False);
 
             // Expected outcome: the asserted result confirms the required condition.
             // Acceptance criteria: the asserted result must be true, because this condition proves that
@@ -482,7 +491,7 @@ internal sealed class PointDefinitionValidatorTests
             _sources);
 
     private static FlowPoint BoundPoint(
-        DataDirection direction,
+        DataDirectionType direction,
         bool readable,
         bool commandable)
     {
@@ -520,7 +529,7 @@ internal sealed class PointDefinitionValidatorTests
         Name = "Point",
         Enabled = true,
         Implementation = "virtual",
-        Direction = DataDirection.Value,
+        Direction = DataDirectionType.Value,
         ValueType = valueType,
         PointSourceType = PointSourceType.Virtual,
         StateLabels = valueType switch

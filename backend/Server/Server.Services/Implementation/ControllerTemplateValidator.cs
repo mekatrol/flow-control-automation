@@ -1,6 +1,8 @@
 using Server.Common;
 using Server.Common.Contracts;
+using Server.Common.Models;
 using Server.Common.Services;
+using Server.Common.Types;
 using System.Text.RegularExpressions;
 
 namespace Server.Services.Implementation;
@@ -135,15 +137,15 @@ public sealed partial class ControllerTemplateValidator : IControllerTemplateVal
         return result;
     }
 
-    private static HashSet<FlowFunctionKind> ParseFunctions(
-        IReadOnlyList<FlowFunctionKind> values,
+    private static HashSet<FlowFunctionType> ParseFunctions(
+        IReadOnlyList<FlowFunctionType> values,
         List<ControllerDiagnostic> diagnostics)
     {
         const string path = "capabilities.flowFunctions";
 
         RequireValues(values, path, diagnostics);
 
-        var result = new HashSet<FlowFunctionKind>();
+        var result = new HashSet<FlowFunctionType>();
 
         for (var index = 0; index < values.Count; index++)
         {

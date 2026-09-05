@@ -1,5 +1,5 @@
-using Server.Common.Contracts;
 using Server.Common.Models;
+using Server.Common.Types;
 
 namespace Server.Compiler.Services.Implementation;
 
@@ -8,13 +8,13 @@ public static class ControllerCapabilitiesSupport
     public static bool SupportsPoint(
         ValidatedControllerTemplate template,
         FlowPointValueType valueType,
-        DataDirection direction) =>
+        DataDirectionType direction) =>
         template.PointTypes.Contains(valueType)
         && template.PointDirections.Contains(direction);
 
     public static bool SupportsPointFeature(
         ValidatedControllerTemplate template,
-        ControllerPointFeature feature) =>
+        ControllerPointFeatureType feature) =>
         template.PointFeatures.Contains(feature);
 
     public static bool SupportsConnector(
@@ -24,16 +24,16 @@ public static class ControllerCapabilitiesSupport
 
     public static bool SupportsFunction(
         ValidatedControllerTemplate template,
-        FlowFunctionKind function) =>
+        FlowFunctionType function) =>
         template.FlowFunctions.Contains(function);
 
     public static bool SupportsExecutionMode(
         ValidatedControllerTemplate template,
-        ExecutionMode mode) =>
+        ExecutionModeType mode) =>
         template.ExecutionModes.Contains(mode);
 
     public static bool SupportsRuntimeFeature(
         ValidatedControllerTemplate template,
-        ControllerRuntimeFeature feature) =>
+        ControllerRuntimeFeatureType feature) =>
         template.RuntimeFeatures.Contains(feature);
 }

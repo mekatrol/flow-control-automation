@@ -1,6 +1,6 @@
 using Server.Common.Contracts;
 using Server.Common.Models;
-using Server.Common.Services;
+using Server.Common.Types;
 using System.Text.Json.Nodes;
 
 namespace Server.Services.Implementation;
@@ -162,7 +162,7 @@ internal sealed class PointReadService(
                 point.Id,
                 value.DeepClone(),
                 point.Units,
-                DataQuality.Good,
+                DataQualityType.Good,
                 "reliable",
                 null,
                 now,
@@ -185,7 +185,7 @@ internal sealed class PointReadService(
             point.Id,
             null,
             point.Units,
-            DataQuality.Unavailable,
+            DataQualityType.Unavailable,
             reliability,
             null,
             null,

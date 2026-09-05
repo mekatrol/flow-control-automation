@@ -1,6 +1,6 @@
 using Server.Common.Contracts;
 using Server.Common.Models;
-using Server.Common.Services;
+using Server.Common.Types;
 using Server.Data.Context;
 using Server.Data.Entities;
 using Server.Services;
@@ -438,7 +438,7 @@ internal sealed class PointDefinitionStoreTests
             Enabled = true,
             GroupId = groupId,
             Implementation = "virtual",
-            Direction = DataDirection.Value,
+            Direction = DataDirectionType.Value,
             ValueType = FlowPointValueType.Analog,
             PointSourceType = PointSourceType.Physical,
             Readable = true,
@@ -452,7 +452,7 @@ internal sealed class PointDefinitionStoreTests
         Enabled = true,
         GroupId = groupId,
         Implementation = "bound",
-        Direction = DataDirection.Input,
+        Direction = DataDirectionType.Input,
         ValueType = FlowPointValueType.Analog,
         PointSourceType = PointSourceType.Remote,
         Readable = true,

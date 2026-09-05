@@ -1,4 +1,4 @@
-using Server.Common.Services;
+using Server.Common.Contracts;
 
 namespace Server.Services.Implementation;
 
