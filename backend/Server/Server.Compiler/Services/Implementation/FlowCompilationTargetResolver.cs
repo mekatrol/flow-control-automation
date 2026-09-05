@@ -51,11 +51,14 @@ internal sealed class FlowCompilationTargetResolver(
 
         var allPoints = await pointDefinitions.ListPointsAsync(cancellationToken);
         var pointsById = allPoints.ToDictionary(point => point.Id, StringComparer.Ordinal);
+
         foreach (var declaration in source.VirtualPointDefinitions)
         {
             pointsById.TryAdd(declaration.Key, VirtualPoint(declaration));
         }
+
         var resolvedPoints = new List<AutomationPoint>();
+
         foreach (var reference in PointReferences(source))
         {
             if (!pointsById.TryGetValue(reference.PointId, out var point))
@@ -86,7 +89,8 @@ internal sealed class FlowCompilationTargetResolver(
         Commandable = declaration.Commandable,
         Persistence = declaration.Persistence == VirtualPointPersistenceType.Retained ? "retained" : "volatile",
         RelinquishDefault = declaration.RelinquishDefault is { } value
-            ? System.Text.Json.Nodes.JsonNode.Parse(value.GetRawText()) : null,
+            ? System.Text.Json.Nodes.JsonNode.Parse(value.GetRawText())
+            : null,
         Revision = 1
     };
 

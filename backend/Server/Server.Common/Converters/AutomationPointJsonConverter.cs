@@ -1,8 +1,9 @@
+using Server.Common.Models;
 using Server.Common.Types;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Server.Common.Models;
+namespace Server.Common.Converters;
 
 /// <summary>Serializes automation points using their required source type.</summary>
 public sealed class AutomationPointJsonConverter : JsonConverter<AutomationPoint>
@@ -10,13 +11,17 @@ public sealed class AutomationPointJsonConverter : JsonConverter<AutomationPoint
     public override AutomationPoint Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         using var document = JsonDocument.ParseValue(ref reader);
+
         var root = document.RootElement;
+
         var sourceName = options.PropertyNamingPolicy?.ConvertName(nameof(AutomationPoint.PointSourceType))
             ?? nameof(AutomationPoint.PointSourceType);
+
         if (!root.TryGetProperty(sourceName, out var source))
         {
             throw new JsonException("pointSourceType is required");
         }
+
         var sourceType = source.Deserialize<PointSourceType>(options);
 
         return sourceType switch
