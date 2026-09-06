@@ -139,11 +139,22 @@ test('keeps dark-theme function blocks at WCAG AA text contrast', async ({ page 
   const search = page.getByRole('searchbox', { name: 'Find a function' });
   await search.fill('and');
   await page.getByRole('button', { name: 'Add And node', exact: true }).click();
+  await expect(page.getByRole('button', { name: /New And, And node/ })).toBeVisible();
   await search.fill('digital input');
   await page.getByRole('button', { name: 'Add Digital Input node', exact: true }).click();
-  await search.fill('');
+  await expect(
+    page.getByRole('button', { name: /New Digital Input, Digital Input node/ })
+  ).toBeVisible();
 
-  const paletteCategories = await page.locator('.palette-groups section h3').allTextContents();
+  const expectedCategories = ['io', 'control', 'timing', 'maths'];
+  // The contrast contract concerns rendered nodes, not the palette's transient
+  // search state. Synchronize directly with one rendered node from each category
+  // before taking the one-time computed-style snapshot.
+  for (const category of expectedCategories) {
+    await expect(
+      page.locator(`.flow-node[data-node-category="${category}"]`).first()
+    ).toBeVisible();
+  }
   const contrastByCategory = await page
     .locator('.flow-node')
     .evaluateAll((nodes, categories: string[]) => {
@@ -168,12 +179,12 @@ test('keeps dark-theme function blocks at WCAG AA text contrast', async ({ page 
           return [category, (lighter + 0.05) / (darker + 0.05)];
         })
       );
-    }, paletteCategories);
+    }, expectedCategories);
 
   // Expected outcome: every function-block category is represented in the contrast results.
   // Acceptance criteria: the category keys must equal `['io', 'control', 'timing', 'maths']`,
   // proving that WCAG AA text contrast is checked across the complete palette taxonomy.
-  expect(Object.keys(contrastByCategory)).toEqual(['io', 'control', 'timing', 'maths']);
+  expect(Object.keys(contrastByCategory)).toEqual(expectedCategories);
 
   for (const ratio of Object.values(contrastByCategory)) {
     // Expected outcome: `ratio` satisfies the required boundary.
