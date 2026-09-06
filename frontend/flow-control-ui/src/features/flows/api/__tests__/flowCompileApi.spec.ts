@@ -11,7 +11,7 @@ const source = {
   execution: { mode: 'manual', intervalMs: 0, inputQualityPolicy: 'requireGood' },
   nodes: [],
   connections: [],
-  virtualPointDeclarations: []
+  virtualPointDefinitions: []
 } as ExecutableFlowSource;
 
 describe('flow compile API', () => {

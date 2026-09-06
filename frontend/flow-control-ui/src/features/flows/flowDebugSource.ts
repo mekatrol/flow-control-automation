@@ -4,7 +4,7 @@ import type { ExecutableFlowSource } from '@/features/flows/api/flowDebugApi';
 import type { FlowDebugTarget } from '@/features/flows/debugTargets';
 import {
   isVirtualPointNode,
-  virtualPointDeclarationsFromNodes,
+  virtualPointDefinitionsFromNodes,
   unconnectedVirtualPoint,
   type FlowDefinition,
   type FlowNode
@@ -227,9 +227,9 @@ export const createExecutableFlowSource = (
       }
     })),
     // Flow definitions come from a reactive Pinia store. Browser structuredClone
-    // rejects Vue proxy objects, while declarations contain only scalar fields.
-    virtualPointDeclarations: virtualPointDeclarationsFromNodes(flow.nodes).map((declaration) => ({
-      ...declaration
+    // rejects Vue proxy objects, while definitions contain only scalar fields.
+    virtualPointDefinitions: virtualPointDefinitionsFromNodes(flow.nodes).map((definition) => ({
+      ...definition
     }))
   };
 };

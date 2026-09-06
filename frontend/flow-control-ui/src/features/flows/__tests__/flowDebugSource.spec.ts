@@ -130,7 +130,7 @@ describe('designer debug source', () => {
 
     const source = createExecutableFlowSource(flow, target);
 
-    expect(source.virtualPointDeclarations).toEqual([
+    expect(source.virtualPointDefinitions).toEqual([
       {
         key: 'virtual-temperature',
         valueType: 'analog',

@@ -15,7 +15,7 @@ const source = (): ExecutableFlowSource => ({
   execution: { mode: 'manual', intervalMs: 0, inputQualityPolicy: 'requireGood' },
   nodes: [],
   connections: [],
-  virtualPointDeclarations: []
+  virtualPointDefinitions: []
 });
 const session = (state: SimulatorSession['lifecycleState'] = 'ready'): SimulatorSession => ({
   sessionId: 'session-a',

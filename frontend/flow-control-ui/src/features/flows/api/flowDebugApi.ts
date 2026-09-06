@@ -135,7 +135,7 @@ export interface ExecutableFlowSource {
     source: { nodeId: string; portId: string };
     target: { nodeId: string; portId: string };
   }[];
-  virtualPointDeclarations: import('@/features/flows/types').VirtualPointDeclaration[];
+  virtualPointDefinitions: import('@/features/flows/types').VirtualPointDefinition[];
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>

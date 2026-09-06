@@ -19,8 +19,16 @@ export const startSimulation = async (page: Page, flowId: string): Promise<Start
   );
   await page.getByRole('button', { name: 'Start simulation' }).click();
   const response = await started;
-  const body: unknown = await response.json();
-  expect(response.status(), JSON.stringify(body)).toBe(201);
+  const responseText = await response.text();
+  let body: unknown;
+  try {
+    body = JSON.parse(responseText);
+  } catch {
+    throw new Error(
+      `Starting simulator session for ${flowId} returned ${response.status()} with ${responseText ? `a non-JSON body: ${responseText}` : 'an empty body'}.`
+    );
+  }
+  expect(response.status(), responseText).toBe(201);
   expect(body).toEqual(
     expect.objectContaining({
       flowId,

@@ -19,7 +19,7 @@ export type VirtualPointValueType =
   | typeof AutomationPointValueType.Analog
   | typeof AutomationPointValueType.Digital;
 
-export interface VirtualPointDeclaration {
+export interface VirtualPointDefinition {
   key: string;
   valueType: VirtualPointValueType;
   units?: string;
@@ -28,6 +28,9 @@ export interface VirtualPointDeclaration {
   persistence: VirtualPointPersistenceType;
   relinquishDefault?: boolean | number | null;
 }
+
+/** Authoring UI name for a virtual-point definition derived from flow nodes. */
+export type VirtualPointDeclaration = VirtualPointDefinition;
 
 // These interfaces describe persisted flow data only. Selection, pointer
 // gestures, zoom, and validation messages remain transient browser state so they
@@ -151,3 +154,6 @@ export const virtualPointDeclarationsFromNodes = (nodes: FlowNode[]): VirtualPoi
     const declaration = virtualPointDeclarationFromNode(node);
     return declaration ? [declaration] : [];
   });
+
+// Executable-flow payloads use the backend's "definition" terminology.
+export const virtualPointDefinitionsFromNodes = virtualPointDeclarationsFromNodes;
