@@ -133,7 +133,7 @@ import type { NodeEditorField } from '@/features/flows/nodeTypes';
 import type {
   FlowConfigurationValue,
   FlowNode,
-  VirtualPointDeclaration
+  VirtualPointDefinition
 } from '@/features/flows/types';
 import type { PointSummary } from '@/features/catalogues/api/catalogueDto';
 import { catalogueApi } from '@/features/catalogues/api/catalogueApi';
@@ -145,8 +145,8 @@ import {
 
 const props = defineProps<{
   node: FlowNode;
-  virtualPointDeclarations?: VirtualPointDeclaration[];
-  contextPointContracts?: VirtualPointDeclaration[];
+  virtualPointDefinitions?: VirtualPointDefinition[];
+  contextPointContracts?: VirtualPointDefinition[];
   executionContextId?: string;
 }>();
 const emit = defineEmits<{
@@ -158,11 +158,11 @@ const emit = defineEmits<{
 const definition = computed(() => getNodeTypeDefinition(props.node.nodeType));
 const nodeEditorFields = computed(() => definition.value.editor);
 const errors = ref<Record<string, string>>({});
-const declarations = computed(() => {
-  const merged = new Map<string, VirtualPointDeclaration>();
+const definitions = computed(() => {
+  const merged = new Map<string, VirtualPointDefinition>();
   for (const point of [
     ...(props.contextPointContracts ?? []),
-    ...(props.virtualPointDeclarations ?? [])
+    ...(props.virtualPointDefinitions ?? [])
   ])
     merged.set(point.key, point);
   return [...merged.values()];
@@ -174,7 +174,7 @@ let debounceTimer: number | undefined;
 let lookupController: AbortController | undefined;
 const compatiblePoints = computed(() =>
   [
-    ...declarations.value.map((point) => ({
+    ...definitions.value.map((point) => ({
       ...point,
       id: point.key,
       name: point.key,
@@ -192,7 +192,7 @@ const pointIdError = (value: string): string | undefined => {
   if (!key) return 'Point ID is required.';
   if (!/^[a-zA-Z0-9](?:[a-zA-Z0-9._-]{0,126}[a-zA-Z0-9])?$/.test(key))
     return 'Point ID contains unsupported characters.';
-  const declared = declarations.value.find((point) => point.key === key);
+  const declared = definitions.value.find((point) => point.key === key);
   if (!declared) return undefined;
   return pointCompatibilityError(props.node, declared);
 };
@@ -210,7 +210,7 @@ const validatePointId = async (): Promise<void> => {
     try {
       const result = await validatePointReference(
         props.node,
-        declarations.value,
+        definitions.value,
         lookupController.signal,
         props.executionContextId
       );
@@ -263,7 +263,7 @@ watch(
   },
   { immediate: true }
 );
-watch(declarations, () => void validatePointId());
+watch(definitions, () => void validatePointId());
 onBeforeUnmount(() => {
   window.clearTimeout(debounceTimer);
   lookupController?.abort();

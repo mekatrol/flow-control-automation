@@ -2,14 +2,14 @@ import type { VirtualPointValueType } from '@/features/flows/types';
 import { AutomationPointValueType, FlowNodeType } from '@/types/serverTypes';
 import { executionContextApi } from '@/features/flows/api/executionContextApi';
 import type { PointSummary } from '@/features/catalogues/api/catalogueDto';
-import type { FlowNode, VirtualPointDeclaration } from '@/features/flows/types';
+import type { FlowNode, VirtualPointDefinition } from '@/features/flows/types';
 import { isVirtualPointNode } from '@/features/flows/types';
 
 export type PointValidationState = 'idle' | 'pending' | 'valid' | 'invalid' | 'unavailable';
 export interface PointValidationResult {
   state: PointValidationState;
   message?: string;
-  point?: PointSummary | VirtualPointDeclaration;
+  point?: PointSummary | VirtualPointDefinition;
 }
 
 export const isPointNode = (node: FlowNode): boolean =>
@@ -37,7 +37,7 @@ export const pointCompatibilityError = (
   node: FlowNode,
   point:
     | Pick<PointSummary, 'valueType' | 'readable' | 'commandable' | 'enabled'>
-    | (VirtualPointDeclaration & { enabled?: boolean })
+    | (VirtualPointDefinition & { enabled?: boolean })
 ): string | undefined => {
   const requirement = pointRequirement(node);
   if ('enabled' in point && point.enabled === false) return 'This point is disabled.';
@@ -50,7 +50,7 @@ export const pointCompatibilityError = (
 
 export const validatePointReference = async (
   node: FlowNode,
-  declarations: VirtualPointDeclaration[],
+  definitions: VirtualPointDefinition[],
   signal?: AbortSignal,
   executionContextId?: string,
   executionInstanceId?: string
@@ -59,7 +59,7 @@ export const validatePointReference = async (
   if (!key) return { state: 'invalid', message: 'Point ID is required.' };
   if (!/^[a-zA-Z0-9](?:[a-zA-Z0-9._-]{0,126}[a-zA-Z0-9])?$/.test(key))
     return { state: 'invalid', message: 'Point ID contains unsupported characters.' };
-  const declared = declarations.find((point) => point.key === key);
+  const declared = definitions.find((point) => point.key === key);
   if (declared) {
     const message = pointCompatibilityError(node, declared);
     return message

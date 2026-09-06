@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { validatePointReference } from '@/features/flows/flowPointValidation';
-import type { FlowNode, VirtualPointDeclaration } from '@/features/flows/types';
+import type { FlowNode, VirtualPointDefinition } from '@/features/flows/types';
 
 const node = (nodeType: FlowNode['nodeType'], pointId: string): FlowNode => ({
   id: 'point-node',
@@ -13,7 +13,7 @@ const node = (nodeType: FlowNode['nodeType'], pointId: string): FlowNode => ({
   connectors: [],
   configuration: { pointId }
 });
-const declaration: VirtualPointDeclaration = {
+const definition: VirtualPointDefinition = {
   key: 'temperature',
   valueType: 'analog',
   readable: true,
@@ -25,17 +25,17 @@ const declaration: VirtualPointDeclaration = {
 describe('flow point validation', () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it('validates compatible declarations without a catalogue request', async () => {
+  it('validates compatible definitions without a catalogue request', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch');
     await expect(
-      validatePointReference(node('analogInput', 'temperature'), [declaration])
-    ).resolves.toMatchObject({ state: 'valid', point: declaration });
+      validatePointReference(node('analogInput', 'temperature'), [definition])
+    ).resolves.toMatchObject({ state: 'valid', point: definition });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('reports a specific capability mismatch', async () => {
     await expect(
-      validatePointReference(node('analogOutput', 'temperature'), [declaration])
+      validatePointReference(node('analogOutput', 'temperature'), [definition])
     ).resolves.toMatchObject({
       state: 'invalid',
       message: 'This output node requires a commandable point.'

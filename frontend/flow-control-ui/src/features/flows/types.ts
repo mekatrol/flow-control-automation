@@ -29,9 +29,6 @@ export interface VirtualPointDefinition {
   relinquishDefault?: boolean | number | null;
 }
 
-/** Authoring UI name for a virtual-point definition derived from flow nodes. */
-export type VirtualPointDeclaration = VirtualPointDefinition;
-
 // These interfaces describe persisted flow data only. Selection, pointer
 // gestures, zoom, and validation messages remain transient browser state so they
 // cannot leak into API payloads.
@@ -124,9 +121,9 @@ export const unconnectedVirtualPoint = (flow: FlowDefinition): FlowNode | undefi
       )
   );
 
-export const virtualPointDeclarationFromNode = (
+export const virtualPointDefinitionFromNode = (
   node: FlowNode
-): VirtualPointDeclaration | undefined => {
+): VirtualPointDefinition | undefined => {
   if (!isVirtualPointNode(node)) return undefined;
   const units = String(node.configuration.units ?? '').trim();
   const relinquishDefault = node.configuration.relinquishDefault;
@@ -149,11 +146,8 @@ export const virtualPointDeclarationFromNode = (
   };
 };
 
-export const virtualPointDeclarationsFromNodes = (nodes: FlowNode[]): VirtualPointDeclaration[] =>
+export const virtualPointDefinitionsFromNodes = (nodes: FlowNode[]): VirtualPointDefinition[] =>
   nodes.flatMap((node) => {
-    const declaration = virtualPointDeclarationFromNode(node);
-    return declaration ? [declaration] : [];
+    const definition = virtualPointDefinitionFromNode(node);
+    return definition ? [definition] : [];
   });
-
-// Executable-flow payloads use the backend's "definition" terminology.
-export const virtualPointDefinitionsFromNodes = virtualPointDeclarationsFromNodes;

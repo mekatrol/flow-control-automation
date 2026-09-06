@@ -112,7 +112,7 @@ describe('designer debug source', () => {
     });
   });
 
-  it('derives virtual point declarations from virtual nodes', () => {
+  it('derives virtual point definitions from virtual nodes', () => {
     const flow = reactive(debugFlow());
     const virtual = createDefaultNode('analogVirtual', { x: 0, y: 0 }, 2, 'virtual');
     virtual.configuration = {

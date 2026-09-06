@@ -131,10 +131,10 @@ import type {
   EmulatorSnapshot,
   EmulatorValue
 } from '@/features/flows/api/flowEmulatorApi';
-import type { VirtualPointDeclaration } from '@/features/flows/types';
+import type { VirtualPointDefinition } from '@/features/flows/types';
 const props = defineProps<{
   snapshot?: EmulatorSnapshot;
-  virtualPointDeclarations?: VirtualPointDeclaration[];
+  virtualPointDefinitions?: VirtualPointDefinition[];
 }>();
 const emit = defineEmits<{
   (event: typeof EVENTS.APPLY_INPUTS_STEP, inputs: EmulatorInputChange[]): void;
@@ -147,9 +147,9 @@ const qualities = Object.values(DataQualityType);
 const draft = reactive<Record<string, EmulatorValue>>({});
 const error = ref<string>();
 const virtualPoints = computed(
-  () => new Map((props.virtualPointDeclarations ?? []).map((point) => [point.key, point]))
+  () => new Map((props.virtualPointDefinitions ?? []).map((point) => [point.key, point]))
 );
-const defaultValue = (point: VirtualPointDeclaration): EmulatorValue => ({
+const defaultValue = (point: VirtualPointDefinition): EmulatorValue => ({
   type: point.valueType === AutomationPointValueType.Analog ? DataType.Number : DataType.Boolean,
   boolean:
     point.valueType === AutomationPointValueType.Digital ? Boolean(point.relinquishDefault) : false,
@@ -162,7 +162,7 @@ const defaultValue = (point: VirtualPointDeclaration): EmulatorValue => ({
 });
 const editableInputs = computed(() => {
   const inputs = new Map((props.snapshot?.inputs ?? []).map((input) => [input.pointId, input]));
-  for (const point of props.virtualPointDeclarations ?? []) {
+  for (const point of props.virtualPointDefinitions ?? []) {
     if (point.readable && !inputs.has(point.key))
       inputs.set(point.key, { pointId: point.key, typedValue: defaultValue(point) });
   }

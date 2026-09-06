@@ -53,9 +53,9 @@ internal sealed class FlowCompilationTargetResolver(
         var allPoints = await pointDefinitions.ListPointsAsync(cancellationToken);
         var pointsById = allPoints.ToDictionary(point => point.Id, StringComparer.Ordinal);
 
-        foreach (var declaration in source.VirtualPointDefinitions)
+        foreach (var definition in source.VirtualPointDefinitions)
         {
-            pointsById.TryAdd(declaration.Key, VirtualPoint(declaration));
+            pointsById.TryAdd(definition.Key, VirtualPoint(definition));
         }
 
         var resolvedPoints = new List<AutomationPoint>();
@@ -78,18 +78,18 @@ internal sealed class FlowCompilationTargetResolver(
         };
     }
 
-    private static VirtualAutomationPoint VirtualPoint(VirtualPointDefinition declaration) => new()
+    private static VirtualAutomationPoint VirtualPoint(VirtualPointDefinition definition) => new()
     {
-        Id = declaration.Key,
-        Name = declaration.Key,
+        Id = definition.Key,
+        Name = definition.Key,
         Enabled = true,
         Direction = DataDirectionType.Value,
-        ValueType = declaration.ValueType,
-        Units = declaration.Units,
-        Readable = declaration.Readable,
-        Commandable = declaration.Commandable,
-        Persistence = declaration.Persistence == VirtualPointPersistenceType.Retained ? "retained" : "volatile",
-        RelinquishDefault = declaration.RelinquishDefault is { } value
+        ValueType = definition.ValueType,
+        Units = definition.Units,
+        Readable = definition.Readable,
+        Commandable = definition.Commandable,
+        Persistence = definition.Persistence == VirtualPointPersistenceType.Retained ? "retained" : "volatile",
+        RelinquishDefault = definition.RelinquishDefault is { } value
             ? System.Text.Json.Nodes.JsonNode.Parse(value.GetRawText())
             : null,
         Revision = 1
@@ -126,30 +126,30 @@ internal sealed class FlowCompilationTargetResolver(
 
         if (!template.RuntimeFeatures.Contains(ControllerRuntimeFeatureType.VirtualPoints))
         {
-            throw Failure(FlowCompilationDiagnosticCode.UnsupportedTargetPointCapability, "/virtualPointDeclarations", ControllerRuntimeFeatureType.VirtualPoints);
+            throw Failure(FlowCompilationDiagnosticCode.UnsupportedTargetPointCapability, "/virtualPointDefinitions", ControllerRuntimeFeatureType.VirtualPoints);
         }
 
-        foreach (var declaration in source.VirtualPointDefinitions)
+        foreach (var definition in source.VirtualPointDefinitions)
         {
-            if (!template.PointTypes.Contains(declaration.ValueType))
+            if (!template.PointTypes.Contains(definition.ValueType))
             {
-                throw Failure(FlowCompilationDiagnosticCode.UnsupportedTargetPointCapability, $"/virtualPointDeclarations/{Escape(declaration.Key)}/valueType", declaration.ValueType);
+                throw Failure(FlowCompilationDiagnosticCode.UnsupportedTargetPointCapability, $"/virtualPointDefinitions/{Escape(definition.Key)}/valueType", definition.ValueType);
             }
 
-            if (declaration.Readable && !template.PointFeatures.Contains(ControllerPointFeatureType.Read))
+            if (definition.Readable && !template.PointFeatures.Contains(ControllerPointFeatureType.Read))
             {
-                throw Failure(FlowCompilationDiagnosticCode.UnsupportedTargetPointCapability, $"/virtualPointDeclarations/{Escape(declaration.Key)}/readable", ControllerPointFeatureType.Read);
+                throw Failure(FlowCompilationDiagnosticCode.UnsupportedTargetPointCapability, $"/virtualPointDefinitions/{Escape(definition.Key)}/readable", ControllerPointFeatureType.Read);
             }
 
-            if (declaration.Commandable && !template.PointFeatures.Contains(ControllerPointFeatureType.Command))
+            if (definition.Commandable && !template.PointFeatures.Contains(ControllerPointFeatureType.Command))
             {
-                throw Failure(FlowCompilationDiagnosticCode.UnsupportedTargetPointCapability, $"/virtualPointDeclarations/{Escape(declaration.Key)}/commandable", ControllerPointFeatureType.Command);
+                throw Failure(FlowCompilationDiagnosticCode.UnsupportedTargetPointCapability, $"/virtualPointDefinitions/{Escape(definition.Key)}/commandable", ControllerPointFeatureType.Command);
             }
 
-            if (declaration.Persistence == VirtualPointPersistenceType.Retained
+            if (definition.Persistence == VirtualPointPersistenceType.Retained
                 && !template.PointFeatures.Contains(ControllerPointFeatureType.Retain))
             {
-                throw Failure(FlowCompilationDiagnosticCode.UnsupportedTargetPointCapability, $"/virtualPointDeclarations/{Escape(declaration.Key)}/persistence", ControllerPointFeatureType.Retain);
+                throw Failure(FlowCompilationDiagnosticCode.UnsupportedTargetPointCapability, $"/virtualPointDefinitions/{Escape(definition.Key)}/persistence", ControllerPointFeatureType.Retain);
             }
         }
     }

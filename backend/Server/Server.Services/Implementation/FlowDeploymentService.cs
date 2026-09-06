@@ -123,7 +123,7 @@ internal sealed class FlowDeploymentService(
                             connection.End.ConnectorId)))
             ],
 
-            VirtualPointDefinitions = VirtualPointNodes.Declarations(flow.Nodes)
+            VirtualPointDefinitions = VirtualPointNodes.Definitions(flow.Nodes)
         };
     }
 

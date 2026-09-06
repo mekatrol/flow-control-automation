@@ -5,7 +5,7 @@ import {
   isEnumValue
 } from '@/types/serverTypes';
 import { waitForFetch } from '@/api/waitForFetch';
-import type { VirtualPointDeclaration } from '@/features/flows/types';
+import type { VirtualPointDefinition } from '@/features/flows/types';
 import type { PointSummary } from '@/features/catalogues/api/catalogueDto';
 
 export interface ExecutionContextSummary {
@@ -13,7 +13,7 @@ export interface ExecutionContextSummary {
   name: string;
   revision: number;
   programs: { flowId: string; flowRevision: number }[];
-  pointContracts: VirtualPointDeclaration[];
+  pointContracts: VirtualPointDefinition[];
 }
 
 export class ExecutionConfigurationApiError extends Error {
@@ -56,7 +56,7 @@ const parseContext = (value: unknown): ExecutionContextSummary => {
       ? (item.programs as { flowId: string; flowRevision: number }[])
       : [],
     pointContracts: Array.isArray(item.pointContracts)
-      ? (item.pointContracts as VirtualPointDeclaration[])
+      ? (item.pointContracts as VirtualPointDefinition[])
       : []
   };
 };

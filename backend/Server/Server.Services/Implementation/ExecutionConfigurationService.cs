@@ -107,7 +107,7 @@ internal sealed partial class ExecutionConfigurationService(
             Fail("program revisions must be positive");
         }
 
-        var declarations = new List<VirtualPointDefinition>();
+        var definitions = new List<VirtualPointDefinition>();
 
         foreach (var program in definition.Programs)
         {
@@ -120,10 +120,10 @@ internal sealed partial class ExecutionConfigurationService(
                 throw new ExecutionConfigurationException($"flow '{program.FlowId}' revision {program.FlowRevision} is not available", 409);
             }
 
-            declarations.AddRange(VirtualPointNodes.Declarations(flow.Nodes));
+            definitions.AddRange(VirtualPointNodes.Definitions(flow.Nodes));
         }
 
-        var contracts = MergeContracts(declarations);
+        var contracts = MergeContracts(definitions);
 
         if (definition.PointContracts.Count > 0 && !ContractsEqual(definition.PointContracts, contracts))
         {
@@ -400,22 +400,22 @@ internal sealed partial class ExecutionConfigurationService(
     {
         var result = new Dictionary<string, VirtualPointDefinition>(StringComparer.Ordinal);
 
-        foreach (var declaration in source)
+        foreach (var definition in source)
         {
-            ValidateDeclaration(declaration);
+            ValidateDefinition(definition);
 
-            if (result.TryGetValue(declaration.Key, out var current))
+            if (result.TryGetValue(definition.Key, out var current))
             {
-                if (!Compatible(current, declaration))
+                if (!Compatible(current, definition))
                 {
-                    Fail($"virtual point '{declaration.Key}' has conflicting declarations");
+                    Fail($"virtual point '{definition.Key}' has conflicting definitions");
                 }
 
-                result[declaration.Key] = current with { Readable = current.Readable || declaration.Readable, Commandable = current.Commandable || declaration.Commandable };
+                result[definition.Key] = current with { Readable = current.Readable || definition.Readable, Commandable = current.Commandable || definition.Commandable };
             }
             else
             {
-                result.Add(declaration.Key, declaration);
+                result.Add(definition.Key, definition);
             }
         }
 
@@ -447,7 +447,7 @@ internal sealed partial class ExecutionConfigurationService(
         && JsonSerializer.Serialize(left.RelinquishDefault) == JsonSerializer.Serialize(right.RelinquishDefault);
     private static bool ContractsEqual(IReadOnlyList<VirtualPointDefinition> left, IReadOnlyList<VirtualPointDefinition> right) =>
         left.Count == right.Count && left.OrderBy(item => item.Key).Zip(right.OrderBy(item => item.Key)).All(pair => pair.First == pair.Second);
-    private static void ValidateDeclaration(VirtualPointDefinition item)
+    private static void ValidateDefinition(VirtualPointDefinition item)
     {
         ValidateId(item.Key, "virtual point key");
 
@@ -615,7 +615,7 @@ internal sealed partial class ExecutionConfigurationService(
 
         foreach (var flow in programs)
         {
-            var virtualKeys = VirtualPointNodes.Declarations(flow.Nodes).Select(item => item.Key).ToHashSet(StringComparer.Ordinal);
+            var virtualKeys = VirtualPointNodes.Definitions(flow.Nodes).Select(item => item.Key).ToHashSet(StringComparer.Ordinal);
 
             foreach (var node in flow.Nodes.Where(item => item.NodeType is FlowNodeType.AnalogInput or FlowNodeType.AnalogOutput or FlowNodeType.DigitalInput or FlowNodeType.DigitalOutput))
             {
@@ -663,7 +663,7 @@ internal sealed partial class ExecutionConfigurationService(
         string executionInstanceId,
         string? deploymentId)
     {
-        var virtualKeys = VirtualPointNodes.Declarations(flow.Nodes).Select(item => item.Key).ToHashSet(StringComparer.Ordinal);
+        var virtualKeys = VirtualPointNodes.Definitions(flow.Nodes).Select(item => item.Key).ToHashSet(StringComparer.Ordinal);
 
         foreach (var node in flow.Nodes.Where(item => item.NodeType is FlowNodeType.AnalogOutput or FlowNodeType.DigitalOutput))
         {

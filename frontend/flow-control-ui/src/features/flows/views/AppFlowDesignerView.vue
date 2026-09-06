@@ -151,7 +151,7 @@
         <label>
           <span>Validate against execution context</span>
           <select v-model="selectedContextId" :disabled="contextsLoading">
-            <option value="">Flow declarations and global points</option>
+            <option value="">Flow definitions and global points</option>
             <option v-for="context in executionContexts" :key="context.id" :value="context.id">
               {{ context.name }} ({{ context.id }})
             </option>
@@ -333,8 +333,8 @@ import {
   validatePointReference,
   type PointValidationState
 } from '@/features/flows/flowPointValidation';
-import type { VirtualPointDeclaration } from '@/features/flows/types';
-import { unconnectedVirtualPoint, virtualPointDeclarationsFromNodes } from '@/features/flows/types';
+import type { VirtualPointDefinition } from '@/features/flows/types';
+import { unconnectedVirtualPoint, virtualPointDefinitionsFromNodes } from '@/features/flows/types';
 import type { WorkspaceMode } from '@/features/flows/types/flowDesigner';
 import AppFlowWorkspaceNavigation from '@/features/flows/components/designer/AppFlowWorkspaceNavigation.vue';
 
@@ -371,13 +371,13 @@ let pointValidationController: AbortController | undefined;
 const selectedContext = computed(() =>
   executionContexts.value.find(({ id }) => id === selectedContextId.value)
 );
-const mergedPointDeclarations = computed(() => {
-  const result = new Map<string, VirtualPointDeclaration>();
-  for (const declaration of [
+const mergedPointDefinitions = computed(() => {
+  const result = new Map<string, VirtualPointDefinition>();
+  for (const definition of [
     ...(selectedContext.value?.pointContracts ?? []),
-    ...virtualPointDeclarationsFromNodes(flow.value?.nodes ?? [])
+    ...virtualPointDefinitionsFromNodes(flow.value?.nodes ?? [])
   ])
-    result.set(declaration.key, declaration);
+    result.set(definition.key, definition);
   return [...result.values()];
 });
 const pointReferencesValid = computed(() => {
@@ -999,7 +999,7 @@ const validateAllPointReferences = async (): Promise<boolean> => {
     nodes.map((node) =>
       validatePointReference(
         node,
-        mergedPointDeclarations.value,
+        mergedPointDefinitions.value,
         controller.signal,
         selectedContextId.value || undefined
       )

@@ -62,10 +62,10 @@ internal sealed class FlowRuntimeService(
             var writerKeys = flow.Nodes
                 .Where(node => node.NodeType is FlowNodeType.AnalogOutput or FlowNodeType.DigitalOutput)
                 .Select(node => node.Configuration.TryGetValue("pointId", out var value) ? value.GetString() : null)
-                .Where(key => key is not null && VirtualPointNodes.Declarations(flow.Nodes).Any(item => item.Key == key))
+                .Where(key => key is not null && VirtualPointNodes.Definitions(flow.Nodes).Any(item => item.Key == key))
                 .Select(key => key!)
                 .ToHashSet(StringComparer.Ordinal);
-            await virtualPoints.ActivateFlowAsync("server", flow.Id, VirtualPointNodes.Declarations(flow.Nodes), writerKeys, cancellationToken);
+            await virtualPoints.ActivateFlowAsync("server", flow.Id, VirtualPointNodes.Definitions(flow.Nodes), writerKeys, cancellationToken);
             var machine = machines.Create(compilation.Artifact);
             var replacement = new RuntimeInstance(
                 flow,

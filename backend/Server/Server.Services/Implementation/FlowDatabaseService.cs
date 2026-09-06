@@ -310,23 +310,23 @@ internal sealed class FlowDatabaseService(
                     ? program with { FlowRevision = saved.Revision }
                     : program)
                 .ToArray();
-            var declarations = programs.SelectMany(program =>
+            var definitions = programs.SelectMany(program =>
                 program.FlowId == saved.Id
-                    ? VirtualPointNodes.Declarations(saved.Nodes)
+                    ? VirtualPointNodes.Definitions(saved.Nodes)
                     : otherFlows.TryGetValue(program.FlowId, out var flow)
-                        ? VirtualPointNodes.Declarations(flow.Nodes)
+                        ? VirtualPointNodes.Definitions(flow.Nodes)
                         : throw new FlowValidationException($"execution context '{definition.Id}' references missing flow '{program.FlowId}'"))
-                .Where(declaration => !string.IsNullOrWhiteSpace(declaration.Key))
-                .DistinctBy(declaration => declaration.Key, StringComparer.Ordinal);
+                .Where(definition => !string.IsNullOrWhiteSpace(definition.Key))
+                .DistinctBy(definition => definition.Key, StringComparer.Ordinal);
             IReadOnlyList<VirtualPointDefinition> contracts;
 
             try
             {
-                contracts = ExecutionConfigurationService.MergeContracts(declarations);
+                contracts = ExecutionConfigurationService.MergeContracts(definitions);
             }
             catch (ExecutionConfigurationException exception)
             {
-                throw new FlowValidationException($"execution context '{definition.Id}' cannot accept the flow declarations: {exception.Message}");
+                throw new FlowValidationException($"execution context '{definition.Id}' cannot accept the flow definitions: {exception.Message}");
             }
 
             var updated = definition with

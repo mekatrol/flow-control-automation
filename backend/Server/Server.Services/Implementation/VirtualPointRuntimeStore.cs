@@ -15,19 +15,19 @@ public sealed class VirtualPointRuntimeStore(
     public async Task ActivateFlowAsync(
         string executionInstanceId,
         string flowId,
-        IReadOnlyList<VirtualPointDefinition> declarations,
+        IReadOnlyList<VirtualPointDefinition> definitions,
         IReadOnlySet<string> writerKeys,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var merged = ExecutionConfigurationService.MergeContracts(declarations);
+        var merged = ExecutionConfigurationService.MergeContracts(definitions);
         var retained = new Dictionary<string, RetainedVirtualPointValue?>(StringComparer.Ordinal);
 
         if (retainedStore is not null)
         {
-            foreach (var declaration in merged.Where(item => item.Persistence == VirtualPointPersistenceType.Retained))
+            foreach (var definition in merged.Where(item => item.Persistence == VirtualPointPersistenceType.Retained))
             {
-                retained[declaration.Key] = await retainedStore.ReadAsync(executionInstanceId, declaration.Key, cancellationToken);
+                retained[definition.Key] = await retainedStore.ReadAsync(executionInstanceId, definition.Key, cancellationToken);
             }
         }
 
@@ -50,20 +50,20 @@ public sealed class VirtualPointRuntimeStore(
                     new { limit = ExecutionConfigurationService.MaximumVirtualPointsPerContext, actual = allocatedCount });
             }
 
-            foreach (var declaration in merged)
+            foreach (var definition in merged)
             {
-                var identity = (executionInstanceId, declaration.Key);
+                var identity = (executionInstanceId, definition.Key);
 
                 if (_cells.TryGetValue(identity, out var existing))
                 {
-                    if (!Compatible(existing.Contract, declaration))
+                    if (!Compatible(existing.Contract, definition))
                     {
-                        throw new ExecutionConfigurationException($"virtual point '{declaration.Key}' conflicts with the instance-global contract", 409);
+                        throw new ExecutionConfigurationException($"virtual point '{definition.Key}' conflicts with the instance-global contract", 409);
                     }
 
-                    if (writerKeys.Contains(declaration.Key) && existing.WriterFlowId is not null && existing.WriterFlowId != flowId)
+                    if (writerKeys.Contains(definition.Key) && existing.WriterFlowId is not null && existing.WriterFlowId != flowId)
                     {
-                        throw new VirtualPointWriterConflictException(executionInstanceId, declaration.Key, existing.WriterFlowId);
+                        throw new VirtualPointWriterConflictException(executionInstanceId, definition.Key, existing.WriterFlowId);
                     }
                 }
             }
@@ -73,19 +73,19 @@ public sealed class VirtualPointRuntimeStore(
                 cell.WriterFlowId = null;
             }
 
-            foreach (var declaration in merged)
+            foreach (var definition in merged)
             {
-                var identity = (executionInstanceId, declaration.Key);
+                var identity = (executionInstanceId, definition.Key);
 
                 if (!_cells.TryGetValue(identity, out var cell))
                 {
-                    cell = new Cell(executionInstanceId, declaration);
+                    cell = new Cell(executionInstanceId, definition);
 
-                    if (retained.GetValueOrDefault(declaration.Key) is { } restored)
+                    if (retained.GetValueOrDefault(definition.Key) is { } restored)
                     {
-                        var expected = declaration.ValueType == AutomationPointValueType.Analog ? DataType.Number : DataType.Boolean;
+                        var expected = definition.ValueType == AutomationPointValueType.Analog ? DataType.Number : DataType.Boolean;
 
-                        if (restored.Value.DataType == expected && Compatible(declaration, restored.Contract))
+                        if (restored.Value.DataType == expected && Compatible(definition, restored.Contract))
                         {
                             cell.Value = restored.Value;
                             cell.Timestamp = restored.Timestamp;
@@ -98,7 +98,7 @@ public sealed class VirtualPointRuntimeStore(
 
                 cell.Readers.Add(flowId);
 
-                if (writerKeys.Contains(declaration.Key))
+                if (writerKeys.Contains(definition.Key))
                 {
                     cell.WriterFlowId = flowId;
                 }

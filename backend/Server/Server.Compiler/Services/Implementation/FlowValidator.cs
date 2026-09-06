@@ -40,7 +40,7 @@ internal partial class FlowValidator : IFlowValidator
         }
 
         ValidateVirtualPoints(
-            VirtualPointNodes.Declarations(flow.Nodes),
+            VirtualPointNodes.Definitions(flow.Nodes),
             allowUnmapped: flow.Status == "draft");
 
         if (flow.Revision < 1)
@@ -160,12 +160,12 @@ internal partial class FlowValidator : IFlowValidator
     }
 
     private static void ValidateVirtualPoints(
-        IReadOnlyList<VirtualPointDefinition> declarations,
+        IReadOnlyList<VirtualPointDefinition> definitions,
         bool allowUnmapped)
     {
         var keys = new HashSet<string>(StringComparer.Ordinal);
 
-        foreach (var (item, index) in declarations.Select((item, index) => (item, index)))
+        foreach (var (item, index) in definitions.Select((item, index) => (item, index)))
         {
             if (allowUnmapped &&
                 (string.IsNullOrWhiteSpace(item.Key) || keys.Contains(item.Key)))
@@ -175,22 +175,22 @@ internal partial class FlowValidator : IFlowValidator
 
             if (string.IsNullOrWhiteSpace(item.Key) || !keys.Add(item.Key))
             {
-                throw new FlowValidationException($"virtualPointDeclarations[{index}].key must be non-empty and unique");
+                throw new FlowValidationException($"virtualPointDefinitions[{index}].key must be non-empty and unique");
             }
 
             if (item.ValueType is not (AutomationPointValueType.Analog or AutomationPointValueType.Digital))
             {
-                throw new FlowValidationException($"virtualPointDeclarations[{index}].valueType must be analog or digital");
+                throw new FlowValidationException($"virtualPointDefinitions[{index}].valueType must be analog or digital");
             }
 
             if (!item.Readable && !item.Commandable)
             {
-                throw new FlowValidationException($"virtualPointDeclarations[{index}] must be readable or commandable");
+                throw new FlowValidationException($"virtualPointDefinitions[{index}] must be readable or commandable");
             }
 
             if (item.ValueType == AutomationPointValueType.Digital && item.Units is not null)
             {
-                throw new FlowValidationException($"virtualPointDeclarations[{index}].units are only valid for analog points");
+                throw new FlowValidationException($"virtualPointDefinitions[{index}].units are only valid for analog points");
             }
 
             if (item.RelinquishDefault is { } value &&
@@ -198,7 +198,7 @@ internal partial class FlowValidator : IFlowValidator
                     ? value.ValueKind != JsonValueKind.Number || !value.TryGetDouble(out var number) || !double.IsFinite(number)
                     : value.ValueKind is not (JsonValueKind.True or JsonValueKind.False)))
             {
-                throw new FlowValidationException($"virtualPointDeclarations[{index}].relinquishDefault does not match valueType");
+                throw new FlowValidationException($"virtualPointDefinitions[{index}].relinquishDefault does not match valueType");
             }
         }
     }

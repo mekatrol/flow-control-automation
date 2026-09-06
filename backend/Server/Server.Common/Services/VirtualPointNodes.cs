@@ -16,11 +16,11 @@ public static class VirtualPointNodes
         _ => nodeType
     };
 
-    public static IReadOnlyList<VirtualPointDefinition> Declarations(
+    public static IReadOnlyList<VirtualPointDefinition> Definitions(
         IEnumerable<FlowNode> nodes) =>
-        [.. nodes.Where(node => node.NodeType.IsVirtual()).Select(Declaration)];
+        [.. nodes.Where(node => node.NodeType.IsVirtual()).Select(Definition)];
 
-    private static VirtualPointDefinition Declaration(FlowNode node)
+    private static VirtualPointDefinition Definition(FlowNode node)
     {
         var analog = node.NodeType == FlowNodeType.AnalogVirtual;
         var persistence = Text(node, "persistence") == "retained"

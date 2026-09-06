@@ -184,7 +184,7 @@
       <AppFlowNodeConfigurationPanel
         v-else-if="selectedNode"
         :node="selectedNode"
-        :virtual-point-declarations="virtualPointDeclarations"
+        :virtual-point-definitions="virtualPointDefinitions"
         :context-point-contracts="contextPointContracts"
         :execution-context-id="executionContextId"
         @validation="(nodeId, state) => emit('pointValidation', nodeId, state)"
@@ -237,9 +237,9 @@ import type {
   FlowDefinition,
   FlowNodeConnector,
   FlowNode as FlowNodeModel,
-  VirtualPointDeclaration
+  VirtualPointDefinition
 } from '@/features/flows/types';
-import { virtualPointDeclarationsFromNodes } from '@/features/flows/types';
+import { virtualPointDefinitionsFromNodes } from '@/features/flows/types';
 import { isPointNode, type PointValidationState } from '@/features/flows/flowPointValidation';
 import { flowNodeTypes } from '@/features/flows/nodeTypes';
 import type { FlowRuntimeSnapshot } from '@/features/flows/api/flowRuntimeApi';
@@ -255,7 +255,7 @@ const props = defineProps<{
   connectorValues?: Record<string, Record<string, ConnectorRuntimeValue>>;
   debugging?: boolean;
   focusNodeId?: string;
-  contextPointContracts?: VirtualPointDeclaration[];
+  contextPointContracts?: VirtualPointDefinition[];
   executionContextId?: string;
   simulatorIo?: EmulatorSnapshot;
   simulatorMode?: boolean;
@@ -421,9 +421,7 @@ const selectedVirtualPointId = computed(() => {
     return undefined;
   return String(node.configuration.pointId ?? '') || undefined;
 });
-const virtualPointDeclarations = computed(() =>
-  virtualPointDeclarationsFromNodes(props.flow.nodes)
-);
+const virtualPointDefinitions = computed(() => virtualPointDefinitionsFromNodes(props.flow.nodes));
 const defaultNodeValue = (node: FlowNodeModel): string | undefined => {
   if (node.nodeType === FlowNodeType.AnalogConstant || node.nodeType === FlowNodeType.Memory)
     return String(node.configuration.value ?? 0);
@@ -431,14 +429,14 @@ const defaultNodeValue = (node: FlowNodeModel): string | undefined => {
     return node.configuration.value ? 'On' : 'Off';
   if (!isPointNode(node)) return undefined;
   const pointId = String(node.configuration.pointId ?? '');
-  const declaration = virtualPointDeclarations.value.find((point) => point.key === pointId);
-  if (!declaration) return undefined;
-  if (typeof declaration.relinquishDefault === 'number')
-    return `${declaration.relinquishDefault}${declaration.units ? ` ${declaration.units}` : ''}`;
-  if (typeof declaration.relinquishDefault === 'boolean')
-    return declaration.relinquishDefault ? 'On' : 'Off';
-  return declaration.valueType === AutomationPointValueType.Analog
-    ? `0${declaration.units ? ` ${declaration.units}` : ''}`
+  const definition = virtualPointDefinitions.value.find((point) => point.key === pointId);
+  if (!definition) return undefined;
+  if (typeof definition.relinquishDefault === 'number')
+    return `${definition.relinquishDefault}${definition.units ? ` ${definition.units}` : ''}`;
+  if (typeof definition.relinquishDefault === 'boolean')
+    return definition.relinquishDefault ? 'On' : 'Off';
+  return definition.valueType === AutomationPointValueType.Analog
+    ? `0${definition.units ? ` ${definition.units}` : ''}`
     : 'Off';
 };
 const nodeStatusValue = (node: FlowNodeModel): string | undefined => {

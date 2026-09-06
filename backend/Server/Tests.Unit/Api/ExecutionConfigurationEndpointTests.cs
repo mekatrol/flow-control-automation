@@ -15,7 +15,7 @@ internal sealed class ExecutionConfigurationEndpointTests
         await using var factory = new FlowControlApplicationFactory();
         using var client = factory.CreateClient();
 
-        var createdFlowResponse = await client.PostAsJsonAsync("/api/flows", new { name = "Shared declarations" });
+        var createdFlowResponse = await client.PostAsJsonAsync("/api/flows", new { name = "Shared definitions" });
         var flow = (await createdFlowResponse.Content.ReadFromJsonAsync<Flow>(FlowControlJson.Options))!;
 
         foreach (var contextId in new[] { "first-context", "second-context" })
