@@ -28,6 +28,7 @@
 using Server.Common;
 using Server.Common.Models;
 using Server.Common.Types;
+
 /*
  * SLOT MODEL
  * ==========
@@ -395,9 +396,10 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             {
                 Span<byte> upper =
                 [
+
                     // Intel HEX represents the extended address most-significant byte first.
                     (byte)(upperAddress >> 8),
-                    (byte)upperAddress,
+                    (byte)upperAddress
                 ];
 
                 WriteIntelHexRecord(
@@ -491,6 +493,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         }
 
         var target = request.Target.ControllerTemplate.Source;
+
         if (!string.Equals(source.ControllerTemplateId, target.Id, StringComparison.Ordinal))
         {
             throw Failure(
@@ -646,10 +649,12 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         var arithmeticIds = schedule.Where(id => IsFallibleArithmetic(nodes[id].NodeType)).ToArray();
         var errorSlots = arithmeticIds.Select((id, index) => new { id, slot = checked((ushort)(schedule.Count + index)) })
             .ToDictionary(item => item.id, item => item.slot, StringComparer.Ordinal);
+
         foreach (var (id, slot) in errorSlots)
         {
             slots[$"{id}:error"] = slot;
         }
+
         var calculatorExpressions = nodes
             .Where(item => item.Value.NodeType == FlowNodeType.Calculator)
             .ToDictionary(item => item.Key, item => ParseCalculatorFormula(item.Value), StringComparer.Ordinal);
@@ -1386,6 +1391,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 U16(0))));
 
         recordCount = commitRecords.Count;
+
         return Concat([.. commitRecords]);
     }
 
@@ -1490,6 +1496,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             }));
 
         recordCount = dependencyRecords.Count;
+
         return Concat([.. dependencyRecords]);
     }
 
@@ -1534,6 +1541,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         }
 
         artifactLength = offset;
+
         return directory;
     }
 
@@ -1636,34 +1644,49 @@ internal sealed partial class FlowCompiler : IFlowCompiler
 
         // bytes 0..3: ASCII magic 46 49 4C 31 ("FIL1").
         "FIL1"u8.CopyTo(envelope);
+
         // bytes 4..5   : IL version, u16 LE.
         WriteU16(envelope, 4, 1);
+
         // bytes 6..7   : envelope length = 128, u16 LE.
         WriteU16(envelope, 6, FlowILV1Format.EnvelopeLength);
+
         // bytes 8..11  : exact final artifact length, u32 LE.
         WriteU32(envelope, 8, artifactLength);
+
         // bytes 12..15 : flags. This implementation writes bit 0 = 1.
         WriteU32(envelope, 12, 1);
+
         // bytes 16..19 : flow revision.
         WriteU32(envelope, 16, source.Revision);
+
         // bytes 20..23 : resolved controller-template revision.
         WriteU32(envelope, 20, source.ControllerTemplateRevision);
+
         // bytes 24..25 : minimum host ABI.
         WriteU16(envelope, 24, 1);
+
         // bytes 26..27 : section count (8).
         WriteU16(envelope, 26, sectionCount);
+
         // byte 28      : input-quality policy. bytes 29..31 stay zero.
         envelope[28] = (byte)source.Execution.InputQualityPolicy;
+
         // bytes 32..35 : bounded maximum work per scan.
         WriteU32(envelope, 32, checked((uint)instructionCount));
+
         // bytes 36..43 : required-capability bitmap, u64 LE.
         BinaryPrimitives.WriteUInt64LittleEndian(envelope.AsSpan(36), (ulong)capabilities);
+
         // bytes 44..47 : VM working-byte estimate.
         WriteU32(envelope, 44, workingBytes);
+
         // bytes 48..51 : maximum snapshot bytes.
         WriteU32(envelope, 48, 16384);
+
         // bytes 52..115: one-byte flow-ID byte length + UTF-8 ID + zero padding.
         WritePaddedIdentifier(envelope, 52, source.Id);
+
         // bytes 116..119: directory absolute offset (= 128).
         // bytes 120..127 remain zero from array initialization.
         WriteU32(envelope, 116, FlowILV1Format.EnvelopeLength);
@@ -2618,6 +2641,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
     {
         var endpoint = source.Connections.Single(connection =>
             connection.Target.NodeId == targetId && connection.Target.PortId == portId).Source;
+
         return endpoint.PortId == "error" && slots.TryGetValue($"{endpoint.NodeId}:error", out var errorSlot)
             ? errorSlot
             : slots[endpoint.NodeId];
@@ -2722,6 +2746,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         {
             var node = source.Nodes[index];
             ValidateIdentifier(node.Id, $"/nodes/{index}/id", 63);
+
             if (Encoding.UTF8.GetByteCount(node.Label) > 255 || !double.IsFinite(node.X) || !double.IsFinite(node.Y) || !double.IsFinite(node.ZOrder))
             {
                 throw Failure(FlowCompilationDiagnosticCode.InvalidAuthoringMetadata, $"/nodes/{index}");
@@ -2731,6 +2756,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             {
                 ValidateIdentifier(groupId, $"/nodes/{index}/groupId", 63);
             }
+
             if (!nodes.TryAdd(node.Id, node))
             {
                 throw Failure(FlowCompilationDiagnosticCode.DuplicateNode, $"/nodes/{index}/id", node.Id);
@@ -2748,6 +2774,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         var drivers = new HashSet<FlowPortKey>();
 
         var connections = source.Connections.Select((value, index) => (value, index)).ToArray();
+
         foreach (var (connection, index) in connections)
         {
             var sourcePort = FindPort(nodes, shapes, connection.Source, index, "source");
@@ -2778,10 +2805,12 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 {
                     continue;
                 }
+
                 if (node.NodeType == FlowNodeType.Counter && input.Id == "reset")
                 {
                     continue;
                 }
+
                 if (!drivers.Contains(new(node.Id, input.Id)))
                 {
                     throw Failure(FlowCompilationDiagnosticCode.MissingInputDriver, $"/nodes/{Escape(node.Id)}/ports/{Escape(input.Id)}");
@@ -2806,6 +2835,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
     private static void ValidateConfiguration(ExecutableFlowNode node, int index)
     {
         var path = $"/nodes/{index}/configuration";
+
         if (node.NodeType is FlowNodeType.DigitalInput or FlowNodeType.DigitalOutput or FlowNodeType.AnalogInput or FlowNodeType.AnalogOutput)
         {
             if (!node.Configuration.TryGetValue("pointId", out var point)
@@ -2887,6 +2917,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
 
             ValidateFiniteNumber(node, path, "activeLowThreshold");
             ValidateFiniteNumber(node, path, "activeHighThreshold");
+
             if (node.Configuration["activeLowThreshold"].GetDouble() > node.Configuration["activeHighThreshold"].GetDouble())
             {
                 throw Failure(FlowCompilationDiagnosticCode.InvalidClampRange, path);
@@ -2906,6 +2937,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         {
             ValidateFiniteNumber(node, path, "durationMs");
             var duration = node.Configuration["durationMs"].GetDouble();
+
             if (node.Configuration.Count != 1 || duration < 0D || duration > uint.MaxValue)
             {
                 throw Failure(FlowCompilationDiagnosticCode.InvalidTimerDuration, path, 0, uint.MaxValue);
@@ -2917,10 +2949,12 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             ValidateFiniteNumber(node, path, "dutyCycle");
             var frequency = node.Configuration["frequencyHz"].GetDouble();
             var dutyCycle = node.Configuration["dutyCycle"].GetDouble();
+
             if (node.Configuration.Count != 2 || frequency is < 0.1D or > 1_000D)
             {
                 throw Failure(FlowCompilationDiagnosticCode.InvalidClockFrequency, path, 0.1, 1_000);
             }
+
             if (dutyCycle is < 0D or > 100D)
             {
                 throw Failure(FlowCompilationDiagnosticCode.InvalidDutyCycle, path, 0, 100);
@@ -2935,6 +2969,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
 
             ValidateFiniteNumber(node, path, "minimum");
             ValidateFiniteNumber(node, path, "maximum");
+
             if (node.Configuration["minimum"].GetDouble() > node.Configuration["maximum"].GetDouble())
             {
                 throw Failure(FlowCompilationDiagnosticCode.InvalidClampRange, path);
@@ -2978,6 +3013,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 FlowILV1Format.Unused, FlowILV1Format.Unused),
             nodeId, NodeInstructionRole.Primary));
         nextTemporarySlot = next;
+
         return instructions;
 
         ushort Operand(CalculatorFormula.Expression item)
@@ -2989,6 +3025,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
 
             var temporary = next++;
             Emit(item, temporary);
+
             return temporary;
         }
 
@@ -3155,6 +3192,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         var result = new byte[12];
         result[0] = 2;
         BinaryPrimitives.WriteInt64LittleEndian(result.AsSpan(4), BitConverter.DoubleToInt64Bits(constant.Number));
+
         return result;
     }
 
@@ -3246,9 +3284,11 @@ internal sealed partial class FlowCompiler : IFlowCompiler
     private static void ValidatePointReferences(IReadOnlyList<ExecutableFlowNode> nodes)
     {
         var outputPoints = new HashSet<string>(StringComparer.Ordinal);
+
         foreach (var node in nodes.Where(node => node.NodeType is FlowNodeType.DigitalOutput or FlowNodeType.AnalogOutput))
         {
             var pointId = node.Configuration["pointId"].GetString()!;
+
             if (!outputPoints.Add(pointId))
             {
                 throw Failure(FlowCompilationDiagnosticCode.DuplicatePointOutputDriver, $"/points/{Escape(pointId)}", pointId);
@@ -3299,9 +3339,11 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             var id = ready.Min!;
             ready.Remove(id);
             visited++;
+
             foreach (var target in outgoing[id])
             {
                 indegree[target]--;
+
                 if (indegree[target] == 0)
                 {
                     ready.Add(target);
@@ -3340,6 +3382,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 FlowNodeType.AnalogInput or
                 FlowNodeType.AnalogOutput)
             .Select(node => new PointRecord(
+
                 // Id
                 node.Configuration["pointId"].GetString()!,
 
@@ -3350,7 +3393,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                     FlowNodeType.AnalogInput => DataDirectionType.Input,
 
                     FlowNodeType.DigitalOutput => DataDirectionType.Output,
-                    FlowNodeType.AnalogOutput => DataDirectionType.Output,
+                    FlowNodeType.AnalogOutput => DataDirectionType.Output
                 },
 
                 // Type
@@ -3389,6 +3432,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
     {
         var pointId = node.Configuration["pointId"].GetString();
         var point = resolvedPoints.SingleOrDefault(candidate => candidate.Id == pointId);
+
         return point?.PointSourceType == PointSourceType.Virtual
             ? PointBindingType.VirtualPoint
             : PointBindingType.ControllerPoint;
@@ -3429,6 +3473,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
     private static byte[] String8(string value)
     {
         var bytes = Encoding.UTF8.GetBytes(value);
+
         return Concat([checked((byte)bytes.Length)], bytes);
     }
 
@@ -3441,6 +3486,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
     private static byte[] String8AllowEmpty(string value)
     {
         var bytes = Encoding.UTF8.GetBytes(value);
+
         return Concat([checked((byte)bytes.Length)], bytes);
     }
 
@@ -3456,6 +3502,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
     {
         var bytes = new byte[2];
         BinaryPrimitives.WriteUInt16LittleEndian(bytes, checked((ushort)value));
+
         return bytes;
     }
 
@@ -3468,6 +3515,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
     {
         var bytes = new byte[4];
         BinaryPrimitives.WriteUInt32LittleEndian(bytes, value);
+
         return bytes;
     }
 
@@ -3546,6 +3594,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
     {
         var left = units[SourceNode(source, nodeId, leftPort)];
         var right = units[SourceNode(source, nodeId, rightPort)];
+
         if (!string.Equals(left, right, StringComparison.Ordinal))
         {
             throw Failure(FlowCompilationDiagnosticCode.NumericOperandUnitMismatch, $"/nodes/{Escape(nodeId)}");
@@ -3572,6 +3621,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
     {
         var bytes = new byte[8];
         BinaryPrimitives.WriteInt64LittleEndian(bytes, BitConverter.DoubleToInt64Bits(value));
+
         return bytes;
     }
 

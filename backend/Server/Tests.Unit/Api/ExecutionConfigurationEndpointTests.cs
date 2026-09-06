@@ -17,6 +17,7 @@ internal sealed class ExecutionConfigurationEndpointTests
 
         var createdFlowResponse = await client.PostAsJsonAsync("/api/flows", new { name = "Shared declarations" });
         var flow = (await createdFlowResponse.Content.ReadFromJsonAsync<Flow>(FlowControlJson.Options))!;
+
         foreach (var contextId in new[] { "first-context", "second-context" })
         {
             var response = await client.PostAsJsonAsync("/api/execution-contexts", new ExecutionContextDefinition
@@ -69,6 +70,7 @@ internal sealed class ExecutionConfigurationEndpointTests
 
         var serverInstances = await client.GetFromJsonAsync<List<ExecutionInstance>>("/api/execution-instances", FlowControlJson.Options);
         Assert.That(serverInstances, Has.Count.EqualTo(1));
+
         using (Assert.EnterMultipleScope())
         {
             Assert.That(serverInstances![0].Id, Is.EqualTo("server"));
@@ -151,6 +153,7 @@ internal sealed class ExecutionConfigurationEndpointTests
         Assert.That(missingResolution!.Exists, Is.False);
 
         var deployments = new List<ExecutionContextDeployment>();
+
         foreach (var instanceId in new[] { "east", "west" })
         {
             var instanceResponse = await client.PostAsJsonAsync("/api/execution-instances", new ExecutionInstance

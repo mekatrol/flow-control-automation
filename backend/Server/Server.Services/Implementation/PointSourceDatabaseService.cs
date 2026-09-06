@@ -16,6 +16,7 @@ internal sealed class PointSourceDatabaseService(
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(options);
+
         if (options.Page < 1
             || options.PageSize is not (10 or 20 or 50)
             || options.SortDirection is not ("ascending" or "descending"))
@@ -39,6 +40,7 @@ internal sealed class PointSourceDatabaseService(
             .ToList();
         var pageCount = Math.Max(1, (items.Count + options.PageSize - 1) / options.PageSize);
         var page = Math.Clamp(options.Page, 1, pageCount);
+
         return new(
             [.. items.Skip((page - 1) * options.PageSize).Take(options.PageSize)],
             items.Count,
@@ -54,6 +56,7 @@ internal sealed class PointSourceDatabaseService(
         var entity = await context.PointSources
             .AsNoTracking()
             .SingleOrDefaultAsync(source => source.Id == id, cancellationToken);
+
         return entity is null ? throw new PointSourceNotFoundException(id) : Deserialize(entity);
     }
 
@@ -73,6 +76,7 @@ internal sealed class PointSourceDatabaseService(
         context.PointSources.Add(new PointSourceEntity
         {
             Id = created.Id,
+
             // The primary key already enforces unique IDs. Keeping the normalized
             // name in the separately indexed Key column makes name uniqueness
             // atomic even when two server processes create sources concurrently.
@@ -81,6 +85,7 @@ internal sealed class PointSourceDatabaseService(
             Created = now,
             Updated = now
         });
+
         try
         {
             await context.SaveChangesAsync(cancellationToken);
@@ -132,6 +137,7 @@ internal sealed class PointSourceDatabaseService(
         entity.Json = Serialize(updated);
         entity.Key = NormalizeName(updated.Name);
         entity.Updated = now;
+
         try
         {
             await SaveWithConcurrencyMapping(entity, cancellationToken);
@@ -152,6 +158,7 @@ internal sealed class PointSourceDatabaseService(
         CancellationToken cancellationToken)
     {
         var entity = await FindTracked(id, cancellationToken);
+
         if (Deserialize(entity).Revision != revision)
         {
             throw new PointSourceConflictException("stale revision");
@@ -173,6 +180,7 @@ internal sealed class PointSourceDatabaseService(
         CancellationToken cancellationToken)
     {
         var sources = await context.PointSources.AsNoTracking().ToListAsync(cancellationToken);
+
         if (sources.Any(entity =>
             entity.Id != exceptId
             && string.Equals(
@@ -197,12 +205,14 @@ internal sealed class PointSourceDatabaseService(
         CancellationToken cancellationToken)
     {
         var groups = await context.PointGroups.AsNoTracking().ToListAsync(cancellationToken);
+
         if (groups.Select(DeserializeGroup).Any(group => group.SourceId == id))
         {
             return true;
         }
 
         var points = await context.Points.AsNoTracking().ToListAsync(cancellationToken);
+
         return points.Select(DeserializePoint).Any(point => point.SourceId == id);
     }
 
@@ -213,6 +223,7 @@ internal sealed class PointSourceDatabaseService(
         try
         {
             await context.SaveChangesAsync(cancellationToken);
+
             if (entity is not null)
             {
                 await context.ReloadAsync(entity, cancellationToken);
@@ -259,6 +270,7 @@ internal sealed class PointSourceDatabaseService(
         public int Compare(PointSource? left, PointSource? right)
         {
             var comparison = StringComparer.OrdinalIgnoreCase.Compare(left?.Name, right?.Name);
+
             return comparison != 0
                 ? comparison
                 : StringComparer.Ordinal.Compare(left?.Id, right?.Id);

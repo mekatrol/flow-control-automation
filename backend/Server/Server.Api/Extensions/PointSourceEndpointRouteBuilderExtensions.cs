@@ -18,6 +18,7 @@ public static class PointSourceEndpointRouteBuilderExtensions
         endpoints.MapDelete("/api/point-sources/{sourceId}", Delete);
         endpoints.MapPost("/api/point-sources/test", TestUnsaved);
         endpoints.MapPost("/api/point-sources/{sourceId}/test", TestSaved);
+
         return endpoints;
     }
 
@@ -27,6 +28,7 @@ public static class PointSourceEndpointRouteBuilderExtensions
         CancellationToken cancellationToken)
     {
         var query = request.Query;
+
         if (!PositiveInteger(query["page"].ToString(), 1, out var page)
             || !PositiveInteger(query["pageSize"].ToString(), 10, out var pageSize)
             || pageSize is not (10 or 20 or 50))
@@ -36,6 +38,7 @@ public static class PointSourceEndpointRouteBuilderExtensions
 
         var sort = query["sort"].ToString();
         sort = sort.Length == 0 ? "ascending" : sort;
+
         if (sort is not ("ascending" or "descending"))
         {
             return Error(StatusCodes.Status400BadRequest, "invalid pagination or sort query");
@@ -64,6 +67,7 @@ public static class PointSourceEndpointRouteBuilderExtensions
         CancellationToken cancellationToken)
     {
         var decoded = await Decode(request, cancellationToken);
+
         return decoded.Error ?? await WriteSource(
             response,
             () => sources.CreateAsync(decoded.Source!, cancellationToken),
@@ -88,6 +92,7 @@ public static class PointSourceEndpointRouteBuilderExtensions
         CancellationToken cancellationToken)
     {
         var decoded = await Decode(request, cancellationToken);
+
         if (decoded.Error is not null)
         {
             return decoded.Error;
@@ -132,6 +137,7 @@ public static class PointSourceEndpointRouteBuilderExtensions
         try
         {
             await sources.DeleteAsync(sourceId, revision, cancellationToken);
+
             return Results.NoContent();
         }
         catch (PointSourceNotFoundException)
@@ -156,6 +162,7 @@ public static class PointSourceEndpointRouteBuilderExtensions
         CancellationToken cancellationToken)
     {
         var decoded = await Decode(request, cancellationToken);
+
         return decoded.Error
             ?? Results.Json(await connectivity.TestAsync(
                 decoded.Source!,
@@ -173,6 +180,7 @@ public static class PointSourceEndpointRouteBuilderExtensions
         try
         {
             var source = await sources.GetAsync(sourceId, cancellationToken);
+
             return Results.Json(await connectivity.TestAsync(
                 source,
                 ClientKey(request),
@@ -193,6 +201,7 @@ public static class PointSourceEndpointRouteBuilderExtensions
         {
             var source = await operation();
             response.Headers.ETag = source.Revision.ToString(CultureInfo.InvariantCulture);
+
             return Results.Text(
                 PointSourceYaml.Render(source),
                 "application/yaml",
@@ -227,11 +236,13 @@ public static class PointSourceEndpointRouteBuilderExtensions
         {
             var buffer = new byte[ConfigurationYaml.MaximumBytes + 1];
             var length = 0;
+
             while (length < buffer.Length)
             {
                 var read = await request.Body.ReadAsync(
                     buffer.AsMemory(length, buffer.Length - length),
                     cancellationToken);
+
                 if (read == 0)
                 {
                     break;
@@ -260,6 +271,7 @@ public static class PointSourceEndpointRouteBuilderExtensions
         if (value.Length == 0)
         {
             result = fallback;
+
             return true;
         }
 

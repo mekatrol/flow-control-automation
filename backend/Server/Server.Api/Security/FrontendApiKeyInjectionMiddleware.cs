@@ -13,6 +13,7 @@ public sealed class FrontendApiKeyInjectionMiddleware(RequestDelegate next)
         if (!CouldReturnFrontendDocument(context.Request))
         {
             await next(context);
+
             return;
         }
 

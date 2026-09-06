@@ -27,6 +27,7 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
         endpoints.MapPost(
             "/api/point-groups/{groupId}/make-points-standalone",
             MakePointsStandalone);
+
         return endpoints;
     }
 
@@ -51,6 +52,7 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
         CancellationToken cancellationToken)
     {
         var options = ParsePointListOptions(request);
+
         if (options.Error is not null)
         {
             return options.Error;
@@ -58,6 +60,7 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
 
         var all = await definitions.ListPointsAsync(cancellationToken);
         IEnumerable<AutomationPoint> filtered = all;
+
         if (!string.IsNullOrWhiteSpace(options.Value!.Filter))
         {
             filtered = filtered.Where(point =>
@@ -85,6 +88,7 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
         CancellationToken cancellationToken)
     {
         var options = ParseGroupListOptions(request);
+
         if (options.Error is not null)
         {
             return options.Error;
@@ -97,6 +101,7 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
                 Contains(group.Name, options.Value.Filter)
                 || Contains(group.Id, options.Value.Filter)
                 || Contains(group.Description, options.Value.Filter));
+
         return Results.Json(Page(
             Sort(filtered, options.Value.Sort, group => group.Name, group => group.Id),
             options.Value.Page,
@@ -110,6 +115,7 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
         CancellationToken cancellationToken)
     {
         var decoded = await Decode(request, PointYaml.Parse, cancellationToken);
+
         return decoded.Error
             ?? await Write(
                 response,
@@ -137,6 +143,7 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
         CancellationToken cancellationToken)
     {
         var decoded = await Decode(request, PointYaml.Parse, cancellationToken);
+
         return decoded.Error ?? (TryRevision(request.Headers.IfMatch.ToString(), "If-Match", out var revision)
             ? await Write(
                 response,
@@ -172,6 +179,7 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
         CancellationToken cancellationToken)
     {
         var decoded = await Decode(request, PointGroupYaml.Parse, cancellationToken);
+
         return decoded.Error
             ?? await Write(
                 response,
@@ -199,6 +207,7 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
         CancellationToken cancellationToken)
     {
         var decoded = await Decode(request, PointGroupYaml.Parse, cancellationToken);
+
         return decoded.Error ?? (TryRevision(request.Headers.IfMatch.ToString(), "If-Match", out var revision)
             ? await Write(
                 response,
@@ -226,6 +235,7 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
         try
         {
             await definitions.DeleteGroupAsync(groupId, revision, cancellationToken);
+
             return Results.NoContent();
         }
         catch (PointDefinitionConflictException exception)
@@ -235,6 +245,7 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
                 .Select(point => point.Id)
                 .Order(StringComparer.Ordinal)
                 .ToArray();
+
             return Error(
                 409,
                 ConflictCode(exception),
@@ -268,6 +279,7 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
                 groupId,
                 revision,
                 cancellationToken);
+
             return Results.Json(new { items = points, updatedItems = points.Count });
         }
         catch (PointDefinitionNotFoundException)
@@ -293,6 +305,7 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
         try
         {
             await operation();
+
             return Results.NoContent();
         }
         catch (PointDefinitionNotFoundException)
@@ -323,9 +336,10 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
             {
                 AutomationPoint point => point.Revision,
                 PointGroup group => group.Revision,
-                _ => throw new InvalidOperationException("Unsupported point resource."),
+                _ => throw new InvalidOperationException("Unsupported point resource.")
             };
             response.Headers.ETag = revision.ToString(CultureInfo.InvariantCulture);
+
             return Results.Text(render(value), "application/yaml", Encoding.UTF8, status);
         }
         catch (PointDefinitionNotFoundException exception)
@@ -356,11 +370,13 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
         {
             var buffer = new byte[ConfigurationYaml.MaximumBytes + 1];
             var length = 0;
+
             while (length < buffer.Length)
             {
                 var read = await request.Body.ReadAsync(
                     buffer.AsMemory(length, buffer.Length - length),
                     cancellationToken);
+
                 if (read == 0)
                 {
                     break;
@@ -386,12 +402,14 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
         HttpRequest request)
     {
         var common = ParseCommonListOptions(request);
+
         if (common.Error is not null)
         {
             return (null, common.Error);
         }
 
         var groupValues = request.Query["groupId"];
+
         if (groupValues.Count > 1)
         {
             return (null, Error(400, "invalid_query", "groupId must be specified once"));
@@ -409,6 +427,7 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
         HttpRequest request)
     {
         var common = ParseCommonListOptions(request);
+
         return common.Error is null
             ? (new PointGroupListOptions(
                 common.Filter!,
@@ -437,6 +456,7 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
 
         var sort = request.Query["sort"].ToString();
         sort = sort.Length == 0 ? "ascending" : sort;
+
         if (sort is not ("ascending" or "descending"))
         {
             return (null, 0, 0, null, Error(
@@ -454,6 +474,7 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
         int pageSize)
     {
         var materialized = items.ToArray();
+
         return new PaginatedResult<T>(
             [.. materialized.Skip((page - 1) * pageSize).Take(pageSize)],
             materialized.Length,
@@ -481,6 +502,7 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
         if (value.Length == 0)
         {
             result = fallback;
+
             return true;
         }
 
@@ -512,7 +534,7 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
         ConfigurationYamlError.MultipleDocuments => "multiple_yaml_documents",
         ConfigurationYamlError.UnsupportedFeature => "unsupported_yaml",
         ConfigurationYamlError.UnsupportedSchema => "unsupported_schema",
-        _ => "invalid_yaml",
+        _ => "invalid_yaml"
     };
 
     private static IResult Error(

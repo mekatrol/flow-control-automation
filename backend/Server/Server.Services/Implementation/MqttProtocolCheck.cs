@@ -23,9 +23,11 @@ internal sealed class MqttProtocolCheck(IConnectivityClock clock) : IMqttProtoco
         var payload = new List<byte>(
             [0, 4, (byte)'M', (byte)'Q', (byte)'T', (byte)'T', 4, 2, 0, 10]);
         payload.AddRange(MqttString(clientId));
+
         if (credential.Length > 0)
         {
             MqttLogin? login;
+
             try
             {
                 login = JsonSerializer.Deserialize<MqttLogin>(
@@ -52,6 +54,7 @@ internal sealed class MqttProtocolCheck(IConnectivityClock clock) : IMqttProtoco
             await stream.WriteAsync(Packet(0x10, payload), operationToken);
             var reply = new byte[4];
             await stream.ReadExactlyAsync(reply, operationToken);
+
             if (reply[0] != 0x20 || reply[1] != 0x02)
             {
                 return "invalid MQTT CONNACK";
@@ -70,6 +73,7 @@ internal sealed class MqttProtocolCheck(IConnectivityClock clock) : IMqttProtoco
                 await stream.WriteAsync(Packet(0x82, subscribe), operationToken);
                 var header = new byte[2];
                 await stream.ReadExactlyAsync(header, operationToken);
+
                 if (header[0] != 0x90 || header[1] < 3)
                 {
                     return "invalid MQTT SUBACK";
@@ -77,6 +81,7 @@ internal sealed class MqttProtocolCheck(IConnectivityClock clock) : IMqttProtoco
 
                 var suback = new byte[header[1]];
                 await stream.ReadExactlyAsync(suback, operationToken);
+
                 if (suback[^1] == 0x80)
                 {
                     return "MQTT topic subscription rejected";
@@ -84,6 +89,7 @@ internal sealed class MqttProtocolCheck(IConnectivityClock clock) : IMqttProtoco
             }
 
             await stream.WriteAsync(new byte[] { 0xe0, 0 }, operationToken);
+
             return null;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -104,10 +110,12 @@ internal sealed class MqttProtocolCheck(IConnectivityClock clock) : IMqttProtoco
     {
         var packet = new List<byte> { packetType };
         var remaining = payload.Count;
+
         do
         {
             var encoded = (byte)(remaining % 128);
             remaining /= 128;
+
             if (remaining > 0)
             {
                 encoded |= 0x80;
@@ -118,6 +126,7 @@ internal sealed class MqttProtocolCheck(IConnectivityClock clock) : IMqttProtoco
         while (remaining > 0);
 
         packet.AddRange(payload);
+
         return [.. packet];
     }
 
@@ -127,6 +136,7 @@ internal sealed class MqttProtocolCheck(IConnectivityClock clock) : IMqttProtoco
         var result = new byte[bytes.Length + 2];
         BinaryPrimitives.WriteUInt16BigEndian(result, checked((ushort)bytes.Length));
         bytes.CopyTo(result, 2);
+
         return result;
     }
 
@@ -138,7 +148,7 @@ internal sealed class MqttProtocolCheck(IConnectivityClock clock) : IMqttProtoco
             0x03 => "MQTT connection rejected: broker unavailable",
             0x04 => "MQTT connection rejected: bad username or password",
             0x05 => "MQTT connection rejected: not authorized",
-            _ => $"MQTT connection rejected: unknown CONNACK code 0x{returnCode:x2}",
+            _ => $"MQTT connection rejected: unknown CONNACK code 0x{returnCode:x2}"
         };
 
     private sealed record MqttLogin(string Username, string Password);

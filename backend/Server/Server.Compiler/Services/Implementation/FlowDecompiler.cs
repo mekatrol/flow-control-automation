@@ -1,6 +1,7 @@
 using Server.Common;
 using Server.Common.Models;
 using Server.Common.Types;
+
 /*
  * FlowDecompiler
  * ==========================================
@@ -242,6 +243,7 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
         {
             var instruction = decoded.Instructions[finalIndex];
             var symbol = decoded.Symbols[finalIndex];
+
             if (!string.Equals(symbol.NodeId, nodeId, StringComparison.Ordinal))
             {
                 Fail(FlowCompilationDiagnosticCode.UnrepresentableSymbol, $"/symbols/{finalIndex}");
@@ -264,6 +266,7 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
             }
 
             RequireSymbol(symbol, finalIndex, 1);
+
             if (!IsCalculatorArithmetic(instruction.Opcode))
             {
                 Fail(FlowCompilationDiagnosticCode.UnsupportedOpcode, $"/instructions/{finalIndex}/opcode");
@@ -281,6 +284,7 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
             $"/symbols/{instructionIndex}");
 
         var formula = Operand(finalInstruction.Operand0, finalIndex);
+
         foreach (var (slot, variable) in variables.OrderBy(item => item.Value))
         {
             AddConnection(connections, slotOwners, slot, nodeId, variable.ToString(), finalIndex);
@@ -531,10 +535,12 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
 
             case FlowOpcodeType.Counter:
                 AddInputConnection("count", instruction.Operand0);
+
                 if (instruction.Operand1 != FlowILV1Format.Unused)
                 {
                     AddInputConnection("reset", instruction.Operand1);
                 }
+
                 break;
 
             case FlowOpcodeType.Delay:
@@ -659,6 +665,7 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
             var length = checked((int)U32(entry, 8));
             var count = checked((int)U32(entry, 12));
             var version = U16(entry, 2);
+
             if (id != index + 1 || version != 1)
             {
                 Fail(FlowCompilationDiagnosticCode.InvalidSectionIdentity, $"/sections/{index}");
@@ -696,6 +703,7 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
     private static List<ConstantRecord> ReadConstants(SectionReader reader)
     {
         var values = new List<ConstantRecord>();
+
         for (var i = 0; i < reader.Count; i++)
         {
             var prefix = reader.Fixed(4, $"/constants/{i}");
@@ -727,7 +735,9 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
                 Fail(FlowCompilationDiagnosticCode.UnsupportedConstantEncoding, $"/constants/{i}");
             }
         }
+
         reader.End("/constants");
+
         return values;
     }
 
@@ -773,6 +783,7 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
         }
 
         reader.End("/points");
+
         return values;
     }
 
@@ -783,6 +794,7 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
     private static Dictionary<ushort, SlotRecord> ReadSlots(SectionReader reader)
     {
         var values = new Dictionary<ushort, SlotRecord>();
+
         for (var i = 0; i < reader.Count; i++)
         {
             var record = reader.Fixed(8, $"/slots/{i}");
@@ -797,7 +809,9 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
                 Fail(FlowCompilationDiagnosticCode.InvalidSlot, $"/slots/{i}");
             }
         }
+
         reader.End("/slots");
+
         return values;
     }
 
@@ -817,9 +831,11 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
     private static List<Instruction> ReadInstructions(SectionReader reader)
     {
         var values = new List<Instruction>();
+
         for (var i = 0; i < reader.Count; i++)
         {
             var record = reader.Fixed(12, $"/instructions/{i}");
+
             if (record[1] != 0 || U16(record, 10) != 0)
             {
                 Fail(FlowCompilationDiagnosticCode.InvalidInstructionEncoding, $"/instructions/{i}");
@@ -832,7 +848,9 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
                 U16(record, 6),
                 U16(record, 8)));
         }
+
         reader.End("/instructions");
+
         return values;
     }
 
@@ -850,9 +868,11 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
         }
 
         var values = new List<SymbolRecord>();
+
         for (var i = 0; i < reader.Count; i++)
         {
             var prefix = reader.Fixed(3, $"/symbols/{i}");
+
             if (U16(prefix, 0) != i)
             {
                 Fail(FlowCompilationDiagnosticCode.InvalidSymbolIndex, $"/symbols/{i}");
@@ -866,18 +886,22 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
             var groupId = reader.String8AllowEmpty($"/symbols/{i}/groupId");
             values.Add(new SymbolRecord(prefix[2], nodeId, label, x, y, zOrder, groupId));
         }
+
         reader.End("/symbols");
+
         return values;
     }
 
     private static List<Dependency> ReadDependencies(SectionReader reader)
     {
         var values = new List<Dependency>();
+
         for (var i = 0; i < reader.Count; i++)
         {
             var kind = (FlowDependencyKind)reader.Fixed(1, $"/dependencies/{i}")[0];
             var id = reader.String8($"/dependencies/{i}/id");
             var revision = U32(reader.Fixed(4, $"/dependencies/{i}/revision"), 0);
+
             if (revision == 0)
             {
                 Fail(FlowCompilationDiagnosticCode.InvalidDependencyRevision, $"/dependencies/{i}/revision");
@@ -885,7 +909,9 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
 
             values.Add(new Dependency(kind, id, revision));
         }
+
         reader.End("/dependencies");
+
         return values;
     }
 
@@ -1148,6 +1174,7 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
 
         configuration["frequencyHz"] = JsonSerializer.SerializeToElement(1_000D / constants[slot!.InitialConstant].Number);
         configuration["dutyCycle"] = JsonSerializer.SerializeToElement(constants[dutyCycleConstantIndex].Number);
+
         return FlowNodeType.Clock;
     }
 

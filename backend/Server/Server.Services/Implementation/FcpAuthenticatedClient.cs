@@ -27,13 +27,16 @@ public sealed class FcpAuthenticatedClient(
         {
             throw new ArgumentException("FCP authentication key or payload is outside protocol bounds.");
         }
+
         await _gate.WaitAsync(cancellationToken);
+
         try
         {
             if (_sessionId == 0)
             {
                 await Authenticate(cancellationToken);
             }
+
             var sequence = ++_sequence;
             var body = new byte[12 + payload.Length + TagBytes];
             BinaryPrimitives.WriteUInt32LittleEndian(body, _sessionId);
@@ -41,21 +44,25 @@ public sealed class FcpAuthenticatedClient(
             payload.Span.CopyTo(body.AsSpan(12));
             Sign("FCP1REQT"u8, sequence, operation, payload.Span, body.AsSpan(12 + payload.Length));
             var response = await Exchange(operation, body, AuthenticatedFlag, cancellationToken);
+
             if ((response.Flags & AuthenticatedFlag) == 0 || response.Payload.Length < 12 + TagBytes)
             {
                 throw Protocol("missing authenticated response envelope");
             }
+
             var responseSpan = response.Payload.Span;
             var responseSession = BinaryPrimitives.ReadUInt32LittleEndian(responseSpan);
             var responseSequence = BinaryPrimitives.ReadUInt64LittleEndian(responseSpan[4..]);
             var responseBody = response.Payload[12..^TagBytes];
             Span<byte> expected = stackalloc byte[TagBytes];
             Sign("FCP1RESP"u8, responseSequence, operation, responseBody.Span, expected);
+
             if (responseSession != _sessionId || responseSequence != sequence
                 || !CryptographicOperations.FixedTimeEquals(expected, responseSpan[^TagBytes..]))
             {
                 throw Protocol("authenticated response verification failed");
             }
+
             if ((response.Flags & ErrorFlag) != 0)
             {
                 var code = responseBody.Length >= 2
@@ -63,6 +70,7 @@ public sealed class FcpAuthenticatedClient(
                     : (ushort)0;
                 throw new ControllerGatewayException(ErrorCategory(code), $"Controller returned FCP error {code}.");
             }
+
             return responseBody;
         }
         finally
@@ -75,10 +83,12 @@ public sealed class FcpAuthenticatedClient(
     {
         var clientNonce = RandomNumberGenerator.GetBytes(16);
         var challenge = await Exchange(0x30, clientNonce, 0, cancellationToken);
+
         if (challenge.Payload.Length != 20 || (challenge.Flags & ErrorFlag) != 0)
         {
             throw new ControllerGatewayException("authentication", "Controller authentication challenge failed.");
         }
+
         _sessionId = BinaryPrimitives.ReadUInt32LittleEndian(challenge.Payload.Span);
         var transcript = new byte[8 + 2 + 4 + 16 + 16];
         "FCP1PROF"u8.CopyTo(transcript);
@@ -90,6 +100,7 @@ public sealed class FcpAuthenticatedClient(
         BinaryPrimitives.WriteUInt32LittleEndian(proofBody, _sessionId);
         HMACSHA256.HashData(options.AuthenticationKey, transcript).CopyTo(proofBody, 4);
         var proof = await Exchange(0x31, proofBody, 0, cancellationToken);
+
         if ((proof.Flags & ErrorFlag) != 0 || proof.Payload.Length != 4
             || BinaryPrimitives.ReadUInt32LittleEndian(proof.Payload.Span) != _sessionId)
         {
@@ -109,6 +120,7 @@ public sealed class FcpAuthenticatedClient(
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(options.RequestTimeout);
         var responseBytes = await transport.TransceiveAsync(frame, timeout.Token);
+
         return DecodeFrame(responseBytes.Span, operation, transaction);
     }
 
@@ -126,6 +138,7 @@ public sealed class FcpAuthenticatedClient(
         BinaryPrimitives.WriteUInt16LittleEndian(frame.AsSpan(11), checked((ushort)payload.Length));
         payload.CopyTo(frame.AsSpan(HeaderBytes));
         BinaryPrimitives.WriteUInt16LittleEndian(frame.AsSpan(^2), Crc(frame.AsSpan(..^2)));
+
         return frame;
     }
 
@@ -141,6 +154,7 @@ public sealed class FcpAuthenticatedClient(
         {
             throw Protocol("invalid or mismatched FCP response frame");
         }
+
         return new(frame[3], frame[HeaderBytes..^2].ToArray());
     }
 
@@ -168,14 +182,17 @@ public sealed class FcpAuthenticatedClient(
     private static ushort Crc(ReadOnlySpan<byte> bytes)
     {
         ushort crc = 0xffff;
+
         foreach (var value in bytes)
         {
             crc ^= value;
+
             for (var bit = 0; bit < 8; bit++)
             {
                 crc = (crc & 1) != 0 ? (ushort)((crc >> 1) ^ 0xa001) : (ushort)(crc >> 1);
             }
         }
+
         return crc;
     }
 

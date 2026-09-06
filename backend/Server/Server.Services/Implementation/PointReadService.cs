@@ -18,6 +18,7 @@ internal sealed class PointReadService(
         CancellationToken cancellationToken)
     {
         var point = await definitions.GetPointAsync(pointId, cancellationToken);
+
         if (!point.Enabled)
         {
             return Unavailable(point, "disabled", "Point is disabled.");
@@ -33,6 +34,7 @@ internal sealed class PointReadService(
             if (virtualPoints is not null && virtualPoints.TrySnapshot("server", point.Id, out var snapshot))
             {
                 var value = snapshot.Value;
+
                 return new PointRuntimeEnvelope(
                     point.Id,
                     value is null ? null : value.DataType == DataType.Number
@@ -47,6 +49,7 @@ internal sealed class PointReadService(
                     value is null ? "unavailable" : "ok",
                     value is null ? "Virtual point has no commissioned runtime value." : string.Empty);
             }
+
             return Unavailable(
                 point,
                 "not_initialized",
@@ -59,6 +62,7 @@ internal sealed class PointReadService(
         }
 
         var sourceId = point.SourceId;
+
         if (sourceId is null && point.GroupId is not null)
         {
             sourceId = (await definitions.GetGroupAsync(
@@ -72,6 +76,7 @@ internal sealed class PointReadService(
         }
 
         PointSource source;
+
         try
         {
             source = await sources.GetAsync(sourceId, cancellationToken);
@@ -104,6 +109,7 @@ internal sealed class PointReadService(
     {
         var path = point.Mapping?["path"]?.GetValue<string>();
         var pointer = point.Mapping?["jsonPointer"]?.GetValue<string>();
+
         if (string.IsNullOrWhiteSpace(path))
         {
             return Unavailable(point, "unconfigured", "HTTP/JSON point mapping has no path.");
@@ -111,6 +117,7 @@ internal sealed class PointReadService(
 
         var endpoint = new Uri(new Uri(source.Connection.BaseUrl!), path);
         IReadOnlyList<System.Net.IPAddress> addresses;
+
         try
         {
             addresses = await dns.LookupAsync(endpoint.Host, cancellationToken);
@@ -128,6 +135,7 @@ internal sealed class PointReadService(
         }
 
         string credential;
+
         try
         {
             credential = await credentials.ResolveAsync(source.CredentialRef ?? string.Empty, cancellationToken);
@@ -138,6 +146,7 @@ internal sealed class PointReadService(
         }
 
         var result = await http.ReadAsync(source, endpoint, credential, addresses, cancellationToken);
+
         if (result.Diagnostic is not null || result.Response is null)
         {
             return Unavailable(point, "disconnected", result.Diagnostic ?? "HTTP/JSON response was unavailable.");
@@ -146,6 +155,7 @@ internal sealed class PointReadService(
         try
         {
             var value = JsonNode.Parse(result.Response.Body);
+
             if (!string.IsNullOrEmpty(pointer))
             {
                 foreach (var rawSegment in pointer.Split('/', StringSplitOptions.RemoveEmptyEntries))
@@ -163,6 +173,7 @@ internal sealed class PointReadService(
             }
 
             var now = DateTimeOffset.UtcNow.ToString("O");
+
             return new(
                 point.Id,
                 value.DeepClone(),
@@ -203,6 +214,6 @@ internal sealed class PointReadService(
         "homeAssistant" => "Home Assistant",
         "mqtt" => "MQTT",
         "httpJson" => "HTTP/JSON",
-        _ => "Point source",
+        _ => "Point source"
     };
 }

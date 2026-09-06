@@ -17,6 +17,7 @@ public static class FlowEmulatorEndpointRouteBuilderExtensions
         endpoints.MapPost("/api/emulators/{emulatorId}/reset", Reset);
         endpoints.MapPost("/api/emulators/{emulatorId}/reset-inputs", ResetInputs);
         endpoints.MapDelete("/api/emulators/{emulatorId}", Delete);
+
         return endpoints;
     }
 
@@ -72,6 +73,7 @@ public static class FlowEmulatorEndpointRouteBuilderExtensions
     private static IResult Delete(string emulatorId, IFlowEmulatorService emulators)
     {
         emulators.Delete(emulatorId);
+
         return Results.NoContent();
     }
 

@@ -169,6 +169,7 @@ internal sealed class PointSourceEndpointTests
     {
         await using var factory = new Api.FlowControlApplicationFactory();
         using var client = factory.CreateClient();
+
         for (var index = 1; index <= 12; index++)
         {
             var source = ValidHttpSource() with
@@ -495,6 +496,7 @@ internal sealed class PointSourceEndpointTests
                 Encoding.UTF8,
                 "application/yaml")
         };
+
         if (revision is not null)
         {
             request.Headers.TryAddWithoutValidation("If-Match", revision.Value.ToString());
@@ -506,6 +508,7 @@ internal sealed class PointSourceEndpointTests
     private static Task<HttpResponseMessage> SendRawYaml(HttpClient client, string yaml)
     {
         var content = new StringContent(yaml, Encoding.UTF8, "application/yaml");
+
         return client.PostAsync("/api/point-sources", content);
     }
 

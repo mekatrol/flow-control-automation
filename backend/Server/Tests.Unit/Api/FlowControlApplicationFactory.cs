@@ -26,11 +26,13 @@ internal sealed class FlowControlApplicationFactory(
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment(environment);
+
         // Tests assert expected persistence failures directly. Avoid the Windows
         // Event Log provider, which requires machine-level write permission and
         // can otherwise replace the domain exception being asserted.
         builder.ConfigureLogging(logging => logging.ClearProviders());
         Directory.CreateDirectory(_temporaryDirectory);
+
         if (frontendIndex is not null)
         {
             var webRoot = Path.Combine(_temporaryDirectory, "wwwroot");
@@ -79,6 +81,7 @@ internal sealed class FlowControlApplicationFactory(
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);
+
         if (disposing && Directory.Exists(_temporaryDirectory))
         {
             Directory.Delete(_temporaryDirectory, recursive: true);

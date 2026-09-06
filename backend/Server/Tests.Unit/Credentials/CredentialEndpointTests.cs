@@ -517,6 +517,7 @@ internal sealed class CredentialEndpointTests
             body.Contains(input.Password ?? input.Token!, StringComparison.Ordinal),
             Is.False,
             "API response contains plaintext credential material");
+
         return System.Text.Json.JsonSerializer.Deserialize<CredentialMetadata>(
             body,
             FlowControlJson.Options)!;

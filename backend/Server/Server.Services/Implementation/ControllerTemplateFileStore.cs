@@ -21,9 +21,11 @@ internal sealed class ControllerTemplateFileStore(
         CancellationToken cancellationToken)
     {
         await _gate.WaitAsync(cancellationToken);
+
         try
         {
             var document = await Load(cancellationToken);
+
             return [BuiltInControllerTemplate.Default, .. document.Templates
                 .OrderBy(template => template.Name, StringComparer.OrdinalIgnoreCase)
                 .ThenBy(template => template.Id, StringComparer.Ordinal)];
@@ -44,6 +46,7 @@ internal sealed class ControllerTemplateFileStore(
         }
 
         await _gate.WaitAsync(cancellationToken);
+
         try
         {
             return (await Load(cancellationToken)).Templates.FirstOrDefault(
@@ -62,6 +65,7 @@ internal sealed class ControllerTemplateFileStore(
     {
         _validator.Validate(template);
         await _gate.WaitAsync(cancellationToken);
+
         try
         {
             var document = await Load(cancellationToken);
@@ -81,6 +85,7 @@ internal sealed class ControllerTemplateFileStore(
                     Templates = [.. document.Templates, created],
                 },
                 cancellationToken);
+
             return created;
         }
         finally
@@ -96,6 +101,7 @@ internal sealed class ControllerTemplateFileStore(
         CancellationToken cancellationToken)
     {
         EnsureMutable(id);
+
         if (template.Id != id)
         {
             throw new ControllerTemplateValidationException(
@@ -104,11 +110,13 @@ internal sealed class ControllerTemplateFileStore(
 
         _validator.Validate(template);
         await _gate.WaitAsync(cancellationToken);
+
         try
         {
             var document = await Load(cancellationToken);
             var previous = document.Templates.FirstOrDefault(item => item.Id == id)
                 ?? throw new ControllerTemplateNotFoundException(id);
+
             if (previous.Revision != revision)
             {
                 throw new ControllerTemplateConflictException("stale revision");
@@ -129,6 +137,7 @@ internal sealed class ControllerTemplateFileStore(
                     Templates = [.. document.Templates.Select(item => item.Id == id ? updated : item)]
                 },
                 cancellationToken);
+
             return updated;
         }
         finally
@@ -144,11 +153,13 @@ internal sealed class ControllerTemplateFileStore(
     {
         EnsureMutable(id);
         await _gate.WaitAsync(cancellationToken);
+
         try
         {
             var document = await Load(cancellationToken);
             var existing = document.Templates.FirstOrDefault(item => item.Id == id)
                 ?? throw new ControllerTemplateNotFoundException(id);
+
             if (existing.Revision != revision)
             {
                 throw new ControllerTemplateConflictException("stale revision");
@@ -186,6 +197,7 @@ internal sealed class ControllerTemplateFileStore(
             FlowControlJson.Options,
             cancellationToken)
             ?? throw new InvalidDataException("Controller template data is empty.");
+
         if (document.SchemaVersion != 1)
         {
             throw new InvalidDataException("Unsupported controller template schema version.");
@@ -193,9 +205,11 @@ internal sealed class ControllerTemplateFileStore(
 
         var ids = new HashSet<string>(StringComparer.Ordinal);
         var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var template in document.Templates)
         {
             _validator.Validate(template);
+
             if (!ids.Add(template.Id) || !names.Add(template.Name))
             {
                 throw new InvalidDataException("Controller template IDs and names must be unique.");
@@ -215,6 +229,7 @@ internal sealed class ControllerTemplateFileStore(
         var temporaryPath = Path.Combine(
             directory,
             $".{Path.GetFileName(_path)}.{Guid.NewGuid():N}.tmp");
+
         try
         {
             await using (var stream = new FileStream(

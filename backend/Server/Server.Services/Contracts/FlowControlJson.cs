@@ -28,6 +28,7 @@ public static class FlowControlJson
     {
         var options = new JsonSerializerOptions();
         Configure(options);
+
         return options;
     }
 }

@@ -7,6 +7,7 @@ public static class PointSourceYaml
         var document = ConfigurationYaml.Parse<PointSourceDocument>(
             yaml,
             ConfigurationKind.PointSources);
+
         if (document.Sources.Count != 1)
         {
             throw new ConfigurationYamlException(
@@ -26,6 +27,7 @@ public static class PointSourceYaml
             CreatedAt = null,
             UpdatedAt = null
         };
+
         return ConfigurationYaml.Render(
             new PointSourceDocument { Sources = [transportSource] });
     }

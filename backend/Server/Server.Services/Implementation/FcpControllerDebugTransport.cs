@@ -33,6 +33,7 @@ public sealed class FcpControllerDebugTransport(IFcpClient client) : IController
             BinaryPrimitives.ReadUInt64LittleEndian(beginResponse.Span),
             BinaryPrimitives.ReadUInt16LittleEndian(beginResponse.Span[8..]),
             BinaryPrimitives.ReadUInt32LittleEndian(beginResponse.Span[10..]));
+
         if (load.SessionId == 0 || load.ChunkLimit is 0 or > 180 || load.LeaseMilliseconds == 0)
         {
             throw Protocol("debug load response contains invalid bounds");
@@ -47,6 +48,7 @@ public sealed class FcpControllerDebugTransport(IFcpClient client) : IController
             artifact.Span.Slice(offset, size).CopyTo(chunk.AsSpan(12));
             var chunkResponse = await Exchange(0x51, chunk, cancellationToken);
             RequireLength(chunkResponse, 6, "debug chunk response");
+
             if (BinaryPrimitives.ReadUInt32LittleEndian(chunkResponse.Span) != offset
                 || BinaryPrimitives.ReadUInt16LittleEndian(chunkResponse.Span[4..]) != size)
             {
@@ -90,6 +92,7 @@ public sealed class FcpControllerDebugTransport(IFcpClient client) : IController
         var body = new byte[12];
         BinaryPrimitives.WriteUInt64LittleEndian(body, sessionId);
         BinaryPrimitives.WriteUInt32LittleEndian(body.AsSpan(8), intervalMilliseconds);
+
         return RunCoreAsync(body, cancellationToken);
     }
 
@@ -105,42 +108,52 @@ public sealed class FcpControllerDebugTransport(IFcpClient client) : IController
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(confirmedPointIds);
+
         if (confirmedPointIds.Count is 0 or > 64)
         {
             throw new ArgumentOutOfRangeException(nameof(confirmedPointIds));
         }
+
         var encoded = confirmedPointIds.Select(pointId =>
         {
             var bytes = Encoding.UTF8.GetBytes(pointId);
+
             if (bytes.Length is 0 or > 63)
             {
                 throw new ArgumentException("Confirmed output point IDs must contain 1-63 UTF-8 bytes.", nameof(confirmedPointIds));
             }
+
             return bytes;
         }).ToArray();
         var bodyLength = 9 + encoded.Sum(bytes => 1 + bytes.Length);
+
         if (bodyLength > 241)
         {
             throw new ArgumentException("Confirmed output point list exceeds the controller frame limit.", nameof(confirmedPointIds));
         }
+
         var body = new byte[bodyLength];
         BinaryPrimitives.WriteUInt64LittleEndian(body, sessionId);
         body[8] = checked((byte)encoded.Length);
         var offset = 9;
+
         foreach (var pointId in encoded)
         {
             body[offset++] = checked((byte)pointId.Length);
             pointId.CopyTo(body, offset);
             offset += pointId.Length;
         }
+
         var response = await Exchange(0x5b, body, cancellationToken);
         RequireLength(response, 5, "enable live output response");
         var priority = response.Span[0];
         var holdMilliseconds = BinaryPrimitives.ReadUInt32LittleEndian(response.Span[1..]);
+
         if (priority is < 1 or > 16 || holdMilliseconds is 0 or > 1000)
         {
             throw Protocol("controller returned unsafe live-output policy");
         }
+
         return new(priority, holdMilliseconds);
     }
 
@@ -163,6 +176,7 @@ public sealed class FcpControllerDebugTransport(IFcpClient client) : IController
         var chunkLimit = BinaryPrimitives.ReadUInt16LittleEndian(header.Span[22..]);
         expectedLength ??= totalLength;
         expectedDigest ??= header.Slice(24, DigestBytes).ToArray();
+
         if (headerSession != sessionId || headerTick != tick || totalLength != expectedLength
             || totalLength is 0 or > 16384 || chunkCount == 0 || chunkLimit == 0
             || !header.Span.Slice(24, DigestBytes).SequenceEqual(expectedDigest))
@@ -172,6 +186,7 @@ public sealed class FcpControllerDebugTransport(IFcpClient client) : IController
 
         var bytes = new byte[totalLength];
         var covered = 0;
+
         for (ushort index = 0; index < chunkCount; index++)
         {
             var request = new byte[18];
@@ -179,6 +194,7 @@ public sealed class FcpControllerDebugTransport(IFcpClient client) : IController
             BinaryPrimitives.WriteUInt64LittleEndian(request.AsSpan(8), tick);
             BinaryPrimitives.WriteUInt16LittleEndian(request.AsSpan(16), index);
             var chunk = await Exchange(0x56, request, cancellationToken);
+
             if (chunk.Length < 24
                 || BinaryPrimitives.ReadUInt64LittleEndian(chunk.Span) != sessionId
                 || BinaryPrimitives.ReadUInt64LittleEndian(chunk.Span[8..]) != tick
@@ -190,11 +206,13 @@ public sealed class FcpControllerDebugTransport(IFcpClient client) : IController
             }
 
             var data = chunk[24..];
+
             if (data.IsEmpty || data.Length > chunkLimit || covered + data.Length > bytes.Length
                 || (index + 1 < chunkCount && data.Length != chunkLimit))
             {
                 throw Protocol("snapshot chunk length is invalid");
             }
+
             data.Span.CopyTo(bytes.AsSpan(covered));
             covered += data.Length;
         }
@@ -203,6 +221,7 @@ public sealed class FcpControllerDebugTransport(IFcpClient client) : IController
         {
             throw Protocol("snapshot is incomplete or failed digest validation");
         }
+
         return new(sessionId, tick, bytes, expectedDigest);
     }
 
@@ -216,6 +235,7 @@ public sealed class FcpControllerDebugTransport(IFcpClient client) : IController
     {
         var response = await Exchange(0x58, SessionBody(sessionId), cancellationToken);
         RequireLength(response, 8, "debug stop response");
+
         if (BinaryPrimitives.ReadUInt64LittleEndian(response.Span) != sessionId)
         {
             throw Protocol("stopped session ID does not match request");
@@ -256,12 +276,15 @@ public sealed class FcpControllerDebugTransport(IFcpClient client) : IController
         {
             throw Protocol("debug status response is truncated");
         }
+
         var span = response.Span;
         var pathLength = span[35];
+
         if (pathLength > 63 || response.Length != 36 + pathLength)
         {
             throw Protocol("debug status reason path has invalid length");
         }
+
         return new(
             BinaryPrimitives.ReadUInt64LittleEndian(span),
             span[8],
@@ -279,6 +302,7 @@ public sealed class FcpControllerDebugTransport(IFcpClient client) : IController
         ArgumentOutOfRangeException.ThrowIfZero(sessionId);
         var body = new byte[8];
         BinaryPrimitives.WriteUInt64LittleEndian(body, sessionId);
+
         return body;
     }
 

@@ -53,6 +53,7 @@ internal sealed class AutomationPointTests
     {
         var json = JsonSerializer.SerializeToNode(Point(PointSourceType.Virtual), FlowControlJson.Options)!.AsObject();
         json.Remove("pointSourceType");
+
         if (sourceType is not null)
         {
             json["pointSourceType"] = sourceType;

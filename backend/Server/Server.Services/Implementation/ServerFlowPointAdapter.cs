@@ -17,6 +17,7 @@ internal sealed class ServerFlowPointAdapter(
         await using var scope = scopes.CreateAsyncScope();
         var reader = scope.ServiceProvider.GetRequiredService<IPointReadService>();
         var result = new FlowVmInput[pointIds.Count];
+
         for (var index = 0; index < pointIds.Count; index++)
         {
             if (virtualPoints.TrySnapshot("server", pointIds[index], out var snapshot))
@@ -26,6 +27,7 @@ internal sealed class ServerFlowPointAdapter(
                     snapshot.Value ?? FlowVmValue.FromBoolean(false, DataQualityType.Unavailable));
                 continue;
             }
+
             var envelope = await reader.ReadAsync(pointIds[index], cancellationToken);
             result[index] = new FlowVmInput(pointIds[index], ParseValue(envelope.Value?.ToJsonString(), envelope.Quality));
         }
@@ -40,6 +42,7 @@ internal sealed class ServerFlowPointAdapter(
     {
         cancellationToken.ThrowIfCancellationRequested();
         await virtualPoints.CommitAsync("server", flowId, commands, cancellationToken);
+
         lock (_gate)
         {
             _latestCommands[flowId] = [.. commands];
@@ -56,6 +59,7 @@ internal sealed class ServerFlowPointAdapter(
         try
         {
             using var document = JsonDocument.Parse(json);
+
             return document.RootElement.ValueKind switch
             {
                 JsonValueKind.True => FlowVmValue.FromBoolean(true, quality),

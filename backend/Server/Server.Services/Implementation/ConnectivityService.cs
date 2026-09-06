@@ -31,6 +31,7 @@ internal sealed class ConnectivityService(
         ConnectivityResult Failed(string name, string diagnostic)
         {
             stages.Add(new(name, "failed", diagnostic));
+
             return Result("failed");
         }
 
@@ -58,6 +59,7 @@ internal sealed class ConnectivityService(
         using var dnsTimeout = CancellationTokenSource.CreateLinkedTokenSource(
             cancellationToken);
         dnsTimeout.CancelAfter(connectTimeout);
+
         try
         {
             addresses = await dns.LookupAsync(target.Host, dnsTimeout.Token);
@@ -100,10 +102,11 @@ internal sealed class ConnectivityService(
                 "mqtts" => 8883,
                 "mqtt" => 1883,
                 "http" => 80,
-                _ => 443,
+                _ => 443
             }
             : target.Port;
         Stream connection;
+
         try
         {
             connection = await tcp.ConnectAsync(
@@ -124,6 +127,7 @@ internal sealed class ConnectivityService(
         try
         {
             stages.Add(new("tcp", "passed"));
+
             if (target.Scheme is "https" or "mqtts")
             {
                 try
@@ -149,6 +153,7 @@ internal sealed class ConnectivityService(
             }
 
             string credential;
+
             try
             {
                 credential = await credentialResolver.ResolveAsync(
@@ -172,6 +177,7 @@ internal sealed class ConnectivityService(
 
             stages.Add(new("authentication", "passed"));
             string? diagnostic;
+
             try
             {
                 if (source.Kind == "mqtt")
@@ -210,6 +216,7 @@ internal sealed class ConnectivityService(
             }
 
             stages.Add(new("protocol", "passed"));
+
             return Result("passed");
         }
         finally

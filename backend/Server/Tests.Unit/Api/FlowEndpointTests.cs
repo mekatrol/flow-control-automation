@@ -63,7 +63,7 @@ internal sealed class FlowEndpointTests
                     {
                         ["interval"] = JsonSerializer.SerializeToElement(60)
                     }
-                },
+                }
             ]
         };
         using var saveResponse = await client.PutAsJsonAsync(
@@ -167,6 +167,7 @@ internal sealed class FlowEndpointTests
     {
         await using var factory = new FlowControlApplicationFactory();
         using var client = factory.CreateClient();
+
         for (var index = 1; index <= 25; index++)
         {
             await CreateFlow(client, $"Flow {index:00}");
@@ -567,6 +568,7 @@ internal sealed class FlowEndpointTests
             // runtime routes return not found for missing flow.
             Assert.That(response.Content.Headers.ContentType?.MediaType, Is.EqualTo("application/json"));
         }
+
         return (await response.Content.ReadFromJsonAsync<Flow>(FlowControlJson.Options))!;
     }
 

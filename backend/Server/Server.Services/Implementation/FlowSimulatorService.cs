@@ -18,6 +18,7 @@ public sealed class FlowSimulatorService(
         var registry = new FlowDebugSessionRegistry();
         FlowSimulatorSessionRegistry.Entry entry;
         var emulator = await emulators.CreateAsync(source, cancellationToken);
+
         try { entry = sessions.Add(source.Id, registry, replaceExisting, emulator.EmulatorId, () => emulators.Delete(emulator.EmulatorId)); }
         catch
         {
@@ -25,9 +26,11 @@ public sealed class FlowSimulatorService(
             emulators.Delete(emulator.EmulatorId);
             throw;
         }
+
         try
         {
             var result = await Debug(registry).StartAsync(new StartFlowDebugSession(source, "emulator", false, emulator.EmulatorId), cancellationToken);
+
             return Map(result, entry, sessions.Touch(entry));
         }
         catch
@@ -44,6 +47,7 @@ public sealed class FlowSimulatorService(
     {
         var entry = Require(flowId, sessionId);
         await Debug(entry.Registry).StepAsync(flowId, sessionId, cancellationToken);
+
         return Map(entry.Registry.Session!, entry, sessions.Touch(entry));
     }
 
@@ -56,6 +60,7 @@ public sealed class FlowSimulatorService(
         var entry = Require(flowId, sessionId);
         emulators.SetInputs(entry.EmulatorId!, inputs);
         await Debug(entry.Registry).StepAsync(flowId, sessionId, cancellationToken);
+
         return Map(entry.Registry.Session!, entry, sessions.Touch(entry));
     }
 
@@ -67,6 +72,7 @@ public sealed class FlowSimulatorService(
     {
         var entry = Require(flowId, sessionId);
         emulators.SetInputs(entry.EmulatorId!, inputs);
+
         return Task.FromResult(Map(entry.Registry.Session!, entry, sessions.Touch(entry)));
     }
 
@@ -75,6 +81,7 @@ public sealed class FlowSimulatorService(
         var entry = Require(flowId, sessionId);
         emulators.Advance(entry.EmulatorId!, milliseconds, scan: false);
         await Debug(entry.Registry).StepAsync(flowId, sessionId, cancellationToken);
+
         return Map(entry.Registry.Session!, entry, sessions.Touch(entry));
     }
 
@@ -82,6 +89,7 @@ public sealed class FlowSimulatorService(
     {
         var entry = Require(flowId, sessionId);
         emulators.InjectFault(entry.EmulatorId!, fault);
+
         return Task.FromResult(Map(entry.Registry.Session!, entry, sessions.Touch(entry)));
     }
 
@@ -90,6 +98,7 @@ public sealed class FlowSimulatorService(
         var entry = Require(flowId, sessionId);
         emulators.Reset(entry.EmulatorId!, powerCycle);
         var debug = await Debug(entry.Registry).RestartAsync(flowId, sessionId, cancellationToken);
+
         return Map(debug, entry, sessions.Touch(entry));
     }
 
@@ -97,6 +106,7 @@ public sealed class FlowSimulatorService(
     {
         var entry = Require(flowId, sessionId);
         emulators.ResetInputs(entry.EmulatorId!);
+
         return Task.FromResult(Map(entry.Registry.Session!, entry, sessions.Touch(entry)));
     }
 
@@ -108,8 +118,10 @@ public sealed class FlowSimulatorService(
     {
         var entry = Require(flowId, sessionId);
         entry.StopContinuous();
+
         return Map(await Debug(entry.Registry).RestartAsync(flowId, sessionId, cancellationToken), entry, sessions.Touch(entry));
     }
+
     public async Task<FlowSimulatorSession> RunAsync(string flowId, string sessionId, uint intervalMilliseconds, CancellationToken cancellationToken)
     {
         var entry = Require(flowId, sessionId);
@@ -122,12 +134,15 @@ public sealed class FlowSimulatorService(
             await Debug(entry.Registry).StepAsync(flowId, sessionId, token);
             entry.Registry.Session = entry.Registry.Session! with { LifecycleState = "running", Mode = "interval" };
         }, intervalMilliseconds);
+
         return Map(entry.Registry.Session, entry, sessions.Touch(entry));
     }
+
     public async Task<FlowSimulatorSession> PauseAsync(string flowId, string sessionId, CancellationToken cancellationToken)
     {
         var entry = Require(flowId, sessionId);
         entry.StopContinuous();
+
         return Map(await Debug(entry.Registry).PauseAsync(flowId, sessionId, cancellationToken), entry, sessions.Touch(entry));
     }
 
@@ -135,6 +150,7 @@ public sealed class FlowSimulatorService(
     {
         cancellationToken.ThrowIfCancellationRequested();
         sessions.Touch(Require(flowId, sessionId));
+
         return Task.CompletedTask;
     }
 
@@ -142,6 +158,7 @@ public sealed class FlowSimulatorService(
     {
         var entry = Require(flowId, sessionId);
         entry.StopContinuous();
+
         try { await Debug(entry.Registry).StopAsync(flowId, sessionId, cancellationToken); }
         finally { sessions.Remove(flowId, sessionId); }
     }
@@ -150,18 +167,21 @@ public sealed class FlowSimulatorService(
     {
         cancellationToken.ThrowIfCancellationRequested();
         sessions.Clear();
+
         return Task.CompletedTask;
     }
 
     private async Task<FlowSimulatorSession> Execute(string flowId, string sessionId, Func<IFlowDebugService, Task<FlowDebugSession>> operation)
     {
         var entry = Require(flowId, sessionId);
+
         return Map(await operation(Debug(entry.Registry)), entry, sessions.Touch(entry));
     }
 
     private FlowSimulatorSessionRegistry.Entry Require(string flowId, string sessionId)
     {
         var entry = sessions.Get(flowId) ?? throw new FlowSimulatorException("simulator_session_not_found", "The simulator session was not found or has expired.");
+
         if (!string.Equals(entry.Registry.Session?.DebugSessionId, sessionId, StringComparison.Ordinal))
         {
             throw new FlowSimulatorException("simulator_session_not_found", "The simulator session was not found.");

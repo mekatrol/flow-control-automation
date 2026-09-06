@@ -31,6 +31,7 @@ internal sealed class FlowRuntimeService(
     public RuntimeSnapshot Get(Flow flow)
     {
         ArgumentNullException.ThrowIfNull(flow);
+
         return flow.Disabled
             ? Stop(flow)
             : _snapshots.GetValueOrDefault(flow.Id) ?? Snapshot(flow, "stopped");
@@ -45,6 +46,7 @@ internal sealed class FlowRuntimeService(
     {
         ArgumentNullException.ThrowIfNull(flow);
         ArgumentNullException.ThrowIfNull(compilation);
+
         if (flow.Disabled)
         {
             return Stop(flow);
@@ -53,6 +55,7 @@ internal sealed class FlowRuntimeService(
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(interval, TimeSpan.Zero);
 
         await _deploymentGate.WaitAsync(cancellationToken);
+
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -71,6 +74,7 @@ internal sealed class FlowRuntimeService(
                 interval,
                 machine,
                 CancellationTokenSource.CreateLinkedTokenSource(_shutdown.Token));
+
             if (_instances.TryRemove(flow.Id, out var previous))
             {
                 await StopInstanceAsync(previous);
@@ -85,6 +89,7 @@ internal sealed class FlowRuntimeService(
             var initial = Snapshot(flow, "running");
             _snapshots[flow.Id] = initial;
             replacement.Task = RunAsync(replacement);
+
             return initial;
         }
         finally
@@ -97,11 +102,13 @@ internal sealed class FlowRuntimeService(
     {
         ArgumentNullException.ThrowIfNull(flow);
         _deploymentGate.Wait();
+
         try
         {
             if (_instances.TryRemove(flow.Id, out var instance))
             {
                 instance.Cancellation.Cancel();
+
                 try
                 {
                     instance.Task.Wait(TimeSpan.FromSeconds(5));
@@ -131,6 +138,7 @@ internal sealed class FlowRuntimeService(
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(flow);
+
         if (!_instances.TryGetValue(flow.Id, out var instance))
         {
             throw new InvalidOperationException("The flow is not deployed.");
@@ -140,6 +148,7 @@ internal sealed class FlowRuntimeService(
             cancellationToken,
             instance.Cancellation.Token);
         await ExecuteScanAsync(instance, linked.Token);
+
         return _snapshots[flow.Id];
     }
 
@@ -151,6 +160,7 @@ internal sealed class FlowRuntimeService(
             instance.DrainScans(TimeSpan.FromSeconds(5));
             instance.Dispose();
         }
+
         virtualPoints.ReleaseFlow("server", flowId);
         _snapshots.TryRemove(flowId, out _);
     }
@@ -166,6 +176,7 @@ internal sealed class FlowRuntimeService(
         _shutdown.Cancel();
         var instances = _instances.Values.ToArray();
         _instances.Clear();
+
         foreach (var instance in instances)
         {
             instance.Cancellation.Cancel();
@@ -178,12 +189,14 @@ internal sealed class FlowRuntimeService(
         catch (AggregateException exception) when (exception.InnerExceptions.All(item => item is OperationCanceledException))
         {
         }
+
         foreach (var instance in instances)
         {
             instance.DrainScans(TimeSpan.FromSeconds(5));
             instance.Dispose();
             virtualPoints.ReleaseFlow("server", instance.Flow.Id);
         }
+
         _shutdown.Dispose();
         _deploymentGate.Dispose();
     }
@@ -215,6 +228,7 @@ internal sealed class FlowRuntimeService(
     private async Task ExecuteScanAsync(RuntimeInstance instance, CancellationToken cancellationToken)
     {
         await instance.ScanGate.WaitAsync(cancellationToken);
+
         try
         {
             var readTimer = Stopwatch.StartNew();
@@ -269,6 +283,7 @@ internal sealed class FlowRuntimeService(
     private static async Task StopInstanceAsync(RuntimeInstance instance)
     {
         instance.Cancellation.Cancel();
+
         try
         {
             await instance.Task.WaitAsync(TimeSpan.FromSeconds(5));
@@ -289,6 +304,7 @@ internal sealed class FlowRuntimeService(
     private RuntimeSnapshot Snapshot(Flow flow, string state)
     {
         var updatedAt = Timestamp();
+
         return new RuntimeSnapshot(
             flow.Id,
             state,

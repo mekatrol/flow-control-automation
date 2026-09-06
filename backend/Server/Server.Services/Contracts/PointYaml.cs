@@ -9,6 +9,7 @@ public static class PointYaml
         var document = ConfigurationYaml.Parse<PointDocument>(
             yaml,
             ConfigurationKind.Points);
+
         if (document.Points.Count != 1 || document.Groups.Count != 0)
         {
             throw new ConfigurationYamlException(
@@ -22,6 +23,7 @@ public static class PointYaml
     public static string Render(AutomationPoint point)
     {
         ArgumentNullException.ThrowIfNull(point);
+
         return ConfigurationYaml.Render(new PointDocument
         {
             Points = [ForTransport(point)]

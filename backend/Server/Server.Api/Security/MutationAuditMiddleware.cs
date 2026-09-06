@@ -9,6 +9,7 @@ public sealed class MutationAuditMiddleware(RequestDelegate next)
         if (context.Request.Method is "GET" or "HEAD" or "OPTIONS")
         {
             await next(context);
+
             return;
         }
 

@@ -15,7 +15,7 @@ internal partial class FlowValidator : IFlowValidator
         FlowNodeType.Delay, FlowNodeType.DigitalConstant, FlowNodeType.DigitalInput, FlowNodeType.DigitalOutput, FlowNodeType.DigitalSwitch,
         FlowNodeType.LevelShifter, FlowNodeType.Line, FlowNodeType.Max, FlowNodeType.Memory, FlowNodeType.Min, FlowNodeType.Nand, FlowNodeType.Nor, FlowNodeType.Not, FlowNodeType.AnalogConstant, FlowNodeType.Or, FlowNodeType.Override,
         FlowNodeType.Pulse, FlowNodeType.Schedule, FlowNodeType.AnalogSwitch, FlowNodeType.Sequence, FlowNodeType.Split,
-        FlowNodeType.D2A, FlowNodeType.OnDelay, FlowNodeType.QualityGood, FlowNodeType.RisingEdge, FlowNodeType.Timer, FlowNodeType.Xnor, FlowNodeType.Xor, FlowNodeType.Counter, FlowNodeType.Clock, FlowNodeType.AnalogVirtual, FlowNodeType.DigitalVirtual,
+        FlowNodeType.D2A, FlowNodeType.OnDelay, FlowNodeType.QualityGood, FlowNodeType.RisingEdge, FlowNodeType.Timer, FlowNodeType.Xnor, FlowNodeType.Xor, FlowNodeType.Counter, FlowNodeType.Clock, FlowNodeType.AnalogVirtual, FlowNodeType.DigitalVirtual
     ];
 
     private static readonly HashSet<string> ValidStatuses = ["draft", "deployed"];
@@ -59,9 +59,11 @@ internal partial class FlowValidator : IFlowValidator
         }
 
         var nodes = new Dictionary<string, Dictionary<string, FlowConnector>>();
+
         for (var nodeIndex = 0; nodeIndex < flow.Nodes.Count; nodeIndex++)
         {
             var node = flow.Nodes[nodeIndex];
+
             if (string.IsNullOrWhiteSpace(node.Id) || string.IsNullOrWhiteSpace(node.Label))
             {
                 throw new FlowValidationException(
@@ -87,9 +89,11 @@ internal partial class FlowValidator : IFlowValidator
             }
 
             var connectors = new Dictionary<string, FlowConnector>();
+
             for (var connectorIndex = 0; connectorIndex < node.Connectors.Count; connectorIndex++)
             {
                 var connector = node.Connectors[connectorIndex];
+
                 if (string.IsNullOrWhiteSpace(connector.Id)
                     || string.IsNullOrWhiteSpace(connector.Label)
                     || !ValidDirections.Contains(connector.Direction)
@@ -160,6 +164,7 @@ internal partial class FlowValidator : IFlowValidator
         bool allowUnmapped)
     {
         var keys = new HashSet<string>(StringComparer.Ordinal);
+
         foreach (var (item, index) in declarations.Select((item, index) => (item, index)))
         {
             if (allowUnmapped &&
@@ -203,7 +208,7 @@ internal partial class FlowValidator : IFlowValidator
         JsonValueKind.Null or JsonValueKind.True or JsonValueKind.False or JsonValueKind.String
             => true,
         JsonValueKind.Number => value.TryGetDouble(out var number) && double.IsFinite(number),
-        _ => false,
+        _ => false
     };
 
     private static bool TryGetConnector(
@@ -215,10 +220,12 @@ internal partial class FlowValidator : IFlowValidator
             connectors.TryGetValue(endpoint.ConnectorId, out var found))
         {
             connector = found;
+
             return true;
         }
 
         connector = null!;
+
         return false;
     }
 

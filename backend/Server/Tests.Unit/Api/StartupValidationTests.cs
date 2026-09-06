@@ -20,6 +20,7 @@ internal sealed class StartupValidationTests
     {
         await using var factory = new FlowControlApplicationFactory();
         using var client = factory.CreateClient();
+
         await using (var scope = factory.Services.CreateAsyncScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<IFlowControlDbContext>();
@@ -55,6 +56,7 @@ internal sealed class StartupValidationTests
     {
         await using var factory = new FlowControlApplicationFactory();
         using var client = factory.CreateClient();
+
         await using (var scope = factory.Services.CreateAsyncScope())
         {
             var store = scope.ServiceProvider.GetRequiredService<ICredentialStore>();

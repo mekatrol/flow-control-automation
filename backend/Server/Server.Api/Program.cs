@@ -21,6 +21,7 @@ public partial class Program
             reloadOnChange: true);
 
         var serverOptions = builder.Configuration.Get<ServerOptions>();
+
         if (builder.Configuration.GetSection(ServerOptions.AddressConfigurationKey).Exists()
             && serverOptions is not null)
         {
@@ -65,6 +66,7 @@ public partial class Program
         }
 
         app.MapFlowControlEndpoints();
+
         if (frontendFiles is not null)
         {
             app.MapFallback(async context =>
@@ -72,13 +74,16 @@ public partial class Program
                 if (context.Request.Path.StartsWithSegments("/api"))
                 {
                     context.Response.StatusCode = StatusCodes.Status404NotFound;
+
                     return;
                 }
 
                 var index = frontendFiles.GetFileInfo("index.html");
+
                 if (!index.Exists)
                 {
                     context.Response.StatusCode = StatusCodes.Status404NotFound;
+
                     return;
                 }
 
@@ -97,8 +102,9 @@ public partial class Program
             Path.Combine(contentRootPath, "wwwroot"),
             Path.Combine(AppContext.BaseDirectory, "wwwroot"),
             Path.GetFullPath(
-                Path.Combine(contentRootPath, "..", "..", "..", "frontend", "flow-control-ui", "dist")),
+                Path.Combine(contentRootPath, "..", "..", "..", "frontend", "flow-control-ui", "dist"))
         ];
+
         if (!string.IsNullOrWhiteSpace(webRootPath))
         {
             candidates.Insert(0, webRootPath);

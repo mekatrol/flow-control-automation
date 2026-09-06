@@ -17,7 +17,9 @@ public sealed class SerialRs485FrameTransport(IControllerSerialConnectionFactory
         {
             throw new ArgumentOutOfRangeException(nameof(request));
         }
+
         await _gate.WaitAsync(cancellationToken);
+
         try
         {
             _stream ??= await connections.ConnectAsync(cancellationToken);
@@ -26,13 +28,16 @@ public sealed class SerialRs485FrameTransport(IControllerSerialConnectionFactory
             var header = new byte[HeaderBytes];
             await ReadExactly(header, cancellationToken);
             var payloadLength = BinaryPrimitives.ReadUInt16LittleEndian(header.AsSpan(11));
+
             if (HeaderBytes + payloadLength + CrcBytes > 256)
             {
                 throw new ControllerGatewayException("protocol", "FCP response exceeds the frame bound.");
             }
+
             var frame = new byte[HeaderBytes + payloadLength + CrcBytes];
             header.CopyTo(frame, 0);
             await ReadExactly(frame.AsMemory(HeaderBytes), cancellationToken);
+
             return frame;
         }
         catch (OperationCanceledException)
@@ -46,6 +51,7 @@ public sealed class SerialRs485FrameTransport(IControllerSerialConnectionFactory
                 await _stream.DisposeAsync();
                 _stream = null;
             }
+
             throw new ControllerGatewayException("transport", "Serial FCP exchange failed.", exception);
         }
         finally
@@ -57,13 +63,16 @@ public sealed class SerialRs485FrameTransport(IControllerSerialConnectionFactory
     private async Task ReadExactly(Memory<byte> destination, CancellationToken cancellationToken)
     {
         var offset = 0;
+
         while (offset < destination.Length)
         {
             var read = await _stream!.ReadAsync(destination[offset..], cancellationToken);
+
             if (read == 0)
             {
                 throw new EndOfStreamException("Controller closed the serial connection.");
             }
+
             offset += read;
         }
     }

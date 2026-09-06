@@ -18,20 +18,20 @@ public static class ConfigurationYaml
         [
             "id", "name", "description", "enabled", "groupId", "direction",
             "valueType", "pointSourceType", "units", "stateLabels", "readable", "commandable", "persistence",
-            "relinquishDefault", "sourceId", "mapping", "limits", "safeDisablePolicy",
+            "relinquishDefault", "sourceId", "mapping", "limits", "safeDisablePolicy"
         ]);
     private static readonly IReadOnlySet<string> SourceRootFields =
         new HashSet<string>(["schemaVersion", "sources"]);
     private static readonly IReadOnlySet<string> SourceFields = new HashSet<string>(
         [
             "id", "name", "description", "enabled", "kind", "connection", "credentialRef",
-            "tls", "timeouts",
+            "tls", "timeouts"
         ]);
     private static readonly IReadOnlySet<string> SourceConnectionFields = new HashSet<string>(
         [
             "baseUrl", "subscribeEvents", "brokerUrl", "clientIdPrefix", "testTopic", "qos",
             "cleanStart", "keepAliveSeconds", "allowedReadMethods", "defaultPollMilliseconds",
-            "followRedirects", "maximumResponseBytes", "allowPrivateNetwork",
+            "followRedirects", "maximumResponseBytes", "allowPrivateNetwork"
         ]);
     private static readonly IReadOnlySet<string> TlsFields =
         new HashSet<string>(["verifyServerCertificate"]);
@@ -40,17 +40,17 @@ public static class ConfigurationYaml
     private static readonly IReadOnlySet<string> ControllerFields = new HashSet<string>(
         [
             "schemaVersion", "id", "name", "description", "readOnly", "capabilities", "limits",
-            "revision", "createdAt", "updatedAt",
+            "revision", "createdAt", "updatedAt"
         ]);
     private static readonly IReadOnlySet<string> CapabilityFields = new HashSet<string>(
         [
             "pointTypes", "pointDirections", "pointFeatures", "connectorDataTypes",
-            "flowFunctions", "executionModes", "runtimeFeatures",
+            "flowFunctions", "executionModes", "runtimeFeatures"
         ]);
     private static readonly IReadOnlySet<string> ControllerLimitFields = new HashSet<string>(
         [
             "maxFlows", "maxNodesPerFlow", "maxConnectionsPerFlow",
-            "minimumIntervalMilliseconds",
+            "minimumIntervalMilliseconds"
         ]);
 
     public static JsonObject ParseToJson(
@@ -67,6 +67,7 @@ public static class ConfigurationYaml
 
         var text = Encoding.UTF8.GetString(yaml);
         var stream = new YamlStream();
+
         try
         {
             stream.Load(new StringReader(text));
@@ -133,6 +134,7 @@ public static class ConfigurationYaml
     public static string Render<T>(T value)
     {
         var json = JsonSerializer.SerializeToNode(value, FlowControlJson.Options);
+
         return new SerializerBuilder()
             .DisableAliases()
             .Build()
@@ -166,6 +168,7 @@ public static class ConfigurationYaml
         }
 
         var tag = node.Tag.ToString();
+
         if (tag is not "" and not "?" and not "!"
             && !tag.StartsWith("tag:yaml.org,2002:", StringComparison.Ordinal))
         {
@@ -177,9 +180,11 @@ public static class ConfigurationYaml
         if (node is YamlMappingNode mapping)
         {
             var keys = new HashSet<string>(StringComparer.Ordinal);
+
             foreach (var entry in mapping.Children)
             {
                 var key = GetKey(entry.Key);
+
                 if (!keys.Add(key))
                 {
                     throw new ConfigurationYamlException(
@@ -210,7 +215,7 @@ public static class ConfigurationYaml
             YamlScalarNode scalar => ConvertScalar(scalar),
             _ => throw new ConfigurationYamlException(
                 ConfigurationYamlError.UnsupportedFeature,
-                "Unsupported YAML node."),
+                "Unsupported YAML node.")
         };
     }
 
@@ -224,7 +229,7 @@ public static class ConfigurationYaml
                 item => ToYamlValue(item.Value)),
             JsonArray items => items.Select(ToYamlValue).ToList(),
             JsonValue value => ToScalarValue(value),
-            _ => throw new InvalidOperationException("Unsupported JSON node."),
+            _ => throw new InvalidOperationException("Unsupported JSON node.")
         };
     }
 
@@ -232,6 +237,7 @@ public static class ConfigurationYaml
     {
         using var document = JsonDocument.Parse(value.ToJsonString());
         var element = document.RootElement;
+
         return element.ValueKind switch
         {
             JsonValueKind.String => element.GetString(),
@@ -240,13 +246,14 @@ public static class ConfigurationYaml
             JsonValueKind.Number when element.TryGetInt64(out var integer) => integer,
             JsonValueKind.Number => element.GetDouble(),
             JsonValueKind.Null => null,
-            _ => throw new InvalidOperationException("Unsupported JSON scalar."),
+            _ => throw new InvalidOperationException("Unsupported JSON scalar.")
         };
     }
 
     private static JsonObject ConvertMapping(YamlMappingNode mapping)
     {
         var result = new JsonObject();
+
         foreach (var entry in mapping.Children)
         {
             result.Add(GetKey(entry.Key), ConvertNode(entry.Value));
@@ -259,6 +266,7 @@ public static class ConfigurationYaml
     {
         var value = scalar.Value ?? string.Empty;
         var tag = scalar.Tag.ToString();
+
         if (tag == "tag:yaml.org,2002:null")
         {
             return null;
@@ -341,6 +349,7 @@ public static class ConfigurationYaml
             case ConfigurationKind.PointSources:
                 RejectUnknown(root, SourceRootFields);
                 ValidateItems(root["sources"], SourceFields, "sources");
+
                 if (root["sources"] is JsonArray sources)
                 {
                     foreach (var source in sources.OfType<JsonObject>())

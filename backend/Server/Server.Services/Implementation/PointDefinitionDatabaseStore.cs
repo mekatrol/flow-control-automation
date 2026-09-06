@@ -26,6 +26,7 @@ internal sealed class PointDefinitionDatabaseStore(
         var entity = await context.Points
             .AsNoTracking()
             .SingleOrDefaultAsync(point => point.Id == id, cancellationToken);
+
         return entity is null
             ? throw new PointDefinitionNotFoundException("point", id)
             : DeserializePoint(entity);
@@ -45,6 +46,7 @@ internal sealed class PointDefinitionDatabaseStore(
         };
         context.Points.Add(Entity(created, now));
         await SaveCreate("point ID or name already exists", cancellationToken);
+
         return created;
     }
 
@@ -65,6 +67,7 @@ internal sealed class PointDefinitionDatabaseStore(
             CreatedAt = previous.CreatedAt,
             UpdatedAt = Timestamp(now)
         };
+
         if (point.Id == id)
         {
             Update(entity, updated, now);
@@ -79,6 +82,7 @@ internal sealed class PointDefinitionDatabaseStore(
             context.Points.Add(Entity(updated, now));
             await SaveUpdate(entity: null, "point ID or name already exists", cancellationToken);
         }
+
         return updated;
     }
 
@@ -107,6 +111,7 @@ internal sealed class PointDefinitionDatabaseStore(
         var entity = await context.PointGroups
             .AsNoTracking()
             .SingleOrDefaultAsync(group => group.Id == id, cancellationToken);
+
         return entity is null
             ? throw new PointDefinitionNotFoundException("point group", id)
             : DeserializeGroup(entity);
@@ -126,6 +131,7 @@ internal sealed class PointDefinitionDatabaseStore(
         };
         context.PointGroups.Add(Entity(created, now));
         await SaveCreate("group ID or name already exists", cancellationToken);
+
         return created;
     }
 
@@ -137,11 +143,13 @@ internal sealed class PointDefinitionDatabaseStore(
     {
         var entity = await FindGroup(id, cancellationToken);
         var previous = DeserializeGroup(entity);
+
         if (group.Id != id)
         {
             throw new PointDefinitionValidationException(
                 "group id must match request path");
         }
+
         EnsureRevision(revision, previous.Revision);
         validator.ValidateGroup(group, await Sources(cancellationToken));
 
@@ -153,6 +161,7 @@ internal sealed class PointDefinitionDatabaseStore(
         var validationContext = new PointValidationContext(
             proposedGroups,
             await Sources(cancellationToken));
+
         foreach (var member in members
             .Select(DeserializePoint)
             .Where(point => point.GroupId == id))
@@ -169,6 +178,7 @@ internal sealed class PointDefinitionDatabaseStore(
         };
         Update(entity, updated, now);
         await SaveUpdate(entity, "group name already exists", cancellationToken);
+
         return updated;
     }
 
@@ -179,6 +189,7 @@ internal sealed class PointDefinitionDatabaseStore(
     {
         var entity = await FindGroup(id, cancellationToken);
         EnsureRevision(revision, DeserializeGroup(entity).Revision);
+
         if ((await context.Points.AsNoTracking().ToListAsync(cancellationToken))
             .Select(DeserializePoint)
             .Any(point => point.GroupId == id))
@@ -206,9 +217,11 @@ internal sealed class PointDefinitionDatabaseStore(
         var validationContext = new PointValidationContext(groups, sources);
         var now = timeProvider.GetUtcNow();
         var updates = new List<(PointEntity Entity, AutomationPoint Point)>();
+
         foreach (var entity in entities)
         {
             var point = DeserializePoint(entity);
+
             if (point.GroupId != groupId)
             {
                 continue;
@@ -231,6 +244,7 @@ internal sealed class PointDefinitionDatabaseStore(
         }
 
         await SaveUpdate(entity: null, "unable to make points standalone", cancellationToken);
+
         return [.. updates
             .Select(update => update.Point)
             .OrderBy(point => point.Name, StringComparer.OrdinalIgnoreCase)
@@ -286,6 +300,7 @@ internal sealed class PointDefinitionDatabaseStore(
         try
         {
             await context.SaveChangesAsync(cancellationToken);
+
             if (entity is not null)
             {
                 await context.ReloadAsync(entity, cancellationToken);

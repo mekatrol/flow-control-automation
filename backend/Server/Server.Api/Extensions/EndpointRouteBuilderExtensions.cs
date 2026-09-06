@@ -41,6 +41,7 @@ public static class EndpointRouteBuilderExtensions
         endpoints.MapControllerTemplateEndpoints();
         endpoints.MapCredentialEndpoints();
         endpoints.MapExecutionConfigurationEndpoints();
+
         return endpoints;
     }
 
@@ -50,6 +51,7 @@ public static class EndpointRouteBuilderExtensions
         CancellationToken cancellationToken)
     {
         var query = request.Query;
+
         if (!PositiveInteger(query["page"].ToString(), 1, out var page))
         {
             return Error(StatusCodes.Status400BadRequest, "page must be a positive integer");
@@ -63,6 +65,7 @@ public static class EndpointRouteBuilderExtensions
 
         var sort = query["sort"].ToString();
         sort = sort.Length == 0 ? "ascending" : sort;
+
         if (sort is not ("ascending" or "descending"))
         {
             return Error(StatusCodes.Status400BadRequest, "sort must be ascending or descending");
@@ -72,6 +75,7 @@ public static class EndpointRouteBuilderExtensions
             .Where(static status => status is not null)
             .Select(static status => status!)
             .ToArray();
+
         if (statuses.Any(status => status is not ("draft" or "deployed")))
         {
             return Error(
@@ -89,6 +93,7 @@ public static class EndpointRouteBuilderExtensions
                     pageSize,
                     sort),
                 cancellationToken);
+
             return Results.Json(result);
         }
         catch (FlowValidationException exception)
@@ -107,6 +112,7 @@ public static class EndpointRouteBuilderExtensions
             request,
             jsonOptions.Value.SerializerOptions,
             cancellationToken);
+
         if (decoded.Error is not null)
         {
             return decoded.Error;
@@ -140,6 +146,7 @@ public static class EndpointRouteBuilderExtensions
         }
 
         byte[] artifact;
+
         try
         {
             artifact = Convert.FromBase64String(decoded.Value!.ArtifactBase64);
@@ -153,6 +160,7 @@ public static class EndpointRouteBuilderExtensions
         {
             var recovered = decompiler.Decompile(artifact, decoded.Value.Name);
             var flow = recovered.Flow;
+
             if (decoded.Value.Save)
             {
                 var created = await flows.CreateAsync(flow.Name, cancellationToken);
@@ -202,6 +210,7 @@ public static class EndpointRouteBuilderExtensions
             request,
             jsonOptions.Value.SerializerOptions,
             cancellationToken);
+
         return decoded.Error
             ?? await MapFlowResult(
                 () => flows.SaveAsync(flowId, decoded.Value!, cancellationToken));
@@ -223,6 +232,7 @@ public static class EndpointRouteBuilderExtensions
         {
             var target = await targetResolver.ResolveAsync(source, cancellationToken);
             var result = compiler.Compile(new FlowCompilationRequest { Source = source, Target = target });
+
             return Results.Json(new
             {
                 success = true,
@@ -272,6 +282,7 @@ public static class EndpointRouteBuilderExtensions
             var flow = await flows.GetAsync(flowId, cancellationToken);
             var version = flow.DeployedVersion
                 ?? throw new FlowValidationException("flow has no deployed version");
+
             return Results.Json(flow with
             {
                 Name = version.Name,
@@ -309,6 +320,7 @@ public static class EndpointRouteBuilderExtensions
         {
             await flows.DeleteAsync(flowId, cancellationToken);
             runtime.Delete(flowId);
+
             return Results.NoContent();
         }
         catch (FlowNotFoundException)
@@ -336,6 +348,7 @@ public static class EndpointRouteBuilderExtensions
             var flow = await flows.GetAsync(flowId, cancellationToken);
             var snapshot = await deployment.DeployAsync(flow, cancellationToken);
             await flows.MarkDeployedAsync(flowId, flow.Revision, cancellationToken);
+
             return Results.Json(snapshot);
         }
         catch (FlowNotFoundException)
@@ -405,6 +418,7 @@ public static class EndpointRouteBuilderExtensions
     {
         var result = await MapFlowResult(
             () => flows.SetDisabledAsync(flowId, disabled, cancellationToken));
+
         if (disabled && result is IValueHttpResult<Flow> { Value: not null } value)
         {
             runtime.Stop(value.Value);
@@ -477,6 +491,7 @@ public static class EndpointRouteBuilderExtensions
                 request.Body,
                 options,
                 cancellationToken);
+
             return value is null
                 ? (default, Error(StatusCodes.Status400BadRequest, "request body must contain JSON"))
                 : (value, null);
@@ -496,6 +511,7 @@ public static class EndpointRouteBuilderExtensions
         if (value.Length == 0)
         {
             result = fallback;
+
             return true;
         }
 

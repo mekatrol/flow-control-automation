@@ -30,6 +30,7 @@ public sealed class FlowIlV1ContractFixtureTests
         var fixtures = manifest.RootElement.GetProperty("fixtures").EnumerateArray().ToArray();
 
         Assert.That(fixtures, Has.Length.EqualTo(12));
+
         foreach (var fixture in fixtures)
         {
             var id = fixture.GetProperty("id").GetString()!;
@@ -90,6 +91,7 @@ public sealed class FlowIlV1ContractFixtureTests
         }
 
         var sectionCount = ReadUInt16(artifact, 26);
+
         if (sectionCount != SectionCount || ReadUInt32(artifact, 116) != EnvelopeLength ||
             EnvelopeLength + (sectionCount * DirectoryEntryLength) > artifact.Length)
         {
@@ -106,6 +108,7 @@ public sealed class FlowIlV1ContractFixtureTests
         {
             var entryOffset = EnvelopeLength + (index * DirectoryEntryLength);
             var id = ReadUInt16(artifact, entryOffset);
+
             if (id is < 1 or > SectionCount)
             {
                 return DecodeResult.Error("unknown_section", $"/sections/{index}/id");
@@ -120,6 +123,7 @@ public sealed class FlowIlV1ContractFixtureTests
             var length = checked((int)ReadUInt32(artifact, entryOffset + 8));
             var count = checked((int)ReadUInt32(artifact, entryOffset + 12));
             var version = ReadUInt16(artifact, entryOffset + 2);
+
             if (version != 1 || offset != expectedOffset ||
                 length < 0 || offset < 0 || offset > artifact.Length || length > artifact.Length - offset)
             {
@@ -127,12 +131,14 @@ public sealed class FlowIlV1ContractFixtureTests
             }
 
             var digest = SHA256.HashData(artifact.AsSpan(offset, length));
+
             if (!digest.AsSpan().SequenceEqual(artifact.AsSpan(entryOffset + 16, digest.Length)))
             {
                 return DecodeResult.Error("malformed", "");
             }
 
             expectedOffset += length;
+
             if (id == SlotSectionId)
             {
                 slotCount = count;
@@ -157,16 +163,19 @@ public sealed class FlowIlV1ContractFixtureTests
             var result = ReadUInt16(artifact, offset + 2);
             var operand0 = ReadUInt16(artifact, offset + 4);
             var operand1 = ReadUInt16(artifact, offset + 6);
+
             if ((result != UnusedIndex && result >= slotCount) ||
                 (operand0 != UnusedIndex && operand0 >= slotCount) ||
                 (operand1 != UnusedIndex && operand1 >= slotCount))
             {
                 var field = result != UnusedIndex && result >= slotCount ? "resultSlot" : "operand";
+
                 return DecodeResult.Error("invalid_operand", $"/instructions/{index}/{field}");
             }
         }
 
         var flowIdLength = artifact[52];
+
         if (flowIdLength is 0 or > 63)
         {
             return DecodeResult.Error("malformed", "");

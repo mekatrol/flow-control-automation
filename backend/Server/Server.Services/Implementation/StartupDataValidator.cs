@@ -24,6 +24,7 @@ internal sealed class StartupDataValidator(
             new PointSourceListOptions(PageSize: 50),
             cancellationToken);
         ValidateSources(firstPage.Items);
+
         for (var page = 2; page <= firstPage.PageCount; page++)
         {
             var nextPage = await pointSources.ListAsync(
@@ -33,6 +34,7 @@ internal sealed class StartupDataValidator(
         }
 
         var sources = new Dictionary<string, PointSource>(StringComparer.Ordinal);
+
         for (var page = 1; page <= firstPage.PageCount; page++)
         {
             var sourcePage = page == 1
@@ -40,6 +42,7 @@ internal sealed class StartupDataValidator(
                 : await pointSources.ListAsync(
                     new PointSourceListOptions(Page: page, PageSize: 50),
                     cancellationToken);
+
             foreach (var source in sourcePage.Items)
             {
                 sources.Add(source.Id, source);

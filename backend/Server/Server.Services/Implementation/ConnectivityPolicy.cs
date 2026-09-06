@@ -30,6 +30,7 @@ internal static class ConnectivityPolicy
                 && ipv6Bytes[1] == 0x01
                 && ipv6Bytes[2] == 0x0d
                 && ipv6Bytes[3] == 0xb8;
+
             return documentationRange
                 || (address.IsIPv6UniqueLocal && !allowPrivateNetwork);
         }
@@ -46,6 +47,7 @@ internal static class ConnectivityPolicy
             || (bytes[0] == 192 && bytes[1] == 0 && bytes[2] is 0 or 2)
             || (bytes[0] == 198 && bytes[1] is 18 or 19 or 51)
             || (bytes[0] == 203 && bytes[1] == 0 && bytes[2] == 113);
+
         return alwaysForbidden || (privateAddress && !allowPrivateNetwork);
     }
 }

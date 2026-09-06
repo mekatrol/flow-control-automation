@@ -28,6 +28,7 @@ public static class ExecutionConfigurationEndpointRouteBuilderExtensions
         endpoints.MapGet("/api/execution-instances/{id}/virtual-points/retained-backup", async (string id, IExecutionConfigurationService configurations, IVirtualPointRetainedStore retained, CancellationToken token) =>
         {
             _ = await configurations.GetInstanceAsync(id, token);
+
             return Results.Json(new { schemaVersion = 1, executionInstanceId = id, values = await retained.ListAsync(id, token) });
         });
         endpoints.MapDelete("/api/execution-instances/{id}/virtual-points/retained", async (string id, IExecutionConfigurationService configurations, IVirtualPointRuntimeStore runtime, CancellationToken token) => await MapAction(async () =>
@@ -38,6 +39,7 @@ public static class ExecutionConfigurationEndpointRouteBuilderExtensions
         endpoints.MapPut("/api/execution-instances/{id}/virtual-points/retained-backup", async (string id, VirtualPointRetainedBackup backup, IExecutionConfigurationService configurations, IVirtualPointRuntimeStore runtime, CancellationToken token) => await MapAction(async () =>
         {
             _ = await configurations.GetInstanceAsync(id, token);
+
             if (backup.SchemaVersion != 1 || backup.ExecutionInstanceId != id)
             {
                 throw new ExecutionConfigurationException("retained backup identity or schema version is invalid", 400, "invalid_retained_backup");
@@ -55,8 +57,10 @@ public static class ExecutionConfigurationEndpointRouteBuilderExtensions
         endpoints.MapGet("/api/audit-records", async (IAuditService service, CancellationToken token) =>
         {
             var records = await service.ListAsync(token);
+
             return Results.Text($"[{string.Join(',', records)}]", "application/json");
         });
+
         return endpoints;
     }
 
@@ -65,6 +69,7 @@ public static class ExecutionConfigurationEndpointRouteBuilderExtensions
         try
         {
             var value = await request.ReadFromJsonAsync<T>(options.Value.SerializerOptions, token);
+
             return value is null ? Results.BadRequest(new { error = "request body must contain JSON" }) : await Map(() => operation(value), status);
         }
         catch (System.Text.Json.JsonException exception) { return Error(400, "invalid_json", exception.Message); }
@@ -81,12 +86,14 @@ public static class ExecutionConfigurationEndpointRouteBuilderExtensions
 
     private static async Task<IResult> MapDelete(Func<Task> operation)
     {
+
         try { await operation(); return Results.NoContent(); }
         catch (ExecutionConfigurationException exception) { return Error(exception.StatusCode, exception.Code, exception.Message, exception.Details); }
     }
 
     private static async Task<IResult> MapAction(Func<Task> operation)
     {
+
         try { await operation(); return Results.NoContent(); }
         catch (ExecutionConfigurationException exception) { return Error(exception.StatusCode, exception.Code, exception.Message, exception.Details); }
     }

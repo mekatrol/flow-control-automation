@@ -41,6 +41,7 @@ public sealed class FlowEmulatorServiceTests
     {
         // Arrange: Fill every permitted emulator slot.
         using var service = new FlowEmulatorService(new Resolver(), new Compiler(), new MachineFactory());
+
         for (var index = 0; index < FlowEmulatorService.MaximumInstances; index++)
         {
             await service.CreateAsync(Source() with { Id = $"flow-{index}" }, default);
@@ -51,6 +52,7 @@ public sealed class FlowEmulatorServiceTests
             await service.CreateAsync(Source() with { Id = "overflow" }, default));
         Assert.That(error!.Code, Is.EqualTo("simulator_limit_exceeded"));
     }
+
     [Test]
     public async Task AppliesScheduledInputsOnlyAtScanBoundariesAndCapturesOutputs()
     {
@@ -174,6 +176,7 @@ public sealed class FlowEmulatorServiceTests
         public FlowVmScanResult Scan(IReadOnlyList<FlowVmInput> inputs, ulong sampledAtMilliseconds)
         {
             var input = inputs.Single();
+
             return new FlowVmScanResult(
                 ++_scan,
                 sampledAtMilliseconds,

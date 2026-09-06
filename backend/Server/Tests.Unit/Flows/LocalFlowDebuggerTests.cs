@@ -103,12 +103,14 @@ public sealed class LocalFlowDebuggerTests
         public FlowVmExecutionFrame BeginScan(IReadOnlyList<FlowVmInput> inputs, ulong sampledAtMilliseconds)
         {
             _stepped = false;
+
             return Frame();
         }
 
         public FlowVmExecutionFrame StepInstruction()
         {
             _stepped = true;
+
             return Frame();
         }
 
@@ -154,6 +156,7 @@ public sealed class LocalFlowDebuggerTests
             CancellationToken cancellationToken)
         {
             Published.Add(commands);
+
             return Task.CompletedTask;
         }
     }

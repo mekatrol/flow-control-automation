@@ -3,17 +3,20 @@ namespace Server.Compiler.Services.Implementation;
 internal static class CalculatorFormula
 {
     internal enum Operator { Add, Subtract, Multiply, Divide, Power, Negate }
+
     internal abstract record Expression
     {
         internal sealed record Variable(char Name) : Expression;
         internal sealed record Unary(Operator Operator, Expression Operand) : Expression;
         internal sealed record Binary(Operator Operator, Expression Left, Expression Right) : Expression;
     }
+
     public static Expression Parse(string formula)
     {
         var parser = new Parser(formula);
         var result = parser.ParseExpression();
         parser.SkipWhitespace();
+
         if (!parser.AtEnd)
         {
             throw new FormatException($"Unexpected character '{parser.Current}'.");
@@ -34,6 +37,7 @@ internal static class CalculatorFormula
     {
         var result = new HashSet<char>();
         Visit(expression);
+
         return result;
 
         void Visit(Expression item)
@@ -63,9 +67,11 @@ internal static class CalculatorFormula
         public Expression ParseExpression()
         {
             var value = ParseTerm();
+
             while (true)
             {
                 SkipWhitespace();
+
                 if (!Take('+') && !Take('-'))
                 {
                     return value;
@@ -79,9 +85,11 @@ internal static class CalculatorFormula
         private Expression ParseTerm()
         {
             var value = ParseUnary();
+
             while (true)
             {
                 SkipWhitespace();
+
                 if (!Take('*') && !Take('/'))
                 {
                     return value;
@@ -95,6 +103,7 @@ internal static class CalculatorFormula
         private Expression ParseUnary()
         {
             SkipWhitespace();
+
             if (Take('+'))
             {
                 return ParseUnary();
@@ -112,6 +121,7 @@ internal static class CalculatorFormula
         {
             var value = ParsePrimary();
             SkipWhitespace();
+
             return Take('^')
                 ? new Expression.Binary(Operator.Power, value, ParseUnary())
                 : value;
@@ -120,10 +130,12 @@ internal static class CalculatorFormula
         private Expression ParsePrimary()
         {
             SkipWhitespace();
+
             if (Take('('))
             {
                 var value = ParseExpression();
                 SkipWhitespace();
+
                 if (!Take(')'))
                 {
                     throw new FormatException("Missing closing parenthesis.");
@@ -153,6 +165,7 @@ internal static class CalculatorFormula
             }
 
             _position++;
+
             return true;
         }
     }

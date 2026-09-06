@@ -12,6 +12,7 @@ internal sealed class VirtualPointRetainedDatabaseStore(
     {
         await using var scope = scopeFactory.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<IFlowControlDbContext>();
+
         return (await context.VirtualPointRetainedStates.AsNoTracking()
             .Where(item => item.ExecutionInstanceId == executionInstanceId)
             .ToListAsync(cancellationToken))
@@ -33,6 +34,7 @@ internal sealed class VirtualPointRetainedDatabaseStore(
         await ClearAsync(executionInstanceId, cancellationToken);
         await WriteAsync(executionInstanceId, values, cancellationToken);
     }
+
     public async Task<RetainedVirtualPointValue?> ReadAsync(
         string executionInstanceId,
         string pointKey,
@@ -43,6 +45,7 @@ internal sealed class VirtualPointRetainedDatabaseStore(
         var entity = await context.VirtualPointRetainedStates.AsNoTracking().SingleOrDefaultAsync(
             item => item.ExecutionInstanceId == executionInstanceId && item.PointKey == pointKey,
             cancellationToken);
+
         return entity is null
             ? null
             : JsonSerializer.Deserialize<RetainedVirtualPointValue>(entity.Json, FlowControlJson.Options)
@@ -66,6 +69,7 @@ internal sealed class VirtualPointRetainedDatabaseStore(
             .Where(item => item.ExecutionInstanceId == executionInstanceId && pointKeys.Contains(item.PointKey))
             .ToDictionaryAsync(item => item.PointKey, StringComparer.Ordinal, cancellationToken);
         var now = timeProvider.GetUtcNow();
+
         foreach (var (pointKey, value) in values)
         {
             if (!existing.TryGetValue(pointKey, out var entity))
@@ -85,6 +89,7 @@ internal sealed class VirtualPointRetainedDatabaseStore(
             entity.Json = JsonSerializer.Serialize(value, FlowControlJson.Options);
             entity.Updated = now;
         }
+
         await context.SaveChangesAsync(cancellationToken);
     }
 }

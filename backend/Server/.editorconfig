@@ -318,6 +318,18 @@ dotnet_diagnostic.CA1859.severity = error
 # CA1861: Avoid constant arrays as arguments
 dotnet_diagnostic.CA1861.severity = none
 
+# CC0001: A blank line is required before this return statement
+dotnet_diagnostic.CC0001.severity = error
+
+# CC0002: A blank line is required before this block-opening statement
+dotnet_diagnostic.CC0002.severity = error
+
+# CC0003: A blank line is required after this closing brace
+dotnet_diagnostic.CC0003.severity = error
+
+# CC0004: A blank line is required before this comment block
+dotnet_diagnostic.CC0004.severity = error
+
 # CS8509: The switch expression does not handle all possible values of its input type.
 dotnet_diagnostic.CS8509.severity = none
 

@@ -18,6 +18,7 @@ internal sealed class FlowCompilationTargetResolver(
         ArgumentNullException.ThrowIfNull(source);
 
         ControllerTemplate template;
+
         try
         {
             template = await controllerTemplates.GetAsync(

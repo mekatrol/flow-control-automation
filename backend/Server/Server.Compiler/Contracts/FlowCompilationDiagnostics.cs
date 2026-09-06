@@ -122,6 +122,7 @@ public static class FlowCompilationDiagnostics
         Func<string, string?>? resourceLookup = null)
     {
         var definition = Get(code);
+
         return LocalizedOrFallback(resourceLookup, definition.TitleResourceKey, definition.Title);
     }
 
@@ -132,6 +133,7 @@ public static class FlowCompilationDiagnostics
     {
         var definition = Get(code);
         var format = LocalizedOrFallback(resourceLookup, definition.MessageResourceKey, definition.MessageFormat);
+
         return string.Format(CultureInfo.CurrentCulture, format, arguments);
     }
 
@@ -185,6 +187,7 @@ public static class FlowCompilationDiagnostics
         }
 
         var localized = resourceLookup(resourceKey);
+
         return string.IsNullOrWhiteSpace(localized) ? fallback : localized;
     }
 }

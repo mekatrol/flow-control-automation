@@ -158,6 +158,7 @@ public sealed class FlowServiceTests
     public async Task ListsWithCaseInsensitiveFilteringSortingAndPageClamping()
     {
         await using var provider = await CreateInitializedProvider();
+
         foreach (var name in new[] { "zeta", "Alpha", "alpha", "Beta" })
         {
             await using var createScope = provider.CreateAsyncScope();
@@ -209,6 +210,7 @@ public sealed class FlowServiceTests
     public async Task RejectsInvalidReplacementWithoutChangingStoredFlow()
     {
         await using var provider = await CreateInitializedProvider();
+
         await using (var createScope = provider.CreateAsyncScope())
         {
             await createScope.ServiceProvider
@@ -229,7 +231,7 @@ public sealed class FlowServiceTests
                         Id = "node",
                         NodeType = FlowNodeType.Unknown,
                         Label = "Node"
-                    },
+                    }
                 ],
             };
 
@@ -272,14 +274,14 @@ public sealed class FlowServiceTests
             Nodes =
             [
                 Node("source", DataDirectionType.Output, DataType.Number),
-                Node("target", DataDirectionType.Input, DataType.String),
+                Node("target", DataDirectionType.Input, DataType.String)
             ],
             Connections =
             [
                 new(
                     "connection",
                     new("source", "connector"),
-                    new("target", "connector")),
+                    new("target", "connector"))
             ],
         };
 
@@ -306,7 +308,7 @@ public sealed class FlowServiceTests
                     {
                         ["nested"] = JsonSerializer.Deserialize<JsonElement>("{}")
                     },
-                },
+                }
             ],
         };
 

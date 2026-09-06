@@ -8,6 +8,7 @@ public sealed class FlowCompilationException : Exception
         : base(CreateMessage(diagnostics))
     {
         ArgumentNullException.ThrowIfNull(diagnostics);
+
         if (diagnostics.Count == 0)
         {
             throw new ArgumentException("At least one diagnostic is required.", nameof(diagnostics));

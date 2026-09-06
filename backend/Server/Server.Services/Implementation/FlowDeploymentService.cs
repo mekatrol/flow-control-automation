@@ -144,6 +144,7 @@ internal sealed class FlowDeploymentService(
         {
             ["pointId"] = JsonSerializer.SerializeToElement(resolvedPointId)
         };
+
         return result;
     }
 

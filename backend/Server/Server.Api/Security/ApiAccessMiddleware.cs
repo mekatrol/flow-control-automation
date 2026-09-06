@@ -9,9 +9,12 @@ public sealed class ApiAccessMiddleware(RequestDelegate next, IHostEnvironment e
 {
     public async Task InvokeAsync(HttpContext context, IOptions<ApiAccessOptions> configured)
     {
+
         if (!context.Request.Path.StartsWithSegments("/api") || context.Request.Path == "/api/health") { await next(context); return; }
+
         string actor;
         HashSet<string> permissions;
+
         if (environment.IsEnvironment("Testing"))
         {
             actor = "test-admin";
@@ -21,17 +24,29 @@ public sealed class ApiAccessMiddleware(RequestDelegate next, IHostEnvironment e
         {
             var supplied = context.Request.Headers["X-Api-Key"].ToString();
             var identity = configured.Value.Identities.FirstOrDefault(item => Matches(item.Value.Key, supplied));
-            if (identity.Key is null) { context.Response.StatusCode = 401; await context.Response.WriteAsJsonAsync(new { message = "A valid API key is required.", code = "unauthenticated" }); return; }
+
+            if (identity.Key is null)
+            {
+                context.Response.StatusCode = 401;
+                await context.Response.WriteAsJsonAsync(new { message = "A valid API key is required.", code = "unauthenticated" });
+
+                return;
+            }
+
             actor = identity.Key;
             permissions = identity.Value.Permissions.ToHashSet(StringComparer.Ordinal);
         }
+
         var required = RequiredPermission(context.Request);
+
         if (!permissions.Contains("*") && !permissions.Contains(required))
         {
             context.Response.StatusCode = 403;
             await context.Response.WriteAsJsonAsync(new { message = $"Permission '{required}' is required.", code = "forbidden", details = new { requiredPermission = required } });
+
             return;
         }
+
         context.User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Name, actor), new Claim("permission", required)], "ApiKey"));
         await next(context);
     }
@@ -39,6 +54,7 @@ public sealed class ApiAccessMiddleware(RequestDelegate next, IHostEnvironment e
     private static string RequiredPermission(HttpRequest request)
     {
         var path = request.Path.Value ?? string.Empty;
+
         if (path.Contains("/deployments", StringComparison.Ordinal))
         {
             return request.Method == "GET" ? "contexts.view" : "deployments.manage";
@@ -71,6 +87,7 @@ public sealed class ApiAccessMiddleware(RequestDelegate next, IHostEnvironment e
     {
         var left = SHA256.HashData(Encoding.UTF8.GetBytes(expected));
         var right = SHA256.HashData(Encoding.UTF8.GetBytes(supplied));
+
         return CryptographicOperations.FixedTimeEquals(left, right);
     }
 }

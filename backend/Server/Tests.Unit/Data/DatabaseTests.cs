@@ -36,6 +36,7 @@ public sealed class DatabaseTests
     public async Task InitializationIsIdempotentAndCreatesSchemaAndTriggers()
     {
         await using var provider = CreateProvider();
+
         await using (var scope = provider.CreateAsyncScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<IFlowControlDbContext>();
@@ -88,6 +89,7 @@ public sealed class DatabaseTests
     public async Task TriggerIncrementsVersionAndRejectsStaleUpdates()
     {
         await using var provider = CreateProvider();
+
         await using (var setupScope = provider.CreateAsyncScope())
         {
             var setup = setupScope.ServiceProvider.GetRequiredService<IFlowControlDbContext>();
@@ -145,6 +147,7 @@ public sealed class DatabaseTests
             })
             .Build();
         services.AddFlowControlData(configuration);
+
         return services.BuildServiceProvider();
     }
 

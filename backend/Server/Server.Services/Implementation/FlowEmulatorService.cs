@@ -59,6 +59,7 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
         ArgumentNullException.ThrowIfNull(source);
         RemoveExpired();
         Compiler.Contracts.FlowCompilationTarget target;
+
         if (_scopeFactory is not null)
         {
             using var scope = _scopeFactory.CreateScope();
@@ -70,23 +71,28 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
         {
             target = await _targetResolver!.ResolveAsync(source, cancellationToken);
         }
+
         var compilation = _compiler.Compile(new FlowCompilationRequest { Source = source, Target = target });
         var id = Guid.NewGuid().ToString("N");
         var instance = new Instance(id, source, _machines.Create(compilation.Artifact), _timeProvider.GetUtcNow());
+
         lock (_gate)
         {
             RemoveExpiredCore();
+
             if (_instances.Count >= MaximumInstances)
             {
                 instance.Dispose();
                 throw new FlowSimulatorException("simulator_limit_exceeded", "The active emulator limit has been reached.");
             }
+
             if (!_instances.TryAdd(id, instance))
             {
                 instance.Dispose();
                 throw new InvalidOperationException("Unable to allocate an emulator instance.");
             }
         }
+
         return instance.Snapshot();
     }
 
@@ -95,12 +101,14 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
     public FlowEmulatorSnapshot SetInputs(string emulatorId, IReadOnlyList<EmulatorInputChange> changes)
     {
         ArgumentNullException.ThrowIfNull(changes);
+
         return GetInstance(emulatorId).SetInputs(changes);
     }
 
     public FlowEmulatorSnapshot ApplyInputsAndStep(string emulatorId, IReadOnlyList<EmulatorInputChange> changes)
     {
         ArgumentNullException.ThrowIfNull(changes);
+
         return GetInstance(emulatorId).ApplyInputsAndStep(changes);
     }
 
@@ -139,6 +147,7 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
         var instance = _instances.GetValueOrDefault(emulatorId)
             ?? throw new FlowEmulatorNotFoundException(emulatorId);
         instance.LastAccess = _timeProvider.GetUtcNow();
+
         return instance;
     }
 
@@ -153,6 +162,7 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
     private void RemoveExpiredCore()
     {
         var now = _timeProvider.GetUtcNow();
+
         foreach (var pair in _instances.Where(pair => now - pair.Value.LastAccess >= Lease).ToArray())
         {
             if (_instances.TryRemove(pair.Key, out var expired))
@@ -180,6 +190,7 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
             _source = source;
             _machine = machine;
             LastAccess = lastAccess;
+
             foreach (var input in InitialInputs(source))
             {
                 _inputs[input.PointId] = input;
@@ -194,6 +205,7 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
             lock (_gate)
             {
                 QueueInputs(changes);
+
                 return SnapshotCore();
             }
         }
@@ -204,6 +216,7 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
             {
                 QueueInputs(changes);
                 ScanCore();
+
                 return SnapshotCore();
             }
         }
@@ -213,6 +226,7 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
             lock (_gate)
             {
                 _clock = checked(_clock + milliseconds);
+
                 if (scan)
                 {
                     ScanCore();
@@ -228,9 +242,11 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
             {
                 throw new ArgumentException("Unsupported emulator fault.", nameof(fault));
             }
+
             lock (_gate)
             {
                 _fault = fault;
+
                 if (fault is "reset" or "power_cycle")
                 {
                     ResetCore();
@@ -245,12 +261,14 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
             lock (_gate)
             {
                 ResetCore();
+
                 if (powerCycle)
                 {
                     _clock = 0;
                 }
 
                 _fault = null;
+
                 return SnapshotCore();
             }
         }
@@ -261,6 +279,7 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
             {
                 _pending.Clear();
                 _inputs.Clear();
+
                 foreach (var input in InitialInputs(_source))
                 {
                     _inputs[input.PointId] = input;
@@ -283,6 +302,7 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
             lock (_gate)
             {
                 ApplyPendingInputs();
+
                 return [.. _inputs.Values.OrderBy(input => input.PointId, StringComparer.Ordinal)];
             }
         }
@@ -309,6 +329,7 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
         private void ScanCore()
         {
             ApplyPendingInputs();
+
             if (_fault == "communication_loss")
             {
                 foreach (var input in _inputs.Values.ToArray())
@@ -318,6 +339,7 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
                         input.TypedValue with { Quality = DataQualityType.Unavailable });
                 }
             }
+
             var scan = _machine.Scan([.. _inputs.Values.OrderBy(input => input.PointId, StringComparer.Ordinal)], _clock);
             PublishCore(scan);
         }
@@ -325,6 +347,7 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
         private void PublishCore(FlowVmScanResult scan)
         {
             _scanNumber = scan.ScanNumber;
+
             foreach (var command in scan.Commands)
             {
                 var failed = _fault == "output_failure";
@@ -341,6 +364,7 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
                     scan.ScanNumber, _clock, command.PointId, command.TypedValue, effective,
                     quality, null, lastChange, "emulator", 16, null));
             }
+
             if (_outputs.Count > MaximumHistory)
             {
                 _outputs.RemoveRange(0, _outputs.Count - MaximumHistory);
@@ -350,6 +374,7 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
         private void ApplyPendingInputs()
         {
             var ready = _pending.TakeWhile(change => change.EffectiveAtMilliseconds <= _clock).ToArray();
+
             foreach (var change in ready)
             {
                 var existing = _inputs[change.InputId];
@@ -357,6 +382,7 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
                     change.InputId,
                     change.TypedValue);
             }
+
             _pending.RemoveRange(0, ready.Length);
         }
 
@@ -367,6 +393,7 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
             _outputs.Clear();
             _pending.Clear();
             _inputs.Clear();
+
             foreach (var input in InitialInputs(_source))
             {
                 _inputs[input.PointId] = input;
@@ -405,6 +432,7 @@ public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
                 var scheduled = change with { EffectiveAtMilliseconds = change.EffectiveAtMilliseconds ?? _clock };
                 _pending.Add(scheduled);
             }
+
             _pending.Sort(static (left, right) => Nullable.Compare(left.EffectiveAtMilliseconds, right.EffectiveAtMilliseconds));
         }
 

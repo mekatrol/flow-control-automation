@@ -20,6 +20,7 @@ public static class CredentialEndpointRouteBuilderExtensions
         endpoints.MapGet("/api/credentials/{credentialId}", Get);
         endpoints.MapPut("/api/credentials/{credentialId}", Update);
         endpoints.MapDelete("/api/credentials/{credentialId}", Delete);
+
         return endpoints;
     }
 
@@ -40,6 +41,7 @@ public static class CredentialEndpointRouteBuilderExtensions
             request,
             jsonOptions.Value.SerializerOptions,
             cancellationToken);
+
         return decoded.Error
             ?? await WriteResult(
                 () => credentials.CreateAsync(decoded.Input!, cancellationToken),
@@ -65,6 +67,7 @@ public static class CredentialEndpointRouteBuilderExtensions
             request,
             jsonOptions.Value.SerializerOptions,
             cancellationToken);
+
         return decoded.Error
             ?? await WriteResult(
                 () => credentials.UpdateAsync(
@@ -92,6 +95,7 @@ public static class CredentialEndpointRouteBuilderExtensions
         try
         {
             await credentials.DeleteAsync(credentialId, revision, cancellationToken);
+
             return Results.NoContent();
         }
         catch (CredentialNotFoundException)
@@ -159,6 +163,7 @@ public static class CredentialEndpointRouteBuilderExtensions
                 request.Body,
                 options,
                 cancellationToken);
+
             return input is null
                 ? (null, Error(StatusCodes.Status400BadRequest, "request body must contain JSON"))
                 : (input, null);

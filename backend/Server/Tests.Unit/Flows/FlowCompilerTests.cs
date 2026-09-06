@@ -666,6 +666,7 @@ public sealed class FlowCompilerTests
         using var machine = new ManagedFlowVirtualMachineFactory().Create(compilation.Artifact);
 
         double count = 0;
+
         for (ulong sampledAt = 0; sampledAt <= 1_000; sampledAt += 10)
         {
             count = machine.Scan([new("enable", true)], sampledAt).Commands.Single().TypedValue.Number;
@@ -750,6 +751,7 @@ public sealed class FlowCompilerTests
             FlowCompilationDiagnosticCode.InvalidCalculatorFormula,
             "/nodes/3/configuration/formula");
     }
+
     private static Dictionary<string, JsonElement> Config(string key, object value) =>
         new() { [key] = JsonSerializer.SerializeToElement(value) };
 
@@ -763,6 +765,7 @@ public sealed class FlowCompilerTests
           : FixtureSourceRoot;
 
         var json = File.ReadAllText(Path.Combine(sourceRoot, fixture, "source-flow.json"));
+
         return JsonSerializer.Deserialize<ExecutableFlowSource>(json, FlowControlJson.Options)!;
     }
 
@@ -803,7 +806,7 @@ public sealed class FlowCompilerTests
         }
     };
 
-    private static void AssertDiagnostic(TestDelegate action, FlowCompilationDiagnosticCode code, string path)
+    private static void AssertDiagnostic(Action action, FlowCompilationDiagnosticCode code, string path)
     {
         var exception = Assert.Throws<FlowCompilationException>(action);
         Assert.Multiple(() =>
@@ -845,6 +848,7 @@ public sealed class FlowCompilerTests
     private FlowCompilationResult CompileFixture(string fixture)
     {
         var source = ReadSource(fixture);
+
         return CompileFixture(fixture, source);
     }
 }

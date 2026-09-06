@@ -14,6 +14,7 @@ public sealed partial class ControllerTemplateValidator : IControllerTemplateVal
         bool allowBuiltInDefault = false)
     {
         var diagnostics = new List<ControllerDiagnostic>();
+
         if (template.SchemaVersion != 1)
         {
             Add(diagnostics, "unsupported_schema", "schemaVersion", "schemaVersion must be 1");
@@ -83,6 +84,7 @@ public sealed partial class ControllerTemplateValidator : IControllerTemplateVal
             diagnostics);
 
         ValidateLimits(template.Limits, diagnostics);
+
         if (diagnostics.Count != 0)
         {
             throw new ControllerTemplateValidationException(diagnostics);

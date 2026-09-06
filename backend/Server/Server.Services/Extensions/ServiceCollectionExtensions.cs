@@ -20,6 +20,7 @@ public static class ServiceCollectionExtensions
                 // while appsettings files bind through the idiomatic property name.
                 var environmentKey =
                     configuration[ServerOptions.CredentialEncryptionKeyConfigurationKey];
+
                 if (!string.IsNullOrWhiteSpace(environmentKey))
                 {
                     options.CredentialEncryptionKey = environmentKey;
@@ -27,6 +28,7 @@ public static class ServiceCollectionExtensions
 
                 var controllerDataFile =
                     configuration[ServerOptions.ControllerDataFileConfigurationKey];
+
                 if (!string.IsNullOrWhiteSpace(controllerDataFile))
                 {
                     options.ControllerDataFile = controllerDataFile;
@@ -99,6 +101,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IStartupDataValidator, StartupDataValidator>();
         services.AddScoped<IExecutionConfigurationService, ExecutionConfigurationService>();
         services.AddSingleton<IAuditService, AuditService>();
+
         return services;
     }
 }

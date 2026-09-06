@@ -20,6 +20,7 @@ internal sealed class FlowDatabaseService(
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(options);
+
         if (options.PageSize is not (10 or 20 or 50))
         {
             throw new FlowValidationException("pageSize must be one of 10, 20, or 50");
@@ -37,6 +38,7 @@ internal sealed class FlowDatabaseService(
         }
 
         var statuses = options.Statuses ?? [];
+
         if (statuses.Any(status => status is not ("draft" or "deployed")))
         {
             throw new FlowValidationException("status must be draft or deployed");
@@ -67,6 +69,7 @@ internal sealed class FlowDatabaseService(
             .Skip((page - 1) * options.PageSize)
             .Take(options.PageSize)
             .ToList();
+
         return new(items, matches.Count, page, options.PageSize, pageCount);
     }
 
@@ -75,6 +78,7 @@ internal sealed class FlowDatabaseService(
         var entity = await context.Flows
             .AsNoTracking()
             .SingleOrDefaultAsync(flow => flow.Id == id, cancellationToken);
+
         return entity is null ? throw new FlowNotFoundException(id) : Deserialize(entity);
     }
 
@@ -82,6 +86,7 @@ internal sealed class FlowDatabaseService(
     {
         var trimmedName = name.Trim();
         var baseId = Slug(trimmedName);
+
         if (baseId.Length == 0)
         {
             baseId = "flow";
@@ -94,6 +99,7 @@ internal sealed class FlowDatabaseService(
             .ToListAsync(cancellationToken);
         var used = existingIds.ToHashSet(StringComparer.Ordinal);
         var id = baseId;
+
         for (var suffix = 2; used.Contains(id); suffix++)
         {
             id = $"{baseId}-{suffix}";
@@ -138,12 +144,14 @@ internal sealed class FlowDatabaseService(
         CancellationToken cancellationToken)
     {
         var entity = await FindTrackedAsync(id, cancellationToken);
+
         if (flow.Id != id)
         {
             throw new FlowValidationException("flow id must match the request path");
         }
 
         var current = Deserialize(entity);
+
         if (flow.Revision != current.Revision)
         {
             throw new FlowConcurrencyException(id);
@@ -164,6 +172,7 @@ internal sealed class FlowDatabaseService(
         entity.Updated = timeProvider.GetUtcNow();
         await ReconcileContainingContextsAsync(saved, cancellationToken);
         await SaveWithConcurrencyMapping(id, entity, cancellationToken);
+
         return saved;
     }
 
@@ -174,6 +183,7 @@ internal sealed class FlowDatabaseService(
     {
         var entity = await FindTrackedAsync(id, cancellationToken);
         var current = Deserialize(entity);
+
         if (current.Revision != revision)
         {
             throw new FlowConcurrencyException(id);
@@ -188,6 +198,7 @@ internal sealed class FlowDatabaseService(
         entity.Json = Serialize(deployed);
         entity.Updated = timeProvider.GetUtcNow();
         await SaveWithConcurrencyMapping(id, entity, cancellationToken);
+
         return deployed;
     }
 
@@ -215,6 +226,7 @@ internal sealed class FlowDatabaseService(
         entity.Updated = timeProvider.GetUtcNow();
         await ReconcileContainingContextsAsync(reverted, cancellationToken);
         await SaveWithConcurrencyMapping(id, entity, cancellationToken);
+
         return reverted;
     }
 
@@ -232,6 +244,7 @@ internal sealed class FlowDatabaseService(
         entity.Json = Serialize(saved);
         entity.Updated = timeProvider.GetUtcNow();
         await SaveWithConcurrencyMapping(id, entity, cancellationToken);
+
         return saved;
     }
 
@@ -276,6 +289,7 @@ internal sealed class FlowDatabaseService(
                 ?? throw new InvalidOperationException($"Stored execution context {entity.Id} is null.")))
             .Where(item => item.Definition.Programs.Any(program => program.FlowId == saved.Id))
             .ToList();
+
         if (containing.Count == 0)
         {
             return;
@@ -305,6 +319,7 @@ internal sealed class FlowDatabaseService(
                 .Where(declaration => !string.IsNullOrWhiteSpace(declaration.Key))
                 .DistinctBy(declaration => declaration.Key, StringComparer.Ordinal);
             IReadOnlyList<VirtualPointDefinition> contracts;
+
             try
             {
                 contracts = ExecutionConfigurationService.MergeContracts(declarations);
@@ -339,6 +354,7 @@ internal sealed class FlowDatabaseService(
         try
         {
             await context.SaveChangesAsync(cancellationToken);
+
             if (entity is not null)
             {
                 // The SQLite trigger increments RowVersion after EF's update.
@@ -360,6 +376,7 @@ internal sealed class FlowDatabaseService(
     {
         var result = new StringBuilder();
         var dash = false;
+
         foreach (var rune in name.Trim().ToLowerInvariant().EnumerateRunes())
         {
             if (Rune.IsLetterOrDigit(rune))
@@ -393,6 +410,7 @@ internal sealed class FlowDatabaseService(
         public int Compare(Flow? left, Flow? right)
         {
             var comparison = StringComparer.OrdinalIgnoreCase.Compare(left?.Name, right?.Name);
+
             return comparison != 0
                 ? comparison
                 : StringComparer.Ordinal.Compare(left?.Id, right?.Id);

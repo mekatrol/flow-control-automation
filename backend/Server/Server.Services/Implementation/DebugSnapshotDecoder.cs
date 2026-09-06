@@ -102,17 +102,21 @@ public static class DebugSnapshotDecoder
 
             outputs.Add(new(pointId, outputState, quality, boolean, number, typedValue));
         }
+
         reader.RequireEnd();
 
         var inputValidity = new List<string>(3);
+
         if ((validity & 1) != 0)
         {
             inputValidity.Add("coherent");
         }
+
         if ((validity & 2) != 0)
         {
             inputValidity.Add("all_present");
         }
+
         if ((validity & 4) != 0)
         {
             inputValidity.Add("all_good");
@@ -172,12 +176,14 @@ public static class DebugSnapshotDecoder
         public byte ReadByte()
         {
             Require(1);
+
             return _bytes[_offset++];
         }
 
         public bool ReadBoolean()
         {
             var value = ReadByte();
+
             return value switch
             {
                 0 => false,
@@ -190,6 +196,7 @@ public static class DebugSnapshotDecoder
         {
             var bits = ReadUInt64();
             var value = BitConverter.Int64BitsToDouble(unchecked((long)bits));
+
             if (!double.IsFinite(value))
             {
                 throw Protocol("numeric snapshot value is not finite");
@@ -203,6 +210,7 @@ public static class DebugSnapshotDecoder
             Require(2);
             var value = BinaryPrimitives.ReadUInt16LittleEndian(_bytes[_offset..]);
             _offset += 2;
+
             return value;
         }
 
@@ -211,6 +219,7 @@ public static class DebugSnapshotDecoder
             Require(4);
             var value = BinaryPrimitives.ReadUInt32LittleEndian(_bytes[_offset..]);
             _offset += 4;
+
             return value;
         }
 
@@ -219,18 +228,22 @@ public static class DebugSnapshotDecoder
             Require(8);
             var value = BinaryPrimitives.ReadUInt64LittleEndian(_bytes[_offset..]);
             _offset += 8;
+
             return value;
         }
 
         public string ReadString(bool allowEmpty = false)
         {
             var size = ReadByte();
+
             if ((!allowEmpty && size == 0) || size > 63)
             {
                 throw Protocol("invalid string length");
             }
+
             Require(size);
             string value;
+
             try
             {
                 value = new UTF8Encoding(false, true).GetString(_bytes.Slice(_offset, size));
@@ -239,7 +252,9 @@ public static class DebugSnapshotDecoder
             {
                 throw new ControllerGatewayException("protocol", "snapshot contains invalid UTF-8", exception);
             }
+
             _offset += size;
+
             return value;
         }
 

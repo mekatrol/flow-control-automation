@@ -124,6 +124,7 @@ internal sealed class ConnectivityEndpointTests
     public async Task HttpUsesPort80AndDnsLookupHonorsConnectTimeout()
     {
         var tcp = new FakeTcp();
+
         await using (var factory = Factory(
             dns: new FakeDns(IPAddress.Parse("192.168.1.20")),
             tcp: tcp))
@@ -230,6 +231,7 @@ internal sealed class ConnectivityEndpointTests
             dns: new FakeDns(IPAddress.Parse("8.8.8.8")));
         using var client = factory.CreateClient();
         ConnectivityResult? result = null;
+
         for (var index = 0; index < 11; index++)
         {
             using var response = await TestUnsaved(client, ValidHttpSource());
@@ -372,6 +374,7 @@ internal sealed class ConnectivityEndpointTests
             Replace<ITlsHandshake>(services, new FakeTls());
             Replace<IHttpProtocolCheck>(services, http ?? new FakeHttpCheck());
             Replace<IMqttProtocolCheck>(services, new FakeMqttCheck());
+
             if (resolver is not null)
             {
                 Replace(services, resolver);
@@ -455,6 +458,7 @@ internal sealed class ConnectivityEndpointTests
             CancellationToken cancellationToken)
         {
             Port = port;
+
             return Task.FromResult<Stream>(new MemoryStream());
         }
     }
@@ -483,6 +487,7 @@ internal sealed class ConnectivityEndpointTests
         {
             Calls++;
             CredentialReceived = credential;
+
             return Task.FromResult(new HttpProtocolCheckResult(
                 null,
                 new HttpResponsePreview(200, "OK", "application/json", "{\"intensity\":100}")));

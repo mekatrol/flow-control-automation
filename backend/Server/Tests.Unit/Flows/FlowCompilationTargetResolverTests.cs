@@ -264,7 +264,7 @@ public sealed class FlowCompilationTargetResolverTests
         };
 
     private static void AssertDiagnostic(
-        AsyncTestDelegate action,
+        Func<Task> action,
         FlowCompilationDiagnosticCode code,
         string path)
     {
@@ -348,6 +348,7 @@ public sealed class FlowCompilationTargetResolverTests
             CancellationToken cancellationToken)
         {
             ListCallCount++;
+
             return Task.FromResult(points);
         }
 

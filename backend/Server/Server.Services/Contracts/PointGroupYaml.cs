@@ -9,6 +9,7 @@ public static class PointGroupYaml
         var document = ConfigurationYaml.Parse<PointDocument>(
             yaml,
             ConfigurationKind.Points);
+
         if (document.Groups.Count != 1 || document.Points.Count != 0)
         {
             throw new ConfigurationYamlException(
@@ -22,6 +23,7 @@ public static class PointGroupYaml
     public static string Render(PointGroup group)
     {
         ArgumentNullException.ThrowIfNull(group);
+
         return ConfigurationYaml.Render(new PointDocument
         {
             Groups =

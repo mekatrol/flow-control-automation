@@ -44,6 +44,7 @@ public sealed class VirtualPointRuntimeStoreTests
             store.ActivateFlowAsync("server", "other", [analog], new HashSet<string> { analog.Key }, default));
         Assert.ThrowsAsync<InvalidOperationException>(() => store.CommitAsync(
             "server", "owner", [new FlowVmCommand(analog.Key, true)], default));
+
         using (Assert.EnterMultipleScope())
         {
             Assert.That(store.TrySnapshot("server", analog.Key, out var unchanged), Is.True);
@@ -65,6 +66,7 @@ public sealed class VirtualPointRuntimeStoreTests
         var store = new VirtualPointRuntimeStore(TimeProvider.System);
         var contract = Analog("defaulted") with { RelinquishDefault = JsonSerializer.SerializeToElement(18.0) };
         await store.ActivateFlowAsync("server", "first", [contract], new HashSet<string> { contract.Key }, default);
+
         using (Assert.EnterMultipleScope())
         {
             Assert.That(store.TrySnapshot("server", contract.Key, out var initial), Is.True);

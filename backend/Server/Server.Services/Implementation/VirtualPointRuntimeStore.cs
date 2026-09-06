@@ -22,6 +22,7 @@ public sealed class VirtualPointRuntimeStore(
         cancellationToken.ThrowIfCancellationRequested();
         var merged = ExecutionConfigurationService.MergeContracts(declarations);
         var retained = new Dictionary<string, RetainedVirtualPointValue?>(StringComparer.Ordinal);
+
         if (retainedStore is not null)
         {
             foreach (var declaration in merged.Where(item => item.Persistence == VirtualPointPersistenceType.Retained))
@@ -29,7 +30,9 @@ public sealed class VirtualPointRuntimeStore(
                 retained[declaration.Key] = await retainedStore.ReadAsync(executionInstanceId, declaration.Key, cancellationToken);
             }
         }
+
         _gate.EnterWriteLock();
+
         try
         {
             var existingKeys = _cells.Keys
@@ -37,6 +40,7 @@ public sealed class VirtualPointRuntimeStore(
                 .Select(identity => identity.PointKey)
                 .ToHashSet(StringComparer.Ordinal);
             var allocatedCount = existingKeys.Union(merged.Select(item => item.Key), StringComparer.Ordinal).Count();
+
             if (allocatedCount > ExecutionConfigurationService.MaximumVirtualPointsPerContext)
             {
                 throw new ExecutionConfigurationException(
@@ -45,9 +49,11 @@ public sealed class VirtualPointRuntimeStore(
                     "virtual_point_limit_exceeded",
                     new { limit = ExecutionConfigurationService.MaximumVirtualPointsPerContext, actual = allocatedCount });
             }
+
             foreach (var declaration in merged)
             {
                 var identity = (executionInstanceId, declaration.Key);
+
                 if (_cells.TryGetValue(identity, out var existing))
                 {
                     if (!Compatible(existing.Contract, declaration))
@@ -70,12 +76,15 @@ public sealed class VirtualPointRuntimeStore(
             foreach (var declaration in merged)
             {
                 var identity = (executionInstanceId, declaration.Key);
+
                 if (!_cells.TryGetValue(identity, out var cell))
                 {
                     cell = new Cell(executionInstanceId, declaration);
+
                     if (retained.GetValueOrDefault(declaration.Key) is { } restored)
                     {
                         var expected = declaration.ValueType == AutomationPointValueType.Analog ? DataType.Number : DataType.Boolean;
+
                         if (restored.Value.DataType == expected && Compatible(declaration, restored.Contract))
                         {
                             cell.Value = restored.Value;
@@ -83,9 +92,12 @@ public sealed class VirtualPointRuntimeStore(
                             cell.Version = restored.Version;
                         }
                     }
+
                     _cells.Add(identity, cell);
                 }
+
                 cell.Readers.Add(flowId);
+
                 if (writerKeys.Contains(declaration.Key))
                 {
                     cell.WriterFlowId = flowId;
@@ -98,16 +110,19 @@ public sealed class VirtualPointRuntimeStore(
     public void ReleaseFlow(string executionInstanceId, string flowId)
     {
         _gate.EnterWriteLock();
+
         try
         {
             foreach (var cell in _cells.Values.Where(item => item.ExecutionInstanceId == executionInstanceId))
             {
                 cell.Readers.Remove(flowId);
+
                 if (cell.WriterFlowId == flowId)
                 {
                     cell.WriterFlowId = null;
                 }
             }
+
             foreach (var identity in _cells
                 .Where(item => item.Key.InstanceId == executionInstanceId
                     && item.Value.Contract.Persistence == VirtualPointPersistenceType.Volatile
@@ -125,14 +140,18 @@ public sealed class VirtualPointRuntimeStore(
     public bool TrySnapshot(string executionInstanceId, string pointKey, out VirtualPointRuntimeValue value)
     {
         _gate.EnterReadLock();
+
         try
         {
             if (_cells.TryGetValue((executionInstanceId, pointKey), out var cell))
             {
                 value = Snapshot(cell);
+
                 return true;
             }
+
             value = null!;
+
             return false;
         }
         finally { _gate.ExitReadLock(); }
@@ -143,10 +162,12 @@ public sealed class VirtualPointRuntimeStore(
         cancellationToken.ThrowIfCancellationRequested();
         var proposed = commands.ToList();
         await _commitGate.WaitAsync(cancellationToken);
+
         try
         {
             Dictionary<string, RetainedVirtualPointValue> retainedWrites;
             _gate.EnterWriteLock();
+
             try
             {
                 foreach (var command in proposed)
@@ -162,6 +183,7 @@ public sealed class VirtualPointRuntimeStore(
                     }
 
                     var expected = cell.Contract.ValueType == AutomationPointValueType.Analog ? DataType.Number : DataType.Boolean;
+
                     if (command.TypedValue.DataType != expected)
                     {
                         throw new InvalidOperationException($"Command for virtual point '{command.PointId}' has the wrong value type.");
@@ -177,9 +199,11 @@ public sealed class VirtualPointRuntimeStore(
                         command =>
                         {
                             var cell = _cells[(executionInstanceId, command.PointId)];
+
                             return new RetainedVirtualPointValue(command.TypedValue, timestamp, checked(cell.Version + 1), cell.Contract);
                         },
                         StringComparer.Ordinal);
+
                 foreach (var command in proposed)
                 {
                     if (!_cells.TryGetValue((executionInstanceId, command.PointId), out var cell))
@@ -205,6 +229,7 @@ public sealed class VirtualPointRuntimeStore(
     public IReadOnlyList<VirtualPointRuntimeValue> List(string executionInstanceId)
     {
         _gate.EnterReadLock();
+
         try { return [.. _cells.Values.Where(item => item.ExecutionInstanceId == executionInstanceId).OrderBy(item => item.PointKey).Select(Snapshot)]; }
         finally { _gate.ExitReadLock(); }
     }
@@ -212,6 +237,7 @@ public sealed class VirtualPointRuntimeStore(
     public async Task ClearRetainedAsync(string executionInstanceId, CancellationToken cancellationToken)
     {
         await _commitGate.WaitAsync(cancellationToken);
+
         try
         {
             if (retainedStore is not null)
@@ -220,6 +246,7 @@ public sealed class VirtualPointRuntimeStore(
             }
 
             _gate.EnterWriteLock();
+
             try
             {
                 foreach (var cell in _cells.Values.Where(item => item.ExecutionInstanceId == executionInstanceId && item.Contract.Persistence == VirtualPointPersistenceType.Retained))
@@ -237,9 +264,11 @@ public sealed class VirtualPointRuntimeStore(
     public async Task RestoreRetainedAsync(string executionInstanceId, IReadOnlyDictionary<string, RetainedVirtualPointValue> values, CancellationToken cancellationToken)
     {
         await _commitGate.WaitAsync(cancellationToken);
+
         try
         {
             _gate.EnterWriteLock();
+
             try
             {
                 foreach (var (pointKey, retained) in values)
@@ -251,11 +280,13 @@ public sealed class VirtualPointRuntimeStore(
                     }
 
                     var expected = cell.Contract.ValueType == AutomationPointValueType.Analog ? DataType.Number : DataType.Boolean;
+
                     if (retained.Value.DataType != expected || !Compatible(cell.Contract, retained.Contract))
                     {
                         throw new ExecutionConfigurationException($"retained backup point '{pointKey}' has the wrong type", 422, "incompatible_retained_backup");
                     }
                 }
+
                 foreach (var cell in _cells.Values.Where(item => item.ExecutionInstanceId == executionInstanceId && item.Contract.Persistence == VirtualPointPersistenceType.Retained))
                 {
                     if (values.TryGetValue(cell.PointKey, out var retained))
@@ -268,6 +299,7 @@ public sealed class VirtualPointRuntimeStore(
                 }
             }
             finally { _gate.ExitWriteLock(); }
+
             if (retainedStore is not null)
             {
                 await retainedStore.ReplaceAsync(executionInstanceId, values, cancellationToken);

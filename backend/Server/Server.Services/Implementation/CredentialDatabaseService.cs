@@ -38,6 +38,7 @@ internal sealed partial class CredentialDatabaseService(
         var entity = await _context.Credentials
             .AsNoTracking()
             .SingleOrDefaultAsync(credential => credential.Id == id, cancellationToken);
+
         return entity is null
             ? throw new CredentialNotFoundException(id)
             : Deserialize(entity).Metadata;
@@ -89,6 +90,7 @@ internal sealed partial class CredentialDatabaseService(
     {
         var entity = await FindTracked(id, cancellationToken);
         var previous = Deserialize(entity);
+
         if (input.Id != id || input.Revision != previous.Metadata.Revision)
         {
             throw new CredentialConflictException("stale revision or mismatched ID");
@@ -132,6 +134,7 @@ internal sealed partial class CredentialDatabaseService(
         CancellationToken cancellationToken)
     {
         var entity = await FindTracked(id, cancellationToken);
+
         if (Deserialize(entity).Metadata.Revision != revision)
         {
             throw new CredentialConflictException("stale revision");
@@ -144,6 +147,7 @@ internal sealed partial class CredentialDatabaseService(
         var referencingSource = pointSources
             .Select(DeserializePointSource)
             .FirstOrDefault(source => source.CredentialRef == reference);
+
         if (referencingSource is not null)
         {
             throw new CredentialConflictException(
@@ -180,10 +184,12 @@ internal sealed partial class CredentialDatabaseService(
         var entity = await _context.Credentials
             .AsNoTracking()
             .SingleOrDefaultAsync(credential => credential.Id == id, cancellationToken) ?? throw new CredentialResolutionException("referenced credential is unavailable");
+
         try
         {
             var credential = Deserialize(entity);
             var secret = Decrypt(credential.Secret);
+
             return credential.Metadata.Kind == "mqtt"
                 ? JsonSerializer.Serialize(
                     new Dictionary<string, string?>
@@ -211,6 +217,7 @@ internal sealed partial class CredentialDatabaseService(
         var credentials = await _context.Credentials
             .AsNoTracking()
             .ToListAsync(cancellationToken);
+
         if (credentials.Any(entity =>
             entity.Id != exceptId
             && string.Equals(
@@ -237,6 +244,7 @@ internal sealed partial class CredentialDatabaseService(
         try
         {
             await _context.SaveChangesAsync(cancellationToken);
+
             if (entity is not null)
             {
                 await _context.ReloadAsync(entity, cancellationToken);
@@ -260,6 +268,7 @@ internal sealed partial class CredentialDatabaseService(
         nonce.CopyTo(sealedValue, 0);
         ciphertext.CopyTo(sealedValue, nonce.Length);
         tag.CopyTo(sealedValue, nonce.Length + ciphertext.Length);
+
         return Convert.ToBase64String(sealedValue).TrimEnd('=');
     }
 
@@ -267,6 +276,7 @@ internal sealed partial class CredentialDatabaseService(
     {
         var padding = (4 - (encoded.Length % 4)) % 4;
         var sealedValue = Convert.FromBase64String(encoded + new string('=', padding));
+
         if (sealedValue.Length < NonceSize + TagSize)
         {
             throw new CryptographicException("Invalid encrypted credential.");
@@ -280,6 +290,7 @@ internal sealed partial class CredentialDatabaseService(
             sealedValue.AsSpan(NonceSize, ciphertextLength),
             sealedValue.AsSpan(NonceSize + ciphertextLength, TagSize),
             plaintext);
+
         return System.Text.Encoding.UTF8.GetString(plaintext);
     }
 

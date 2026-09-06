@@ -138,11 +138,14 @@ public sealed class FlowSimulatorServiceTests
         public FlowVmExecutionFrame BeginScan(IReadOnlyList<FlowVmInput> inputs, ulong sampledAtMilliseconds)
         {
             _sampledAt = sampledAtMilliseconds;
+
             return new(0, FlowOpcodeType.Commit, true, [], [], [], []);
         }
+
         public FlowVmExecutionFrame StepInstruction() => throw new NotSupportedException();
         public FlowVmScanResult CommitScan() => new(++_scan, _sampledAt, [true], [new FlowVmCommand("output", true)]);
         public void AbortScan() { }
+
         public void Reset() => _scan = 0;
         public void Dispose() => Disposed = true;
     }
@@ -154,6 +157,7 @@ public sealed class FlowSimulatorServiceTests
         public Task PublishAsync(string flowId, IReadOnlyList<FlowVmCommand> commands, CancellationToken cancellationToken)
         {
             Published.Add(commands);
+
             return Task.CompletedTask;
         }
     }

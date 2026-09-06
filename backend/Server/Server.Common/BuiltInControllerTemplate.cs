@@ -28,7 +28,7 @@ public static class BuiltInControllerTemplate
                 ControllerPointFeatureType.Relinquish,
                 ControllerPointFeatureType.Quality,
                 ControllerPointFeatureType.Alarms,
-                ControllerPointFeatureType.Trends,
+                ControllerPointFeatureType.Trends
             ],
             ConnectorDataTypes = [ConnectorDataType.Any, ConnectorDataType.Boolean, ConnectorDataType.Event, ConnectorDataType.Number, ConnectorDataType.String],
             FlowFunctions = [.. FlowNodeRegistry.Functions],

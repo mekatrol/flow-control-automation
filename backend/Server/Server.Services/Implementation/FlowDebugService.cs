@@ -23,6 +23,7 @@ public sealed class FlowDebugService(
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
+
         return request.Host switch
         {
             "controller" => StartAsync(request.Source, request.ReplaceExisting, cancellationToken),
@@ -38,6 +39,7 @@ public sealed class FlowDebugService(
     {
         ArgumentNullException.ThrowIfNull(source);
         await registry.Gate.WaitAsync(cancellationToken);
+
         try
         {
             if (registry.Local is not null && replaceExisting)
@@ -46,10 +48,12 @@ public sealed class FlowDebugService(
                 registry.Local = null;
                 registry.Session = null;
             }
+
             if (registry.Session is not null && !replaceExisting)
             {
                 throw new ControllerGatewayException("busy", "A debug session already exists.");
             }
+
             var target = await targetResolver.ResolveAsync(source, cancellationToken);
             var compilation = compiler.Compile(new FlowCompilationRequest
             {
@@ -57,17 +61,20 @@ public sealed class FlowDebugService(
                 Target = target
             });
             var load = await transport.LoadAsync(compilation.Artifact, replaceExisting, cancellationToken);
+
             try
             {
                 var status = await transport.PrepareAsync(load.SessionId, cancellationToken);
                 ValidateStatus(status, load.SessionId, source.Revision);
                 var session = ToSession(source.Id, status, snapshot: null);
                 registry.Session = session with { AffectedOutputPoints = GetAffectedOutputPoints(source) };
+
                 return registry.Session;
             }
             catch
             {
                 Exception? cleanupFailure = null;
+
                 try
                 {
                     await transport.StopAsync(load.SessionId, CancellationToken.None);
@@ -76,6 +83,7 @@ public sealed class FlowDebugService(
                 {
                     cleanupFailure = exception;
                 }
+
                 _ = cleanupFailure;
                 throw;
             }
@@ -100,12 +108,15 @@ public sealed class FlowDebugService(
         var status = await transport.GetStatusAsync(id, cancellationToken);
         ValidateStatus(status, id, registry.Session!.Revision);
         var snapshot = registry.Session.Snapshot;
+
         if (status.TickNumber > 0 && (snapshot is null || snapshot.TickNumber != status.TickNumber))
         {
             snapshot = DebugSnapshotDecoder.Decode(await transport.ReadSnapshotAsync(id, status.TickNumber, cancellationToken));
         }
+
         var updated = CopyLiveOutputState(ToSession(flowId, status, snapshot), registry.Session);
         registry.Session = updated;
+
         return updated;
     }
 
@@ -117,19 +128,24 @@ public sealed class FlowDebugService(
         if (registry.Local is not null)
         {
             var session = await StepLocalTickAsync(flowId, sessionId, cancellationToken);
+
             return ToCompatibilitySnapshot(session);
         }
+
         await registry.Gate.WaitAsync(cancellationToken);
+
         try
         {
             var id = ParseAndMatch(flowId, sessionId);
             var envelope = await transport.StepAsync(id, cancellationToken);
             var snapshot = DebugSnapshotDecoder.Decode(envelope);
+
             if (snapshot.FlowId != flowId || snapshot.Revision != registry.Session!.Revision
                 || snapshot.DebugSessionId != sessionId)
             {
                 throw new ControllerGatewayException("stale_session", "Snapshot identity does not match the active flow.");
             }
+
             registry.Session = registry.Session with
             {
                 LifecycleState = snapshot.LifecycleState,
@@ -139,6 +155,7 @@ public sealed class FlowDebugService(
                 LastReasonPath = snapshot.LastReasonPath,
                 Snapshot = snapshot
             };
+
             return snapshot;
         }
         finally
@@ -153,6 +170,7 @@ public sealed class FlowDebugService(
         CancellationToken cancellationToken)
     {
         await registry.Gate.WaitAsync(cancellationToken);
+
         try
         {
             if (registry.Local is not null)
@@ -161,8 +179,10 @@ public sealed class FlowDebugService(
                 registry.Local.Dispose();
                 registry.Local = null;
                 registry.Session = null;
+
                 return;
             }
+
             var id = ParseAndMatch(flowId, sessionId);
             await transport.StopAsync(id, cancellationToken);
             registry.Session = null;
@@ -179,14 +199,18 @@ public sealed class FlowDebugService(
         if (registry.Local is not null)
         {
             var local = MatchLocal(flowId, sessionId);
+
             return registry.Session = local with { LifecycleState = "running", Mode = "interval" };
         }
+
         await registry.Gate.WaitAsync(cancellationToken);
+
         try
         {
             var id = ParseAndMatch(flowId, sessionId);
             var status = await transport.RunAsync(id, intervalMilliseconds, cancellationToken);
             ValidateStatus(status, id, registry.Session!.Revision);
+
             return registry.Session = CopyLiveOutputState(ToSession(flowId, status, registry.Session.Snapshot), registry.Session);
         }
         finally
@@ -201,14 +225,18 @@ public sealed class FlowDebugService(
         if (registry.Local is not null)
         {
             var local = MatchLocal(flowId, sessionId);
+
             return registry.Session = local with { LifecycleState = "paused", Mode = "manual" };
         }
+
         await registry.Gate.WaitAsync(cancellationToken);
+
         try
         {
             var id = ParseAndMatch(flowId, sessionId);
             var status = await transport.PauseAsync(id, cancellationToken);
             ValidateStatus(status, id, registry.Session!.Revision);
+
             return registry.Session = CopyLiveOutputState(ToSession(flowId, status, registry.Session.Snapshot), registry.Session);
         }
         finally
@@ -225,17 +253,21 @@ public sealed class FlowDebugService(
     {
         ArgumentNullException.ThrowIfNull(confirmedPointIds);
         await registry.Gate.WaitAsync(cancellationToken);
+
         try
         {
             var id = ParseAndMatch(flowId, sessionId);
             var session = registry.Session!;
+
             if (!confirmedPointIds.SequenceEqual(session.AffectedOutputPoints, StringComparer.Ordinal))
             {
                 throw new ControllerGatewayException(
                     "validation",
                     "Live-output confirmation must exactly match the affected output points.");
             }
+
             var policy = await transport.EnableLiveOutputAsync(id, confirmedPointIds, cancellationToken);
+
             return registry.Session = session with
             {
                 LiveOutputEnabled = true,
@@ -255,10 +287,12 @@ public sealed class FlowDebugService(
         CancellationToken cancellationToken)
     {
         await registry.Gate.WaitAsync(cancellationToken);
+
         try
         {
             var local = GetLocal(flowId, sessionId);
             await EnsureFrameAsync(local, cancellationToken);
+
             if (!local.Frame!.IsAtCommit)
             {
                 local.Frame = local.Machine.StepInstruction();
@@ -278,11 +312,13 @@ public sealed class FlowDebugService(
         CancellationToken cancellationToken)
     {
         await registry.Gate.WaitAsync(cancellationToken);
+
         try
         {
             var local = GetLocal(flowId, sessionId);
             await EnsureFrameAsync(local, cancellationToken);
             var initialNode = NodeAt(local, local.Frame!.InstructionIndex);
+
             do
             {
                 if (local.Frame.IsAtCommit)
@@ -293,6 +329,7 @@ public sealed class FlowDebugService(
                 local.Frame = local.Machine.StepInstruction();
             }
             while (string.Equals(initialNode, NodeAt(local, local.Frame.InstructionIndex), StringComparison.Ordinal));
+
             return UpdateLocalSession(local, "paused");
         }
         finally
@@ -309,14 +346,17 @@ public sealed class FlowDebugService(
     {
         ArgumentNullException.ThrowIfNull(breakpoint);
         await registry.Gate.WaitAsync(cancellationToken);
+
         try
         {
             var local = GetLocal(flowId, sessionId);
             ValidateBreakpoint(local, breakpoint);
             await EnsureFrameAsync(local, cancellationToken);
+
             while (!local.Frame!.IsAtCommit)
             {
                 cancellationToken.ThrowIfCancellationRequested();
+
                 if (string.Equals(NodeAt(local, local.Frame.InstructionIndex), breakpoint.NodeId, StringComparison.Ordinal))
                 {
                     break;
@@ -324,6 +364,7 @@ public sealed class FlowDebugService(
 
                 local.Frame = local.Machine.StepInstruction();
             }
+
             return UpdateLocalSession(local, "paused");
         }
         finally
@@ -340,19 +381,23 @@ public sealed class FlowDebugService(
     {
         ArgumentNullException.ThrowIfNull(breakpoints);
         await registry.Gate.WaitAsync(cancellationToken);
+
         try
         {
             var local = GetLocal(flowId, sessionId);
+
             if (breakpoints.Count > MaximumBreakpoints)
             {
                 throw new ControllerGatewayException("validation", "Breakpoint capacity was exceeded.");
             }
+
             foreach (var breakpoint in breakpoints)
             {
                 ValidateBreakpoint(local, breakpoint);
             }
 
             local.Breakpoints = [.. breakpoints];
+
             return UpdateLocalSession(local, registry.Session!.LifecycleState);
         }
         finally
@@ -368,10 +413,12 @@ public sealed class FlowDebugService(
     {
         cancellationToken.ThrowIfCancellationRequested();
         var local = GetLocal(flowId, sessionId);
+
         if (local.Frame is null)
         {
             throw new ControllerGatewayException("validation", "No paused execution frame is available.");
         }
+
         return Task.FromResult(ToInspection(local));
     }
 
@@ -381,9 +428,11 @@ public sealed class FlowDebugService(
         CancellationToken cancellationToken)
     {
         await registry.Gate.WaitAsync(cancellationToken);
+
         try
         {
             var local = GetLocal(flowId, sessionId);
+
             if (local.Frame is not null)
             {
                 local.Machine.AbortScan();
@@ -391,6 +440,7 @@ public sealed class FlowDebugService(
 
             local.Frame = null;
             local.Machine.Reset();
+
             return UpdateLocalSession(local, "ready") with { TickNumber = 0, Snapshot = null };
         }
         finally
@@ -415,40 +465,49 @@ public sealed class FlowDebugService(
         {
             throw new ControllerGatewayException("unavailable", "Local debug hosts are unavailable.");
         }
+
         await registry.Gate.WaitAsync(cancellationToken);
+
         try
         {
             if (registry.Session is not null && !request.ReplaceExisting)
             {
                 throw new ControllerGatewayException("busy", "A debug session already exists.");
             }
+
             if (registry.Session is { Host: "controller" } controller && request.ReplaceExisting
                 && ulong.TryParse(controller.DebugSessionId, NumberStyles.None, CultureInfo.InvariantCulture, out var controllerId))
             {
                 await transport.StopAsync(controllerId, cancellationToken);
                 registry.Session = null;
             }
+
             registry.Local?.Dispose();
             registry.Local = null;
             var target = await targetResolver.ResolveAsync(request.Source, cancellationToken);
             var compilation = compiler.Compile(new FlowCompilationRequest { Source = request.Source, Target = target });
             FlowEmulatorService.Instance? emulator = null;
+
             if (request.Host == "emulator")
             {
                 if (string.IsNullOrWhiteSpace(request.EmulatorId))
                 {
                     throw new ControllerGatewayException("validation", "An emulator ID is required for the emulator host.");
                 }
+
                 emulator = emulators.GetInstance(request.EmulatorId);
+
                 if (!string.Equals(emulator.Snapshot().FlowId, request.Source.Id, StringComparison.Ordinal))
                 {
                     throw new ControllerGatewayException("validation", "The emulator flow does not match the debug source.");
                 }
             }
+
             var sessionId = Guid.NewGuid().ToString("N");
             var local = new LocalFlowDebugSession(
                 machines.Create(compilation.Artifact), request.Source, compilation, request.Host, sessionId, emulator);
             registry.Local = local;
+
             return registry.Session = LocalSession(local, "ready");
         }
         finally
@@ -463,11 +522,13 @@ public sealed class FlowDebugService(
         CancellationToken cancellationToken)
     {
         await registry.Gate.WaitAsync(cancellationToken);
+
         try
         {
             var local = GetLocal(flowId, sessionId);
             await EnsureFrameAsync(local, cancellationToken);
             FlowVmScanResult scan;
+
             try
             {
                 scan = local.Machine.CommitScan();
@@ -483,6 +544,7 @@ public sealed class FlowDebugService(
                 local.Frame = null;
                 throw;
             }
+
             if (local.Emulator is not null)
             {
                 local.Emulator.Publish(scan);
@@ -491,12 +553,14 @@ public sealed class FlowDebugService(
             {
                 await points!.PublishAsync(local.Source.Id, scan.Commands, cancellationToken);
             }
+
             var updated = UpdateLocalSession(local, "paused") with
             {
                 TickNumber = scan.ScanNumber,
                 Snapshot = CompatibilitySnapshot(local, scan)
             };
             registry.Session = updated;
+
             return updated;
         }
         finally
@@ -514,6 +578,7 @@ public sealed class FlowDebugService(
 
         IReadOnlyList<FlowVmInput> inputs;
         ulong sampledAt;
+
         if (local.Emulator is not null)
         {
             inputs = local.Emulator.CaptureInputs();
@@ -530,12 +595,14 @@ public sealed class FlowDebugService(
             inputs = await points!.ReadAsync(ids, cancellationToken);
             sampledAt = checked((ulong)Environment.TickCount64);
         }
+
         local.Frame = local.Machine.BeginScan(inputs, sampledAt);
     }
 
     private FlowDebugSession MatchLocal(string flowId, string sessionId)
     {
         GetLocal(flowId, sessionId);
+
         return registry.Session!;
     }
 
@@ -547,12 +614,14 @@ public sealed class FlowDebugService(
         {
             throw new FlowDebugSessionNotFoundException(sessionId);
         }
+
         return local;
     }
 
     private FlowDebugSession UpdateLocalSession(LocalFlowDebugSession local, string state)
     {
         var current = registry.Session!;
+
         return registry.Session = LocalSession(local, state) with
         {
             TickNumber = current.TickNumber,
@@ -591,6 +660,7 @@ public sealed class FlowDebugService(
     private static FlowDebugInspection ToInspection(LocalFlowDebugSession local)
     {
         var frame = local.Frame!;
+
         return new FlowDebugInspection
         {
             InstructionPointer = frame.InstructionIndex,
@@ -671,6 +741,7 @@ public sealed class FlowDebugService(
         {
             throw new FlowDebugSessionNotFoundException(sessionId);
         }
+
         return id;
     }
 

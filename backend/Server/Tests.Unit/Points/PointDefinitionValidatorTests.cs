@@ -470,6 +470,7 @@ internal sealed class PointDefinitionValidatorTests
     public void ArbitraryYamlAndJsonValidation_NeverLeaksUnexpectedExceptions()
     {
         var random = new Random(17);
+
         for (var index = 0; index < 500; index++)
         {
             var bytes = new byte[random.Next(0, 512)];
@@ -505,6 +506,7 @@ internal sealed class PointDefinitionValidatorTests
         bool commandable)
     {
         var mqttMapping = new JsonObject();
+
         if (readable)
         {
             mqttMapping["stateTopic"] = "point/state";
@@ -545,7 +547,7 @@ internal sealed class PointDefinitionValidatorTests
                 new JsonObject { ["key"] = "off", ["label"] = "Off" },
                 new JsonObject { ["key"] = "on", ["label"] = "On" }
             },
-            _ => null,
+            _ => null
         },
         Readable = true,
         Commandable = false,

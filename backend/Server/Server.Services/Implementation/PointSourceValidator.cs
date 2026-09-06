@@ -7,6 +7,7 @@ internal sealed partial class PointSourceValidator : IPointSourceValidator
     public void Validate(PointSource source)
     {
         ArgumentNullException.ThrowIfNull(source);
+
         if (!Identifier().IsMatch(source.Id))
         {
             throw new PointSourceValidationException(
@@ -45,7 +46,7 @@ internal sealed partial class PointSourceValidator : IPointSourceValidator
             "httpJson" => ValidateHttpJson(source),
             "mqtt" => ValidateMqtt(source),
             _ => throw new PointSourceValidationException(
-                "kind must be homeAssistant, mqtt, or httpJson"),
+                "kind must be homeAssistant, mqtt, or httpJson")
         };
         ValidateAddress(source, address);
     }
@@ -58,6 +59,7 @@ internal sealed partial class PointSourceValidator : IPointSourceValidator
     private static string ValidateHttpJson(PointSource source)
     {
         var address = RequireBaseUrl(source);
+
         if (source.Connection.AllowedReadMethods?.Any(
             method => method is not ("GET" or "HEAD")) == true)
         {
@@ -87,6 +89,7 @@ internal sealed partial class PointSourceValidator : IPointSourceValidator
         }
 
         var topic = source.Connection.TestTopic ?? string.Empty;
+
         if (topic.IndexOfAny(['+', '#', '\0']) >= 0 || topic.Length > ushort.MaxValue)
         {
             throw new PointSourceValidationException(
@@ -109,6 +112,7 @@ internal sealed partial class PointSourceValidator : IPointSourceValidator
         var allowedScheme = source.Kind == "mqtt"
             ? uri.Scheme is "mqtt" or "mqtts"
             : uri.Scheme is "http" or "https";
+
         if (!allowedScheme)
         {
             throw new PointSourceValidationException("connection URL scheme is not allowed");

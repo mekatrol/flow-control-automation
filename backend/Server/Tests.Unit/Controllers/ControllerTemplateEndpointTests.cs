@@ -236,6 +236,7 @@ internal sealed class ControllerTemplateEndpointTests
     {
         await using var factory = new Api.FlowControlApplicationFactory();
         using var client = factory.CreateClient();
+
         foreach (var template in new[]
         {
             Template() with { Id = "zulu", Name = "Zulu" },
@@ -280,6 +281,7 @@ internal sealed class ControllerTemplateEndpointTests
                 Encoding.UTF8,
                 "application/yaml")
         };
+
         if (revision is not null)
         {
             request.Headers.TryAddWithoutValidation("If-Match", revision.Value.ToString());

@@ -27,6 +27,7 @@ public sealed class FlowSimulatorSessionRegistry : IDisposable
         lock (_gate)
         {
             RemoveExpiredCore();
+
             return _entries.GetValueOrDefault(flowId);
         }
     }
@@ -36,6 +37,7 @@ public sealed class FlowSimulatorSessionRegistry : IDisposable
         lock (_gate)
         {
             RemoveExpiredCore();
+
             if (_entries.TryGetValue(flowId, out var existing))
             {
                 if (!replaceExisting)
@@ -46,6 +48,7 @@ public sealed class FlowSimulatorSessionRegistry : IDisposable
                 existing.Dispose();
                 _entries.Remove(flowId);
             }
+
             if (_entries.Count >= MaximumSessions)
             {
                 throw new FlowSimulatorException("simulator_limit_exceeded", "The active simulator session limit has been reached.");
@@ -54,6 +57,7 @@ public sealed class FlowSimulatorSessionRegistry : IDisposable
             var entry = new Entry(flowId, registry, _timeProvider.GetUtcNow(), emulatorId, cleanup);
             _entries.Add(flowId, entry);
             entry.ScheduleExpiry(_timeProvider, _lease, () => Remove(flowId, entry));
+
             return entry;
         }
     }
@@ -70,6 +74,7 @@ public sealed class FlowSimulatorSessionRegistry : IDisposable
 
             _entries.Remove(flowId);
             entry.Dispose();
+
             return true;
         }
     }
@@ -94,6 +99,7 @@ public sealed class FlowSimulatorSessionRegistry : IDisposable
         {
             entry.LastAccess = _timeProvider.GetUtcNow();
             entry.ScheduleExpiry(_timeProvider, _lease, () => Remove(entry.FlowId, entry));
+
             return checked((uint)_lease.TotalMilliseconds);
         }
     }
@@ -101,6 +107,7 @@ public sealed class FlowSimulatorSessionRegistry : IDisposable
     private void RemoveExpiredCore()
     {
         var now = _timeProvider.GetUtcNow();
+
         foreach (var pair in _entries.Where(pair => now - pair.Value.LastAccess >= _lease).ToArray())
         {
             _entries.Remove(pair.Key);
@@ -153,12 +160,14 @@ public sealed class FlowSimulatorSessionRegistry : IDisposable
                 catch (OperationCanceledException) when (token.IsCancellationRequested) { }
             }, CancellationToken.None);
         }
+
         public void StopContinuous()
         {
             _continuousCancellation?.Cancel();
             _continuousCancellation?.Dispose();
             _continuousCancellation = null;
         }
+
         public void ScheduleExpiry(TimeProvider timeProvider, TimeSpan lease, Action expire)
         {
             var version = Interlocked.Increment(ref _expiryVersion);
@@ -167,6 +176,7 @@ public sealed class FlowSimulatorSessionRegistry : IDisposable
                 static state =>
                 {
                     var expiry = (ExpiryState)state!;
+
                     if (Volatile.Read(ref expiry.Entry._expiryVersion) == expiry.Version)
                     {
                         expiry.Expire();
@@ -176,6 +186,7 @@ public sealed class FlowSimulatorSessionRegistry : IDisposable
                 lease,
                 Timeout.InfiniteTimeSpan);
         }
+
         public void Dispose()
         {
             Interlocked.Increment(ref _expiryVersion);

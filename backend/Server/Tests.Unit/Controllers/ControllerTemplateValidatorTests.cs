@@ -190,7 +190,7 @@ internal sealed class ControllerTemplateValidatorTests
             "flowFunctions" => capabilities with { FlowFunctions = [(FlowFunctionType)byte.MaxValue] },
             "executionModes" => capabilities with { ExecutionModes = [(ExecutionModeType)byte.MaxValue] },
             "runtimeFeatures" => capabilities with { RuntimeFeatures = [(ControllerRuntimeFeatureType)byte.MaxValue] },
-            _ => throw new ArgumentOutOfRangeException(nameof(capability)),
+            _ => throw new ArgumentOutOfRangeException(nameof(capability))
         };
 
         // Expected outcome: The invalid operation is rejected with the required error.
@@ -237,7 +237,7 @@ internal sealed class ControllerTemplateValidatorTests
             {
                 RuntimeFeatures = [ControllerRuntimeFeatureType.PhysicalPoints, ControllerRuntimeFeatureType.PhysicalPoints],
             },
-            _ => throw new ArgumentOutOfRangeException(nameof(capability)),
+            _ => throw new ArgumentOutOfRangeException(nameof(capability))
         };
 
         // Expected outcome: The invalid operation is rejected with the required error.
@@ -463,6 +463,7 @@ internal sealed class ControllerTemplateValidatorTests
     public void ArbitraryYamlParsingAndValidation_NeverLeaksUnexpectedExceptions()
     {
         var random = new Random(23);
+
         for (var index = 0; index < 500; index++)
         {
             var bytes = new byte[random.Next(0, 512)];

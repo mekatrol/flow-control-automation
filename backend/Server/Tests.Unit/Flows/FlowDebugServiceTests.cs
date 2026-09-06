@@ -126,6 +126,7 @@ public sealed class FlowDebugServiceTests
         writer.Write((uint)1);
         writer.Write((uint)0);
         writer.Write((uint)0);
+
         return stream.ToArray();
     }
 
@@ -171,6 +172,7 @@ public sealed class FlowDebugServiceTests
             CancellationToken cancellationToken)
         {
             Calls.Add("load");
+
             return Task.FromResult(new ControllerDebugLoadResult(42, 180, 30000));
         }
 
@@ -179,6 +181,7 @@ public sealed class FlowDebugServiceTests
             CancellationToken cancellationToken)
         {
             Calls.Add("prepare");
+
             return Task.FromResult(Status(state: 2, tick: 0));
         }
 
@@ -187,6 +190,7 @@ public sealed class FlowDebugServiceTests
             CancellationToken cancellationToken)
         {
             Calls.Add("status");
+
             return Task.FromResult(Status(state: 4, tick: 1));
         }
 
@@ -195,12 +199,14 @@ public sealed class FlowDebugServiceTests
             CancellationToken cancellationToken)
         {
             Calls.Add("step");
+
             return Task.FromResult(new ControllerDebugSnapshotEnvelope(42, 1, snapshot, new byte[32]));
         }
 
         public Task RenewLeaseAsync(ulong sessionId, CancellationToken cancellationToken)
         {
             Calls.Add("renew");
+
             return Task.CompletedTask;
         }
 
@@ -214,6 +220,7 @@ public sealed class FlowDebugServiceTests
             ulong sessionId, IReadOnlyList<string> confirmedPointIds, CancellationToken cancellationToken)
         {
             Calls.Add("live");
+
             return Task.FromResult(new ControllerDebugLiveOutputResult(8, 1000));
         }
 
@@ -223,6 +230,7 @@ public sealed class FlowDebugServiceTests
         public Task StopAsync(ulong sessionId, CancellationToken cancellationToken)
         {
             Calls.Add("stop");
+
             return Task.CompletedTask;
         }
 

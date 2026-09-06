@@ -328,12 +328,14 @@ internal sealed class ProtocolCheckTests
         {
             var listener = new TcpListener(IPAddress.Loopback, 0);
             listener.Start();
+
             return Task.FromResult(new LoopbackHttpServer(listener, response));
         }
 
         public async ValueTask DisposeAsync()
         {
             _listener.Stop();
+
             try
             {
                 await _serve;
@@ -352,15 +354,18 @@ internal sealed class ProtocolCheckTests
             await using var stream = client.GetStream();
             var buffer = new byte[8192];
             var length = 0;
+
             while (length < buffer.Length)
             {
                 var read = await stream.ReadAsync(buffer.AsMemory(length));
+
                 if (read == 0)
                 {
                     break;
                 }
 
                 length += read;
+
                 if (Encoding.ASCII.GetString(buffer, 0, length).Contains(
                     "\r\n\r\n",
                     StringComparison.Ordinal))

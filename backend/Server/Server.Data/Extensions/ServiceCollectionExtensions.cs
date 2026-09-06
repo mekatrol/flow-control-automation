@@ -21,6 +21,7 @@ public static class ServiceCollectionExtensions
                 provider.GetRequiredService<IOptions<DatabaseOptions>>().Value.ConnectionString));
         services.AddScoped<IFlowControlDbContext>(
             static provider => provider.GetRequiredService<FlowControlDbContext>());
+
         return services;
     }
 }

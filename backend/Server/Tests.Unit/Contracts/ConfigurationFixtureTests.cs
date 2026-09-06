@@ -256,6 +256,7 @@ public sealed class ConfigurationFixtureTests
 
             value.Remove("createdAt");
             value.Remove("updatedAt");
+
             foreach (var child in value.Select(item => item.Value).OfType<JsonNode>())
             {
                 StripBackendMetadata(child);

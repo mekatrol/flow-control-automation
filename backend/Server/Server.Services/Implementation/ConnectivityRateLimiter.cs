@@ -12,6 +12,7 @@ internal sealed class ConnectivityRateLimiter
         lock (_lock)
         {
             var cutoff = now - Window;
+
             if (!_recent.TryGetValue(key, out var entries))
             {
                 entries = [];
@@ -19,12 +20,14 @@ internal sealed class ConnectivityRateLimiter
             }
 
             entries.RemoveAll(item => item <= cutoff);
+
             if (entries.Count >= MaximumTests)
             {
                 return false;
             }
 
             entries.Add(now);
+
             return true;
         }
     }

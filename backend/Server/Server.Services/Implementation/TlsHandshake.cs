@@ -12,6 +12,7 @@ internal sealed class TlsHandshake : ITlsHandshake
         CancellationToken cancellationToken)
     {
         var tls = new SslStream(stream, leaveInnerStreamOpen: false);
+
         try
         {
             using var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(
@@ -24,6 +25,7 @@ internal sealed class TlsHandshake : ITlsHandshake
                     EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13
                 },
                 timeoutSource.Token);
+
             return tls;
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)

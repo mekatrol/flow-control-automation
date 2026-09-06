@@ -21,6 +21,7 @@ public static class ControllerTemplateEndpointRouteBuilderExtensions
         endpoints.MapPut("/api/controller-templates/{templateId}", Update);
         endpoints.MapDelete("/api/controller-templates/{templateId}", Delete);
         endpoints.MapGet("/api/controller-templates/{templateId}/yaml", GetYaml);
+
         return endpoints;
     }
 
@@ -55,6 +56,7 @@ public static class ControllerTemplateEndpointRouteBuilderExtensions
         CancellationToken cancellationToken)
     {
         var decoded = await Decode(request, cancellationToken);
+
         if (decoded.Error is not null)
         {
             return decoded.Error;
@@ -63,6 +65,7 @@ public static class ControllerTemplateEndpointRouteBuilderExtensions
         try
         {
             validator.Validate(decoded.Value!);
+
             return Results.Json(new { valid = true, diagnostics = Array.Empty<object>() });
         }
         catch (ControllerTemplateValidationException exception)
@@ -78,6 +81,7 @@ public static class ControllerTemplateEndpointRouteBuilderExtensions
         CancellationToken cancellationToken)
     {
         var decoded = await Decode(request, cancellationToken);
+
         return decoded.Error
             ?? await Write(
                 response,
@@ -93,6 +97,7 @@ public static class ControllerTemplateEndpointRouteBuilderExtensions
         CancellationToken cancellationToken)
     {
         var decoded = await Decode(request, cancellationToken);
+
         return decoded.Error ?? (TryRevision(request.Headers.IfMatch.ToString(), out var revision)
             ? await Write(
                 response,
@@ -119,6 +124,7 @@ public static class ControllerTemplateEndpointRouteBuilderExtensions
         try
         {
             await templates.DeleteAsync(templateId, revision, cancellationToken);
+
             return Results.NoContent();
         }
         catch (ControllerTemplateNotFoundException exception)
@@ -144,6 +150,7 @@ public static class ControllerTemplateEndpointRouteBuilderExtensions
         {
             var template = await operation();
             response.Headers.ETag = template.Revision.ToString(CultureInfo.InvariantCulture);
+
             return yaml
                 ? Results.Text(
                     ControllerTemplateYaml.Render(template),
@@ -170,6 +177,7 @@ public static class ControllerTemplateEndpointRouteBuilderExtensions
         {
             var template = await operation();
             response.Headers.ETag = template.Revision.ToString(CultureInfo.InvariantCulture);
+
             return Results.Json(template, statusCode: status);
         }
         catch (ControllerTemplateNotFoundException exception)
@@ -201,11 +209,13 @@ public static class ControllerTemplateEndpointRouteBuilderExtensions
         {
             var buffer = new byte[ConfigurationYaml.MaximumBytes + 1];
             var length = 0;
+
             while (length < buffer.Length)
             {
                 var read = await request.Body.ReadAsync(
                     buffer.AsMemory(length, buffer.Length - length),
                     cancellationToken);
+
                 if (read == 0)
                 {
                     break;
@@ -231,6 +241,7 @@ public static class ControllerTemplateEndpointRouteBuilderExtensions
                 line = yaml.Start.Line,
                 column = yaml.Start.Column
             };
+
             return (null, Error(
                 400,
                 YamlCode(exception.Category),
@@ -261,7 +272,7 @@ public static class ControllerTemplateEndpointRouteBuilderExtensions
         ConfigurationYamlError.MultipleDocuments => "multiple_yaml_documents",
         ConfigurationYamlError.UnsupportedFeature => "unsupported_yaml",
         ConfigurationYamlError.UnsupportedSchema => "unsupported_schema",
-        _ => "invalid_yaml",
+        _ => "invalid_yaml"
     };
 
     private static IResult Error(

@@ -19,6 +19,7 @@ internal sealed class HttpProtocolCheck(IDnsLookup dns) : IHttpProtocolCheck
         CancellationToken cancellationToken)
     {
         var endpoint = new Uri(source.Connection.BaseUrl!);
+
         if (source.Kind == "homeAssistant")
         {
             endpoint = new Uri(
@@ -38,6 +39,7 @@ internal sealed class HttpProtocolCheck(IDnsLookup dns) : IHttpProtocolCheck
     {
         var redirects = 0;
         var addresses = pinnedAddresses;
+
         while (true)
         {
             using var handler = CreateHandler(endpoint, addresses);
@@ -48,6 +50,7 @@ internal sealed class HttpProtocolCheck(IDnsLookup dns) : IHttpProtocolCheck
                     ?? source.Timeouts.ConnectMilliseconds)
             };
             using var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
+
             if (credential.Length > 0)
             {
                 request.Headers.Authorization =
@@ -55,6 +58,7 @@ internal sealed class HttpProtocolCheck(IDnsLookup dns) : IHttpProtocolCheck
             }
 
             HttpResponseMessage response;
+
             try
             {
                 response = await client.SendAsync(
@@ -85,6 +89,7 @@ internal sealed class HttpProtocolCheck(IDnsLookup dns) : IHttpProtocolCheck
                     endpoint = response.Headers.Location.IsAbsoluteUri
                         ? response.Headers.Location
                         : new Uri(endpoint, response.Headers.Location);
+
                     try
                     {
                         addresses = await dns.LookupAsync(endpoint.Host, cancellationToken);
@@ -117,21 +122,25 @@ internal sealed class HttpProtocolCheck(IDnsLookup dns) : IHttpProtocolCheck
                 var maximumBytes = source.Connection.MaximumResponseBytes
                     ?? DefaultMaximumResponseBytes;
                 await using var preview = new MemoryStream();
+
                 try
                 {
                     await using var body =
                         await response.Content.ReadAsStreamAsync(cancellationToken);
                     var buffer = new byte[Math.Min(maximumBytes + 1, 81920)];
                     long total = 0;
+
                     while (true)
                     {
                         var read = await body.ReadAsync(buffer, cancellationToken);
+
                         if (read == 0)
                         {
                             break;
                         }
 
                         total += read;
+
                         if (total > maximumBytes)
                         {
                             return new("HTTP response exceeded the configured size limit");
@@ -190,14 +199,17 @@ internal sealed class HttpProtocolCheck(IDnsLookup dns) : IHttpProtocolCheck
                 {
                     var port = context.DnsEndPoint.Port;
                     Exception? lastException = null;
+
                     foreach (var address in addresses)
                     {
                         var socket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+
                         try
                         {
                             await socket.ConnectAsync(
                                 new IPEndPoint(address, port),
                                 cancellationToken);
+
                             return new NetworkStream(socket, ownsSocket: true);
                         }
                         catch (Exception exception)
@@ -210,6 +222,7 @@ internal sealed class HttpProtocolCheck(IDnsLookup dns) : IHttpProtocolCheck
                     throw lastException ?? new SocketException((int)SocketError.HostNotFound);
                 }
         };
+
         return handler;
     }
 

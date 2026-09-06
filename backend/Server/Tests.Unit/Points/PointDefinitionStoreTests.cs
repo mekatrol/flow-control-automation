@@ -121,6 +121,7 @@ internal sealed class PointDefinitionStoreTests
     {
         await using var factory = new FlowControlApplicationFactory();
         _ = factory.CreateClient();
+
         await using (var createScope = factory.Services.CreateAsyncScope())
         {
             var store = createScope.ServiceProvider
@@ -337,6 +338,7 @@ internal sealed class PointDefinitionStoreTests
         await using var factory = new FlowControlApplicationFactory();
         _ = factory.CreateClient();
         AutomationPoint created;
+
         await using (var setupScope = factory.Services.CreateAsyncScope())
         {
             created = await setupScope.ServiceProvider
@@ -378,6 +380,7 @@ internal sealed class PointDefinitionStoreTests
     {
         await using var factory = new FlowControlApplicationFactory();
         _ = factory.CreateClient();
+
         await using (var scope = factory.Services.CreateAsyncScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<IFlowControlDbContext>();

@@ -31,6 +31,7 @@ internal sealed partial class ExecutionConfigurationService(
     {
         ValidateId(pointKey, "pointKey");
         ExecutionContextDefinition? definition = null;
+
         if (!string.IsNullOrWhiteSpace(contextId))
         {
             definition = await GetContextAsync(contextId, cancellationToken);
@@ -62,6 +63,7 @@ internal sealed partial class ExecutionConfigurationService(
         }
 
         AutomationPoint? point = null;
+
         try { point = await pointDefinitions.GetPointAsync(pointKey, cancellationToken); }
         catch (PointDefinitionNotFoundException) { }
 
@@ -89,6 +91,7 @@ internal sealed partial class ExecutionConfigurationService(
     public async Task<ExecutionContextDefinition> SaveContextAsync(ExecutionContextDefinition definition, bool create, CancellationToken cancellationToken)
     {
         ValidateId(definition.Id, "id");
+
         if (string.IsNullOrWhiteSpace(definition.Name))
         {
             Fail("name must be non-empty");
@@ -105,11 +108,13 @@ internal sealed partial class ExecutionConfigurationService(
         }
 
         var declarations = new List<VirtualPointDefinition>();
+
         foreach (var program in definition.Programs)
         {
             var flowEntity = await context.Flows.AsNoTracking().SingleOrDefaultAsync(item => item.Id == program.FlowId, cancellationToken)
                 ?? throw new ExecutionConfigurationException($"flow '{program.FlowId}' not found", 422);
             var flow = Deserialize<Flow>(flowEntity);
+
             if (flow.Revision != program.FlowRevision)
             {
                 throw new ExecutionConfigurationException($"flow '{program.FlowId}' revision {program.FlowRevision} is not available", 409);
@@ -119,12 +124,14 @@ internal sealed partial class ExecutionConfigurationService(
         }
 
         var contracts = MergeContracts(declarations);
+
         if (definition.PointContracts.Count > 0 && !ContractsEqual(definition.PointContracts, contracts))
         {
             Fail("pointContracts must equal the contracts merged from the selected flow revisions");
         }
 
         var normalized = definition with { PointContracts = contracts };
+
         return await Save(context.ExecutionContexts, normalized.Id, normalized, create, cancellationToken);
     }
 
@@ -147,6 +154,7 @@ internal sealed partial class ExecutionConfigurationService(
     public async Task<ExecutionInstance> SaveInstanceAsync(ExecutionInstance instance, bool create, CancellationToken cancellationToken)
     {
         ValidateId(instance.Id, "id");
+
         if (string.IsNullOrWhiteSpace(instance.Name))
         {
             Fail("name must be non-empty");
@@ -165,11 +173,13 @@ internal sealed partial class ExecutionConfigurationService(
         if (instance.ExecutionInstanceType == ExecutionInstanceType.Controller)
         {
             ControllerTemplate template;
+
             try { template = await controllerTemplates.GetAsync(instance.ControllerTemplateId!, cancellationToken); }
             catch (ControllerTemplateNotFoundException)
             {
                 throw new ExecutionConfigurationException($"controller template '{instance.ControllerTemplateId}' not found", 422);
             }
+
             if (template.Revision != instance.ControllerTemplateRevision)
             {
                 throw new ExecutionConfigurationException($"controller template '{template.Id}' revision is stale", 409);
@@ -202,6 +212,7 @@ internal sealed partial class ExecutionConfigurationService(
     public async Task<IReadOnlyList<ExecutionContextDeployment>> ListDeploymentsAsync(string contextId, CancellationToken cancellationToken)
     {
         _ = await Find(context.ExecutionContexts, contextId, "execution context", cancellationToken);
+
         return [.. (await context.ExecutionContextDeployments.AsNoTracking()
             .Where(item => item.ExecutionContextId == contextId).OrderBy(item => item.Key).ToListAsync(cancellationToken))
             .Select(Deserialize<ExecutionContextDeployment>)];
@@ -212,6 +223,7 @@ internal sealed partial class ExecutionConfigurationService(
         ValidateId(deployment.Id, "id");
         var definition = await GetContextAsync(deployment.ExecutionContextId, cancellationToken);
         var instance = await GetInstanceAsync(deployment.ExecutionInstanceId, cancellationToken);
+
         if (deployment.ExecutionContextRevision != definition.Revision)
         {
             throw new ExecutionConfigurationException("execution context revision is stale", 409);
@@ -253,6 +265,7 @@ internal sealed partial class ExecutionConfigurationService(
             Updated = timeProvider.GetUtcNow()
         };
         var saved = await SaveDeployment(entity, deployment, create, cancellationToken);
+
         if (saved.Status == ExecutionContextDeploymentStatusType.Active)
         {
             foreach (var program in definition.Programs.DistinctBy(item => item.FlowId))
@@ -267,6 +280,7 @@ internal sealed partial class ExecutionConfigurationService(
     public async Task DeleteDeploymentAsync(string contextId, string deploymentId, CancellationToken cancellationToken)
     {
         var entity = await Find(context.ExecutionContextDeployments, deploymentId, "deployment", cancellationToken);
+
         if (entity.ExecutionContextId != contextId)
         {
             throw new ExecutionConfigurationException("deployment not found", 404);
@@ -297,6 +311,7 @@ internal sealed partial class ExecutionConfigurationService(
         where T : class where TEntity : BaseEntity, new()
     {
         var entity = await set.SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
+
         if (create && entity is not null)
         {
             throw new ExecutionConfigurationException($"'{id}' already exists", 409);
@@ -308,10 +323,12 @@ internal sealed partial class ExecutionConfigurationService(
         }
 
         var revision = (int)(typeof(T).GetProperty("Revision")?.GetValue(value) ?? 1);
+
         if (entity is not null)
         {
             var current = Deserialize<T>(entity);
             var currentRevision = (int)(typeof(T).GetProperty("Revision")?.GetValue(current) ?? 1);
+
             if (revision != currentRevision)
             {
                 throw new ExecutionConfigurationException($"'{id}' revision is stale", 409);
@@ -325,8 +342,10 @@ internal sealed partial class ExecutionConfigurationService(
             entity = new TEntity { Id = id, Key = id, Json = Serialize(value), Created = timeProvider.GetUtcNow(), Updated = timeProvider.GetUtcNow() };
             set.Add(entity);
         }
+
         try { await context.SaveChangesAsync(cancellationToken); }
         catch (DbUpdateException exception) { throw new ExecutionConfigurationException(exception.Message, 409); }
+
         return value;
     }
 
@@ -336,6 +355,7 @@ internal sealed partial class ExecutionConfigurationService(
     private async Task<ExecutionContextDeployment> SaveDeployment(ExecutionContextDeploymentEntity proposed, ExecutionContextDeployment value, bool create, CancellationToken token)
     {
         var existing = await context.ExecutionContextDeployments.SingleOrDefaultAsync(item => item.Id == value.Id, token);
+
         if (create && existing is not null)
         {
             throw new ExecutionConfigurationException($"'{value.Id}' already exists", 409);
@@ -353,6 +373,7 @@ internal sealed partial class ExecutionConfigurationService(
         else
         {
             var current = Deserialize<ExecutionContextDeployment>(existing);
+
             if (current.Revision != value.Revision)
             {
                 throw new ExecutionConfigurationException($"'{value.Id}' revision is stale", 409);
@@ -362,8 +383,10 @@ internal sealed partial class ExecutionConfigurationService(
             existing.ExecutionContextId = value.ExecutionContextId; existing.ExecutionInstanceId = value.ExecutionInstanceId;
             existing.Json = Serialize(value); existing.Updated = timeProvider.GetUtcNow();
         }
+
         try { await context.SaveChangesAsync(token); }
         catch (DbUpdateException) { throw new ExecutionConfigurationException("a deployment already exists for this context and instance", 409); }
+
         return value;
     }
 
@@ -376,9 +399,11 @@ internal sealed partial class ExecutionConfigurationService(
     internal static IReadOnlyList<VirtualPointDefinition> MergeContracts(IEnumerable<VirtualPointDefinition> source)
     {
         var result = new Dictionary<string, VirtualPointDefinition>(StringComparer.Ordinal);
+
         foreach (var declaration in source)
         {
             ValidateDeclaration(declaration);
+
             if (result.TryGetValue(declaration.Key, out var current))
             {
                 if (!Compatible(current, declaration))
@@ -393,6 +418,7 @@ internal sealed partial class ExecutionConfigurationService(
                 result.Add(declaration.Key, declaration);
             }
         }
+
         if (result.Count > MaximumVirtualPointsPerContext)
         {
             throw new ExecutionConfigurationException(
@@ -401,7 +427,9 @@ internal sealed partial class ExecutionConfigurationService(
                 "virtual_point_limit_exceeded",
                 new { limit = MaximumVirtualPointsPerContext, actual = result.Count });
         }
+
         var retainedCount = result.Values.Count(item => item.Persistence == VirtualPointPersistenceType.Retained);
+
         if (retainedCount > _maximumRetainedVirtualPointsPerContext)
         {
             throw new ExecutionConfigurationException(
@@ -410,6 +438,7 @@ internal sealed partial class ExecutionConfigurationService(
                 "retained_storage_limit_exceeded",
                 new { limit = _maximumRetainedVirtualPointsPerContext, actual = retainedCount });
         }
+
         return [.. result.Values.OrderBy(item => item.Key, StringComparer.Ordinal)];
     }
 
@@ -421,6 +450,7 @@ internal sealed partial class ExecutionConfigurationService(
     private static void ValidateDeclaration(VirtualPointDefinition item)
     {
         ValidateId(item.Key, "virtual point key");
+
         if (item.ValueType is not (AutomationPointValueType.Analog or AutomationPointValueType.Digital))
         {
             Fail($"virtual point '{item.Key}' must be analog or digital");
@@ -456,11 +486,13 @@ internal sealed partial class ExecutionConfigurationService(
         if (instance.ExecutionInstanceType == ExecutionInstanceType.Controller)
         {
             ControllerTemplate template;
+
             try { template = await controllerTemplates.GetAsync(instance.ControllerTemplateId!, cancellationToken); }
             catch (ControllerTemplateNotFoundException)
             {
                 throw new ExecutionConfigurationException($"controller template '{instance.ControllerTemplateId}' not found", 422);
             }
+
             if (template.Revision != instance.ControllerTemplateRevision)
             {
                 throw new ExecutionConfigurationException($"controller template '{template.Id}' revision is stale", 409);
@@ -487,6 +519,7 @@ internal sealed partial class ExecutionConfigurationService(
         _ = MergeContracts(activeDefinitions.SelectMany(item => item.PointContracts).Concat(definition.PointContracts));
 
         var writers = new Dictionary<string, WriterOwner>(StringComparer.Ordinal);
+
         foreach (var active in activeDefinitions)
         {
             foreach (var flow in await LoadProgramsAsync(active, cancellationToken))
@@ -498,6 +531,7 @@ internal sealed partial class ExecutionConfigurationService(
                     otherDeployments.FirstOrDefault(item => item.ExecutionContextId == active.Id)?.Id);
             }
         }
+
         foreach (var flow in programs)
         {
             AddWriters(writers, flow, instance.Id, deployment.Id);
@@ -511,10 +545,12 @@ internal sealed partial class ExecutionConfigurationService(
             : BuiltInControllerTemplate.Default.Revision;
         var bindings = deployment.PhysicalPointBindings.ToDictionary(item => item.Role, item => item.PointId, StringComparer.Ordinal);
         var compiled = new List<CompiledContextProgram>(programs.Count);
+
         foreach (var flow in programs)
         {
             var source = FlowDeploymentService.ToExecutableSource(flow, templateId, templateRevision, bindings);
             FlowCompilationResult result;
+
             try
             {
                 var target = await targetResolver.ResolveAsync(source, cancellationToken);
@@ -527,6 +563,7 @@ internal sealed partial class ExecutionConfigurationService(
                     $"execution context '{definition.Id}' flow '{flow.Id}' failed compilation: {diagnostic.Code} at {diagnostic.Path}",
                     422);
             }
+
             compiled.Add(new CompiledContextProgram
             {
                 FlowId = flow.Id,
@@ -549,11 +586,13 @@ internal sealed partial class ExecutionConfigurationService(
     private async Task<IReadOnlyList<Flow>> LoadProgramsAsync(ExecutionContextDefinition definition, CancellationToken cancellationToken)
     {
         var result = new List<Flow>();
+
         foreach (var program in definition.Programs)
         {
             var entity = await context.Flows.AsNoTracking().SingleOrDefaultAsync(item => item.Id == program.FlowId, cancellationToken)
                 ?? throw new ExecutionConfigurationException($"flow '{program.FlowId}' not found", 422);
             var flow = Deserialize<Flow>(entity);
+
             if (flow.Revision != program.FlowRevision)
             {
                 throw new ExecutionConfigurationException($"flow '{flow.Id}' revision {program.FlowRevision} is stale", 409);
@@ -561,6 +600,7 @@ internal sealed partial class ExecutionConfigurationService(
 
             result.Add(flow);
         }
+
         return result;
     }
 
@@ -572,18 +612,22 @@ internal sealed partial class ExecutionConfigurationService(
         var bindings = deployment.PhysicalPointBindings.ToDictionary(item => item.Role, StringComparer.Ordinal);
         var points = (await pointDefinitions.ListPointsAsync(cancellationToken)).ToDictionary(item => item.Id, StringComparer.Ordinal);
         var requiredRoles = new HashSet<string>(StringComparer.Ordinal);
+
         foreach (var flow in programs)
         {
             var virtualKeys = VirtualPointNodes.Declarations(flow.Nodes).Select(item => item.Key).ToHashSet(StringComparer.Ordinal);
+
             foreach (var node in flow.Nodes.Where(item => item.NodeType is FlowNodeType.AnalogInput or FlowNodeType.AnalogOutput or FlowNodeType.DigitalInput or FlowNodeType.DigitalOutput))
             {
                 var role = node.Configuration.TryGetValue("pointId", out var value) ? value.GetString() : null;
+
                 if (role is null || virtualKeys.Contains(role))
                 {
                     continue;
                 }
 
                 requiredRoles.Add(role);
+
                 if (!bindings.TryGetValue(role, out var binding))
                 {
                     throw new ExecutionConfigurationException($"physical point role '{role}' has no deployment binding", 422);
@@ -596,6 +640,7 @@ internal sealed partial class ExecutionConfigurationService(
 
                 var analog = node.NodeType is FlowNodeType.AnalogInput or FlowNodeType.AnalogOutput;
                 var input = node.NodeType is FlowNodeType.AnalogInput or FlowNodeType.DigitalInput;
+
                 if (point.ValueType != (analog ? AutomationPointValueType.Analog : AutomationPointValueType.Digital)
                     || (input ? !point.Readable : !point.Commandable))
                 {
@@ -603,7 +648,9 @@ internal sealed partial class ExecutionConfigurationService(
                 }
             }
         }
+
         var unexpected = bindings.Keys.Except(requiredRoles, StringComparer.Ordinal).FirstOrDefault();
+
         if (unexpected is not null)
         {
             throw new ExecutionConfigurationException($"physical point binding role '{unexpected}' is not used by the context", 422);
@@ -617,9 +664,11 @@ internal sealed partial class ExecutionConfigurationService(
         string? deploymentId)
     {
         var virtualKeys = VirtualPointNodes.Declarations(flow.Nodes).Select(item => item.Key).ToHashSet(StringComparer.Ordinal);
+
         foreach (var node in flow.Nodes.Where(item => item.NodeType is FlowNodeType.AnalogOutput or FlowNodeType.DigitalOutput))
         {
             var key = node.Configuration.TryGetValue("pointId", out var value) ? value.GetString() : null;
+
             if (key is null || !virtualKeys.Contains(key))
             {
                 continue;
@@ -672,6 +721,7 @@ internal sealed partial class ExecutionConfigurationService(
             }
         }
     }
+
     private static void ValidateId(string id, string path)
     {
         if (string.IsNullOrWhiteSpace(id) || !Identifier().IsMatch(id))
@@ -679,6 +729,7 @@ internal sealed partial class ExecutionConfigurationService(
             Fail($"{path} has invalid syntax");
         }
     }
+
     private static void Fail(string message) => throw new ExecutionConfigurationException(message);
     private static T Deserialize<T>(BaseEntity entity) => JsonSerializer.Deserialize<T>(entity.Json, FlowControlJson.Options) ?? throw new InvalidOperationException($"Stored {typeof(T).Name} is null.");
     private static string Serialize<T>(T value) => JsonSerializer.Serialize(value, FlowControlJson.Options);

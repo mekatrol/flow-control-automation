@@ -85,6 +85,7 @@ public sealed class FcpControllerDebugTransportTests
         writer.Write((uint)10);
         writer.Write((uint)0);
         writer.Write((uint)0);
+
         return stream.ToArray();
     }
 
@@ -103,6 +104,7 @@ public sealed class FcpControllerDebugTransportTests
             CancellationToken cancellationToken)
         {
             _operations.Add(operation);
+
             return Task.FromResult(operation switch
             {
                 0x50 => Begin(),
@@ -119,16 +121,19 @@ public sealed class FcpControllerDebugTransportTests
         {
             var points = new List<string>();
             var offset = 9;
+
             for (var index = 0; index < request.Span[8]; index++)
             {
                 var size = request.Span[offset++];
                 points.Add(Encoding.UTF8.GetString(request.Span.Slice(offset, size)));
                 offset += size;
             }
+
             LiveOutputPoints = points;
             var response = new byte[5];
             response[0] = 8;
             BinaryPrimitives.WriteUInt32LittleEndian(response.AsSpan(1), 1000);
+
             return response;
         }
 
@@ -138,6 +143,7 @@ public sealed class FcpControllerDebugTransportTests
             BinaryPrimitives.WriteUInt64LittleEndian(response, 42);
             BinaryPrimitives.WriteUInt16LittleEndian(response.AsSpan(8), 180);
             BinaryPrimitives.WriteUInt32LittleEndian(response.AsSpan(10), 30000);
+
             return response;
         }
 
@@ -148,6 +154,7 @@ public sealed class FcpControllerDebugTransportTests
             var response = new byte[6];
             BinaryPrimitives.WriteUInt32LittleEndian(response, offset);
             BinaryPrimitives.WriteUInt16LittleEndian(response.AsSpan(4), checked((ushort)(request.Length - 12)));
+
             return response;
         }
 
@@ -157,6 +164,7 @@ public sealed class FcpControllerDebugTransportTests
             BinaryPrimitives.WriteUInt64LittleEndian(response, 1);
             BinaryPrimitives.WriteUInt32LittleEndian(response.AsSpan(8), checked((uint)snapshot!.Length));
             SHA256.HashData(snapshot).CopyTo(response, 12);
+
             return response;
         }
 
@@ -169,6 +177,7 @@ public sealed class FcpControllerDebugTransportTests
             BinaryPrimitives.WriteUInt16LittleEndian(response.AsSpan(20), 1);
             BinaryPrimitives.WriteUInt16LittleEndian(response.AsSpan(22), 173);
             SHA256.HashData(snapshot).CopyTo(response, 24);
+
             return response;
         }
 
@@ -180,6 +189,7 @@ public sealed class FcpControllerDebugTransportTests
             BinaryPrimitives.WriteUInt16LittleEndian(response.AsSpan(18), 1);
             BinaryPrimitives.WriteUInt32LittleEndian(response.AsSpan(20), 0);
             snapshot.CopyTo(response, 24);
+
             return response;
         }
     }

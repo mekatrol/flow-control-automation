@@ -11,10 +11,12 @@ internal sealed class AuditService(IServiceScopeFactory scopeFactory, TimeProvid
     public async Task<IReadOnlyList<string>> ListAsync(CancellationToken cancellationToken)
     {
         await WriteGate.WaitAsync(cancellationToken);
+
         try
         {
             await using var scope = scopeFactory.CreateAsyncScope();
             var context = scope.ServiceProvider.GetRequiredService<IFlowControlDbContext>();
+
             return [.. (await context.AuditRecords.AsNoTracking().ToListAsync(cancellationToken))
                 .OrderByDescending(item => item.Created).Select(item => item.Json)];
         }
@@ -27,6 +29,7 @@ internal sealed class AuditService(IServiceScopeFactory scopeFactory, TimeProvid
     public async Task RecordAsync(string actor, string method, string path, int statusCode, CancellationToken cancellationToken)
     {
         await WriteGate.WaitAsync(cancellationToken);
+
         try
         {
             var now = timeProvider.GetUtcNow();

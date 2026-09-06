@@ -451,6 +451,7 @@ internal sealed class PointDefinitionEndpointTests
         {
             Content = new StringContent(yaml, Encoding.UTF8, "application/yaml")
         };
+
         if (revision is not null)
         {
             request.Headers.TryAddWithoutValidation("If-Match", revision.ToString());

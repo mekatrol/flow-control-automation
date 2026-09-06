@@ -25,6 +25,7 @@ public static class FlowSimulatorEndpointRouteBuilderExtensions
         endpoints.MapPost("/api/flows/{flowId}/simulator-sessions/{sessionId}/keepalive", KeepAlive);
         endpoints.MapDelete("/api/flows/{flowId}/simulator-sessions/{sessionId}", Stop);
         endpoints.MapDelete("/api/simulator-sessions", Clear);
+
         return endpoints;
     }
 
@@ -68,6 +69,7 @@ public static class FlowSimulatorEndpointRouteBuilderExtensions
         try
         {
             await simulator.KeepAliveAsync(flowId, sessionId, cancellationToken);
+
             return Results.NoContent();
         }
         catch (Exception exception) when (exception is not OperationCanceledException) { return MapError(exception); }
@@ -78,6 +80,7 @@ public static class FlowSimulatorEndpointRouteBuilderExtensions
         try
         {
             await simulator.StopAsync(flowId, sessionId, cancellationToken);
+
             return Results.NoContent();
         }
         catch (Exception exception) when (exception is not OperationCanceledException) { return MapError(exception); }
@@ -86,6 +89,7 @@ public static class FlowSimulatorEndpointRouteBuilderExtensions
     private static async Task<IResult> Clear(IFlowSimulatorService simulator, CancellationToken cancellationToken)
     {
         await simulator.ClearAsync(cancellationToken);
+
         return Results.NoContent();
     }
 

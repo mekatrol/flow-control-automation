@@ -11,12 +11,14 @@ internal sealed class TcpConnectionFactory : ITcpConnectionFactory
         CancellationToken cancellationToken)
     {
         var socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
+
         try
         {
             using var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(
                 cancellationToken);
             timeoutSource.CancelAfter(timeout);
             await socket.ConnectAsync(host, port, timeoutSource.Token);
+
             return new NetworkStream(socket, ownsSocket: true);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)

@@ -45,6 +45,7 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
         IReadOnlyDictionary<string, PointSource> sources)
     {
         ValidateIdentity(group.Id, group.Name, "group");
+
         if (string.Equals(
             group.Name.Trim(),
             ReservedStandaloneGroupName,
@@ -92,6 +93,7 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
 
         var groups = document.Groups.ToDictionary(group => group.Id, StringComparer.Ordinal);
         var context = new PointValidationContext(groups, sources);
+
         foreach (var point in document.Points)
         {
             Validate(point, context);
@@ -182,6 +184,7 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
         }
 
         PointGroup? group = null;
+
         if (point.GroupId is not null
             && !context.Groups.TryGetValue(point.GroupId, out group))
         {
@@ -189,6 +192,7 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
         }
 
         var inheritedSourceId = group?.SourceId;
+
         if (point.SourceId is not null && inheritedSourceId is not null
             && !string.Equals(point.SourceId, inheritedSourceId, StringComparison.Ordinal))
         {
@@ -196,6 +200,7 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
         }
 
         var sourceId = point.SourceId ?? inheritedSourceId;
+
         if (sourceId is null)
         {
             Fail("remote point requires an existing direct or inherited source");
@@ -207,6 +212,7 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
         }
 
         var pointMapping = point.Mapping;
+
         if (pointMapping is null)
         {
             Fail("remote point requires mapping");
@@ -214,6 +220,7 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
 
         RejectCredentialLiterals(pointMapping!, "mapping");
         var kind = ParseSourceKind(source!.Kind);
+
         return (kind, ParseMapping(point, kind, pointMapping!));
     }
 
@@ -231,7 +238,7 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
                     : OptionalString(mapping, "commandService")),
             PointSourceKind.Mqtt => ParseMqttMapping(point, mapping),
             PointSourceKind.HttpJson => ParseHttpMapping(point, mapping),
-            _ => throw new InvalidOperationException("Unsupported source kind."),
+            _ => throw new InvalidOperationException("Unsupported source kind.")
         };
 
     private static MqttPointMapping ParseMqttMapping(AutomationPoint point, JsonObject mapping)
@@ -243,6 +250,7 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
             ? RequiredString(mapping, "commandTopic")
             : OptionalString(mapping, "commandTopic");
         var qos = OptionalInteger(mapping, "qos") ?? 0;
+
         if (qos is < 0 or > 2)
         {
             Fail("mapping.qos must be 0, 1, or 2");
@@ -259,6 +267,7 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
     private static HttpJsonPointMapping ParseHttpMapping(AutomationPoint point, JsonObject mapping)
     {
         var path = RequiredString(mapping, "path");
+
         if (!path.StartsWith('/')
             || path.StartsWith("//", StringComparison.Ordinal)
             || path.Contains("://", StringComparison.Ordinal))
@@ -267,6 +276,7 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
         }
 
         var method = (OptionalString(mapping, "method") ?? "GET").ToUpperInvariant();
+
         if (point.Readable && method is not "GET" and not "HEAD")
         {
             Fail("readable HTTP mappings must use GET or HEAD");
@@ -295,6 +305,7 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
         var minimum = OptionalFiniteNumber(value, "minimum");
         var maximum = OptionalFiniteNumber(value, "maximum");
         var maximumLength = OptionalInteger(value, "maximumLength");
+
         if (minimum > maximum)
         {
             Fail("limits.minimum cannot exceed limits.maximum");
@@ -336,6 +347,7 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
                     "digital points require stateLabels with false and true labels");
             var falseLabel = RequiredString(labels, "false");
             var trueLabel = RequiredString(labels, "true");
+
             if (labels.Count != 2 || string.Equals(
                 falseLabel, trueLabel, StringComparison.OrdinalIgnoreCase))
             {
@@ -355,10 +367,12 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
                 var entry = item as JsonObject
                     ?? throw new PointDefinitionValidationException(
                         $"stateLabels[{index}] must be an object");
+
                 return new MultiStateLabel(
                     RequiredString(entry, "key"),
                     RequiredString(entry, "label"));
             }).ToArray();
+
             if (labels.Length < 2)
             {
                 Fail("multi_state points require at least two states");
@@ -366,6 +380,7 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
 
             RejectDuplicates(labels.Select(label => label.Key), "state key");
             RejectDuplicates(labels.Select(label => label.Label), "state label");
+
             return (null, labels);
         }
 
@@ -401,10 +416,12 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
             {
                 case AutomationPointValueType.Analog:
                     var analog = ReadNumber(value, path);
+
                     if (!double.IsFinite(analog))
                     {
                         Fail($"{path} must be finite");
                     }
+
                     ValidateRange(analog, limits, path);
                     break;
                 case AutomationPointValueType.Integer:
@@ -417,17 +434,21 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
                     break;
                 case AutomationPointValueType.MultiState:
                     var key = value.GetValue<string>();
+
                     if (states?.Any(state => state.Key == key) != true)
                     {
                         Fail($"{path} must match a state key");
                     }
+
                     break;
                 case AutomationPointValueType.Text:
                     var text = value.GetValue<string>();
+
                     if (text.Length > limits!.MaximumLength)
                     {
                         Fail($"{path} exceeds limits.maximumLength");
                     }
+
                     break;
             }
         }
@@ -447,6 +468,7 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
             {
                 Fail("safeDisablePolicy applies only to commandable points");
             }
+
             return null;
         }
 
@@ -465,11 +487,13 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
     private static string RequiredPolicy(JsonObject value, string key)
     {
         var policy = RequiredString(value, key);
+
         if (policy is not "hold_last" and not "safe_value"
             and not "relinquish" and not "stop_driving")
         {
             Fail($"safeDisablePolicy.{key} is invalid");
         }
+
         return policy;
     }
 
@@ -504,6 +528,7 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
                 {
                     Fail($"{path} cannot contain credential literals");
                 }
+
                 if (item.Value is not null)
                 {
                     RejectCredentialLiterals(item.Value, $"{path}.{item.Key}");
@@ -522,6 +547,7 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
     private static void RejectDuplicates(IEnumerable<string> values, string description)
     {
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var value in values)
         {
             if (!seen.Add(value))
@@ -539,6 +565,7 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
         }
 
         var result = ReadNumber(value[key]!, key);
+
         if (!double.IsFinite(result))
         {
             Fail($"{key} must be finite");
@@ -555,10 +582,12 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
             {
                 return doubleValue;
             }
+
             if (jsonValue.TryGetValue<long>(out var longValue))
             {
                 return longValue;
             }
+
             if (jsonValue.TryGetValue<decimal>(out var decimalValue))
             {
                 return (double)decimalValue;
@@ -604,6 +633,7 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
             exception is InvalidOperationException or FormatException or OverflowException)
         {
             Fail($"{key} must be an integer");
+
             return null;
         }
     }
@@ -619,6 +649,7 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
         catch (InvalidOperationException)
         {
             Fail($"{key} must be a boolean");
+
             return null;
         }
     }
@@ -637,15 +668,18 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
         try
         {
             var result = value[key]!.GetValue<string>();
+
             if (string.IsNullOrWhiteSpace(result) || result != result.Trim())
             {
                 Fail($"{key} must be non-empty without surrounding whitespace");
             }
+
             return result;
         }
         catch (InvalidOperationException)
         {
             Fail($"{key} must be a string");
+
             return null;
         }
     }
@@ -671,7 +705,7 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
     {
         "volatile" => PointPersistence.Volatile,
         "retained" => PointPersistence.Retained,
-        _ => throw new PointDefinitionValidationException("persistence is invalid"),
+        _ => throw new PointDefinitionValidationException("persistence is invalid")
     };
 
     private static PointSourceKind ParseSourceKind(string value) => value switch
@@ -679,7 +713,7 @@ public sealed partial class PointDefinitionValidator : IPointDefinitionValidator
         "homeAssistant" => PointSourceKind.HomeAssistant,
         "mqtt" => PointSourceKind.Mqtt,
         "httpJson" => PointSourceKind.HttpJson,
-        _ => throw new PointDefinitionValidationException($"source kind '{value}' is invalid"),
+        _ => throw new PointDefinitionValidationException($"source kind '{value}' is invalid")
     };
 
     private static void Fail(string message) =>
