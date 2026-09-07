@@ -313,7 +313,7 @@ internal sealed class ConnectivityEndpointTests
         {
             Connection = ValidHttpSource().Connection with
             {
-                AllowedReadMethods = ["POST"],
+                MaximumResponseBytes = 0,
             },
         };
         using var response = await TestUnsaved(client, source);
@@ -336,9 +336,9 @@ internal sealed class ConnectivityEndpointTests
             Assert.That(result.Stages[0].Name, Is.EqualTo("validation"));
 
             // Expected outcome: `result.Stages[0].Diagnostic` includes the required content.
-            // Acceptance criteria: `result.Stages[0].Diagnostic` must contain `"GET and HEAD"`, because this condition proves that
+            // Acceptance criteria: `result.Stages[0].Diagnostic` must identify the invalid response-size limit, because this condition proves that
             // invalid unsaved source returns validation stage.
-            Assert.That(result.Stages[0].Diagnostic, Does.Contain("GET and HEAD"));
+            Assert.That(result.Stages[0].Diagnostic, Does.Contain("maximumResponseBytes"));
         });
     }
 
@@ -410,7 +410,6 @@ internal sealed class ConnectivityEndpointTests
         Connection = new PointSourceConnection
         {
             BaseUrl = "https://example.test",
-            AllowedReadMethods = ["GET"],
             MaximumResponseBytes = 1024
         },
         Tls = new TlsOptions { VerifyServerCertificate = true },

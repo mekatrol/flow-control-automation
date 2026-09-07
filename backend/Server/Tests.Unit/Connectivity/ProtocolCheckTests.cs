@@ -217,7 +217,6 @@ internal sealed class ProtocolCheckTests
         Connection = new PointSourceConnection
         {
             BaseUrl = uri.ToString(),
-            AllowedReadMethods = ["GET"],
             FollowRedirects = false,
             MaximumResponseBytes = 1024
         },

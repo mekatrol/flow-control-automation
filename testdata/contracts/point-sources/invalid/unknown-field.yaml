@@ -7,6 +7,4 @@ sources:
     kind: httpJson
     connection:
       baseUrl: https://example.test
-      allowedReadMethods: [GET]
     plaintextPassword: forbidden
-

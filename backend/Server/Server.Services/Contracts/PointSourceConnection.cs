@@ -10,7 +10,6 @@ public sealed record PointSourceConnection
     public int? Qos { get; init; }
     public bool? CleanStart { get; init; }
     public int? KeepAliveSeconds { get; init; }
-    public IReadOnlyList<string>? AllowedReadMethods { get; init; }
     public int? DefaultPollMilliseconds { get; init; }
     public bool? FollowRedirects { get; init; }
     public long? MaximumResponseBytes { get; init; }

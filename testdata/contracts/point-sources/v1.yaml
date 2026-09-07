@@ -39,7 +39,6 @@ sources:
     kind: httpJson
     connection:
       baseUrl: https://weather.example.test
-      allowedReadMethods: [GET]
       defaultPollMilliseconds: 60000
       followRedirects: false
       maximumResponseBytes: 65536

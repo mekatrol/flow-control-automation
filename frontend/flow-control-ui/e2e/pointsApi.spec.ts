@@ -38,7 +38,6 @@ sources:
     kind: httpJson
     connection:
       baseUrl: https://example.test
-      allowedReadMethods: [GET]
       maximumResponseBytes: 1024
     tls:
       verifyServerCertificate: true

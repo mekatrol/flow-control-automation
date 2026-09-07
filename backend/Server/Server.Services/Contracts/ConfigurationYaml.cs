@@ -30,7 +30,7 @@ public static class ConfigurationYaml
     private static readonly IReadOnlySet<string> SourceConnectionFields = new HashSet<string>(
         [
             "baseUrl", "subscribeEvents", "brokerUrl", "clientIdPrefix", "testTopic", "qos",
-            "cleanStart", "keepAliveSeconds", "allowedReadMethods", "defaultPollMilliseconds",
+            "cleanStart", "keepAliveSeconds", "defaultPollMilliseconds",
             "followRedirects", "maximumResponseBytes", "allowPrivateNetwork"
         ]);
     private static readonly IReadOnlySet<string> TlsFields =

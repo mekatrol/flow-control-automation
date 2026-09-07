@@ -12,7 +12,6 @@ sources:
     kind: httpJson
     connection:
       baseUrl: https://weather.example.test
-      allowedReadMethods: [GET]
       followRedirects: false
       maximumResponseBytes: 65536
     tls:
@@ -116,11 +115,8 @@ test('catalogue and YAML editor support create, test, retry, and keyboard use', 
   await expect(sourceEditor.locator('.monaco-editor .view-lines')).toContainText('kind: mqtt');
   await page.getByRole('radio', { name: /HTTP \/ JSON/ }).check();
 
-  // Expected outcome: Selecting HTTP presents a read-only request policy.
-  // Acceptance criteria: The HTTP example contains `allowedReadMethods: [GET]` because
-  // point sources may read remote data but must not demonstrate mutating methods.
-  await expect(page.getByLabel('HTTP / JSON example YAML')).toContainText(
-    'allowedReadMethods: [GET]'
+  await expect(page.getByLabel('HTTP / JSON example YAML')).not.toContainText(
+    'allowedWriteMethods'
   );
   await page.getByRole('button', { name: 'Use this example' }).click();
 

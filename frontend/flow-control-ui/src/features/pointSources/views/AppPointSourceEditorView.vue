@@ -291,7 +291,7 @@ sources:
   {
     kind: 'httpJson',
     name: 'HTTP / JSON',
-    summary: 'Read and write points through a JSON web API.',
+    summary: 'Read points from a JSON web API.',
     yaml: `schemaVersion: 1
 sources:
   - id: new-source
@@ -301,8 +301,6 @@ sources:
     kind: httpJson
     connection:
       baseUrl: https://api.example.com
-      allowedReadMethods: [GET]
-      allowedWriteMethods: [PUT, POST, PATCH]
       defaultPollMilliseconds: 60000
       followRedirects: false
       maximumResponseBytes: 65536

@@ -554,7 +554,6 @@ internal sealed class CredentialEndpointTests
         Connection = new PointSourceConnection
         {
             BaseUrl = "https://example.test",
-            AllowedReadMethods = ["GET"],
             MaximumResponseBytes = 1024
         },
         CredentialRef = null,

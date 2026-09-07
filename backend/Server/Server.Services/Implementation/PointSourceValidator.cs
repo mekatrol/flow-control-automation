@@ -60,13 +60,6 @@ internal sealed partial class PointSourceValidator : IPointSourceValidator
     {
         var address = RequireBaseUrl(source);
 
-        if (source.Connection.AllowedReadMethods?.Any(
-            method => method is not ("GET" or "HEAD")) == true)
-        {
-            throw new PointSourceValidationException(
-                "only GET and HEAD are allowed read methods");
-        }
-
         if (source.Connection.MaximumResponseBytes is not (>= 1 and <= 10 << 20))
         {
             throw new PointSourceValidationException(

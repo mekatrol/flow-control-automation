@@ -36,7 +36,7 @@
       "description": "Read-only JSON weather service",
       "enabled": true,
       "kind": "httpJson",
-      "connection": {"baseUrl": "https://weather.example.test", "allowedReadMethods": ["GET"], "defaultPollMilliseconds": 60000, "followRedirects": false, "maximumResponseBytes": 65536},
+      "connection": {"baseUrl": "https://weather.example.test", "defaultPollMilliseconds": 60000, "followRedirects": false, "maximumResponseBytes": 65536},
       "credentialRef": "env:WEATHER_API_TOKEN",
       "tls": {"verifyServerCertificate": true},
       "timeouts": {"connectMilliseconds": 2000, "requestMilliseconds": 5000},

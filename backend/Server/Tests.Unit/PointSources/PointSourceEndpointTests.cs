@@ -308,7 +308,7 @@ internal sealed class PointSourceEndpointTests
         // validation and duplicate names roll back.
         Assert.That(duplicateName.StatusCode, Is.EqualTo(HttpStatusCode.Conflict));
 
-        using var unsafeMethod = await SendYaml(
+        using var invalidResponseLimit = await SendYaml(
             client,
             HttpMethod.Post,
             "/api/point-sources",
@@ -316,13 +316,13 @@ internal sealed class PointSourceEndpointTests
             {
                 Id = "unsafe",
                 Name = "Unsafe",
-                Connection = source.Connection with { AllowedReadMethods = ["POST"] }
+                Connection = source.Connection with { MaximumResponseBytes = 0 }
             });
 
-        // Expected outcome: `unsafeMethod.StatusCode` has the required value.
-        // Acceptance criteria: `unsafeMethod.StatusCode` must equal `HttpStatusCode.BadRequest`, because this condition proves that
+        // Expected outcome: `invalidResponseLimit.StatusCode` has the required value.
+        // Acceptance criteria: `invalidResponseLimit.StatusCode` must equal `HttpStatusCode.BadRequest`, because this condition proves that
         // validation and duplicate names roll back.
-        Assert.That(unsafeMethod.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        Assert.That(invalidResponseLimit.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
 
         using var loaded = await client.GetAsync("/api/point-sources/weather");
 
@@ -427,7 +427,6 @@ internal sealed class PointSourceEndpointTests
                 kind: httpJson
                 connection:
                   baseUrl: https://example.test
-                  allowedReadMethods: [GET]
                   maximumResponseBytes: 1024
                 tls: {verifyServerCertificate: true}
                 timeouts: {connectMilliseconds: 100, requestMilliseconds: 100}
@@ -470,7 +469,6 @@ internal sealed class PointSourceEndpointTests
         Connection = new PointSourceConnection
         {
             BaseUrl = "https://example.test",
-            AllowedReadMethods = ["GET"],
             FollowRedirects = false,
             MaximumResponseBytes = 1024
         },
