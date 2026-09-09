@@ -462,22 +462,36 @@ const debugSnapshotStale = computed(() =>
 
 const debugNodeRuntime = computed(() => {
   const snapshot = debugSnapshot.value;
-  if (!snapshot || debugSnapshotStale.value) return undefined;
+  const currentFlow = flow.value;
+  if (debugSnapshotStale.value || !debugSessionId.value || !currentFlow) return undefined;
+  const running = debugLifecycle.value === 'running' || debugLifecycle.value === 'stepping';
+  const runtimeState: 'error' | 'running' | 'stopped' =
+    debugLifecycle.value === 'fault' ? 'error' : running ? 'running' : 'stopped';
+  const updatedAt = new Date(snapshot?.completedAtMs ?? Date.now()).toISOString();
   return {
-    flowId: snapshot.flowId,
-    state: snapshot.lifecycleState === 'fault' ? ('error' as const) : ('stopped' as const),
-    updatedAt: new Date(snapshot.completedAtMs).toISOString(),
+    flowId: snapshot?.flowId ?? currentFlow.id,
+    state: runtimeState,
+    updatedAt,
     nodes: Object.fromEntries(
-      snapshot.nodes.map((node) => [
-        node.nodeId,
-        {
-          state: (node.state === 'fault' || snapshot.lastReasonPath.includes(node.nodeId)
-            ? 'error'
-            : 'stopped') as 'error' | 'stopped',
-          value: node.typedValue ? `${node.typedValue.value} · ${node.quality}` : node.quality,
-          updatedAt: new Date(snapshot.completedAtMs).toISOString()
-        }
-      ])
+      currentFlow.nodes.map((flowNode) => {
+        const node = snapshot?.nodes.find((candidate) => candidate.nodeId === flowNode.id);
+        return [
+          flowNode.id,
+          {
+            state: (node?.state === 'fault' || snapshot?.lastReasonPath.includes(flowNode.id)
+              ? 'error'
+              : runtimeState) as 'error' | 'running' | 'stopped',
+            ...(node
+              ? {
+                  value: node.typedValue
+                    ? `${node.typedValue.type === DataType.Number ? node.typedValue.number : node.typedValue.value} · ${node.quality}`
+                    : node.quality
+                }
+              : {}),
+            updatedAt
+          }
+        ];
+      })
     )
   };
 });
@@ -864,16 +878,18 @@ const runDebugSession = async (): Promise<void> => {
   if (!sessionId) return;
   try {
     const session = await flowDebugApi.run(props.flowId, sessionId);
-    debugLifecycle.value = session.lifecycleState === 'running' ? 'running' : 'fault';
+    applyDebugSession(session);
+    if (session.lifecycleState !== 'running') {
+      debugLifecycle.value = 'fault';
+      return;
+    }
     stopDebugPolling();
     debugPollTimer = window.setInterval(async () => {
       if (debugLifecycle.value !== 'running') return;
       try {
         const current = await flowDebugApi.inspect(props.flowId, sessionId);
-        if (current.snapshot) debugSnapshot.value = current.snapshot;
+        applyDebugSession(current);
         if (current.lifecycleState !== 'running') {
-          debugLifecycle.value =
-            current.lifecycleState === 'empty' ? 'stopped' : current.lifecycleState;
           stopDebugPolling();
         }
       } catch (error) {

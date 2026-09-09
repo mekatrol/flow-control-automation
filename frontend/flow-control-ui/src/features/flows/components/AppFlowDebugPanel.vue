@@ -47,14 +47,10 @@
       />
       <span class="state" :class="{ stale }" role="status">{{ stateLabel }}</span>
     </div>
-    <div v-if="affectedOutputPoints.length" class="live-output">
+    <div v-if="host === 'controller' && affectedOutputPoints.length" class="live-output">
       <strong>Live physical outputs</strong>
       <p>Affected points: {{ affectedOutputPoints.join(', ') }}</p>
       <template v-if="!liveOutputEnabled">
-        <label>
-          <input v-model="liveOutputConfirmed" type="checkbox" />
-          I confirm these named outputs may energise physical equipment.
-        </label>
         <AppButton
           text="Enable live outputs"
           :icon="enableFlowIcon"
@@ -130,7 +126,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import breakpointIcon from '@/assets/icons/breakpoint-icon.svg';
 import enableFlowIcon from '@/assets/icons/enable-flow-icon.svg';
 import loadIcon from '@/assets/icons/flow-debug-icon.svg';
@@ -211,9 +207,8 @@ const canPause = computed(
 const canStop = computed(() => active.value || busy.value);
 const canRestart = computed(() => active.value && !busy.value);
 const affectedOutputPoints = computed(() => props.affectedOutputPoints ?? []);
-const liveOutputConfirmed = ref(false);
 const canEnableLiveOutput = computed(
-  () => liveOutputConfirmed.value && !props.stale && ['ready', 'paused'].includes(props.lifecycle)
+  () => !props.stale && ['ready', 'paused'].includes(props.lifecycle)
 );
 const stateLabel = computed(() => (props.stale ? 'stale' : props.lifecycle));
 const executionOrder = computed(() => props.executionOrder ?? []);

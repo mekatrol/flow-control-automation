@@ -198,9 +198,12 @@ public sealed class FlowDebugService(
     {
         if (registry.Local is not null)
         {
-            var local = MatchLocal(flowId, sessionId);
+            var local = GetLocal(flowId, sessionId);
+            local.StartContinuous(
+                token => StepLocalTickAsync(flowId, sessionId, token, "running"),
+                intervalMilliseconds);
 
-            return registry.Session = local with { LifecycleState = "running", Mode = "interval" };
+            return registry.Session = UpdateLocalSession(local, "running") with { Mode = "interval" };
         }
 
         await registry.Gate.WaitAsync(cancellationToken);
@@ -224,9 +227,10 @@ public sealed class FlowDebugService(
     {
         if (registry.Local is not null)
         {
-            var local = MatchLocal(flowId, sessionId);
+            var local = GetLocal(flowId, sessionId);
+            local.StopContinuous();
 
-            return registry.Session = local with { LifecycleState = "paused", Mode = "manual" };
+            return registry.Session = UpdateLocalSession(local, "paused") with { Mode = "manual" };
         }
 
         await registry.Gate.WaitAsync(cancellationToken);
@@ -519,7 +523,8 @@ public sealed class FlowDebugService(
     private async Task<FlowDebugSession> StepLocalTickAsync(
         string flowId,
         string sessionId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string completedState = "paused")
     {
         await registry.Gate.WaitAsync(cancellationToken);
 
@@ -554,10 +559,10 @@ public sealed class FlowDebugService(
                 await points!.PublishAsync(local.Source.Id, scan.Commands, cancellationToken);
             }
 
-            var updated = UpdateLocalSession(local, "paused") with
+            var updated = UpdateLocalSession(local, completedState) with
             {
                 TickNumber = scan.ScanNumber,
-                Snapshot = CompatibilitySnapshot(local, scan)
+                Snapshot = CompatibilitySnapshot(local, scan, completedState)
             };
             registry.Session = updated;
 
@@ -688,12 +693,15 @@ public sealed class FlowDebugService(
         }
     }
 
-    private static DebugRuntimeSnapshot CompatibilitySnapshot(LocalFlowDebugSession local, FlowVmScanResult scan) => new()
+    private static DebugRuntimeSnapshot CompatibilitySnapshot(
+        LocalFlowDebugSession local,
+        FlowVmScanResult scan,
+        string lifecycleState = "paused") => new()
     {
         DebugSessionId = local.SessionId,
         FlowId = local.Source.Id,
         Revision = local.Source.Revision,
-        LifecycleState = "paused",
+        LifecycleState = lifecycleState,
         TickNumber = scan.ScanNumber,
         SampledAtMs = scan.SampledAtMilliseconds,
         CompletedAtMs = scan.SampledAtMilliseconds,

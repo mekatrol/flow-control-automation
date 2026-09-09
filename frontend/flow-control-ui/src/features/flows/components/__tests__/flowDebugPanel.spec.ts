@@ -57,7 +57,7 @@ describe('flow debug panel', () => {
     expect(wrapper.findAll('button')[1]!.attributes('disabled')).toBeDefined();
   });
 
-  it('names every physical output and requires explicit confirmation', async () => {
+  it('names every physical output and enables it directly', async () => {
     const wrapper = mount(AppFlowDebugPanel, {
       props: {
         lifecycle: 'ready',
@@ -69,11 +69,25 @@ describe('flow debug panel', () => {
       .findAll('button')
       .find((button) => button.text() === 'Enable live outputs')!;
     expect(wrapper.text()).toContain('output-01, output-08');
-    expect(enable.attributes('disabled')).toBeDefined();
+    expect(wrapper.find('input[type="checkbox"]').exists()).toBe(false);
+    expect(enable.attributes('disabled')).toBeUndefined();
 
-    await wrapper.find('input[type="checkbox"]').setValue(true);
     await enable.trigger('click');
 
     expect(wrapper.emitted('enableLiveOutput')).toEqual([[['output-01', 'output-08']]]);
+  });
+
+  it('does not offer controller live outputs for server-hosted debugging', () => {
+    const wrapper = mount(AppFlowDebugPanel, {
+      props: {
+        lifecycle: 'ready',
+        targetAvailable: true,
+        host: 'server',
+        affectedOutputPoints: ['output-01']
+      }
+    });
+
+    expect(wrapper.text()).not.toContain('Live physical outputs');
+    expect(wrapper.text()).not.toContain('Enable live outputs');
   });
 });

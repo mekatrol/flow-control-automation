@@ -94,6 +94,25 @@ const session = (
     : undefined
 });
 
+const runningSession = (revision: number, value: boolean): Record<string, unknown> => {
+  const result = session(revision, true) as {
+    lifecycleState: string;
+    snapshot: { lifecycleState: string };
+    inspection: { nodeValues: { constant: { value: boolean } } };
+  };
+  result.lifecycleState = 'running';
+  result.snapshot.lifecycleState = 'running';
+  result.inspection.nodeValues.constant.value = value;
+  return result;
+};
+
+const runningSessionWithoutSnapshot = (revision: number): Record<string, unknown> => {
+  const result = runningSession(revision, true);
+  delete result.snapshot;
+  delete result.inspection;
+  return result;
+};
+
 test('shows connector frame values and keyboard-accessible breakpoint positions', async ({
   page
 }) => {
@@ -129,4 +148,55 @@ test('shows connector frame values and keyboard-accessible breakpoint positions'
   // Expected outcome: The after-node breakpoint remains textually identifiable on the graph and in the summary.
   // Acceptance criteria: Marker A and `after constant` are both visible, covering graphical and non-graphical users.
   await expect(page.locator('[data-node-id="constant"] .breakpoint-marker')).toHaveText('A');
+});
+
+test('refreshes debugger values while a session is running', async ({ page }) => {
+  let revision = 1;
+  await page.route('**/api/flows/visual-debug', (route) => route.fulfill({ json: flow }));
+  await page.route('**/api/flows/visual-debug/debug-sessions', async (route) => {
+    revision = (route.request().postDataJSON() as { source: { revision: number } }).source.revision;
+    await route.fulfill({ status: 201, json: session(revision) });
+  });
+  await page.route('**/api/flows/visual-debug/debug-sessions/session/run', (route) =>
+    route.fulfill({ json: runningSession(revision, false) })
+  );
+  await page.route('**/api/flows/visual-debug/debug-sessions/session', (route) =>
+    route.fulfill({ json: runningSession(revision, true) })
+  );
+
+  await page.goto('/flows/visual-debug/debugger');
+  await page.getByRole('button', { name: 'Load' }).click();
+  await page.getByRole('button', { name: 'Run', exact: true }).click();
+
+  await expect(page.locator('[data-node-id="constant"]')).toHaveAttribute(
+    'aria-label',
+    /Digital Constant node, running/
+  );
+  await expect(page.locator('[data-node-id="constant"] .connector-value')).toContainText(
+    'true · good · paused-frame'
+  );
+});
+
+test('shows running node status before the first debug snapshot is available', async ({ page }) => {
+  let revision = 1;
+  await page.route('**/api/flows/visual-debug', (route) => route.fulfill({ json: flow }));
+  await page.route('**/api/flows/visual-debug/debug-sessions', async (route) => {
+    revision = (route.request().postDataJSON() as { source: { revision: number } }).source.revision;
+    await route.fulfill({ status: 201, json: session(revision) });
+  });
+  await page.route('**/api/flows/visual-debug/debug-sessions/session/run', (route) =>
+    route.fulfill({ json: runningSessionWithoutSnapshot(revision) })
+  );
+  await page.route('**/api/flows/visual-debug/debug-sessions/session', (route) =>
+    route.fulfill({ json: runningSessionWithoutSnapshot(revision) })
+  );
+
+  await page.goto('/flows/visual-debug/debugger');
+  await page.getByRole('button', { name: 'Load' }).click();
+  await page.getByRole('button', { name: 'Run', exact: true }).click();
+
+  await expect(page.locator('[data-node-id="constant"]')).toHaveAttribute(
+    'aria-label',
+    /Digital Constant node, running/
+  );
 });

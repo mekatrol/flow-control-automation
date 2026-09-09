@@ -44,6 +44,38 @@ public sealed class LocalFlowDebuggerTests
         emulators.Dispose();
     }
 
+    [Test]
+    public async Task RunExecutesTicksContinuouslyUntilPaused()
+    {
+        var machines = new MachineFactory();
+        var emulators = new FlowEmulatorService(new Resolver(), new Compiler(), machines);
+        var points = new PointAdapter();
+        var service = new FlowDebugService(
+            new Resolver(), new Compiler(), new ControllerTransport(),
+            new FlowDebugSessionRegistry(), machines, points, emulators);
+        var source = Source();
+        var started = await service.StartAsync(new StartFlowDebugSession(source, "server", false), default);
+
+        await service.RunAsync(source.Id, started.DebugSessionId, 10, default);
+        await Task.Delay(100);
+        var running = await service.GetAsync(source.Id, started.DebugSessionId, default);
+        var paused = await service.PauseAsync(source.Id, started.DebugSessionId, default);
+        var publishedWhenPaused = points.Published.Count;
+        await Task.Delay(50);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(running.LifecycleState, Is.EqualTo("running"));
+            Assert.That(running.TickNumber, Is.GreaterThan(0));
+            Assert.That(running.Snapshot?.LifecycleState, Is.EqualTo("running"));
+            Assert.That(paused.LifecycleState, Is.EqualTo("paused"));
+            Assert.That(points.Published, Has.Count.EqualTo(publishedWhenPaused));
+        });
+
+        await service.StopAsync(source.Id, started.DebugSessionId, default);
+        emulators.Dispose();
+    }
+
     private static ExecutableFlowSource Source() => new()
     {
         Id = "flow-a",
