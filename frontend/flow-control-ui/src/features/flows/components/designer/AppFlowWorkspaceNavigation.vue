@@ -1,9 +1,13 @@
 <template>
-  <nav v-if="versionView === 'draft'" class="workspace-modes" aria-label="Flow workspace mode">
+  <nav
+    v-if="versionView === VersionView.Draft"
+    class="workspace-modes"
+    aria-label="Flow workspace mode"
+  >
     <AppLink
       text="Design"
       :to="{ name: ROUTE_NAMES.flowDesigner, params: { flowId } }"
-      :aria-current="workspaceMode === 'design' ? 'page' : undefined"
+      :aria-current="workspaceMode === WorkspaceMode.Design ? 'page' : undefined"
       :icon="designIcon"
       :disabled="saving || loading"
       @click="emit('save')"
@@ -11,7 +15,7 @@
     <AppLink
       text="Simulate"
       :to="{ name: ROUTE_NAMES.flowSimulator, params: { flowId } }"
-      :aria-current="workspaceMode === 'simulator' ? 'page' : undefined"
+      :aria-current="workspaceMode === WorkspaceMode.Simulator ? 'page' : undefined"
       :icon="simulateIcon"
       :disabled="saving || loading"
       @click="emit('save')"
@@ -19,7 +23,7 @@
     <AppLink
       text="Debug"
       :to="{ name: ROUTE_NAMES.flowDebugger, params: { flowId } }"
-      :aria-current="workspaceMode === 'debugger' ? 'page' : undefined"
+      :aria-current="workspaceMode === WorkspaceMode.Debugger ? 'page' : undefined"
       :icon="debugIcon"
       :disabled="saving || loading"
       @click="emit('save')"
@@ -29,7 +33,7 @@
 
 <script setup lang="ts">
 import { ROUTE_NAMES } from '@/router';
-import type { WorkspaceMode, VersionView } from '@/features/flows/types/flowDesigner';
+import { WorkspaceMode, VersionView } from '@/features/flows/types/flowDesigner';
 
 import AppLink from '@/components/AppLink.vue';
 

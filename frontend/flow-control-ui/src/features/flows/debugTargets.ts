@@ -7,9 +7,16 @@ import {
 import { AutomationPointValueType } from '@/types/serverTypes';
 import type { ControllerTemplateSummary } from '@/features/catalogues/api/catalogueDto';
 
+export enum FlowDebugTargetKind {
+  Host = 'host',
+  Server = 'server',
+  Emulator = 'emulator',
+  Controller = 'controller'
+}
+
 export interface FlowDebugTarget {
   id: string;
-  kind: 'host' | 'server' | 'emulator' | 'controller';
+  kind: FlowDebugTargetKind;
   label: string;
   controllerTemplateId?: string;
   controllerTemplateRevision?: number;
@@ -38,21 +45,21 @@ export const getFlowDebugTargets = (
 ): FlowDebugTarget[] => [
   {
     id: 'server',
-    kind: 'server',
+    kind: FlowDebugTargetKind.Server,
     label: 'Server',
     controllerTemplateId: 'default',
     controllerTemplateRevision: 1
   },
   ...templates.filter(isControllerDebugCompatible).map((template) => ({
     id: `emulator:${template.id}`,
-    kind: 'emulator' as const,
+    kind: FlowDebugTargetKind.Emulator,
     label: `Emulator — ${template.name}`,
     controllerTemplateId: template.id,
     controllerTemplateRevision: template.revision
   })),
   ...templates.filter(isControllerDebugCompatible).map((template) => ({
     id: `controller:${template.id}`,
-    kind: 'controller' as const,
+    kind: FlowDebugTargetKind.Controller,
     label: template.name,
     controllerTemplateId: template.id,
     controllerTemplateRevision: template.revision

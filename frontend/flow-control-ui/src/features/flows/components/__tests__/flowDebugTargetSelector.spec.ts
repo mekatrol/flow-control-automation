@@ -4,12 +4,13 @@ import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 
 import AppFlowDebugTargetSelector from '@/features/flows/components/AppFlowDebugTargetSelector.vue';
+import { FlowDebugTargetKind } from '@/features/flows/debugTargets';
 
 const targets = [
-  { id: 'host', kind: 'host' as const, label: 'Host' },
+  { id: 'host', kind: FlowDebugTargetKind.Host, label: 'Host' },
   {
     id: 'controller:kc868-a16',
-    kind: 'controller' as const,
+    kind: FlowDebugTargetKind.Controller,
     label: 'KC868-A16',
     controllerTemplateId: 'kc868-a16',
     controllerTemplateRevision: 3

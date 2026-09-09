@@ -94,18 +94,18 @@
         aria-label="Flow version"
       >
         <div role="group" aria-label="Version to view">
-          <AppButton text="Draft" :disabled="versionView === 'draft'" @click="showDraftVersion" />
+          <AppButton text="Draft" :disabled="isDraftVersion" @click="showDraftVersion" />
           <AppButton
             text="Deployed"
-            :disabled="versionView === 'deployed' || loadingDeployedVersion"
+            :disabled="isDeployedVersion || loadingDeployedVersion"
             @click="showDeployedVersion"
           />
         </div>
-        <span v-if="versionView === 'deployed'" role="status">
+        <span v-if="isDeployedVersion" role="status">
           Viewing deployed revision {{ flow.revision }}. This version is read-only.
         </span>
         <AppButton
-          v-if="versionView === 'draft' && draftFlow.status === 'draft'"
+          v-if="isDraftVersion && draftFlow.status === 'draft'"
           text="Revert draft to deployed"
           :disabled="saving || revertingDraft"
           @click="openRevertConfirmation"
@@ -144,7 +144,7 @@
       />
 
       <section
-        v-if="versionView === 'draft'"
+        v-if="isDraftVersion"
         class="context-preview"
         aria-label="Execution context validation preview"
       >
@@ -165,7 +165,7 @@
       </section>
 
       <AppFlowCompileResults
-        v-if="versionView === 'draft' && compileResult"
+        v-if="isDraftVersion && compileResult"
         :result="compileResult"
         :node-ids="draftFlow?.nodes.map(({ id }) => id) ?? []"
         @select-diagnostic="focusDiagnosticNode"
@@ -180,7 +180,7 @@
       />
 
       <AppFlowSimulatorPanel
-        v-if="workspaceMode === 'simulator'"
+        v-if="isSimulatorWorkspace"
         :lifecycle="simulator.lifecycle"
         :error="simulator.error"
         @[EVENTS.START_SIMULATION]="startSimulation"
@@ -188,7 +188,7 @@
       />
 
       <AppFlowDebugPanel
-        v-if="workspaceMode === 'debugger'"
+        v-if="isDebuggerWorkspace"
         :lifecycle="debugLifecycle"
         :snapshot="debugSnapshot"
         :stale="debugSnapshotStale"
@@ -218,7 +218,7 @@
       />
 
       <AppFlowEmulatorPanel
-        v-if="workspaceMode === 'debugger' && selectedDebugTarget?.kind === 'emulator'"
+        v-if="showEmulatorPanel"
         :snapshot="emulatorSnapshot"
         @[EVENTS.APPLY_INPUTS_STEP]="applyEmulatorInputsAndStep"
         @[EVENTS.ADVANCE]="advanceEmulator"
@@ -227,20 +227,20 @@
         @[EVENTS.RESET_INPUTS]="resetEmulatorInputs"
       />
 
-      <div :class="{ 'deployed-version-canvas': versionView === 'deployed' }">
+      <div :class="{ 'deployed-version-canvas': isDeployedVersion }">
         <AppFlowDesignerCanvas
           :flow="flow"
           :runtime="canvasRuntime"
           :current-node-id="debugInspection?.nodeId"
           :breakpoints="debugBreakpoints"
           :connector-values="debugConnectorValues"
-          :debugging="workspaceMode === 'debugger' && Boolean(debugSessionId)"
+          :debugging="isDebugging"
           :focus-node-id="diagnosticNodeId"
           :context-point-contracts="selectedContext?.pointContracts"
           :execution-context-id="selectedContextId || undefined"
-          :simulator-io="workspaceMode === 'simulator' ? simulator.session?.io : undefined"
-          :simulator-mode="workspaceMode === 'simulator'"
-          :show-default-values="workspaceMode === 'simulator' || workspaceMode === 'debugger'"
+          :simulator-io="simulatorIo"
+          :simulator-mode="isSimulatorWorkspace"
+          :show-default-values="showCanvasDefaultValues"
           @point-validation="setPointValidation"
           @[EVENTS.APPLY_INPUTS_STEP]="applySimulatorInputs"
           @[EVENTS.SET_BREAKPOINT]="setBreakpoint"
@@ -290,7 +290,7 @@ import AppFlowEmulatorPanel from '@/features/flows/components/AppFlowEmulatorPan
 import AppFlowSimulatorPanel from '@/features/flows/components/AppFlowSimulatorPanel.vue';
 import AppFlowTutorialPanel from '@/features/flows/components/AppFlowTutorialPanel.vue';
 import AppFlowDesignerHeader from '@/features/flows/components/designer/AppFlowDesignerHeader.vue';
-import { getFlowDebugTargets } from '@/features/flows/debugTargets';
+import { FlowDebugTargetKind, getFlowDebugTargets } from '@/features/flows/debugTargets';
 import {
   flowDebugApi,
   type DebugRuntimeSnapshot,
@@ -333,7 +333,7 @@ import {
 } from '@/features/flows/flowPointValidation';
 import type { VirtualPointDefinition } from '@/features/flows/types';
 import { unconnectedVirtualPoint, virtualPointDefinitionsFromNodes } from '@/features/flows/types';
-import type { WorkspaceMode } from '@/features/flows/types/flowDesigner';
+import { VersionView, WorkspaceMode } from '@/features/flows/types/flowDesigner';
 import AppFlowWorkspaceNavigation from '@/features/flows/components/designer/AppFlowWorkspaceNavigation.vue';
 import { createExecutionNodeRuntime } from '@/features/flows/executionNodeRuntime';
 
@@ -351,15 +351,17 @@ const controllerTemplates = useControllerTemplatesCatalogueStore();
 const router = useRouter();
 const draftFlow = computed(() => flowStore.findFlow(props.flowId));
 const deployedFlow = ref<FlowDefinition>();
-const versionView = ref<'draft' | 'deployed'>('draft');
+const versionView = ref(VersionView.Draft);
 const loadingDeployedVersion = ref(false);
 const revertingDraft = ref(false);
 const compiling = ref(false);
 const compileResult = ref<FlowCompileResult>();
 const compiledGraphRevision = ref<number>();
 const flow = computed(() =>
-  versionView.value === 'deployed' ? deployedFlow.value : draftFlow.value
+  versionView.value === VersionView.Deployed ? deployedFlow.value : draftFlow.value
 );
+const isDraftVersion = computed(() => versionView.value === VersionView.Draft);
+const isDeployedVersion = computed(() => versionView.value === VersionView.Deployed);
 const dirty = computed(() => flowStore.isFlowDirty(props.flowId));
 const executionContexts = ref<ExecutionContextSummary[]>([]);
 const selectedContextId = ref('');
@@ -413,6 +415,15 @@ type DesignerDebugLifecycle =
   | 'stopped';
 const debugLifecycle = ref<DesignerDebugLifecycle>('idle');
 const debugSessionId = ref<string>();
+const isSimulatorWorkspace = computed(() => workspaceMode.value === WorkspaceMode.Simulator);
+const isDebuggerWorkspace = computed(() => workspaceMode.value === WorkspaceMode.Debugger);
+const isDebugging = computed(() => isDebuggerWorkspace.value && Boolean(debugSessionId.value));
+const simulatorIo = computed(() =>
+  isSimulatorWorkspace.value ? simulator.session?.io : undefined
+);
+const showCanvasDefaultValues = computed(
+  () => isSimulatorWorkspace.value || isDebuggerWorkspace.value
+);
 const debugSnapshot = ref<DebugRuntimeSnapshot>();
 const debugRevision = ref<number>();
 const debugError = ref<string>();
@@ -478,12 +489,7 @@ const debugNodeRuntime = computed(() => {
 const simulatorNodeRuntime = computed(() => {
   const session = simulator.session;
   const currentFlow = flow.value;
-  if (
-    workspaceMode.value !== 'simulator' ||
-    !session ||
-    !currentFlow ||
-    simulator.lifecycle === 'stale'
-  )
+  if (!isSimulatorWorkspace.value || !session || !currentFlow || simulator.lifecycle === 'stale')
     return undefined;
   return createExecutionNodeRuntime({
     flow: currentFlow,
@@ -495,8 +501,8 @@ const simulatorNodeRuntime = computed(() => {
   });
 });
 const canvasRuntime = computed(() => {
-  if (workspaceMode.value === 'simulator') return simulatorNodeRuntime.value ?? runtime.value;
-  if (workspaceMode.value === 'debugger') return debugNodeRuntime.value ?? runtime.value;
+  if (isSimulatorWorkspace.value) return simulatorNodeRuntime.value ?? runtime.value;
+  if (isDebuggerWorkspace.value) return debugNodeRuntime.value ?? runtime.value;
   return runtime.value;
 });
 
@@ -549,10 +555,16 @@ const debugConnectorValues = computed(() => {
 const selectedDebugTarget = computed(() =>
   debugTargets.value.find((target) => target.id === debugTargetId.value)
 );
+const showEmulatorPanel = computed(
+  () =>
+    isDebuggerWorkspace.value && selectedDebugTarget.value?.kind === FlowDebugTargetKind.Emulator
+);
 
 const debugHost = computed<'server' | 'emulator' | 'controller'>(() => {
   const kind = selectedDebugTarget.value?.kind;
-  return kind === 'emulator' || kind === 'controller' ? kind : 'server';
+  return kind === FlowDebugTargetKind.Emulator || kind === FlowDebugTargetKind.Controller
+    ? kind
+    : FlowDebugTargetKind.Server;
 });
 
 const executableSource = (): ExecutableFlowSource | undefined => {
@@ -634,7 +646,7 @@ const loadDebugSession = async (): Promise<void> => {
   try {
     const source = executableSource();
     if (!source) throw new Error('The flow is not available.');
-    if (selectedDebugTarget.value?.kind === 'emulator' && !emulatorSnapshot.value)
+    if (selectedDebugTarget.value?.kind === FlowDebugTargetKind.Emulator && !emulatorSnapshot.value)
       emulatorSnapshot.value = await flowEmulatorApi.create(source);
     const session = await flowDebugApi.load(
       source,
@@ -984,7 +996,7 @@ const loadFlow = async (flowId: string): Promise<void> => {
   const controller = new AbortController();
   const requestGeneration = loadGuard.begin();
   loadController = controller;
-  versionView.value = 'draft';
+  versionView.value = VersionView.Draft;
   deployedFlow.value = undefined;
   loading.value = true;
   loadError.value = undefined;
@@ -1049,7 +1061,7 @@ const deployFlow = async (): Promise<void> => {
 };
 
 const showDraftVersion = (): void => {
-  versionView.value = 'draft';
+  versionView.value = VersionView.Draft;
 };
 
 const showDeployedVersion = async (): Promise<void> => {
@@ -1057,7 +1069,7 @@ const showDeployedVersion = async (): Promise<void> => {
   saveError.value = undefined;
   try {
     deployedFlow.value = flowDtoToDomain(await flowApi.getDeployedFlow(props.flowId));
-    versionView.value = 'deployed';
+    versionView.value = VersionView.Deployed;
   } catch (error) {
     saveError.value = runtimeFailureMessage(error, 'Unable to load the deployed version.');
   } finally {
@@ -1070,7 +1082,7 @@ const revertDraftToDeployed = async (): Promise<void> => {
   saveError.value = undefined;
   try {
     flowStore.replaceFlowFromPayload(await flowApi.revertToDeployed(props.flowId));
-    versionView.value = 'draft';
+    versionView.value = VersionView.Draft;
   } catch (error) {
     saveError.value = runtimeFailureMessage(error, 'Unable to revert the draft.');
   } finally {

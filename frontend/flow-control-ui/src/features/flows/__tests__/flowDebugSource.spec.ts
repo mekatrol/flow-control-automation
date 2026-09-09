@@ -2,13 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { reactive } from 'vue';
 import { createDefaultNode } from '@/features/flows/graph/createNode';
 import { createExecutableFlowSource, graphRevision } from '@/features/flows/flowDebugSource';
-import type { FlowDebugTarget } from '@/features/flows/debugTargets';
+import { FlowDebugTargetKind, type FlowDebugTarget } from '@/features/flows/debugTargets';
 import type { FlowDefinition } from '@/features/flows/types';
 
 const target: FlowDebugTarget = {
   id: 'controller:controller-a',
   label: 'Controller A',
-  kind: 'controller',
+  kind: FlowDebugTargetKind.Controller,
   controllerTemplateId: 'controller-a',
   controllerTemplateRevision: 2
 };

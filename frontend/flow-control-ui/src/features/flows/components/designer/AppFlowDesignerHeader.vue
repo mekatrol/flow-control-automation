@@ -23,7 +23,7 @@
 
     <div class="heading-actions">
       <AppFlowDebugTargetSelector
-        v-if="workspaceMode === 'debugger'"
+        v-if="workspaceMode === WorkspaceMode.Debugger"
         :model-value="debugTargetId"
         :targets="debugTargets"
         :loading="loading"
@@ -32,7 +32,7 @@
       />
 
       <AppButton
-        v-if="versionView === 'draft'"
+        v-if="versionView === VersionView.Draft"
         :text="saving ? 'Saving…' : 'Save flow'"
         :icon="saveIcon"
         :disabled="saving"
@@ -40,7 +40,7 @@
       />
 
       <AppButton
-        v-if="versionView === 'draft'"
+        v-if="versionView === VersionView.Draft"
         :text="compiling ? 'Compiling…' : 'Compile'"
         :icon="compileIcon"
         :disabled="compiling"
@@ -48,7 +48,7 @@
       />
 
       <AppButton
-        v-if="versionView === 'draft'"
+        v-if="versionView === VersionView.Draft"
         :text="deploying ? 'Deploying…' : 'Deploy flow'"
         :icon="deployIcon"
         :disabled="dirty || deploying || !pointReferencesValid"
@@ -78,7 +78,7 @@
 
 <script setup lang="ts">
 import type { FlowDefinition } from '@/features/flows/types';
-import type { WorkspaceMode, VersionView } from '@/features/flows/types/flowDesigner';
+import { WorkspaceMode, VersionView } from '@/features/flows/types/flowDesigner';
 import type { FlowDebugTarget } from '@/features/flows/debugTargets';
 
 import AppButton from '@/components/AppButton.vue';
