@@ -228,13 +228,23 @@ export const parseDebugSnapshot = (value: unknown): DebugRuntimeSnapshot => {
     inputValidity: value.inputValidity.map((item, index) => text(item, `inputValidity[${index}]`)),
     nodes: value.nodes.map(parseNode),
     proposedOutputs: value.proposedOutputs.map((item, index) => {
-      if (!isRecord(item) || typeof item.proposedValue !== 'boolean')
+      if (
+        !isRecord(item) ||
+        (typeof item.proposedValue !== 'boolean' && typeof item.proposedNumber !== 'number')
+      )
         throw new TypeError(`proposedOutputs[${index}] is invalid.`);
+      const typedValue = isRecord(item.typedValue)
+        ? parseTypedValue(item.typedValue, `proposedOutputs[${index}].typedValue`)
+        : typeof item.proposedNumber === 'number'
+          ? { type: DataType.Number, number: item.proposedNumber }
+          : { type: DataType.Boolean, value: item.proposedValue as boolean };
       return {
         pointId: text(item.pointId, `proposedOutputs[${index}].pointId`),
         state: text(item.state, `proposedOutputs[${index}].state`),
         quality: enumValue(DataQualityType, item.quality, `proposedOutputs[${index}].quality`),
-        proposedValue: item.proposedValue
+        ...(typeof item.proposedValue === 'boolean' ? { proposedValue: item.proposedValue } : {}),
+        ...(typeof item.proposedNumber === 'number' ? { proposedNumber: item.proposedNumber } : {}),
+        typedValue
       };
     }),
     overrunCount: number(value.overrunCount, 'overrunCount'),

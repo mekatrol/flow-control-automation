@@ -199,4 +199,5 @@ test('shows running node status before the first debug snapshot is available', a
     'aria-label',
     /Digital Constant node, running/
   );
+  await expect(page.locator('[data-node-id="constant"] .status-value')).toHaveText('true');
 });

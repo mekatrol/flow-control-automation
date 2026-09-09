@@ -240,7 +240,7 @@
           :execution-context-id="selectedContextId || undefined"
           :simulator-io="workspaceMode === 'simulator' ? simulator.session?.io : undefined"
           :simulator-mode="workspaceMode === 'simulator'"
-          :show-default-values="workspaceMode === 'simulator'"
+          :show-default-values="workspaceMode === 'simulator' || workspaceMode === 'debugger'"
           @point-validation="setPointValidation"
           @[EVENTS.APPLY_INPUTS_STEP]="applySimulatorInputs"
           @[EVENTS.SET_BREAKPOINT]="setBreakpoint"
@@ -328,8 +328,6 @@ import {
 } from '@/features/flows/api/executionContextApi';
 import {
   isPointNode,
-  isInputPointNode,
-  isOutputPointNode,
   validatePointReference,
   type PointValidationState
 } from '@/features/flows/flowPointValidation';
@@ -337,6 +335,7 @@ import type { VirtualPointDefinition } from '@/features/flows/types';
 import { unconnectedVirtualPoint, virtualPointDefinitionsFromNodes } from '@/features/flows/types';
 import type { WorkspaceMode } from '@/features/flows/types/flowDesigner';
 import AppFlowWorkspaceNavigation from '@/features/flows/components/designer/AppFlowWorkspaceNavigation.vue';
+import { createExecutionNodeRuntime } from '@/features/flows/executionNodeRuntime';
 
 const props = defineProps<{
   flowId: string;
@@ -467,33 +466,13 @@ const debugNodeRuntime = computed(() => {
   const running = debugLifecycle.value === 'running' || debugLifecycle.value === 'stepping';
   const runtimeState: 'error' | 'running' | 'stopped' =
     debugLifecycle.value === 'fault' ? 'error' : running ? 'running' : 'stopped';
-  const updatedAt = new Date(snapshot?.completedAtMs ?? Date.now()).toISOString();
-  return {
+  return createExecutionNodeRuntime({
+    flow: currentFlow,
     flowId: snapshot?.flowId ?? currentFlow.id,
-    state: runtimeState,
-    updatedAt,
-    nodes: Object.fromEntries(
-      currentFlow.nodes.map((flowNode) => {
-        const node = snapshot?.nodes.find((candidate) => candidate.nodeId === flowNode.id);
-        return [
-          flowNode.id,
-          {
-            state: (node?.state === 'fault' || snapshot?.lastReasonPath.includes(flowNode.id)
-              ? 'error'
-              : runtimeState) as 'error' | 'running' | 'stopped',
-            ...(node
-              ? {
-                  value: node.typedValue
-                    ? `${node.typedValue.type === DataType.Number ? node.typedValue.number : node.typedValue.value} · ${node.quality}`
-                    : node.quality
-                }
-              : {}),
-            updatedAt
-          }
-        ];
-      })
-    )
-  };
+    snapshot,
+    inspection: debugInspection.value,
+    state: runtimeState
+  });
 });
 
 const simulatorNodeRuntime = computed(() => {
@@ -506,57 +485,14 @@ const simulatorNodeRuntime = computed(() => {
     simulator.lifecycle === 'stale'
   )
     return undefined;
-  const snapshot = session.snapshot;
-  const snapshotsByNode = new Map(snapshot?.nodes.map((node) => [node.nodeId, node]) ?? []);
-  const inspectedValues = session.inspection?.nodeValues ?? {};
-  const inputValues = new Map(
-    session.io?.inputs.map((input) => [input.pointId, input.typedValue]) ?? []
-  );
-  const outputValues = new Map(
-    (session.io?.outputHistory ?? []).map((output) => [output.outputId, output.effectiveValue])
-  );
-  const updatedAt = new Date(snapshot?.completedAtMs ?? Date.now()).toISOString();
-  return {
+  return createExecutionNodeRuntime({
+    flow: currentFlow,
     flowId: session.flowId,
-    state: session.lifecycleState === 'faulted' ? ('error' as const) : ('running' as const),
-    updatedAt,
-    nodes: Object.fromEntries(
-      currentFlow.nodes.map((flowNode) => {
-        const node = snapshotsByNode.get(flowNode.id);
-        const inspected = inspectedValues[flowNode.id];
-        const pointId = String(flowNode.configuration.pointId ?? '');
-        const ioValue = isInputPointNode(flowNode)
-          ? inputValues.get(pointId)
-          : isOutputPointNode(flowNode)
-            ? outputValues.get(pointId)
-            : undefined;
-        const typed = node?.typedValue ?? inspected;
-        const typedDataType = typed
-          ? typed.type || (typed as typeof typed & { dataType?: string }).dataType
-          : undefined;
-        const ioDataType = ioValue
-          ? ioValue.type || (ioValue as typeof ioValue & { dataType?: string }).dataType
-          : undefined;
-        const value = typed
-          ? typedDataType === 'number'
-            ? typed.number
-            : typed.value
-          : ioValue
-            ? ioDataType === 'number'
-              ? ioValue.number
-              : ioValue.boolean
-            : undefined;
-        return [
-          flowNode.id,
-          {
-            state: (node?.state === 'fault' ? 'error' : 'running') as 'error' | 'running',
-            ...(value === undefined ? {} : { value: String(value) }),
-            updatedAt
-          }
-        ];
-      })
-    )
-  };
+    snapshot: session.snapshot,
+    inspection: session.inspection,
+    io: session.io,
+    state: session.lifecycleState === 'faulted' ? 'error' : 'running'
+  });
 });
 const canvasRuntime = computed(() => {
   if (workspaceMode.value === 'simulator') return simulatorNodeRuntime.value ?? runtime.value;
@@ -909,9 +845,7 @@ const pauseDebugSession = async (): Promise<void> => {
   if (!sessionId) return;
   stopDebugPolling();
   try {
-    const session = await flowDebugApi.pause(props.flowId, sessionId);
-    debugSnapshot.value = session.snapshot;
-    debugLifecycle.value = 'paused';
+    applyDebugSession(await flowDebugApi.pause(props.flowId, sessionId));
   } catch (error) {
     debugLifecycle.value = 'fault';
     debugError.value = debugFailure(error);

@@ -426,7 +426,7 @@ const defaultNodeValue = (node: FlowNodeModel): string | undefined => {
   if (node.nodeType === FlowNodeType.AnalogConstant || node.nodeType === FlowNodeType.Memory)
     return String(node.configuration.value ?? 0);
   if (node.nodeType === FlowNodeType.DigitalConstant)
-    return node.configuration.value ? 'On' : 'Off';
+    return String(Boolean(node.configuration.value));
   if (!isPointNode(node)) return undefined;
   const pointId = String(node.configuration.pointId ?? '');
   const definition = virtualPointDefinitions.value.find((point) => point.key === pointId);
@@ -434,10 +434,10 @@ const defaultNodeValue = (node: FlowNodeModel): string | undefined => {
   if (typeof definition.relinquishDefault === 'number')
     return `${definition.relinquishDefault}${definition.units ? ` ${definition.units}` : ''}`;
   if (typeof definition.relinquishDefault === 'boolean')
-    return definition.relinquishDefault ? 'On' : 'Off';
+    return String(definition.relinquishDefault);
   return definition.valueType === AutomationPointValueType.Analog
     ? `0${definition.units ? ` ${definition.units}` : ''}`
-    : 'Off';
+    : 'false';
 };
 const nodeStatusValue = (node: FlowNodeModel): string | undefined => {
   const runtimeValue = props.runtime?.nodes[node.id]?.value;
