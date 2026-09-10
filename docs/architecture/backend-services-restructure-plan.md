@@ -793,7 +793,16 @@ frontend formatting and frontend linting also passed.
 - Ensure `AddServerServices` is the sole public DI entry point and every
   domain registration extension is internal.
 
-### Phase 7 — Architecture enforcement
+### Phase 7 — Architecture enforcement ✅ Complete
+
+Completed 2026-09-10. Architecture tests now lock the Services public surface,
+Common project independence, API/test isolation from implementation namespaces,
+composition through `AddServerServices`, removal of friend-assembly access and
+generic `Implementation` folders, service folder/namespace parity, the approved
+cross-domain dependency graph, and separation of API transport contracts.
+Contributor guidance documents the same placement rules. Final verification
+passed the solution build and all backend tests; backend and frontend formatting
+and frontend linting also passed.
 
 - Add tests or analyzers that reject:
   - any public concrete class under `Server.Services`;

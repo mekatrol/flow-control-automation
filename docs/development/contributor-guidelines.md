@@ -170,6 +170,29 @@ on the interface or record itself and on every member it declares.
   validation occurs. Never invent a numeric range that the implementation does
   not enforce.
 
+## Backend service placement
+
+Organize `Server.Services` by functional domain, with folder and namespace
+segments matching exactly. New implementations belong under `Audit`,
+`Communication`, `Configuration`, `FlowExecution`, `Points`, or `Validation`;
+never add a generic `Implementation` folder.
+
+- Keep concrete service implementations and domain registration extensions
+  internal. `AddServerServices` is the only public composition entry point.
+- Put cross-project interfaces in `Server.Common.Contracts`, data-bearing
+  contracts in `Server.Common.Models`, closed vocabularies in
+  `Server.Common.Types`, and any newly designed cross-project exception in
+  `Server.Common.Errors`. The existing Services error/options surface is an
+  explicit closed allowlist in the architecture tests and must not expand.
+- Keep HTTP-only request and response shapes in `Server.Api.Contracts`.
+- `Server.Common` must have no project references. API and tests must not import
+  service implementation namespaces or use friend-assembly access.
+- Tests configure the system through `AddServerServices`, replace dependencies
+  through public contracts, and resolve the subject through a Common interface.
+- Cross-domain implementation dependencies follow the reviewed graph enforced
+  by `Tests.Unit/Architecture/ServiceBoundaryTests.cs`; update architecture and
+  its documentation together when a new dependency is genuinely required.
+
 Conceptual flow runner:
 
 ```csharp
