@@ -6,7 +6,7 @@ using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text.Json;
 
-namespace Server.Services.Implementation;
+namespace Server.Services.FlowExecution.Deployment;
 
 internal sealed class FlowDeploymentService(
     IFlowCompilationTargetResolver targetResolver,

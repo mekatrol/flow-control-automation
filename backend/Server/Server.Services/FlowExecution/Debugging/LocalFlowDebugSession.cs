@@ -1,6 +1,7 @@
 using Server.Compiler.Contracts;
+using Server.Services.FlowExecution.Emulation;
 
-namespace Server.Services.Implementation;
+namespace Server.Services.FlowExecution.Debugging;
 
 internal sealed class LocalFlowDebugSession(
     IFlowVirtualMachine machine,

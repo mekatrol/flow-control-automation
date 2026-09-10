@@ -1,6 +1,6 @@
-namespace Server.Services.Implementation;
+namespace Server.Services.FlowExecution.Debugging;
 
-public sealed class FlowDebugSessionRegistry : IDisposable
+internal sealed class FlowDebugSessionRegistry : IDisposable
 {
     public SemaphoreSlim Gate { get; } = new(1, 1);
     public FlowDebugSession? Session { get; set; }

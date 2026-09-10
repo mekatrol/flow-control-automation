@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace Server.Services.Implementation;
+namespace Server.Services.FlowExecution.Runtime;
 
 internal sealed class ServerFlowPointAdapter(
     IServiceScopeFactory scopes,

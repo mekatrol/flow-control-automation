@@ -1,6 +1,8 @@
-namespace Server.Services.Implementation;
+using Server.Services.FlowExecution.Debugging;
 
-public sealed class FlowSimulatorSessionRegistry : IDisposable
+namespace Server.Services.FlowExecution.Simulation;
+
+internal sealed class FlowSimulatorSessionRegistry : IDisposable
 {
     public const int MaximumSessions = 32;
     public static readonly TimeSpan DefaultLease = TimeSpan.FromSeconds(3);

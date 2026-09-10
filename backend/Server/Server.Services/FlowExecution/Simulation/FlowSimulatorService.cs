@@ -1,8 +1,10 @@
 using Server.Compiler.Services;
+using Server.Services.FlowExecution.Debugging;
+using Server.Services.FlowExecution.Emulation;
 
-namespace Server.Services.Implementation;
+namespace Server.Services.FlowExecution.Simulation;
 
-public sealed class FlowSimulatorService(
+internal sealed class FlowSimulatorService(
     IFlowCompilationTargetResolver targetResolver,
     IFlowCompiler compiler,
     IControllerDebugTransport transport,

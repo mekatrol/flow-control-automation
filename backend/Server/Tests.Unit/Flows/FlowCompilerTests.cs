@@ -2,7 +2,6 @@ using Server.Compiler;
 using Server.Compiler.Contracts;
 using Server.Compiler.Extensions;
 using Server.Compiler.Services;
-using Server.Services.Implementation;
 using System.Text.Json;
 using Tests.Unit.Helpers;
 
@@ -401,7 +400,7 @@ public sealed class FlowCompilerTests
             })]
         };
         var compilation = _compiler.Compile(BuildCompilationRequest(source));
-        using var machine = new ManagedFlowVirtualMachineFactory().Create(compilation.Artifact);
+        using var machine = CreateMachine(compilation.Artifact);
 
         var scan = machine.Scan([], 1);
 
@@ -440,7 +439,7 @@ public sealed class FlowCompilerTests
             ]
         };
         var compilation = _compiler.Compile(BuildCompilationRequest(source));
-        using var machine = new ManagedFlowVirtualMachineFactory().Create(compilation.Artifact);
+        using var machine = CreateMachine(compilation.Artifact);
 
         bool Scan(bool input, ulong sampledAt) => machine
             .Scan([new("input", input)], sampledAt)
@@ -489,7 +488,7 @@ public sealed class FlowCompilerTests
             ]
         };
         var compilation = _compiler.Compile(BuildCompilationRequest(source));
-        using var machine = new ManagedFlowVirtualMachineFactory().Create(compilation.Artifact);
+        using var machine = CreateMachine(compilation.Artifact);
 
         var scan = machine.Scan(
             [new FlowVmInput("input-a", FlowVmValue.FromNumber(9)), new FlowVmInput("input-b", FlowVmValue.FromNumber(5))],
@@ -522,7 +521,7 @@ public sealed class FlowCompilerTests
             ]
         };
         var compilation = _compiler.Compile(BuildCompilationRequest(source));
-        using var machine = new ManagedFlowVirtualMachineFactory().Create(compilation.Artifact);
+        using var machine = CreateMachine(compilation.Artifact);
 
         var good = machine.Scan([new("input-a", FlowVmValue.FromNumber(9)), new("input-b", FlowVmValue.FromNumber(3))], 1);
         var failed = machine.Scan([new("input-a", FlowVmValue.FromNumber(9)), new("input-b", FlowVmValue.FromNumber(0))], 2);
@@ -574,7 +573,7 @@ public sealed class FlowCompilerTests
             ]
         };
         var compilation = _compiler.Compile(BuildCompilationRequest(source));
-        using var machine = new ManagedFlowVirtualMachineFactory().Create(compilation.Artifact);
+        using var machine = CreateMachine(compilation.Artifact);
 
         bool Scan(bool input, ulong sampledAt) => machine
             .Scan([new("input", input)], sampledAt)
@@ -615,7 +614,7 @@ public sealed class FlowCompilerTests
             ]
         };
         var compilation = _compiler.Compile(BuildCompilationRequest(source));
-        using var machine = new ManagedFlowVirtualMachineFactory().Create(compilation.Artifact);
+        using var machine = CreateMachine(compilation.Artifact);
 
         bool Scan(bool enabled, ulong sampledAt) => machine
             .Scan([new("enable", enabled)], sampledAt)
@@ -660,7 +659,7 @@ public sealed class FlowCompilerTests
             ]
         };
         var compilation = _compiler.Compile(BuildCompilationRequest(source));
-        using var machine = new ManagedFlowVirtualMachineFactory().Create(compilation.Artifact);
+        using var machine = CreateMachine(compilation.Artifact);
 
         double count = 0;
 
@@ -705,7 +704,7 @@ public sealed class FlowCompilerTests
             ]
         };
         var compilation = _compiler.Compile(BuildCompilationRequest(resetSource));
-        using var machine = new ManagedFlowVirtualMachineFactory().Create(compilation.Artifact);
+        using var machine = CreateMachine(compilation.Artifact);
 
         Assert.Multiple(() =>
         {
@@ -847,5 +846,12 @@ public sealed class FlowCompilerTests
         var source = ReadSource(fixture);
 
         return CompileFixture(fixture, source);
+    }
+
+    private static IFlowVirtualMachine CreateMachine(ReadOnlyMemory<byte> artifact)
+    {
+        using var provider = TestServices.CreateProvider();
+
+        return provider.GetRequiredService<IFlowVirtualMachineFactory>().Create(artifact);
     }
 }

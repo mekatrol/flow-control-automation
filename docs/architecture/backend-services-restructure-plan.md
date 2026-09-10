@@ -750,7 +750,20 @@ passed.
 - Make every network, protocol, serial, client, and transport implementation
   internal and resolve it only through contracts and DI.
 
-### Phase 5 — Existing flow execution
+### Phase 5 — Existing flow execution ✅ Complete
+
+Completed 2026-09-10. Runtime, deployment, emulator, simulator, debugger, and
+managed-VM implementations now live under domain-matched
+`Server.Services.FlowExecution` folders and namespaces. Every execution
+implementation, adapter, session, and registry is internal and remains exposed
+through its `Server.Common.Contracts.FlowExecution` interface. Focused tests
+now configure the public `AddServerServices` composition entry point, replace
+dependencies through contract registrations, and resolve only Common
+interfaces. Registry white-box tests were replaced with contract coverage for
+lease expiry, duplicate-session rejection, replacement, stop cleanup, and
+provider-disposal cleanup. Existing API endpoints and behavior remain
+unchanged. Final verification passed the solution build and all 309 backend
+tests; backend and frontend formatting and frontend linting also passed.
 
 - Move VM, runtime, deployment, emulator, simulator, and debugger code into the
   proposed folders without redesigning behavior.

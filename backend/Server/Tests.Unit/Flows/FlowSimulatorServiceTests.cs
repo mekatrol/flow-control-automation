@@ -1,19 +1,66 @@
 using Server.Compiler.Contracts;
 using Server.Compiler.Services;
-using Server.Services.Implementation;
+using Server.Services;
+using Tests.Unit.Helpers;
 
 namespace Tests.Unit.Flows;
 
 public sealed class FlowSimulatorServiceTests
 {
     [Test]
+    public async Task InactiveSessionExpiresAndDisposesItsMachine()
+    {
+        var machines = new MachineFactory();
+        await using var provider = CreateProvider(machines, new RecordingPointAdapter(), leaseSeconds: 1);
+        var service = provider.GetRequiredService<IFlowSimulatorService>();
+        var started = await service.StartAsync(Source(), false, default);
+
+        await Task.Delay(TimeSpan.FromMilliseconds(1200));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(
+                async () => await service.GetAsync(Source().Id, started.SessionId, default),
+                Throws.TypeOf<FlowSimulatorException>()
+                    .With.Property(nameof(FlowSimulatorException.Code)).EqualTo("simulator_session_not_found"));
+            Assert.That(machines.Machines, Has.All.Property(nameof(Machine.Disposed)).True);
+        });
+    }
+
+    [Test]
+    public async Task ExistingSessionRejectsStartWithoutReplacement()
+    {
+        await using var provider = CreateProvider(new MachineFactory(), new RecordingPointAdapter());
+        var service = provider.GetRequiredService<IFlowSimulatorService>();
+        await service.StartAsync(Source(), false, default);
+
+        var error = Assert.ThrowsAsync<FlowSimulatorException>(async () =>
+            await service.StartAsync(Source(), false, default));
+
+        Assert.That(error!.Code, Is.EqualTo("simulator_session_conflict"));
+    }
+
+    [Test]
+    public async Task ProviderDisposalCleansUpAllActiveMachines()
+    {
+        var machines = new MachineFactory();
+        var provider = CreateProvider(machines, new RecordingPointAdapter());
+        var service = provider.GetRequiredService<IFlowSimulatorService>();
+        await service.StartAsync(Source(), false, default);
+        await service.StartAsync(Source() with { Id = "second-flow" }, false, default);
+
+        await provider.DisposeAsync();
+
+        Assert.That(machines.Machines, Has.All.Property(nameof(Machine.Disposed)).True);
+    }
+
+    [Test]
     public async Task DraftRunsInAnIsolatedShadowSessionAndStopDisposesTheMachine()
     {
         var machines = new MachineFactory();
         var points = new RecordingPointAdapter();
-        using var emulators = new FlowEmulatorService(new Resolver(), new Compiler(), machines);
-        using var sessions = new FlowSimulatorSessionRegistry(TimeProvider.System);
-        var service = CreateService(machines, points, emulators, sessions);
+        await using var provider = CreateProvider(machines, points);
+        var service = provider.GetRequiredService<IFlowSimulatorService>();
 
         var started = await service.StartAsync(Source(), false, default);
         var stepped = await service.StepTickAsync(Source().Id, started.SessionId, default);
@@ -32,10 +79,8 @@ public sealed class FlowSimulatorServiceTests
     public async Task ReplacementIsPerFlowAndDoesNotUseTheDebugSessionRegistry()
     {
         var machines = new MachineFactory();
-        using var emulators = new FlowEmulatorService(new Resolver(), new Compiler(), machines);
-        using var sessions = new FlowSimulatorSessionRegistry(TimeProvider.System);
-        var ordinaryDebugRegistry = new FlowDebugSessionRegistry();
-        var service = CreateService(machines, new RecordingPointAdapter(), emulators, sessions);
+        await using var provider = CreateProvider(machines, new RecordingPointAdapter());
+        var service = provider.GetRequiredService<IFlowSimulatorService>();
 
         var first = await service.StartAsync(Source(), false, default);
         var second = await service.StartAsync(Source(), true, default);
@@ -43,18 +88,15 @@ public sealed class FlowSimulatorServiceTests
         Assert.Multiple(() =>
         {
             Assert.That(second.SessionId, Is.Not.EqualTo(first.SessionId));
-            Assert.That(ordinaryDebugRegistry.Session, Is.Null);
         });
-        ordinaryDebugRegistry.Dispose();
     }
 
     [Test]
     public async Task RunExecutesScansUntilPaused()
     {
         var machines = new MachineFactory();
-        using var emulators = new FlowEmulatorService(new Resolver(), new Compiler(), machines);
-        using var sessions = new FlowSimulatorSessionRegistry(TimeProvider.System);
-        var service = CreateService(machines, new RecordingPointAdapter(), emulators, sessions);
+        await using var provider = CreateProvider(machines, new RecordingPointAdapter());
+        var service = provider.GetRequiredService<IFlowSimulatorService>();
         var started = await service.StartAsync(Source(), false, default);
 
         var running = await service.RunAsync(Source().Id, started.SessionId, 10, default);
@@ -73,12 +115,23 @@ public sealed class FlowSimulatorServiceTests
         });
     }
 
-    private static FlowSimulatorService CreateService(
+    private static ServiceProvider CreateProvider(
         IFlowVirtualMachineFactory machines,
         IFlowPointAdapter points,
-        FlowEmulatorService emulators,
-        FlowSimulatorSessionRegistry sessions) => new(
-            new Resolver(), new Compiler(), new Transport(), machines, points, emulators, sessions);
+        int? leaseSeconds = null) => TestServices.CreateProvider(services =>
+        {
+            services.AddSingleton<IFlowCompilationTargetResolver, Resolver>();
+            services.AddSingleton<IFlowCompiler, Compiler>();
+            services.Replace(ServiceDescriptor.Singleton<IControllerDebugTransport, Transport>());
+            services.Replace(ServiceDescriptor.Singleton(machines));
+            services.Replace(ServiceDescriptor.Singleton(points));
+
+            if (leaseSeconds is not null)
+            {
+                services.PostConfigure<FlowSimulatorOptions>(options =>
+                    options.SessionLeaseSeconds = leaseSeconds.Value);
+            }
+        });
 
     private static ExecutableFlowSource Source() => new()
     {
@@ -122,7 +175,14 @@ public sealed class FlowSimulatorServiceTests
     private sealed class MachineFactory : IFlowVirtualMachineFactory
     {
         public Machine? LastMachine { get; private set; }
-        public IFlowVirtualMachine Create(ReadOnlyMemory<byte> artifact) => LastMachine = new Machine();
+        public List<Machine> Machines { get; } = [];
+        public IFlowVirtualMachine Create(ReadOnlyMemory<byte> artifact)
+        {
+            LastMachine = new Machine();
+            Machines.Add(LastMachine);
+
+            return LastMachine;
+        }
     }
 
     private sealed class Machine : IFlowVirtualMachine

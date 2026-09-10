@@ -1,6 +1,6 @@
 using Server.Compiler.Contracts;
 using Server.Compiler.Services;
-using Server.Services.Implementation;
+using Tests.Unit.Helpers;
 
 namespace Tests.Unit.Flows;
 
@@ -10,16 +10,9 @@ public sealed class LocalFlowDebuggerTests
     public async Task InstructionPauseInspectsPrivateFrameAndCommitsOnlyOnStepTick()
     {
         var machines = new MachineFactory();
-        var emulators = new FlowEmulatorService(new Resolver(), new Compiler(), machines);
         var points = new PointAdapter();
-        var service = new FlowDebugService(
-            new Resolver(),
-            new Compiler(),
-            new ControllerTransport(),
-            new FlowDebugSessionRegistry(),
-            machines,
-            points,
-            emulators);
+        await using var provider = CreateProvider(machines, points);
+        var service = provider.GetRequiredService<IFlowDebugService>();
         var source = Source();
         var started = await service.StartAsync(new StartFlowDebugSession(source, "server", false), default);
 
@@ -37,18 +30,15 @@ public sealed class LocalFlowDebuggerTests
         await service.StepAsync(source.Id, started.DebugSessionId, default);
         Assert.That(points.Published, Has.Count.EqualTo(1));
         await service.StopAsync(source.Id, started.DebugSessionId, default);
-        emulators.Dispose();
     }
 
     [Test]
     public async Task RunExecutesTicksContinuouslyUntilPaused()
     {
         var machines = new MachineFactory();
-        var emulators = new FlowEmulatorService(new Resolver(), new Compiler(), machines);
         var points = new PointAdapter();
-        var service = new FlowDebugService(
-            new Resolver(), new Compiler(), new ControllerTransport(),
-            new FlowDebugSessionRegistry(), machines, points, emulators);
+        await using var provider = CreateProvider(machines, points);
+        var service = provider.GetRequiredService<IFlowDebugService>();
         var source = Source();
         var started = await service.StartAsync(new StartFlowDebugSession(source, "server", false), default);
 
@@ -69,8 +59,18 @@ public sealed class LocalFlowDebuggerTests
         });
 
         await service.StopAsync(source.Id, started.DebugSessionId, default);
-        emulators.Dispose();
     }
+
+    private static ServiceProvider CreateProvider(
+        IFlowVirtualMachineFactory machines,
+        IFlowPointAdapter points) => TestServices.CreateProvider(services =>
+        {
+            services.AddSingleton<IFlowCompilationTargetResolver, Resolver>();
+            services.AddSingleton<IFlowCompiler, Compiler>();
+            services.Replace(ServiceDescriptor.Singleton<IControllerDebugTransport, ControllerTransport>());
+            services.Replace(ServiceDescriptor.Singleton(machines));
+            services.Replace(ServiceDescriptor.Singleton(points));
+        });
 
     private static ExecutableFlowSource Source() => new()
     {

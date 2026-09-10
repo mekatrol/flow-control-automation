@@ -2,7 +2,7 @@ using System.Buffers.Binary;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
-namespace Server.Services.Implementation;
+namespace Server.Services.FlowExecution.VirtualMachine;
 
 internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
 {

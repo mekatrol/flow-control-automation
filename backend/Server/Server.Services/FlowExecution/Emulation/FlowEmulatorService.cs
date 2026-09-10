@@ -2,9 +2,9 @@ using Server.Compiler.Contracts;
 using Server.Compiler.Services;
 using System.Collections.Concurrent;
 
-namespace Server.Services.Implementation;
+namespace Server.Services.FlowExecution.Emulation;
 
-public sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
+internal sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
 {
     private const int MaximumHistory = 1024;
     public const int MaximumInstances = 32;

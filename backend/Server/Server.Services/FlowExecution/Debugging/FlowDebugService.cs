@@ -1,10 +1,11 @@
 using Server.Compiler.Contracts;
 using Server.Compiler.Services;
+using Server.Services.FlowExecution.Emulation;
 using System.Globalization;
 
-namespace Server.Services.Implementation;
+namespace Server.Services.FlowExecution.Debugging;
 
-public sealed class FlowDebugService(
+internal sealed class FlowDebugService(
     IFlowCompilationTargetResolver targetResolver,
     IFlowCompiler compiler,
     IControllerDebugTransport transport,

@@ -1,9 +1,9 @@
 using Server.Compiler.Contracts;
 using Server.Compiler.Services;
 using Server.Services;
-using Server.Services.Implementation;
 using System.Text;
 using System.Text.Json;
+using Tests.Unit.Helpers;
 
 namespace Tests.Unit.Flows;
 
@@ -13,11 +13,8 @@ public sealed class FlowDebugServiceTests
     public async Task OrchestratesCompileLoadPrepareStepInspectAndStop()
     {
         var transport = new StubTransport(Snapshot());
-        var service = new FlowDebugService(
-            new StubResolver(),
-            new StubCompiler(),
-            transport,
-            new FlowDebugSessionRegistry());
+        await using var provider = CreateProvider(transport);
+        var service = provider.GetRequiredService<IFlowDebugService>();
         var source = Source();
 
         var started = await service.StartAsync(source, replaceExisting: false, default);
@@ -36,26 +33,25 @@ public sealed class FlowDebugServiceTests
     }
 
     [Test]
-    public void RejectsStaleApplicationSessionBeforeTransport()
+    public async Task RejectsStaleApplicationSessionBeforeTransport()
     {
         var transport = new StubTransport(Snapshot());
-        var service = new FlowDebugService(
-            new StubResolver(),
-            new StubCompiler(),
-            transport,
-            new FlowDebugSessionRegistry());
+        await using var provider = CreateProvider(transport);
+        var service = provider.GetRequiredService<IFlowDebugService>();
 
         Assert.That(
             async () => await service.GetAsync("flow-a", "42", default),
             Throws.TypeOf<FlowDebugSessionNotFoundException>());
         Assert.That(transport.Calls, Is.Empty);
+        await Task.CompletedTask;
     }
 
     [Test]
     public async Task RequiresExactOutputConfirmationBeforeEnablingLiveOutput()
     {
         var transport = new StubTransport(Snapshot());
-        var service = new FlowDebugService(new StubResolver(), new StubCompiler(), transport, new FlowDebugSessionRegistry());
+        await using var provider = CreateProvider(transport);
+        var service = provider.GetRequiredService<IFlowDebugService>();
         var source = Source();
         var started = await service.StartAsync(source, false, default);
 
@@ -97,6 +93,14 @@ public sealed class FlowDebugServiceTests
             }
         ]
     };
+
+    private static ServiceProvider CreateProvider(IControllerDebugTransport transport) =>
+        TestServices.CreateProvider(services =>
+        {
+            services.AddSingleton<IFlowCompilationTargetResolver, StubResolver>();
+            services.AddSingleton<IFlowCompiler, StubCompiler>();
+            services.Replace(ServiceDescriptor.Singleton(transport));
+        });
 
     private static byte[] Snapshot()
     {

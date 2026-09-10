@@ -1,9 +1,9 @@
 using System.Buffers.Binary;
 using System.Text;
 
-namespace Server.Services.Implementation;
+namespace Server.Services.FlowExecution.Debugging;
 
-public static class DebugSnapshotDecoder
+internal static class DebugSnapshotDecoder
 {
     private const ulong MaximumSafeJsonInteger = 9_007_199_254_740_991;
 

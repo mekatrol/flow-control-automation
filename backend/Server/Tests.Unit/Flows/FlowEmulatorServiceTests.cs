@@ -1,8 +1,8 @@
 using Server.Compiler.Contracts;
 using Server.Compiler.Services;
 using Server.Services;
-using Server.Services.Implementation;
 using System.Text.Json;
+using Tests.Unit.Helpers;
 
 namespace Tests.Unit.Flows;
 
@@ -17,11 +17,12 @@ public sealed class FlowEmulatorServiceTests
     {
         // Arrange: Create one emulator against a fixed clock.
         var time = new MutableTimeProvider(DateTimeOffset.Parse("2026-08-15T00:00:00Z"));
-        using var service = new FlowEmulatorService(new Resolver(), new Compiler(), new MachineFactory(), time);
+        await using var provider = CreateProvider(new MachineFactory(), time);
+        var service = provider.GetRequiredService<IFlowEmulatorService>();
         var created = await service.CreateAsync(Source(), default);
 
         // Act: Cross the lease boundary before looking up the instance.
-        time.Advance(FlowEmulatorService.Lease);
+        time.Advance(TimeSpan.FromMinutes(15));
 
         // Assert: Expiry is observable as the normal not-found contract.
         Assert.That(
@@ -37,9 +38,10 @@ public sealed class FlowEmulatorServiceTests
     public async Task ActiveInstanceLimitIsEnforced()
     {
         // Arrange: Fill every permitted emulator slot.
-        using var service = new FlowEmulatorService(new Resolver(), new Compiler(), new MachineFactory());
+        await using var provider = CreateProvider(new MachineFactory());
+        var service = provider.GetRequiredService<IFlowEmulatorService>();
 
-        for (var index = 0; index < FlowEmulatorService.MaximumInstances; index++)
+        for (var index = 0; index < 32; index++)
         {
             await service.CreateAsync(Source() with { Id = $"flow-{index}" }, default);
         }
@@ -53,7 +55,8 @@ public sealed class FlowEmulatorServiceTests
     [Test]
     public async Task AppliesScheduledInputsOnlyAtScanBoundariesAndCapturesOutputs()
     {
-        using var service = new FlowEmulatorService(new Resolver(), new Compiler(), new MachineFactory());
+        await using var provider = CreateProvider(new MachineFactory());
+        var service = provider.GetRequiredService<IFlowEmulatorService>();
         var created = await service.CreateAsync(Source(), default);
 
         service.SetInputs(created.EmulatorId, [new EmulatorInputChange("input-01", FlowVmValue.FromBoolean(true), EffectiveAtMilliseconds: 10)]);
@@ -71,7 +74,8 @@ public sealed class FlowEmulatorServiceTests
     [Test]
     public async Task ModelsOutputFailureWithoutChangingTheProposedValue()
     {
-        using var service = new FlowEmulatorService(new Resolver(), new Compiler(), new MachineFactory());
+        await using var provider = CreateProvider(new MachineFactory());
+        var service = provider.GetRequiredService<IFlowEmulatorService>();
         var created = await service.CreateAsync(Source(), default);
         service.SetInputs(created.EmulatorId, [new EmulatorInputChange("input-01", FlowVmValue.FromBoolean(true))]);
         service.InjectFault(created.EmulatorId, "output_failure");
@@ -89,7 +93,8 @@ public sealed class FlowEmulatorServiceTests
     [Test]
     public async Task InitializesAndAcceptsAnalogInputs()
     {
-        using var service = new FlowEmulatorService(new Resolver(), new Compiler(), new MachineFactory());
+        await using var provider = CreateProvider(new MachineFactory());
+        var service = provider.GetRequiredService<IFlowEmulatorService>();
         var source = Source() with
         {
             Nodes =
@@ -128,6 +133,20 @@ public sealed class FlowEmulatorServiceTests
             }
         ]
     };
+
+    private static ServiceProvider CreateProvider(
+        IFlowVirtualMachineFactory machines,
+        TimeProvider? timeProvider = null) => TestServices.CreateProvider(services =>
+        {
+            services.AddSingleton<IFlowCompilationTargetResolver, Resolver>();
+            services.AddSingleton<IFlowCompiler, Compiler>();
+            services.Replace(ServiceDescriptor.Singleton(machines));
+
+            if (timeProvider is not null)
+            {
+                services.Replace(ServiceDescriptor.Singleton(timeProvider));
+            }
+        });
 
     private sealed class Resolver : IFlowCompilationTargetResolver
     {

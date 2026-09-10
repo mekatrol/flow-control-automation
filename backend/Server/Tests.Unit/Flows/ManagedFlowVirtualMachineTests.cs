@@ -1,5 +1,5 @@
 using Server.Services;
-using Server.Services.Implementation;
+using Tests.Unit.Helpers;
 
 namespace Tests.Unit.Flows;
 
@@ -93,7 +93,11 @@ public sealed class ManagedFlowVirtualMachineTests
         Assert.That(result.Slots[4].Boolean, Is.True);
     }
 
-    private static IFlowVirtualMachine Machine(string fixture) =>
-        new ManagedFlowVirtualMachineFactory().Create(
-            File.ReadAllBytes(Path.Combine(FixtureRoot, fixture, "artifact.bin")));
+    private static IFlowVirtualMachine Machine(string fixture)
+    {
+        using var provider = TestServices.CreateProvider();
+        var factory = provider.GetRequiredService<IFlowVirtualMachineFactory>();
+
+        return factory.Create(File.ReadAllBytes(Path.Combine(FixtureRoot, fixture, "artifact.bin")));
+    }
 }
