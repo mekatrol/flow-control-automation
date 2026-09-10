@@ -177,6 +177,31 @@ segments matching exactly. New implementations belong under `Audit`,
 `Communication`, `Configuration`, `FlowExecution`, `Points`, or `Validation`;
 never add a generic `Implementation` folder.
 
+The project dependency direction is:
+
+```text
+Server.Common
+  ↑       ↑
+  │   Server.Compiler      Server.Data
+  │          ↑                 ↑
+  └────────── Server.Services ─┘
+                 ↑
+              Server.Api
+```
+
+`Server.Services` is subdivided by responsibility:
+
+```text
+Server.Services/
+  Audit/
+  Communication/{Connectivity,Controllers,Fcp,Network,Protocols,Serial}/
+  Configuration/{ControllerTemplates,Credentials,Execution,Flows}/
+  DependencyInjection/
+  FlowExecution/{Debugging,Deployment,Emulation,Runtime,Simulation,VirtualMachine}/
+  Points/{Definitions,Runtime,Sources,Validation}/
+  Validation/Startup/
+```
+
 - Keep concrete service implementations and domain registration extensions
   internal. `AddServerServices` is the only public composition entry point.
 - Put cross-project interfaces in `Server.Common.Contracts`, data-bearing
@@ -187,6 +212,10 @@ never add a generic `Implementation` folder.
 - Keep HTTP-only request and response shapes in `Server.Api.Contracts`.
 - `Server.Common` must have no project references. API and tests must not import
   service implementation namespaces or use friend-assembly access.
+- Common contracts must not expose Data entities, compiler implementations,
+  ASP.NET types, database contexts, sockets, streams, or concrete services.
+  Narrow the contract or add a dependency-light Common model instead of
+  introducing a reverse project reference.
 - Tests configure the system through `AddServerServices`, replace dependencies
   through public contracts, and resolve the subject through a Common interface.
 - Cross-domain implementation dependencies follow the reviewed graph enforced

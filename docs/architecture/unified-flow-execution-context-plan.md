@@ -1,35 +1,5 @@
 # Unified flow execution context implementation plan
 
-## Prerequisite
-
-Complete the
-[backend services restructure plan](backend-services-restructure-plan.md)
-before implementing this plan. That restructure establishes the functional
-service folders and moves cross-project interfaces, models, and types into
-`Server.Common.Contracts`, `Server.Common.Models`, and
-`Server.Common.Types`.
-
-The prerequisite plan starts with legacy-code and fixture cleanup as its first
-implementation phase. That cleanup must pass, including its updated unit tests,
-before any service folder or namespace restructure begins. All implementations
-created by this plan remain internal and are exposed only through
-`Server.Common.Contracts` interfaces registered by `AddServerServices`.
-Production code and unit tests must both resolve those interfaces through the
-same dependency-injection extension.
-
-All paths and ownership rules in this plan assume that restructure is complete:
-
-- execution implementations are internal under
-  `Server.Services/FlowExecution`;
-- public service interfaces are under `Server.Common.Contracts`;
-- public execution data is under `Server.Common.Models/FlowExecution`;
-- execution mode and lifecycle values are under `Server.Common.Types`; and
-- HTTP-only request and response DTOs remain under `Server.Api.Contracts`.
-
-Do not add the unified service or registry to the legacy
-`Server.Services/Implementation` or place its public contracts back into
-`Server.Services/Contracts`.
-
 ## Purpose
 
 Unify flow simulation and debugging behind one backend-owned execution-context
@@ -384,31 +354,7 @@ Optional simulated I/O, virtual-time, fault, and live-output sections are shown
 by capability. Editing is controlled by `LocksFlowEditing`, not local mode
 assumptions.
 
-## Delivery phases
-
-### Phase 1 — Contract and parity baseline ✅ Complete
-
-Completed 2026-09-10. The mode-neutral `IFlowExecutionContextService`
-contract now exposes the complete core and capability-gated operation set.
-Canonical context, request, capability, presentation, I/O, diagnostic, mode,
-and lifecycle contracts live in their prescribed Common domains. Simulator,
-server-debugger, and controller-debugger capability profiles explicitly keep
-the core run, pause, stop, restart, stepping, breakpoint, and run-to operations
-in parity while advertising only host-specific optional operations. Strict
-serialization tests cover both modes through one envelope and reject missing
-identity and legacy embedded-source members. The coordinated legacy removal
-inventory remains deferred to Phase 7 as required. Final verification passed
-the solution build and all 323 backend tests; backend and frontend formatting
-and frontend linting also passed.
-
-- Add shared context models to `Server.Common.Models/FlowExecution` and
-  lifecycle vocabulary to `Server.Common.Types`.
-- Add the service interface to `Server.Common.Contracts`.
-- Define server, emulator, and controller capability behavior.
-- Add serialization and parity tests.
-- Confirm the legacy session contracts, endpoints, snapshot projection, models,
-  fixtures, and tests listed in the prerequisite restructure plan are ready for
-  coordinated removal.
+## Remaining delivery phases
 
 ### Phase 2 — Unified registry
 
@@ -457,9 +403,40 @@ and frontend linting also passed.
 - Migrate browser E2E interception to unified endpoints.
 - Run backend, frontend, emulator/controller, and accessibility suites.
 - Remove old frontend APIs, composables, and simulator store.
-- Remove every old endpoint, registry, service contract, session model,
-  snapshot compatibility mapper, fixture, and implementation-coupled unit test
-  identified by the backend restructure plan.
+- Remove the old debug and simulator endpoints and registrations; their
+  `IFlowDebugService` and `IFlowSimulatorService` contracts; session request,
+  model, option, exception, registry, and service types; and mode-specific
+  mapping code.
+- Replace and remove debug-prefixed public snapshot, typed-value, breakpoint,
+  capability, inspection, and controller-debug envelope models that duplicate
+  the unified execution-context contract.
+- Remove `CompatibilitySnapshot`, `ToCompatibilitySnapshot`, and duplicate
+  debug snapshot mapping. Keep one canonical execution snapshot mapper and one
+  current execution-context schema fixture.
+- Remove old frontend execution APIs, composables, simulator state, E2E mocks,
+  and implementation-coupled tests. Reorganize debugger and simulator coverage
+  as shared execution-context service, registry, endpoint, and UI tests.
+- Review canonical point, point-source, controller-template, controller seed,
+  and normalized JSON/YAML artifacts. Remove obsolete aliases, missing-field
+  defaults, debug/session properties, and other tolerant parser or serializer
+  paths; retain negative fixtures that verify strict rejection.
+- Delete the orphaned `testdata/contracts/flows/legacy.json` rather than
+  modernizing it. Replace only useful graph coverage with a current-schema
+  fixture, and remove latent copy/output references.
+- Audit flow and configuration mappers, serializers, validators, stores, and
+  JSON options for missing-version or `controllerTemplateId` defaults,
+  alternate names or spellings, case-insensitive values, scalar coercion,
+  ignored unknown fields, dual properties, and read-old/write-new behavior.
+  Replace each compatibility branch with strict validation and a rejection
+  test for the obsolete input while preserving security rejection and bounds.
+- Keep a single reviewed pre-release `InitialCreate` database migration. If
+  this work creates intermediate migrations, squash them according to
+  `docs/development/database-migrations.md`; test fresh current databases, not
+  upgrades from unsupported pre-release versions.
+- Remove current-document promises of legacy flow, session, field, or endpoint
+  compatibility and update API references to the unified endpoints and current
+  schemas. Do not include generated output, copied fixtures, test results, or
+  local runtime data in the change set.
 - Add strict rejection tests for removed old request and document formats.
 - Update related reference documentation.
 
@@ -531,7 +508,7 @@ The work is complete when:
 - capabilities, not mode checks, control optional UI;
 - old session APIs and mode-specific frontend state are removed;
 - obsolete YAML/JSON fields, legacy fixtures, compatibility projections, and
-  acceptance tests are removed as specified by the restructure plan;
+  acceptance tests listed in Phase 7 are removed;
 - unit tests are reorganized and updated for current contracts, with explicit
   rejection coverage replacing legacy acceptance coverage;
 - backend, frontend, E2E, accessibility, cleanup, and concurrency tests pass.
