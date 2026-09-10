@@ -771,7 +771,19 @@ tests; backend and frontend formatting and frontend linting also passed.
 - Move shared interfaces/models to Common.
 - Preserve current endpoints and tests.
 
-### Phase 6 — Composition and cross-cutting code
+### Phase 6 — Composition and cross-cutting code ✅ Complete
+
+Completed 2026-09-10. The public `AddServerServices` composition root now
+lives under `Server.Services.DependencyInjection` and delegates to internal
+registration modules for options, audit, communication, configuration, flow
+execution, points, and startup validation. Audit and startup-validation
+implementations moved into matching `Audit` and `Validation/Startup` domains;
+the obsolete `Implementation` and `Extensions` folders were removed. Broad
+implementation-namespace global usings were replaced with explicit imports at
+the few cross-domain dependency sites. Service registrations retain their
+existing lifetimes and remain exposed through Common contracts. Final
+verification passed the solution build and all 309 backend tests; backend and
+frontend formatting and frontend linting also passed.
 
 - Split service registration by functional area.
 - Move startup validation and audit code.

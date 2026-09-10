@@ -2,7 +2,7 @@ using Server.Compiler;
 using Server.Compiler.Extensions;
 using Server.Data.Context;
 using Server.Services;
-using Server.Services.Extensions;
+using Server.Services.DependencyInjection;
 using System.Text.Json;
 
 namespace Tests.Unit.Flows;

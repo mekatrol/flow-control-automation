@@ -2,7 +2,7 @@ using Server.Data.Context;
 using Server.Data.Entities;
 using System.Text.Json;
 
-namespace Server.Services.Implementation;
+namespace Server.Services.Audit;
 
 internal sealed class AuditService(IServiceScopeFactory scopeFactory, TimeProvider timeProvider) : IAuditService
 {

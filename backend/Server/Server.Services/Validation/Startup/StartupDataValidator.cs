@@ -1,4 +1,4 @@
-namespace Server.Services.Implementation;
+namespace Server.Services.Validation.Startup;
 
 internal sealed class StartupDataValidator(
     IFlowService flows,

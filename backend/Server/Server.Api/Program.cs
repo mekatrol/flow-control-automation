@@ -3,7 +3,7 @@ using Server.Api.Extensions;
 using Server.Api.Security;
 using Server.Compiler.Extensions;
 using Server.Services;
-using Server.Services.Extensions;
+using Server.Services.DependencyInjection;
 
 namespace Server.Api;
 

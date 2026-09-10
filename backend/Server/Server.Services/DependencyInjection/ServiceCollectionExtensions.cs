@@ -1,0 +1,23 @@
+using Server.Data.Extensions;
+
+namespace Server.Services.DependencyInjection;
+
+public static class ServiceCollectionExtensions
+{
+    public static IServiceCollection AddServerServices(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        services.AddServerServiceOptions(configuration);
+        services.AddFlowControlData(configuration);
+        services.AddSingleton(TimeProvider.System);
+        services.AddAuditServices();
+        services.AddCommunicationServices();
+        services.AddConfigurationServices();
+        services.AddFlowExecutionServices();
+        services.AddPointServices();
+        services.AddStartupValidationServices();
+
+        return services;
+    }
+}
