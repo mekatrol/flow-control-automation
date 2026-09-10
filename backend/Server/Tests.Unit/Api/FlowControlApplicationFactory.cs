@@ -1,5 +1,4 @@
 using Server.Services;
-using Server.Services.Contracts;
 
 namespace Tests.Unit.Api;
 

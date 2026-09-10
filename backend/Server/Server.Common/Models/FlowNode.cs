@@ -1,4 +1,3 @@
-using Server.Common.Types;
 using System.Text.Json;
 
 namespace Server.Common.Models;

@@ -1,5 +1,3 @@
-using Server.Common.Models;
-
 namespace Server.Common.Contracts;
 
 /// <summary>Persists validated controller templates with revision safety and built-in-template protection.</summary>

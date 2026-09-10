@@ -1,5 +1,3 @@
-using Server.Common.Models;
-using Server.Common.Types;
 using Server.Compiler;
 using Server.Compiler.Extensions;
 using Server.Data.Context;
@@ -382,7 +380,7 @@ public sealed class FlowServiceTests
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddFlowCompilerServices();
-        services.AddFlowControlServer(configuration);
+        services.AddServerServices(configuration);
 
         var provider = services.BuildServiceProvider();
 

@@ -1,7 +1,4 @@
 using Server.Api.Contracts;
-using Server.Common.Models;
-using Server.Common.Types;
-using Server.Services.Contracts;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text;

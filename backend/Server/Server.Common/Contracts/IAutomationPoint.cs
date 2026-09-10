@@ -1,5 +1,3 @@
-using Server.Common.Types;
-
 namespace Server.Common.Contracts;
 
 public interface IAutomationPoint

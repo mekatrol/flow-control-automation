@@ -1,5 +1,3 @@
-using Server.Common.Models;
-
 namespace Server.Api.Contracts;
 
 /// <summary>Defines the immutable executable flow used to create an emulator instance.</summary>

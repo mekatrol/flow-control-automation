@@ -3,7 +3,6 @@ using Server.Api.Extensions;
 using Server.Api.Security;
 using Server.Compiler.Extensions;
 using Server.Services;
-using Server.Services.Contracts;
 using Server.Services.Extensions;
 
 namespace Server.Api;
@@ -29,7 +28,7 @@ public partial class Program
         }
 
         builder.Services.AddFlowCompilerServices();
-        builder.Services.AddFlowControlServer(builder.Configuration);
+        builder.Services.AddServerServices(builder.Configuration);
         builder.Services.ConfigureHttpJsonOptions(
             options => FlowControlJson.Configure(options.SerializerOptions));
         builder.Services.AddOptions<ApiAccessOptions>().Bind(builder.Configuration.GetSection(ApiAccessOptions.SectionName))

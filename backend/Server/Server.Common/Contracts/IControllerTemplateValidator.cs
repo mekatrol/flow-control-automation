@@ -1,5 +1,3 @@
-using Server.Common.Models;
-
 namespace Server.Common.Contracts;
 
 /// <summary>Validates controller-template syntax and compiles its capability sets for efficient compatibility checks.</summary>

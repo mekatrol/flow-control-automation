@@ -1,5 +1,3 @@
-using Server.Common.Types;
-
 namespace Server.Services.Implementation;
 
 public static class PointCompatibility

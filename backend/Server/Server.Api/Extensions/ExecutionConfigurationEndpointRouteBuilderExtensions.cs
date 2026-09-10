@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.Extensions.Options;
 using Server.Api.Contracts;
-using Server.Common.Models;
 using Server.Services;
 
 namespace Server.Api.Extensions;

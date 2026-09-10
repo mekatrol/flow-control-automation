@@ -1,7 +1,5 @@
 using Server.Common;
-using Server.Common.Models;
 using Server.Common.Services;
-using Server.Common.Types;
 using Server.Compiler.Contracts;
 using Server.Compiler.Services;
 using System.Buffers.Binary;
@@ -13,7 +11,7 @@ namespace Server.Services.Implementation;
 internal sealed class FlowDeploymentService(
     IFlowCompilationTargetResolver targetResolver,
     IFlowCompiler compiler,
-    IFlowRuntimeService runtime) : IFlowDeploymentService
+    IFlowRuntimeDeploymentService runtime) : IFlowDeploymentService
 {
     public async Task<RuntimeSnapshot> DeployAsync(
         Flow flow,

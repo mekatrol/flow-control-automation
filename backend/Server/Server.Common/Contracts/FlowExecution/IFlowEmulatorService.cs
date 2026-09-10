@@ -1,0 +1,14 @@
+namespace Server.Common.Contracts.FlowExecution;
+
+public interface IFlowEmulatorService
+{
+    Task<FlowEmulatorSnapshot> CreateAsync(ExecutableFlowSource source, CancellationToken cancellationToken);
+    FlowEmulatorSnapshot Get(string emulatorId);
+    FlowEmulatorSnapshot SetInputs(string emulatorId, IReadOnlyList<EmulatorInputChange> changes);
+    FlowEmulatorSnapshot ApplyInputsAndStep(string emulatorId, IReadOnlyList<EmulatorInputChange> changes);
+    FlowEmulatorSnapshot Advance(string emulatorId, ulong milliseconds, bool scan);
+    FlowEmulatorSnapshot InjectFault(string emulatorId, string? fault);
+    FlowEmulatorSnapshot Reset(string emulatorId, bool powerCycle);
+    FlowEmulatorSnapshot ResetInputs(string emulatorId);
+    void Delete(string emulatorId);
+}

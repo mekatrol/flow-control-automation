@@ -1,5 +1,3 @@
-using Server.Services.Contracts;
-
 namespace Server.Api.Contracts;
 
 /// <summary>Returns credential metadata without exposing stored secret values.</summary>

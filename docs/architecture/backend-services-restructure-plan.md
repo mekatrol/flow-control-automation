@@ -680,7 +680,20 @@ namespace, contract-location, or service restructure begins.
 
 No phase below may start until Phase 1 is complete and green.
 
-### Phase 2 — Common boundary preparation
+### Phase 2 — Common boundary preparation ✅ Complete
+
+Completed 2026-09-10. Public service interfaces now live in domain-matched
+`Server.Common.Contracts` namespaces, cross-project service models live under
+`Server.Common.Models`, and closed vocabularies live in
+`Server.Common.Types`. Shared JSON/YAML serialization moved to
+`Server.Common.Serialization`, with YAML diagnostics under
+`Server.Common.Errors`. The compiler-dependent runtime deployment operation
+was split from the public runtime contract into an internal Services boundary,
+so Common retains no project references. API now references Common directly,
+and production and registration tests use the sole public
+`AddServerServices` composition entry point. Final verification passed 310
+backend tests; backend formatting, frontend formatting, and frontend linting
+also passed.
 
 - Create functional subfolders under `Server.Common.Contracts`,
   `Server.Common.Models`, and `Server.Common.Types`.

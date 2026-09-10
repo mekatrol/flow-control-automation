@@ -23,7 +23,7 @@ public sealed class RegistrationTests
             })
             .Build();
         var services = new ServiceCollection();
-        services.AddFlowControlServer(configuration);
+        services.AddServerServices(configuration);
         services.AddScoped<IFlowControlDbContext, FakeContext>();
         using var provider = services.BuildServiceProvider();
         using var scope = provider.CreateScope();
@@ -58,7 +58,7 @@ public sealed class RegistrationTests
             })
             .Build();
         var services = new ServiceCollection();
-        services.AddFlowControlServer(configuration);
+        services.AddServerServices(configuration);
         using var provider = services.BuildServiceProvider();
 
         var server = provider.GetRequiredService<IOptions<ServerOptions>>().Value;

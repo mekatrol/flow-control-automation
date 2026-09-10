@@ -1,5 +1,3 @@
-using Server.Common.Models;
-
 namespace Server.Api.Contracts;
 
 /// <summary>Defines the immutable flow and execution host used to create a debug session.</summary>

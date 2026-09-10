@@ -1,5 +1,3 @@
-using Server.Services.Contracts;
-
 namespace Server.Api.Contracts;
 
 /// <summary>Defines input changes to stage for an emulator at deterministic scan boundaries.</summary>

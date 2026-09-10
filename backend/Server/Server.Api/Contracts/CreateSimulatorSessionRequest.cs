@@ -1,5 +1,3 @@
-using Server.Common.Models;
-
 namespace Server.Api.Contracts;
 
 /// <summary>Requests an isolated simulator session for an executable flow snapshot.</summary>

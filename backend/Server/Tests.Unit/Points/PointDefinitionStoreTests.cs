@@ -1,10 +1,6 @@
-using Server.Common.Contracts;
-using Server.Common.Models;
-using Server.Common.Types;
 using Server.Data.Context;
 using Server.Data.Entities;
 using Server.Services;
-using Server.Services.Contracts;
 using System.Text.Json;
 using Tests.Unit.Api;
 

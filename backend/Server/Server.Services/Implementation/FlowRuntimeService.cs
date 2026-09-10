@@ -1,6 +1,4 @@
-using Server.Common.Models;
 using Server.Common.Services;
-using Server.Common.Types;
 using Server.Compiler.Contracts;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -12,7 +10,7 @@ internal sealed class FlowRuntimeService(
     TimeProvider timeProvider,
     IFlowVirtualMachineFactory machines,
     IFlowPointAdapter points,
-    IVirtualPointRuntimeStore virtualPoints) : IFlowRuntimeService, IDisposable
+    IVirtualPointRuntimeStore virtualPoints) : IFlowRuntimeService, IFlowRuntimeDeploymentService, IDisposable
 {
     public FlowRuntimeService(
         TimeProvider timeProvider,

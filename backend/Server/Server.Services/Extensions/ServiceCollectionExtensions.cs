@@ -1,4 +1,3 @@
-using Server.Common.Contracts;
 using Server.Compiler.Services;
 using Server.Data.Extensions;
 using Server.Services.Implementation;
@@ -7,7 +6,7 @@ namespace Server.Services.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddFlowControlServer(
+    public static IServiceCollection AddServerServices(
         this IServiceCollection services,
         IConfiguration configuration)
     {
@@ -58,6 +57,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IFlowPointAdapter, ServerFlowPointAdapter>();
         services.AddSingleton<FlowRuntimeService>();
         services.AddSingleton<IFlowRuntimeService>(provider => provider.GetRequiredService<FlowRuntimeService>());
+        services.AddSingleton<IFlowRuntimeDeploymentService>(provider => provider.GetRequiredService<FlowRuntimeService>());
         services.AddSingleton(provider => new FlowEmulatorService(
             provider.GetRequiredService<IServiceScopeFactory>(),
             provider.GetRequiredService<IFlowCompiler>(),
