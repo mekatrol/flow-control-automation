@@ -3,7 +3,7 @@ using Server.Compiler;
 using Server.Compiler.Contracts;
 using Server.Compiler.Extensions;
 using Server.Compiler.Services;
-using Server.Services.Implementation;
+using Server.Services.Extensions;
 using System.Text.Json;
 
 namespace Tests.Unit.Flows;
@@ -123,13 +123,17 @@ public sealed class FlowCompilationTargetResolverTests
     {
         var services = new ServiceCollection();
 
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["ConnectionStrings:FlowControl"] = "Data Source=:memory:"
+            })
+            .Build();
         services.AddFlowCompilerServices();
+        services.AddServerServices(configuration);
 
         services.AddSingleton<IControllerTemplateStore>(
             new StubTemplateStore(template));
-
-        services.AddSingleton<IControllerTemplateValidator,
-            ControllerTemplateValidator>();
 
         services.AddSingleton<IPointDefinitionStore>(points);
 

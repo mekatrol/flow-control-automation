@@ -704,7 +704,19 @@ also passed.
 - Add the public `AddServerServices` composition contract and migrate tests
   to resolve Common interfaces through it.
 
-### Phase 3 — Points and configuration
+### Phase 3 — Points and configuration ✅ Complete
+
+Completed 2026-09-10. Point definitions, sources, runtime stores, reads, and
+validation now live under domain-matched `Server.Services.Points` folders and
+namespaces. Controller-template persistence and validation, credentials,
+execution configuration, and flow persistence now live under
+`Server.Services.Configuration`. Every concrete type moved in this phase is
+internal and remains registered behind its `Server.Common.Contracts`
+interface. Focused tests mirror the production domains and resolve these
+contracts through the public `AddServerServices` composition entry point;
+direct construction and direct `PointCompatibility` access were removed.
+Final verification passed the solution build, 309 backend tests, backend and
+frontend formatting, and frontend linting.
 
 - Move point implementations into Definitions, Sources, Runtime, and
   Validation.
