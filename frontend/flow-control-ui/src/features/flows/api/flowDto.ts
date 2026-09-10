@@ -47,7 +47,7 @@ export interface FlowDto {
   updatedAt: string;
   nodes: FlowNodeDto[];
   connections: FlowConnectionDto[];
-  revision?: number;
+  revision: number;
   deployedRevision?: number;
 }
 
@@ -236,9 +236,8 @@ export const parseFlowDto = (value: unknown): FlowDto => {
   const updatedAt = asString(source.updatedAt, 'flow.updatedAt');
   if (Number.isNaN(Date.parse(updatedAt))) fail('flow.updatedAt', 'expected an ISO date-time');
 
-  const revision =
-    source.revision === undefined ? undefined : asFiniteNumber(source.revision, 'flow.revision');
-  if (revision !== undefined && (!Number.isInteger(revision) || revision < 1))
+  const revision = asFiniteNumber(source.revision, 'flow.revision');
+  if (!Number.isInteger(revision) || revision < 1)
     fail('flow.revision', 'expected a positive integer');
   const deployedRevision =
     source.deployedRevision === undefined
@@ -258,15 +257,13 @@ export const parseFlowDto = (value: unknown): FlowDto => {
         : fail('flow.description', 'expected a string'),
     status: asEnum(source.status, statuses, 'flow.status'),
     disabled:
-      source.disabled === undefined
-        ? false
-        : typeof source.disabled === 'boolean'
-          ? source.disabled
-          : fail('flow.disabled', 'expected a boolean'),
+      typeof source.disabled === 'boolean'
+        ? source.disabled
+        : fail('flow.disabled', 'expected a boolean'),
     updatedAt,
     nodes,
     connections,
-    ...(revision !== undefined ? { revision } : {}),
+    revision,
     ...(deployedRevision !== undefined ? { deployedRevision } : {})
   };
 };

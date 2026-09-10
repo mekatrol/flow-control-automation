@@ -9,13 +9,12 @@ describe('pointSourceSchema', () => {
     const source =
       typeof sources === 'object' && !Array.isArray(sources) ? sources.items : undefined;
 
-    const connection = typeof source === 'object' && !Array.isArray(source)
-      ? source.properties?.connection
-      : undefined;
+    const connection =
+      typeof source === 'object' && !Array.isArray(source)
+        ? source.properties?.connection
+        : undefined;
 
-    return typeof connection === 'object' && !Array.isArray(connection)
-      ? connection
-      : undefined;
+    return typeof connection === 'object' && !Array.isArray(connection) ? connection : undefined;
   };
 
   it('accepts HTTP and HTTPS base URLs', () => {

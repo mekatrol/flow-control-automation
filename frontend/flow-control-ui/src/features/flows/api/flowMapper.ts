@@ -8,7 +8,6 @@ import type { FlowDto } from './flowDto';
 // dirty-state comparison and explicit discard.
 const copyFlow = (flow: FlowDefinition | FlowDto): FlowDto => ({
   ...flow,
-  ...(flow.revision !== undefined ? { revision: flow.revision } : {}),
   nodes: flow.nodes.map((node) => {
     const connectors = node.connectors.map((connector) => ({ ...connector }));
     if (

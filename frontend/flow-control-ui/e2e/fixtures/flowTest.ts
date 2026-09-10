@@ -66,6 +66,7 @@ export const test = base.extend<{ mockFlowsApi: void }>({
               description: '',
               status: 'draft',
               disabled: false,
+              revision: 1,
               updatedAt: '2026-07-13T12:00:00+10:00',
               nodes: [],
               connections: []
@@ -139,6 +140,7 @@ export const useMutableFlowsApi = async (page: Page): Promise<void> => {
         description: '',
         status: 'draft' as const,
         disabled: false,
+        revision: 1,
         updatedAt: '2026-07-13T12:00:00+10:00',
         nodes: [],
         connections: []

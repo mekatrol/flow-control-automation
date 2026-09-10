@@ -90,4 +90,24 @@ public sealed class FlowCompilerBoundaryTests
             Assert.That(source.Connections, Has.Count.EqualTo(3));
         });
     }
+
+    [Test]
+    public void CompilerSourceRejectsAMissingSchemaVersion()
+    {
+        var json = File.ReadAllText(Path.Combine(
+            FixtureRoot,
+            "valid-two-button-and",
+            "source-flow.json"));
+        using var document = JsonDocument.Parse(json);
+        var withoutSchemaVersion = document.RootElement
+            .EnumerateObject()
+            .Where(property => property.Name != "schemaVersion")
+            .ToDictionary(property => property.Name, property => property.Value.Clone());
+
+        Assert.That(
+            () => JsonSerializer.Deserialize<ExecutableFlowSource>(
+                JsonSerializer.Serialize(withoutSchemaVersion, FlowControlJson.Options),
+                FlowControlJson.Options),
+            Throws.TypeOf<JsonException>());
+    }
 }

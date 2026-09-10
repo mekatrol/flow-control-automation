@@ -104,7 +104,7 @@ export interface FlowDefinition {
   nodes: FlowNode[];
   /** Directed edges in stable persisted order; connection IDs must be unique. */
   connections: FlowConnection[];
-  revision?: number;
+  revision: number;
   /** Revision captured by the last successful deployment, when one exists. */
   deployedRevision?: number;
 }

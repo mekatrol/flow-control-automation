@@ -697,32 +697,32 @@ public sealed class FlowDebugService(
         LocalFlowDebugSession local,
         FlowVmScanResult scan,
         string lifecycleState = "paused") => new()
-    {
-        DebugSessionId = local.SessionId,
-        FlowId = local.Source.Id,
-        Revision = local.Source.Revision,
-        LifecycleState = lifecycleState,
-        TickNumber = scan.ScanNumber,
-        SampledAtMs = scan.SampledAtMilliseconds,
-        CompletedAtMs = scan.SampledAtMilliseconds,
-        ExecutionDurationUs = 0,
-        LastReason = "ok",
-        LastReasonPath = string.Empty,
-        Nodes = [.. local.Compilation.NodeIndices
+        {
+            DebugSessionId = local.SessionId,
+            FlowId = local.Source.Id,
+            Revision = local.Source.Revision,
+            LifecycleState = lifecycleState,
+            TickNumber = scan.ScanNumber,
+            SampledAtMs = scan.SampledAtMilliseconds,
+            CompletedAtMs = scan.SampledAtMilliseconds,
+            ExecutionDurationUs = 0,
+            LastReason = "ok",
+            LastReasonPath = string.Empty,
+            Nodes = [.. local.Compilation.NodeIndices
             .OrderBy(pair => pair.Value)
             .Select(pair => new DebugNodeSnapshot(
                 pair.Key,
                 "evaluated",
                 DataQualityType.Good,
                 DebugValue(scan.Slots[pair.Value])))],
-        ProposedOutputs = [.. scan.Commands.Select(command => new DebugProposedOutput(
+            ProposedOutputs = [.. scan.Commands.Select(command => new DebugProposedOutput(
             command.PointId,
             "proposed",
             command.TypedValue.Quality,
             command.Value,
             command.TypedValue.DataType == DataType.Number ? command.TypedValue.Number : null,
             command.TypedValue))]
-    };
+        };
 
     private static DebugTypedValue DebugValue(FlowVmValue value) => value.DataType == DataType.Number
         ? new DebugTypedValue(DataType.Number, Number: value.Number, Quality: value.Quality)

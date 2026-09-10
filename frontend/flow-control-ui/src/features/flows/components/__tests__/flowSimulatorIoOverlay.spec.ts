@@ -20,6 +20,7 @@ describe('flow simulator I/O overlay', () => {
       description: '',
       status: 'draft',
       disabled: false,
+      revision: 1,
       updatedAt: '2026-01-01T00:00:00Z',
       nodes: [input, output],
       connections: [
@@ -117,6 +118,7 @@ describe('flow simulator I/O overlay', () => {
       description: '',
       status: 'draft',
       disabled: false,
+      revision: 1,
       updatedAt: '2026-01-01T00:00:00Z',
       nodes: [input, sink],
       connections: [

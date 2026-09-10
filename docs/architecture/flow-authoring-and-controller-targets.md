@@ -52,10 +52,14 @@ id, name, description
 status                    draft | deployed
 disabled
 updatedAt
-controllerTemplateId      defaults to "default" when absent
 nodes[]
 connections[]
 ```
+
+Controller targeting belongs to the resolved executable source created for a
+deployment or interactive execution request. Its `schemaVersion`,
+`controllerTemplateId`, and `controllerTemplateRevision` fields are mandatory;
+missing values are rejected rather than inferred.
 
 Each node has a stable ID, canonical kind, label, finite canvas coordinates and
 z-order, connectors, and scalar configuration. Each connector has a stable ID,
@@ -75,7 +79,7 @@ values and the C# validator, TypeScript enum, node registry, icons, fixtures,
 and controller-template function vocabulary must remain aligned.
 
 Unknown or invalid graph content must fail at API boundaries with a useful data
-path. Previously released kinds remain loadable. Migrations are explicit and
+path. There are no released legacy kinds. Migrations are explicit and
 fixture-tested; server startup must not rewrite saved flows.
 
 ## Point nodes

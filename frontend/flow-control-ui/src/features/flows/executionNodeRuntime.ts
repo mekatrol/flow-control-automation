@@ -70,9 +70,7 @@ export const createExecutionNodeRuntime = ({
             proposedValues.get(pointId)
         ) ?? displayValue(ioValue);
       const nodeState: NodeRuntimeState =
-        node?.state === 'fault' || snapshot?.lastReasonPath.includes(flowNode.id)
-          ? 'error'
-          : state;
+        node?.state === 'fault' || snapshot?.lastReasonPath.includes(flowNode.id) ? 'error' : state;
 
       return [
         flowNode.id,

@@ -1,7 +1,10 @@
+using System.Text.Json.Serialization;
+
 namespace Server.Common.Models;
 
 public sealed record ExecutableFlowSource
 {
+    [JsonRequired]
     public int SchemaVersion { get; init; } = 1;
 
     public required string Id { get; init; }

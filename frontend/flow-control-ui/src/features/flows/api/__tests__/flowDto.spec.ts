@@ -36,6 +36,15 @@ describe('flow DTO validation', () => {
     expect(() => parseFlowDto(payload)).toThrow(/unsupported value “invert”/);
   });
 
+  it.each(['disabled', 'revision'])(
+    'rejects a missing required %s field instead of supplying a legacy default',
+    (field) => {
+      const payload = validFlow() as Record<string, unknown>;
+      delete payload[field];
+      expect(() => parseFlowDto(payload)).toThrow(new RegExp(`flow\\.${field}`));
+    }
+  );
+
   /**
    * Purpose: Protects the behavioral contract that rejects a connection whose node does not exist.
    * Description: Exercises rejects a connection whose node does not exist from its arranged starting state and

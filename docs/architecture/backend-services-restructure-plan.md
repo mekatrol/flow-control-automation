@@ -614,7 +614,30 @@ as virtual time, fault injection, and live physical output.
 
 ## Migration phases
 
-### Phase 0 — Read-only baseline gate
+### Mandatory phase completion gate
+
+After completing the work in every phase, and before marking that phase
+complete, run all of the following successfully:
+
+```powershell
+cd backend/Server
+dotnet format
+
+cd ../../frontend/flow-control-ui
+npm run format
+npm run lint
+```
+
+Review and retain any formatting or lint-fix changes produced by these commands,
+then rerun the phase's required test suites. A phase is not complete while any
+formatting, lint, or test command is failing.
+
+### Phase 0 — Read-only baseline gate ✅ Complete
+
+Completed 2026-09-10. The test, dependency, public-symbol/consumer, and
+serialization evidence is recorded in the
+[Phase 0 baseline](backend-services-restructure-phase-0-baseline.md). No
+production file or namespace moves were made in this phase.
 
 - Run the complete backend test suite and capture the baseline.
 - Generate a namespace/project dependency report.
@@ -622,7 +645,23 @@ as virtual time, fault injection, and live physical output.
 - Confirm no pending namespace-sensitive serialization behavior.
 - Make no production moves or namespace changes in this gate.
 
-### Phase 1 — Legacy cleanup
+### Phase 1 — Legacy cleanup ✅ Complete
+
+Completed 2026-09-10. The orphaned legacy flow and debug-snapshot fixtures were
+deleted; executable flow sources now require an explicit schema version during
+JSON deserialization; frontend flow DTOs reject missing `disabled` and
+`revision` fields; mutable controller development data was reduced to an empty
+current-schema seed; and current documentation no longer promises an inferred
+controller target or released legacy node kinds. Canonical YAML/normalized-JSON
+pairs were reviewed by both backend and frontend fixture suites with no
+regeneration diff required. Final verification passed 310 backend tests and
+245 frontend tests; frontend type-checking also passed. No released
+compatibility obligation was found.
+
+The debug/simulator API, compatibility snapshot projection, and debug-prefixed
+model removals are expressly conditional on the Phase 8 unified-context
+cutover, so they remain tracked in Phase 8 rather than being treated as Phase 1
+compatibility exceptions.
 
 This is the first implementation phase and must complete before any folder,
 namespace, contract-location, or service restructure begins.
@@ -736,6 +775,8 @@ when file moves and behavioral changes are separate commits.
 
 For every phase:
 
+- the mandatory phase completion gate (`dotnet format`, `npm run format`, and
+  `npm run lint`) succeeds;
 - `dotnet build` succeeds with warnings treated according to repository policy;
 - all `Tests.Unit` tests pass;
 - API and browser integration tests covering the moved slice pass;

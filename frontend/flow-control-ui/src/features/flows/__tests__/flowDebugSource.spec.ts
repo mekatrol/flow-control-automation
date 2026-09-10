@@ -25,6 +25,7 @@ const debugFlow = (): FlowDefinition => {
     description: '',
     status: 'draft',
     disabled: false,
+    revision: 1,
     updatedAt: '2026-01-01T00:00:00Z',
     nodes: [input, inverter, output],
     connections: [
