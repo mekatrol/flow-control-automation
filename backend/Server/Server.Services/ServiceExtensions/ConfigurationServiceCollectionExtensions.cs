@@ -3,7 +3,7 @@ using Server.Services.Configuration.Credentials;
 using Server.Services.Configuration.Execution;
 using Server.Services.Configuration.Flows;
 
-namespace Server.Services.DependencyInjection;
+namespace Server.Services.ServiceExtensions;
 
 internal static class ConfigurationServiceCollectionExtensions
 {

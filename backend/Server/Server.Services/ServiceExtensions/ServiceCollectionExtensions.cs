@@ -1,6 +1,6 @@
 using Server.Data.Extensions;
 
-namespace Server.Services.DependencyInjection;
+namespace Server.Services.ServiceExtensions;
 
 public static class ServiceCollectionExtensions
 {

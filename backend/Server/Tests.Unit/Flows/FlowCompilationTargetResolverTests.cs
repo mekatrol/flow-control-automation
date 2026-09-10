@@ -3,7 +3,7 @@ using Server.Compiler;
 using Server.Compiler.Contracts;
 using Server.Compiler.Extensions;
 using Server.Compiler.Services;
-using Server.Services.DependencyInjection;
+using Server.Services.ServiceExtensions;
 using System.Text.Json;
 
 namespace Tests.Unit.Flows;

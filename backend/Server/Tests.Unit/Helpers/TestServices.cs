@@ -1,4 +1,4 @@
-using Server.Services.DependencyInjection;
+using Server.Services.ServiceExtensions;
 
 namespace Tests.Unit.Helpers;
 

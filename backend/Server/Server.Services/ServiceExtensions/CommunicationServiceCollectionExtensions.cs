@@ -5,7 +5,7 @@ using Server.Services.Communication.Network;
 using Server.Services.Communication.Protocols.Http;
 using Server.Services.Communication.Protocols.Mqtt;
 
-namespace Server.Services.DependencyInjection;
+namespace Server.Services.ServiceExtensions;
 
 internal static class CommunicationServiceCollectionExtensions
 {

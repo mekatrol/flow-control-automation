@@ -3,7 +3,7 @@ using Server.Services.Points.Runtime;
 using Server.Services.Points.Sources;
 using Server.Services.Points.Validation;
 
-namespace Server.Services.DependencyInjection;
+namespace Server.Services.ServiceExtensions;
 
 internal static class PointServiceCollectionExtensions
 {

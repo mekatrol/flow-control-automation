@@ -1,7 +1,7 @@
 using Server.Services;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
-using ServerServiceCollectionExtensions = Server.Services.DependencyInjection.ServiceCollectionExtensions;
+using ServerServiceCollectionExtensions = Server.Services.ServiceExtensions.ServiceCollectionExtensions;
 
 namespace Tests.Unit.Architecture;
 

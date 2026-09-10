@@ -6,7 +6,7 @@ using Server.Services.FlowExecution.Runtime;
 using Server.Services.FlowExecution.Simulation;
 using Server.Services.FlowExecution.VirtualMachine;
 
-namespace Server.Services.DependencyInjection;
+namespace Server.Services.ServiceExtensions;
 
 internal static class FlowExecutionServiceCollectionExtensions
 {

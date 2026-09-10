@@ -1,6 +1,6 @@
 using Server.Services.Audit;
 
-namespace Server.Services.DependencyInjection;
+namespace Server.Services.ServiceExtensions;
 
 internal static class AuditServiceCollectionExtensions
 {

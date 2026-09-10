@@ -1,7 +1,7 @@
 using Server.Data.Context;
 using Server.Data.Entities;
 using Server.Services;
-using Server.Services.DependencyInjection;
+using Server.Services.ServiceExtensions;
 
 namespace Tests.Unit.Api;
 

@@ -1,6 +1,6 @@
 using Server.Services.Validation.Startup;
 
-namespace Server.Services.DependencyInjection;
+namespace Server.Services.ServiceExtensions;
 
 internal static class StartupValidationServiceCollectionExtensions
 {
