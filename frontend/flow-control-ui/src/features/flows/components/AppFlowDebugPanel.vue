@@ -5,7 +5,7 @@
       <span class="mode">{{
         host === 'controller' ? 'Shadow outputs by default' : 'Server-hosted execution'
       }}</span>
-      <AppButton text="Load" :icon="loadIcon" :disabled="!canLoad" @click="emit('load')" />
+      <AppButton text="Create context" :icon="loadIcon" :disabled="!canLoad" @click="emit('load')" />
       <AppButton
         text="Step tick"
         :icon="stepIcon"

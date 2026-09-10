@@ -179,16 +179,8 @@
         @[EVENTS.COPY_TUTORIAL]="copyTutorialExample"
       />
 
-      <AppFlowSimulatorPanel
-        v-if="isSimulatorWorkspace"
-        :lifecycle="simulator.lifecycle"
-        :error="simulator.error"
-        @[EVENTS.START_SIMULATION]="startSimulation"
-        @[EVENTS.STOP_SIMULATION]="simulator.stop"
-      />
-
       <AppFlowDebugPanel
-        v-if="isDebuggerWorkspace"
+        v-if="isSimulatorWorkspace || isDebuggerWorkspace"
         :lifecycle="debugLifecycle"
         :snapshot="debugSnapshot"
         :stale="debugSnapshotStale"
@@ -283,11 +275,9 @@ import AppFlowDesignerCanvas from '@/features/flows/components/AppFlowDesignerCa
 import AppFlowCompileResults from '@/features/flows/components/AppFlowCompileResults.vue';
 import AppFlowDebugPanel from '@/features/flows/components/AppFlowDebugPanel.vue';
 import AppFlowEmulatorPanel from '@/features/flows/components/AppFlowEmulatorPanel.vue';
-import AppFlowSimulatorPanel from '@/features/flows/components/AppFlowSimulatorPanel.vue';
 import AppFlowTutorialPanel from '@/features/flows/components/AppFlowTutorialPanel.vue';
 import AppFlowDesignerHeader from '@/features/flows/components/designer/AppFlowDesignerHeader.vue';
 import { getFlowDebugTargets } from '@/features/flows/debugTargets';
-import type { ExecutableFlowSource } from '@/features/flows/api/flowDebugApi';
 import {
   createExecutableFlowSource,
   FlowDebugSourceError,
@@ -413,75 +403,86 @@ watch(flowRevision, (revision) => {
 const selectedDebugTarget = computed(() =>
   debugTargets.value.find((target) => target.id === debugTargetId.value)
 );
-const executableSource = (): ExecutableFlowSource | undefined => {
-  const current = flow.value;
-  const target = selectedDebugTarget.value;
-  if (!current || !target) return;
-  return createExecutableFlowSource(current, target);
-};
-const simulatorSource = (): ExecutableFlowSource | undefined => {
-  const current = flow.value;
-  const target = debugTargets.value.find(({ id }) => id === 'server');
-  if (!current || !target) return;
-  return createExecutableFlowSource(current, target);
-};
-
 const execution = useRuntimeContext({
   flowId,
-  mode: workspaceMode,
   flow,
-  revision: flowRevision,
-  target: selectedDebugTarget,
-  source: executableSource,
-  simulatorSource,
+  revision: computed(() => flow.value?.revision ?? 1),
   deployedRuntime: runtime
 });
-const simulator = execution.simulator.simulator;
-const debug = execution.debug;
-const isSimulatorWorkspace = execution.simulatorMode;
-const isDebuggerWorkspace = execution.debuggerMode;
+const isSimulatorWorkspace = computed(() => workspaceMode.value === WorkspaceMode.Simulator);
+const isDebuggerWorkspace = computed(() => workspaceMode.value === WorkspaceMode.Debugger);
 const canvasRuntime = execution.canvasRuntime;
 const simulatorIo = execution.io;
-const showCanvasDefaultValues = execution.showDefaultValues;
-const isDebugging = execution.executing;
-const debugConnectorValues = execution.connectorValues;
-const debugLifecycle = debug.lifecycle;
-const debugSnapshot = debug.snapshot;
-const debugSnapshotStale = debug.stale;
-const debugError = debug.error;
-const debugHost = debug.host;
-const debugCapabilities = debug.capabilities;
-const debugInspection = debug.inspection;
-const debugExecutionOrder = debug.executionOrder;
-const debugBreakpoints = debug.breakpoints;
-const debugAffectedOutputPoints = debug.affectedOutputPoints;
-const debugLiveOutputEnabled = debug.liveOutputEnabled;
-const debugLiveOutputPriority = debug.liveOutputPriority;
-const debugLiveOutputHoldMilliseconds = debug.liveOutputHoldMilliseconds;
-const emulatorSnapshot = debug.emulatorSnapshot;
-const showEmulatorPanel = computed(() => isDebuggerWorkspace.value && debug.showEmulator.value);
-const startSimulation = execution.simulator.start;
-const applySimulatorInputs = execution.simulator.applyInputs;
-const loadDebugSession = debug.load;
-const stepDebugSession = debug.stepTick;
-const stepNodeDebugSession = debug.stepNode;
-const stepInstructionDebugSession = debug.stepInstruction;
-const runDebugSession = debug.run;
-const runToBreakpoint = debug.runToBreakpoint;
-const pauseDebugSession = debug.pause;
-const stopDebugSession = debug.stop;
-const restartDebugSession = debug.restart;
-const enableLiveOutput = debug.enableLiveOutput;
-const applyEmulatorInputsAndStep = debug.applyEmulatorInputs;
-const advanceEmulator = debug.advanceEmulator;
-const setEmulatorFault = debug.setEmulatorFault;
-const resetEmulator = debug.resetEmulator;
-const resetEmulatorInputs = debug.resetEmulatorInputs;
-const setBreakpoint = debug.setBreakpoint;
-const runToNode = debug.runToNode;
+const showCanvasDefaultValues = computed(() => isSimulatorWorkspace.value || isDebuggerWorkspace.value);
+const isDebugging = computed(() => ['ready', 'running', 'paused', 'stepping'].includes(execution.lifecycle.value));
+const debugConnectorValues = computed(() => undefined);
+const debugLifecycle = computed(() =>
+  execution.lifecycle.value === 'faulted'
+    ? 'fault'
+    : execution.lifecycle.value === 'preparing'
+      ? 'loading'
+      : execution.lifecycle.value === 'stale'
+        ? 'stopped'
+        : execution.lifecycle.value
+);
+const debugSnapshot = execution.runtime;
+const debugSnapshotStale = computed(() => execution.lifecycle.value === 'stale');
+const debugError = execution.error;
+const debugHost = computed<'server' | 'emulator' | 'controller'>(() => {
+  const kind = selectedDebugTarget.value?.kind;
+  return kind === 'emulator' || kind === 'controller' ? kind : 'server';
+});
+const debugCapabilities = computed(() => execution.capabilities.value ? ({
+  stepTick: execution.capabilities.value.canStepTick,
+  stepNode: execution.capabilities.value.canStepNode,
+  stepInstruction: execution.capabilities.value.canStepInstruction,
+  continue: execution.capabilities.value.canRun,
+  pause: execution.capabilities.value.canPause,
+  runTo: execution.capabilities.value.canRunTo,
+  maximumBreakpoints: 32,
+  maximumInspectableSlots: 256
+}) : undefined);
+const debugInspection = execution.inspection;
+const debugExecutionOrder = computed<string[]>(() => []);
+const debugBreakpoints = execution.breakpoints;
+const debugAffectedOutputPoints = computed(() => execution.context.value?.io?.liveOutputPointIds ?? []);
+const debugLiveOutputEnabled = computed(() => execution.context.value?.io?.liveOutputEnabled ?? false);
+const debugLiveOutputPriority = computed(() => undefined);
+const debugLiveOutputHoldMilliseconds = computed(() => undefined);
+const emulatorSnapshot = computed(() => undefined);
+const showEmulatorPanel = computed(() => false);
+const createExecution = async (): Promise<void> => {
+  await saveFlow();
+  if (saveError.value) return;
+  await execution.create({
+    mode: isSimulatorWorkspace.value ? 'simulator' : 'debugger',
+    expectedRevision: flow.value?.revision ?? 1,
+    targetId: isSimulatorWorkspace.value ? 'server' : debugTargetId.value,
+    replaceExisting: true,
+    breakpoints: debugBreakpoints.value
+  });
+};
+const loadDebugSession = createExecution;
+const applySimulatorInputs = execution.applyInputsAndStep;
+const stepDebugSession = execution.stepTick;
+const stepNodeDebugSession = execution.stepNode;
+const stepInstructionDebugSession = execution.stepInstruction;
+const runDebugSession = execution.run;
+const runToBreakpoint = async (): Promise<void> => { const value = debugBreakpoints.value[0]; if (value) await execution.runTo(value); };
+const pauseDebugSession = execution.pause;
+const stopDebugSession = execution.stop;
+const restartDebugSession = execution.restart;
+const enableLiveOutput = execution.enableLiveOutput;
+const applyEmulatorInputsAndStep = execution.applyInputsAndStep;
+const advanceEmulator = execution.advance;
+const setEmulatorFault = execution.injectFault;
+const resetEmulator = execution.resetIo;
+const resetEmulatorInputs = execution.resetInputs;
+const setBreakpoint = execution.setBreakpoint;
+const runToNode = execution.runToNode;
 
 watch(debugTargetId, () => {
-  if (debug.active.value) void debug.stop();
+  if (execution.contextId.value) void execution.stop();
 });
 
 const compileFlow = async (): Promise<void> => {

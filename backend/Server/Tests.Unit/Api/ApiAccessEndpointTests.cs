@@ -52,9 +52,9 @@ internal sealed class ApiAccessEndpointTests
         await using var factory = new FlowControlApplicationFactory(environment: "Production");
         using var client = factory.CreateClient();
 
-        Assert.That((await client.GetAsync("/api/execution-contexts")).StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+        Assert.That((await client.GetAsync("/api/execution-configurations")).StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
         client.DefaultRequestHeaders.Add("X-Api-Key", "test-api-key");
-        Assert.That((await client.GetAsync("/api/execution-contexts")).StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That((await client.GetAsync("/api/execution-configurations")).StatusCode, Is.EqualTo(HttpStatusCode.OK));
     }
 
     [Test]
@@ -64,7 +64,7 @@ internal sealed class ApiAccessEndpointTests
         using var client = factory.CreateClient();
         client.DefaultRequestHeaders.Add("X-Api-Key", "test-api-key");
 
-        var response = await client.PostAsJsonAsync("/api/execution-contexts", new ExecutionContextDefinition { Id = "audited", Name = "Audited" });
+        var response = await client.PostAsJsonAsync("/api/execution-configurations", new ExecutionContextDefinition { Id = "audited", Name = "Audited" });
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
         var json = await client.GetStringAsync("/api/audit-records");
         using var document = JsonDocument.Parse(json);
@@ -73,7 +73,7 @@ internal sealed class ApiAccessEndpointTests
         {
             Assert.That(record.GetProperty("actor").GetString(), Is.EqualTo("test"));
             Assert.That(record.GetProperty("method").GetString(), Is.EqualTo("POST"));
-            Assert.That(record.GetProperty("path").GetString(), Is.EqualTo("/api/execution-contexts"));
+            Assert.That(record.GetProperty("path").GetString(), Is.EqualTo("/api/execution-configurations"));
             Assert.That(record.GetProperty("statusCode").GetInt32(), Is.EqualTo(201));
         });
     }

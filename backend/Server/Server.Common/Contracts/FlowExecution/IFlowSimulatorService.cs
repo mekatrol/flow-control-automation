@@ -13,6 +13,8 @@ public interface IFlowSimulatorService
     Task<FlowSimulatorSession> ResetInputsAsync(string flowId, string sessionId, CancellationToken cancellationToken);
     Task<FlowSimulatorSession> StepNodeAsync(string flowId, string sessionId, CancellationToken cancellationToken);
     Task<FlowSimulatorSession> StepInstructionAsync(string flowId, string sessionId, CancellationToken cancellationToken);
+    Task<FlowSimulatorSession> RunToAsync(string flowId, string sessionId, FlowDebugBreakpoint breakpoint, CancellationToken cancellationToken);
+    Task<FlowSimulatorSession> ReplaceBreakpointsAsync(string flowId, string sessionId, IReadOnlyList<FlowDebugBreakpoint> breakpoints, CancellationToken cancellationToken);
     Task<FlowSimulatorSession> RestartAsync(string flowId, string sessionId, CancellationToken cancellationToken);
     Task<FlowSimulatorSession> RunAsync(string flowId, string sessionId, uint intervalMilliseconds, CancellationToken cancellationToken);
     Task<FlowSimulatorSession> PauseAsync(string flowId, string sessionId, CancellationToken cancellationToken);

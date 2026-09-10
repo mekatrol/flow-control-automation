@@ -2,6 +2,7 @@ using Server.Compiler.Services;
 using Server.Services.FlowExecution.Debugging;
 using Server.Services.FlowExecution.Deployment;
 using Server.Services.FlowExecution.Emulation;
+using Server.Services.FlowExecution.ExecutionContext;
 using Server.Services.FlowExecution.Runtime;
 using Server.Services.FlowExecution.Simulation;
 using Server.Services.FlowExecution.VirtualMachine;
@@ -33,6 +34,8 @@ internal static class FlowExecutionServiceCollectionExtensions
             provider.GetRequiredService<TimeProvider>(),
             TimeSpan.FromSeconds(provider.GetRequiredService<IOptions<FlowSimulatorOptions>>().Value.SessionLeaseSeconds)));
         services.AddScoped<IFlowSimulatorService, FlowSimulatorService>();
+        services.AddSingleton<FlowExecutionContextRegistry>();
+        services.AddScoped<IFlowExecutionContextService, FlowExecutionContextService>();
 
         return services;
     }

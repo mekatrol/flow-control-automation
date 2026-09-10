@@ -63,7 +63,7 @@ const parseContext = (value: unknown): ExecutionContextSummary => {
 
 export const executionContextApi = {
   async list(signal?: AbortSignal): Promise<ExecutionContextSummary[]> {
-    const response = await waitForFetch('/api/execution-contexts', { signal });
+    const response = await waitForFetch('/api/execution-configurations', { signal });
     await requireOk(response, 'Unable to load execution contexts');
     const body: unknown = await response.json();
     if (!Array.isArray(body)) throw new Error('Execution context catalogue is malformed.');

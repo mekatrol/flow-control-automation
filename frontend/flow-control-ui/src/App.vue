@@ -26,7 +26,7 @@ const apiKey = ref('');
 const authenticationError = ref('');
 const authenticate = async (): Promise<void> => {
   storeApiKey(apiKey.value);
-  const response = await fetch('/api/execution-contexts', {
+  const response = await fetch('/api/execution-configurations', {
     headers: { 'X-Api-Key': apiKey.value }
   });
   if (response.ok) {

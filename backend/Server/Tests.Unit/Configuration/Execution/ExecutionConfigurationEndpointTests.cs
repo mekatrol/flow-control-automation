@@ -19,7 +19,7 @@ internal sealed class ExecutionConfigurationEndpointTests
 
         foreach (var contextId in new[] { "first-context", "second-context" })
         {
-            var response = await client.PostAsJsonAsync("/api/execution-contexts", new ExecutionContextDefinition
+            var response = await client.PostAsJsonAsync("/api/execution-configurations", new ExecutionContextDefinition
             {
                 Id = contextId,
                 Name = contextId,
@@ -51,7 +51,7 @@ internal sealed class ExecutionConfigurationEndpointTests
 
         foreach (var contextId in new[] { "first-context", "second-context" })
         {
-            var definition = await client.GetFromJsonAsync<ExecutionContextDefinition>($"/api/execution-contexts/{contextId}", FlowControlJson.Options);
+            var definition = await client.GetFromJsonAsync<ExecutionContextDefinition>($"/api/execution-configurations/{contextId}", FlowControlJson.Options);
             Assert.Multiple(() =>
             {
                 Assert.That(definition!.Programs.Single().FlowRevision, Is.EqualTo(saved.Revision));
@@ -128,7 +128,7 @@ internal sealed class ExecutionConfigurationEndpointTests
             Name = "Climate",
             Programs = [new(saved.Id, saved.Revision)]
         };
-        var contextResponse = await client.PostAsJsonAsync("/api/execution-contexts", definition, FlowControlJson.Options);
+        var contextResponse = await client.PostAsJsonAsync("/api/execution-configurations", definition, FlowControlJson.Options);
         Assert.That(contextResponse.StatusCode, Is.EqualTo(HttpStatusCode.Created));
         var createdContext = (await contextResponse.Content.ReadFromJsonAsync<ExecutionContextDefinition>(FlowControlJson.Options))!;
         Assert.That(createdContext.PointContracts, Has.Count.EqualTo(1));
@@ -164,7 +164,7 @@ internal sealed class ExecutionConfigurationEndpointTests
                 ControllerTemplateRevision = 1
             }, FlowControlJson.Options);
             Assert.That(instanceResponse.StatusCode, Is.EqualTo(HttpStatusCode.Created));
-            var deploymentResponse = await client.PostAsJsonAsync("/api/execution-contexts/climate/deployments", new ExecutionContextDeployment
+            var deploymentResponse = await client.PostAsJsonAsync("/api/execution-configurations/climate/deployments", new ExecutionContextDeployment
             {
                 Id = $"climate-{instanceId}",
                 ExecutionContextId = "climate",

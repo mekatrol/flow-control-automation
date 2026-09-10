@@ -16,6 +16,80 @@ This replaces the current arrangement in which the frontend separately consumes
 `debug-sessions` and `simulator-sessions`, and
 `AppFlowDesignerView.vue` understands both implementations.
 
+## Implementation status (2026-09-11)
+
+The coordinated cutover is **in progress**. The primary runtime path now uses a
+unified execution context, but the legacy implementation types, tests, and
+fixtures have not all been removed. This document therefore remains an active
+implementation plan rather than a completed architecture record.
+
+### Implemented
+
+- The common `FlowExecutionContext`, lifecycle, capability, presentation,
+  diagnostic, I/O, and request contracts exist.
+- `IFlowExecutionContextService` and the internal
+  `FlowExecutionContextRegistry` provide ID-based dispatch, leases,
+  replacement, idempotent stop, and resource cleanup.
+- Context creation reads the saved flow, checks `expectedRevision`, converts it
+  to canonical executable source, compiles it, creates any required emulator,
+  loads the VM host, applies initial breakpoints, and returns a ready context.
+- Simulator and debugger contexts expose the common run, pause, stop, restart,
+  tick/node/instruction step, breakpoint, and run-to operations.
+- Simulator input, virtual-time, fault, and reset operations and debugger live
+  output operations are reached through the common service and capability
+  checks.
+- The unified HTTP mutation and lookup routes under
+  `/api/execution-contexts/{contextId}` are registered. The old debug,
+  simulator, and standalone emulator routes are no longer registered.
+- The pre-existing deployment-configuration catalogue was renamed from
+  `/api/execution-contexts` to `/api/execution-configurations` so the runtime
+  context routes have the names specified by this plan.
+- The browser has `flowExecutionContextApi.ts` and a single
+  `useRuntimeContext`. Post-creation calls use only the context ID.
+- The designer saves before creating a context, uses one operation set for
+  simulation and debugging, and no longer presents a debugger **Load** action.
+
+### Partially implemented
+
+- Polling is centralized in `useRuntimeContext`; server-sent events and the
+  `/events` route are not implemented.
+- The common execution panel is used for both modes, but some presentation and
+  optional I/O bindings still adapt the older component prop vocabulary rather
+  than consuming the unified contract directly.
+- The frontend envelope parser validates identity, lifecycle, capabilities,
+  presentation, and breakpoint collection shape. Deep validation of snapshots,
+  inspection, I/O, diagnostics, and breakpoint members remains to be added.
+- Legacy endpoints are not exposed, but their internal services and contracts
+  are temporarily retained as execution adapters and for existing unit tests.
+
+### Remaining work
+
+- Add execution-context service, registry, endpoint, parser, composable,
+  cleanup, expiry, replacement, and concurrency tests covering both modes.
+- Migrate browser E2E interception and function-node helpers from
+  `debug-sessions` and `simulator-sessions` to unified context routes.
+- Drive edit locking and every optional UI section directly from backend
+  capabilities and presentation metadata; remove the remaining operational
+  workspace-mode conditionals and old prop adapters.
+- Implement SSE if required, or document bounded polling as the final transport.
+- Remove the old frontend debug/simulator APIs, composables, simulator store,
+  implementation-coupled tests, and E2E mocks.
+- Remove the retained backend debug/simulator public contracts, session models,
+  registries, services, compatibility snapshot projections, and duplicate
+  mapping after the unified service owns those mechanics directly.
+- Complete the strict schema/fixture cleanup and documentation audit described
+  in Phase 7, including deletion of `testdata/contracts/flows/legacy.json`.
+- Add the architectural enforcement test described in the completion criteria.
+
+### Verification completed for the current increment
+
+- Backend solution build succeeds with zero warnings.
+- The full backend unit suite passed: 323 tests.
+- Frontend production build, type checking, and linting pass.
+- The full frontend unit suite passed: 245 tests in 62 files.
+- Browser E2E, controller/emulator integration, accessibility, cleanup, and
+  concurrency suites have not yet been run against the unified routes.
+
 ## Required outcomes
 
 1. Simulation and debugging implement the same backend execution contract.

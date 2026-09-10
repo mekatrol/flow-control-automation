@@ -115,6 +115,10 @@ internal sealed class FlowSimulatorService(
         await Execute(flowId, sessionId, (debug) => debug.StepNodeAsync(flowId, sessionId, cancellationToken));
     public async Task<FlowSimulatorSession> StepInstructionAsync(string flowId, string sessionId, CancellationToken cancellationToken) =>
         await Execute(flowId, sessionId, (debug) => debug.StepInstructionAsync(flowId, sessionId, cancellationToken));
+    public async Task<FlowSimulatorSession> RunToAsync(string flowId, string sessionId, FlowDebugBreakpoint breakpoint, CancellationToken cancellationToken) =>
+        await Execute(flowId, sessionId, (debug) => debug.RunToAsync(flowId, sessionId, breakpoint, cancellationToken));
+    public async Task<FlowSimulatorSession> ReplaceBreakpointsAsync(string flowId, string sessionId, IReadOnlyList<FlowDebugBreakpoint> breakpoints, CancellationToken cancellationToken) =>
+        await Execute(flowId, sessionId, (debug) => debug.ReplaceBreakpointsAsync(flowId, sessionId, breakpoints, cancellationToken));
     public async Task<FlowSimulatorSession> RestartAsync(string flowId, string sessionId, CancellationToken cancellationToken)
     {
         var entry = Require(flowId, sessionId);
