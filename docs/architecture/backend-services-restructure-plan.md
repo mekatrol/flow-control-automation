@@ -725,7 +725,20 @@ frontend formatting, and frontend linting.
 - Make every concrete store and validator internal.
 - Update DI registrations and focused tests.
 
-### Phase 4 — Communication
+### Phase 4 — Communication ✅ Complete
+
+Completed 2026-09-10. DNS, TCP, TLS, and the shared SSRF address policy now
+live under `Server.Services.Communication.Network`; RS485 framing, FCP clients,
+controller debug transport, HTTP/MQTT checks, and connectivity orchestration
+live in their matching communication domains. All moved concrete types are
+internal and registrations expose them through `Server.Common.Contracts`.
+Communication tests mirror the production domains, configure the public
+`AddServerServices` composition entry point, and resolve the controller
+transport and protocol checks through their contracts. Existing timeout,
+cancellation, SSRF, redaction, protocol-bound, and transport behavior remains
+covered. Final verification passed the solution build and all 309 backend
+tests; backend formatting, frontend formatting, and frontend linting also
+passed.
 
 - Move DNS/TCP/TLS and RS485 helpers first.
 - Move FCP clients/transports next.

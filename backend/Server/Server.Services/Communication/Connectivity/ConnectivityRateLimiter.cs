@@ -1,4 +1,4 @@
-namespace Server.Services.Implementation;
+namespace Server.Services.Communication.Connectivity;
 
 internal sealed class ConnectivityRateLimiter
 {

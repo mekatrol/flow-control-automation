@@ -1,6 +1,6 @@
 using System.Net;
 
-namespace Server.Services.Implementation;
+namespace Server.Services.Communication.Network;
 
 internal sealed class DnsLookup : IDnsLookup
 {

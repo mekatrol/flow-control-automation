@@ -1,3 +1,4 @@
+using Server.Services.Communication.Network;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Security;
@@ -5,7 +6,7 @@ using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Text;
 
-namespace Server.Services.Implementation;
+namespace Server.Services.Communication.Protocols.Http;
 
 internal sealed class HttpProtocolCheck(IDnsLookup dns) : IHttpProtocolCheck
 {

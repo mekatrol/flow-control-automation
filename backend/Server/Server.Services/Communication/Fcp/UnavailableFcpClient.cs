@@ -1,4 +1,4 @@
-namespace Server.Services.Implementation;
+namespace Server.Services.Communication.Fcp;
 
 internal sealed class UnavailableFcpClient : IFcpClient
 {

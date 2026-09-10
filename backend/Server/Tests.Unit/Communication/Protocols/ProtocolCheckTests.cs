@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
-namespace Tests.Unit.Connectivity;
+namespace Tests.Unit.Communication.Protocols;
 
 [TestFixture]
 internal sealed class ProtocolCheckTests

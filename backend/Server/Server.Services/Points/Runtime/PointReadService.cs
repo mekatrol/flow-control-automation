@@ -1,4 +1,4 @@
-using Server.Services.Implementation;
+using Server.Services.Communication.Network;
 using System.Text.Json.Nodes;
 
 namespace Server.Services.Points.Runtime;

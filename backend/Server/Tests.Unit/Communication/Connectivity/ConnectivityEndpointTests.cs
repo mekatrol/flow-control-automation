@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 
-namespace Tests.Unit.Connectivity;
+namespace Tests.Unit.Communication.Connectivity;
 
 [TestFixture]
 internal sealed class ConnectivityEndpointTests

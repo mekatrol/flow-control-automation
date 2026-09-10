@@ -2,7 +2,7 @@ using System.Buffers.Binary;
 using System.Text;
 using System.Text.Json;
 
-namespace Server.Services.Implementation;
+namespace Server.Services.Communication.Protocols.Mqtt;
 
 internal sealed class MqttProtocolCheck(IConnectivityClock clock) : IMqttProtocolCheck
 {

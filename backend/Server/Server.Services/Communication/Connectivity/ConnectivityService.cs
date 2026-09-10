@@ -1,7 +1,8 @@
+using Server.Services.Communication.Network;
 using System.Diagnostics;
 using System.Net;
 
-namespace Server.Services.Implementation;
+namespace Server.Services.Communication.Connectivity;
 
 internal sealed class ConnectivityService(
     IPointSourceValidator validator,

@@ -2,9 +2,9 @@ using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Server.Services.Implementation;
+namespace Server.Services.Communication.Controllers;
 
-public sealed class FcpControllerDebugTransport(IFcpClient client) : IControllerDebugTransport
+internal sealed class FcpControllerDebugTransport(IFcpClient client) : IControllerDebugTransport
 {
     private const int MaximumAttempts = 3;
     private const int DigestBytes = 32;

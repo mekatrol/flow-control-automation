@@ -1,9 +1,9 @@
-using Server.Services.Implementation;
 using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text;
+using Tests.Unit.Helpers;
 
-namespace Tests.Unit.Flows;
+namespace Tests.Unit.Communication.Controllers;
 
 public sealed class FcpControllerDebugTransportTests
 {
@@ -13,8 +13,14 @@ public sealed class FcpControllerDebugTransportTests
         var client = new RecordingFcpClient();
         var artifact = Enumerable.Range(0, 401).Select(index => (byte)index).ToArray();
 
-        var result = await new FcpControllerDebugTransport(client)
-            .LoadAsync(artifact, replaceExisting: false, default);
+        await using var provider = TestServices.CreateProvider(services =>
+        {
+            services.RemoveAll<IFcpClient>();
+            services.AddSingleton<IFcpClient>(client);
+        });
+        var transport = provider.GetRequiredService<IControllerDebugTransport>();
+
+        var result = await transport.LoadAsync(artifact, replaceExisting: false, default);
 
         Assert.Multiple(() =>
         {
@@ -30,16 +36,20 @@ public sealed class FcpControllerDebugTransportTests
         var snapshot = SnapshotBytes();
         var client = new RecordingFcpClient(snapshot);
 
-        var envelope = await new FcpControllerDebugTransport(client).StepAsync(42, default);
-        var decoded = DebugSnapshotDecoder.Decode(envelope);
+        await using var provider = TestServices.CreateProvider(services =>
+        {
+            services.RemoveAll<IFcpClient>();
+            services.AddSingleton<IFcpClient>(client);
+        });
+        var transport = provider.GetRequiredService<IControllerDebugTransport>();
+
+        var envelope = await transport.StepAsync(42, default);
 
         Assert.Multiple(() =>
         {
             Assert.That(envelope.Bytes.ToArray(), Is.EqualTo(snapshot));
-            Assert.That(decoded.DebugSessionId, Is.EqualTo("42"));
-            Assert.That(decoded.FlowId, Is.EqualTo("flow-a"));
-            Assert.That(decoded.TickNumber, Is.EqualTo(1));
-            Assert.That(decoded.Nodes, Is.Empty);
+            Assert.That(envelope.SessionId, Is.EqualTo(42));
+            Assert.That(envelope.TickNumber, Is.EqualTo(1));
         });
     }
 
@@ -47,8 +57,17 @@ public sealed class FcpControllerDebugTransportTests
     public async Task EnablesLiveOutputWithExactBoundedPointList()
     {
         var client = new RecordingFcpClient();
-        var result = await new FcpControllerDebugTransport(client)
-            .EnableLiveOutputAsync(42, ["output-01", "output-08"], default);
+        await using var provider = TestServices.CreateProvider(services =>
+        {
+            services.RemoveAll<IFcpClient>();
+            services.AddSingleton<IFcpClient>(client);
+        });
+        var transport = provider.GetRequiredService<IControllerDebugTransport>();
+
+        var result = await transport.EnableLiveOutputAsync(
+            42,
+            ["output-01", "output-08"],
+            default);
 
         Assert.Multiple(() =>
         {

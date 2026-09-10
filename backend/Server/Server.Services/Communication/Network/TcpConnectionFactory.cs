@@ -1,6 +1,6 @@
 using System.Net.Sockets;
 
-namespace Server.Services.Implementation;
+namespace Server.Services.Communication.Network;
 
 internal sealed class TcpConnectionFactory : ITcpConnectionFactory
 {

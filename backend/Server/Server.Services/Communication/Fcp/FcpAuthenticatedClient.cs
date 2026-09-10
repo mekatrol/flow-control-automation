@@ -1,9 +1,9 @@
 using System.Buffers.Binary;
 using System.Security.Cryptography;
 
-namespace Server.Services.Implementation;
+namespace Server.Services.Communication.Fcp;
 
-public sealed class FcpAuthenticatedClient(
+internal sealed class FcpAuthenticatedClient(
     IFcpFrameTransport transport,
     FcpClientOptions options) : IFcpClient
 {

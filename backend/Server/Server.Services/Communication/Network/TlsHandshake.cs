@@ -1,7 +1,7 @@
 using System.Net.Security;
 using System.Security.Authentication;
 
-namespace Server.Services.Implementation;
+namespace Server.Services.Communication.Network;
 
 internal sealed class TlsHandshake : ITlsHandshake
 {

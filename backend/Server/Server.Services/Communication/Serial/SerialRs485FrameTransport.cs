@@ -1,8 +1,8 @@
 using System.Buffers.Binary;
 
-namespace Server.Services.Implementation;
+namespace Server.Services.Communication.Serial;
 
-public sealed class SerialRs485FrameTransport(IControllerSerialConnectionFactory connections) : IFcpFrameTransport
+internal sealed class SerialRs485FrameTransport(IControllerSerialConnectionFactory connections) : IFcpFrameTransport
 {
     private const int HeaderBytes = 13;
     private const int CrcBytes = 2;
