@@ -816,7 +816,15 @@ and frontend linting also passed.
   - cross-domain internal dependencies not on the approved graph.
 - Document the placement rules in contributor guidance.
 
-### Phase 8 — Unified execution context
+### Phase 8 — Unified execution context ✅ Complete
+
+Unified execution-context Phase 1 (contract and parity baseline) completed on
+2026-09-10. The new service contract, models, types, capability profiles, and
+tests were created directly in the domain boundaries established by this plan.
+This completes the restructure plan's requirement to begin the unified
+execution-context work. Registry, service implementation, endpoint, frontend,
+UI, and coordinated legacy-removal work remains tracked as subsequent phases
+of the linked implementation plan.
 
 Begin the unified execution-context plan only after phases 1–7 pass. Its new
 service, registry, models, types, and interfaces must be created directly in:

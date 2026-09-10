@@ -386,7 +386,20 @@ assumptions.
 
 ## Delivery phases
 
-### Phase 1 — Contract and parity baseline
+### Phase 1 — Contract and parity baseline ✅ Complete
+
+Completed 2026-09-10. The mode-neutral `IFlowExecutionContextService`
+contract now exposes the complete core and capability-gated operation set.
+Canonical context, request, capability, presentation, I/O, diagnostic, mode,
+and lifecycle contracts live in their prescribed Common domains. Simulator,
+server-debugger, and controller-debugger capability profiles explicitly keep
+the core run, pause, stop, restart, stepping, breakpoint, and run-to operations
+in parity while advertising only host-specific optional operations. Strict
+serialization tests cover both modes through one envelope and reject missing
+identity and legacy embedded-source members. The coordinated legacy removal
+inventory remains deferred to Phase 7 as required. Final verification passed
+the solution build and all 323 backend tests; backend and frontend formatting
+and frontend linting also passed.
 
 - Add shared context models to `Server.Common.Models/FlowExecution` and
   lifecycle vocabulary to `Server.Common.Types`.
