@@ -20,6 +20,12 @@
       empty-message="No points found."
       @query-change="updateQuery"
     >
+      <template #header>
+        <div class="list-header">
+          <h2 class="list-heading">Point List</h2>
+        </div>
+      </template>
+
       <template #column-header-name-pre>
         <AppButton
           type="button"

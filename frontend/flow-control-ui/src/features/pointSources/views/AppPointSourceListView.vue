@@ -1,19 +1,11 @@
 <template>
-  <section class="configuration-page">
+  <section class="list-page">
     <AppErrorNotice
       id="point-sources-error-notice"
       :message="error"
       retryable
       @[EVENTS.RETRY]="load"
     />
-
-    <div class="page-heading">
-      <div>
-        <p>External systems</p>
-        <h1>Point sources</h1>
-        <p>Define reusable, read-only connections before mapping points.</p>
-      </div>
-    </div>
 
     <AppListView
       v-if="!error"
@@ -28,6 +20,12 @@
       empty-message="No point sources found."
       @query-change="query = $event"
     >
+      <template #header>
+        <div class="list-header">
+          <h2 class="list-heading">Point Sources</h2>
+        </div>
+      </template>
+
       <template #column-header-name-pre>
         <AppButton
           type="button"

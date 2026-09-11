@@ -220,6 +220,22 @@ a {
   border-radius: var(--radius-xl);
 }
 
+.list-heading {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.list-header {
+  display: flex;
+  gap: var(--space-4);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4);
+  background-color: var(--color-surface-raised);
+  border: var(--border-width-default) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+}
+
 /* Tablet breakpoint (48rem): reflows multi-column controls and workspace panels. */
 @media (max-width: 48rem) {
   /* Responsive resource list frame.

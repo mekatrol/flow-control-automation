@@ -13,8 +13,8 @@
       @query-change="updateQuery"
     >
       <template #header>
-        <div class="flow-list-header">
-          <h2 class="flow-list-heading">Flow List</h2>
+        <div class="list-header">
+          <h2 class="list-heading">Flow List</h2>
           <AppButton
             type="button"
             text="Import IL"
@@ -358,22 +358,6 @@ const formattedUpdatedAt = (row: FlowRow): string =>
   display: flex;
   flex: 1;
   gap: 1.5em;
-}
-
-.flow-list-heading {
-  margin: 0;
-  font-size: 1.5rem;
-}
-
-.flow-list-header {
-  display: flex;
-  gap: var(--space-4);
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-4);
-  background-color: var(--color-surface-raised);
-  border: var(--border-width-default) solid var(--color-border-default);
-  border-radius: var(--radius-md);
 }
 
 .add-flow-btn {
