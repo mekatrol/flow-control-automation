@@ -7,16 +7,38 @@ interface WaitControls {
   isWaiting: ComputedRef<boolean>;
   wait: () => void;
   endWait: () => void;
+  withSpinner: <T>(
+    pre: (() => void | Promise<void>) | null,
+    call: () => T | Promise<T>,
+    post: ((result: T) => void | Promise<void>) | null
+  ) => Promise<T>;
 }
 
 export const useWait = (): WaitControls => {
   const store = useWaitStore();
   const { waitCount, isWaiting } = storeToRefs(store);
 
+  const withSpinner = async <T>(
+    pre: (() => void | Promise<void>) | null,
+    call: () => T | Promise<T>,
+    post: ((result: T) => void | Promise<void>) | null
+  ): Promise<T> => {
+    store.wait();
+    try {
+      await pre?.();
+      const result = await call();
+      await post?.(result);
+      return result;
+    } finally {
+      store.endWait();
+    }
+  };
+
   return {
     waitCount,
     isWaiting,
     wait: store.wait,
-    endWait: store.endWait
+    endWait: store.endWait,
+    withSpinner
   };
 };

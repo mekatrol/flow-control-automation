@@ -166,7 +166,7 @@ const initialPageSize = [10, 20, 50].includes(requestedPageSize) ? requestedPage
 const initialSortDirection: FlowListParameters['sort'] =
   route.query.sort === 'descending' ? 'descending' : 'ascending';
 
-  const statusOptions: MultiSelectOption[] = [
+const statusOptions: MultiSelectOption[] = [
   { label: 'Draft', value: 'draft' },
   { label: 'Deployed', value: 'deployed' }
 ];
@@ -258,33 +258,40 @@ const closeDeleteConfirmation = (): void => {
   confirmingDeleteId.value = undefined;
 };
 
-const { isWaiting, wait, endWait } = useWait();
+const { isWaiting, withSpinner } = useWait();
 
 const loadFlows = async (): Promise<void> => {
-  listController?.abort();
   const controller = new AbortController();
-  listController = controller;
-  error.value = undefined;
-  errorRetry.value = false;
-  wait();
 
   try {
-    const result = await flowApi.listFlows(
-      {
-        filter: query.value.trim(),
-        statuses: statusFilters.value.filter(
-          (status): status is 'draft' | 'deployed' => status === 'draft' || status === 'deployed'
-        ),
-        page: page.value,
-        pageSize: pageSize.value,
-        sort: sortDirection.value
+    await withSpinner(
+      () => {
+        listController?.abort();
+        listController = controller;
+        error.value = undefined;
+        errorRetry.value = false;
       },
-      controller.signal
+      () =>
+        flowApi.listFlows(
+          {
+            filter: query.value.trim(),
+            statuses: statusFilters.value.filter(
+              (status): status is 'draft' | 'deployed' =>
+                status === 'draft' || status === 'deployed'
+            ),
+            page: page.value,
+            pageSize: pageSize.value,
+            sort: sortDirection.value
+          },
+          controller.signal
+        ),
+      (result) => {
+        if (listController === controller) {
+          flowStore.replaceAllFlowsFromPayloads(result.items);
+          applyPageMetadata(result);
+        }
+      }
     );
-    if (listController === controller) {
-      flowStore.replaceAllFlowsFromPayloads(result.items);
-      applyPageMetadata(result);
-    }
   } catch (caught) {
     if (listController === controller) {
       error.value = caught instanceof Error ? caught.message : 'Unable to load flows.';
@@ -292,34 +299,39 @@ const loadFlows = async (): Promise<void> => {
     }
   } finally {
     if (listController === controller) {
-      endWait();
+      listController = undefined;
     }
   }
 };
 
 const createFlow = async (): Promise<void> => {
   const name = newFlowName.value.trim();
-  errorRetry.value = false;
+
   if (!name) {
     error.value = 'Enter a name for the new flow.';
     return;
   }
-  creating.value = true;
-  error.value = undefined;
-  wait();
 
   try {
-    const createdFlow = await flowApi.createFlow(name);
-    newFlowName.value = '';
-    await router.push({
-      name: 'flow-designer',
-      params: { flowId: createdFlow.id }
-    });
+    await withSpinner(
+      () => {
+        errorRetry.value = false;
+        creating.value = true;
+        error.value = undefined;
+      },
+      () => flowApi.createFlow(name),
+      async (createdFlow) => {
+        newFlowName.value = '';
+        await router.push({
+          name: 'flow-designer',
+          params: { flowId: createdFlow.id }
+        });
+      }
+    );
   } catch (caught) {
     error.value = caught instanceof Error ? caught.message : 'Unable to create the flow.';
   } finally {
     creating.value = false;
-    endWait();
   }
 };
 
@@ -338,43 +350,49 @@ const selectILArtifact = async (event: Event): Promise<void> => {
 
 const previewIL = async (): Promise<void> => {
   if (!importArtifact.value) return;
-  importing.value = true;
-  error.value = undefined;
-  wait();
 
   try {
-    importPreview.value = await flowApi.importFlowIl(
-      importArtifact.value,
-      importName.value.trim() || undefined,
-      false
+    await withSpinner(
+      () => {
+        importing.value = true;
+        error.value = undefined;
+      },
+      () => flowApi.importFlowIl(importArtifact.value, importName.value.trim() || undefined, false),
+      (result) => {
+        importPreview.value = result;
+      }
     );
   } catch (caught) {
     error.value =
       caught instanceof Error ? caught.message : 'Unable to preview the Flow IL artifact.';
   } finally {
     importing.value = false;
-    endWait();
   }
 };
 
 const saveILImport = async (): Promise<void> => {
   if (!importArtifact.value || !importPreview.value) return;
-  importing.value = true;
-  error.value = undefined;
-  wait();
 
   try {
-    const result = await flowApi.importFlowIl(
-      importArtifact.value,
-      importName.value.trim() || importPreview.value.flow.name,
-      true
+    await withSpinner(
+      () => {
+        importing.value = true;
+        error.value = undefined;
+      },
+      () =>
+        flowApi.importFlowIl(
+          importArtifact.value,
+          importName.value.trim() || importPreview.value!.flow.name,
+          true
+        ),
+      async (result) => {
+        await router.push({ name: 'flow-designer', params: { flowId: result.flow.id } });
+      }
     );
-    await router.push({ name: 'flow-designer', params: { flowId: result.flow.id } });
   } catch (caught) {
     error.value = caught instanceof Error ? caught.message : 'Unable to save the recovered flow.';
   } finally {
     importing.value = false;
-    endWait();
   }
 };
 
@@ -404,60 +422,71 @@ const confirmDeleteFlow = (): void => {
 const renameFlow = async (flowId: string): Promise<void> => {
   const payload = flowStore.flowPayload(flowId);
   const name = renameValue.value.trim();
-  errorRetry.value = false;
+
   if (!payload || !name) {
     error.value = 'Flow name is required.';
     return;
   }
-  renaming.value = true;
-  error.value = undefined;
-  wait();
 
   try {
-    await flowApi.saveFlow({ ...payload, name });
-    editingFlowId.value = undefined;
-    await loadFlows();
+    await withSpinner(
+      () => {
+        errorRetry.value = false;
+        renaming.value = true;
+        error.value = undefined;
+      },
+      () => flowApi.saveFlow({ ...payload, name }),
+      async () => {
+        editingFlowId.value = undefined;
+        await loadFlows();
+      }
+    );
   } catch (caught) {
     error.value = caught instanceof Error ? caught.message : 'Unable to rename the flow.';
   } finally {
     renaming.value = false;
-    endWait();
   }
 };
 
 const deleteFlow = async (flowId: string): Promise<void> => {
-  deleting.value = true;
-  errorRetry.value = false;
-  error.value = undefined;
-  wait();
-  
   try {
-    await flowApi.deleteFlow(flowId);
-    closeDeleteConfirmation();
-    await loadFlows();
+    await withSpinner(
+      () => {
+        errorRetry.value = false;
+        deleting.value = true;
+        error.value = undefined;
+      },
+      () => flowApi.deleteFlow(flowId),
+      async () => {
+        closeDeleteConfirmation();
+        await loadFlows();
+      }
+    );
   } catch (caught) {
     error.value = caught instanceof Error ? caught.message : 'Unable to delete the flow.';
   } finally {
     deleting.value = false;
-    endWait();
   }
 };
 
 const setFlowDisabled = async (flowId: string, disabled: boolean): Promise<void> => {
-  togglingDisabledId.value = flowId;
-  errorRetry.value = false;
-  error.value = undefined;
-  wait();
-
   try {
-    const saved = await flowApi.setFlowDisabled(flowId, disabled);
-    flowStore.replaceFlowFromPayload(saved);
+    await withSpinner(
+      () => {
+        errorRetry.value = false;
+        togglingDisabledId.value = flowId;
+        error.value = undefined;
+      },
+      () => flowApi.setFlowDisabled(flowId, disabled),
+      (saved) => {
+        flowStore.replaceFlowFromPayload(saved);
+      }
+    );
   } catch (caught) {
     error.value =
       caught instanceof Error ? caught.message : 'Unable to change the flow execution state.';
   } finally {
     togglingDisabledId.value = undefined;
-    endWait();
   }
 };
 
@@ -469,7 +498,6 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-
 .page-heading {
   display: flex;
   gap: var(--space-16);
@@ -601,7 +629,7 @@ h1 {
 
 /* Mobile breakpoint (40rem): stacks page and navigation content for phone layouts. */
 @media (max-width: 40rem) {
-.page-heading {
+  .page-heading {
     align-items: start;
     flex-direction: column;
   }
