@@ -172,6 +172,9 @@ test('catalogue and YAML editor support create, test, retry, and keyboard use', 
   await expect(page.getByLabel('HTTP / JSON example YAML')).not.toContainText(
     'allowedWriteMethods'
   );
+  await expect(page.getByLabel('HTTP / JSON example YAML')).toContainText(
+    'allowPrivateNetwork: false'
+  );
   await page.getByRole('button', { name: 'Use this example' }).click();
 
   // Expected outcome: Loading the selected HTTP example replaces the editor configuration.

@@ -36,7 +36,7 @@ export const useFlowRuntimeStore = defineStore('flow-runtime', () => {
     deploymentPending.value[flowId] = false;
     deploymentErrors.value[flowId] = message;
   };
-  
+
   const disconnect = (flowId: string): void => {
     connected.value[flowId] = false;
     // Values represent live observations. Clearing the snapshot prevents an old

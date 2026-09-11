@@ -620,7 +620,9 @@ const testPoint = async (operation: 'read' | 'write'): Promise<void> => {
             { trackWait: false }
           );
           if (!result.deviceResponse) {
-            throw new Error(result.diagnostic || 'The point device did not return an HTTP response.');
+            throw new Error(
+              result.diagnostic || 'The point device did not return an HTTP response.'
+            );
           }
           pointTestResult.value = {
             operation,

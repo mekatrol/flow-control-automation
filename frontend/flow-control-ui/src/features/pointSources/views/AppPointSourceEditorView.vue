@@ -309,6 +309,7 @@ sources:
     kind: httpJson
     connection:
       baseUrl: https://api.example.com
+      allowPrivateNetwork: false
       defaultPollMilliseconds: 60000
       followRedirects: false
       maximumResponseBytes: 65536

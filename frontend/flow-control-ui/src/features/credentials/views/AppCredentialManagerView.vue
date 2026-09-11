@@ -334,8 +334,7 @@ const save = async (): Promise<void> => {
         saving.value = true;
         error.value = '';
       },
-      () =>
-        editing.value ? credentialApi.update({ ...form }) : credentialApi.create({ ...form }),
+      () => (editing.value ? credentialApi.update({ ...form }) : credentialApi.create({ ...form })),
       async (saved) => {
         status.value = editing.value
           ? 'Credential updated. Sensitive values remain hidden.'

@@ -33,6 +33,36 @@ public sealed class ConfigurationGuidanceTests
     }
 
     [Test]
+    public void PointSourceGuidanceDescribesPrivateNetworkAccessForEverySourceKind()
+    {
+        var yaml = """
+            schemaVersion: 1
+            sources:
+              - id: weather
+                name: Weather API
+                enabled: true
+                kind: httpJson
+                connection:
+                  baseUrl: https://api.example.com
+                  allowPrivateNetwork: false
+                  maximumResponseBytes: 65536
+                tls:
+                  verifyServerCertificate: true
+                timeouts:
+                  connectMilliseconds: 2000
+                  requestMilliseconds: 5000
+            """u8;
+        var markdown = ConfigurationGuidance.Render("point-source", yaml);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(markdown, Does.Contain("| `allowPrivateNetwork` |"));
+            Assert.That(markdown, Does.Contain("Explicitly permit private-network destinations."));
+            Assert.That(markdown, Does.Not.Contain("private-network MQTT destinations"));
+        });
+    }
+
+    [Test]
     public async Task EndpointReturnsCorrectGuidanceForEveryPointCombination()
     {
         await using var factory = new Api.FlowControlApplicationFactory(services =>
