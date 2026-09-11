@@ -34,6 +34,7 @@
   .page-layout-content {
     flex-direction: column;
   }
+
   .page-layout-main {
     order: 2;
   }

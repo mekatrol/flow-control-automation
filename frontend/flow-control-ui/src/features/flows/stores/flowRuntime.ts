@@ -20,19 +20,23 @@ export const useFlowRuntimeStore = defineStore('flow-runtime', () => {
     deploymentPending.value[flowId] = true;
     deploymentErrors.value[flowId] = undefined;
   };
+
   const applySnapshot = (snapshot: FlowRuntimeSnapshot): void => {
     snapshots.value[snapshot.flowId] = structuredClone(snapshot);
     connected.value[snapshot.flowId] = true;
   };
+
   const completeDeployment = (snapshot: FlowRuntimeSnapshot): void => {
     applySnapshot(snapshot);
     deploymentPending.value[snapshot.flowId] = false;
     deploymentErrors.value[snapshot.flowId] = undefined;
   };
+
   const failDeployment = (flowId: string, message: string): void => {
     deploymentPending.value[flowId] = false;
     deploymentErrors.value[flowId] = message;
   };
+  
   const disconnect = (flowId: string): void => {
     connected.value[flowId] = false;
     // Values represent live observations. Clearing the snapshot prevents an old

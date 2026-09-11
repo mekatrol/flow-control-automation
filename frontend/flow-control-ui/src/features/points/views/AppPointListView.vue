@@ -1,5 +1,5 @@
 <template>
-  <section class="resource-list-page" aria-labelledby="points-heading">
+  <section class="list-page" aria-labelledby="points-heading">
     <AppErrorNotice
       id="points-error-notice"
       :message="errorMessage"
@@ -7,13 +7,6 @@
       retry-label="Check again"
       @[EVENTS.RETRY]="refresh"
     />
-    <div class="page-heading">
-      <div>
-        <p>Point definitions</p>
-        <h1 id="points-heading">Points</h1>
-        <p>Review automation points, their sources, and their capabilities.</p>
-      </div>
-    </div>
 
     <AppListView
       v-if="!store.error"
@@ -23,8 +16,7 @@
       :rows="rows"
       :query="query"
       :total-items="store.result.totalItems"
-      :loading="store.loading"
-      :page-size-options="[10, 25, 50, 100]"
+      :loading="isWaiting"
       empty-message="No points found."
       @query-change="updateQuery"
     >
@@ -69,6 +61,7 @@ import AppListView from '@/components/list-view/AppListView.vue';
 import { EVENTS } from '@/constants/events';
 import type { PointSummary } from '@/features/points/api/pointDto';
 import { usePointsStore } from '@/features/points/stores/points';
+import { useWait } from '@/composables/useWait';
 import type { ListColumn, ListQuery, ListRow } from '@/models';
 
 interface PointRow extends ListRow {
@@ -94,6 +87,8 @@ const columns: ListColumn<PointRow>[] = [
   { key: 'capabilities', label: 'Capabilities', width: '12rem' },
   { key: 'status', label: 'Status', width: '9rem' }
 ];
+
+const { isWaiting } = useWait();
 
 const store = usePointsStore();
 const query = ref<ListQuery<PointRow>>({

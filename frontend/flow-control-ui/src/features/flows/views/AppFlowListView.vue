@@ -1,5 +1,5 @@
 <template>
-  <section class="flow-library">
+  <section class="list-page">
     <AppErrorNotice
       id="flows-error-notice"
       :message="error ?? ''"
@@ -7,7 +7,7 @@
       @[EVENTS.RETRY]="loadFlows"
     />
 
-    <p v-if="loading" class="request-status" role="status">Loading flows…</p>
+    <p v-if="isWaiting" class="request-status" role="status">Loading flows…</p>
 
     <div v-if="!error" class="flow-results">
       <p v-if="totalItems === 0 && hasActiveFilters" class="empty-state" role="status">
@@ -26,6 +26,7 @@
         :rename-value="renameValue"
         :renaming="renaming"
         :toggling-disabled-id="togglingDisabledId"
+        :loading="isWaiting"
         @[EVENTS.TOGGLE_SORT]="toggleSortDirection"
         @update:filter="query = $event"
         @update:statuses="statusFilters = $event"
@@ -130,12 +131,12 @@ import {
 } from '@/features/flows/api/flowApi';
 import AppFlowTable from '@/features/flows/components/AppFlowTable.vue';
 import { useFlowsStore } from '@/features/flows/stores/flows';
+import { useWait } from '@/composables/useWait';
 
 const route = useRoute();
 const router = useRouter();
 const flowStore = useFlowsStore();
 const { flows } = storeToRefs(flowStore);
-const loading = ref(false);
 const error = ref<string>();
 const errorRetry = ref(false);
 const newFlowName = ref('');
@@ -154,18 +155,22 @@ let listController: AbortController | undefined;
 let listTimer: ReturnType<typeof setTimeout> | undefined;
 
 const queryValue = (value: unknown): string => (typeof value === 'string' ? value : '');
+
 const positiveInteger = (value: unknown, fallback: number): number => {
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 };
+
 const requestedPageSize = positiveInteger(route.query.pageSize, 10);
 const initialPageSize = [10, 20, 50].includes(requestedPageSize) ? requestedPageSize : 10;
 const initialSortDirection: FlowListParameters['sort'] =
   route.query.sort === 'descending' ? 'descending' : 'ascending';
-const statusOptions: MultiSelectOption[] = [
+
+  const statusOptions: MultiSelectOption[] = [
   { label: 'Draft', value: 'draft' },
   { label: 'Deployed', value: 'deployed' }
 ];
+
 const requestedStatuses = Array.isArray(route.query.status)
   ? route.query.status
   : route.query.status
@@ -253,13 +258,16 @@ const closeDeleteConfirmation = (): void => {
   confirmingDeleteId.value = undefined;
 };
 
+const { isWaiting, wait, endWait } = useWait();
+
 const loadFlows = async (): Promise<void> => {
   listController?.abort();
   const controller = new AbortController();
   listController = controller;
-  loading.value = true;
   error.value = undefined;
   errorRetry.value = false;
+  wait();
+
   try {
     const result = await flowApi.listFlows(
       {
@@ -283,7 +291,9 @@ const loadFlows = async (): Promise<void> => {
       errorRetry.value = true;
     }
   } finally {
-    if (listController === controller) loading.value = false;
+    if (listController === controller) {
+      endWait();
+    }
   }
 };
 
@@ -296,6 +306,8 @@ const createFlow = async (): Promise<void> => {
   }
   creating.value = true;
   error.value = undefined;
+  wait();
+
   try {
     const createdFlow = await flowApi.createFlow(name);
     newFlowName.value = '';
@@ -307,6 +319,7 @@ const createFlow = async (): Promise<void> => {
     error.value = caught instanceof Error ? caught.message : 'Unable to create the flow.';
   } finally {
     creating.value = false;
+    endWait();
   }
 };
 
@@ -327,6 +340,8 @@ const previewIL = async (): Promise<void> => {
   if (!importArtifact.value) return;
   importing.value = true;
   error.value = undefined;
+  wait();
+
   try {
     importPreview.value = await flowApi.importFlowIl(
       importArtifact.value,
@@ -338,6 +353,7 @@ const previewIL = async (): Promise<void> => {
       caught instanceof Error ? caught.message : 'Unable to preview the Flow IL artifact.';
   } finally {
     importing.value = false;
+    endWait();
   }
 };
 
@@ -345,6 +361,8 @@ const saveILImport = async (): Promise<void> => {
   if (!importArtifact.value || !importPreview.value) return;
   importing.value = true;
   error.value = undefined;
+  wait();
+
   try {
     const result = await flowApi.importFlowIl(
       importArtifact.value,
@@ -356,6 +374,7 @@ const saveILImport = async (): Promise<void> => {
     error.value = caught instanceof Error ? caught.message : 'Unable to save the recovered flow.';
   } finally {
     importing.value = false;
+    endWait();
   }
 };
 
@@ -392,6 +411,8 @@ const renameFlow = async (flowId: string): Promise<void> => {
   }
   renaming.value = true;
   error.value = undefined;
+  wait();
+
   try {
     await flowApi.saveFlow({ ...payload, name });
     editingFlowId.value = undefined;
@@ -400,6 +421,7 @@ const renameFlow = async (flowId: string): Promise<void> => {
     error.value = caught instanceof Error ? caught.message : 'Unable to rename the flow.';
   } finally {
     renaming.value = false;
+    endWait();
   }
 };
 
@@ -407,6 +429,8 @@ const deleteFlow = async (flowId: string): Promise<void> => {
   deleting.value = true;
   errorRetry.value = false;
   error.value = undefined;
+  wait();
+  
   try {
     await flowApi.deleteFlow(flowId);
     closeDeleteConfirmation();
@@ -415,6 +439,7 @@ const deleteFlow = async (flowId: string): Promise<void> => {
     error.value = caught instanceof Error ? caught.message : 'Unable to delete the flow.';
   } finally {
     deleting.value = false;
+    endWait();
   }
 };
 
@@ -422,6 +447,8 @@ const setFlowDisabled = async (flowId: string, disabled: boolean): Promise<void>
   togglingDisabledId.value = flowId;
   errorRetry.value = false;
   error.value = undefined;
+  wait();
+
   try {
     const saved = await flowApi.setFlowDisabled(flowId, disabled);
     flowStore.replaceFlowFromPayload(saved);
@@ -430,6 +457,7 @@ const setFlowDisabled = async (flowId: string, disabled: boolean): Promise<void>
       caught instanceof Error ? caught.message : 'Unable to change the flow execution state.';
   } finally {
     togglingDisabledId.value = undefined;
+    endWait();
   }
 };
 
@@ -441,11 +469,6 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.flow-library {
-  width: min(1180px, calc(100% - 40px));
-  margin: var(--space-0) auto;
-  padding: var(--space-29) var(--space-0);
-}
 
 .page-heading {
   display: flex;
@@ -578,12 +601,7 @@ h1 {
 
 /* Mobile breakpoint (40rem): stacks page and navigation content for phone layouts. */
 @media (max-width: 40rem) {
-  .flow-library {
-    width: min(100% - 28px, 1180px);
-    padding: var(--space-19) var(--space-0);
-  }
-
-  .page-heading {
+.page-heading {
     align-items: start;
     flex-direction: column;
   }

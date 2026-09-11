@@ -1,5 +1,5 @@
 <template>
-  <section class="resource-list-page" aria-labelledby="templates-heading">
+  <section class="list-page" aria-labelledby="templates-heading">
     <AppErrorNotice
       id="controller-templates-error-notice"
       :message="store.error"

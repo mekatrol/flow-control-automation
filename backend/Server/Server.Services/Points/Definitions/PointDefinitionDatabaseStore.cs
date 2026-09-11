@@ -11,11 +11,13 @@ internal sealed class PointDefinitionDatabaseStore(
     IPointDefinitionValidator validator) : IPointDefinitionStore
 {
     public async Task<IReadOnlyList<AutomationPoint>> ListPointsAsync(
-        CancellationToken cancellationToken) =>
-        [.. (await context.Points.AsNoTracking().ToListAsync(cancellationToken))
-        .Select(DeserializePoint)
-        .OrderBy(point => point.Name, StringComparer.OrdinalIgnoreCase)
-        .ThenBy(point => point.Id, StringComparer.Ordinal)];
+        CancellationToken cancellationToken)
+    {
+        return [.. (await context.Points.AsNoTracking().ToListAsync(cancellationToken))
+            .Select(DeserializePoint)
+            .OrderBy(point => point.Name, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(point => point.Id, StringComparer.Ordinal)];
+    }
 
     public async Task<AutomationPoint> GetPointAsync(
         string id,
