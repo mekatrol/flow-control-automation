@@ -22,7 +22,7 @@
     >
       <template #header>
         <div class="list-header">
-          <h2 class="list-heading">Point List</h2>
+          <h2 class="list-heading">Points</h2>
         </div>
       </template>
 

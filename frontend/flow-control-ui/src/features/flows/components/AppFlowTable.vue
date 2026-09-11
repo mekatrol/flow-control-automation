@@ -14,15 +14,10 @@
     >
       <template #header>
         <div class="list-header">
-          <h2 class="list-heading">Flow List</h2>
-          <AppButton
-            type="button"
-            text="Import IL"
-            :icon="importIcon"
-            @click="$emit(EVENTS.IMPORT_IL)"
-          />
+          <h2 class="list-heading">Flows</h2>
         </div>
       </template>
+
       <template #filter-options>
         <div class="filter-options">
           <AppMultiSelectDropdown
@@ -47,12 +42,20 @@
       <template #column-header-name-pre>
         <AppButton
           type="button"
-          class="add-flow-btn"
+          class="flow-table-header-btn"
           text="Add flow"
           :icon="newIcon"
           aria-label="Add a new flow"
           hide-text
           @click="$emit(EVENTS.ADD_FLOW)"
+        />
+        <AppButton
+          type="button"
+          class="flow-table-header-btn"
+          text="Import IL"
+          hide-text
+          :icon="importIcon"
+          @click="$emit(EVENTS.IMPORT_IL)"
         />
       </template>
 
@@ -360,7 +363,7 @@ const formattedUpdatedAt = (row: FlowRow): string =>
   gap: 1.5em;
 }
 
-.add-flow-btn {
+.flow-table-header-btn {
   margin-right: 0.5rem;
 }
 </style>
