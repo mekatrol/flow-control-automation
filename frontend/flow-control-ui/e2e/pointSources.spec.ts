@@ -30,6 +30,55 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
+test('catalogue supports filtering, sorting, and opening a point source', async ({ page }) => {
+  await page.unroute(/\/api\/point-sources(?:\?.*)?$/);
+  await page.route(/\/api\/point-sources(?:\?.*)?$/, async (route) => {
+    await route.fulfill({
+      json: {
+        items: [
+          {
+            id: 'weather',
+            name: 'Weather API',
+            description: 'Outdoor observations',
+            enabled: true,
+            kind: 'httpJson',
+            revision: 2,
+            updatedAt: '2026-09-10T03:00:00Z'
+          },
+          {
+            id: 'building',
+            name: 'Building MQTT',
+            enabled: false,
+            kind: 'mqtt',
+            revision: 1,
+            updatedAt: '2026-09-09T03:00:00Z'
+          }
+        ],
+        totalItems: 2,
+        page: 1,
+        pageSize: 50,
+        pageCount: 1
+      }
+    });
+  });
+
+  await page.goto('/point-sources');
+
+  await expect(page.getByRole('heading', { name: 'Configured point sources' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Weather API' })).toBeVisible();
+  await expect(page.getByText('Outdoor observations')).toBeVisible();
+  await expect(page.getByRole('cell', { name: 'HTTP/JSON' })).toBeVisible();
+
+  await page.getByLabel('Filter list').fill('weather');
+  await page.getByRole('button', { name: 'Apply' }).click();
+  await expect(page.getByRole('link', { name: 'Weather API' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Building MQTT' })).toBeHidden();
+
+  await page.getByRole('button', { name: /Name/ }).click();
+  await page.getByRole('link', { name: 'Weather API' }).click();
+  await expect(page).toHaveURL('/point-sources/weather');
+});
+
 /**
  * Purpose: Protects the complete point-source onboarding journey, including accessible
  * keyboard operation, server diagnostics, retry, persistence, and normalized reload.
@@ -90,7 +139,7 @@ test('catalogue and YAML editor support create, test, retry, and keyboard use', 
   // Expected outcome: The point-source catalogue is ready before creation begins.
   // Acceptance criteria: The "Point sources" heading is visible because keyboard navigation
   // to the creation route must start from the loaded catalogue rather than a transient state.
-  await expect(page.getByRole('heading', { name: 'Point sources' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Point sources', exact: true })).toBeVisible();
   await page.getByRole('link', { name: 'New source' }).press('Enter');
   // Monaco keeps its accessible textarea off-screen in Firefox while the
   // interactive editor surface remains visible and keyboard operable.

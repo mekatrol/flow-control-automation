@@ -54,7 +54,8 @@ const loading = ref(false);
 const visible = ref(false);
 const sampleSchema: JSONSchema = {};
 
-const yamlSectionPattern = /(?:^|\n)## YAML structure for this selection\s*\n+```yaml\s*\n([\s\S]*?)\n```\s*$/;
+const yamlSectionPattern =
+  /(?:^|\n)## YAML structure for this selection\s*\n+```yaml\s*\n([\s\S]*?)\n```\s*$/;
 const guidanceYaml = computed(() => yamlSectionPattern.exec(markdown.value)?.[1] ?? '');
 const proseMarkdown = computed(() => markdown.value.replace(yamlSectionPattern, '').trim());
 const sampleHeight = computed(
@@ -89,7 +90,10 @@ const renderedMarkdown = computed(() => {
     }
     if (/^\|(?:\s*:?-+:?\s*\|)+$/.test(line)) continue;
     if (line.startsWith('|')) {
-      const cells = line.slice(1, -1).split('|').map((cell) => `<td>${inline(cell.trim())}</td>`);
+      const cells = line
+        .slice(1, -1)
+        .split('|')
+        .map((cell) => `<td>${inline(cell.trim())}</td>`);
       if (!tableOpen) {
         output.push('<table><tbody>');
         tableOpen = true;
@@ -102,8 +106,10 @@ const renderedMarkdown = computed(() => {
       tableOpen = false;
     }
     const heading = /^(#{1,3})\s+(.+)$/.exec(line);
-    if (heading) output.push(`<h${heading[1]!.length}>${inline(heading[2]!)}</h${heading[1]!.length}>`);
-    else if (line.startsWith('> ')) output.push(`<blockquote>${inline(line.slice(2))}</blockquote>`);
+    if (heading)
+      output.push(`<h${heading[1]!.length}>${inline(heading[2]!)}</h${heading[1]!.length}>`);
+    else if (line.startsWith('> '))
+      output.push(`<blockquote>${inline(line.slice(2))}</blockquote>`);
     else if (line) output.push(`<p>${inline(line)}</p>`);
   }
   if (tableOpen) output.push('</tbody></table>');
@@ -161,15 +167,40 @@ onBeforeUnmount(() => {
   padding-block: var(--space-3);
   background: var(--color-surface-neutral);
 }
-.guidance-actions { display: flex; gap: var(--space-2); }
-.markdown :deep(table) { width: 100%; border-collapse: collapse; }
-.markdown :deep(td) { padding: var(--space-2); text-align: left; vertical-align: top; border-bottom: var(--border-width-default) solid var(--color-border-default); }
-.markdown :deep(td:first-child) { white-space: nowrap; }
-.markdown :deep(pre) { padding: var(--space-4); overflow: auto; background: var(--color-surface-sunken); }
-.yaml-sample { margin-top: var(--space-6); }
-:global(body.configuration-guidance-open .configuration-page.editor-page) { margin-right: min(38rem, 46vw); }
+.guidance-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+.markdown :deep(table) {
+  width: 100%;
+  border-collapse: collapse;
+}
+.markdown :deep(td) {
+  padding: var(--space-2);
+  text-align: left;
+  vertical-align: top;
+  border-bottom: var(--border-width-default) solid var(--color-border-default);
+}
+.markdown :deep(td:first-child) {
+  white-space: nowrap;
+}
+.markdown :deep(pre) {
+  padding: var(--space-4);
+  overflow: auto;
+  background: var(--color-surface-sunken);
+}
+.yaml-sample {
+  margin-top: var(--space-6);
+}
+:global(body.configuration-guidance-open .configuration-page.editor-page) {
+  margin-right: min(38rem, 46vw);
+}
 @media (max-width: 64rem) {
-  .guidance { width: min(30rem, 52vw); }
-  :global(body.configuration-guidance-open .configuration-page.editor-page) { margin-right: min(30rem, 52vw); }
+  .guidance {
+    width: min(30rem, 52vw);
+  }
+  :global(body.configuration-guidance-open .configuration-page.editor-page) {
+    margin-right: min(30rem, 52vw);
+  }
 }
 </style>

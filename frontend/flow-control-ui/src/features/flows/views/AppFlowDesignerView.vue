@@ -413,8 +413,12 @@ const isSimulatorWorkspace = computed(() => workspaceMode.value === WorkspaceMod
 const isDebuggerWorkspace = computed(() => workspaceMode.value === WorkspaceMode.Debugger);
 const canvasRuntime = execution.canvasRuntime;
 const simulatorIo = execution.io;
-const showCanvasDefaultValues = computed(() => isSimulatorWorkspace.value || isDebuggerWorkspace.value);
-const isDebugging = computed(() => ['ready', 'running', 'paused', 'stepping'].includes(execution.lifecycle.value));
+const showCanvasDefaultValues = computed(
+  () => isSimulatorWorkspace.value || isDebuggerWorkspace.value
+);
+const isDebugging = computed(() =>
+  ['ready', 'running', 'paused', 'stepping'].includes(execution.lifecycle.value)
+);
 const debugConnectorValues = computed(() => undefined);
 const debugLifecycle = computed(() =>
   execution.lifecycle.value === 'faulted'
@@ -432,21 +436,29 @@ const debugHost = computed<'server' | 'emulator' | 'controller'>(() => {
   const kind = selectedDebugTarget.value?.kind;
   return kind === 'emulator' || kind === 'controller' ? kind : 'server';
 });
-const debugCapabilities = computed(() => execution.capabilities.value ? ({
-  stepTick: execution.capabilities.value.canStepTick,
-  stepNode: execution.capabilities.value.canStepNode,
-  stepInstruction: execution.capabilities.value.canStepInstruction,
-  continue: execution.capabilities.value.canRun,
-  pause: execution.capabilities.value.canPause,
-  runTo: execution.capabilities.value.canRunTo,
-  maximumBreakpoints: 32,
-  maximumInspectableSlots: 256
-}) : undefined);
+const debugCapabilities = computed(() =>
+  execution.capabilities.value
+    ? {
+        stepTick: execution.capabilities.value.canStepTick,
+        stepNode: execution.capabilities.value.canStepNode,
+        stepInstruction: execution.capabilities.value.canStepInstruction,
+        continue: execution.capabilities.value.canRun,
+        pause: execution.capabilities.value.canPause,
+        runTo: execution.capabilities.value.canRunTo,
+        maximumBreakpoints: 32,
+        maximumInspectableSlots: 256
+      }
+    : undefined
+);
 const debugInspection = execution.inspection;
 const debugExecutionOrder = computed<string[]>(() => []);
 const debugBreakpoints = execution.breakpoints;
-const debugAffectedOutputPoints = computed(() => execution.context.value?.io?.liveOutputPointIds ?? []);
-const debugLiveOutputEnabled = computed(() => execution.context.value?.io?.liveOutputEnabled ?? false);
+const debugAffectedOutputPoints = computed(
+  () => execution.context.value?.io?.liveOutputPointIds ?? []
+);
+const debugLiveOutputEnabled = computed(
+  () => execution.context.value?.io?.liveOutputEnabled ?? false
+);
 const debugLiveOutputPriority = computed(() => undefined);
 const debugLiveOutputHoldMilliseconds = computed(() => undefined);
 const emulatorSnapshot = computed(() => undefined);
@@ -468,7 +480,10 @@ const stepDebugSession = execution.stepTick;
 const stepNodeDebugSession = execution.stepNode;
 const stepInstructionDebugSession = execution.stepInstruction;
 const runDebugSession = execution.run;
-const runToBreakpoint = async (): Promise<void> => { const value = debugBreakpoints.value[0]; if (value) await execution.runTo(value); };
+const runToBreakpoint = async (): Promise<void> => {
+  const value = debugBreakpoints.value[0];
+  if (value) await execution.runTo(value);
+};
 const pauseDebugSession = execution.pause;
 const stopDebugSession = execution.stop;
 const restartDebugSession = execution.restart;
