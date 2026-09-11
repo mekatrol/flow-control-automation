@@ -45,6 +45,7 @@
         </select>
       </div>
       <div class="editor-actions">
+        <AppConfigurationGuidance :type="guidanceType" :yaml="yaml" />
         <AppButton
           v-if="!readOnly"
           type="submit"
@@ -110,6 +111,9 @@
         <p v-if="pointTesting">{{ pointTesting === 'read' ? 'Reading' : 'Writing' }} point…</p>
         <p v-if="pointTestError" class="request-error" role="alert">{{ pointTestError }}</p>
         <template v-if="pointTestResult">
+          <p v-if="pointTestResult.diagnostic" class="request-error" role="alert">
+            {{ pointTestResult.diagnostic }}
+          </p>
           <div v-if="pointTestUrl" class="tested-request-url">
             <span>Request URL</span>
             <code>{{ pointTestUrl }}</code>
@@ -209,6 +213,8 @@ import AppButton from '@/components/AppButton.vue';
 import AppErrorNotice from '@/components/AppErrorNotice.vue';
 import AppSvg from '@/components/AppSvg.vue';
 import AppYamlEditor, { type YamlDiagnostic } from '@/components/AppYamlEditor.vue';
+import AppConfigurationGuidance from '@/features/configuration/components/AppConfigurationGuidance.vue';
+import type { ConfigurationGuidanceType } from '@/features/configuration/api/configurationGuidanceApi';
 import { EVENTS } from '@/constants/events';
 import {
   controllerTemplateConfigurationApi,
@@ -227,6 +233,13 @@ import { pointSourceApi, type PointTestResult } from '@/features/pointSources/ap
 
 type ResourceKind = 'point' | 'group' | 'controller';
 const props = defineProps<{ kind: ResourceKind; resourceId?: string }>();
+const guidanceType = computed<ConfigurationGuidanceType>(() =>
+  props.kind === 'group'
+    ? 'point-group'
+    : props.kind === 'controller'
+      ? 'controller-template'
+      : 'point'
+);
 const router = useRouter();
 const isNew = computed(() => !props.resourceId);
 const singularLabel = computed(() =>
@@ -503,8 +516,24 @@ const api = computed(() =>
       ? pointGroupConfigurationApi
       : controllerTemplateConfigurationApi
 );
-const resourceIdFromYaml = (): string =>
-  yaml.value.match(/(?:^|\n)(?:\s*-\s*)?id:\s*([a-z0-9-]+)/)?.[1] ?? '';
+const resourceIdFromYaml = (source = yaml.value): string => {
+  try {
+    const document = parse(source) as {
+      id?: unknown;
+      groups?: { id?: unknown }[];
+      points?: { id?: unknown }[];
+    };
+    const id =
+      props.kind === 'controller'
+        ? document.id
+        : props.kind === 'group'
+          ? document.groups?.[0]?.id
+          : document.points?.[0]?.id;
+    return typeof id === 'string' ? id : '';
+  } catch {
+    return '';
+  }
+};
 const useExample = (): void => {
   yaml.value =
     pointExamples.find(({ name }) => name === selectedExample.value)?.yaml ??
@@ -545,13 +574,17 @@ const save = async (): Promise<void> => {
   error.value = '';
   serverDiagnostics.value = [];
   try {
-    const savedResourceId = resourceIdFromYaml();
+    const requestedResourceId = resourceIdFromYaml();
+    if (!requestedResourceId) {
+      throw new Error(`The ${singularLabel.value} YAML must contain a valid id.`);
+    }
     const result = props.resourceId
       ? await api.value.update(props.resourceId, yaml.value, revision.value)
       : await api.value.create(yaml.value);
     yaml.value = baseline.value = result.yaml;
     revision.value = result.revision;
     status.value = `${singularLabel.value} saved.`;
+    const savedResourceId = resourceIdFromYaml(result.yaml) || requestedResourceId;
     if (!props.resourceId || savedResourceId !== props.resourceId) {
       allowNavigation = true;
       await router.replace({
@@ -631,9 +664,12 @@ const testPoint = async (operation: 'read' | 'write'): Promise<void> => {
       pointTestResult.value = {
         operation,
         value: result.value,
+        diagnostic: result.diagnostic || undefined,
         httpResponse: result.deviceResponse
       };
-      status.value = 'Point read test completed.';
+      status.value = result.diagnostic
+        ? 'Point read test completed with a data-mapping problem.'
+        : 'Point read test completed.';
       return;
     }
     let value: unknown;

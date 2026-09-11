@@ -19,6 +19,7 @@
     <div v-else class="source-editor-layout" :class="{ 'has-guidance': isNew }">
       <form @submit.prevent="save">
         <div class="editor-actions">
+          <AppConfigurationGuidance type="point-source" :yaml="yaml" />
           <AppButton
             type="submit"
             :text="saving ? 'Saving…' : 'Save'"
@@ -221,6 +222,7 @@ import testConnectionIcon from '@/assets/icons/test-connection-icon.svg';
 import AppButton from '@/components/AppButton.vue';
 import AppErrorNotice from '@/components/AppErrorNotice.vue';
 import AppYamlEditor, { type YamlDiagnostic } from '@/components/AppYamlEditor.vue';
+import AppConfigurationGuidance from '@/features/configuration/components/AppConfigurationGuidance.vue';
 import { EVENTS } from '@/constants/events';
 import {
   pointSourceApi,

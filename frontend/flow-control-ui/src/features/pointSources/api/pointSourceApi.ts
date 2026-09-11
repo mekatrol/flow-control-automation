@@ -39,6 +39,7 @@ export interface ConnectionTestResult {
 export interface PointTestResult {
   operation: 'read' | 'write';
   value: unknown;
+  diagnostic?: string;
   httpResponse: {
     statusCode: number;
     reasonPhrase?: string;

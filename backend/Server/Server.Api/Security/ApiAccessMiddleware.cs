@@ -75,6 +75,11 @@ public sealed class ApiAccessMiddleware(RequestDelegate next, IHostEnvironment e
             return request.Method == "GET" ? "contexts.view" : "contexts.edit";
         }
 
+        if (path.StartsWith("/api/configuration-guidance", StringComparison.Ordinal))
+        {
+            return "system.view";
+        }
+
         if (path.StartsWith("/api/points", StringComparison.Ordinal) || path.StartsWith("/api/point-groups", StringComparison.Ordinal))
         {
             return request.Method == "GET" ? "points.view" : "points.edit";

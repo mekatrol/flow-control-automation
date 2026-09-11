@@ -167,7 +167,11 @@ internal sealed class PointReadService(
 
             if (value is null)
             {
-                return Unavailable(point, "bad_data", $"JSON pointer '{pointer}' did not select a value.");
+                return Unavailable(
+                    point,
+                    "bad_data",
+                    $"JSON pointer '{pointer}' did not select a value.",
+                    result.Response);
             }
 
             var now = DateTimeOffset.UtcNow.ToString("O");
@@ -187,14 +191,19 @@ internal sealed class PointReadService(
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
-            return Unavailable(point, "bad_data", "HTTP/JSON response was not valid JSON for this mapping.");
+            return Unavailable(
+                point,
+                "bad_data",
+                "HTTP/JSON response was not valid JSON for this mapping.",
+                result.Response);
         }
     }
 
     private static PointRuntimeEnvelope Unavailable(
         AutomationPoint point,
         string reliability,
-        string diagnostic) =>
+        string diagnostic,
+        HttpResponsePreview? deviceResponse = null) =>
         new(
             point.Id,
             null,
@@ -203,9 +212,10 @@ internal sealed class PointReadService(
             reliability,
             null,
             null,
-            "disconnected",
+            deviceResponse is null ? "disconnected" : "connected",
             "unavailable",
-            diagnostic);
+            diagnostic,
+            deviceResponse);
 
     private static string SourceLabel(string kind) => kind switch
     {
