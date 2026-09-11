@@ -1,9 +1,6 @@
 import { waitForFetch } from '@/api/waitForFetch';
 
-export type ConfigurationGuidanceType =
-  | 'point'
-  | 'point-source'
-  | 'controller-template';
+export type ConfigurationGuidanceType = 'point' | 'point-source' | 'controller-template';
 
 export const fetchConfigurationGuidance = async (
   type: ConfigurationGuidanceType,

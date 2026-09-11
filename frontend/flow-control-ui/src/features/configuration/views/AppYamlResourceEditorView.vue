@@ -217,33 +217,26 @@ import {
   type ValidationDiagnostic,
   YamlResourceError
 } from '@/features/configuration/api/yamlResourceApi';
-import { controllerTemplateSchema, pointSchema } from '@/features/configuration/configurationSchemas';
+import {
+  controllerTemplateSchema,
+  pointSchema
+} from '@/features/configuration/configurationSchemas';
 import { pointSourceApi, type PointTestResult } from '@/features/pointSources/api/pointSourceApi';
 
 type ResourceKind = 'point' | 'controller';
 const props = defineProps<{ kind: ResourceKind; resourceId?: string }>();
 const guidanceType = computed<ConfigurationGuidanceType>(() =>
-  props.kind === 'controller'
-      ? 'controller-template'
-      : 'point'
+  props.kind === 'controller' ? 'controller-template' : 'point'
 );
 const router = useRouter();
 const isNew = computed(() => !props.resourceId);
-const singularLabel = computed(() =>
-  props.kind === 'point' ? 'point' : 'controller template'
-);
-const pluralLabel = computed(() =>
-  props.kind === 'point' ? 'Points' : 'Controller templates'
-);
-const listRoute = computed(() =>
-  props.kind === 'point' ? 'points' : 'controller-templates'
-);
+const singularLabel = computed(() => (props.kind === 'point' ? 'point' : 'controller template'));
+const pluralLabel = computed(() => (props.kind === 'point' ? 'Points' : 'Controller templates'));
+const listRoute = computed(() => (props.kind === 'point' ? 'points' : 'controller-templates'));
 const detailRoute = computed(() =>
   props.kind === 'point' ? 'point-detail' : 'controller-template-detail'
 );
-const schema = computed(() =>
-  props.kind === 'point' ? pointSchema : controllerTemplateSchema
-);
+const schema = computed(() => (props.kind === 'point' ? pointSchema : controllerTemplateSchema));
 const schemaUri = computed(() => schema.value.$id as string);
 const helpText = computed(() =>
   props.kind === 'point'
@@ -469,8 +462,7 @@ const resourceIdFromYaml = (source = yaml.value): string => {
       id?: unknown;
       points?: { id?: unknown }[];
     };
-    const id =
-      props.kind === 'controller' ? document.id : document.points?.[0]?.id;
+    const id = props.kind === 'controller' ? document.id : document.points?.[0]?.id;
     return typeof id === 'string' ? id : '';
   } catch {
     return '';
