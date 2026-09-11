@@ -163,10 +163,15 @@
           </label>
         </fieldset>
         <h3>{{ selectedExample.name }} YAML</h3>
-        <pre
-          tabindex="0"
-          :aria-label="`${selectedExample.name} example YAML`"
-        ><code>{{ selectedExample.yaml }}</code></pre>
+        <AppYamlEditor
+          :model-value="selectedExample.yaml"
+          :label="`${selectedExample.name} example YAML`"
+          help="Read-only example for the selected point-source type."
+          :schema="pointSourceSchema"
+          schema-uri="app://schemas/point-source-example-v1.json"
+          min-height="360px"
+          read-only
+        />
         <AppButton text="Use this example" :icon="checkIcon" @click="useSelectedExample" />
         <div v-if="selectedExample.kind === 'mqtt'" class="mqtt-credential-help">
           <h3>MQTT credentials</h3>
@@ -682,6 +687,10 @@ onBeforeUnmount(() => {
   margin-top: var(--space-1);
   color: var(--color-text-secondary);
   line-height: 1.35;
+}
+
+.source-guidance > .yaml-editor {
+  margin-bottom: var(--space-5-5);
 }
 
 .source-guidance pre {

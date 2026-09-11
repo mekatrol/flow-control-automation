@@ -155,7 +155,12 @@ test('catalogue and YAML editor support create, test, retry, and keyboard use', 
   // Expected outcome: Selecting MQTT presents a secure broker example.
   // Acceptance criteria: The MQTT example contains `brokerUrl: mqtts://` because the
   // starter configuration must demonstrate encrypted broker transport.
-  await expect(page.getByLabel('MQTT example YAML')).toContainText('brokerUrl: mqtts://');
+  const mqttExample = page.getByRole('group', { name: 'MQTT example YAML', exact: true });
+  await expect(mqttExample.locator('.monaco-editor')).toBeVisible({ timeout: 60_000 });
+  await expect(mqttExample.locator('.monaco-editor .view-lines')).toContainText(
+    'brokerUrl: mqtts://'
+  );
+  await expect(mqttExample.locator('textarea')).toHaveAttribute('readonly');
   await page.getByRole('button', { name: 'Use this example' }).click();
 
   // Expected outcome: Loading the MQTT example replaces the active editor configuration.
