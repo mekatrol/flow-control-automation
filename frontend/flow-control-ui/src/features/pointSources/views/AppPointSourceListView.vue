@@ -23,7 +23,7 @@
       :rows="rows"
       :query="query"
       :total-items="filteredSources.length"
-      :loading="loading"
+      :loading="isWaiting"
       :page-size-options="[10, 25, 50]"
       empty-message="No point sources found."
       @query-change="query = $event"
@@ -93,7 +93,6 @@ const columns: ListColumn<PointSourceRow>[] = [
 ];
 
 const sources = ref<PointSourceSummary[]>([]);
-const loading = ref(false);
 const error = ref('');
 const query = ref<ListQuery<PointSourceRow>>({
   page: 1,
@@ -103,7 +102,7 @@ const query = ref<ListQuery<PointSourceRow>>({
 });
 
 let controller: AbortController | undefined;
-const { withSpinner } = useWait();
+const { isWaiting, withSpinner } = useWait();
 
 const kindLabel = (kind: PointSourceKind): string =>
   ({ homeAssistant: 'Home Assistant', mqtt: 'MQTT', httpJson: 'HTTP/JSON' })[kind];
@@ -154,7 +153,6 @@ const load = async (): Promise<void> => {
       () => {
         controller?.abort();
         controller = requestController;
-        loading.value = true;
         error.value = '';
       },
       () => pointSourceApi.list(requestController.signal),
@@ -169,7 +167,6 @@ const load = async (): Promise<void> => {
   } finally {
     if (controller === requestController) {
       controller = undefined;
-      loading.value = false;
     }
   }
 };

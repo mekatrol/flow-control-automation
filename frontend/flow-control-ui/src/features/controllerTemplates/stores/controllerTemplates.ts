@@ -14,14 +14,13 @@ interface Page<T> {
 
 export const useControllerTemplatesStore = defineStore('controllerTemplates', () => {
   const allItems = ref<ControllerTemplateSummary[]>([]);
-  const loading = ref(false);
   const error = ref('');
   const filter = ref('');
   const page = ref(1);
   const pageSize = ref(10);
   let generation = 0;
   let controller: AbortController | undefined;
-  const { withSpinner } = useWait();
+  const { isWaiting, withSpinner } = useWait();
 
   const filtered = computed(() => {
     const needle = filter.value.trim().toLowerCase();
@@ -59,7 +58,6 @@ export const useControllerTemplatesStore = defineStore('controllerTemplates', ()
     try {
       await withSpinner(
         () => {
-          loading.value = true;
           error.value = '';
         },
         () => controllerTemplateApi.list(requestController.signal),
@@ -72,11 +70,10 @@ export const useControllerTemplatesStore = defineStore('controllerTemplates', ()
       error.value =
         reason instanceof Error ? reason.message : 'Unable to load controller templates.';
     } finally {
-      if (current === generation) loading.value = false;
       if (controller === requestController) controller = undefined;
     }
   };
 
   const cancel = (): void => controller?.abort();
-  return { allItems, filter, page, pageSize, result, loading, error, load, cancel };
+  return { allItems, filter, page, pageSize, result, loading: isWaiting, error, load, cancel };
 });

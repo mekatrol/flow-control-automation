@@ -139,7 +139,7 @@
         :workspace-mode="workspaceMode"
         :version-view="versionView"
         :saving="saving"
-        :loading="loading"
+        :loading="isWaiting"
         @save="saveFlow"
       />
 
@@ -249,7 +249,7 @@
       </div>
     </template>
 
-    <div v-else-if="!loading" class="not-found">
+    <div v-else-if="!isWaiting" class="not-found">
       <p>Flow not found</p>
       <h1>There is no flow named “{{ flowId }}”.</h1>
       <RouterLink :to="{ name: 'flows' }">Return to flows</RouterLink>
@@ -321,7 +321,7 @@ const props = defineProps<{
 }>();
 
 const flowStore = useFlowsStore();
-const { withSpinner } = useWait();
+const { isWaiting, withSpinner } = useWait();
 const runtimeStore = useFlowRuntimeStore();
 const workspaceMode = computed(() => props.workspaceMode);
 const flowId = computed(() => props.flowId);
@@ -364,7 +364,6 @@ const pointReferencesValid = computed(() => {
   const nodes = flow.value?.nodes.filter(isPointNode) ?? [];
   return nodes.every((node) => pointValidation.value[node.id] === 'valid');
 });
-const loading = ref(false);
 const saving = ref(false);
 const togglingDisabled = ref(false);
 const loadError = ref<string>();
@@ -678,7 +677,6 @@ const loadFlow = async (flowId: string): Promise<void> => {
         loadController = controller;
         versionView.value = VersionView.Draft;
         deployedFlow.value = undefined;
-        loading.value = true;
         loadError.value = undefined;
         flowStore.selectFlow(flowId);
       },
@@ -708,7 +706,6 @@ const loadFlow = async (flowId: string): Promise<void> => {
   } finally {
     if (loadController === controller) {
       loadController = undefined;
-      loading.value = false;
     }
   }
 };

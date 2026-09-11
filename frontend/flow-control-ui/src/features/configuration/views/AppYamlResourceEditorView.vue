@@ -34,7 +34,7 @@
         </li>
       </ul>
     </div>
-    <p v-if="loading" role="status">Loading {{ singularLabel }}…</p>
+    <p v-if="isWaiting" role="status">Loading {{ singularLabel }}…</p>
     <form v-else @submit.prevent="save">
       <div v-if="isNew && kind === 'point'" class="example-picker">
         <label for="point-example">Start with a point example</label>
@@ -383,7 +383,6 @@ const selectedExample = ref(pointExamples[0]!.name);
 const yaml = ref('');
 const baseline = ref('');
 const revision = ref(0);
-const loading = ref(false);
 const saving = ref(false);
 const validating = ref(false);
 const error = ref('');
@@ -412,7 +411,7 @@ let allowNavigation = false;
 let loadController: AbortController | undefined;
 let runtimeController: AbortController | undefined;
 let pointTestController: AbortController | undefined;
-const { withSpinner } = useWait();
+const { isWaiting, withSpinner } = useWait();
 const dirty = computed(() => yaml.value !== baseline.value);
 const busy = computed(() => saving.value || validating.value);
 const hasEditorErrors = computed(() =>
@@ -497,7 +496,6 @@ const load = async (): Promise<void> => {
         loadController?.abort();
         loadController = controller;
         apiError.value = '';
-        loading.value = true;
       },
       () => api.value.get(props.resourceId!, controller.signal),
       (result) => {
@@ -512,7 +510,6 @@ const load = async (): Promise<void> => {
   } finally {
     if (loadController === controller) {
       loadController = undefined;
-      loading.value = false;
     }
   }
 };
@@ -555,7 +552,7 @@ const save = async (): Promise<void> => {
 };
 useSaveShortcut(
   save,
-  () => !loading.value && !busy.value && !readOnly.value && !hasEditorErrors.value
+  () => !isWaiting.value && !busy.value && !readOnly.value && !hasEditorErrors.value
 );
 const validateTemplate = async (): Promise<void> => {
   try {

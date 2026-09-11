@@ -1,5 +1,5 @@
 <template>
-  <AppButton text="YAML help" :icon="helpIcon" :disabled="loading" @click="open" />
+  <AppButton text="YAML help" :icon="helpIcon" :disabled="isWaiting" @click="open" />
   <Teleport to="body">
     <aside v-if="visible" class="guidance" aria-label="YAML configuration guidance">
       <header>
@@ -8,18 +8,18 @@
           <AppButton
             text="Refresh guidance"
             :icon="refreshIcon"
-            :disabled="loading"
+            :disabled="isWaiting"
             @click="load"
           />
           <AppButton text="Close" :icon="closeIcon" @click="close" />
         </div>
       </header>
-      <p v-if="loading" role="status">Generating guidance…</p>
+      <p v-if="isWaiting" role="status">Generating guidance…</p>
       <p v-else-if="error" class="request-error" role="alert">{{ error }}</p>
       <!-- Server Markdown is escaped before the small supported formatting subset is applied. -->
       <!-- eslint-disable-next-line vue/no-v-html -->
       <div v-else class="markdown" v-html="renderedMarkdown"></div>
-      <section v-if="!loading && !error && guidanceYaml" class="yaml-sample">
+      <section v-if="!isWaiting && !error && guidanceYaml" class="yaml-sample">
         <AppYamlEditor
           :model-value="guidanceYaml"
           label="YAML structure for this selection"
@@ -51,7 +51,6 @@ import {
 const props = defineProps<{ type: ConfigurationGuidanceType; yaml: string }>();
 const markdown = ref('');
 const error = ref('');
-const loading = ref(false);
 const visible = ref(false);
 const sampleSchema: JSONSchema = {};
 
@@ -117,14 +116,13 @@ const renderedMarkdown = computed(() => {
   return output.join('');
 });
 
-const { withSpinner } = useWait();
+const { isWaiting, withSpinner } = useWait();
 
 const load = async (): Promise<void> => {
   try {
     await withSpinner(
       () => {
         error.value = '';
-        loading.value = true;
       },
       () => fetchConfigurationGuidance(props.type, props.yaml),
       (result) => {
@@ -133,8 +131,6 @@ const load = async (): Promise<void> => {
     );
   } catch (reason) {
     error.value = reason instanceof Error ? reason.message : 'Unable to load guidance.';
-  } finally {
-    loading.value = false;
   }
 };
 

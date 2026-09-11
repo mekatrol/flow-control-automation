@@ -23,7 +23,7 @@
           </div>
           <AppButton text="New credential" :icon="createIcon" @click="openCreateDialog" />
         </div>
-        <p v-if="loading" role="status">Loading credentials…</p>
+        <p v-if="isWaiting" role="status">Loading credentials…</p>
         <p v-else-if="credentials.length === 0" class="empty-state">
           No credentials have been created.
         </p>
@@ -190,7 +190,6 @@ import { EVENTS } from '@/constants/events';
 import { useWait } from '@/composables/useWait';
 
 const credentials = ref<CredentialMetadata[]>([]);
-const loading = ref(false);
 const saving = ref(false);
 const editing = ref(false);
 const error = ref('');
@@ -200,7 +199,7 @@ const tokenVisible = ref(false);
 const credentialDialog = ref<InstanceType<typeof AppDialog>>();
 const credentialDiscardDialog = ref<InstanceType<typeof AppPromptDialog>>();
 let controller: AbortController | undefined;
-const { withSpinner } = useWait();
+const { isWaiting, withSpinner } = useWait();
 const form = reactive<CredentialInput>({
   id: '',
   name: '',
@@ -312,7 +311,6 @@ const load = async (): Promise<void> => {
       () => {
         controller?.abort();
         controller = requestController;
-        loading.value = true;
       },
       () => credentialApi.list(requestController.signal),
       (result) => {
@@ -325,7 +323,6 @@ const load = async (): Promise<void> => {
   } finally {
     if (controller === requestController) {
       controller = undefined;
-      loading.value = false;
     }
   }
 };

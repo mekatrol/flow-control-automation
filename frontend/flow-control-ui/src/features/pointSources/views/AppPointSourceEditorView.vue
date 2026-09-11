@@ -15,7 +15,7 @@
       </div>
     </div>
 
-    <p v-if="loading" role="status">Loading source…</p>
+    <p v-if="isWaiting" role="status">Loading source…</p>
     <div v-else class="source-editor-layout" :class="{ 'has-guidance': isNew }">
       <form @submit.prevent="save">
         <div class="editor-actions">
@@ -323,7 +323,6 @@ const example = selectedExample.value.yaml;
 const yaml = ref(example);
 const baseline = ref(example);
 const revision = ref(0);
-const loading = ref(false);
 const saving = ref(false);
 const testing = ref(false);
 const error = ref('');
@@ -446,7 +445,7 @@ const pointTestSchema = {
 let loadController: AbortController | undefined;
 let testController: AbortController | undefined;
 let allowNavigation = false;
-const { withSpinner } = useWait();
+const { isWaiting, withSpinner } = useWait();
 const dirty = computed(() => yaml.value !== baseline.value);
 const useSelectedExample = (): void => {
   yaml.value = selectedExample.value.yaml;
@@ -465,7 +464,6 @@ const load = async (): Promise<void> => {
       () => {
         loadController?.abort();
         loadController = controller;
-        loading.value = true;
       },
       () => pointSourceApi.get(props.sourceId!, controller.signal),
       (result) => {
@@ -480,7 +478,6 @@ const load = async (): Promise<void> => {
   } finally {
     if (loadController === controller) {
       loadController = undefined;
-      loading.value = false;
     }
   }
 };
@@ -515,7 +512,7 @@ const save = async (): Promise<void> => {
     saving.value = false;
   }
 };
-useSaveShortcut(save, () => !loading.value && !saving.value && !hasEditorErrors.value);
+useSaveShortcut(save, () => !isWaiting.value && !saving.value && !hasEditorErrors.value);
 const testConnection = async (): Promise<void> => {
   const controller = new AbortController();
   try {
