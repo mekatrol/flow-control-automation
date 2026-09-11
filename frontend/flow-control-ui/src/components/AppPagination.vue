@@ -14,7 +14,7 @@
       {{ totalItems }}
     </p>
 
-    <nav aria-label="Table pagination">
+    <nav :aria-label="ariaLabel">
       <AppButton
         text="Previous page"
         :icon="chevronLeftIcon"

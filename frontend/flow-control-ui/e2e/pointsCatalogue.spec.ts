@@ -67,12 +67,12 @@ test('navigates, filters, pages and remains keyboard usable after reload', async
   // Expected outcome: `page.getByRole('heading', { name: 'Points' })` is visible to the user.
   // Acceptance criteria: `page.getByRole('heading', { name: 'Points' })` must be visible, because this condition proves that
   // navigates, filters, pages and remains keyboard usable after reload.
-  await expect(page.getByRole('heading', { name: 'Points' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Points', exact: true })).toBeVisible();
 
-  // Expected outcome: `page.getByRole('region', { name: 'Configured points table' })` is visible to the user.
-  // Acceptance criteria: `page.getByRole('region', { name: 'Configured points table' })` must be visible, because this condition proves that
+  // Expected outcome: `page.getByRole('region', { name: 'Configured points' })` is visible to the user.
+  // Acceptance criteria: `page.getByRole('region', { name: 'Configured points' })` must be visible, because this condition proves that
   // navigates, filters, pages and remains keyboard usable after reload.
-  await expect(page.getByRole('region', { name: 'Configured points table' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Configured points' })).toBeVisible();
 
   // Expected outcome: `(await new AxeBuilder({ page }` matches the required structure.
   // Acceptance criteria: `(await new AxeBuilder({ page }` must equal `[]`, because this condition proves that
@@ -89,34 +89,34 @@ test('navigates, filters, pages and remains keyboard usable after reload', async
   // navigates, filters, pages and remains keyboard usable after reload.
   await expect(page.getByText('Inherited from group')).toBeVisible();
 
-  await page.getByRole('button', { name: 'Next page' }).focus();
+  await page.getByRole('navigation', { name: 'Top list pagination' }).getByRole('button', { name: 'Next page' }).focus();
   await page.keyboard.press('Enter');
 
   // Expected outcome: `page.getByRole('rowheader', { name: /Point 11/ })` is visible to the user.
   // Acceptance criteria: `page.getByRole('rowheader', { name: /Point 11/ })` must be visible, because this condition proves that
   // navigates, filters, pages and remains keyboard usable after reload.
-  await expect(page.getByRole('rowheader', { name: /Point 11/ })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Point 11' })).toBeVisible();
 
-  const filter = page.getByLabel('Filter points');
+  const filter = page.getByLabel('Filter list');
   await filter.fill('Point 03');
-  await page.getByRole('button', { name: 'Apply filter' }).press('Enter');
+  await page.getByRole('button', { name: 'Apply' }).press('Enter');
 
   // Expected outcome: `page.getByRole('rowheader', { name: /Point 03/ })` is visible to the user.
   // Acceptance criteria: `page.getByRole('rowheader', { name: /Point 03/ })` must be visible, because this condition proves that
   // navigates, filters, pages and remains keyboard usable after reload.
-  await expect(page.getByRole('rowheader', { name: /Point 03/ })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Point 03' })).toBeVisible();
 
   // Expected outcome: `page.getByRole('rowheader', { name: /Point 01/ })` is not exposed to the user.
   // Acceptance criteria: `page.getByRole('rowheader', { name: /Point 01/ })` must be hidden, because this condition proves that
   // navigates, filters, pages and remains keyboard usable after reload.
-  await expect(page.getByRole('rowheader', { name: /Point 01/ })).toBeHidden();
+  await expect(page.getByRole('link', { name: 'Point 01' })).toBeHidden();
 
   await page.reload();
 
   // Expected outcome: `page.getByRole('heading', { name: 'Points' })` is visible to the user.
   // Acceptance criteria: `page.getByRole('heading', { name: 'Points' })` must be visible, because this condition proves that
   // navigates, filters, pages and remains keyboard usable after reload.
-  await expect(page.getByRole('heading', { name: 'Points' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Points', exact: true })).toBeVisible();
   // Edge can restore focus to the control that was active before a reload. Clear
   // that browser-managed state so Tab starts at the document's first focusable item.
   await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
