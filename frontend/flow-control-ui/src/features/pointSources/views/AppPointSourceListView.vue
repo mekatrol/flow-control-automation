@@ -13,10 +13,6 @@
         <h1>Point sources</h1>
         <p>Define reusable, read-only connections before mapping points.</p>
       </div>
-      <RouterLink class="primary-link" :to="{ name: 'point-source-new' }">
-        <AppSvg :src="newIcon" size="1em" />
-        New source
-      </RouterLink>
     </div>
 
     <AppListView
@@ -32,6 +28,18 @@
       empty-message="No point sources found."
       @query-change="query = $event"
     >
+      <template #column-header-name-pre>
+        <AppButton
+          type="button"
+          class="add-point-source-btn"
+          text="Add point source"
+          :icon="newIcon"
+          aria-label="Add a new point source"
+          hide-text
+          @click="$router.push({ name: 'point-source-new' })"
+        />
+      </template>
+
       <template #cell-name="{ row }">
         <RouterLink :to="{ name: 'point-source-detail', params: { sourceId: row.id } }">
           {{ row.name }}
@@ -55,9 +63,9 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
 import newIcon from '@/assets/icons/new-icon.svg';
+import AppButton from '@/components/AppButton.vue';
 import AppErrorNotice from '@/components/AppErrorNotice.vue';
 import AppListView from '@/components/list-view/AppListView.vue';
-import AppSvg from '@/components/AppSvg.vue';
 import { EVENTS } from '@/constants/events';
 import {
   pointSourceApi,
@@ -179,5 +187,9 @@ small {
 .status.enabled {
   color: var(--color-action-primary-strong);
   background: var(--color-action-primary-surface);
+}
+
+.add-point-source-btn {
+  margin-right: 0.5rem;
 }
 </style>

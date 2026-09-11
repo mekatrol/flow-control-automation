@@ -140,13 +140,13 @@ test('catalogue and YAML editor support create, test, retry, and keyboard use', 
   // Acceptance criteria: The "Point sources" heading is visible because keyboard navigation
   // to the creation route must start from the loaded catalogue rather than a transient state.
   await expect(page.getByRole('heading', { name: 'Point sources', exact: true })).toBeVisible();
-  await page.getByRole('link', { name: 'New source' }).press('Enter');
+  await page.getByRole('button', { name: 'Add a new point source' }).press('Enter');
   // Monaco keeps its accessible textarea off-screen in Firefox while the
   // interactive editor surface remains visible and keyboard operable.
 
   // Expected outcome: The new-source route presents its YAML editor.
   // Acceptance criteria: Monaco is visible because source configuration must be available
-  // for review and editing after keyboard activation of the "New source" link.
+  // for review and editing after keyboard activation of the add-source button.
   await expect(sourceEditor.locator('.monaco-editor')).toBeVisible({
     timeout: 60_000
   });

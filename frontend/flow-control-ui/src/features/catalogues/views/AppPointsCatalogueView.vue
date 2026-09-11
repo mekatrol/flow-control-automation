@@ -13,10 +13,6 @@
         <h1 id="points-heading">Points</h1>
         <p>Review automation points, their sources, and their capabilities.</p>
       </div>
-      <RouterLink class="primary-link" :to="{ name: 'point-new' }">
-        <AppSvg :src="newIcon" size="1em" />
-        New point
-      </RouterLink>
     </div>
 
     <AppListView
@@ -32,6 +28,18 @@
       empty-message="No points found."
       @query-change="updateQuery"
     >
+      <template #column-header-name-pre>
+        <AppButton
+          type="button"
+          class="add-point-btn"
+          text="Add point"
+          :icon="newIcon"
+          aria-label="Add a new point"
+          hide-text
+          @click="$router.push({ name: 'point-new' })"
+        />
+      </template>
+
       <template #cell-name="{ row }">
         <RouterLink :to="{ name: 'point-detail', params: { resourceId: row.id } }">
           {{ row.name }}
@@ -55,9 +63,9 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
 import newIcon from '@/assets/icons/new-icon.svg';
+import AppButton from '@/components/AppButton.vue';
 import AppErrorNotice from '@/components/AppErrorNotice.vue';
 import AppListView from '@/components/list-view/AppListView.vue';
-import AppSvg from '@/components/AppSvg.vue';
 import { EVENTS } from '@/constants/events';
 import type { PointSummary } from '@/features/catalogues/api/catalogueDto';
 import { usePointsCatalogueStore } from '@/features/catalogues/stores/catalogues';
@@ -154,5 +162,9 @@ onBeforeUnmount(store.cancel);
 .status.enabled {
   color: var(--color-action-primary-strong);
   background: var(--color-action-primary-surface);
+}
+
+.add-point-btn {
+  margin-right: 0.5rem;
 }
 </style>

@@ -64,6 +64,8 @@ describe('PointsCatalogueView', () => {
     // renders a semantic, keyboard-reachable table with point relationships.
     expect(wrapper.get('table caption').text()).toContain('Configured points');
 
+    expect(wrapper.get('thead th button').attributes('aria-label')).toBe('Add a new point');
+
     expect(wrapper.get('tbody td').text()).toContain('Temperature');
     expect(wrapper.text()).toContain('building-controller');
 
