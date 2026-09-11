@@ -119,7 +119,7 @@
         :compiling="compiling"
         :deploying="deploying"
         :saving="saving"
-        :loading="controllerTemplates.loading"
+        :loading="isWaiting"
         :toggling-disabled="togglingDisabled"
         :runtime-state="runtime?.state"
         :workspace-mode="workspaceMode"

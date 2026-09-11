@@ -20,7 +20,7 @@ export const useControllerTemplatesStore = defineStore('controllerTemplates', ()
   const pageSize = ref(10);
   let generation = 0;
   let controller: AbortController | undefined;
-  const { isWaiting, withSpinner } = useWait();
+  const { withSpinner } = useWait();
 
   const filtered = computed(() => {
     const needle = filter.value.trim().toLowerCase();
@@ -75,5 +75,5 @@ export const useControllerTemplatesStore = defineStore('controllerTemplates', ()
   };
 
   const cancel = (): void => controller?.abort();
-  return { allItems, filter, page, pageSize, result, loading: isWaiting, error, load, cancel };
+  return { allItems, filter, page, pageSize, result, error, load, cancel };
 });
