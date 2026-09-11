@@ -96,26 +96,22 @@ export default defineConfig(({ command }) => ({
     chunkSizeBudgetPlugin()
   ],
   optimizeDeps: {
-    // The E2E suite opens several lazy routes in parallel. If Vite discovers a
-    // new dependency after a test has started interacting with a page, its
-    // optimizer forces a full-page reload and destroys transient UI state such
-    // as the selected designer node. Serve undiscovered dependencies directly
-    // during E2E runs so browser interactions are never interrupted by a
-    // development-only optimizer reload.
+    // The YAML editor is behind lazy routes. Declare its dependencies up front so
+    // opening an editor for the first time does not make Vite re-optimize and
+    // force a full-page reload. During E2E runs, also serve any dependencies that
+    // are not in this list directly so parallel browser interactions stay intact.
     noDiscovery: Boolean(process.env.FLOW_UI_E2E),
-    include: process.env.FLOW_UI_E2E
-      ? [
-          'vue',
-          'pinia',
-          'vue-router',
-          'yaml',
-          'monaco-yaml',
-          'monaco-yaml/yaml.worker.js',
-          'monaco-editor/esm/vs/editor/editor.worker',
-          'monaco-editor/esm/vs/editor/editor.main',
-          'monaco-editor/esm/vs/basic-languages/yaml/yaml.contribution'
-        ]
-      : undefined
+    include: [
+      'vue',
+      'pinia',
+      'vue-router',
+      'yaml',
+      'monaco-yaml',
+      'monaco-yaml/yaml.worker.js',
+      'monaco-editor/esm/vs/editor/editor.worker',
+      'monaco-editor/esm/vs/editor/editor.main',
+      'monaco-editor/esm/vs/basic-languages/yaml/yaml.contribution'
+    ]
   },
   build: {
     // Per-chunk budgets are enforced by chunkSizeBudgetPlugin. Keep Vite's
