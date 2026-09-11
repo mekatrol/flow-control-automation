@@ -1,5 +1,5 @@
 <template>
-  <AppButton text="YAML help" :icon="helpIcon" :disabled="isWaiting" @click="open" />
+  <AppButton text="YAML help" :icon="helpIcon" :disabled="isSpinnerVisible" @click="open" />
   <Teleport to="body">
     <aside v-if="visible" class="guidance" aria-label="YAML configuration guidance">
       <header>
@@ -8,18 +8,18 @@
           <AppButton
             text="Refresh guidance"
             :icon="refreshIcon"
-            :disabled="isWaiting"
+            :disabled="isSpinnerVisible"
             @click="load"
           />
           <AppButton text="Close" :icon="closeIcon" @click="close" />
         </div>
       </header>
-      <p v-if="isWaiting" role="status">Generating guidance…</p>
+      <p v-if="isSpinnerVisible" role="status">Generating guidance…</p>
       <p v-else-if="error" class="request-error" role="alert">{{ error }}</p>
       <!-- Server Markdown is escaped before the small supported formatting subset is applied. -->
       <!-- eslint-disable-next-line vue/no-v-html -->
       <div v-else class="markdown" v-html="renderedMarkdown"></div>
-      <section v-if="!isWaiting && !error && guidanceYaml" class="yaml-sample">
+      <section v-if="!isSpinnerVisible && !error && guidanceYaml" class="yaml-sample">
         <AppYamlEditor
           :model-value="guidanceYaml"
           label="YAML structure for this selection"
@@ -36,7 +36,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from 'vue';
-import { useWait } from '@/composables/useWait';
+import { useSpinner } from '@/composables/useSpinner';
 import AppButton from '@/components/AppButton.vue';
 import AppYamlEditor from '@/components/AppYamlEditor.vue';
 import type { JSONSchema } from '@/components/yaml/MonacoYaml';
@@ -116,7 +116,7 @@ const renderedMarkdown = computed(() => {
   return output.join('');
 });
 
-const { isWaiting, withSpinner } = useWait();
+const { isSpinnerVisible, withSpinner } = useSpinner();
 
 const load = async (): Promise<void> => {
   try {

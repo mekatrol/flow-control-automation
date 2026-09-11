@@ -1,6 +1,6 @@
 import { getActivePinia } from 'pinia';
 import { getApiKey } from '@/config/apiAccess';
-import { useWaitStore } from '@/stores/wait';
+import { useSpinnerStore } from '@/stores/spinner';
 
 export const waitForFetch = async (
   input: RequestInfo | URL,
@@ -17,11 +17,11 @@ export const waitForFetch = async (
   const pinia = getActivePinia();
   if (!pinia || options.trackWait === false) return fetch(input, authenticatedInit);
 
-  const waitStore = useWaitStore(pinia);
-  waitStore.wait();
+  const spinnerStore = useSpinnerStore(pinia);
+  spinnerStore.showSpinner();
   try {
     return await fetch(input, authenticatedInit);
   } finally {
-    waitStore.endWait();
+    spinnerStore.hideSpinner();
   }
 };

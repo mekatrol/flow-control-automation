@@ -23,7 +23,7 @@
           </div>
           <AppButton text="New credential" :icon="createIcon" @click="openCreateDialog" />
         </div>
-        <p v-if="isWaiting" role="status">Loading credentials…</p>
+        <p v-if="isSpinnerVisible" role="status">Loading credentials…</p>
         <p v-else-if="credentials.length === 0" class="empty-state">
           No credentials have been created.
         </p>
@@ -187,7 +187,7 @@ import AppErrorNotice from '@/components/AppErrorNotice.vue';
 import AppForm from '@/components/AppForm.vue';
 import AppPromptDialog from '@/components/AppPromptDialog.vue';
 import { EVENTS } from '@/constants/events';
-import { useWait } from '@/composables/useWait';
+import { useSpinner } from '@/composables/useSpinner';
 
 const credentials = ref<CredentialMetadata[]>([]);
 const saving = ref(false);
@@ -199,7 +199,7 @@ const tokenVisible = ref(false);
 const credentialDialog = ref<InstanceType<typeof AppDialog>>();
 const credentialDiscardDialog = ref<InstanceType<typeof AppPromptDialog>>();
 let controller: AbortController | undefined;
-const { isWaiting, withSpinner } = useWait();
+const { isSpinnerVisible, withSpinner } = useSpinner();
 const form = reactive<CredentialInput>({
   id: '',
   name: '',

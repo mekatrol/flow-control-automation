@@ -1,7 +1,7 @@
 <template>
   <Transition name="spinner-overlay">
     <div
-      v-if="isWaiting"
+      v-if="isSpinnerVisible"
       class="spinner-overlay"
       role="status"
       aria-live="polite"
@@ -14,9 +14,9 @@
 </template>
 
 <script setup lang="ts">
-import { useWait } from '@/composables/useWait';
+import { useSpinner } from '@/composables/useSpinner';
 
-const { isWaiting } = useWait();
+const { isSpinnerVisible } = useSpinner();
 </script>
 
 <style scoped>

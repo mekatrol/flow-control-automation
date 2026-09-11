@@ -23,7 +23,7 @@
       :rows="rows"
       :query="query"
       :total-items="filteredSources.length"
-      :loading="isWaiting"
+      :loading="isSpinnerVisible"
       :page-size-options="[10, 25, 50]"
       empty-message="No point sources found."
       @query-change="query = $event"
@@ -67,7 +67,7 @@ import AppButton from '@/components/AppButton.vue';
 import AppErrorNotice from '@/components/AppErrorNotice.vue';
 import AppListView from '@/components/list-view/AppListView.vue';
 import { EVENTS } from '@/constants/events';
-import { useWait } from '@/composables/useWait';
+import { useSpinner } from '@/composables/useSpinner';
 import {
   pointSourceApi,
   type PointSourceKind,
@@ -102,7 +102,7 @@ const query = ref<ListQuery<PointSourceRow>>({
 });
 
 let controller: AbortController | undefined;
-const { isWaiting, withSpinner } = useWait();
+const { isSpinnerVisible, withSpinner } = useSpinner();
 
 const kindLabel = (kind: PointSourceKind): string =>
   ({ homeAssistant: 'Home Assistant', mqtt: 'MQTT', httpJson: 'HTTP/JSON' })[kind];

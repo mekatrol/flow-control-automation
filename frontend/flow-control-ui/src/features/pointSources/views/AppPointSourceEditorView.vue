@@ -15,7 +15,7 @@
       </div>
     </div>
 
-    <p v-if="isWaiting" role="status">Loading source…</p>
+    <p v-if="isSpinnerVisible" role="status">Loading source…</p>
     <div v-else class="source-editor-layout" :class="{ 'has-guidance': isNew }">
       <form @submit.prevent="save">
         <div class="editor-actions">
@@ -212,7 +212,7 @@ import {
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { parse } from 'yaml';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
-import { useWait } from '@/composables/useWait';
+import { useSpinner } from '@/composables/useSpinner';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
 import cancelIcon from '@/assets/icons/cancel-icon.svg';
 import checkIcon from '@/assets/icons/check-icon.svg';
@@ -445,7 +445,7 @@ const pointTestSchema = {
 let loadController: AbortController | undefined;
 let testController: AbortController | undefined;
 let allowNavigation = false;
-const { isWaiting, withSpinner } = useWait();
+const { isSpinnerVisible, withSpinner } = useSpinner();
 const dirty = computed(() => yaml.value !== baseline.value);
 const useSelectedExample = (): void => {
   yaml.value = selectedExample.value.yaml;
@@ -512,7 +512,7 @@ const save = async (): Promise<void> => {
     saving.value = false;
   }
 };
-useSaveShortcut(save, () => !isWaiting.value && !saving.value && !hasEditorErrors.value);
+useSaveShortcut(save, () => !isSpinnerVisible.value && !saving.value && !hasEditorErrors.value);
 const testConnection = async (): Promise<void> => {
   const controller = new AbortController();
   try {

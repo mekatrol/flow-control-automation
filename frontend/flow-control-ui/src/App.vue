@@ -8,7 +8,7 @@
     <button type="submit">Continue</button>
     <p v-if="authenticationError" role="alert">{{ authenticationError }}</p>
   </form>
-  <div v-else class="app-content" :inert="isWaiting || undefined">
+  <div v-else class="app-content" :inert="isSpinnerVisible || undefined">
     <RouterView />
   </div>
   <AppSpinnerOverlay />
@@ -16,11 +16,11 @@
 
 <script setup lang="ts">
 import AppSpinnerOverlay from '@/components/AppSpinnerOverlay.vue';
-import { useWait } from '@/composables/useWait';
+import { useSpinner } from '@/composables/useSpinner';
 import { getApiKey, removeStoredApiKey, storeApiKey } from '@/config/apiAccess';
 import { ref } from 'vue';
 
-const { isWaiting } = useWait();
+const { isSpinnerVisible } = useSpinner();
 const authenticated = ref(Boolean(getApiKey()));
 const apiKey = ref('');
 const authenticationError = ref('');

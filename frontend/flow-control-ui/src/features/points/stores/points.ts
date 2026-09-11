@@ -2,7 +2,7 @@ import { ref, shallowRef } from 'vue';
 import { defineStore } from 'pinia';
 import { PointApiError, pointApi, type PointQuery } from '@/features/points/api/pointApi';
 import type { Page, PointSummary } from '@/features/points/api/pointDto';
-import { useWait } from '@/composables/useWait';
+import { useSpinner } from '@/composables/useSpinner';
 
 const initialPage = (): Page<PointSummary> => ({
   items: [],
@@ -18,7 +18,7 @@ export const usePointsStore = defineStore('points', () => {
   const errorStatus = ref<number>();
   let generation = 0;
   let controller: AbortController | undefined;
-  const { withSpinner } = useWait();
+  const { withSpinner } = useSpinner();
 
   const load = async (query: PointQuery): Promise<void> => {
     const current = ++generation;

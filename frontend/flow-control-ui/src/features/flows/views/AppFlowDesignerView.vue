@@ -119,7 +119,7 @@
         :compiling="compiling"
         :deploying="deploying"
         :saving="saving"
-        :loading="isWaiting"
+        :loading="isSpinnerVisible"
         :toggling-disabled="togglingDisabled"
         :runtime-state="runtime?.state"
         :workspace-mode="workspaceMode"
@@ -139,7 +139,7 @@
         :workspace-mode="workspaceMode"
         :version-view="versionView"
         :saving="saving"
-        :loading="isWaiting"
+        :loading="isSpinnerVisible"
         @save="saveFlow"
       />
 
@@ -249,7 +249,7 @@
       </div>
     </template>
 
-    <div v-else-if="!isWaiting" class="not-found">
+    <div v-else-if="!isSpinnerVisible" class="not-found">
       <p>Flow not found</p>
       <h1>There is no flow named “{{ flowId }}”.</h1>
       <RouterLink :to="{ name: 'flows' }">Return to flows</RouterLink>
@@ -260,7 +260,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
-import { useWait } from '@/composables/useWait';
+import { useSpinner } from '@/composables/useSpinner';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
 import { ROUTE_NAMES } from '@/router';
 
@@ -321,7 +321,7 @@ const props = defineProps<{
 }>();
 
 const flowStore = useFlowsStore();
-const { isWaiting, withSpinner } = useWait();
+const { isSpinnerVisible, withSpinner } = useSpinner();
 const runtimeStore = useFlowRuntimeStore();
 const workspaceMode = computed(() => props.workspaceMode);
 const flowId = computed(() => props.flowId);

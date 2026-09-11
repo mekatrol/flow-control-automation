@@ -7,7 +7,7 @@
       @[EVENTS.RETRY]="loadFlows"
     />
 
-    <p v-if="isWaiting" class="request-status" role="status">Loading flows…</p>
+    <p v-if="isSpinnerVisible" class="request-status" role="status">Loading flows…</p>
 
     <div v-if="!error" class="flow-results">
       <p v-if="totalItems === 0 && hasActiveFilters" class="empty-state" role="status">
@@ -26,7 +26,7 @@
         :rename-value="renameValue"
         :renaming="renaming"
         :toggling-disabled-id="togglingDisabledId"
-        :loading="isWaiting"
+        :loading="isSpinnerVisible"
         @[EVENTS.TOGGLE_SORT]="toggleSortDirection"
         @update:filter="query = $event"
         @update:statuses="statusFilters = $event"
@@ -131,7 +131,7 @@ import {
 } from '@/features/flows/api/flowApi';
 import AppFlowTable from '@/features/flows/components/AppFlowTable.vue';
 import { useFlowsStore } from '@/features/flows/stores/flows';
-import { useWait } from '@/composables/useWait';
+import { useSpinner } from '@/composables/useSpinner';
 
 const route = useRoute();
 const router = useRouter();
@@ -258,7 +258,7 @@ const closeDeleteConfirmation = (): void => {
   confirmingDeleteId.value = undefined;
 };
 
-const { isWaiting, withSpinner } = useWait();
+const { isSpinnerVisible, withSpinner } = useSpinner();
 
 const loadFlows = async (): Promise<void> => {
   const controller = new AbortController();

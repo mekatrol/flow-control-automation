@@ -16,7 +16,7 @@
       :rows="rows"
       :query="query"
       :total-items="store.result.totalItems"
-      :loading="isWaiting"
+      :loading="isSpinnerVisible"
       empty-message="No points found."
       @query-change="updateQuery"
     >
@@ -61,7 +61,7 @@ import AppListView from '@/components/list-view/AppListView.vue';
 import { EVENTS } from '@/constants/events';
 import type { PointSummary } from '@/features/points/api/pointDto';
 import { usePointsStore } from '@/features/points/stores/points';
-import { useWait } from '@/composables/useWait';
+import { useSpinner } from '@/composables/useSpinner';
 import type { ListColumn, ListQuery, ListRow } from '@/models';
 
 interface PointRow extends ListRow {
@@ -88,7 +88,7 @@ const columns: ListColumn<PointRow>[] = [
   { key: 'status', label: 'Status', width: '9rem' }
 ];
 
-const { isWaiting } = useWait();
+const { isSpinnerVisible } = useSpinner();
 
 const store = usePointsStore();
 const query = ref<ListQuery<PointRow>>({

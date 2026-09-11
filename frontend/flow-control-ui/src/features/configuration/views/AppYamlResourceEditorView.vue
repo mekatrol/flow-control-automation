@@ -34,7 +34,7 @@
         </li>
       </ul>
     </div>
-    <p v-if="isWaiting" role="status">Loading {{ singularLabel }}…</p>
+    <p v-if="isSpinnerVisible" role="status">Loading {{ singularLabel }}…</p>
     <form v-else @submit.prevent="save">
       <div v-if="isNew && kind === 'point'" class="example-picker">
         <label for="point-example">Start with a point example</label>
@@ -195,7 +195,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { parse } from 'yaml';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
-import { useWait } from '@/composables/useWait';
+import { useSpinner } from '@/composables/useSpinner';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
 import checkIcon from '@/assets/icons/check-icon.svg';
 import deleteIcon from '@/assets/icons/delete-flow-icon.svg';
@@ -411,7 +411,7 @@ let allowNavigation = false;
 let loadController: AbortController | undefined;
 let runtimeController: AbortController | undefined;
 let pointTestController: AbortController | undefined;
-const { isWaiting, withSpinner } = useWait();
+const { isSpinnerVisible, withSpinner } = useSpinner();
 const dirty = computed(() => yaml.value !== baseline.value);
 const busy = computed(() => saving.value || validating.value);
 const hasEditorErrors = computed(() =>
@@ -552,7 +552,7 @@ const save = async (): Promise<void> => {
 };
 useSaveShortcut(
   save,
-  () => !isWaiting.value && !busy.value && !readOnly.value && !hasEditorErrors.value
+  () => !isSpinnerVisible.value && !busy.value && !readOnly.value && !hasEditorErrors.value
 );
 const validateTemplate = async (): Promise<void> => {
   try {

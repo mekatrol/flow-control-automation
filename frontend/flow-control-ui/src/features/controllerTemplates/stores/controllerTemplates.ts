@@ -2,7 +2,7 @@ import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
 import { controllerTemplateApi } from '@/features/controllerTemplates/api/controllerTemplateApi';
 import type { ControllerTemplateSummary } from '@/features/controllerTemplates/api/controllerTemplateDto';
-import { useWait } from '@/composables/useWait';
+import { useSpinner } from '@/composables/useSpinner';
 
 interface Page<T> {
   items: T[];
@@ -20,7 +20,7 @@ export const useControllerTemplatesStore = defineStore('controllerTemplates', ()
   const pageSize = ref(10);
   let generation = 0;
   let controller: AbortController | undefined;
-  const { withSpinner } = useWait();
+  const { withSpinner } = useSpinner();
 
   const filtered = computed(() => {
     const needle = filter.value.trim().toLowerCase();

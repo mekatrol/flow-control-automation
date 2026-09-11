@@ -25,7 +25,7 @@
       </label>
     </AppFilter>
 
-    <p v-if="isWaiting" role="status">Loading controller templates…</p>
+    <p v-if="isSpinnerVisible" role="status">Loading controller templates…</p>
     <p
       v-else-if="!store.error && store.result.items.length === 0"
       class="empty-state"
@@ -94,12 +94,12 @@ import AppSvg from '@/components/AppSvg.vue';
 import AppTable from '@/components/AppTable.vue';
 import AppPagination from '@/components/AppPagination.vue';
 import { EVENTS } from '@/constants/events';
-import { useWait } from '@/composables/useWait';
+import { useSpinner } from '@/composables/useSpinner';
 import type { ControllerTemplateSummary } from '@/features/controllerTemplates/api/controllerTemplateDto';
 import { useControllerTemplatesStore } from '@/features/controllerTemplates/stores/controllerTemplates';
 
 const store = useControllerTemplatesStore();
-const { isWaiting } = useWait();
+const { isSpinnerVisible } = useSpinner();
 const filter = ref(store.filter);
 const list = (values: string[]): string =>
   values

@@ -1,12 +1,12 @@
 import { storeToRefs } from 'pinia';
 import type { ComputedRef, Ref } from 'vue';
-import { useWaitStore } from '@/stores/wait';
+import { useSpinnerStore } from '@/stores/spinner';
 
-interface WaitControls {
-  waitCount: Ref<number>;
-  isWaiting: ComputedRef<boolean>;
-  wait: () => void;
-  endWait: () => void;
+interface SpinnerControls {
+  spinnerWaitingCount: Ref<number>;
+  isSpinnerVisible: ComputedRef<boolean>;
+  showSpinner: () => void;
+  hideSpinner: () => void;
   withSpinner: <T>(
     pre: (() => void | Promise<void>) | null,
     call: () => T | Promise<T>,
@@ -14,16 +14,16 @@ interface WaitControls {
   ) => Promise<T>;
 }
 
-export const useWait = (): WaitControls => {
-  const store = useWaitStore();
-  const { waitCount, isWaiting } = storeToRefs(store);
+export const useSpinner = (): SpinnerControls => {
+  const store = useSpinnerStore();
+  const { spinnerWaitingCount, isSpinnerVisible } = storeToRefs(store);
 
   const withSpinner = async <T>(
     pre: (() => void | Promise<void>) | null,
     call: () => T | Promise<T>,
     post: ((result: T) => void | Promise<void>) | null
   ): Promise<T> => {
-    store.wait();
+    store.showSpinner();
     try {
       const preResult = pre?.();
       if (preResult) await preResult;
@@ -31,15 +31,15 @@ export const useWait = (): WaitControls => {
       await post?.(result);
       return result;
     } finally {
-      store.endWait();
+      store.hideSpinner();
     }
   };
 
   return {
-    waitCount,
-    isWaiting,
-    wait: store.wait,
-    endWait: store.endWait,
+    spinnerWaitingCount,
+    isSpinnerVisible,
+    showSpinner: store.showSpinner,
+    hideSpinner: store.hideSpinner,
     withSpinner
   };
 };

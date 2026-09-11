@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import App from '@/App.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { useWait } from '@/composables/useWait';
+import { useSpinner } from '@/composables/useSpinner';
 
 const FlowListStub = { template: '<h1>Flows</h1>' };
 
@@ -64,25 +64,25 @@ describe('App', () => {
     expect(wrapper.get('main h1').text()).toBe('Flows');
   });
 
-  it('blocks the application while any operation is waiting', async () => {
+  it('blocks the application while the spinner is visible', async () => {
     const pinia = createPinia();
     const wrapper = mount(App, {
       global: { plugins: [pinia], stubs: { RouterView: true } }
     });
-    const { wait, endWait } = useWait();
+    const { showSpinner, hideSpinner } = useSpinner();
 
-    wait();
-    wait();
+    showSpinner();
+    showSpinner();
     await wrapper.vm.$nextTick();
 
     expect(wrapper.get('.spinner-overlay').attributes('role')).toBe('status');
     expect(wrapper.get('.app-content').attributes()).toHaveProperty('inert');
 
-    endWait();
+    hideSpinner();
     await wrapper.vm.$nextTick();
     expect(wrapper.find('.spinner-overlay').exists()).toBe(true);
 
-    endWait();
+    hideSpinner();
     await wrapper.vm.$nextTick();
     expect(wrapper.find('.spinner-overlay').exists()).toBe(false);
     expect(wrapper.get('.app-content').attributes()).not.toHaveProperty('inert');

@@ -4,7 +4,7 @@ import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { waitForFetch } from '@/api/waitForFetch';
-import { useWaitStore } from '@/stores/wait';
+import { useSpinnerStore } from '@/stores/spinner';
 
 describe('waitForFetch', () => {
   beforeEach(() => {
@@ -23,40 +23,40 @@ describe('waitForFetch', () => {
           })
       )
     );
-    const store = useWaitStore();
+    const store = useSpinnerStore();
 
     const first = waitForFetch('/first');
     const second = waitForFetch('/second');
-    expect(store.waitCount).toBe(2);
+    expect(store.spinnerWaitingCount).toBe(2);
 
     resolvers[0]!(new Response());
     await first;
-    expect(store.waitCount).toBe(1);
-    expect(store.isWaiting).toBe(true);
+    expect(store.spinnerWaitingCount).toBe(1);
+    expect(store.isSpinnerVisible).toBe(true);
 
     resolvers[1]!(new Response());
     await second;
-    expect(store.waitCount).toBe(0);
-    expect(store.isWaiting).toBe(false);
+    expect(store.spinnerWaitingCount).toBe(0);
+    expect(store.isSpinnerVisible).toBe(false);
   });
 
   it('ends the wait when fetch rejects', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Network unavailable')));
-    const store = useWaitStore();
+    const store = useSpinnerStore();
 
     await expect(waitForFetch('/flows')).rejects.toThrow('Network unavailable');
 
-    expect(store.waitCount).toBe(0);
-    expect(store.isWaiting).toBe(false);
+    expect(store.spinnerWaitingCount).toBe(0);
+    expect(store.isSpinnerVisible).toBe(false);
   });
 
   it('allows background polling without changing the global wait state', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response()));
-    const store = useWaitStore();
+    const store = useSpinnerStore();
 
     await waitForFetch('/poll', undefined, { trackWait: false });
 
-    expect(store.waitCount).toBe(0);
-    expect(store.isWaiting).toBe(false);
+    expect(store.spinnerWaitingCount).toBe(0);
+    expect(store.isSpinnerVisible).toBe(false);
   });
 });
