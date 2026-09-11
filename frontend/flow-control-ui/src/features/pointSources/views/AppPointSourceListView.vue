@@ -67,6 +67,7 @@ import AppButton from '@/components/AppButton.vue';
 import AppErrorNotice from '@/components/AppErrorNotice.vue';
 import AppListView from '@/components/list-view/AppListView.vue';
 import { EVENTS } from '@/constants/events';
+import { useWait } from '@/composables/useWait';
 import {
   pointSourceApi,
   type PointSourceKind,
@@ -102,6 +103,7 @@ const query = ref<ListQuery<PointSourceRow>>({
 });
 
 let controller: AbortController | undefined;
+const { withSpinner } = useWait();
 
 const kindLabel = (kind: PointSourceKind): string =>
   ({ homeAssistant: 'Home Assistant', mqtt: 'MQTT', httpJson: 'HTTP/JSON' })[kind];
@@ -145,19 +147,30 @@ const formatDate = (value: string): string =>
   );
 
 const load = async (): Promise<void> => {
-  controller?.abort();
-  controller = new AbortController();
-  loading.value = true;
-  error.value = '';
+  const requestController = new AbortController();
 
   try {
-    sources.value = (await pointSourceApi.list(controller.signal)).items;
+    await withSpinner(
+      () => {
+        controller?.abort();
+        controller = requestController;
+        loading.value = true;
+        error.value = '';
+      },
+      () => pointSourceApi.list(requestController.signal),
+      (result) => {
+        if (controller === requestController) sources.value = result.items;
+      }
+    );
   } catch (reason) {
-    if (!controller.signal.aborted) {
+    if (controller === requestController && !requestController.signal.aborted) {
       error.value = reason instanceof Error ? reason.message : 'Unable to load point sources';
     }
   } finally {
-    loading.value = false;
+    if (controller === requestController) {
+      controller = undefined;
+      loading.value = false;
+    }
   }
 };
 

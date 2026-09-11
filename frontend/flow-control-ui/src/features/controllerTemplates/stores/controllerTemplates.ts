@@ -2,6 +2,7 @@ import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
 import { controllerTemplateApi } from '@/features/controllerTemplates/api/controllerTemplateApi';
 import type { ControllerTemplateSummary } from '@/features/controllerTemplates/api/controllerTemplateDto';
+import { useWait } from '@/composables/useWait';
 
 interface Page<T> {
   items: T[];
@@ -20,6 +21,7 @@ export const useControllerTemplatesStore = defineStore('controllerTemplates', ()
   const pageSize = ref(10);
   let generation = 0;
   let controller: AbortController | undefined;
+  const { withSpinner } = useWait();
 
   const filtered = computed(() => {
     const needle = filter.value.trim().toLowerCase();
@@ -49,20 +51,29 @@ export const useControllerTemplatesStore = defineStore('controllerTemplates', ()
   });
 
   const load = async (): Promise<void> => {
+    const requestController = new AbortController();
     const current = ++generation;
     controller?.abort();
-    controller = new AbortController();
-    loading.value = true;
-    error.value = '';
+    controller = requestController;
+
     try {
-      const items = await controllerTemplateApi.list(controller.signal);
-      if (current === generation) allItems.value = items;
+      await withSpinner(
+        () => {
+          loading.value = true;
+          error.value = '';
+        },
+        () => controllerTemplateApi.list(requestController.signal),
+        (items) => {
+          if (current === generation) allItems.value = items;
+        }
+      );
     } catch (reason) {
-      if (current !== generation || controller.signal.aborted) return;
+      if (current !== generation || requestController.signal.aborted) return;
       error.value =
         reason instanceof Error ? reason.message : 'Unable to load controller templates.';
     } finally {
       if (current === generation) loading.value = false;
+      if (controller === requestController) controller = undefined;
     }
   };
 

@@ -212,6 +212,7 @@ import {
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { parse } from 'yaml';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
+import { useWait } from '@/composables/useWait';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
 import cancelIcon from '@/assets/icons/cancel-icon.svg';
 import checkIcon from '@/assets/icons/check-icon.svg';
@@ -445,6 +446,7 @@ const pointTestSchema = {
 let loadController: AbortController | undefined;
 let testController: AbortController | undefined;
 let allowNavigation = false;
+const { withSpinner } = useWait();
 const dirty = computed(() => yaml.value !== baseline.value);
 const useSelectedExample = (): void => {
   yaml.value = selectedExample.value.yaml;
@@ -457,34 +459,56 @@ onBeforeRouteLeave(
 );
 const load = async (): Promise<void> => {
   if (!props.sourceId) return;
-  loadController = new AbortController();
-  loading.value = true;
+  const controller = new AbortController();
   try {
-    const result = await pointSourceApi.get(props.sourceId, loadController.signal);
-    yaml.value = baseline.value = result.yaml;
-    revision.value = result.revision;
+    await withSpinner(
+      () => {
+        loadController?.abort();
+        loadController = controller;
+        loading.value = true;
+      },
+      () => pointSourceApi.get(props.sourceId!, controller.signal),
+      (result) => {
+        if (loadController !== controller) return;
+        yaml.value = baseline.value = result.yaml;
+        revision.value = result.revision;
+      }
+    );
   } catch (reason) {
-    if (!loadController.signal.aborted)
+    if (loadController === controller && !controller.signal.aborted)
       error.value = reason instanceof Error ? reason.message : 'Unable to load source';
   } finally {
-    loading.value = false;
+    if (loadController === controller) {
+      loadController = undefined;
+      loading.value = false;
+    }
   }
 };
 const save = async (): Promise<void> => {
-  saving.value = true;
-  error.value = '';
   try {
-    const result = props.sourceId
-      ? await pointSourceApi.update(props.sourceId, yaml.value, revision.value)
-      : await pointSourceApi.create(yaml.value);
-    yaml.value = baseline.value = result.yaml;
-    revision.value = result.revision;
-    status.value = 'Point source saved.';
-    if (!props.sourceId) {
-      const match = yaml.value.match(/\bid:\s*([^\s]+)/);
-      allowNavigation = true;
-      await router.replace({ name: 'point-source-detail', params: { sourceId: match?.[1] ?? '' } });
-    }
+    await withSpinner(
+      () => {
+        saving.value = true;
+        error.value = '';
+      },
+      () =>
+        props.sourceId
+          ? pointSourceApi.update(props.sourceId, yaml.value, revision.value)
+          : pointSourceApi.create(yaml.value),
+      async (result) => {
+        yaml.value = baseline.value = result.yaml;
+        revision.value = result.revision;
+        status.value = 'Point source saved.';
+        if (!props.sourceId) {
+          const match = yaml.value.match(/\bid:\s*([^\s]+)/);
+          allowNavigation = true;
+          await router.replace({
+            name: 'point-source-detail',
+            params: { sourceId: match?.[1] ?? '' }
+          });
+        }
+      }
+    );
   } catch (reason) {
     error.value = reason instanceof Error ? reason.message : 'Unable to save source';
   } finally {
@@ -493,18 +517,28 @@ const save = async (): Promise<void> => {
 };
 useSaveShortcut(save, () => !loading.value && !saving.value && !hasEditorErrors.value);
 const testConnection = async (): Promise<void> => {
-  testController?.abort();
-  testController = new AbortController();
-  testing.value = true;
-  error.value = '';
-  testError.value = '';
-  testResult.value = undefined;
-  status.value = 'Connection test started.';
+  const controller = new AbortController();
   try {
-    testResult.value = await pointSourceApi.test(yaml.value, testController.signal);
-    status.value = `Connection test ${testResult.value.status}.`;
+    await withSpinner(
+      () => {
+        testController?.abort();
+        testController = controller;
+        testing.value = true;
+        error.value = '';
+        testError.value = '';
+        testResult.value = undefined;
+        status.value = 'Connection test started.';
+      },
+      () => pointSourceApi.test(yaml.value, controller.signal),
+      (result) => {
+        if (testController !== controller) return;
+        testResult.value = result;
+        status.value = `Connection test ${result.status}.`;
+      }
+    );
   } catch (reason) {
-    if (testController.signal.aborted) {
+    if (testController !== controller) return;
+    if (controller.signal.aborted) {
       status.value = 'Connection test cancelled.';
       testError.value = 'The connection test was cancelled.';
     } else {
@@ -512,16 +546,15 @@ const testConnection = async (): Promise<void> => {
       status.value = `Connection test failed: ${testError.value}`;
     }
   } finally {
-    testing.value = false;
+    if (testController === controller) {
+      testController = undefined;
+      testing.value = false;
+    }
   }
 };
 const cancelTest = (): void => testController?.abort();
 const testPoint = async (operation: 'read' | 'write'): Promise<void> => {
-  pointTestController?.abort();
-  pointTestController = new AbortController();
-  pointTesting.value = operation;
-  pointTestResult.value = undefined;
-  pointTestError.value = '';
+  const controller = new AbortController();
   try {
     let value: unknown;
     if (operation === 'write') {
@@ -531,29 +564,46 @@ const testPoint = async (operation: 'read' | 'write'): Promise<void> => {
         value = writeValue.value;
       }
     }
-    pointTestResult.value = await pointSourceApi.testPoint(
-      yaml.value,
-      pointYaml.value,
-      operation,
-      value,
-      pointTestController.signal,
-      { trackWait: false }
+    await withSpinner(
+      () => {
+        pointTestController?.abort();
+        pointTestController = controller;
+        pointTesting.value = operation;
+        pointTestResult.value = undefined;
+        pointTestError.value = '';
+      },
+      () =>
+        pointSourceApi.testPoint(yaml.value, pointYaml.value, operation, value, controller.signal, {
+          trackWait: false
+        }),
+      (result) => {
+        if (pointTestController !== controller) return;
+        pointTestResult.value = result;
+        status.value = `Point ${operation} test completed.`;
+      }
     );
-    status.value = `Point ${operation} test completed.`;
   } catch (reason) {
-    if (!pointTestController.signal.aborted)
+    if (pointTestController === controller && !controller.signal.aborted)
       pointTestError.value =
         reason instanceof Error ? reason.message : `Unable to ${operation} point`;
   } finally {
-    pointTesting.value = undefined;
+    if (pointTestController === controller) {
+      pointTestController = undefined;
+      pointTesting.value = undefined;
+    }
   }
 };
 const remove = async (): Promise<void> => {
   if (!props.sourceId || !window.confirm('Delete this point source?')) return;
   try {
-    await pointSourceApi.delete(props.sourceId, revision.value);
-    allowNavigation = true;
-    await router.push({ name: 'point-sources' });
+    await withSpinner(
+      null,
+      () => pointSourceApi.delete(props.sourceId!, revision.value),
+      async () => {
+        allowNavigation = true;
+        await router.push({ name: 'point-sources' });
+      }
+    );
   } catch (reason) {
     error.value = reason instanceof Error ? reason.message : 'Unable to delete source';
   }

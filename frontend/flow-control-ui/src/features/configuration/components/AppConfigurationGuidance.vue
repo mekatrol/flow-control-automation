@@ -36,6 +36,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from 'vue';
+import { useWait } from '@/composables/useWait';
 import AppButton from '@/components/AppButton.vue';
 import AppYamlEditor from '@/components/AppYamlEditor.vue';
 import type { JSONSchema } from '@/components/yaml/MonacoYaml';
@@ -116,11 +117,20 @@ const renderedMarkdown = computed(() => {
   return output.join('');
 });
 
+const { withSpinner } = useWait();
+
 const load = async (): Promise<void> => {
-  error.value = '';
-  loading.value = true;
   try {
-    markdown.value = await fetchConfigurationGuidance(props.type, props.yaml);
+    await withSpinner(
+      () => {
+        error.value = '';
+        loading.value = true;
+      },
+      () => fetchConfigurationGuidance(props.type, props.yaml),
+      (result) => {
+        markdown.value = result;
+      }
+    );
   } catch (reason) {
     error.value = reason instanceof Error ? reason.message : 'Unable to load guidance.';
   } finally {

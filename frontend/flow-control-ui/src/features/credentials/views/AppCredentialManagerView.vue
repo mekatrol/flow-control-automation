@@ -187,6 +187,7 @@ import AppErrorNotice from '@/components/AppErrorNotice.vue';
 import AppForm from '@/components/AppForm.vue';
 import AppPromptDialog from '@/components/AppPromptDialog.vue';
 import { EVENTS } from '@/constants/events';
+import { useWait } from '@/composables/useWait';
 
 const credentials = ref<CredentialMetadata[]>([]);
 const loading = ref(false);
@@ -199,6 +200,7 @@ const tokenVisible = ref(false);
 const credentialDialog = ref<InstanceType<typeof AppDialog>>();
 const credentialDiscardDialog = ref<InstanceType<typeof AppPromptDialog>>();
 let controller: AbortController | undefined;
+const { withSpinner } = useWait();
 const form = reactive<CredentialInput>({
   id: '',
   name: '',
@@ -304,32 +306,48 @@ const discardCredentialChanges = (): void => {
 };
 
 const load = async (): Promise<void> => {
-  controller?.abort();
-  controller = new AbortController();
-  loading.value = true;
+  const requestController = new AbortController();
   try {
-    credentials.value = await credentialApi.list(controller.signal);
+    await withSpinner(
+      () => {
+        controller?.abort();
+        controller = requestController;
+        loading.value = true;
+      },
+      () => credentialApi.list(requestController.signal),
+      (result) => {
+        if (controller === requestController) credentials.value = result;
+      }
+    );
   } catch (reason) {
-    if (!controller.signal.aborted)
+    if (controller === requestController && !requestController.signal.aborted)
       error.value = reason instanceof Error ? reason.message : 'Unable to load credentials';
   } finally {
-    loading.value = false;
+    if (controller === requestController) {
+      controller = undefined;
+      loading.value = false;
+    }
   }
 };
 
 const save = async (): Promise<void> => {
-  saving.value = true;
-  error.value = '';
   try {
-    const saved = editing.value
-      ? await credentialApi.update({ ...form })
-      : await credentialApi.create({ ...form });
-    status.value = editing.value
-      ? 'Credential updated. Sensitive values remain hidden.'
-      : 'Credential created. Sensitive values are now hidden.';
-    await load();
-    beginEdit(saved);
-    closeCredentialDialog();
+    await withSpinner(
+      () => {
+        saving.value = true;
+        error.value = '';
+      },
+      () =>
+        editing.value ? credentialApi.update({ ...form }) : credentialApi.create({ ...form }),
+      async (saved) => {
+        status.value = editing.value
+          ? 'Credential updated. Sensitive values remain hidden.'
+          : 'Credential created. Sensitive values are now hidden.';
+        await load();
+        beginEdit(saved);
+        closeCredentialDialog();
+      }
+    );
   } catch (reason) {
     error.value = reason instanceof Error ? reason.message : 'Unable to save credential';
   } finally {
@@ -341,11 +359,16 @@ const save = async (): Promise<void> => {
 const remove = async (): Promise<void> => {
   if (!form.revision || !window.confirm(`Delete credential “${form.name}”?`)) return;
   try {
-    await credentialApi.delete(form.id, form.revision);
-    status.value = 'Credential deleted.';
-    beginCreate();
-    await load();
-    closeCredentialDialog();
+    await withSpinner(
+      null,
+      () => credentialApi.delete(form.id, form.revision!),
+      async () => {
+        status.value = 'Credential deleted.';
+        beginCreate();
+        await load();
+        closeCredentialDialog();
+      }
+    );
   } catch (reason) {
     error.value = reason instanceof Error ? reason.message : 'Unable to delete credential';
   }

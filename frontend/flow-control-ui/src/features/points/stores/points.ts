@@ -18,26 +18,30 @@ export const usePointsStore = defineStore('points', () => {
   const errorStatus = ref<number>();
   let generation = 0;
   let controller: AbortController | undefined;
-  const { wait, endWait } = useWait();
+  const { withSpinner } = useWait();
 
   const load = async (query: PointQuery): Promise<void> => {
     const current = ++generation;
     controller?.abort();
-    controller = new AbortController();
-    error.value = '';
-    errorStatus.value = undefined;
-    wait();
+    const requestController = new AbortController();
+    controller = requestController;
     try {
-      const next = await pointApi.list(query, controller.signal);
-      if (current === generation) result.value = next;
+      await withSpinner(
+        () => {
+          error.value = '';
+          errorStatus.value = undefined;
+        },
+        () => pointApi.list(query, requestController.signal),
+        (next) => {
+          if (current === generation) result.value = next;
+        }
+      );
     } catch (reason) {
-      if (current !== generation || controller.signal.aborted) return;
+      if (current !== generation || requestController.signal.aborted) return;
       error.value = reason instanceof Error ? reason.message : 'Unable to load points.';
       errorStatus.value = reason instanceof PointApiError ? reason.status : undefined;
     } finally {
-      if (current === generation) { 
-        endWait();
-      }
+      if (controller === requestController) controller = undefined;
     }
   };
 

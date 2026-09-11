@@ -195,6 +195,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { parse } from 'yaml';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
+import { useWait } from '@/composables/useWait';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
 import checkIcon from '@/assets/icons/check-icon.svg';
 import deleteIcon from '@/assets/icons/delete-flow-icon.svg';
@@ -411,6 +412,7 @@ let allowNavigation = false;
 let loadController: AbortController | undefined;
 let runtimeController: AbortController | undefined;
 let pointTestController: AbortController | undefined;
+const { withSpinner } = useWait();
 const dirty = computed(() => yaml.value !== baseline.value);
 const busy = computed(() => saving.value || validating.value);
 const hasEditorErrors = computed(() =>
@@ -488,44 +490,63 @@ const showFailure = async (reason: unknown, fallback: string): Promise<void> => 
 const load = async (): Promise<void> => {
   yaml.value = baseline.value = initial.value;
   if (!props.resourceId) return;
-  apiError.value = '';
-  loadController = new AbortController();
-  loading.value = true;
+  const controller = new AbortController();
   try {
-    const result = await api.value.get(props.resourceId, loadController.signal);
-    yaml.value = baseline.value = result.yaml;
-    revision.value = result.revision;
+    await withSpinner(
+      () => {
+        loadController?.abort();
+        loadController = controller;
+        apiError.value = '';
+        loading.value = true;
+      },
+      () => api.value.get(props.resourceId!, controller.signal),
+      (result) => {
+        if (loadController !== controller) return;
+        yaml.value = baseline.value = result.yaml;
+        revision.value = result.revision;
+      }
+    );
   } catch (reason) {
-    if (!loadController.signal.aborted)
+    if (loadController === controller && !controller.signal.aborted)
       await showFailure(reason, `Unable to load ${singularLabel.value}`);
   } finally {
-    loading.value = false;
+    if (loadController === controller) {
+      loadController = undefined;
+      loading.value = false;
+    }
   }
 };
 const save = async (): Promise<void> => {
-  apiError.value = '';
-  saving.value = true;
-  error.value = '';
-  serverDiagnostics.value = [];
   try {
     const requestedResourceId = resourceIdFromYaml();
     if (!requestedResourceId) {
       throw new Error(`The ${singularLabel.value} YAML must contain a valid id.`);
     }
-    const result = props.resourceId
-      ? await api.value.update(props.resourceId, yaml.value, revision.value)
-      : await api.value.create(yaml.value);
-    yaml.value = baseline.value = result.yaml;
-    revision.value = result.revision;
-    status.value = `${singularLabel.value} saved.`;
-    const savedResourceId = resourceIdFromYaml(result.yaml) || requestedResourceId;
-    if (!props.resourceId || savedResourceId !== props.resourceId) {
-      allowNavigation = true;
-      await router.replace({
-        name: detailRoute.value,
-        params: { resourceId: savedResourceId }
-      });
-    }
+    await withSpinner(
+      () => {
+        apiError.value = '';
+        saving.value = true;
+        error.value = '';
+        serverDiagnostics.value = [];
+      },
+      () =>
+        props.resourceId
+          ? api.value.update(props.resourceId, yaml.value, revision.value)
+          : api.value.create(yaml.value),
+      async (result) => {
+        yaml.value = baseline.value = result.yaml;
+        revision.value = result.revision;
+        status.value = `${singularLabel.value} saved.`;
+        const savedResourceId = resourceIdFromYaml(result.yaml) || requestedResourceId;
+        if (!props.resourceId || savedResourceId !== props.resourceId) {
+          allowNavigation = true;
+          await router.replace({
+            name: detailRoute.value,
+            params: { resourceId: savedResourceId }
+          });
+        }
+      }
+    );
   } catch (reason) {
     await showFailure(reason, `Unable to save ${singularLabel.value}`);
   } finally {
@@ -537,17 +558,23 @@ useSaveShortcut(
   () => !loading.value && !busy.value && !readOnly.value && !hasEditorErrors.value
 );
 const validateTemplate = async (): Promise<void> => {
-  apiError.value = '';
-  validating.value = true;
-  error.value = '';
   try {
-    const diagnostics = await controllerTemplateConfigurationApi.validate(yaml.value);
-    serverDiagnostics.value = diagnostics;
-    if (diagnostics.length) {
-      error.value = 'Controller template validation found problems.';
-      await nextTick();
-      errorSummary.value?.focus();
-    } else status.value = 'Controller template YAML is valid.';
+    await withSpinner(
+      () => {
+        apiError.value = '';
+        validating.value = true;
+        error.value = '';
+      },
+      () => controllerTemplateConfigurationApi.validate(yaml.value),
+      async (diagnostics) => {
+        serverDiagnostics.value = diagnostics;
+        if (diagnostics.length) {
+          error.value = 'Controller template validation found problems.';
+          await nextTick();
+          errorSummary.value?.focus();
+        } else status.value = 'Controller template YAML is valid.';
+      }
+    );
   } catch (reason) {
     await showFailure(reason, 'Unable to validate controller template');
   } finally {
@@ -567,62 +594,68 @@ const testPoint = async (operation: 'read' | 'write'): Promise<void> => {
   );
   pointTesting.value = operation;
   try {
-    if (!sourceId) {
-      pointTestError.value = 'The point YAML must reference a point source with sourceId.';
-      return;
-    }
-    const source = await pointSourceApi.get(sourceId, pointTestController.signal, {
-      trackWait: false
-    });
-    const parsedSource = parse(source.yaml) as {
-      sources?: { connection?: { baseUrl?: string } }[];
-    };
-    const baseUrl = parsedSource.sources?.[0]?.connection?.baseUrl;
-    const path = pointDefinition.value?.mapping?.path;
-    if (baseUrl && path) {
-      try {
-        pointTestUrl.value = new URL(path, baseUrl).toString();
-      } catch {
-        pointTestUrl.value = `${baseUrl.replace(/\/$/, '')}/${path.replace(/^\//, '')}`;
-      }
-    }
-    if (operation === 'read' && props.resourceId) {
-      const result = await pointConfigurationApi.runtime(
-        props.resourceId,
-        pointTestController.signal,
-        { trackWait: false }
-      );
-      if (!result.deviceResponse) {
-        throw new Error(result.diagnostic || 'The point device did not return an HTTP response.');
-      }
-      pointTestResult.value = {
-        operation,
-        value: result.value,
-        diagnostic: result.diagnostic || undefined,
-        httpResponse: result.deviceResponse
-      };
-      status.value = result.diagnostic
-        ? 'Point read test completed with a data-mapping problem.'
-        : 'Point read test completed.';
-      return;
-    }
-    let value: unknown;
-    if (operation === 'write') {
-      try {
-        value = JSON.parse(pointWriteValue.value);
-      } catch {
-        value = pointWriteValue.value;
-      }
-    }
-    pointTestResult.value = await pointSourceApi.testPoint(
-      source.yaml,
-      yaml.value,
-      operation,
-      value,
-      pointTestController.signal,
-      { trackWait: false }
+    await withSpinner(
+      null,
+      async () => {
+        if (!sourceId) {
+          pointTestError.value = 'The point YAML must reference a point source with sourceId.';
+          return;
+        }
+        const source = await pointSourceApi.get(sourceId, pointTestController!.signal, {
+          trackWait: false
+        });
+        const parsedSource = parse(source.yaml) as {
+          sources?: { connection?: { baseUrl?: string } }[];
+        };
+        const baseUrl = parsedSource.sources?.[0]?.connection?.baseUrl;
+        const path = pointDefinition.value?.mapping?.path;
+        if (baseUrl && path) {
+          try {
+            pointTestUrl.value = new URL(path, baseUrl).toString();
+          } catch {
+            pointTestUrl.value = `${baseUrl.replace(/\/$/, '')}/${path.replace(/^\//, '')}`;
+          }
+        }
+        if (operation === 'read' && props.resourceId) {
+          const result = await pointConfigurationApi.runtime(
+            props.resourceId,
+            pointTestController!.signal,
+            { trackWait: false }
+          );
+          if (!result.deviceResponse) {
+            throw new Error(result.diagnostic || 'The point device did not return an HTTP response.');
+          }
+          pointTestResult.value = {
+            operation,
+            value: result.value,
+            diagnostic: result.diagnostic || undefined,
+            httpResponse: result.deviceResponse
+          };
+          status.value = result.diagnostic
+            ? 'Point read test completed with a data-mapping problem.'
+            : 'Point read test completed.';
+          return;
+        }
+        let value: unknown;
+        if (operation === 'write') {
+          try {
+            value = JSON.parse(pointWriteValue.value);
+          } catch {
+            value = pointWriteValue.value;
+          }
+        }
+        pointTestResult.value = await pointSourceApi.testPoint(
+          source.yaml,
+          yaml.value,
+          operation,
+          value,
+          pointTestController!.signal,
+          { trackWait: false }
+        );
+        status.value = `Point ${operation} test completed.`;
+      },
+      null
     );
-    status.value = `Point ${operation} test completed.`;
   } catch (reason) {
     pointTestError.value = pointTestController.signal.aborted
       ? pointTestController.signal.reason === 'Point test stopped by user.'
@@ -648,9 +681,14 @@ const remove = async (): Promise<void> => {
   if (!props.resourceId || !window.confirm(`Delete this ${singularLabel.value}?`)) return;
   apiError.value = '';
   try {
-    await api.value.delete(props.resourceId, revision.value);
-    allowNavigation = true;
-    await router.push({ name: listRoute.value });
+    await withSpinner(
+      null,
+      () => api.value.delete(props.resourceId!, revision.value),
+      async () => {
+        allowNavigation = true;
+        await router.push({ name: listRoute.value });
+      }
+    );
   } catch (reason) {
     await showFailure(reason, `Unable to delete ${singularLabel.value}`);
   }

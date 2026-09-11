@@ -260,6 +260,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
+import { useWait } from '@/composables/useWait';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
 import { ROUTE_NAMES } from '@/router';
 
@@ -320,6 +321,7 @@ const props = defineProps<{
 }>();
 
 const flowStore = useFlowsStore();
+const { withSpinner } = useWait();
 const runtimeStore = useFlowRuntimeStore();
 const workspaceMode = computed(() => props.workspaceMode);
 const flowId = computed(() => props.flowId);
@@ -504,15 +506,21 @@ const compileFlow = async (): Promise<void> => {
   const current = draftFlow.value;
   const target = debugTargets.value.find((item) => item.id === 'server');
   if (!current || !target) return;
-  compiling.value = true;
-  saveError.value = undefined;
   try {
-    const source = createExecutableFlowSource(current, target);
-    compileResult.value = await flowCompileApi.compile(source);
-    compiledGraphRevision.value = graphRevision(current);
-    const firstPath = compileResult.value.diagnostics[0]?.path ?? '';
-    const match = /^\/nodes\/(\d+)(?:\/|$)/.exec(firstPath);
-    if (match) diagnosticNodeId.value = current.nodes[Number(match[1])]?.id;
+    await withSpinner(
+      () => {
+        compiling.value = true;
+        saveError.value = undefined;
+      },
+      () => flowCompileApi.compile(createExecutableFlowSource(current, target)),
+      (result) => {
+        compileResult.value = result;
+        compiledGraphRevision.value = graphRevision(current);
+        const firstPath = result.diagnostics[0]?.path ?? '';
+        const match = /^\/nodes\/(\d+)(?:\/|$)/.exec(firstPath);
+        if (match) diagnosticNodeId.value = current.nodes[Number(match[1])]?.id;
+      }
+    );
   } catch (error) {
     const nodeIndex =
       error instanceof FlowDebugSourceError && error.nodeId
@@ -574,16 +582,24 @@ const openTutorialExample = (tutorial: FlowTutorial): void => {
 
 const copyTutorialExample = async (tutorial: FlowTutorial): Promise<void> => {
   try {
-    const created = await flowApi.createFlow(`${tutorial.title} copy`);
-    await flowApi.saveFlow(
-      flowDomainToDto({
-        ...tutorial.flow,
-        id: created.id,
-        name: created.name,
-        updatedAt: created.updatedAt
-      })
+    await withSpinner(
+      null,
+      async () => {
+        const created = await flowApi.createFlow(`${tutorial.title} copy`);
+        await flowApi.saveFlow(
+          flowDomainToDto({
+            ...tutorial.flow,
+            id: created.id,
+            name: created.name,
+            updatedAt: created.updatedAt
+          })
+        );
+        return created;
+      },
+      async (created) => {
+        await router.push({ name: 'flow-designer', params: { flowId: created.id } });
+      }
     );
-    await router.push({ name: 'flow-designer', params: { flowId: created.id } });
   } catch (error) {
     loadError.value = runtimeFailureMessage(error, 'Unable to copy the tutorial flow.');
   }
@@ -627,14 +643,21 @@ const validateAllPointReferences = async (): Promise<boolean> => {
 };
 
 const loadExecutionContexts = async (): Promise<void> => {
-  contextsLoading.value = true;
-  contextsError.value = '';
   try {
-    executionContexts.value = await executionContextApi.list();
-    const containing = executionContexts.value.find((context) =>
-      context.programs.some(({ flowId }) => flowId === props.flowId)
+    await withSpinner(
+      () => {
+        contextsLoading.value = true;
+        contextsError.value = '';
+      },
+      () => executionContextApi.list(),
+      (contexts) => {
+        executionContexts.value = contexts;
+        const containing = contexts.find((context) =>
+          context.programs.some(({ flowId }) => flowId === props.flowId)
+        );
+        if (!selectedContextId.value && containing) selectedContextId.value = containing.id;
+      }
     );
-    if (!selectedContextId.value && containing) selectedContextId.value = containing.id;
   } catch (error) {
     contextsError.value =
       error instanceof Error ? error.message : 'Unable to load execution contexts.';
@@ -646,22 +669,28 @@ const loadExecutionContexts = async (): Promise<void> => {
 const loadFlow = async (flowId: string): Promise<void> => {
   // Route parameters can change before a request finishes. Abort the old fetch
   // and also use a generation guard so a late response cannot replace the new flow.
-  loadController?.abort();
   const controller = new AbortController();
   const requestGeneration = loadGuard.begin();
-  loadController = controller;
-  versionView.value = VersionView.Draft;
-  deployedFlow.value = undefined;
-  loading.value = true;
-  loadError.value = undefined;
-  flowStore.selectFlow(flowId);
   try {
-    const payload = await flowApi.getFlow(flowId, controller.signal);
-    if (!loadGuard.isCurrent(requestGeneration)) return;
-    flowStore.replaceFlowFromPayload(payload);
-    flowStore.selectFlow(flowId);
-    await validateAllPointReferences();
-    void refreshRuntime(flowId);
+    await withSpinner(
+      () => {
+        loadController?.abort();
+        loadController = controller;
+        versionView.value = VersionView.Draft;
+        deployedFlow.value = undefined;
+        loading.value = true;
+        loadError.value = undefined;
+        flowStore.selectFlow(flowId);
+      },
+      () => flowApi.getFlow(flowId, controller.signal),
+      async (payload) => {
+        if (!loadGuard.isCurrent(requestGeneration)) return;
+        flowStore.replaceFlowFromPayload(payload);
+        flowStore.selectFlow(flowId);
+        await validateAllPointReferences();
+        void refreshRuntime(flowId);
+      }
+    );
   } catch (error) {
     if (
       !loadGuard.isCurrent(requestGeneration) ||
@@ -677,18 +706,25 @@ const loadFlow = async (flowId: string): Promise<void> => {
           ? error.message
           : 'Unable to load this flow.';
   } finally {
-    if (loadController === controller) loading.value = false;
+    if (loadController === controller) {
+      loadController = undefined;
+      loading.value = false;
+    }
   }
 };
 
 const refreshRuntime = async (flowId = props.flowId): Promise<void> => {
-  runtimeError.value = undefined;
   try {
-    const snapshot = await flowRuntimeApi.getRuntime(flowId);
-    // Runtime responses are scoped to a route ID. Reject a mismatched snapshot
-    // instead of displaying another flow's state after a proxy or cache error.
-    if (snapshot.flowId !== flowId) throw new Error('Runtime state belongs to another flow.');
-    runtimeStore.applySnapshot(snapshot);
+    await withSpinner(
+      () => {
+        runtimeError.value = undefined;
+      },
+      () => flowRuntimeApi.getRuntime(flowId),
+      (snapshot) => {
+        if (snapshot.flowId !== flowId) throw new Error('Runtime state belongs to another flow.');
+        runtimeStore.applySnapshot(snapshot);
+      }
+    );
   } catch (error) {
     runtimeStore.disconnect(flowId);
     runtimeError.value = runtimeFailureMessage(error, 'Unable to load runtime state.');
@@ -700,13 +736,20 @@ const openDeployConfirmation = (): void => {
 };
 
 const deployFlow = async (): Promise<void> => {
-  runtimeStore.beginDeployment(props.flowId);
-  runtimeError.value = undefined;
   try {
-    const snapshot = await flowRuntimeApi.deployFlow(props.flowId);
-    if (snapshot.flowId !== props.flowId) throw new Error('Runtime state belongs to another flow.');
-    runtimeStore.completeDeployment(snapshot);
-    flowStore.replaceFlowFromPayload(await flowApi.getFlow(props.flowId));
+    await withSpinner(
+      () => {
+        runtimeStore.beginDeployment(props.flowId);
+        runtimeError.value = undefined;
+      },
+      () => flowRuntimeApi.deployFlow(props.flowId),
+      async (snapshot) => {
+        if (snapshot.flowId !== props.flowId)
+          throw new Error('Runtime state belongs to another flow.');
+        runtimeStore.completeDeployment(snapshot);
+        flowStore.replaceFlowFromPayload(await flowApi.getFlow(props.flowId));
+      }
+    );
   } catch (error) {
     const message = runtimeFailureMessage(error, 'Unable to deploy this flow.');
     runtimeStore.failDeployment(props.flowId, message);
@@ -719,11 +762,18 @@ const showDraftVersion = (): void => {
 };
 
 const showDeployedVersion = async (): Promise<void> => {
-  loadingDeployedVersion.value = true;
-  saveError.value = undefined;
   try {
-    deployedFlow.value = flowDtoToDomain(await flowApi.getDeployedFlow(props.flowId));
-    versionView.value = VersionView.Deployed;
+    await withSpinner(
+      () => {
+        loadingDeployedVersion.value = true;
+        saveError.value = undefined;
+      },
+      () => flowApi.getDeployedFlow(props.flowId),
+      (result) => {
+        deployedFlow.value = flowDtoToDomain(result);
+        versionView.value = VersionView.Deployed;
+      }
+    );
   } catch (error) {
     saveError.value = runtimeFailureMessage(error, 'Unable to load the deployed version.');
   } finally {
@@ -732,11 +782,18 @@ const showDeployedVersion = async (): Promise<void> => {
 };
 
 const revertDraftToDeployed = async (): Promise<void> => {
-  revertingDraft.value = true;
-  saveError.value = undefined;
   try {
-    flowStore.replaceFlowFromPayload(await flowApi.revertToDeployed(props.flowId));
-    versionView.value = VersionView.Draft;
+    await withSpinner(
+      () => {
+        revertingDraft.value = true;
+        saveError.value = undefined;
+      },
+      () => flowApi.revertToDeployed(props.flowId),
+      (result) => {
+        flowStore.replaceFlowFromPayload(result);
+        versionView.value = VersionView.Draft;
+      }
+    );
   } catch (error) {
     saveError.value = runtimeFailureMessage(error, 'Unable to revert the draft.');
   } finally {
@@ -745,12 +802,18 @@ const revertDraftToDeployed = async (): Promise<void> => {
 };
 
 const setFlowDisabled = async (disabled: boolean): Promise<void> => {
-  togglingDisabled.value = true;
-  runtimeError.value = undefined;
   try {
-    const saved = await flowApi.setFlowDisabled(props.flowId, disabled);
-    flowStore.replaceFlowFromPayload(saved);
-    await refreshRuntime();
+    await withSpinner(
+      () => {
+        togglingDisabled.value = true;
+        runtimeError.value = undefined;
+      },
+      () => flowApi.setFlowDisabled(props.flowId, disabled),
+      async (saved) => {
+        flowStore.replaceFlowFromPayload(saved);
+        await refreshRuntime();
+      }
+    );
   } catch (error) {
     runtimeError.value =
       error instanceof Error ? error.message : 'Unable to change the flow execution state.';
@@ -762,8 +825,6 @@ const setFlowDisabled = async (disabled: boolean): Promise<void> => {
 const saveFlow = async (): Promise<void> => {
   const payload = flowStore.flowPayload(props.flowId);
   if (!payload) return;
-  saving.value = true;
-  saveError.value = undefined;
   try {
     const disconnectedVirtual = unconnectedVirtualPoint(payload);
     if (disconnectedVirtual) {
@@ -772,10 +833,16 @@ const saveFlow = async (): Promise<void> => {
         `${disconnectedVirtual.label} must have its Set input, Value output, or both connected.`
       );
     }
-    const saved = await flowApi.saveFlow(payload);
-    // Replace from the server response, rather than assuming the submitted DTO is
-    // final; the backend may normalize fields or update its timestamp.
-    flowStore.replaceFlowFromPayload(saved);
+    await withSpinner(
+      () => {
+        saving.value = true;
+        saveError.value = undefined;
+      },
+      () => flowApi.saveFlow(payload),
+      (saved) => {
+        flowStore.replaceFlowFromPayload(saved);
+      }
+    );
   } catch (error) {
     saveError.value = error instanceof Error ? error.message : 'Unable to save this flow.';
   } finally {

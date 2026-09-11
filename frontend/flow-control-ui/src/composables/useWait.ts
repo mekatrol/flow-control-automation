@@ -25,7 +25,8 @@ export const useWait = (): WaitControls => {
   ): Promise<T> => {
     store.wait();
     try {
-      await pre?.();
+      const preResult = pre?.();
+      if (preResult) await preResult;
       const result = await call();
       await post?.(result);
       return result;
