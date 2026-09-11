@@ -1,11 +1,4 @@
 schemaVersion: 1
-groups:
-  - id: air-handler
-    name: Air Handler
-    description: Shared Home Assistant mappings
-    sourceId: home-assistant
-    mappingDefaults:
-      domain: sensor
 points:
   - id: outside-air-temperature
     name: Outside air temperature
@@ -25,9 +18,8 @@ points:
       jsonPointer: /temperature
   - id: supply-fan-enable
     name: Supply fan enable
-    description: Grouped digital output
+    description: Home Assistant digital output
     enabled: true
-    groupId: air-handler
     pointSourceType: remote
     direction: output
     valueType: digital
@@ -37,6 +29,7 @@ points:
     readable: true
     commandable: true
     persistence: volatile
+    sourceId: home-assistant
     mapping:
       entityId: switch.supply_fan
       stateProperty: state
@@ -95,4 +88,3 @@ points:
       qos: 1
     limits:
       maximumLength: 256
-

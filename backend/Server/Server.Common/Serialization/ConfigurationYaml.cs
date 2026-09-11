@@ -11,12 +11,10 @@ public static class ConfigurationYaml
     public const int MaximumDepth = 20;
 
     private static readonly IReadOnlySet<string> PointRootFields =
-        new HashSet<string>(["schemaVersion", "groups", "points"]);
-    private static readonly IReadOnlySet<string> PointGroupFields =
-        new HashSet<string>(["id", "name", "description", "sourceId", "mappingDefaults"]);
+        new HashSet<string>(["schemaVersion", "points"]);
     private static readonly IReadOnlySet<string> PointFields = new HashSet<string>(
         [
-            "id", "name", "description", "enabled", "groupId", "direction",
+            "id", "name", "description", "enabled", "direction",
             "valueType", "pointSourceType", "units", "stateLabels", "readable", "commandable", "persistence",
             "relinquishDefault", "sourceId", "mapping", "limits", "safeDisablePolicy"
         ]);
@@ -343,7 +341,6 @@ public static class ConfigurationYaml
         {
             case ConfigurationKind.Points:
                 RejectUnknown(root, PointRootFields);
-                ValidateItems(root["groups"], PointGroupFields, "groups");
                 ValidateItems(root["points"], PointFields, "points");
                 break;
             case ConfigurationKind.PointSources:

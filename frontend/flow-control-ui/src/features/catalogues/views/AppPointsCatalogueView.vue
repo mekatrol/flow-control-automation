@@ -11,7 +11,7 @@
       <div>
         <p>Point definitions</p>
         <h1 id="points-heading">Points</h1>
-        <p>Review standalone and grouped automation points and their capabilities.</p>
+        <p>Review automation points, their sources, and their capabilities.</p>
       </div>
       <RouterLink class="primary-link" :to="{ name: 'point-new' }">
         <AppSvg :src="newIcon" size="1em" />
@@ -67,7 +67,6 @@ interface PointRow extends ListRow {
   id: string;
   name: string;
   description: string;
-  membership: string;
   source: string;
   pointSourceType: string;
   direction: string;
@@ -80,7 +79,6 @@ interface PointRow extends ListRow {
 
 const columns: ListColumn<PointRow>[] = [
   { key: 'name', label: 'Name', sortable: true },
-  { key: 'membership', label: 'Membership', width: '12rem' },
   { key: 'source', label: 'Source', width: '12rem' },
   { key: 'pointSourceType', label: 'Source type', width: '10rem' },
   { key: 'direction', label: 'Direction', width: '9rem' },
@@ -111,8 +109,7 @@ const toRow = (point: PointSummary): PointRow => ({
   id: point.id,
   name: point.name,
   description: point.description ?? '',
-  membership: point.groupId ? `Group: ${point.groupId}` : 'Standalone',
-  source: point.sourceId || (point.groupId ? 'Inherited from group' : 'None'),
+  source: point.sourceId || 'None',
   pointSourceType: label(point.pointSourceType),
   direction: label(point.direction),
   valueType: label(point.valueType),

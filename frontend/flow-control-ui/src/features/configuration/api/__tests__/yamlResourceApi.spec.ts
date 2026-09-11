@@ -2,7 +2,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   controllerTemplateConfigurationApi,
   pointConfigurationApi,
-  pointGroupConfigurationApi,
   YamlResourceError
 } from '@/features/configuration/api/yamlResourceApi';
 
@@ -59,10 +58,9 @@ describe('YAML resource APIs', () => {
       )
     );
 
-    // Expected outcome: `pointGroupConfigurationApi.delete('group', 1)` contains the required object fields.
-    // Acceptance criteria: `pointGroupConfigurationApi.delete('group', 1)` must match the object `{ message: 'stale revision', status: 409, details: { diagnostics: [{ path: 'id', message: 'invalid' }] } } satisfies Par`, because this condition proves that
+    // Expected outcome: deleting a point preserves the structured server error.
     // preserves server diagnostics and conflict status.
-    await expect(pointGroupConfigurationApi.delete('group', 1)).rejects.toMatchObject({
+    await expect(pointConfigurationApi.delete('point', 1)).rejects.toMatchObject({
       message: 'stale revision',
       status: 409,
       details: { diagnostics: [{ path: 'id', message: 'invalid' }] }
@@ -70,11 +68,11 @@ describe('YAML resource APIs', () => {
   });
 
   /**
-   * Purpose: Protects the behavioral contract that uses dedicated runtime, validation, YAML and make-standalone paths.
-   * Description: Exercises uses dedicated runtime, validation, YAML and make-standalone paths from its arranged starting state and
+   * Purpose: Protects the behavioral contract that uses dedicated runtime, validation, and YAML paths.
+   * Description: Exercises dedicated runtime, validation, and YAML paths from its arranged starting state and
    * verifies the observable results required by the scenario.
    */
-  it('uses dedicated runtime, validation, YAML and make-standalone paths', async () => {
+  it('uses dedicated runtime, validation, and YAML paths', async () => {
     const fetch = vi
       .fn<typeof globalThis.fetch>()
       .mockResolvedValueOnce(
@@ -91,8 +89,7 @@ describe('YAML resource APIs', () => {
         )
       )
       .mockResolvedValueOnce(new Response(JSON.stringify({ valid: true, diagnostics: [] })))
-      .mockResolvedValueOnce(new Response('schemaVersion: 1\n', { headers: { ETag: '1' } }))
-      .mockResolvedValueOnce(new Response(null, { status: 200 }));
+      .mockResolvedValueOnce(new Response('schemaVersion: 1\n', { headers: { ETag: '1' } }));
     vi.stubGlobal('fetch', fetch);
 
     // Expected outcome: `(await pointConfigurationApi.runtime('point')` has the required value.
@@ -109,7 +106,6 @@ describe('YAML resource APIs', () => {
     // Acceptance criteria: `(await controllerTemplateConfigurationApi.get('default')` must be `1`, because this condition proves that
     // uses dedicated runtime, validation, YAML and make-standalone paths.
     expect((await controllerTemplateConfigurationApi.get('default')).revision).toBe(1);
-    await pointGroupConfigurationApi.makeStandalone('group', 2);
 
     // Expected outcome: `fetch.mock.calls.map(([url]) => url)` matches the required structure.
     // Acceptance criteria: `fetch.mock.calls.map(([url]) => url)` must equal `[ '/api/points/point/runtime', '/api/controller-templates/validate', '/api/controller-templates/default/yaml', '/api/poi`, because this condition proves that
@@ -117,8 +113,7 @@ describe('YAML resource APIs', () => {
     expect(fetch.mock.calls.map(([url]) => url)).toEqual([
       '/api/points/point/runtime',
       '/api/controller-templates/validate',
-      '/api/controller-templates/default/yaml',
-      '/api/point-groups/group/make-points-standalone?revision=2'
+      '/api/controller-templates/default/yaml'
     ]);
   });
 });

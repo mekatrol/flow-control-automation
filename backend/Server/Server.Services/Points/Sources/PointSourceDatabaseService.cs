@@ -121,7 +121,7 @@ internal sealed class PointSourceDatabaseService(
         if (!string.Equals(source.Kind, previous.Kind, StringComparison.Ordinal)
             && await IsReferenced(id, cancellationToken))
         {
-            throw new PointSourceConflictException("source kind cannot change while points or groups reference it");
+            throw new PointSourceConflictException("source kind cannot change while points reference it");
         }
 
         validator.Validate(source);
@@ -166,7 +166,7 @@ internal sealed class PointSourceDatabaseService(
         if (await IsReferenced(id, cancellationToken))
         {
             throw new PointSourceConflictException(
-                "source is referenced by one or more points or groups");
+                "source is referenced by one or more points");
         }
 
         context.PointSources.Remove(entity);
@@ -203,13 +203,6 @@ internal sealed class PointSourceDatabaseService(
         string id,
         CancellationToken cancellationToken)
     {
-        var groups = await context.PointGroups.AsNoTracking().ToListAsync(cancellationToken);
-
-        if (groups.Select(DeserializeGroup).Any(group => group.SourceId == id))
-        {
-            return true;
-        }
-
         var points = await context.Points.AsNoTracking().ToListAsync(cancellationToken);
 
         return points.Select(DeserializePoint).Any(point => point.SourceId == id);
@@ -245,10 +238,6 @@ internal sealed class PointSourceDatabaseService(
     private static PointSource Deserialize(PointSourceEntity entity) =>
         JsonSerializer.Deserialize<PointSource>(entity.Json, FlowControlJson.Options)
         ?? throw new InvalidOperationException($"Stored point source {entity.Id} is null.");
-
-    private static PointGroup DeserializeGroup(PointGroupEntity entity) =>
-        JsonSerializer.Deserialize<PointGroup>(entity.Json, FlowControlJson.Options)
-        ?? throw new InvalidOperationException($"Stored point group {entity.Id} is null.");
 
     private static AutomationPoint DeserializePoint(PointEntity entity) =>
         JsonSerializer.Deserialize<AutomationPoint>(entity.Json, FlowControlJson.Options)

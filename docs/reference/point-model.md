@@ -112,43 +112,21 @@ Initial source kinds are:
 The dependency and creation order is:
 
 ```text
-Create first                 Create second (optional)       Create last
-
-+------------------+         +------------------+           +------------------+
-|   Point source   |<--------|   Point group    |<----------|  Grouped point   |
-|                  |         |                  |           |                  |
-| Home Assistant   |         | source_id        |           | group_id         |
-| MQTT             |         | mapping defaults |           | member mapping   |
-| HTTP/JSON        |         +------------------+           +------------------+
++------------------+           +------------------+
+|   Point source   |<----------|   Remote point   |
+|                  |           |                  |
+| Home Assistant   |           | source_id        |
+| MQTT             |           | point mapping    |
+| HTTP/JSON        |           +------------------+
 +------------------+
-        ^
-        |
-        | direct source_id
-        |
-+------------------+
-| Standalone point |
-|                  |
-| source_id        |
-| point mapping    |
-+------------------+
-
-Reference arrows point toward the dependency:
-
-  grouped point ----> point group ----> point source
-  standalone point -------------------> point source
 ```
 
-Therefore a source must exist before a group can reference it, and a group must
-exist before a grouped point can reference the group. The group layer is
-optional: a standalone remote point can reference an existing source directly.
-Virtual points have no source dependency.
+Therefore a source must exist before a remote point can reference it. Virtual
+points have no source dependency.
 
 Later field-protocol and controller drivers use the same boundary. A source can
-be referenced by any number of points and point groups. A group may declare a
-`source_id` and shared mapping defaults for efficient subscriptions, polling,
-or batched/atomic updates. A member point either inherits that source or
-explicitly selects a source; an explicit point source must not conflict with a
-group rule that requires one shared source.
+be referenced by any number of points. Each remote point explicitly selects its
+source and supplies its complete mapping.
 
 A point mapping contains only source-relative information:
 
@@ -163,7 +141,7 @@ A point mapping contains only source-relative information:
 Each mapping defines read/write capability, polling or subscription behaviour,
 timeout overrides, conversion, and reconnect behaviour where applicable.
 Secrets are referenced through a credential store and are never embedded in a
-source, group, point, YAML document, log, diagnostic, or browser response.
+source, point, YAML document, log, diagnostic, or browser response.
 
 While creating or editing a source, the user can run a non-persistent real-time
 connectivity test. A test validates DNS/TCP/TLS/authentication and a lightweight

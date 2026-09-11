@@ -80,7 +80,7 @@ public sealed class ApiAccessMiddleware(RequestDelegate next, IHostEnvironment e
             return "system.view";
         }
 
-        if (path.StartsWith("/api/points", StringComparison.Ordinal) || path.StartsWith("/api/point-groups", StringComparison.Ordinal))
+        if (path.StartsWith("/api/points", StringComparison.Ordinal))
         {
             return request.Method == "GET" ? "points.view" : "points.edit";
         }

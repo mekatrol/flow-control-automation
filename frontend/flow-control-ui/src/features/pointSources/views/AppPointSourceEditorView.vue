@@ -332,7 +332,6 @@ const testError = ref('');
 const editorDiagnostics = ref<YamlDiagnostic[]>([]);
 const pointDiagnostics = ref<YamlDiagnostic[]>([]);
 const pointYaml = ref(`schemaVersion: 1
-groups: []
 points:
   - id: test-temperature
     name: Test temperature
@@ -392,10 +391,9 @@ const displayPointValue = computed(() => {
 });
 const pointTestSchema = {
   ...pointSourceSchema,
-  required: ['schemaVersion', 'groups', 'points'],
+  required: ['schemaVersion', 'points'],
   properties: {
     schemaVersion: { const: 1 },
-    groups: { type: 'array', maxItems: 0 },
     points: {
       type: 'array',
       minItems: 1,

@@ -66,7 +66,6 @@ internal sealed class AutomationPointTests
         var validator = TestServices.CreateProvider()
             .GetRequiredService<IPointDefinitionValidator>();
         var context = new PointValidationContext(
-            new Dictionary<string, PointGroup>(),
             new Dictionary<string, PointSource> { ["mqtt"] = Source() });
         var point = Point(sourceType);
 
@@ -91,8 +90,7 @@ internal sealed class AutomationPointTests
     {
         var validator = TestServices.CreateProvider()
             .GetRequiredService<IPointDefinitionValidator>();
-        var context = new PointValidationContext(
-            new Dictionary<string, PointGroup>(), new Dictionary<string, PointSource>());
+        var context = new PointValidationContext(new Dictionary<string, PointSource>());
         var output = Point(PointSourceType.Physical) with
         {
             Direction = DataDirectionType.Output,

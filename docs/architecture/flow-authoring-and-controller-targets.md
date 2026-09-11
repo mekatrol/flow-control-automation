@@ -110,8 +110,7 @@ command arbitration rather than last-write-wins.
 A point source is a reusable external connection. Initial source kinds are Home
 Assistant, MQTT, and HTTP/JSON. The source owns server or broker location, TLS,
 timeouts, reconnect behaviour, and a credential reference. It never contains a
-literal secret. One source can serve many standalone points, multiple groups,
-and all members of those groups.
+literal secret. One source can serve many points.
 
 A remote point maps to a source-relative entity, topic, JSON selector, or device
 address. A group can select a source and shared mapping defaults so members can
@@ -373,7 +372,7 @@ Point definitions, live point state, controller templates, deployed snapshots,
 commands, and audit/history remain separate domains because they have different
 consistency and safety needs.
 
-All configuration intended for user editing—point sources, point groups, point
+All configuration intended for user editing—point sources, point
 definitions, and controller templates—is represented as validated YAML. The
 backend converts it to typed models and persists normalized internal state as
 JSON. JSON remains the backend persistence format and may be used for runtime,

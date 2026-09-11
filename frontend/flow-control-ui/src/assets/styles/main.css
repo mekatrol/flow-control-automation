@@ -92,7 +92,7 @@ a {
 
 /* Prominent navigation link shared by configuration and catalogue pages.
    Components: AppPointSourceListView, AppYamlResourceEditorView,
-   AppControllerTemplatesCatalogueView, AppPointGroupsCatalogueView,
+   AppControllerTemplatesCatalogueView,
    AppPointsCatalogueView. */
 .primary-link {
   display: inline-flex;
@@ -173,7 +173,7 @@ a {
 
 /* Read-only configuration catalogue frame.
    Components: AppControllerTemplatesCatalogueView,
-   AppPointGroupsCatalogueView, AppPointsCatalogueView. */
+   AppPointsCatalogueView. */
 .catalogue-page {
   width: min(1500px, calc(100% - 32px));
   margin: var(--space-0) auto;
@@ -182,7 +182,7 @@ a {
 
 /* Catalogue heading layout.
    Components: AppControllerTemplatesCatalogueView,
-   AppPointGroupsCatalogueView, AppPointsCatalogueView. */
+   AppPointsCatalogueView. */
 .catalogue-page .page-heading {
   display: flex;
   gap: var(--space-12);
@@ -193,14 +193,14 @@ a {
 
 /* Catalogue title spacing.
    Components: AppControllerTemplatesCatalogueView,
-   AppPointGroupsCatalogueView, AppPointsCatalogueView. */
+   AppPointsCatalogueView. */
 .catalogue-page h1 {
   margin: var(--space-0-5) var(--space-0) var(--space-3-5);
 }
 
 /* Secondary table text shared by catalogue pages.
    Components: AppControllerTemplatesCatalogueView,
-   AppPointGroupsCatalogueView, AppPointsCatalogueView. */
+   AppPointsCatalogueView. */
 .catalogue-page th small,
 .catalogue-page td small {
   display: block;
@@ -211,7 +211,7 @@ a {
 
 /* Request-error and empty-state panels shared by catalogue pages.
    Components: AppControllerTemplatesCatalogueView,
-   AppPointGroupsCatalogueView, AppPointsCatalogueView. */
+   AppPointsCatalogueView. */
 .catalogue-page .request-error,
 .catalogue-page .empty-state {
   padding: var(--space-10);
@@ -224,7 +224,7 @@ a {
 @media (max-width: 48rem) {
   /* Responsive catalogue frame.
      Components: AppControllerTemplatesCatalogueView,
-     AppPointGroupsCatalogueView, AppPointsCatalogueView. */
+     AppPointsCatalogueView. */
   .catalogue-page {
     width: min(100% - 20px, 1500px);
     padding-top: var(--space-10);

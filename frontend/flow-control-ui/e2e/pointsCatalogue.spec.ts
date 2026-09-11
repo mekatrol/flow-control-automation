@@ -6,7 +6,6 @@ interface CataloguePoint {
   id: string;
   name: string;
   enabled: boolean;
-  groupId: string | null;
   pointSourceType: string;
   direction: string;
   valueType: string;
@@ -22,7 +21,6 @@ const point = (index: number): CataloguePoint => ({
   id: `point-${index}`,
   name: `Point ${String(index).padStart(2, '0')}`,
   enabled: index % 2 === 0,
-  groupId: index === 1 ? 'room' : null,
   pointSourceType: index === 1 ? 'remote' : 'virtual',
   direction: index === 1 ? 'input' : 'value',
   valueType: index === 1 ? 'analog' : 'digital',

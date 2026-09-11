@@ -61,16 +61,9 @@ internal sealed class PointReadService(
 
         var sourceId = point.SourceId;
 
-        if (sourceId is null && point.GroupId is not null)
-        {
-            sourceId = (await definitions.GetGroupAsync(
-                point.GroupId,
-                cancellationToken)).SourceId;
-        }
-
         if (sourceId is null)
         {
-            return Unavailable(point, "unconfigured", "Point has no direct or inherited source.");
+            return Unavailable(point, "unconfigured", "Point has no source.");
         }
 
         PointSource source;

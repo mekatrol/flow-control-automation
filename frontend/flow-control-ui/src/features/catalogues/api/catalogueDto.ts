@@ -14,22 +14,12 @@ export interface PointSummary {
   name: string;
   description?: string;
   enabled: boolean;
-  groupId?: string;
   pointSourceType: PointSourceType;
   direction: DataDirectionType;
   valueType: AutomationPointValueType;
   units?: string;
   readable: boolean;
   commandable: boolean;
-  sourceId?: string;
-  revision: number;
-  updatedAt?: string;
-}
-
-export interface PointGroupSummary {
-  id: string;
-  name: string;
-  description?: string;
   sourceId?: string;
   revision: number;
   updatedAt?: string;
@@ -131,7 +121,6 @@ export const parsePoint = (value: unknown, path = 'point'): PointSummary => {
     name: string(item.name, `${path}.name`),
     description: optionalString(item.description, `${path}.description`),
     enabled: boolean(item.enabled, `${path}.enabled`),
-    groupId: optionalString(item.groupId, `${path}.groupId`),
     pointSourceType: enumeration(
       item.pointSourceType,
       Object.values(PointSourceType),
@@ -146,21 +135,6 @@ export const parsePoint = (value: unknown, path = 'point'): PointSummary => {
     units: optionalString(item.units, `${path}.units`),
     readable: boolean(item.readable, `${path}.readable`),
     commandable: boolean(item.commandable, `${path}.commandable`),
-    sourceId: optionalString(item.sourceId, `${path}.sourceId`),
-    revision: integer(item.revision, `${path}.revision`),
-    updatedAt: optionalString(item.updatedAt, `${path}.updatedAt`)
-  };
-};
-
-export const parsePointGroup = (value: unknown, path = 'group'): PointGroupSummary => {
-  const item = object(value, path);
-  if (item.mappingDefaults !== undefined && item.mappingDefaults !== null)
-    object(item.mappingDefaults, `${path}.mappingDefaults`);
-  optionalString(item.createdAt, `${path}.createdAt`);
-  return {
-    id: string(item.id, `${path}.id`),
-    name: string(item.name, `${path}.name`),
-    description: optionalString(item.description, `${path}.description`),
     sourceId: optionalString(item.sourceId, `${path}.sourceId`),
     revision: integer(item.revision, `${path}.revision`),
     updatedAt: optionalString(item.updatedAt, `${path}.updatedAt`)

@@ -6,7 +6,6 @@ namespace Server.Services.Points.Validation;
 
 internal sealed partial class PointDefinitionValidator : IPointDefinitionValidator
 {
-    public const string ReservedStandaloneGroupName = "__StandalonePointGroup__";
     private const long MaximumSafeInteger = 9_007_199_254_740_991;
 
     public ValidatedPointDefinition Validate(
@@ -38,38 +37,6 @@ internal sealed partial class PointDefinitionValidator : IPointDefinitionValidat
             digitalLabels, multiStateLabels, safety, sourceKind, mapping);
     }
 
-    public void ValidateGroup(
-        PointGroup group,
-        IReadOnlyDictionary<string, PointSource> sources)
-    {
-        ValidateIdentity(group.Id, group.Name, "group");
-
-        if (string.Equals(
-            group.Name.Trim(),
-            ReservedStandaloneGroupName,
-            StringComparison.OrdinalIgnoreCase))
-        {
-            Fail($"group name \"{ReservedStandaloneGroupName}\" is reserved");
-        }
-
-        if (string.IsNullOrWhiteSpace(group.SourceId))
-        {
-            if (group.MappingDefaults.Count != 0)
-            {
-                Fail("group mappingDefaults require sourceId");
-            }
-
-            return;
-        }
-
-        if (!sources.ContainsKey(group.SourceId))
-        {
-            Fail($"group sourceId \"{group.SourceId}\" does not exist");
-        }
-
-        RejectCredentialLiterals(group.MappingDefaults, "mappingDefaults");
-    }
-
     public void ValidateDocument(
         PointDocument document,
         IReadOnlyDictionary<string, PointSource> sources)
@@ -79,18 +46,9 @@ internal sealed partial class PointDefinitionValidator : IPointDefinitionValidat
             Fail("schemaVersion must be 1");
         }
 
-        RejectDuplicates(document.Groups.Select(group => group.Id), "group id");
-        RejectDuplicates(document.Groups.Select(group => group.Name), "group name");
         RejectDuplicates(document.Points.Select(point => point.Id), "point id");
         RejectDuplicates(document.Points.Select(point => point.Name), "point name");
-
-        foreach (var group in document.Groups)
-        {
-            ValidateGroup(group, sources);
-        }
-
-        var groups = document.Groups.ToDictionary(group => group.Id, StringComparer.Ordinal);
-        var context = new PointValidationContext(groups, sources);
+        var context = new PointValidationContext(sources);
 
         foreach (var point in document.Points)
         {
@@ -164,44 +122,14 @@ internal sealed partial class PointDefinitionValidator : IPointDefinitionValidat
                 Fail($"{sourceType} points cannot have a remote source or mapping");
             }
 
-            if (point.GroupId is not null)
-            {
-                if (!context.Groups.TryGetValue(point.GroupId, out var localGroup))
-                {
-                    Fail($"groupId \"{point.GroupId}\" does not exist");
-                }
-
-                if (localGroup!.SourceId is not null
-                    || localGroup.MappingDefaults.Count != 0)
-                {
-                    Fail($"{sourceType} points cannot join a group with a remote source");
-                }
-            }
-
             return (null, null);
         }
 
-        PointGroup? group = null;
-
-        if (point.GroupId is not null
-            && !context.Groups.TryGetValue(point.GroupId, out group))
-        {
-            Fail($"groupId \"{point.GroupId}\" does not exist");
-        }
-
-        var inheritedSourceId = group?.SourceId;
-
-        if (point.SourceId is not null && inheritedSourceId is not null
-            && !string.Equals(point.SourceId, inheritedSourceId, StringComparison.Ordinal))
-        {
-            Fail("point sourceId conflicts with its group sourceId");
-        }
-
-        var sourceId = point.SourceId ?? inheritedSourceId;
+        var sourceId = point.SourceId;
 
         if (sourceId is null)
         {
-            Fail("remote point requires an existing direct or inherited source");
+            Fail("remote point requires an existing source");
         }
 
         if (!context.Sources.TryGetValue(sourceId!, out var source))

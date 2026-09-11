@@ -13,9 +13,6 @@ export const ROUTE_NAMES = {
   points: 'points',
   pointNew: 'point-new',
   pointDetail: 'point-detail',
-  pointGroups: 'point-groups',
-  pointGroupNew: 'point-group-new',
-  pointGroupDetail: 'point-group-detail',
   controllerTemplates: 'controller-templates',
   controllerTemplateNew: 'controller-template-new',
   controllerTemplateDetail: 'controller-template-detail',
@@ -96,23 +93,6 @@ export const routes: RouteRecordRaw[] = [
         name: ROUTE_NAMES.pointDetail,
         component: () => import('@/features/configuration/views/AppYamlResourceEditorView.vue'),
         props: (route) => ({ kind: 'point', resourceId: String(route.params.resourceId) })
-      },
-      {
-        path: 'point-groups',
-        name: ROUTE_NAMES.pointGroups,
-        component: () => import('@/features/catalogues/views/AppPointGroupsCatalogueView.vue')
-      },
-      {
-        path: 'point-groups/new',
-        name: ROUTE_NAMES.pointGroupNew,
-        component: () => import('@/features/configuration/views/AppYamlResourceEditorView.vue'),
-        props: { kind: 'group' }
-      },
-      {
-        path: 'point-groups/:resourceId',
-        name: ROUTE_NAMES.pointGroupDetail,
-        component: () => import('@/features/configuration/views/AppYamlResourceEditorView.vue'),
-        props: (route) => ({ kind: 'group', resourceId: String(route.params.resourceId) })
       },
       {
         path: 'controller-templates',

@@ -45,16 +45,6 @@ public abstract record AutomationPoint : IAutomationPoint
     public bool Enabled { get; set; }
 
     /// <summary>
-    /// Gets or sets the optional point-group identifier used to organise the point and inherit
-    /// group-level remote-source configuration.
-    /// </summary>
-    /// <remarks>
-    /// A null value makes the point standalone. For remote points, the referenced group may supply
-    /// <see cref="SourceId"/> and mapping defaults; local points may only join local groups.
-    /// </remarks>
-    public string? GroupId { get; set; }
-
-    /// <summary>
     /// Gets how data is allowed to move through the point: into a flow, out to a target, in both
     /// directions, or as a directionless virtual value.
     /// </summary>
@@ -136,9 +126,8 @@ public abstract record AutomationPoint : IAutomationPoint
     /// Gets the point-source identifier used by a remote point to locate its protocol connection.
     /// </summary>
     /// <remarks>
-    /// A remote point may specify this directly or inherit it from <see cref="GroupId"/>. Virtual
-    /// and physical points must leave it null. Credentials belong to the referenced source, not
-    /// in this point definition.
+    /// Remote points must specify this directly. Virtual and physical points must leave it null.
+    /// Credentials belong to the referenced source, not in this point definition.
     /// </remarks>
     public string? SourceId { get; init; }
 

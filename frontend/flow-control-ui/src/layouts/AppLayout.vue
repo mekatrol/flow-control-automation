@@ -19,7 +19,6 @@
         <nav aria-label="Primary navigation">
           <RouterLink :to="{ name: 'flows' }">Flows</RouterLink>
           <RouterLink to="/points">Points</RouterLink>
-          <RouterLink to="/point-groups">Point groups</RouterLink>
           <RouterLink to="/point-sources">Point sources</RouterLink>
           <RouterLink to="/controller-templates">Controllers</RouterLink>
           <RouterLink to="/credentials">Credentials</RouterLink>

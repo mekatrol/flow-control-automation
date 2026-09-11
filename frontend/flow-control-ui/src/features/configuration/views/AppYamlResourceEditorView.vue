@@ -74,12 +74,6 @@
           :disabled="busy"
           @click="remove"
         />
-        <AppButton
-          v-if="kind === 'group' && !isNew && deleteConflict"
-          text="Make member points standalone"
-          :icon="checkIcon"
-          @click="makeStandalone"
-        />
         <RouterLink
           v-if="kind === 'controller' && readOnly"
           class="primary-link"
@@ -219,67 +213,42 @@ import { EVENTS } from '@/constants/events';
 import {
   controllerTemplateConfigurationApi,
   pointConfigurationApi,
-  pointGroupConfigurationApi,
   type RuntimeEnvelope,
   type ValidationDiagnostic,
   YamlResourceError
 } from '@/features/configuration/api/yamlResourceApi';
-import {
-  controllerTemplateSchema,
-  pointGroupSchema,
-  pointSchema
-} from '@/features/configuration/configurationSchemas';
+import { controllerTemplateSchema, pointSchema } from '@/features/configuration/configurationSchemas';
 import { pointSourceApi, type PointTestResult } from '@/features/pointSources/api/pointSourceApi';
 
-type ResourceKind = 'point' | 'group' | 'controller';
+type ResourceKind = 'point' | 'controller';
 const props = defineProps<{ kind: ResourceKind; resourceId?: string }>();
 const guidanceType = computed<ConfigurationGuidanceType>(() =>
-  props.kind === 'group'
-    ? 'point-group'
-    : props.kind === 'controller'
+  props.kind === 'controller'
       ? 'controller-template'
       : 'point'
 );
 const router = useRouter();
 const isNew = computed(() => !props.resourceId);
 const singularLabel = computed(() =>
-  props.kind === 'point' ? 'point' : props.kind === 'group' ? 'point group' : 'controller template'
+  props.kind === 'point' ? 'point' : 'controller template'
 );
 const pluralLabel = computed(() =>
-  props.kind === 'point'
-    ? 'Points'
-    : props.kind === 'group'
-      ? 'Point groups'
-      : 'Controller templates'
+  props.kind === 'point' ? 'Points' : 'Controller templates'
 );
 const listRoute = computed(() =>
-  props.kind === 'point'
-    ? 'points'
-    : props.kind === 'group'
-      ? 'point-groups'
-      : 'controller-templates'
+  props.kind === 'point' ? 'points' : 'controller-templates'
 );
 const detailRoute = computed(() =>
-  props.kind === 'point'
-    ? 'point-detail'
-    : props.kind === 'group'
-      ? 'point-group-detail'
-      : 'controller-template-detail'
+  props.kind === 'point' ? 'point-detail' : 'controller-template-detail'
 );
 const schema = computed(() =>
-  props.kind === 'point'
-    ? pointSchema
-    : props.kind === 'group'
-      ? pointGroupSchema
-      : controllerTemplateSchema
+  props.kind === 'point' ? pointSchema : controllerTemplateSchema
 );
 const schemaUri = computed(() => schema.value.$id as string);
 const helpText = computed(() =>
   props.kind === 'point'
-    ? 'Configure type, membership, source mapping, limits, and safe behavior.'
-    : props.kind === 'group'
-      ? 'Configure shared source and mapping defaults for member points.'
-      : 'Define the capabilities and limits supported by this deployment target.'
+    ? 'Configure type, source mapping, limits, and safe behavior.'
+    : 'Define the capabilities and limits supported by this deployment target.'
 );
 const editorHelp = computed(() =>
   // Empty for now, but could be used to provide additional context or guidance in the editor.
@@ -290,7 +259,6 @@ const pointExamples = [
   {
     name: 'AI — Analog input',
     yaml: `schemaVersion: 1
-groups: []
 points:
   - id: new-analog-input
     name: New analog input
@@ -309,7 +277,6 @@ points:
   {
     name: 'DI — Digital input',
     yaml: `schemaVersion: 1
-groups: []
 points:
   - id: new-digital-input
     name: New digital input
@@ -328,7 +295,6 @@ points:
   {
     name: 'AO — Analog output',
     yaml: `schemaVersion: 1
-groups: []
 points:
   - id: new-analog-output
     name: New analog output
@@ -347,7 +313,6 @@ points:
   {
     name: 'DO — Digital output',
     yaml: `schemaVersion: 1
-groups: []
 points:
   - id: new-digital-output
     name: New digital output
@@ -366,7 +331,6 @@ points:
   {
     name: 'AV — Analog virtual',
     yaml: `schemaVersion: 1
-groups: []
 points:
   - id: new-analog-virtual
     name: New analog virtual point
@@ -384,7 +348,6 @@ points:
   {
     name: 'DV — Digital virtual',
     yaml: `schemaVersion: 1
-groups: []
 points:
   - id: new-digital-virtual
     name: New digital virtual point
@@ -400,13 +363,6 @@ points:
 `
   }
 ];
-const groupExample = `schemaVersion: 1
-groups:
-  - id: new-group
-    name: New point group
-    description: Shared source group
-points: []
-`;
 const controllerExample = `schemaVersion: 1
 id: custom-controller
 name: Custom controller
@@ -427,11 +383,7 @@ limits:
   minimumIntervalMilliseconds: 100
 `;
 const initial = computed(() =>
-  props.kind === 'point'
-    ? pointExamples[0]!.yaml
-    : props.kind === 'group'
-      ? groupExample
-      : controllerExample
+  props.kind === 'point' ? pointExamples[0]!.yaml : controllerExample
 );
 const selectedExample = ref(pointExamples[0]!.name);
 const yaml = ref('');
@@ -447,7 +399,6 @@ const noticeErrorDetails = computed(() =>
   apiErrorDetails.value.length > 0 ? apiErrorDetails.value : apiError.value ? [apiError.value] : []
 );
 const status = ref('');
-const deleteConflict = ref(false);
 const serverDiagnostics = ref<ValidationDiagnostic[]>([]);
 const editorDiagnostics = ref<YamlDiagnostic[]>([]);
 const setEditorDiagnostics = (diagnostics: YamlDiagnostic[]): void => {
@@ -510,25 +461,16 @@ const displayTestValue = computed(() => {
 });
 
 const api = computed(() =>
-  props.kind === 'point'
-    ? pointConfigurationApi
-    : props.kind === 'group'
-      ? pointGroupConfigurationApi
-      : controllerTemplateConfigurationApi
+  props.kind === 'point' ? pointConfigurationApi : controllerTemplateConfigurationApi
 );
 const resourceIdFromYaml = (source = yaml.value): string => {
   try {
     const document = parse(source) as {
       id?: unknown;
-      groups?: { id?: unknown }[];
       points?: { id?: unknown }[];
     };
     const id =
-      props.kind === 'controller'
-        ? document.id
-        : props.kind === 'group'
-          ? document.groups?.[0]?.id
-          : document.points?.[0]?.id;
+      props.kind === 'controller' ? document.id : document.points?.[0]?.id;
     return typeof id === 'string' ? id : '';
   } catch {
     return '';
@@ -713,26 +655,12 @@ const stopPointTest = (): void => {
 const remove = async (): Promise<void> => {
   if (!props.resourceId || !window.confirm(`Delete this ${singularLabel.value}?`)) return;
   apiError.value = '';
-  deleteConflict.value = false;
   try {
     await api.value.delete(props.resourceId, revision.value);
     allowNavigation = true;
     await router.push({ name: listRoute.value });
   } catch (reason) {
-    deleteConflict.value =
-      props.kind === 'group' && reason instanceof YamlResourceError && reason.status === 409;
     await showFailure(reason, `Unable to delete ${singularLabel.value}`);
-  }
-};
-const makeStandalone = async (): Promise<void> => {
-  if (!props.resourceId || props.kind !== 'group') return;
-  apiError.value = '';
-  try {
-    await pointGroupConfigurationApi.makeStandalone(props.resourceId, revision.value);
-    deleteConflict.value = false;
-    status.value = 'Member points are now standalone.';
-  } catch (reason) {
-    await showFailure(reason, 'Unable to make member points standalone');
   }
 };
 const loadRuntime = async (): Promise<void> => {

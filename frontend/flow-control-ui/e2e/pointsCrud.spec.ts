@@ -5,7 +5,6 @@ import { parse } from 'yaml';
 const pointId = 'new-digital-virtual';
 
 const pointYaml = `schemaVersion: 1
-groups: []
 points:
   - id: ${pointId}
     name: New digital virtual point
@@ -115,52 +114,4 @@ test('creates, reloads and honestly presents an unavailable point value', async 
   // Acceptance criteria: `page.getByRole('button', { name: 'Resume updates' })` must be visible, because this condition proves that
   // creates, reloads and honestly presents an unavailable point value.
   await expect(page.getByRole('button', { name: 'Resume updates' })).toBeVisible();
-});
-
-/**
- * Purpose: Protects the behavioral contract that offers explicit conflict recovery for occupied groups.
- * Description: Exercises offers explicit conflict recovery for occupied groups from its arranged starting state and
- * verifies the observable results required by the scenario.
- */
-test('offers explicit conflict recovery for occupied groups', async ({ page }) => {
-  const groupYaml = `schemaVersion: 1
-groups:
-  - id: room
-    name: Room
-points: []
-`;
-  await page.route('**/api/point-groups/room?revision=1', async (route) => {
-    await route.fulfill({ status: 409, json: { message: 'group contains points' } });
-  });
-  await page.route('**/api/point-groups/room/make-points-standalone?revision=1', async (route) => {
-    await route.fulfill({ json: { items: [], updatedItems: 1 } });
-  });
-  await page.route('**/api/point-groups/room', async (route) => {
-    await route.fulfill({
-      body: groupYaml,
-      headers: { 'Content-Type': 'application/yaml', ETag: '1' }
-    });
-  });
-  await page.goto('/point-groups/room');
-
-  // Expected outcome: `page.locator('.monaco-editor')` is visible to the user.
-  // Acceptance criteria: `page.locator('.monaco-editor')` must be visible, because this condition proves that
-  // offers explicit conflict recovery for occupied groups.
-  await expect(page.locator('.monaco-editor')).toBeVisible({ timeout: 60_000 });
-  page.once('dialog', (dialog) => void dialog.accept());
-  await page.getByRole('button', { name: 'Delete' }).click();
-
-  // Expected outcome: `page.locator('.error-summary')` displays the required content.
-  // Acceptance criteria: `page.locator('.error-summary')` must contain the text `'group contains points'`, because this condition proves that
-  // offers explicit conflict recovery for occupied groups.
-  await expect(
-    page.getByRole('dialog', { name: 'Unable to complete the request' }).getByRole('alert')
-  ).toContainText('group contains points');
-  await page.getByRole('button', { name: 'Close' }).click();
-  await page.getByRole('button', { name: 'Make member points standalone' }).click();
-
-  // Expected outcome: `page.getByText('Member points are now standalone.')` is present in the rendered document.
-  // Acceptance criteria: `page.getByText('Member points are now standalone.')` must be attached to the document, because this condition proves that
-  // offers explicit conflict recovery for occupied groups.
-  await expect(page.getByText('Member points are now standalone.')).toBeAttached();
 });

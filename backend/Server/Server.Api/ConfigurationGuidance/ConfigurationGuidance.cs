@@ -12,9 +12,8 @@ public static class ConfigurationGuidance
     private static readonly Dictionary<Type, Dictionary<string, string>> Help =
         new Dictionary<Type, Dictionary<string, string>>
         {
-            [typeof(PointDocument)] = H(("schemaVersion", "Configuration format version; currently `1`."), ("groups", "Point groups in this document."), ("points", "Point definitions in this document.")),
-            [typeof(AutomationPoint)] = H(("id", "Stable lowercase, hyphen-separated identifier."), ("name", "Operator-facing display name."), ("description", "Optional explanation of what the point represents."), ("enabled", "Whether the point participates in runtime processing."), ("groupId", "Optional group whose source and mapping defaults are inherited."), ("direction", "Permitted data direction."), ("valueType", "Logical type of the point value."), ("pointSourceType", "Whether the value is virtual, physical, or remote."), ("units", "Engineering units for analog and integer values."), ("stateLabels", "Labels for digital or multi-state values."), ("readable", "Whether clients and flows may read the value."), ("commandable", "Whether clients and flows may command the value."), ("persistence", "Runtime persistence: `volatile` or `retained`."), ("relinquishDefault", "Typed fallback used when no writer supplies a value."), ("sourceId", "Remote point-source identifier; may be inherited from a group."), ("mapping", "Source-relative address and read/write settings."), ("limits", "Optional type-specific value constraints."), ("safeDisablePolicy", "Required transition behavior for commandable non-virtual points.")),
-            [typeof(PointGroup)] = H(("id", "Stable lowercase, hyphen-separated group identifier."), ("name", "Operator-facing group name."), ("description", "Optional purpose of the group."), ("sourceId", "Point source inherited by member points."), ("mappingDefaults", "Source-specific mapping values merged into member mappings.")),
+            [typeof(PointDocument)] = H(("schemaVersion", "Configuration format version; currently `1`."), ("points", "Point definitions in this document.")),
+            [typeof(AutomationPoint)] = H(("id", "Stable lowercase, hyphen-separated identifier."), ("name", "Operator-facing display name."), ("description", "Optional explanation of what the point represents."), ("enabled", "Whether the point participates in runtime processing."), ("direction", "Permitted data direction."), ("valueType", "Logical type of the point value."), ("pointSourceType", "Whether the value is virtual, physical, or remote."), ("units", "Engineering units for analog and integer values."), ("stateLabels", "Labels for digital or multi-state values."), ("readable", "Whether clients and flows may read the value."), ("commandable", "Whether clients and flows may command the value."), ("persistence", "Runtime persistence: `volatile` or `retained`."), ("relinquishDefault", "Typed fallback used when no writer supplies a value."), ("sourceId", "Remote point-source identifier."), ("mapping", "Source-relative address and read/write settings."), ("limits", "Optional type-specific value constraints."), ("safeDisablePolicy", "Required transition behavior for commandable non-virtual points.")),
             [typeof(PointSourceDocument)] = H(("schemaVersion", "Configuration format version; currently `1`."), ("sources", "Point sources in this document.")),
             [typeof(PointSource)] = H(("id", "Stable lowercase, hyphen-separated source identifier."), ("name", "Operator-facing source name."), ("description", "Optional explanation of the external system."), ("enabled", "Whether connections and point operations are allowed."), ("kind", "Integration kind: `homeAssistant`, `mqtt`, or `httpJson`."), ("connection", "Kind-specific connection settings."), ("credentialRef", "Credential-store reference such as `secret://weather`."), ("tls", "TLS verification settings."), ("timeouts", "Connection and request timeout settings.")),
             [typeof(PointSourceConnection)] = H(("baseUrl", "HTTP base URL for Home Assistant or HTTP/JSON."), ("subscribeEvents", "Subscribe to Home Assistant events."), ("brokerUrl", "MQTT broker URL."), ("clientIdPrefix", "Prefix for generated MQTT client IDs."), ("testTopic", "Exact read-only MQTT topic used by connectivity tests."), ("qos", "MQTT quality-of-service level: `0`, `1`, or `2`."), ("cleanStart", "Start MQTT sessions without previous session state."), ("keepAliveSeconds", "MQTT keepalive interval."), ("defaultPollMilliseconds", "Default HTTP polling interval."), ("followRedirects", "Whether HTTP redirects may be followed."), ("maximumResponseBytes", "Maximum accepted HTTP response size."), ("allowPrivateNetwork", "Explicitly permit private-network MQTT destinations.")),
@@ -35,7 +34,7 @@ public static class ConfigurationGuidance
     {
         var kind = configurationType switch
         {
-            "point" or "point-group" => ConfigurationKind.Points,
+            "point" => ConfigurationKind.Points,
             "point-source" => ConfigurationKind.PointSources,
             "controller-template" => ConfigurationKind.Controller,
             _ => throw new ArgumentException("unknown configuration type", nameof(configurationType))
@@ -45,7 +44,6 @@ public static class ConfigurationGuidance
         var types = configurationType switch
         {
             "point" => new[] { typeof(PointDocument), typeof(AutomationPoint) },
-            "point-group" => new[] { typeof(PointDocument), typeof(PointGroup) },
             "point-source" => new[] { typeof(PointSourceDocument), typeof(PointSource), typeof(PointSourceConnection), typeof(TlsOptions), typeof(PointSourceTimeouts) },
             _ => new[] { typeof(ControllerTemplate), typeof(ControllerCapabilities), typeof(ControllerLimits) }
         };
@@ -87,7 +85,7 @@ public static class ConfigurationGuidance
         markdown.Append($"# {title} YAML guidance\n\nOnly fields applicable to the selected point type are shown. This is generated from the server's current C# configuration contract.\n\n");
         AppendType(markdown, typeof(PointDocument));
 
-        var fields = new HashSet<string>(["id", "name", "description", "enabled", "groupId", "direction", "valueType", "pointSourceType", "readable", "commandable", "persistence"], StringComparer.Ordinal);
+        var fields = new HashSet<string>(["id", "name", "description", "enabled", "direction", "valueType", "pointSourceType", "readable", "commandable", "persistence"], StringComparer.Ordinal);
 
         if (valueType is "analog" or "integer")
         {

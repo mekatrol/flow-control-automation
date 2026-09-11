@@ -10,8 +10,6 @@ public interface IFlowControlDbContext
 
     DbSet<PointEntity> Points { get; }
 
-    DbSet<PointGroupEntity> PointGroups { get; }
-
     DbSet<CredentialEntity> Credentials { get; }
 
     DbSet<ExecutionContextEntity> ExecutionContexts => Set<ExecutionContextEntity>();

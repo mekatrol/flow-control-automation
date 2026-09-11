@@ -1,5 +1,4 @@
 schemaVersion: 1
-groups: []
 points:
   - id: invalid-point
     name: Invalid point
@@ -12,4 +11,3 @@ points:
     commandable: true
     persistence: volatile
     surprise: true
-

@@ -10,8 +10,6 @@ public interface IAutomationPoint
 
     bool Enabled { get; set; }
 
-    string? GroupId { get; set; }
-
     DataDirectionType Direction { get; init; }
 
     AutomationPointValueType ValueType { get; init; }

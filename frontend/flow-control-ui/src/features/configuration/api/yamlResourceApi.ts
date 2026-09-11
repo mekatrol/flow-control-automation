@@ -119,16 +119,6 @@ export const pointConfigurationApi = {
   }
 };
 
-export const pointGroupConfigurationApi = {
-  ...yamlApi('/api/point-groups'),
-  async makeStandalone(id: string, revision: number): Promise<void> {
-    await request(
-      `/api/point-groups/${encodeURIComponent(id)}/make-points-standalone?revision=${revision}`,
-      { method: 'POST' }
-    );
-  }
-};
-
 export const controllerTemplateConfigurationApi = {
   ...yamlApi('/api/controller-templates'),
   async get(id: string, signal?: AbortSignal): Promise<YamlResource> {

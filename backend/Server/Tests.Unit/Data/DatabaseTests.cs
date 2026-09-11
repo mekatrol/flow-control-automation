@@ -52,9 +52,9 @@ public sealed class DatabaseTests
         var triggerCount = Convert.ToInt32(await command.ExecuteScalarAsync());
 
         // Expected outcome: `triggerCount` has the required value.
-        // Acceptance criteria: `triggerCount` must equal `5`, because this condition proves that
+        // Acceptance criteria: `triggerCount` must equal `9`, because this condition proves that
         // initialization is idempotent and creates schema and triggers.
-        Assert.That(triggerCount, Is.EqualTo(10));
+        Assert.That(triggerCount, Is.EqualTo(9));
     }
 
     /// <summary>

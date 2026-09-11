@@ -50,9 +50,8 @@ internal sealed class PointDefinitionValidatorTests
             () => _validator.ValidateDocument(document, sources),
             Throws.Nothing);
 
-        var groups = document.Groups.ToDictionary(group => group.Id, StringComparer.Ordinal);
         var validated = document.Points.Select(point =>
-            _validator.Validate(point, new PointValidationContext(groups, sources))).ToArray();
+            _validator.Validate(point, new PointValidationContext(sources))).ToArray();
 
         // Expected outcome: All related outcomes satisfy their contracts.
         // Acceptance criteria: every assertion in the group must pass, because this condition proves that
@@ -277,51 +276,6 @@ internal sealed class PointDefinitionValidatorTests
     }
 
     /// <summary>
-    /// Purpose: Protects the behavioral contract that remote point resolves inherited source and rejects conflicts.
-    /// Description: Arranges the inputs for remote point resolves inherited source and rejects conflicts, exercises the relevant operation,
-    /// and verifies the observable results required by that scenario.
-    /// </summary>
-    [Test]
-    public void RemotePoint_ResolvesInheritedSourceAndRejectsConflicts()
-    {
-        var groups = new Dictionary<string, PointGroup>
-        {
-            ["group"] = new() { Id = "group", Name = "Group", SourceId = "ha" }
-        };
-        var inherited = RemotePoint(DataDirectionType.Input, true, false) with
-        {
-            GroupId = "group",
-            SourceId = null,
-            Mapping = new JsonObject { ["entityId"] = "sensor.temperature" },
-        };
-        var conflicting = inherited with { SourceId = "mqtt" };
-
-        // Expected outcome: All related outcomes satisfy their contracts.
-        // Acceptance criteria: every assertion in the group must pass, because this condition proves that
-        // remote point resolves inherited source and rejects conflicts.
-        Assert.Multiple(() =>
-        {
-            // Expected outcome: the asserted result has the required value.
-            // Acceptance criteria: the asserted result must equal `PointSourceKind.HomeAssistant`, because this condition proves that
-            // remote point resolves inherited source and rejects conflicts.
-            Assert.That(
-                _validator.Validate(
-                    inherited,
-                    new PointValidationContext(groups, _sources)).SourceKind,
-                Is.EqualTo(PointSourceKind.HomeAssistant));
-
-            // Expected outcome: The invalid operation is rejected.
-            // Acceptance criteria: the operation must throw PointDefinitionValidationException, because this condition proves that
-            // remote point resolves inherited source and rejects conflicts.
-            Assert.That(
-                () => _validator.Validate(
-                    conflicting,
-                    new PointValidationContext(groups, _sources)),
-                Throws.TypeOf<PointDefinitionValidationException>());
-        });
-    }
-
-    /// <summary>
     /// Purpose: Protects the behavioral contract that source mappings require capabilities and reject credential literals.
     /// Description: Arranges the inputs for source mappings require capabilities and reject credential literals, exercises the relevant operation,
     /// and verifies the observable results required by that scenario.
@@ -367,12 +321,12 @@ internal sealed class PointDefinitionValidatorTests
     }
 
     /// <summary>
-    /// Purpose: Protects the behavioral contract that document rejects duplicate names and reserved group name.
-    /// Description: Arranges the inputs for document rejects duplicate names and reserved group name, exercises the relevant operation,
+    /// Purpose: Protects the behavioral contract that a document rejects duplicate point names.
+    /// Description: Arranges duplicate point names, exercises document validation,
     /// and verifies the observable results required by that scenario.
     /// </summary>
     [Test]
-    public void DocumentRejectsDuplicateNamesAndReservedGroupName()
+    public void DocumentRejectsDuplicateNames()
     {
         var points = new[]
         {
@@ -380,31 +334,9 @@ internal sealed class PointDefinitionValidatorTests
             VirtualPoint(AutomationPointValueType.Analog) with { Id = "second", Name = "POINT" }
         };
         var duplicate = new PointDocument { Points = points };
-        var reserved = new PointGroup
-        {
-            Id = "standalone",
-            Name = "__standalonepointgroup__"
-        };
-
-        // Expected outcome: All related outcomes satisfy their contracts.
-        // Acceptance criteria: every assertion in the group must pass, because this condition proves that
-        // document rejects duplicate names and reserved group name.
-        Assert.Multiple(() =>
-        {
-            // Expected outcome: The invalid operation is rejected.
-            // Acceptance criteria: the operation must throw PointDefinitionValidationException, because this condition proves that
-            // document rejects duplicate names and reserved group name.
-            Assert.That(
-                () => _validator.ValidateDocument(duplicate, _sources),
-                Throws.TypeOf<PointDefinitionValidationException>());
-
-            // Expected outcome: The invalid operation is rejected.
-            // Acceptance criteria: the operation must throw PointDefinitionValidationException, because this condition proves that
-            // document rejects duplicate names and reserved group name.
-            Assert.That(
-                () => _validator.ValidateGroup(reserved, _sources),
-                Throws.TypeOf<PointDefinitionValidationException>());
-        });
+        Assert.That(
+            () => _validator.ValidateDocument(duplicate, _sources),
+            Throws.TypeOf<PointDefinitionValidationException>());
     }
 
     /// <summary>
@@ -442,9 +374,7 @@ internal sealed class PointDefinitionValidatorTests
     }
 
     private PointValidationContext Context() =>
-        new(
-            new Dictionary<string, PointGroup>(StringComparer.Ordinal),
-            _sources);
+        new(_sources);
 
     private static RemoteAutomationPoint RemotePoint(
         DataDirectionType direction,

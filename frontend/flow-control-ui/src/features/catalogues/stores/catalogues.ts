@@ -8,7 +8,6 @@ import {
 import type {
   ControllerTemplateSummary,
   Page,
-  PointGroupSummary,
   PointSummary
 } from '@/features/catalogues/api/catalogueDto';
 
@@ -74,12 +73,6 @@ export const usePointsCatalogueStore = definePagedStore<PointSummary>(
   'pointsCatalogue',
   'Points',
   (query, signal) => catalogueApi.points(query, signal)
-);
-
-export const usePointGroupsCatalogueStore = definePagedStore<PointGroupSummary>(
-  'pointGroupsCatalogue',
-  'Point groups',
-  (query, signal) => catalogueApi.groups(query, signal)
 );
 
 export const useControllerTemplatesCatalogueStore = defineStore(

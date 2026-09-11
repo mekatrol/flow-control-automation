@@ -2,7 +2,6 @@ import { waitForFetch } from '@/api/waitForFetch';
 
 export type ConfigurationGuidanceType =
   | 'point'
-  | 'point-group'
   | 'point-source'
   | 'controller-template';
 

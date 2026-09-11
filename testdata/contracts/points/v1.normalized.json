@@ -1,18 +1,6 @@
 {
   "schemaVersion": 1,
   "revision": 1,
-  "groups": [
-    {
-      "id": "air-handler",
-      "name": "Air Handler",
-      "description": "Shared Home Assistant mappings",
-      "sourceId": "home-assistant",
-      "mappingDefaults": {"domain": "sensor"},
-      "revision": 1,
-      "createdAt": "2026-01-01T00:00:00Z",
-      "updatedAt": "2026-01-01T00:00:00Z"
-    }
-  ],
   "points": [
     {
       "id": "outside-air-temperature",
@@ -35,9 +23,8 @@
     {
       "id": "supply-fan-enable",
       "name": "Supply fan enable",
-      "description": "Grouped digital output",
+      "description": "Home Assistant digital output",
       "enabled": true,
-      "groupId": "air-handler",
       "pointSourceType": "remote",
       "direction": "output",
       "valueType": "digital",
@@ -45,6 +32,7 @@
       "readable": true,
       "commandable": true,
       "persistence": "volatile",
+      "sourceId": "home-assistant",
       "mapping": {"entityId": "switch.supply_fan", "stateProperty": "state", "commandService": "turn_on_off"},
       "safeDisablePolicy": {"startup": "relinquish", "shutdown": "relinquish", "communicationLoss": "relinquish", "disable": "relinquish"},
       "revision": 1,
@@ -105,4 +93,3 @@
     }
   ]
 }
-

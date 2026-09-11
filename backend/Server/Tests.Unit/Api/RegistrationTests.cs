@@ -94,8 +94,6 @@ public sealed class RegistrationTests
 
         public DbSet<PointEntity> Points => throw new NotSupportedException();
 
-        public DbSet<PointGroupEntity> PointGroups => throw new NotSupportedException();
-
         public DbSet<CredentialEntity> Credentials => throw new NotSupportedException();
 
         public DbSet<TEntity> Set<TEntity>()

@@ -16,14 +16,6 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
         endpoints.MapPut("/api/points/{pointId}", UpdatePoint);
         endpoints.MapDelete("/api/points/{pointId}", DeletePoint);
         endpoints.MapGet("/api/points/{pointId}/runtime", GetPointRuntime);
-        endpoints.MapGet("/api/point-groups", ListGroups);
-        endpoints.MapPost("/api/point-groups", CreateGroup);
-        endpoints.MapGet("/api/point-groups/{groupId}", GetGroup);
-        endpoints.MapPut("/api/point-groups/{groupId}", UpdateGroup);
-        endpoints.MapDelete("/api/point-groups/{groupId}", DeleteGroup);
-        endpoints.MapPost(
-            "/api/point-groups/{groupId}/make-points-standalone",
-            MakePointsStandalone);
 
         return endpoints;
     }
@@ -66,41 +58,8 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
                 || Contains(point.Description, options.Value.Filter));
         }
 
-        if (options.Value.GroupId is not null)
-        {
-            filtered = options.Value.GroupId.Length == 0
-                ? filtered.Where(point => point.GroupId is null)
-                : filtered.Where(point => point.GroupId == options.Value.GroupId);
-        }
-
         return Results.Json(Page(
             Sort(filtered, options.Value.Sort, point => point.Name, point => point.Id),
-            options.Value.Page,
-            options.Value.PageSize));
-    }
-
-    private static async Task<IResult> ListGroups(
-        HttpRequest request,
-        IPointDefinitionStore definitions,
-        CancellationToken cancellationToken)
-    {
-        var options = ParseGroupListOptions(request);
-
-        if (options.Error is not null)
-        {
-            return options.Error;
-        }
-
-        var all = await definitions.ListGroupsAsync(cancellationToken);
-        var filtered = string.IsNullOrWhiteSpace(options.Value!.Filter)
-            ? all
-            : all.Where(group =>
-                Contains(group.Name, options.Value.Filter)
-                || Contains(group.Id, options.Value.Filter)
-                || Contains(group.Description, options.Value.Filter));
-
-        return Results.Json(Page(
-            Sort(filtered, options.Value.Sort, group => group.Name, group => group.Id),
             options.Value.Page,
             options.Value.PageSize));
     }
@@ -169,134 +128,6 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
             () => definitions.DeletePointAsync(pointId, revision, cancellationToken));
     }
 
-    private static async Task<IResult> CreateGroup(
-        HttpRequest request,
-        HttpResponse response,
-        IPointDefinitionStore definitions,
-        CancellationToken cancellationToken)
-    {
-        var decoded = await Decode(request, PointGroupYaml.Parse, cancellationToken);
-
-        return decoded.Error
-            ?? await Write(
-                response,
-                () => definitions.CreateGroupAsync(decoded.Value!, cancellationToken),
-                PointGroupYaml.Render,
-                StatusCodes.Status201Created);
-    }
-
-    private static async Task<IResult> GetGroup(
-        string groupId,
-        HttpResponse response,
-        IPointDefinitionStore definitions,
-        CancellationToken cancellationToken) =>
-        await Write(
-            response,
-            () => definitions.GetGroupAsync(groupId, cancellationToken),
-            PointGroupYaml.Render,
-            StatusCodes.Status200OK);
-
-    private static async Task<IResult> UpdateGroup(
-        string groupId,
-        HttpRequest request,
-        HttpResponse response,
-        IPointDefinitionStore definitions,
-        CancellationToken cancellationToken)
-    {
-        var decoded = await Decode(request, PointGroupYaml.Parse, cancellationToken);
-
-        return decoded.Error ?? (TryRevision(request.Headers.IfMatch.ToString(), "If-Match", out var revision)
-            ? await Write(
-                response,
-                () => definitions.UpdateGroupAsync(
-                    groupId,
-                    decoded.Value!,
-                    revision,
-                    cancellationToken),
-                PointGroupYaml.Render,
-                StatusCodes.Status200OK)
-            : Error(400, "invalid_revision", "If-Match must contain the last observed revision"));
-    }
-
-    private static async Task<IResult> DeleteGroup(
-        string groupId,
-        HttpRequest request,
-        IPointDefinitionStore definitions,
-        CancellationToken cancellationToken)
-    {
-        if (!TryRevision(request.Query["revision"].ToString(), "revision", out var revision))
-        {
-            return Error(400, "invalid_revision", "revision must be a positive integer");
-        }
-
-        try
-        {
-            await definitions.DeleteGroupAsync(groupId, revision, cancellationToken);
-
-            return Results.NoContent();
-        }
-        catch (PointDefinitionConflictException exception)
-        {
-            var pointIds = (await definitions.ListPointsAsync(cancellationToken))
-                .Where(point => point.GroupId == groupId)
-                .Select(point => point.Id)
-                .Order(StringComparer.Ordinal)
-                .ToArray();
-
-            return Error(
-                409,
-                ConflictCode(exception),
-                exception.Message,
-                pointIds.Length == 0 ? null : new { pointIds });
-        }
-        catch (PointDefinitionNotFoundException)
-        {
-            return Error(404, "not_found", "point group not found");
-        }
-        catch (Exception exception) when (exception is not OperationCanceledException)
-        {
-            return Error(500, "persistence_failed", "unable to persist point definition");
-        }
-    }
-
-    private static async Task<IResult> MakePointsStandalone(
-        string groupId,
-        HttpRequest request,
-        IPointDefinitionStore definitions,
-        CancellationToken cancellationToken)
-    {
-        if (!TryRevision(request.Query["revision"].ToString(), "revision", out var revision))
-        {
-            return Error(400, "invalid_revision", "revision must be a positive integer");
-        }
-
-        try
-        {
-            var points = await definitions.MakePointsStandaloneAsync(
-                groupId,
-                revision,
-                cancellationToken);
-
-            return Results.Json(new { items = points, updatedItems = points.Count });
-        }
-        catch (PointDefinitionNotFoundException)
-        {
-            return Error(404, "not_found", "point group not found");
-        }
-        catch (PointDefinitionConflictException exception)
-        {
-            return Error(409, ConflictCode(exception), exception.Message);
-        }
-        catch (PointDefinitionValidationException exception)
-        {
-            return Error(409, "membership_conflict", exception.Message);
-        }
-        catch (Exception exception) when (exception is not OperationCanceledException)
-        {
-            return Error(500, "persistence_failed", "unable to persist point definition");
-        }
-    }
-
     private static async Task<IResult> Delete(Func<Task> operation)
     {
         try
@@ -329,12 +160,9 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
         try
         {
             var value = await operation();
-            var revision = value switch
-            {
-                AutomationPoint point => point.Revision,
-                PointGroup group => group.Revision,
-                _ => throw new InvalidOperationException("Unsupported point resource.")
-            };
+            var revision = value is AutomationPoint point
+                ? point.Revision
+                : throw new InvalidOperationException("Unsupported point resource.");
             response.Headers.ETag = revision.ToString(CultureInfo.InvariantCulture);
 
             return Results.Text(render(value), "application/yaml", Encoding.UTF8, status);
@@ -405,33 +233,11 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
             return (null, common.Error);
         }
 
-        var groupValues = request.Query["groupId"];
-
-        if (groupValues.Count > 1)
-        {
-            return (null, Error(400, "invalid_query", "groupId must be specified once"));
-        }
-
         return (new PointListOptions(
             common.Filter!,
-            groupValues.Count == 0 ? null : groupValues.ToString(),
             common.Page,
             common.PageSize,
             common.Sort!), null);
-    }
-
-    private static (PointGroupListOptions? Value, IResult? Error) ParseGroupListOptions(
-        HttpRequest request)
-    {
-        var common = ParseCommonListOptions(request);
-
-        return common.Error is null
-            ? (new PointGroupListOptions(
-                common.Filter!,
-                common.Page,
-                common.PageSize,
-                common.Sort!), null)
-            : (null, common.Error);
     }
 
     private static (

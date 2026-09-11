@@ -31,11 +31,7 @@ export const seedPointApi = async (page: Page): Promise<void> => {
   await page.route(/\/api\/points(?:\?.*)?$/, (route) =>
     fulfillCollection(route, pointsDocument.points)
   );
-  await page.route(/\/api\/point-groups(?:\?.*)?$/, (route) =>
-    fulfillCollection(route, pointsDocument.groups)
-  );
   await page.route(/\/api\/point-sources(?:\?.*)?$/, (route) =>
     fulfillCollection(route, sourcesDocument.sources)
   );
 };
-

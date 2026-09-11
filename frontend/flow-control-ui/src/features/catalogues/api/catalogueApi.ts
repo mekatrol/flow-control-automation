@@ -2,10 +2,8 @@ import {
   parseControllerTemplateList,
   parsePage,
   parsePoint,
-  parsePointGroup,
   type ControllerTemplateSummary,
   type Page,
-  type PointGroupSummary,
   type PointSummary
 } from './catalogueDto';
 
@@ -53,12 +51,6 @@ const getJson = async (url: string, signal?: AbortSignal): Promise<unknown> => {
 export const catalogueApi = {
   async points(query: CatalogueQuery, signal?: AbortSignal): Promise<Page<PointSummary>> {
     return parsePage(await getJson(`/api/points?${queryString(query)}`, signal), parsePoint);
-  },
-  async groups(query: CatalogueQuery, signal?: AbortSignal): Promise<Page<PointGroupSummary>> {
-    return parsePage(
-      await getJson(`/api/point-groups?${queryString(query)}`, signal),
-      parsePointGroup
-    );
   },
   async controllerTemplates(signal?: AbortSignal): Promise<ControllerTemplateSummary[]> {
     return parseControllerTemplateList(await getJson('/api/controller-templates', signal));

@@ -8,11 +8,11 @@ public static class PointYaml
             yaml,
             ConfigurationKind.Points);
 
-        if (document.Points.Count != 1 || document.Groups.Count != 0)
+        if (document.Points.Count != 1)
         {
             throw new ConfigurationYamlException(
                 ConfigurationYamlError.InvalidShape,
-                "YAML must contain exactly one point and no groups.");
+                "YAML must contain exactly one point.");
         }
 
         return document.Points[0];

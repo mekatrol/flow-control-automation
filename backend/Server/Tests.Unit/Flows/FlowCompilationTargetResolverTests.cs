@@ -376,37 +376,5 @@ public sealed class FlowCompilationTargetResolverTests
             CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
-        public Task<IReadOnlyList<PointGroup>> ListGroupsAsync(
-            CancellationToken cancellationToken) =>
-            throw new NotSupportedException();
-
-        public Task<PointGroup> GetGroupAsync(
-            string id,
-            CancellationToken cancellationToken) =>
-            throw new NotSupportedException();
-
-        public Task<PointGroup> CreateGroupAsync(
-            PointGroup group,
-            CancellationToken cancellationToken) =>
-            throw new NotSupportedException();
-
-        public Task<PointGroup> UpdateGroupAsync(
-            string id,
-            PointGroup group,
-            int revision,
-            CancellationToken cancellationToken) =>
-            throw new NotSupportedException();
-
-        public Task DeleteGroupAsync(
-            string id,
-            int revision,
-            CancellationToken cancellationToken) =>
-            throw new NotSupportedException();
-
-        public Task<IReadOnlyList<AutomationPoint>> MakePointsStandaloneAsync(
-            string groupId,
-            int groupRevision,
-            CancellationToken cancellationToken) =>
-            throw new NotSupportedException();
     }
 }

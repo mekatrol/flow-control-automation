@@ -18,7 +18,7 @@ public sealed class ConfigurationGuidanceTests
     [Test]
     public void GuidanceIsMarkdownGeneratedForCurrentPointValues()
     {
-        var yaml = "schemaVersion: 1\ngroups: []\npoints:\n  - pointSourceType: remote\n    direction: input\n    valueType: digital\n    commandable: false\n"u8;
+        var yaml = "schemaVersion: 1\npoints:\n  - pointSourceType: remote\n    direction: input\n    valueType: digital\n    commandable: false\n"u8;
         var markdown = ConfigurationGuidance.Render("point", yaml);
         Assert.Multiple(() =>
         {
@@ -64,7 +64,6 @@ public sealed class ConfigurationGuidanceTests
             var sourceReference = binding.SourceId is null ? string.Empty : $"    sourceId: {binding.SourceId}\n";
             var yaml = $"""
                 schemaVersion: 1
-                groups: []
                 points:
                   - id: guidance-test
                     name: Guidance test
@@ -174,7 +173,6 @@ public sealed class ConfigurationGuidanceTests
         using var client = factory.CreateClient();
         const string yaml = """
             schemaVersion: 1
-            groups: []
             points:
               - pointSourceType: 1
                 direction: input

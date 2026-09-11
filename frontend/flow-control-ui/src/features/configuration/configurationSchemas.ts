@@ -19,10 +19,9 @@ export const pointSchema: JSONSchema = {
   $id: 'app://schemas/point-v1.json',
   type: 'object',
   additionalProperties: false,
-  required: ['schemaVersion', 'groups', 'points'],
+  required: ['schemaVersion', 'points'],
   properties: {
     schemaVersion: { const: 1 },
-    groups: { type: 'array', maxItems: 0 },
     points: {
       type: 'array',
       minItems: 1,
@@ -45,7 +44,6 @@ export const pointSchema: JSONSchema = {
           name: { type: 'string', minLength: 1 },
           description: { type: 'string' },
           enabled: { type: 'boolean' },
-          groupId: identifier,
           pointSourceType: { enum: Object.values(PointSourceType) },
           direction: { enum: Object.values(DataDirectionType) },
           valueType: { enum: Object.values(AutomationPointValueType) },
@@ -62,33 +60,6 @@ export const pointSchema: JSONSchema = {
         }
       }
     }
-  }
-};
-
-export const pointGroupSchema: JSONSchema = {
-  $id: 'app://schemas/point-group-v1.json',
-  type: 'object',
-  additionalProperties: false,
-  required: ['schemaVersion', 'groups', 'points'],
-  properties: {
-    schemaVersion: { const: 1 },
-    groups: {
-      type: 'array',
-      minItems: 1,
-      maxItems: 1,
-      items: {
-        type: 'object',
-        required: ['id', 'name'],
-        properties: {
-          id: identifier,
-          name: { type: 'string', minLength: 1 },
-          description: { type: 'string' },
-          sourceId: identifier,
-          mappingDefaults: { type: 'object' }
-        }
-      }
-    },
-    points: { type: 'array', maxItems: 0 }
   }
 };
 

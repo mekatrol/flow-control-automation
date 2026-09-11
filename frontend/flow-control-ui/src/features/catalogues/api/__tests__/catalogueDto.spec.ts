@@ -2,8 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   parseControllerTemplate,
   parsePage,
-  parsePoint,
-  parsePointGroup
+  parsePoint
 } from '@/features/catalogues/api/catalogueDto';
 
 const point = {
@@ -11,7 +10,6 @@ const point = {
   name: 'Room temperature',
   description: 'Measured temperature',
   enabled: true,
-  groupId: 'room',
   pointSourceType: 'remote',
   direction: 'input',
   valueType: 'analog',
@@ -49,34 +47,20 @@ const template = {
 
 describe('catalogue DTO parsing', () => {
   /**
-   * Purpose: Protects the behavioral contract that maps point, group, template and page contracts.
-   * Description: Exercises maps point, group, template and page contracts from its arranged starting state and
+   * Purpose: Protects the behavioral contract that maps point, template and page contracts.
+   * Description: Exercises point, template and page contracts from its arranged starting state and
    * verifies the observable results required by the scenario.
    */
-  it('maps point, group, template and page contracts', () => {
+  it('maps point, template and page contracts', () => {
     // Expected outcome: `parsePoint(point)` contains the required object fields.
-    // Acceptance criteria: `parsePoint(point)` must match the object `{ id: 'room-temperature', groupId: 'room', valueType: 'analog' }`, because this condition proves that
-    // maps point, group, template and page contracts.
+    // Acceptance criteria: `parsePoint(point)` must include the point identifier and value type.
     expect(parsePoint(point)).toMatchObject({
       id: 'room-temperature',
-      groupId: 'room',
       valueType: 'analog'
     });
     expect(
       parsePoint({ ...point, direction: 'inputOutput', valueType: 'multiState' })
     ).toMatchObject({ direction: 'inputOutput', valueType: 'multiState' });
-
-    // Expected outcome: `parsePointGroup({ id: 'room', name: 'Room', sourceId: null, revision: 1 })` matches the required structure.
-    // Acceptance criteria: `parsePointGroup({ id: 'room', name: 'Room', sourceId: null, revision: 1 })` must equal `{ id: 'room', name: 'Room', description: undefined, sourceId: undefined, revision: 1, updatedAt: undefined }`, because this condition proves that
-    // maps point, group, template and page contracts.
-    expect(parsePointGroup({ id: 'room', name: 'Room', sourceId: null, revision: 1 })).toEqual({
-      id: 'room',
-      name: 'Room',
-      description: undefined,
-      sourceId: undefined,
-      revision: 1,
-      updatedAt: undefined
-    });
 
     // Expected outcome: `parseControllerTemplate(template` has the required value.
     // Acceptance criteria: `parseControllerTemplate(template` must be `10`, because this condition proves that
