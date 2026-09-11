@@ -5,7 +5,7 @@ import {
   ControllerRuntimeFeatureType
 } from '@/types/serverTypes';
 import { AutomationPointValueType } from '@/types/serverTypes';
-import type { ControllerTemplateSummary } from '@/features/catalogues/api/catalogueDto';
+import type { ControllerTemplateSummary } from '@/features/controllerTemplates/api/controllerTemplateDto';
 
 export enum FlowDebugTargetKind {
   Host = 'host',

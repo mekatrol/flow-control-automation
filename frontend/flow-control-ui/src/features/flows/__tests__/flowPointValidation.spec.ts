@@ -25,7 +25,7 @@ const definition: VirtualPointDefinition = {
 describe('flow point validation', () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it('validates compatible definitions without a catalogue request', async () => {
+  it('validates compatible definitions without a points request', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch');
     await expect(
       validatePointReference(node('analogInput', 'temperature'), [definition])
@@ -42,7 +42,7 @@ describe('flow point validation', () => {
     });
   });
 
-  it('distinguishes missing points from an unavailable catalogue', async () => {
+  it('distinguishes missing points from an unavailable points API', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
       new Response(
         JSON.stringify({

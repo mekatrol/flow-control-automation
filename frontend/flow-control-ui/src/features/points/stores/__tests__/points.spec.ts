@@ -1,9 +1,9 @@
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { CatalogueApiError, catalogueApi } from '@/features/catalogues/api/catalogueApi';
-import { usePointsCatalogueStore } from '@/features/catalogues/stores/catalogues';
+import { PointApiError, pointApi } from '@/features/points/api/pointApi';
+import { usePointsStore } from '@/features/points/stores/points';
 
-describe('catalogue stores', () => {
+describe('points store', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     setActivePinia(createPinia());
@@ -16,10 +16,10 @@ describe('catalogue stores', () => {
    */
   it('keeps the newest request result when responses arrive out of order', async () => {
     const pending: Array<(value: never) => void> = [];
-    vi.spyOn(catalogueApi, 'points').mockImplementation(
+    vi.spyOn(pointApi, 'list').mockImplementation(
       () => new Promise((resolve) => pending.push(resolve as (value: never) => void))
     );
-    const store = usePointsCatalogueStore();
+    const store = usePointsStore();
     const first = store.load({ filter: 'first', page: 1, pageSize: 10 });
     const second = store.load({ filter: 'second', page: 1, pageSize: 10 });
     pending[1]?.({
@@ -51,12 +51,10 @@ describe('catalogue stores', () => {
    * verifies the observable results required by the scenario.
    */
   it("presents the server's error message", async () => {
-    vi.spyOn(catalogueApi, 'points').mockRejectedValue(
-      new CatalogueApiError('Point catalogue was not found.', 404)
-    );
-    const store = usePointsCatalogueStore();
+    vi.spyOn(pointApi, 'list').mockRejectedValue(new PointApiError('Points were not found.', 404));
+    const store = usePointsStore();
     await store.load({ filter: '', page: 1, pageSize: 10 });
 
-    expect(store.error).toBe('Point catalogue was not found.');
+    expect(store.error).toBe('Points were not found.');
   });
 });

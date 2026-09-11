@@ -6,7 +6,7 @@ import {
 } from '@/types/serverTypes';
 import { waitForFetch } from '@/api/waitForFetch';
 import type { VirtualPointDefinition } from '@/features/flows/types';
-import type { PointSummary } from '@/features/catalogues/api/catalogueDto';
+import type { PointSummary } from '@/features/points/api/pointDto';
 
 export interface ExecutionContextSummary {
   id: string;

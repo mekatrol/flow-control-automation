@@ -90,10 +90,10 @@ a {
   margin: var(--space-1-5) var(--space-0) var(--space-3-5);
 }
 
-/* Prominent navigation link shared by configuration and catalogue pages.
+/* Prominent navigation link shared by configuration and resource list pages.
    Components: AppPointSourceListView, AppYamlResourceEditorView,
-   AppControllerTemplatesCatalogueView,
-   AppPointsCatalogueView. */
+   AppControllerTemplateListView,
+   AppPointListView. */
 .primary-link {
   display: inline-flex;
   align-items: center;
@@ -171,19 +171,19 @@ a {
   }
 }
 
-/* Read-only configuration catalogue frame.
-   Components: AppControllerTemplatesCatalogueView,
-   AppPointsCatalogueView. */
-.catalogue-page {
+/* Read-only resource list frame.
+   Components: AppControllerTemplateListView,
+   AppPointListView. */
+.resource-list-page {
   width: min(1500px, calc(100% - 32px));
   margin: var(--space-0) auto;
   padding: var(--space-16) var(--space-0) var(--space-24);
 }
 
-/* Catalogue heading layout.
-   Components: AppControllerTemplatesCatalogueView,
-   AppPointsCatalogueView. */
-.catalogue-page .page-heading {
+/* Resource list heading layout.
+   Components: AppControllerTemplateListView,
+   AppPointListView. */
+.resource-list-page .page-heading {
   display: flex;
   gap: var(--space-12);
   align-items: flex-start;
@@ -191,29 +191,29 @@ a {
   margin-bottom: var(--space-14);
 }
 
-/* Catalogue title spacing.
-   Components: AppControllerTemplatesCatalogueView,
-   AppPointsCatalogueView. */
-.catalogue-page h1 {
+/* Resource list title spacing.
+   Components: AppControllerTemplateListView,
+   AppPointListView. */
+.resource-list-page h1 {
   margin: var(--space-0-5) var(--space-0) var(--space-3-5);
 }
 
-/* Secondary table text shared by catalogue pages.
-   Components: AppControllerTemplatesCatalogueView,
-   AppPointsCatalogueView. */
-.catalogue-page th small,
-.catalogue-page td small {
+/* Secondary table text shared by resource list pages.
+   Components: AppControllerTemplateListView,
+   AppPointListView. */
+.resource-list-page th small,
+.resource-list-page td small {
   display: block;
   margin-top: var(--space-2);
   color: var(--color-text-muted);
   font-weight: var(--font-weight-regular);
 }
 
-/* Request-error and empty-state panels shared by catalogue pages.
-   Components: AppControllerTemplatesCatalogueView,
-   AppPointsCatalogueView. */
-.catalogue-page .request-error,
-.catalogue-page .empty-state {
+/* Request-error and empty-state panels shared by resource list pages.
+   Components: AppControllerTemplateListView,
+   AppPointListView. */
+.resource-list-page .request-error,
+.resource-list-page .empty-state {
   padding: var(--space-10);
   background: var(--color-surface-raised);
   border: var(--border-width-default) solid var(--color-border-default);
@@ -222,10 +222,10 @@ a {
 
 /* Tablet breakpoint (48rem): reflows multi-column controls and workspace panels. */
 @media (max-width: 48rem) {
-  /* Responsive catalogue frame.
-     Components: AppControllerTemplatesCatalogueView,
-     AppPointsCatalogueView. */
-  .catalogue-page {
+  /* Responsive resource list frame.
+     Components: AppControllerTemplateListView,
+     AppPointListView. */
+  .resource-list-page {
     width: min(100% - 20px, 1500px);
     padding-top: var(--space-10);
   }

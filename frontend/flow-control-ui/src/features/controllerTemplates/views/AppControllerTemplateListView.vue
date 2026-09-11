@@ -1,5 +1,5 @@
 <template>
-  <section class="catalogue-page" aria-labelledby="templates-heading">
+  <section class="resource-list-page" aria-labelledby="templates-heading">
     <AppErrorNotice
       id="controller-templates-error-notice"
       :message="store.error"
@@ -94,10 +94,10 @@ import AppSvg from '@/components/AppSvg.vue';
 import AppTable from '@/components/AppTable.vue';
 import AppPagination from '@/components/AppPagination.vue';
 import { EVENTS } from '@/constants/events';
-import type { ControllerTemplateSummary } from '@/features/catalogues/api/catalogueDto';
-import { useControllerTemplatesCatalogueStore } from '@/features/catalogues/stores/catalogues';
+import type { ControllerTemplateSummary } from '@/features/controllerTemplates/api/controllerTemplateDto';
+import { useControllerTemplatesStore } from '@/features/controllerTemplates/stores/controllerTemplates';
 
-const store = useControllerTemplatesCatalogueStore();
+const store = useControllerTemplatesStore();
 const filter = ref(store.filter);
 const list = (values: string[]): string =>
   values

@@ -135,8 +135,8 @@ import type {
   FlowNode,
   VirtualPointDefinition
 } from '@/features/flows/types';
-import type { PointSummary } from '@/features/catalogues/api/catalogueDto';
-import { catalogueApi } from '@/features/catalogues/api/catalogueApi';
+import type { PointSummary } from '@/features/points/api/pointDto';
+import { pointApi } from '@/features/points/api/pointApi';
 import {
   pointCompatibilityError,
   validatePointReference,
@@ -246,7 +246,7 @@ const updatePointId = (field: NodeEditorField, event: Event): void => {
     if (validatePointIdDraft(target.value) === undefined && pointIdError(target.value)) return;
     try {
       remotePoints.value = (
-        await catalogueApi.points({ filter: target.value, page: 1, pageSize: 20 })
+        await pointApi.list({ filter: target.value, page: 1, pageSize: 20 })
       ).items;
     } catch {
       remotePoints.value = [];

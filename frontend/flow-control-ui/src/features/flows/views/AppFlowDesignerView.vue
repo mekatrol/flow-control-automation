@@ -284,7 +284,7 @@ import {
   graphRevision
 } from '@/features/flows/flowDebugSource';
 import { flowCompileApi, type FlowCompileResult } from '@/features/flows/api/flowCompileApi';
-import { useControllerTemplatesCatalogueStore } from '@/features/catalogues/stores/catalogues';
+import { useControllerTemplatesStore } from '@/features/controllerTemplates/stores/controllerTemplates';
 import { useFlowsStore } from '@/features/flows/stores/flows';
 import type { ZOrderCommand } from '@/features/flows/graph/zOrder';
 import { FlowApiError, flowApi } from '@/features/flows/api/flowApi';
@@ -324,7 +324,7 @@ const runtimeStore = useFlowRuntimeStore();
 const workspaceMode = computed(() => props.workspaceMode);
 const flowId = computed(() => props.flowId);
 const activeTutorial = ref<FlowTutorial>();
-const controllerTemplates = useControllerTemplatesCatalogueStore();
+const controllerTemplates = useControllerTemplatesStore();
 const router = useRouter();
 const draftFlow = computed(() => flowStore.findFlow(props.flowId));
 const deployedFlow = ref<FlowDefinition>();

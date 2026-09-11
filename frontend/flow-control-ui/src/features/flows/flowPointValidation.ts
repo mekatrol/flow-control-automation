@@ -1,7 +1,7 @@
 import type { VirtualPointValueType } from '@/features/flows/types';
 import { AutomationPointValueType, FlowNodeType } from '@/types/serverTypes';
 import { executionContextApi } from '@/features/flows/api/executionContextApi';
-import type { PointSummary } from '@/features/catalogues/api/catalogueDto';
+import type { PointSummary } from '@/features/points/api/pointDto';
 import type { FlowNode, VirtualPointDefinition } from '@/features/flows/types';
 import { isVirtualPointNode } from '@/features/flows/types';
 

@@ -1,5 +1,5 @@
 <template>
-  <section class="catalogue-page" aria-labelledby="points-heading">
+  <section class="resource-list-page" aria-labelledby="points-heading">
     <AppErrorNotice
       id="points-error-notice"
       :message="errorMessage"
@@ -67,8 +67,8 @@ import AppButton from '@/components/AppButton.vue';
 import AppErrorNotice from '@/components/AppErrorNotice.vue';
 import AppListView from '@/components/list-view/AppListView.vue';
 import { EVENTS } from '@/constants/events';
-import type { PointSummary } from '@/features/catalogues/api/catalogueDto';
-import { usePointsCatalogueStore } from '@/features/catalogues/stores/catalogues';
+import type { PointSummary } from '@/features/points/api/pointDto';
+import { usePointsStore } from '@/features/points/stores/points';
 import type { ListColumn, ListQuery, ListRow } from '@/models';
 
 interface PointRow extends ListRow {
@@ -95,7 +95,7 @@ const columns: ListColumn<PointRow>[] = [
   { key: 'status', label: 'Status', width: '9rem' }
 ];
 
-const store = usePointsCatalogueStore();
+const store = usePointsStore();
 const query = ref<ListQuery<PointRow>>({
   page: 1,
   pageSize: 10,

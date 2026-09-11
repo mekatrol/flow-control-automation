@@ -80,7 +80,7 @@ export const routes: RouteRecordRaw[] = [
       {
         path: 'points',
         name: ROUTE_NAMES.points,
-        component: () => import('@/features/catalogues/views/AppPointsCatalogueView.vue')
+        component: () => import('@/features/points/views/AppPointListView.vue')
       },
       {
         path: 'points/new',
@@ -98,7 +98,7 @@ export const routes: RouteRecordRaw[] = [
         path: 'controller-templates',
         name: ROUTE_NAMES.controllerTemplates,
         component: () =>
-          import('@/features/catalogues/views/AppControllerTemplatesCatalogueView.vue')
+          import('@/features/controllerTemplates/views/AppControllerTemplateListView.vue')
       },
       {
         path: 'controller-templates/new',

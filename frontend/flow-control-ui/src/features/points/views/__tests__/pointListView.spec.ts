@@ -3,7 +3,7 @@
 import { createPinia } from 'pinia';
 import { flushPromises, mount } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import AppPointsCatalogueView from '@/features/catalogues/views/AppPointsCatalogueView.vue';
+import AppPointListView from '@/features/points/views/AppPointListView.vue';
 
 beforeEach(() => {
   HTMLDialogElement.prototype.showModal = vi.fn<() => void>();
@@ -12,7 +12,7 @@ beforeEach(() => {
 
 afterEach(() => vi.unstubAllGlobals());
 
-describe('PointsCatalogueView', () => {
+describe('PointListView', () => {
   /**
    * Purpose: Protects the behavioral contract that renders a semantic, keyboard-reachable table with point relationships.
    * Description: Exercises renders a semantic, keyboard-reachable table with point relationships from its arranged starting state and
@@ -49,7 +49,7 @@ describe('PointsCatalogueView', () => {
         )
       )
     );
-    const wrapper = mount(AppPointsCatalogueView, {
+    const wrapper = mount(AppPointListView, {
       global: { plugins: [createPinia()] }
     });
     await flushPromises();
@@ -87,19 +87,19 @@ describe('PointsCatalogueView', () => {
         .fn<typeof fetch>()
         .mockResolvedValue(new Response(JSON.stringify({ message: 'missing' }), { status: 404 }))
     );
-    const wrapper = mount(AppPointsCatalogueView, {
+    const wrapper = mount(AppPointListView, {
       global: { plugins: [createPinia()] }
     });
     await flushPromises();
 
-    // Expected outcome: A failed catalogue request displays the API error.
+    // Expected outcome: A failed point-list request displays the API error.
     // Acceptance criteria: The alert contains "missing" because the arranged 404
     // response supplies that diagnostic message for the user.
     expect(wrapper.get('[role="alert"]').text()).toContain('missing');
 
     // Expected outcome: The error notice offers a recovery action.
     // Acceptance criteria: The alert button is labelled "Check again" because a failed
-    // catalogue load must remain recoverable without reloading the application.
+    // point-list load must remain recoverable without reloading the application.
     expect(wrapper.get('[role="alert"] button').text()).toBe('Check again');
   });
 });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { ControllerTemplateSummary } from '@/features/catalogues/api/catalogueDto';
+import type { ControllerTemplateSummary } from '@/features/controllerTemplates/api/controllerTemplateDto';
 import { getFlowDebugTargets, isControllerDebugCompatible } from '@/features/flows/debugTargets';
 
 const template = (

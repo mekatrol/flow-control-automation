@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  parseControllerTemplate,
-  parsePage,
-  parsePoint
-} from '@/features/catalogues/api/catalogueDto';
+import { parsePage, parsePoint } from '@/features/points/api/pointDto';
 
 const point = {
   id: 'room-temperature',
@@ -22,30 +18,7 @@ const point = {
   updatedAt: '2026-07-25T00:00:00Z'
 };
 
-const template = {
-  schemaVersion: 1,
-  id: 'default',
-  name: 'Default',
-  readOnly: true,
-  capabilities: {
-    pointTypes: ['analog'],
-    pointDirections: ['input'],
-    pointFeatures: ['read'],
-    connectorDataTypes: ['number'],
-    flowFunctions: ['readPoint'],
-    executionModes: ['event'],
-    runtimeFeatures: ['physicalPoints']
-  },
-  limits: {
-    maxFlows: null,
-    maxNodesPerFlow: 10,
-    maxConnectionsPerFlow: null,
-    minimumIntervalMilliseconds: null
-  },
-  revision: 0
-};
-
-describe('catalogue DTO parsing', () => {
+describe('point DTO parsing', () => {
   /**
    * Purpose: Protects the behavioral contract that maps point, template and page contracts.
    * Description: Exercises point, template and page contracts from its arranged starting state and
@@ -61,11 +34,6 @@ describe('catalogue DTO parsing', () => {
     expect(
       parsePoint({ ...point, direction: 'inputOutput', valueType: 'multiState' })
     ).toMatchObject({ direction: 'inputOutput', valueType: 'multiState' });
-
-    // Expected outcome: `parseControllerTemplate(template` has the required value.
-    // Acceptance criteria: `parseControllerTemplate(template` must be `10`, because this condition proves that
-    // maps point, group, template and page contracts.
-    expect(parseControllerTemplate(template).limits.maxNodesPerFlow).toBe(10);
 
     // Expected outcome: `parsePage({ items: [point], totalItems: 1, page: 1, pageSize: 10, pageCount: 1 }, parsePoint` contains the required number of entries.
     // Acceptance criteria: `parsePage({ items: [point], totalItems: 1, page: 1, pageSize: 10, pageCount: 1 }, parsePoint` must contain exactly 1 entries, because this condition proves that
@@ -86,16 +54,11 @@ describe('catalogue DTO parsing', () => {
     [{ ...point, pointSourceType: 'unknown' }, /point.pointSourceType/],
     [{ ...point, direction: 'sideways' }, /point.direction/],
     [{ ...point, valueType: 'float' }, /point.valueType/],
-    [{ ...point, revision: 1.5 }, /point.revision/],
-    [{ ...template, schemaVersion: 0 }, /schemaVersion/],
-    [{ ...template, capabilities: { ...template.capabilities, pointTypes: [1] } }, /pointTypes/],
-    [{ ...template, limits: { ...template.limits, maxFlows: 0 } }, /maxFlows/]
+    [{ ...point, revision: 1.5 }, /point.revision/]
   ])('rejects malformed payloads', (payload, expected) => {
-    const parser = 'schemaVersion' in payload ? parseControllerTemplate : parsePoint;
-
     // Expected outcome: The invalid operation is rejected.
     // Acceptance criteria: the operation must throw the asserted error, because this condition proves that
     // maps point, group, template and page contracts.
-    expect(() => parser(payload)).toThrow(expected);
+    expect(() => parsePoint(payload)).toThrow(expected);
   });
 });
