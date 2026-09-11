@@ -6,11 +6,15 @@ export const fetchConfigurationGuidance = async (
   type: ConfigurationGuidanceType,
   yaml: string
 ): Promise<string> => {
-  const response = await waitForFetch(`/api/configuration-guidance/${type}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/yaml', Accept: 'text/markdown' },
-    body: yaml
-  });
+  const response = await waitForFetch(
+    `/api/configuration-guidance/${type}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/yaml', Accept: 'text/markdown' },
+      body: yaml
+    },
+    { trackWait: false }
+  );
   if (response.ok) return response.text();
 
   let message = `Unable to load guidance (${response.status})`;

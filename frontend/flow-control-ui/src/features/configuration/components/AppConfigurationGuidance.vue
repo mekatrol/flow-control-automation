@@ -1,5 +1,5 @@
 <template>
-  <AppButton text="YAML help" :icon="helpIcon" :disabled="isSpinnerVisible" @click="open" />
+  <AppButton text="YAML help" :icon="helpIcon" :disabled="loading" @click="open" />
   <Teleport to="body">
     <aside v-if="visible" class="guidance" aria-label="YAML configuration guidance">
       <header>
@@ -8,18 +8,18 @@
           <AppButton
             text="Refresh guidance"
             :icon="refreshIcon"
-            :disabled="isSpinnerVisible"
+            :disabled="loading"
             @click="load"
           />
           <AppButton text="Close" :icon="closeIcon" @click="close" />
         </div>
       </header>
-      <p v-if="isSpinnerVisible" role="status">Generating guidance…</p>
+      <p v-if="loading" role="status">Generating guidance…</p>
       <p v-else-if="error" class="request-error" role="alert">{{ error }}</p>
       <!-- Server Markdown is escaped before the small supported formatting subset is applied. -->
       <!-- eslint-disable-next-line vue/no-v-html -->
       <div v-else class="markdown" v-html="renderedMarkdown"></div>
-      <section v-if="!isSpinnerVisible && !error && guidanceYaml" class="yaml-sample">
+      <section v-if="!loading && !error && guidanceYaml" class="yaml-sample">
         <AppYamlEditor
           :model-value="guidanceYaml"
           label="YAML structure for this selection"
@@ -36,7 +36,6 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from 'vue';
-import { useSpinner } from '@/composables/useSpinner';
 import AppButton from '@/components/AppButton.vue';
 import AppYamlEditor from '@/components/AppYamlEditor.vue';
 import type { JSONSchema } from '@/components/yaml/MonacoYaml';
@@ -52,6 +51,7 @@ const props = defineProps<{ type: ConfigurationGuidanceType; yaml: string }>();
 const markdown = ref('');
 const error = ref('');
 const visible = ref(false);
+const loading = ref(false);
 const sampleSchema: JSONSchema = {};
 
 const yamlSectionPattern =
@@ -116,21 +116,16 @@ const renderedMarkdown = computed(() => {
   return output.join('');
 });
 
-const { isSpinnerVisible, withSpinner } = useSpinner();
-
 const load = async (): Promise<void> => {
+  if (loading.value) return;
+  loading.value = true;
+  error.value = '';
   try {
-    await withSpinner(
-      () => {
-        error.value = '';
-      },
-      () => fetchConfigurationGuidance(props.type, props.yaml),
-      (result) => {
-        markdown.value = result;
-      }
-    );
+    markdown.value = await fetchConfigurationGuidance(props.type, props.yaml);
   } catch (reason) {
     error.value = reason instanceof Error ? reason.message : 'Unable to load guidance.';
+  } finally {
+    loading.value = false;
   }
 };
 
