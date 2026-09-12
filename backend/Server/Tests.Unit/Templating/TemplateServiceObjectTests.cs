@@ -11,6 +11,8 @@ namespace Tests.Unit.Templating;
 [TestFixture]
 public sealed class TemplateServiceObjectTests
 {
+    private static readonly JsonSerializerOptions propertyNameCaseInsensitiveSerializerOptions = new() { PropertyNameCaseInsensitive = true };
+
     private enum OperatingMode
     {
         Automatic
@@ -22,6 +24,7 @@ public sealed class TemplateServiceObjectTests
         bool Boolean,
         string Text,
         float FloatValue,
+        long LongValue,
         OperatingMode Mode);
 
     private sealed record Reading(string Name, double Value);
@@ -181,11 +184,12 @@ public sealed class TemplateServiceObjectTests
                 new { name = "return", value = -4.25 }
             }
         });
+
         var model = new
         {
             Payload = JsonSerializer.Deserialize<ReadingsPayload>(
                 json,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!
+                propertyNameCaseInsensitiveSerializerOptions)!
         };
 
         using (Assert.EnterMultipleScope())
@@ -200,11 +204,13 @@ public sealed class TemplateServiceObjectTests
     {
         using var provider = Helpers.TestServices.CreateProvider();
         var service = provider.GetRequiredService<ITemplateService>();
+
         var options = new JsonSerializerOptions
         {
             UnknownTypeHandling = JsonUnknownTypeHandling.JsonNode,
             Converters = { new JsonStringEnumConverter() }
         };
+
         var json = JsonSerializer.Serialize(new
         {
             integer = 42,
@@ -212,8 +218,10 @@ public sealed class TemplateServiceObjectTests
             boolean = true,
             text = "supply",
             floatValue = 4.25f,
+            longValue = long.MaxValue,
             mode = OperatingMode.Automatic
         }, options);
+
         object model = JsonSerializer.Deserialize<Dictionary<string, object?>>(json, options)!;
 
         var renderedJson = service.Render(
@@ -224,11 +232,13 @@ public sealed class TemplateServiceObjectTests
               "Boolean": {{ boolean }},
               "Text": {{ text }},
               "FloatValue": {{ floatValue }},
+              "LongValue": {{ longValue }},
               "Mode": {{ mode }}
             }
             """,
             model,
             RenderAs.Json);
+
         var renderedValues = JsonSerializer.Deserialize<RenderedValues>(renderedJson, options)!;
 
         using (Assert.EnterMultipleScope())
@@ -238,6 +248,7 @@ public sealed class TemplateServiceObjectTests
             Assert.That(renderedValues.Boolean, Is.True);
             Assert.That(renderedValues.Text, Is.EqualTo("supply"));
             Assert.That(renderedValues.FloatValue, Is.EqualTo(4.25f));
+            Assert.That(renderedValues.LongValue, Is.EqualTo(long.MaxValue));
             Assert.That(renderedValues.Mode, Is.EqualTo(OperatingMode.Automatic));
         }
     }
