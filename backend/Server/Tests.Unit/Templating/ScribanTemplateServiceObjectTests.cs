@@ -103,6 +103,34 @@ public sealed class ScribanTemplateServiceObjectTests
     }
 
     [Test]
+    public void Render_Object_JsonMemberRemainsAvailableToTemplates()
+    {
+        using var provider = Helpers.TestServices.CreateProvider();
+        var service = provider.GetRequiredService<ITemplateService>();
+        var model = new { Json = "payload" };
+
+        var result = service.Render("{{ json }}", model);
+
+        Assert.That(result, Is.EqualTo("payload"));
+    }
+
+    [Test]
+    public void Render_Object_ToJsonMemberIsReservedForTheSerializationFilter()
+    {
+        using var provider = Helpers.TestServices.CreateProvider();
+        var service = provider.GetRequiredService<ITemplateService>();
+        var model = new { ToJson = "payload" };
+
+        var exception = Assert.Throws<TemplateRenderException>(() => service.Render("literal", model));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(exception!.Category, Is.EqualTo(TemplateError.UnsupportedValue));
+            Assert.That(exception.Message, Does.Contain("'to_json'"));
+        }
+    }
+
+    [Test]
     public void Render_Object_RepeatedCallsDoNotLeakValues()
     {
         using var provider = Helpers.TestServices.CreateProvider();
@@ -205,12 +233,12 @@ public sealed class ScribanTemplateServiceObjectTests
         var renderedJson = service.Render(
             """
             {
-              "Integer": {{ integer | json }},
-              "DoubleValue": {{ doubleValue | json }},
-              "Boolean": {{ boolean | json }},
-              "Text": {{ text | json }},
-              "FloatValue": {{ floatValue | json }},
-              "Mode": {{ mode | json }}
+              "Integer": {{ integer | to_json }},
+              "DoubleValue": {{ doubleValue | to_json }},
+              "Boolean": {{ boolean | to_json }},
+              "Text": {{ text | to_json }},
+              "FloatValue": {{ floatValue | to_json }},
+              "Mode": {{ mode | to_json }}
             }
             """,
             model);
@@ -240,7 +268,7 @@ public sealed class ScribanTemplateServiceObjectTests
         };
 
         var result = service.Render(
-            "{\"temperature\":{{ temperature | json }},\"enabled\":{{ enabled | json }},\"source\":{{ source | json }}}",
+            "{\"temperature\":{{ temperature | to_json }},\"enabled\":{{ enabled | to_json }},\"source\":{{ source | to_json }}}",
             model);
         using var document = JsonDocument.Parse(result);
         var root = document.RootElement;

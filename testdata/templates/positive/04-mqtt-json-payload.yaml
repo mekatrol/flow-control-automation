@@ -1,8 +1,8 @@
 name: 04-mqtt-json-payload
 template: |-
   {
-    "value": {{ value | json }},
-    "source": {{ source | json }}
+    "value": {{ value | to_json }},
+    "source": {{ source | to_json }}
   }
 values:
   value: 21.75

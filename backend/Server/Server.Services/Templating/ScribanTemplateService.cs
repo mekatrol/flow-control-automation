@@ -27,10 +27,11 @@ namespace Server.Services.Templating;
 /// dictionary value types. These restrictions keep rendering deterministic and bound its resource use.
 /// </para>
 /// <para>
-/// A service-owned <c>json</c> function is always installed so templates can safely emit JSON values with
-/// <c>{{ value | json }}</c>. Consequently, <c>json</c> is a reserved top-level name: allowing caller data to
-/// replace the function would make template behavior depend on the supplied model and could bypass the JSON
-/// escaping and formatting expected by a template author.
+/// A service-owned <c>to_json</c> function is always installed so templates can safely emit JSON values with
+/// <c>{{ value | to_json }}</c>. The action-oriented name distinguishes conversion from caller data named
+/// <c>json</c>, while retaining concise filter syntax. Consequently, only <c>to_json</c> is reserved: allowing
+/// caller data to replace the function would make template behavior depend on the supplied model and could bypass
+/// the JSON escaping and formatting expected by a template author.
 /// </para>
 /// </remarks>
 internal sealed class ScribanTemplateService : ITemplateService
@@ -80,14 +81,14 @@ internal sealed class ScribanTemplateService : ITemplateService
                     "Template value names must not be empty.");
             }
 
-            // `json` is injected below as the service's JSON serializer. Reject a collision rather than silently
+            // `to_json` is injected below as the service's JSON serializer. Reject a collision rather than silently
             // overwriting caller data or letting caller data shadow a function on which templates rely. The
             // comparison is ordinal because the template context and global object are also case-sensitive.
-            if (string.Equals(name, "json", StringComparison.Ordinal))
+            if (string.Equals(name, "to_json", StringComparison.Ordinal))
             {
                 throw new TemplateRenderException(
                     TemplateError.UnsupportedValue,
-                    "The template value name 'json' is reserved.");
+                    "The template value name 'to_json' is reserved.");
             }
 
             globals.SetValue(name, ToScriptValue(value), true);
@@ -110,14 +111,14 @@ internal sealed class ScribanTemplateService : ITemplateService
         var globals = new ScriptObject();
         globals.Import(model, renamer: StandardMemberRenamer.Default);
 
-        // Import can create a `json` global from a property, field, or dictionary entry. It must not collide with
+        // Import can create a `to_json` global from a property, field, or dictionary entry. It must not collide with
         // the serializer installed by the common render path; rejecting it makes both public overloads obey the
         // same reserved-name contract.
-        if (globals.ContainsKey("json"))
+        if (globals.ContainsKey("to_json"))
         {
             throw new TemplateRenderException(
                 TemplateError.UnsupportedValue,
-                "The template value name 'json' is reserved.");
+                "The template value name 'to_json' is reserved.");
         }
 
         return Render(template, globals);
@@ -141,7 +142,7 @@ internal sealed class ScribanTemplateService : ITemplateService
         // A function (rather than Scriban's generic string conversion) preserves JSON types and applies the
         // application's shared serializer options and escaping rules.
         globals.SetValue(
-            "json",
+            "to_json",
             DynamicCustomFunction.Create(new Func<object?, string>(SerializeJson)),
             true);
 

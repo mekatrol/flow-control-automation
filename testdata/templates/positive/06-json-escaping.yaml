@@ -1,5 +1,5 @@
 name: 06-json-escaping
-template: '{{ value | json }}'
+template: '{{ value | to_json }}'
 values:
   value: |-
     Quote: " Backslash: \ Unicode: café 東京
