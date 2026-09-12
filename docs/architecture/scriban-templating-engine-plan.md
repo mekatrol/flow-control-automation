@@ -14,6 +14,48 @@ extraction-style and payload-generation templates. Transport acquisition,
 publishing, and conversion of rendered read text into the configured point type
 remain responsibilities of their respective adapters.
 
+## Implementation status (2026-09-12)
+
+Phases 0 and 1 are complete. Phases 2 and 3 remain pending.
+
+### Completed
+
+- Scriban 7.4.0 is pinned in `Server.Services`; `Server.Common` has no Scriban
+  dependency.
+- `ITemplateService`, `TemplateValidationResult`, `TemplateDiagnostic`,
+  `TemplateError`, and `TemplateRenderException` provide the application-owned
+  contract and failure vocabulary.
+- The internal `ScribanTemplateService` validates and renders templates from an
+  explicitly supplied, case-sensitive value map.
+- Render calls use fresh globals, output, and `TemplateContext` instances while
+  the stateless service is registered as a singleton.
+- The runtime uses strict lookup, invariant culture, bounded loops, recursion,
+  regex execution, string conversion, and total output.
+- Rich application objects and dictionaries with non-string keys are rejected.
+  Supported dictionaries, sequences, JSON nodes, and scalar values are copied
+  into Scriban-owned structures.
+- Includes, dynamic object evaluation, and clock access are removed from the
+  available Scriban built-ins.
+- The reserved `json` filter serializes values with `System.Text.Json` so JSON
+  payload templates correctly handle strings, numbers, booleans, and null.
+- `AddTemplatingServices` registers `ITemplateService` through the existing
+  `AddServerServices` composition root.
+- Initial unit coverage verifies DI lifetime, invalid-template diagnostics,
+  JSON rendering, missing-value classification, and architecture boundaries.
+
+### Verification completed
+
+- The focused templating and service-boundary suite passed: 12 tests.
+- The full backend unit suite passed: 331 tests.
+- The backend solution build succeeded with zero warnings and zero errors.
+- `git diff --check` completed without whitespace errors.
+
+### Remaining
+
+- Phase 2: add the positive and negative YAML fixture catalogue and loader.
+- Phase 3: add comprehensive fixture-driven validation and rendering tests,
+  plus the remaining boundary, isolation, concurrency, culture, and limit tests.
+
 ## Required outcomes
 
 1. Application code depends on an application-owned interface rather than on
@@ -184,7 +226,7 @@ repository working directory.
 
 ## Delivery phases
 
-### Phase 0 — Add Scriban
+### Phase 0 — Add Scriban (complete)
 
 1. Add a pinned `Scriban` `PackageReference` to
    `Server.Services/Server.Services.csproj` using `dotnet add package Scriban`.
@@ -200,7 +242,7 @@ Acceptance criteria:
 - only `Server.Services` has a direct runtime dependency on Scriban;
 - the selected package version is explicit and compatible with `net10.0`.
 
-### Phase 1 — Contract, implementation, and dependency injection
+### Phase 1 — Contract, implementation, and dependency injection (complete)
 
 1. Add `ITemplateService`, `TemplateValidationResult`, diagnostic/error enums,
    and `TemplateRenderException` to `Server.Common`.
@@ -229,7 +271,7 @@ Acceptance criteria:
   `ITemplateService`;
 - no transport dependency is introduced into the templating implementation.
 
-### Phase 2 — Positive and negative YAML fixtures
+### Phase 2 — Positive and negative YAML fixtures (pending)
 
 1. Add a fixture loader in `Tests.Unit/Templating` using the repository's
    existing YamlDotNet dependency and conventions.
@@ -265,7 +307,7 @@ Acceptance criteria:
   exception messages;
 - positive and negative fixture discovery is deterministic.
 
-### Phase 3 — Fixture-driven unit tests
+### Phase 3 — Fixture-driven unit tests (pending)
 
 1. Add `ScribanTemplateServiceTests` using NUnit
    `TestCaseSource`, matching the existing test-suite style.

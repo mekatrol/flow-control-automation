@@ -16,6 +16,7 @@ public static class ServiceCollectionExtensions
         services.AddConfigurationServices();
         services.AddFlowExecutionServices();
         services.AddPointServices();
+        services.AddTemplatingServices();
         services.AddStartupValidationServices();
 
         return services;
