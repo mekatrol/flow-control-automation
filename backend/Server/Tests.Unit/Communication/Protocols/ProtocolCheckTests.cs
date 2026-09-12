@@ -55,6 +55,35 @@ internal sealed class ProtocolCheckTests
         });
     }
 
+    [Test]
+    public async Task HttpWriteSendsMethodAndJsonBody()
+    {
+        await using var server = await LoopbackHttpServer.Start(
+            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\nConnection: close\r\n\r\n"
+            + "{\"ok\":true}");
+        await using var factory = Factory(new FakeDns(IPAddress.Loopback));
+        await using var scope = factory.Services.CreateAsyncScope();
+        var check = scope.ServiceProvider.GetRequiredService<IHttpProtocolCheck>();
+
+        var result = await check.WriteAsync(
+            HttpSource(server.Url),
+            server.Url,
+            "PATCH",
+            "{\"command\":21.5}",
+            string.Empty,
+            [IPAddress.Loopback],
+            CancellationToken.None);
+        var request = await server.Request;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Diagnostic, Is.Null);
+            Assert.That(request, Does.StartWith("PATCH / HTTP/1.1"));
+            Assert.That(request, Does.Contain("Content-Type: application/json; charset=utf-8"));
+            Assert.That(request, Does.EndWith("{\"command\":21.5}"));
+        });
+    }
+
     /// <summary>
     /// Purpose: Protects the behavioral contract that redirect destination is revalidated before connection.
     /// Description: Arranges the inputs for redirect destination is revalidated before connection, exercises the relevant operation,

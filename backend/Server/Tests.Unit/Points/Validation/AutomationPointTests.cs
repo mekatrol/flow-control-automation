@@ -10,15 +10,18 @@ namespace Tests.Unit.Points.Validation;
 [TestFixture]
 internal sealed class AutomationPointTests
 {
-    [TestCase(PointSourceType.Virtual)]
-    [TestCase(PointSourceType.Physical)]
-    [TestCase(PointSourceType.Remote)]
-    public void JsonAndYamlRoundTripsPreserveConcreteTypeAndSharedProperties(PointSourceType sourceType)
+    [TestCase(PointSourceType.Virtual, "%")]
+    [TestCase(PointSourceType.Physical, "°")]
+    [TestCase(PointSourceType.Remote, "#")]
+    [TestCase(PointSourceType.Virtual, "$")]
+    public void JsonAndYamlRoundTripsPreserveConcreteTypeAndSharedProperties(
+        PointSourceType sourceType,
+        string units)
     {
         var point = Point(sourceType) with
         {
             Description = "Temperature sensor",
-            Units = "degC",
+            Units = units,
             Limits = new JsonObject { ["minimum"] = -20, ["maximum"] = 100 },
             Revision = 3,
             CreatedAt = "2026-09-05T00:00:00Z"

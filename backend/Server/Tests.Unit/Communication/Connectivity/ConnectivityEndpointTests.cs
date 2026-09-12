@@ -489,6 +489,16 @@ internal sealed class ConnectivityEndpointTests
                 null,
                 new HttpResponsePreview(200, "OK", "application/json", "{\"intensity\":100}")));
         }
+
+        public Task<HttpProtocolCheckResult> WriteAsync(
+            PointSource source,
+            Uri endpoint,
+            string method,
+            string body,
+            string credential,
+            IReadOnlyList<IPAddress> pinnedAddresses,
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
     }
 
     private sealed class FakeMqttCheck : IMqttProtocolCheck

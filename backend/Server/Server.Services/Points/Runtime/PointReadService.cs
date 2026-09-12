@@ -1,4 +1,3 @@
-using Server.Services.Communication.Network;
 using System.Text.Json.Nodes;
 
 namespace Server.Services.Points.Runtime;
@@ -118,7 +117,7 @@ internal sealed class PointReadService(
             return Unavailable(point, "disconnected", "HTTP/JSON host lookup failed.");
         }
 
-        if (addresses.Count == 0 || addresses.Any(address => ConnectivityPolicy.IsForbidden(
+        if (addresses.Count == 0 || addresses.Any(address => Server.Services.Communication.Network.ConnectivityPolicy.IsForbidden(
             address,
             source.Connection.AllowPrivateNetwork == true)))
         {

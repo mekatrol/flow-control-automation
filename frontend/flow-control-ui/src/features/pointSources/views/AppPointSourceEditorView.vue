@@ -299,12 +299,12 @@ sources:
   {
     kind: 'httpJson',
     name: 'HTTP / JSON',
-    summary: 'Read points from a JSON web API.',
+    summary: 'Read and write points through a JSON web API.',
     yaml: `schemaVersion: 1
 sources:
   - id: new-source
     name: HTTP JSON API
-    description: Read-only web API
+    description: JSON web API
     enabled: true
     kind: httpJson
     connection:

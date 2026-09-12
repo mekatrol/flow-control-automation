@@ -203,17 +203,34 @@ internal sealed partial class PointDefinitionValidator : IPointDefinitionValidat
 
         var method = (OptionalString(mapping, "method") ?? "GET").ToUpperInvariant();
 
-        if (point.Readable && method is not "GET" and not "HEAD")
+        if (point.Readable && !point.Commandable && method is not "GET" and not "HEAD")
         {
             Fail("readable HTTP mappings must use GET or HEAD");
         }
 
-        if (point.Commandable)
+        if (point.Commandable && method is not "POST" and not "PUT" and not "PATCH")
         {
-            Fail("HTTP/JSON output mappings are not enabled in the initial release");
+            Fail("commandable HTTP mappings must use POST, PUT, or PATCH");
         }
 
-        return new HttpJsonPointMapping(path, method, OptionalString(mapping, "jsonPointer"));
+        var jsonPointer = OptionalString(mapping, "jsonPointer");
+        var valuePointer = OptionalString(mapping, "valuePointer");
+
+        if (jsonPointer is not null && !jsonPointer.StartsWith('/'))
+        {
+            Fail("mapping.jsonPointer must be a JSON Pointer starting with /");
+        }
+
+        if (valuePointer is not null && !valuePointer.StartsWith('/'))
+        {
+            Fail("mapping.valuePointer must be a JSON Pointer starting with /");
+        }
+
+        return new HttpJsonPointMapping(
+            path,
+            method,
+            jsonPointer,
+            valuePointer);
     }
 
     private static PointLimits? ParseLimits(JsonObject? value, AutomationPointValueType type)
@@ -648,6 +665,6 @@ internal sealed partial class PointDefinitionValidator : IPointDefinitionValidat
     [GeneratedRegex("^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$", RegexOptions.CultureInvariant)]
     private static partial Regex IdentifierRegex();
 
-    [GeneratedRegex("^[A-Za-z][A-Za-z0-9_.%/-]{0,63}$", RegexOptions.CultureInvariant)]
+    [GeneratedRegex("^[A-Za-z%°$#][A-Za-z0-9_.%°$#/-]{0,63}$", RegexOptions.CultureInvariant)]
     private static partial Regex UnitRegex();
 }

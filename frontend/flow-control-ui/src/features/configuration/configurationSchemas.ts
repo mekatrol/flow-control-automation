@@ -52,7 +52,15 @@ export const pointSchema: JSONSchema = {
           commandable: { type: 'boolean' },
           persistence: { enum: Object.values(VirtualPointPersistenceType) },
           sourceId: identifier,
-          mapping: { type: 'object' },
+          mapping: {
+            type: 'object',
+            properties: {
+              path: { type: 'string', pattern: '^/(?!/)' },
+              method: { enum: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH'] },
+              jsonPointer: { type: 'string', pattern: '^/' },
+              valuePointer: { type: 'string', pattern: '^/' }
+            }
+          },
           limits: { type: 'object' },
           stateLabels: {},
           relinquishDefault: {},

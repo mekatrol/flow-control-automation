@@ -1,4 +1,3 @@
-using Server.Services.Communication.Network;
 using System.Diagnostics;
 using System.Net;
 
@@ -87,7 +86,7 @@ internal sealed class ConnectivityService(
             return Failed("dns", "host lookup failed");
         }
 
-        if (addresses.Any(address => ConnectivityPolicy.IsForbidden(
+        if (addresses.Any(address => Server.Services.Communication.Network.ConnectivityPolicy.IsForbidden(
             address,
             source.Connection.AllowPrivateNetwork == true)))
         {

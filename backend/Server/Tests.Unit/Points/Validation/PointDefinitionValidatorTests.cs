@@ -217,6 +217,21 @@ internal sealed class PointDefinitionValidatorTests
             Throws.TypeOf<PointDefinitionValidationException>());
     }
 
+    [TestCase("%")]
+    [TestCase("°")]
+    [TestCase("°C")]
+    [TestCase("$")]
+    [TestCase("$/h")]
+    [TestCase("#")]
+    public void SymbolUnits_AreAcceptedAndPreserved(string units)
+    {
+        var point = VirtualPoint(AutomationPointValueType.Analog) with { Units = units };
+
+        var validated = _validator.Validate(point, Context());
+
+        Assert.That(validated.Source.Units, Is.EqualTo(units));
+    }
+
     /// <summary>
     /// Purpose: Protects the behavioral contract that digital and multi state labels are strict.
     /// Description: Arranges the inputs for digital and multi state labels are strict, exercises the relevant operation,
@@ -318,6 +333,64 @@ internal sealed class PointDefinitionValidatorTests
                 () => _validator.Validate(credential, Context()),
                 Throws.TypeOf<PointDefinitionValidationException>());
         });
+    }
+
+    [TestCase("POST")]
+    [TestCase("PUT")]
+    [TestCase("PATCH")]
+    public void HttpJsonReadableOutputMappings_AcceptMutatingMethods(string method)
+    {
+        var point = new RemoteAutomationPoint
+        {
+            Id = "http-output",
+            Name = "HTTP output",
+            Enabled = true,
+            Direction = DataDirectionType.Output,
+            ValueType = AutomationPointValueType.Analog,
+            Readable = true,
+            Commandable = true,
+            Persistence = "volatile",
+            SourceId = "http",
+            Mapping = new JsonObject
+            {
+                ["path"] = "/setpoint",
+                ["method"] = method,
+                ["valuePointer"] = "/command/value"
+            },
+            SafeDisablePolicy = Safety()
+        };
+
+        var validated = _validator.Validate(point, Context());
+
+        Assert.That(validated.Mapping, Is.EqualTo(new HttpJsonPointMapping(
+            "/setpoint",
+            method,
+            null,
+            "/command/value")));
+    }
+
+    [Test]
+    public void HttpJsonOutputMappings_RejectReadMethods()
+    {
+        var point = new RemoteAutomationPoint
+        {
+            Id = "http-output",
+            Name = "HTTP output",
+            Enabled = true,
+            Direction = DataDirectionType.Output,
+            ValueType = AutomationPointValueType.Analog,
+            Readable = false,
+            Commandable = true,
+            Persistence = "volatile",
+            SourceId = "http",
+            Mapping = new JsonObject { ["path"] = "/setpoint", ["method"] = "GET" },
+            SafeDisablePolicy = Safety()
+        };
+
+        Assert.That(
+            () => _validator.Validate(point, Context()),
+            Throws.TypeOf<PointDefinitionValidationException>()
+                .With.Message.EqualTo("commandable HTTP mappings must use POST, PUT, or PATCH"));
     }
 
     /// <summary>

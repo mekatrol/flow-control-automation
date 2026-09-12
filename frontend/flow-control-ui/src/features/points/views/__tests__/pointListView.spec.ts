@@ -54,10 +54,10 @@ describe('PointListView', () => {
     });
     await flushPromises();
 
-    // Expected outcome: `wrapper.get('h1'` has the required value.
-    // Acceptance criteria: `wrapper.get('h1'` must be `'Points'`, because this condition proves that
+    // Expected outcome: `wrapper.get('.list-heading'` has the required value.
+    // Acceptance criteria: `wrapper.get('.list-heading'` must be `'Points'`, because this condition proves that
     // renders a semantic, keyboard-reachable table with point relationships.
-    expect(wrapper.get('h1').text()).toBe('Points');
+    expect(wrapper.get('.list-heading').text()).toBe('Points');
 
     // Expected outcome: `wrapper.get('table caption'` includes the required value.
     // Acceptance criteria: `wrapper.get('table caption'` must contain `'Configured points'`, because this condition proves that

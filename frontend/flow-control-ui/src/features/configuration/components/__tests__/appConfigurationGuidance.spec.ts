@@ -7,7 +7,7 @@ import AppConfigurationGuidance from '@/features/configuration/components/AppCon
 import { fetchConfigurationGuidance } from '@/features/configuration/api/configurationGuidanceApi';
 
 vi.mock('@/features/configuration/api/configurationGuidanceApi', () => ({
-  fetchConfigurationGuidance: vi.fn()
+  fetchConfigurationGuidance: vi.fn<typeof fetchConfigurationGuidance>()
 }));
 vi.mock('@/components/AppYamlEditor.vue', () => ({
   default: { template: '<div data-yaml-editor />' }

@@ -1,7 +1,9 @@
 using Server.Api.Contracts;
+using Server.Common.Models.Communication;
 using Server.Services;
 using System.Globalization;
 using System.Text;
+using System.Text.Json.Nodes;
 
 namespace Server.Api.Extensions;
 
@@ -16,6 +18,7 @@ public static class PointSourceEndpointRouteBuilderExtensions
         endpoints.MapPut("/api/point-sources/{sourceId}", Update);
         endpoints.MapDelete("/api/point-sources/{sourceId}", Delete);
         endpoints.MapPost("/api/point-sources/test", TestUnsaved);
+        endpoints.MapPost("/api/point-sources/test-point", TestPoint);
         endpoints.MapPost("/api/point-sources/{sourceId}/test", TestSaved);
 
         return endpoints;
@@ -189,6 +192,143 @@ public static class PointSourceEndpointRouteBuilderExtensions
         {
             return Error(StatusCodes.Status404NotFound, "point source not found");
         }
+    }
+
+    private static async Task<IResult> TestPoint(
+        PointTestRequest request,
+        IPointSourceValidator sourceValidator,
+        IPointDefinitionValidator pointValidator,
+        IDnsLookup dns,
+        ICredentialResolver credentials,
+        IHttpProtocolCheck http,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var source = PointSourceYaml.Parse(Encoding.UTF8.GetBytes(request.SourceYaml));
+            var point = PointYaml.Parse(Encoding.UTF8.GetBytes(request.PointYaml));
+            sourceValidator.Validate(source);
+            var validated = pointValidator.Validate(
+                point,
+                new PointValidationContext(new Dictionary<string, PointSource>(StringComparer.Ordinal)
+                {
+                    [source.Id] = source
+                }));
+
+            if (source.Kind != "httpJson" || validated.Mapping is not HttpJsonPointMapping mapping)
+            {
+                return Error(StatusCodes.Status400BadRequest, "point testing requires an HTTP/JSON mapping");
+            }
+
+            var operation = request.Operation;
+
+            if (operation is not ("read" or "write")
+                || operation == "read" && !point.Readable
+                || operation == "write" && !point.Commandable)
+            {
+                return Error(StatusCodes.Status400BadRequest, "point does not support the requested operation");
+            }
+
+            var endpoint = new Uri(new Uri(source.Connection.BaseUrl!), mapping.Path);
+            var addresses = await dns.LookupAsync(endpoint.Host, cancellationToken);
+
+            if (addresses.Count == 0 || addresses.Any(address => ConnectivityPolicy.IsForbidden(
+                address,
+                source.Connection.AllowPrivateNetwork == true)))
+            {
+                return Error(StatusCodes.Status400BadRequest, "HTTP/JSON destination is forbidden or unavailable");
+            }
+
+            var credential = await credentials.ResolveAsync(
+                source.CredentialRef ?? string.Empty,
+                cancellationToken);
+            var protocolResult = operation == "read"
+                ? await http.ReadAsync(source, endpoint, credential, addresses, cancellationToken)
+                : await http.WriteAsync(
+                    source,
+                    endpoint,
+                    mapping.Method,
+                    CommandBody(request.Value, mapping.ValuePointer),
+                    credential,
+                    addresses,
+                    cancellationToken);
+
+            if (protocolResult.Response is null)
+            {
+                return Error(
+                    StatusCodes.Status502BadGateway,
+                    protocolResult.Diagnostic ?? "HTTP/JSON response was unavailable");
+            }
+
+            var value = operation == "read"
+                ? SelectValue(protocolResult.Response.Body, mapping.JsonPointer)
+                : request.Value?.DeepClone();
+
+            return Results.Json(new PointTestResult(
+                operation,
+                value,
+                protocolResult.Diagnostic,
+                protocolResult.Response));
+        }
+        catch (Exception exception) when (exception is ConfigurationYamlException
+            or PointSourceValidationException
+            or PointDefinitionValidationException
+            or UriFormatException
+            or InvalidOperationException)
+        {
+            return Error(StatusCodes.Status400BadRequest, exception.Message);
+        }
+    }
+
+    private static string CommandBody(JsonNode? value, string? pointer)
+    {
+        if (string.IsNullOrEmpty(pointer))
+        {
+            return value?.ToJsonString() ?? "null";
+        }
+
+        if (!pointer.StartsWith('/'))
+        {
+            throw new InvalidOperationException("mapping.valuePointer must be a JSON Pointer starting with /");
+        }
+
+        JsonNode root = new JsonObject();
+        var segments = pointer.Split('/', StringSplitOptions.RemoveEmptyEntries)
+            .Select(segment => segment.Replace("~1", "/").Replace("~0", "~"))
+            .ToArray();
+        var current = (JsonObject)root;
+
+        for (var index = 0; index < segments.Length - 1; index++)
+        {
+            var child = new JsonObject();
+            current[segments[index]] = child;
+            current = child;
+        }
+
+        current[segments[^1]] = value?.DeepClone();
+
+        return root.ToJsonString();
+    }
+
+    private static JsonNode? SelectValue(string body, string? pointer)
+    {
+        var value = JsonNode.Parse(body);
+
+        if (string.IsNullOrEmpty(pointer))
+        {
+            return value;
+        }
+
+        foreach (var rawSegment in pointer.Split('/', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var segment = rawSegment.Replace("~1", "/").Replace("~0", "~");
+            value = value is JsonArray array && int.TryParse(segment, out var index)
+                ? array[index]
+                : value?[segment];
+        }
+
+        return value?.DeepClone()
+            ?? throw new InvalidOperationException($"JSON pointer '{pointer}' did not select a value");
     }
 
     private static async Task<IResult> WriteSource(

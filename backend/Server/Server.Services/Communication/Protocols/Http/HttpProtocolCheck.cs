@@ -1,4 +1,3 @@
-using Server.Services.Communication.Network;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Security;
@@ -37,6 +36,34 @@ internal sealed class HttpProtocolCheck(IDnsLookup dns) : IHttpProtocolCheck
         string credential,
         IReadOnlyList<IPAddress> pinnedAddresses,
         CancellationToken cancellationToken)
+        => await SendAsync(
+            source, endpoint, HttpMethod.Get, null, credential, pinnedAddresses, cancellationToken);
+
+    public async Task<HttpProtocolCheckResult> WriteAsync(
+        PointSource source,
+        Uri endpoint,
+        string method,
+        string body,
+        string credential,
+        IReadOnlyList<IPAddress> pinnedAddresses,
+        CancellationToken cancellationToken) =>
+        await SendAsync(
+            source,
+            endpoint,
+            new HttpMethod(method),
+            body,
+            credential,
+            pinnedAddresses,
+            cancellationToken);
+
+    private async Task<HttpProtocolCheckResult> SendAsync(
+        PointSource source,
+        Uri endpoint,
+        HttpMethod method,
+        string? body,
+        string credential,
+        IReadOnlyList<IPAddress> pinnedAddresses,
+        CancellationToken cancellationToken)
     {
         var redirects = 0;
         var addresses = pinnedAddresses;
@@ -50,7 +77,12 @@ internal sealed class HttpProtocolCheck(IDnsLookup dns) : IHttpProtocolCheck
                     source.Timeouts.RequestMilliseconds
                     ?? source.Timeouts.ConnectMilliseconds)
             };
-            using var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
+            using var request = new HttpRequestMessage(method, endpoint);
+
+            if (body is not null)
+            {
+                request.Content = new StringContent(body, Encoding.UTF8, "application/json");
+            }
 
             if (credential.Length > 0)
             {
@@ -109,7 +141,7 @@ internal sealed class HttpProtocolCheck(IDnsLookup dns) : IHttpProtocolCheck
                         return new("redirect host lookup failed");
                     }
 
-                    if (addresses.Any(address => ConnectivityPolicy.IsForbidden(
+                    if (addresses.Any(address => Server.Services.Communication.Network.ConnectivityPolicy.IsForbidden(
                         address,
                         source.Connection.AllowPrivateNetwork == true)))
                     {
@@ -126,14 +158,14 @@ internal sealed class HttpProtocolCheck(IDnsLookup dns) : IHttpProtocolCheck
 
                 try
                 {
-                    await using var body =
+                    await using var responseBody =
                         await response.Content.ReadAsStreamAsync(cancellationToken);
                     var buffer = new byte[Math.Min(maximumBytes + 1, 81920)];
                     long total = 0;
 
                     while (true)
                     {
-                        var read = await body.ReadAsync(buffer, cancellationToken);
+                        var read = await responseBody.ReadAsync(buffer, cancellationToken);
 
                         if (read == 0)
                         {
