@@ -37,14 +37,18 @@ internal sealed class PointDefinitionDatabaseStore(
         CancellationToken cancellationToken)
     {
         validator.Validate(point, await Context(cancellationToken));
+
         var now = timeProvider.GetUtcNow();
+
         var created = point with
         {
             Revision = 1,
             CreatedAt = Timestamp(now),
             UpdatedAt = Timestamp(now)
         };
+
         context.Points.Add(Entity(created, now));
+
         await SaveCreate("point ID or name already exists", cancellationToken);
 
         return created;

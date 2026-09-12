@@ -202,12 +202,28 @@ revision/dependency conflicts are `409`, forbidden command/network operation is
 
 ## Delivery phases
 
+Implementation status (2026-09-13): Phase 1 and Phase 2 are complete. The normative contract is
+`point-source-v1-contract.md` plus the paired YAML/normalized-JSON fixtures under
+`testdata/contracts/point-sources/valid`; aggregate parser, models, validation, and mapping
+resolution now implement that contract. Later persistence, adapter, API, and editor cutovers remain
+tracked by Phases 3–7.
+
+| Phase | Status |
+| --- | --- |
+| Phase 1 — Freeze the version-1 contract and fixtures | Complete |
+| Phase 2 — Replace common models, parsing, and validation | Complete |
+| Phase 3 — Replace persistence and aggregate services | Pending |
+| Phase 4 — Implement mapping execution and point operations | Pending |
+| Phase 5 — Cut over HTTP endpoints and configuration guidance | Pending |
+| Phase 6 — Replace the frontend source and point workflows | Pending |
+| Phase 7 — Remove legacy artifacts, update documentation, and verify | Pending |
+
 Each phase below is intended to leave a reviewable, testable result. Because
 this is a breaking aggregate replacement, intermediate branches need not run
 the entire product until the coordinated backend/frontend cutover, but every
 phase must pass its stated focused tests.
 
-### Phase 1 — Freeze the version-1 contract and fixtures
+### Phase 1 — Freeze the version-1 contract and fixtures (complete)
 
 1. Turn `docs/architecture/point-source-schema.yaml` into a valid canonical
    HTTP/JSON fixture: correct the aliases so the templates and point mapping
@@ -233,7 +249,7 @@ Verification: backend and frontend fixture tests agree on every canonical and
 invalid fixture; all canonical documents have `schemaVersion: 1`; a contract
 review confirms every existing source kind and point value type is covered.
 
-### Phase 2 — Replace common models, parsing, and validation
+### Phase 2 — Replace common models, parsing, and validation (complete)
 
 1. Make `PointSource` the aggregate root with `Mappings` and `Points`.
    Introduce a discriminated mapping hierarchy (or converter) whose

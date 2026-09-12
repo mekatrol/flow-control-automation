@@ -1,4 +1,4 @@
-export type PointSourceKind = 'homeAssistant' | 'mqtt' | 'httpJson';
+export type PointSourceKind = 'virtual' | 'physical' | 'homeAssistant' | 'mqtt' | 'httpJson';
 
 export interface PointSourceSummary {
   id: string;

@@ -14,26 +14,31 @@ internal sealed partial class PointDefinitionValidator : IPointDefinitionValidat
     {
         ValidateIdentity(point.Id, point.Name, "point");
 
-        var sourceType = point.PointSourceType;
+        var owner = context.Sources.Values.SingleOrDefault(source =>
+            source.Points.Any(candidate => candidate.Id == point.Id));
+        var isVirtual = owner?.Kind == "virtual" || point.Direction == DataDirectionType.Value;
         var direction = point.Direction;
         var valueType = point.ValueType;
         var persistence = ParsePersistence(point.Persistence);
-        ValidateCapabilities(point, sourceType, direction);
+
+        ValidateCapabilities(point, isVirtual, direction);
 
         var limits = ParseLimits(point.Limits, valueType);
         var (digitalLabels, multiStateLabels) = ParseLabels(point.StateLabels, valueType);
+
         ValidateUnits(point.Units, valueType);
         ValidateValue(point.RelinquishDefault, valueType, limits, multiStateLabels,
-            "relinquishDefault", required: sourceType == PointSourceType.Virtual
-                && persistence == PointPersistence.Retained);
+            "relinquishDefault", required: isVirtual &&
+            persistence == PointPersistence.Retained);
 
-        var (sourceKind, mapping) = ValidateBinding(point, sourceType, context);
+        var (sourceKind, mapping) = ValidateBinding(point, owner);
+
         var safety = ParseSafetyPolicy(
             point.SafeDisablePolicy,
-            point.Commandable && sourceType != PointSourceType.Virtual);
+            point.Commandable && !isVirtual);
 
         return new ValidatedPointDefinition(
-            point, sourceType, direction, valueType, persistence, limits,
+            point, direction, valueType, persistence, limits,
             digitalLabels, multiStateLabels, safety, sourceKind, mapping);
     }
 
@@ -48,6 +53,7 @@ internal sealed partial class PointDefinitionValidator : IPointDefinitionValidat
 
         RejectDuplicates(document.Points.Select(point => point.Id), "point id");
         RejectDuplicates(document.Points.Select(point => point.Name), "point name");
+
         var context = new PointValidationContext(sources);
 
         foreach (var point in document.Points)
@@ -71,15 +77,15 @@ internal sealed partial class PointDefinitionValidator : IPointDefinitionValidat
 
     private static void ValidateCapabilities(
         AutomationPoint point,
-        PointSourceType sourceType,
+        bool isVirtual,
         DataDirectionType direction)
     {
-        if (sourceType == PointSourceType.Virtual && direction != DataDirectionType.Value)
+        if (isVirtual && direction != DataDirectionType.Value)
         {
             Fail("virtual points must use value direction");
         }
 
-        if (sourceType != PointSourceType.Virtual && direction == DataDirectionType.Value)
+        if (!isVirtual && direction == DataDirectionType.Value)
         {
             Fail("physical and remote points cannot use value direction");
         }
@@ -112,44 +118,25 @@ internal sealed partial class PointDefinitionValidator : IPointDefinitionValidat
 
     private static (PointSourceKind? Kind, PointMapping? Mapping) ValidateBinding(
         AutomationPoint point,
-        PointSourceType sourceType,
-        PointValidationContext context)
+        PointSource? source)
     {
-        if (sourceType != PointSourceType.Remote)
+        if (source is null)
         {
-            if (point.SourceId is not null || point.Mapping is not null)
-            {
-                Fail($"{sourceType} points cannot have a remote source or mapping");
-            }
-
             return (null, null);
         }
 
-        var sourceId = point.SourceId;
+        var kind = ParseSourceKind(source.Kind);
+        var segments = point.Mapping.Split('/', StringSplitOptions.None);
+        var mapping = segments.Length == 2
+            ? source.Mappings.SingleOrDefault(candidate => candidate.Id == segments[0])
+            : null;
 
-        if (sourceId is null)
-        {
-            Fail("remote point requires an existing source");
-        }
-
-        if (!context.Sources.TryGetValue(sourceId!, out var source))
-        {
-            Fail($"sourceId \"{sourceId}\" does not exist");
-        }
-
-        var pointMapping = point.Mapping;
-
-        if (pointMapping is null)
-        {
-            Fail("remote point requires mapping");
-        }
-
-        RejectCredentialLiterals(pointMapping!, "mapping");
-        var kind = ParseSourceKind(source!.Kind);
-
-        return (kind, ParseMapping(point, kind, pointMapping!));
+        return mapping is null
+            ? throw new PointDefinitionValidationException("mapping reference is invalid")
+            : (kind, mapping);
     }
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality", "IDE0051", Justification = "Removed in aggregate persistence phase")]
     private static PointMapping ParseMapping(
         AutomationPoint point,
         PointSourceKind kind,
@@ -662,6 +649,8 @@ internal sealed partial class PointDefinitionValidator : IPointDefinitionValidat
 
     private static PointSourceKind ParseSourceKind(string value) => value switch
     {
+        "virtual" => PointSourceKind.Virtual,
+        "physical" => PointSourceKind.Physical,
         "homeAssistant" => PointSourceKind.HomeAssistant,
         "mqtt" => PointSourceKind.Mqtt,
         "httpJson" => PointSourceKind.HttpJson,

@@ -12,6 +12,7 @@ internal static class PointServiceCollectionExtensions
         services.AddSingleton<IVirtualPointRetainedStore, VirtualPointRetainedDatabaseStore>();
         services.AddSingleton<IVirtualPointRuntimeStore, VirtualPointRuntimeStore>();
         services.AddSingleton<IPointSourceValidator, PointSourceValidator>();
+        services.AddSingleton<IPointMappingResolver, PointMappingResolver>();
         services.AddSingleton<IPointDefinitionValidator, PointDefinitionValidator>();
         services.AddScoped<IPointDefinitionStore, PointDefinitionDatabaseStore>();
         services.AddScoped<IPointReadService, PointReadService>();

@@ -14,5 +14,4 @@ public interface IAutomationPoint
 
     AutomationPointValueType ValueType { get; init; }
 
-    PointSourceType PointSourceType { get; }
 }

@@ -103,7 +103,13 @@ let controller: AbortController | undefined;
 const { isSpinnerVisible, withSpinner } = useSpinner();
 
 const kindLabel = (kind: PointSourceKind): string =>
-  ({ homeAssistant: 'Home Assistant', mqtt: 'MQTT', httpJson: 'HTTP/JSON' })[kind];
+  ({
+    virtual: 'Virtual',
+    physical: 'Physical',
+    homeAssistant: 'Home Assistant',
+    mqtt: 'MQTT',
+    httpJson: 'HTTP/JSON'
+  })[kind];
 
 const allRows = computed<PointSourceRow[]>(() =>
   sources.value.map((source) => ({

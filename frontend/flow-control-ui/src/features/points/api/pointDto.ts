@@ -1,19 +1,19 @@
 import { VirtualPointPersistenceType } from '@/types/serverTypes';
-import { PointSourceType, DataDirectionType, AutomationPointValueType } from '@/types/serverTypes';
-export { PointSourceType, DataDirectionType, AutomationPointValueType } from '@/types/serverTypes';
+import { DataDirectionType, AutomationPointValueType } from '@/types/serverTypes';
+export { DataDirectionType, AutomationPointValueType } from '@/types/serverTypes';
+import type { PointSourceKind } from '@/features/pointSources/api/pointSourceApi';
 
 export interface PointSummary {
   id: string;
   name: string;
   description?: string;
   enabled: boolean;
-  pointSourceType: PointSourceType;
+  sourceKind: PointSourceKind;
   direction: DataDirectionType;
   valueType: AutomationPointValueType;
   units?: string;
   readable: boolean;
   commandable: boolean;
-  sourceId?: string;
   revision: number;
   updatedAt?: string;
 }
@@ -77,10 +77,10 @@ export const parsePoint = (value: unknown, path = 'point'): PointSummary => {
     name: string(item.name, `${path}.name`),
     description: optionalString(item.description, `${path}.description`),
     enabled: boolean(item.enabled, `${path}.enabled`),
-    pointSourceType: enumeration(
-      item.pointSourceType,
-      Object.values(PointSourceType),
-      `${path}.pointSourceType`
+    sourceKind: enumeration(
+      item.sourceKind,
+      ['virtual', 'physical', 'homeAssistant', 'mqtt', 'httpJson'],
+      `${path}.sourceKind`
     ),
     direction: enumeration(item.direction, Object.values(DataDirectionType), `${path}.direction`),
     valueType: enumeration(
@@ -91,7 +91,6 @@ export const parsePoint = (value: unknown, path = 'point'): PointSummary => {
     units: optionalString(item.units, `${path}.units`),
     readable: boolean(item.readable, `${path}.readable`),
     commandable: boolean(item.commandable, `${path}.commandable`),
-    sourceId: optionalString(item.sourceId, `${path}.sourceId`),
     revision: integer(item.revision, `${path}.revision`),
     updatedAt: optionalString(item.updatedAt, `${path}.updatedAt`)
   };

@@ -4,18 +4,7 @@ public static class PointSourceYaml
 {
     public static PointSource Parse(ReadOnlySpan<byte> yaml)
     {
-        var document = ConfigurationYaml.Parse<PointSourceDocument>(
-            yaml,
-            ConfigurationKind.PointSources);
-
-        if (document.Sources.Count != 1)
-        {
-            throw new ConfigurationYamlException(
-                ConfigurationYamlError.InvalidShape,
-                "YAML must contain exactly one source.");
-        }
-
-        return document.Sources[0];
+        return ConfigurationYaml.Parse<PointSource>(yaml, ConfigurationKind.PointSources);
     }
 
     public static string Render(PointSource source)
@@ -28,7 +17,6 @@ public static class PointSourceYaml
             UpdatedAt = null
         };
 
-        return ConfigurationYaml.Render(
-            new PointSourceDocument { Sources = [transportSource] });
+        return ConfigurationYaml.Render(transportSource);
     }
 }

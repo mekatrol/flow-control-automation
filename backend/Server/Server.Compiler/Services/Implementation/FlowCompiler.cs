@@ -3433,7 +3433,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         var pointId = node.Configuration["pointId"].GetString();
         var point = resolvedPoints.SingleOrDefault(candidate => candidate.Id == pointId);
 
-        return point?.PointSourceType == PointSourceType.Virtual
+        return point is VirtualAutomationPoint || point?.Direction == DataDirectionType.Value
             ? PointBindingType.VirtualPoint
             : PointBindingType.ControllerPoint;
     }

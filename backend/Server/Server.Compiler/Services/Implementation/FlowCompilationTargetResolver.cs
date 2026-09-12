@@ -189,7 +189,7 @@ internal sealed class FlowCompilationTargetResolver(
 
     private static void ValidatePoint(PointReference reference, AutomationPoint point)
     {
-        var virtualValue = point.PointSourceType == PointSourceType.Virtual
+        var virtualValue = point is VirtualAutomationPoint || point.Direction == DataDirectionType.Value
             && point.Direction == DataDirectionType.Value;
 
         var valid = point.Enabled

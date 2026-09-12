@@ -1,7 +1,15 @@
 import type { Page, Route } from '@playwright/test';
 
-import pointsDocument from '@contracts/points/v1.normalized.json';
-import sourcesDocument from '@contracts/point-sources/v1.normalized.json';
+import homeAssistant from '@contracts/point-sources/valid/home-assistant.v1.normalized.json';
+import httpJson from '@contracts/point-sources/valid/http-json.v1.normalized.json';
+import mqtt from '@contracts/point-sources/valid/mqtt.v1.normalized.json';
+import physical from '@contracts/point-sources/valid/physical.v1.normalized.json';
+import virtual from '@contracts/point-sources/valid/virtual.v1.normalized.json';
+
+const sources = [homeAssistant, httpJson, mqtt, physical, virtual];
+const points = sources.flatMap((source) =>
+  source.points.map((point) => ({ ...point, sourceKind: source.kind, revision: 1 }))
+);
 
 interface PageResponse {
   items: unknown[];
@@ -29,9 +37,9 @@ const fulfillCollection = async (route: Route, items: unknown[]): Promise<void> 
  */
 export const seedPointApi = async (page: Page): Promise<void> => {
   await page.route(/\/api\/points(?:\?.*)?$/, (route) =>
-    fulfillCollection(route, pointsDocument.points)
+    fulfillCollection(route, points)
   );
   await page.route(/\/api\/point-sources(?:\?.*)?$/, (route) =>
-    fulfillCollection(route, sourcesDocument.sources)
+    fulfillCollection(route, sources)
   );
 };

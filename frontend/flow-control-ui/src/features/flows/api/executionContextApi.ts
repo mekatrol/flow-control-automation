@@ -1,9 +1,4 @@
-import {
-  AutomationPointValueType,
-  PointSourceType,
-  DataDirectionType,
-  isEnumValue
-} from '@/types/serverTypes';
+import { AutomationPointValueType, DataDirectionType, isEnumValue } from '@/types/serverTypes';
 import { waitForFetch } from '@/api/waitForFetch';
 import type { VirtualPointDefinition } from '@/features/flows/types';
 import type { PointSummary } from '@/features/points/api/pointDto';
@@ -92,7 +87,7 @@ export const executionContextApi = {
     if (
       body.exists !== true ||
       typeof body.pointKey !== 'string' ||
-      !isEnumValue(PointSourceType, body.pointSourceType) ||
+      typeof body.sourceKind !== 'string' ||
       !isEnumValue(AutomationPointValueType, body.valueType)
     )
       throw new Error('Point resolution is malformed.');
@@ -100,11 +95,9 @@ export const executionContextApi = {
       id: body.pointKey,
       name: body.pointKey,
       enabled: body.enabled === true,
-      pointSourceType: body.pointSourceType,
+      sourceKind: body.sourceKind as PointSummary['sourceKind'],
       direction:
-        body.pointSourceType === PointSourceType.Virtual
-          ? DataDirectionType.Value
-          : DataDirectionType.InputOutput,
+        body.sourceKind === 'virtual' ? DataDirectionType.Value : DataDirectionType.InputOutput,
       valueType: body.valueType,
       units: typeof body.units === 'string' ? body.units : undefined,
       readable: body.readable === true,

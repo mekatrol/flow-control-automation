@@ -5,14 +5,7 @@ import { pointSourceSchema } from '@/features/pointSources/pointSourceSchema';
 
 describe('pointSourceSchema', () => {
   const connectionSchema = (): JSONSchema | undefined => {
-    const sources = pointSourceSchema.properties?.sources;
-    const source =
-      typeof sources === 'object' && !Array.isArray(sources) ? sources.items : undefined;
-
-    const connection =
-      typeof source === 'object' && !Array.isArray(source)
-        ? source.properties?.connection
-        : undefined;
+    const connection = pointSourceSchema.properties?.connection;
 
     return typeof connection === 'object' && !Array.isArray(connection) ? connection : undefined;
   };

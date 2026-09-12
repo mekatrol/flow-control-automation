@@ -1,0 +1,12 @@
+schemaVersion: 1
+id: bad
+name: Bad
+enabled: true
+kind: virtual
+connection: {}
+tls: { verifyServerCertificate: true }
+timeouts: { connectMilliseconds: 100 }
+mappings: [{ id: local, aliases: [value], read: {}, virtual: {} }]
+points:
+  - { id: duplicate, name: First, enabled: true, direction: value, valueType: text, readable: true, commandable: false, persistence: volatile, limits: { maximumLength: 5 }, mapping: local/value }
+  - { id: duplicate, name: Second, enabled: true, direction: value, valueType: text, readable: true, commandable: false, persistence: volatile, limits: { maximumLength: 5 }, mapping: local/value }

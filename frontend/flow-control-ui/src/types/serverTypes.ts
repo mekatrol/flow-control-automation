@@ -202,13 +202,6 @@ export const VirtualPointPersistenceType = {
 export type VirtualPointPersistenceType =
   (typeof VirtualPointPersistenceType)[keyof typeof VirtualPointPersistenceType];
 
-export const PointSourceType = {
-  Physical: 'physical',
-  Virtual: 'virtual',
-  Remote: 'remote'
-} as const;
-export type PointSourceType = (typeof PointSourceType)[keyof typeof PointSourceType];
-
 export const isEnumValue = <T extends string>(
   enumeration: Readonly<Record<string, T>>,
   value: unknown

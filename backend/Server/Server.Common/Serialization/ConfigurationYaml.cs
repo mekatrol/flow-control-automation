@@ -18,13 +18,24 @@ public static class ConfigurationYaml
             "valueType", "pointSourceType", "units", "stateLabels", "readable", "commandable", "persistence",
             "relinquishDefault", "sourceId", "mapping", "limits", "safeDisablePolicy"
         ]);
-    private static readonly IReadOnlySet<string> SourceRootFields =
-        new HashSet<string>(["schemaVersion", "sources"]);
-    private static readonly IReadOnlySet<string> SourceFields = new HashSet<string>(
-        [
-            "id", "name", "description", "enabled", "kind", "connection", "credentialRef",
-            "tls", "timeouts"
-        ]);
+    private static readonly IReadOnlySet<string> SourceRootFields = new HashSet<string>(
+        ["schemaVersion", "id", "name", "description", "enabled", "kind", "connection",
+         "credentialRef", "tls", "timeouts", "mappings", "points"]);
+    private static readonly IReadOnlySet<string> NestedPointFields = new HashSet<string>(
+        ["id", "name", "description", "enabled", "direction", "valueType", "units",
+         "stateLabels", "readable", "commandable", "persistence", "relinquishDefault",
+         "mapping", "limits", "safeDisablePolicy"]);
+    private static readonly IReadOnlySet<string> MappingFields = new HashSet<string>(
+        ["id", "aliases", "read", "command", "physical", "virtual"]);
+    private static readonly IReadOnlySet<string> ReadFields = new HashSet<string>(
+        ["path", "method", "format", "template", "topic", "qos", "entityId", "property",
+         "pollMilliseconds"]);
+    private static readonly IReadOnlySet<string> CommandFields = new HashSet<string>(
+        ["path", "method", "format", "contentType", "template", "topic", "qos", "retain",
+         "service", "serviceData"]);
+    private static readonly IReadOnlySet<string> PhysicalFields = new HashSet<string>(
+        ["controllerId", "channel", "address", "electricalType"]);
+    private static readonly IReadOnlySet<string> VirtualFields = new HashSet<string>(["persistence"]);
     private static readonly IReadOnlySet<string> SourceConnectionFields = new HashSet<string>(
         [
             "baseUrl", "subscribeEvents", "brokerUrl", "clientIdPrefix", "testTopic", "qos",
@@ -345,15 +356,20 @@ public static class ConfigurationYaml
                 break;
             case ConfigurationKind.PointSources:
                 RejectUnknown(root, SourceRootFields);
-                ValidateItems(root["sources"], SourceFields, "sources");
+                ValidateObject(root["connection"], SourceConnectionFields, "connection");
+                ValidateObject(root["tls"], TlsFields, "tls");
+                ValidateObject(root["timeouts"], TimeoutFields, "timeouts");
+                ValidateItems(root["mappings"], MappingFields, "mappings");
+                ValidateItems(root["points"], NestedPointFields, "points");
 
-                if (root["sources"] is JsonArray sources)
+                if (root["mappings"] is JsonArray mappings)
                 {
-                    foreach (var source in sources.OfType<JsonObject>())
+                    foreach (var mapping in mappings.OfType<JsonObject>())
                     {
-                        ValidateObject(source["connection"], SourceConnectionFields, "connection");
-                        ValidateObject(source["tls"], TlsFields, "tls");
-                        ValidateObject(source["timeouts"], TimeoutFields, "timeouts");
+                        ValidateOptionalObject(mapping["read"], ReadFields, "read");
+                        ValidateOptionalObject(mapping["command"], CommandFields, "command");
+                        ValidateOptionalObject(mapping["physical"], PhysicalFields, "physical");
+                        ValidateOptionalObject(mapping["virtual"], VirtualFields, "virtual");
                     }
                 }
 
@@ -406,6 +422,16 @@ public static class ConfigurationYaml
         }
 
         RejectUnknown(value, fields);
+    }
+
+    private static void ValidateOptionalObject(JsonNode? node, IReadOnlySet<string> fields, string name)
+    {
+        if (node is null)
+        {
+            return;
+        }
+
+        ValidateObject(node, fields, name);
     }
 
     private static void RejectUnknown(JsonObject value, IReadOnlySet<string> allowed)

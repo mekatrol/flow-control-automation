@@ -2,7 +2,6 @@ namespace Server.Common.Models.Points;
 
 public sealed record ValidatedPointDefinition(
     AutomationPoint Source,
-    PointSourceType PointSourceType,
     DataDirectionType Direction,
     AutomationPointValueType ValueType,
     PointPersistence Persistence,

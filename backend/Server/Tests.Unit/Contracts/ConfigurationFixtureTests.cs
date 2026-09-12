@@ -12,16 +12,15 @@ public sealed class ConfigurationFixtureTests
 
     private static IEnumerable<TestCaseData> ValidFixtures()
     {
-        yield return new TestCaseData(
-            "points/v1.yaml",
-            "points/v1.normalized.json",
-            ConfigurationKind.Points,
-            false);
-        yield return new TestCaseData(
-            "point-sources/v1.yaml",
-            "point-sources/v1.normalized.json",
-            ConfigurationKind.PointSources,
-            false);
+        foreach (var name in new[] { "virtual", "physical", "home-assistant", "mqtt", "http-json" })
+        {
+            yield return new TestCaseData(
+                $"point-sources/valid/{name}.v1.yaml",
+                $"point-sources/valid/{name}.v1.normalized.json",
+                ConfigurationKind.PointSources,
+                false);
+        }
+
         yield return new TestCaseData(
             "controllers/default.v1.yaml",
             "controllers/default.v1.normalized.json",
@@ -36,10 +35,6 @@ public sealed class ConfigurationFixtureTests
 
     private static IEnumerable<TestCaseData> InvalidFixtures()
     {
-        yield return Invalid(
-            "points/invalid/unknown-field.yaml",
-            ConfigurationKind.Points,
-            ConfigurationYamlError.UnknownField);
         yield return Invalid(
             "point-sources/invalid/unknown-field.yaml",
             ConfigurationKind.PointSources,
@@ -184,7 +179,7 @@ public sealed class ConfigurationFixtureTests
         // Acceptance criteria: the operation must throw ConfigurationYamlException, because this condition proves that
         // parse rejects oversized input before parsing.
         var exception = Assert.Throws<ConfigurationYamlException>(
-            () => ConfigurationYaml.ParseToJson(yaml, ConfigurationKind.Points));
+            () => ConfigurationYaml.ParseToJson(yaml, ConfigurationKind.PointSources));
 
         // Expected outcome: `exception!.Category` has the required value.
         // Acceptance criteria: `exception!.Category` must equal `ConfigurationYamlError.TooLarge`, because this condition proves that
@@ -200,8 +195,8 @@ public sealed class ConfigurationFixtureTests
     [Test]
     public void TypedParseAndRender_PreservePointSourceContract()
     {
-        var yaml = File.ReadAllBytes(Path.Combine(FixtureRoot, "point-sources/v1.yaml"));
-        var document = ConfigurationYaml.Parse<PointSourceDocument>(
+        var yaml = File.ReadAllBytes(Path.Combine(FixtureRoot, "point-sources/valid/http-json.v1.yaml"));
+        var document = ConfigurationYaml.Parse<PointSource>(
             yaml,
             ConfigurationKind.PointSources);
 
@@ -210,12 +205,12 @@ public sealed class ConfigurationFixtureTests
         // Expected outcome: `renderedText` uses the required serialized structure.
         // Acceptance criteria: `renderedText` must match the required boundary text `$"schemaVersion: 1{Environment.NewLine}sources:{Environment.NewLine}"`, because this condition proves that
         // typed parse and render preserve point source contract.
-        Assert.That(renderedText, Does.StartWith($"schemaVersion: 1{Environment.NewLine}sources:{Environment.NewLine}"));
+        Assert.That(renderedText, Does.StartWith($"schemaVersion: 1{Environment.NewLine}id: weather-api{Environment.NewLine}"));
 
         // Expected outcome: `renderedText` includes the required content.
         // Acceptance criteria: `renderedText` must contain `$"{Environment.NewLine}- id:"`, because this condition proves that
         // typed parse and render preserve point source contract.
-        Assert.That(renderedText, Does.Contain($"{Environment.NewLine}- id:"));
+        Assert.That(renderedText, Does.Contain($"{Environment.NewLine}mappings:{Environment.NewLine}"));
 
         // Expected outcome: The observed result satisfies the required contract.
         // Acceptance criteria: the asserted condition must hold, because this condition proves that
@@ -223,7 +218,7 @@ public sealed class ConfigurationFixtureTests
         Assert.That(renderedText.TrimStart(), Does.Not.StartWith("{"));
 
         var rendered = Encoding.UTF8.GetBytes(renderedText);
-        var reparsed = ConfigurationYaml.Parse<PointSourceDocument>(
+        var reparsed = ConfigurationYaml.Parse<PointSource>(
             rendered,
             ConfigurationKind.PointSources);
 

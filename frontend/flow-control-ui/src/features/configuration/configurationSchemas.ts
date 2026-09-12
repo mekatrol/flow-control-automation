@@ -8,9 +8,9 @@ import {
 import {
   AutomationPointValueType,
   DataDirectionType,
-  VirtualPointPersistenceType,
-  PointSourceType
+  VirtualPointPersistenceType
 } from '@/types/serverTypes';
+const PointSourceType = { Physical: 'physical', Virtual: 'virtual', Remote: 'remote' } as const;
 import type { JSONSchema } from '@/components/yaml/MonacoYaml';
 
 const identifier = { type: 'string', pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$' } as const;

@@ -1,0 +1,10 @@
+schemaVersion: 1
+id: bad
+name: Bad
+enabled: true
+kind: httpJson
+connection: { baseUrl: https://example.test, maximumResponseBytes: 1000 }
+tls: { verifyServerCertificate: true }
+timeouts: { connectMilliseconds: 100 }
+mappings: [{ id: read, aliases: [value], read: { path: /, method: GET, format: json, template: '[not-an-object]' } }]
+points: [{ id: bad-point, name: Bad, enabled: true, direction: input, valueType: text, readable: true, commandable: false, persistence: volatile, limits: { maximumLength: 5 }, mapping: read/value }]

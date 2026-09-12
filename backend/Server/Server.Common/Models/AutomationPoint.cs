@@ -1,4 +1,3 @@
-﻿using Server.Common.Converters;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
@@ -12,8 +11,7 @@ namespace Server.Common.Models;
 /// whether that value lives in memory, on local hardware, or behind a remote integration. The
 /// remaining members describe its data shape, capabilities, binding, and safe runtime behavior.
 /// </remarks>
-[JsonConverter(typeof(AutomationPointJsonConverter))]
-public abstract record AutomationPoint : IAutomationPoint
+public record AutomationPoint : IAutomationPoint
 {
     /// <summary>
     /// Gets the stable, machine-readable identifier used to reference the point from configuration
@@ -58,15 +56,6 @@ public abstract record AutomationPoint : IAutomationPoint
     /// Gets the logical data type used to validate, display, and exchange the point's values.
     /// </summary>
     public required AutomationPointValueType ValueType { get; init; }
-
-    /// <summary>
-    /// Gets where the point's value originates or is applied.
-    /// </summary>
-    /// <remarks>
-    /// The discriminator is supplied by the derived record and is used during polymorphic JSON
-    /// serialization and source-specific validation.
-    /// </remarks>
-    public abstract PointSourceType PointSourceType { get; }
 
     /// <summary>
     /// Gets the optional normalized engineering-unit identifier for numeric values, such as
@@ -123,15 +112,6 @@ public abstract record AutomationPoint : IAutomationPoint
     public JsonNode? RelinquishDefault { get; init; }
 
     /// <summary>
-    /// Gets the point-source identifier used by a remote point to locate its protocol connection.
-    /// </summary>
-    /// <remarks>
-    /// Remote points must specify this directly. Virtual and physical points must leave it null.
-    /// Credentials belong to the referenced source, not in this point definition.
-    /// </remarks>
-    public string? SourceId { get; init; }
-
-    /// <summary>
     /// Gets the protocol-specific address and read/write settings that bind a remote point to its
     /// external value.
     /// </summary>
@@ -140,7 +120,7 @@ public abstract record AutomationPoint : IAutomationPoint
     /// entity, or an HTTP path. Remote points require a mapping; virtual and physical points do not
     /// accept one.
     /// </remarks>
-    public JsonObject? Mapping { get; init; }
+    public string Mapping { get; init; } = string.Empty;
 
     /// <summary>
     /// Gets optional bounds used to reject values that cannot safely or validly belong to the point.

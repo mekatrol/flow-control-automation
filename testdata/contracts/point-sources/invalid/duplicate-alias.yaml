@@ -1,0 +1,10 @@
+schemaVersion: 1
+id: bad
+name: Bad
+enabled: true
+kind: virtual
+connection: {}
+tls: { verifyServerCertificate: true }
+timeouts: { connectMilliseconds: 100 }
+mappings: [{ id: local, aliases: [same, same], read: {}, virtual: {} }]
+points: []

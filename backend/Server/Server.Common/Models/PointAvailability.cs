@@ -20,9 +20,6 @@ public sealed record PointAvailability
     /// <summary>Gets whether the point is available in the requested scope.</summary>
     public bool Exists { get; init; }
 
-    /// <summary>Gets the source of the available point.</summary>
-    public PointSourceType? PointSourceType { get; init; }
-
     /// <summary>Gets the type of value exposed by the available point.</summary>
     public AutomationPointValueType? ValueType { get; init; }
 

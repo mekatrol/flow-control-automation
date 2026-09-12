@@ -203,9 +203,10 @@ internal sealed class PointSourceDatabaseService(
         string id,
         CancellationToken cancellationToken)
     {
-        var points = await context.Points.AsNoTracking().ToListAsync(cancellationToken);
+        var source = await context.PointSources.AsNoTracking()
+            .SingleOrDefaultAsync(candidate => candidate.Id == id, cancellationToken);
 
-        return points.Select(DeserializePoint).Any(point => point.SourceId == id);
+        return source is not null && Deserialize(source).Points.Count > 0;
     }
 
     private async Task SaveWithConcurrencyMapping(
@@ -239,6 +240,7 @@ internal sealed class PointSourceDatabaseService(
         JsonSerializer.Deserialize<PointSource>(entity.Json, FlowControlJson.Options)
         ?? throw new InvalidOperationException($"Stored point source {entity.Id} is null.");
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality", "IDE0051", Justification = "Removed in aggregate persistence phase")]
     private static AutomationPoint DeserializePoint(PointEntity entity) =>
         JsonSerializer.Deserialize<AutomationPoint>(entity.Json, FlowControlJson.Options)
         ?? throw new InvalidOperationException($"Stored point {entity.Id} is null.");

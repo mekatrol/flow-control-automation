@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { executionContextApi } from '@/features/flows/api/executionContextApi';
-import { AutomationPointValueType, DataDirectionType, PointSourceType } from '@/types/serverTypes';
+import { AutomationPointValueType, DataDirectionType } from '@/types/serverTypes';
+const PointSourceType = { Physical: 'physical', Virtual: 'virtual', Remote: 'remote' } as const;
 
 const point = {
   exists: true,

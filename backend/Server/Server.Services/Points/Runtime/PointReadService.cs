@@ -26,7 +26,11 @@ internal sealed class PointReadService(
             return Unavailable(point, "not_readable", "Point is not configured for reads.");
         }
 
-        if (point.PointSourceType == PointSourceType.Virtual)
+        var sourcePage = await sources.ListAsync(new PointSourceListOptions(), cancellationToken);
+        var source = sourcePage.Items.SingleOrDefault(candidate =>
+            candidate.Points.Any(nested => nested.Id == point.Id));
+
+        if (source?.Kind == "virtual" || point.Direction == DataDirectionType.Value)
         {
             if (virtualPoints is not null && virtualPoints.TrySnapshot("server", point.Id, out var snapshot))
             {
@@ -53,27 +57,14 @@ internal sealed class PointReadService(
                 "Virtual point has no commissioned runtime value.");
         }
 
-        if (point.PointSourceType == PointSourceType.Physical)
+        if (source?.Kind == "physical")
         {
             return Unavailable(point, "unconfigured", "Physical point has no commissioned hardware read adapter.");
         }
 
-        var sourceId = point.SourceId;
-
-        if (sourceId is null)
+        if (source is null)
         {
             return Unavailable(point, "unconfigured", "Point has no source.");
-        }
-
-        PointSource source;
-
-        try
-        {
-            source = await sources.GetAsync(sourceId, cancellationToken);
-        }
-        catch (PointSourceNotFoundException)
-        {
-            return Unavailable(point, "source_missing", "Referenced point source is unavailable.");
         }
 
         if (!source.Enabled)
@@ -97,8 +88,12 @@ internal sealed class PointReadService(
         PointSource source,
         CancellationToken cancellationToken)
     {
-        var path = point.Mapping?["path"]?.GetValue<string>();
-        var pointer = point.Mapping?["jsonPointer"]?.GetValue<string>();
+        var segments = point.Mapping.Split('/', StringSplitOptions.None);
+        var mapping = segments.Length == 2
+            ? source.Mappings.SingleOrDefault(candidate => candidate.Id == segments[0])
+            : null;
+        var path = mapping?.Read?.Path;
+        string? pointer = null;
 
         if (string.IsNullOrWhiteSpace(path))
         {

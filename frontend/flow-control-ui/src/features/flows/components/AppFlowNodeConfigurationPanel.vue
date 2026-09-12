@@ -35,7 +35,7 @@
           />
           <datalist :id="`${node.id}-compatible-points`">
             <option v-for="point in compatiblePoints" :key="point.id" :value="point.id">
-              {{ point.name }} · {{ point.pointSourceType }} · {{ point.valueType
+              {{ point.name }} · {{ point.sourceKind }} · {{ point.valueType
               }}{{ point.units ? ` · ${point.units}` : '' }}
             </option>
           </datalist>
@@ -83,7 +83,7 @@
 </template>
 
 <script lang="ts">
-import { DataDirectionType, PointSourceType } from '@/types/serverTypes';
+import { DataDirectionType } from '@/types/serverTypes';
 
 import type { FlowConfigurationValue as EditorValue } from '@/features/flows/types';
 import type { NodeEditorField as EditorField } from '@/features/flows/nodeTypes';
@@ -178,7 +178,7 @@ const compatiblePoints = computed(() =>
       ...point,
       id: point.key,
       name: point.key,
-      pointSourceType: PointSourceType.Virtual,
+      sourceKind: 'virtual' as const,
       enabled: true,
       direction: DataDirectionType.Value,
       revision: 0

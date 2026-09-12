@@ -208,11 +208,8 @@
 <script setup lang="ts">
 import { DataDirectionType } from '@/types/serverTypes';
 
-import {
-  AutomationPointValueType,
-  VirtualPointPersistenceType,
-  PointSourceType
-} from '@/types/serverTypes';
+import { AutomationPointValueType, VirtualPointPersistenceType } from '@/types/serverTypes';
+const PointSourceType = { Remote: 'remote' } as const;
 
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { parse } from 'yaml';
