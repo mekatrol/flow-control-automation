@@ -223,7 +223,10 @@ internal sealed class PointDefinitionValidatorTests
     [TestCase("$")]
     [TestCase("$/h")]
     [TestCase("#")]
-    public void SymbolUnits_AreAcceptedAndPreserved(string units)
+    [TestCase("widgets per cycle")]
+    [TestCase("μmol·m⁻²·s⁻¹")]
+    [TestCase("custom:unit[value]")]
+    public void ArbitraryUnits_AreAcceptedAndPreserved(string units)
     {
         var point = VirtualPoint(AutomationPointValueType.Analog) with { Units = units };
 

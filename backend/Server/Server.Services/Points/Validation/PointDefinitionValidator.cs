@@ -452,10 +452,6 @@ internal sealed partial class PointDefinitionValidator : IPointDefinitionValidat
             Fail("units apply only to analog and integer points");
         }
 
-        if (units != units.Trim() || !UnitRegex().IsMatch(units))
-        {
-            Fail("units must be a normalized identifier");
-        }
     }
 
     private static void RejectCredentialLiterals(JsonNode node, string path)
@@ -665,6 +661,4 @@ internal sealed partial class PointDefinitionValidator : IPointDefinitionValidat
     [GeneratedRegex("^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$", RegexOptions.CultureInvariant)]
     private static partial Regex IdentifierRegex();
 
-    [GeneratedRegex("^[A-Za-z%°$#][A-Za-z0-9_.%°$#/-]{0,63}$", RegexOptions.CultureInvariant)]
-    private static partial Regex UnitRegex();
 }

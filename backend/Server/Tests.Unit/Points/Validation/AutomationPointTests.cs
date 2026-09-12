@@ -14,6 +14,8 @@ internal sealed class AutomationPointTests
     [TestCase(PointSourceType.Physical, "°")]
     [TestCase(PointSourceType.Remote, "#")]
     [TestCase(PointSourceType.Virtual, "$")]
+    [TestCase(PointSourceType.Virtual, "μmol·m⁻²·s⁻¹")]
+    [TestCase(PointSourceType.Remote, "widgets per cycle")]
     public void JsonAndYamlRoundTripsPreserveConcreteTypeAndSharedProperties(
         PointSourceType sourceType,
         string units)
