@@ -12,11 +12,11 @@ public sealed class ScribanTemplateServiceTests
         TestContext.CurrentContext.TestDirectory,
         "TemplateFixtures");
 
-    public static IEnumerable<object[]> GetPositiveFixtures() =>
+    private static IEnumerable<object[]> GetPositiveFixtures() =>
         TemplateFixtureLoader.LoadDirectory(Path.Combine(FixtureRoot, "positive"))
             .Select(fixture => new object[] { fixture });
 
-    public static IEnumerable<object[]> GetNegativeFixtures() =>
+    private static IEnumerable<object[]> GetNegativeFixtures() =>
         TemplateFixtureLoader.LoadDirectory(Path.Combine(FixtureRoot, "negative"))
             .Select(fixture => new object[] { fixture });
 
