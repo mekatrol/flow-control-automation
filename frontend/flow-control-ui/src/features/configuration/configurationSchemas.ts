@@ -58,7 +58,10 @@ export const pointSchema: JSONSchema = {
               path: { type: 'string', pattern: '^/(?!/)' },
               method: { enum: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH'] },
               jsonPointer: { type: 'string', pattern: '^/' },
-              valuePointer: { type: 'string', pattern: '^/' }
+              valuePointer: { type: 'string', pattern: '^/' },
+              contentType: {
+                enum: ['application/json', 'application/x-www-form-urlencoded']
+              }
             }
           },
           limits: { type: 'object' },

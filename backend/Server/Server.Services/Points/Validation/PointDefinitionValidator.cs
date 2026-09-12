@@ -215,6 +215,7 @@ internal sealed partial class PointDefinitionValidator : IPointDefinitionValidat
 
         var jsonPointer = OptionalString(mapping, "jsonPointer");
         var valuePointer = OptionalString(mapping, "valuePointer");
+        var contentType = OptionalString(mapping, "contentType") ?? "application/json";
 
         if (jsonPointer is not null && !jsonPointer.StartsWith('/'))
         {
@@ -226,11 +227,23 @@ internal sealed partial class PointDefinitionValidator : IPointDefinitionValidat
             Fail("mapping.valuePointer must be a JSON Pointer starting with /");
         }
 
+        if (contentType is not "application/json" and not "application/x-www-form-urlencoded")
+        {
+            Fail("mapping.contentType must be application/json or application/x-www-form-urlencoded");
+        }
+
+        if (contentType == "application/x-www-form-urlencoded"
+            && (valuePointer is null || valuePointer[1..].Contains('/')))
+        {
+            Fail("form-encoded HTTP mappings require a single-segment mapping.valuePointer");
+        }
+
         return new HttpJsonPointMapping(
             path,
             method,
             jsonPointer,
-            valuePointer);
+            valuePointer,
+            contentType);
     }
 
     private static PointLimits? ParseLimits(JsonObject? value, AutomationPointValueType type)

@@ -248,7 +248,8 @@ public static class PointSourceEndpointRouteBuilderExtensions
                     source,
                     endpoint,
                     mapping.Method,
-                    CommandBody(request.Value, mapping.ValuePointer),
+                    CommandBody(request.Value, mapping.ValuePointer, mapping.ContentType),
+                    mapping.ContentType,
                     credential,
                     addresses,
                     cancellationToken);
@@ -280,8 +281,18 @@ public static class PointSourceEndpointRouteBuilderExtensions
         }
     }
 
-    private static string CommandBody(JsonNode? value, string? pointer)
+    private static string CommandBody(JsonNode? value, string? pointer, string contentType)
     {
+        if (contentType == "application/x-www-form-urlencoded")
+        {
+            var name = pointer![1..].Replace("~1", "/").Replace("~0", "~");
+            var formValue = value is JsonValue jsonValue && jsonValue.TryGetValue<string>(out var text)
+                ? text
+                : value?.ToJsonString() ?? string.Empty;
+
+            return $"{Uri.EscapeDataString(name)}={Uri.EscapeDataString(formValue)}";
+        }
+
         if (string.IsNullOrEmpty(pointer))
         {
             return value?.ToJsonString() ?? "null";

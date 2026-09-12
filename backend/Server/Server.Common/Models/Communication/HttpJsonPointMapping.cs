@@ -4,4 +4,5 @@ public sealed record HttpJsonPointMapping(
     string Path,
     string Method,
     string? JsonPointer,
-    string? ValuePointer) : PointMapping;
+    string? ValuePointer,
+    string ContentType = "application/json") : PointMapping;

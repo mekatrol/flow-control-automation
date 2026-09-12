@@ -37,13 +37,21 @@ internal sealed class HttpProtocolCheck(IDnsLookup dns) : IHttpProtocolCheck
         IReadOnlyList<IPAddress> pinnedAddresses,
         CancellationToken cancellationToken)
         => await SendAsync(
-            source, endpoint, HttpMethod.Get, null, credential, pinnedAddresses, cancellationToken);
+            source,
+            endpoint,
+            HttpMethod.Get,
+            null,
+            "application/json",
+            credential,
+            pinnedAddresses,
+            cancellationToken);
 
     public async Task<HttpProtocolCheckResult> WriteAsync(
         PointSource source,
         Uri endpoint,
         string method,
         string body,
+        string contentType,
         string credential,
         IReadOnlyList<IPAddress> pinnedAddresses,
         CancellationToken cancellationToken) =>
@@ -52,6 +60,7 @@ internal sealed class HttpProtocolCheck(IDnsLookup dns) : IHttpProtocolCheck
             endpoint,
             new HttpMethod(method),
             body,
+            contentType,
             credential,
             pinnedAddresses,
             cancellationToken);
@@ -61,6 +70,7 @@ internal sealed class HttpProtocolCheck(IDnsLookup dns) : IHttpProtocolCheck
         Uri endpoint,
         HttpMethod method,
         string? body,
+        string contentType,
         string credential,
         IReadOnlyList<IPAddress> pinnedAddresses,
         CancellationToken cancellationToken)
@@ -81,7 +91,8 @@ internal sealed class HttpProtocolCheck(IDnsLookup dns) : IHttpProtocolCheck
 
             if (body is not null)
             {
-                request.Content = new StringContent(body, Encoding.UTF8, "application/json");
+                request.Content = new StringContent(body, Encoding.UTF8, contentType);
+                request.Content.Headers.ContentType!.CharSet = null;
             }
 
             if (credential.Length > 0)

@@ -495,6 +495,7 @@ internal sealed class ConnectivityEndpointTests
             Uri endpoint,
             string method,
             string body,
+            string contentType,
             string credential,
             IReadOnlyList<IPAddress> pinnedAddresses,
             CancellationToken cancellationToken) =>

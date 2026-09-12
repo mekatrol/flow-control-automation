@@ -442,7 +442,10 @@ const pointTestSchema = {
               path: { type: 'string', pattern: '^/' },
               method: { enum: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH'] },
               jsonPointer: { type: 'string' },
-              valuePointer: { type: 'string' }
+              valuePointer: { type: 'string' },
+              contentType: {
+                enum: ['application/json', 'application/x-www-form-urlencoded']
+              }
             }
           }
         }

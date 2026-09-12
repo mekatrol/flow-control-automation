@@ -25,12 +25,13 @@ public interface IHttpProtocolCheck
         CancellationToken cancellationToken) =>
         CheckAsync(source, credential, pinnedAddresses, cancellationToken);
 
-    /// <summary>Sends a JSON point command using a mutating HTTP method.</summary>
+    /// <summary>Sends a point command using a mutating HTTP method.</summary>
     Task<HttpProtocolCheckResult> WriteAsync(
         PointSource source,
         Uri endpoint,
         string method,
         string body,
+        string contentType,
         string credential,
         IReadOnlyList<IPAddress> pinnedAddresses,
         CancellationToken cancellationToken);
