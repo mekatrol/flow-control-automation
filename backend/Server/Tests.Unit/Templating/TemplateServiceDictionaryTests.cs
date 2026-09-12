@@ -7,8 +7,14 @@ using System.Text.Json.Serialization;
 namespace Tests.Unit.Templating;
 
 [TestFixture]
-public sealed class TemplateServiceTests
+public sealed class TemplateServiceDictionaryTests
 {
+    private static readonly JsonSerializerOptions jsonStringEnumConverterSerializerOptions = new()
+    {
+        UnknownTypeHandling = JsonUnknownTypeHandling.JsonNode,
+        Converters = { new JsonStringEnumConverter() }
+    };
+
     private enum OperatingMode
     {
         Automatic
@@ -229,12 +235,6 @@ public sealed class TemplateServiceTests
         using var provider = Helpers.TestServices.CreateProvider();
         var service = provider.GetRequiredService<ITemplateService>();
 
-        var options = new JsonSerializerOptions
-        {
-            UnknownTypeHandling = JsonUnknownTypeHandling.JsonNode,
-            Converters = { new JsonStringEnumConverter() }
-        };
-
         var json = JsonSerializer.Serialize(new
         {
             integer = 42,
@@ -243,9 +243,9 @@ public sealed class TemplateServiceTests
             text = "supply",
             floatValue = 4.25f,
             mode = OperatingMode.Automatic
-        }, options);
+        }, jsonStringEnumConverterSerializerOptions);
 
-        var values = JsonSerializer.Deserialize<Dictionary<string, object?>>(json, options)!;
+        var values = JsonSerializer.Deserialize<Dictionary<string, object?>>(json, jsonStringEnumConverterSerializerOptions)!;
 
         var renderedJson = service.Render(
             """
@@ -261,7 +261,7 @@ public sealed class TemplateServiceTests
             values,
             RenderAs.Json);
 
-        var renderedValues = JsonSerializer.Deserialize<RenderedValues>(renderedJson, options)!;
+        var renderedValues = JsonSerializer.Deserialize<RenderedValues>(renderedJson, jsonStringEnumConverterSerializerOptions)!;
 
         using (Assert.EnterMultipleScope())
         {

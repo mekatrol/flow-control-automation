@@ -11,7 +11,16 @@ namespace Tests.Unit.Templating;
 [TestFixture]
 public sealed class TemplateServiceObjectTests
 {
-    private static readonly JsonSerializerOptions propertyNameCaseInsensitiveSerializerOptions = new() { PropertyNameCaseInsensitive = true };
+    private static readonly JsonSerializerOptions propertyNameCaseInsensitiveSerializerOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
+    private static readonly JsonSerializerOptions jsonStringEnumConverterSerializerOptions = new()
+    {
+        UnknownTypeHandling = JsonUnknownTypeHandling.JsonNode,
+        Converters = { new JsonStringEnumConverter() }
+    };
 
     private enum OperatingMode
     {
@@ -205,12 +214,6 @@ public sealed class TemplateServiceObjectTests
         using var provider = Helpers.TestServices.CreateProvider();
         var service = provider.GetRequiredService<ITemplateService>();
 
-        var options = new JsonSerializerOptions
-        {
-            UnknownTypeHandling = JsonUnknownTypeHandling.JsonNode,
-            Converters = { new JsonStringEnumConverter() }
-        };
-
         var json = JsonSerializer.Serialize(new
         {
             integer = 42,
@@ -220,9 +223,9 @@ public sealed class TemplateServiceObjectTests
             floatValue = 4.25f,
             longValue = long.MaxValue,
             mode = OperatingMode.Automatic
-        }, options);
+        }, jsonStringEnumConverterSerializerOptions);
 
-        object model = JsonSerializer.Deserialize<Dictionary<string, object?>>(json, options)!;
+        object model = JsonSerializer.Deserialize<Dictionary<string, object?>>(json, jsonStringEnumConverterSerializerOptions)!;
 
         var renderedJson = service.Render(
             """
@@ -239,7 +242,7 @@ public sealed class TemplateServiceObjectTests
             model,
             RenderAs.Json);
 
-        var renderedValues = JsonSerializer.Deserialize<RenderedValues>(renderedJson, options)!;
+        var renderedValues = JsonSerializer.Deserialize<RenderedValues>(renderedJson, jsonStringEnumConverterSerializerOptions)!;
 
         using (Assert.EnterMultipleScope())
         {
@@ -293,16 +296,20 @@ public sealed class TemplateServiceObjectTests
                   "source": {{ source }}
                 }
             """;
+
         var deserializer = new DeserializerBuilder()
             .WithNamingConvention(UnderscoredNamingConvention.Instance)
             .Build();
+
         var document = deserializer.Deserialize<WriteObjectDocument>(yaml);
+
         var model = new
         {
             Temperature = -4.25m,
             Enabled = true,
             Source = "plant/room\"1"
         };
+
         using var provider = Helpers.TestServices.CreateProvider();
         var service = provider.GetRequiredService<ITemplateService>();
 
@@ -330,6 +337,7 @@ public sealed class TemplateServiceObjectTests
         var payloadModel = new { Mqtt = JsonNode.Parse(mqttPayload) };
         var supply = service.Render("{{ mqtt.supply }}", payloadModel, RenderAs.Text);
         var returnValue = service.Render("{{ mqtt[\"returnValue\"] }}", payloadModel, RenderAs.Text);
+
         var outputModel = new
         {
             Supply = decimal.Parse(supply, CultureInfo.InvariantCulture),
