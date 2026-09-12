@@ -7,7 +7,7 @@ using System.Text.Json.Serialization;
 namespace Tests.Unit.Templating;
 
 [TestFixture]
-public sealed class ScribanTemplateServiceTests
+public sealed class ScribanTemplateServiceObjectTests
 {
     private enum OperatingMode
     {
@@ -22,6 +22,10 @@ public sealed class ScribanTemplateServiceTests
         float FloatValue,
         OperatingMode Mode);
 
+    private sealed record Reading(string Name, double Value);
+
+    private sealed record ReadingsPayload(Reading[] Readings);
+
     private static string FixtureRoot => Path.Combine(
         TestContext.CurrentContext.TestDirectory,
         "TemplateFixtures");
@@ -35,13 +39,14 @@ public sealed class ScribanTemplateServiceTests
             .Select(fixture => new object[] { fixture });
 
     [TestCaseSource(nameof(GetPositiveFixtures))]
-    public void Render_PositiveFixtureValidatesAndMatchesExactly(TemplateFixture fixture)
+    public void Render_Object_PositiveFixtureValidatesAndMatchesExactly(TemplateFixture fixture)
     {
         using var provider = Helpers.TestServices.CreateProvider();
         var service = provider.GetRequiredService<ITemplateService>();
+        object model = fixture.Values;
 
         var validation = service.Validate(fixture.Template!);
-        var result = service.Render(fixture.Template!, fixture.Values);
+        var result = service.Render(fixture.Template!, model);
 
         using (Assert.EnterMultipleScope())
         {
@@ -52,14 +57,15 @@ public sealed class ScribanTemplateServiceTests
     }
 
     [TestCaseSource(nameof(GetNegativeFixtures))]
-    public void Render_NegativeFixtureReportsStableCategory(TemplateFixture fixture)
+    public void Render_Object_NegativeFixtureReportsStableCategory(TemplateFixture fixture)
     {
         using var provider = Helpers.TestServices.CreateProvider();
         var service = provider.GetRequiredService<ITemplateService>();
+        object model = fixture.Values;
 
         var validation = service.Validate(fixture.Template!);
         var exception = Assert.Throws<TemplateRenderException>(
-            () => service.Render(fixture.Template!, fixture.Values));
+            () => service.Render(fixture.Template!, model));
 
         Assert.That(
             exception!.Category,
@@ -83,89 +89,43 @@ public sealed class ScribanTemplateServiceTests
     }
 
     [Test]
-    public void AddServerServices_RegistersExactlyOneSingletonTemplateService()
+    public void Render_Object_NullArgumentsThrowArgumentNullException()
     {
         using var provider = Helpers.TestServices.CreateProvider();
-
-        var services = provider.GetServices<ITemplateService>().ToArray();
+        var service = provider.GetRequiredService<ITemplateService>();
+        object model = new { };
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(services, Has.Length.EqualTo(1));
-            Assert.That(provider.GetRequiredService<ITemplateService>(), Is.SameAs(services[0]));
+            Assert.Throws<ArgumentNullException>(() => service.Render(null!, model));
+            Assert.Throws<ArgumentNullException>(() => service.Render("literal", (object)null!));
         }
     }
 
     [Test]
-    public void Validate_NullTemplateThrowsArgumentNullException()
-    {
-        using var provider = Helpers.TestServices.CreateProvider();
-        var service = provider.GetRequiredService<ITemplateService>();
-
-        Assert.Throws<ArgumentNullException>(() => service.Validate(null!));
-    }
-
-    [Test]
-    public void Render_NullArgumentsThrowArgumentNullException()
+    public void Render_Object_RepeatedCallsDoNotLeakValues()
     {
         using var provider = Helpers.TestServices.CreateProvider();
         var service = provider.GetRequiredService<ITemplateService>();
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.Throws<ArgumentNullException>(() => service.Render(null!, new Dictionary<string, object?>()));
-            Assert.Throws<ArgumentNullException>(() => service.Render("literal", null!));
-        }
-    }
-
-    [Test]
-    public void Render_RepeatedCallsDoNotLeakValues()
-    {
-        using var provider = Helpers.TestServices.CreateProvider();
-        var service = provider.GetRequiredService<ITemplateService>();
-
-        using (Assert.EnterMultipleScope())
-        {
-            Assert.That(
-                    service.Render("{{ value }}", new Dictionary<string, object?> { ["value"] = "first" }),
-                    Is.EqualTo("first"));
-            Assert.That(
-                service.Render("{{ value }}", new Dictionary<string, object?> { ["value"] = "second" }),
-                Is.EqualTo("second"));
+            Assert.That(service.Render("{{ value }}", new { Value = "first" }), Is.EqualTo("first"));
+            Assert.That(service.Render("{{ value }}", new { Value = "second" }), Is.EqualTo("second"));
         }
 
         var exception = Assert.Throws<TemplateRenderException>(
-            () => service.Render("{{ value }}", new Dictionary<string, object?>()));
+            () => service.Render("{{ value }}", new { }));
         Assert.That(exception!.Category, Is.EqualTo(TemplateError.MissingValue));
     }
 
     [Test]
-    public void Render_ObjectModelExposesMembersToScriban()
-    {
-        using var provider = Helpers.TestServices.CreateProvider();
-        var service = provider.GetRequiredService<ITemplateService>();
-        var model = new
-        {
-            DeviceName = "supply",
-            Reading = new { Value = -4.25m }
-        };
-
-        var result = service.Render(
-            "{{ device_name }}={{ reading.value }}",
-            model);
-
-        Assert.That(result, Is.EqualTo("supply=-4.25"));
-    }
-
-    [Test]
-    public async Task Render_ConcurrentCallsKeepContextsIsolated()
+    public async Task Render_Object_ConcurrentCallsKeepContextsIsolated()
     {
         await using var provider = Helpers.TestServices.CreateProvider();
         var service = provider.GetRequiredService<ITemplateService>();
         var tasks = Enumerable.Range(0, 100)
-            .Select(value => Task.Run(() => service.Render(
-                "{{ value }}",
-                new Dictionary<string, object?> { ["value"] = value })))
+            .Select(value => Task.Run(() => service.Render("{{ value }}", new { Value = value })))
             .ToArray();
 
         var results = await Task.WhenAll(tasks);
@@ -175,7 +135,7 @@ public sealed class ScribanTemplateServiceTests
 
     [Test]
     [NonParallelizable]
-    public void Render_UsesInvariantCultureUnderFrenchCulture()
+    public void Render_Object_UsesInvariantCultureUnderFrenchCulture()
     {
         using var provider = Helpers.TestServices.CreateProvider();
         var service = provider.GetRequiredService<ITemplateService>();
@@ -184,9 +144,7 @@ public sealed class ScribanTemplateServiceTests
         try
         {
             CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("fr-FR");
-            var result = service.Render(
-                "{{ value }}",
-                new Dictionary<string, object?> { ["value"] = 1234.5m });
+            var result = service.Render("{{ value }}", new { Value = 1234.5m });
 
             Assert.That(result, Is.EqualTo("1234.5"));
         }
@@ -197,11 +155,10 @@ public sealed class ScribanTemplateServiceTests
     }
 
     [Test]
-    public void Render_ExtractsPositiveAndNegativeReadingsFromSerializedJson()
+    public void Render_Object_ExtractsPositiveAndNegativeReadingsFromSerializedJson()
     {
         using var provider = Helpers.TestServices.CreateProvider();
         var service = provider.GetRequiredService<ITemplateService>();
-
         var json = JsonSerializer.Serialize(new
         {
             readings = new[]
@@ -210,28 +167,30 @@ public sealed class ScribanTemplateServiceTests
                 new { name = "return", value = -4.25 }
             }
         });
-
-        var values = new Dictionary<string, object?> { ["payload"] = JsonNode.Parse(json) };
+        var model = new
+        {
+            Payload = JsonSerializer.Deserialize<ReadingsPayload>(
+                json,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!
+        };
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(service.Render("{{ payload.readings[0].value }}", values), Is.EqualTo("21.75"));
-            Assert.That(service.Render("{{ payload.readings[1].value }}", values), Is.EqualTo("-4.25"));
+            Assert.That(service.Render("{{ payload.readings[0].value }}", model), Is.EqualTo("21.75"));
+            Assert.That(service.Render("{{ payload.readings[1].value }}", model), Is.EqualTo("-4.25"));
         }
     }
 
     [Test]
-    public void Render_UsesAllValuesDeserializedFromJsonSerializer()
+    public void Render_Object_UsesAllValuesDeserializedFromJsonSerializer()
     {
         using var provider = Helpers.TestServices.CreateProvider();
         var service = provider.GetRequiredService<ITemplateService>();
-
         var options = new JsonSerializerOptions
         {
             UnknownTypeHandling = JsonUnknownTypeHandling.JsonNode,
             Converters = { new JsonStringEnumConverter() }
         };
-
         var json = JsonSerializer.Serialize(new
         {
             integer = 42,
@@ -241,8 +200,7 @@ public sealed class ScribanTemplateServiceTests
             floatValue = 4.25f,
             mode = OperatingMode.Automatic
         }, options);
-
-        var values = JsonSerializer.Deserialize<Dictionary<string, object?>>(json, options)!;
+        object model = JsonSerializer.Deserialize<Dictionary<string, object?>>(json, options)!;
 
         var renderedJson = service.Render(
             """
@@ -255,8 +213,7 @@ public sealed class ScribanTemplateServiceTests
               "Mode": {{ mode | json }}
             }
             """,
-            values);
-
+            model);
         var renderedValues = JsonSerializer.Deserialize<RenderedValues>(renderedJson, options)!;
 
         using (Assert.EnterMultipleScope())
@@ -271,20 +228,20 @@ public sealed class ScribanTemplateServiceTests
     }
 
     [Test]
-    public void Render_CreatesValidJsonPayloadWithMultipleValues()
+    public void Render_Object_CreatesValidJsonPayloadWithMultipleValues()
     {
         using var provider = Helpers.TestServices.CreateProvider();
         var service = provider.GetRequiredService<ITemplateService>();
-        var values = new Dictionary<string, object?>
+        var model = new
         {
-            ["temperature"] = -4.25m,
-            ["enabled"] = true,
-            ["source"] = "plant/room\"1"
+            Temperature = -4.25m,
+            Enabled = true,
+            Source = "plant/room\"1"
         };
 
         var result = service.Render(
             "{\"temperature\":{{ temperature | json }},\"enabled\":{{ enabled | json }},\"source\":{{ source | json }}}",
-            values);
+            model);
         using var document = JsonDocument.Parse(result);
         var root = document.RootElement;
 
@@ -297,24 +254,21 @@ public sealed class ScribanTemplateServiceTests
     }
 
     [Test]
-    public void Render_ExtractsMultipleMqttReadingsAndCreatesCombinedPayload()
+    public void Render_Object_ExtractsMultipleMqttReadingsAndCreatesCombinedPayload()
     {
         using var provider = Helpers.TestServices.CreateProvider();
         var service = provider.GetRequiredService<ITemplateService>();
         var mqttPayload = JsonSerializer.Serialize(new { supply = 19.5, returnValue = -2.75 });
-        var payloadValues = new Dictionary<string, object?> { ["mqtt"] = JsonNode.Parse(mqttPayload) };
-        var supply = service.Render("{{ mqtt.supply }}", payloadValues);
-        var returnValue = service.Render("{{ mqtt[\"returnValue\"] }}", payloadValues);
-
-        var outputValues = new Dictionary<string, object?>
+        var payloadModel = new { Mqtt = JsonNode.Parse(mqttPayload) };
+        var supply = service.Render("{{ mqtt.supply }}", payloadModel);
+        var returnValue = service.Render("{{ mqtt[\"returnValue\"] }}", payloadModel);
+        var outputModel = new
         {
-            ["supply"] = decimal.Parse(supply, CultureInfo.InvariantCulture),
-            ["return"] = decimal.Parse(returnValue, CultureInfo.InvariantCulture)
+            Supply = decimal.Parse(supply, CultureInfo.InvariantCulture),
+            Return = decimal.Parse(returnValue, CultureInfo.InvariantCulture)
         };
 
-        var result = service.Render(
-            "supply={{ supply }};return={{ return }}",
-            outputValues);
+        var result = service.Render("supply={{ supply }};return={{ return }}", outputModel);
 
         Assert.That(result, Is.EqualTo("supply=19.5;return=-2.75"));
     }
