@@ -7,7 +7,7 @@ internal static class TemplatingServiceCollectionExtensions
 {
     internal static IServiceCollection AddTemplatingServices(this IServiceCollection services)
     {
-        services.AddSingleton<ITemplateService, ScribanTemplateService>();
+        services.AddSingleton<ITemplateService, TemplateService>();
 
         return services;
     }

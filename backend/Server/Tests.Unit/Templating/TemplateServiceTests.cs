@@ -7,7 +7,7 @@ using System.Text.Json.Serialization;
 namespace Tests.Unit.Templating;
 
 [TestFixture]
-public sealed class ScribanTemplateServiceTests
+public sealed class TemplateServiceTests
 {
     private enum OperatingMode
     {
@@ -140,7 +140,7 @@ public sealed class ScribanTemplateServiceTests
     }
 
     [Test]
-    public void Render_ObjectModelExposesMembersToScriban()
+    public void Render_ObjectModelExposesMembersToTemplateEngine()
     {
         using var provider = Helpers.TestServices.CreateProvider();
         var service = provider.GetRequiredService<ITemplateService>();

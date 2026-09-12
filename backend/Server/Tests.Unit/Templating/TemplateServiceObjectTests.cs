@@ -9,7 +9,7 @@ using YamlDotNet.Serialization.NamingConventions;
 namespace Tests.Unit.Templating;
 
 [TestFixture]
-public sealed class ScribanTemplateServiceObjectTests
+public sealed class TemplateServiceObjectTests
 {
     private enum OperatingMode
     {

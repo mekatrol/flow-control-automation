@@ -12,7 +12,7 @@ using System.Text.Json.Nodes;
 namespace Server.Services.Templating;
 
 /// <summary>
-/// Validates and renders Scriban templates against an explicitly constructed, restricted execution context.
+/// Validates and renders templates against an explicitly constructed, restricted execution context.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -27,14 +27,14 @@ namespace Server.Services.Templating;
 /// dictionary value types. These restrictions keep rendering deterministic and bound its resource use.
 /// </para>
 /// <para>
-/// In <see cref="RenderAs.Json"/> mode, values emitted by Scriban expressions are serialized automatically with
+/// In <see cref="RenderAs.Json"/> mode, values emitted by template are serialized automatically with
 /// the application's JSON options and the completed document is validated. Encoding follows the declared output
 /// format rather than a user-visible filter, so ordinary data names never collide with service-owned globals.
 /// </para>
 /// </remarks>
-internal sealed class ScribanTemplateService : ITemplateService
+internal sealed class TemplateService : ITemplateService
 {
-    // These are policy limits, not Scriban defaults. They cap the amount of work an untrusted template can
+    // These are policy limits, not the template engine's defaults. They cap the amount of work an untrusted template can
     // request while remaining high enough for the controller payloads this service is designed to produce.
     private const int MaximumLoopCount = 2_000;
     private const int MaximumOutputLength = 1_000_000;
@@ -45,7 +45,7 @@ internal sealed class ScribanTemplateService : ITemplateService
     /// Validation only parses the source. It does not execute the template, so missing values and execution
     /// limit failures are intentionally reported later by
     /// <see cref="Render(string, IReadOnlyDictionary{string, object?}, RenderAs)"/>.
-    /// Scriban positions are converted to the one-based coordinates expected by API consumers.
+    /// The template engine's positions are converted to the one-based coordinates expected by API consumers.
     /// </remarks>
     public TemplateValidationResult Validate(string template)
     {
@@ -89,8 +89,8 @@ internal sealed class ScribanTemplateService : ITemplateService
 
     /// <inheritdoc />
     /// <remarks>
-    /// This overload intentionally uses Scriban's standard member renamer, which exposes .NET members using
-    /// Scriban's conventional snake_case names (for example, <c>DeviceName</c> becomes <c>device_name</c>).
+    /// This overload intentionally uses the template engine's standard member renamer, which exposes .NET members using
+    /// the template engine's conventional snake_case names (for example, <c>DeviceName</c> becomes <c>device_name</c>).
     /// Use the dictionary overload when values must pass through the restricted recursive type conversion.
     /// </remarks>
     public string Render(string template, object model, RenderAs renderAs)
@@ -115,7 +115,7 @@ internal sealed class ScribanTemplateService : ITemplateService
 
             throw new TemplateRenderException(
                 TemplateError.InvalidTemplate,
-                "The template contains invalid Scriban syntax.",
+                "The template contains invalid template engine syntax.",
                 diagnostics);
         }
 
@@ -124,7 +124,7 @@ internal sealed class ScribanTemplateService : ITemplateService
         var context = CreateContext(renderAs);
         context.PushGlobal(globals);
 
-        // LimitToString covers Scriban string conversions; the bounded sink independently caps the complete
+        // LimitToString covers the template engine's string conversions; the bounded sink independently caps the complete
         // rendered document as it is written, avoiding construction of an oversized intermediate result.
         context.PushOutput(new BoundedScriptOutput(MaximumOutputLength));
 
@@ -148,7 +148,7 @@ internal sealed class ScribanTemplateService : ITemplateService
         {
             throw;
         }
-        // Scriban exception text is an implementation detail. Translate it once at this boundary so callers get
+        // The template engine's exception text is an implementation detail. Translate it once at this boundary so callers get
         // stable application categories plus the precise source position for troubleshooting.
         catch (ScriptRuntimeException exception)
         {
@@ -168,14 +168,14 @@ internal sealed class ScribanTemplateService : ITemplateService
         finally
         {
             // Keep push/pop balanced even on failure. The context is local today, but explicit cleanup protects
-            // correctness if context pooling is introduced later and documents Scriban's stack discipline.
+            // correctness if context pooling is introduced later and documents the template engine's stack discipline.
             context.PopOutput();
             context.PopGlobal();
         }
     }
 
     /// <summary>
-    /// Converts caller data into values that cannot expose an arbitrary .NET object surface to Scriban.
+    /// Converts caller data into values that cannot expose an arbitrary .NET object surface to the template engine.
     /// </summary>
     /// <remarks>
     /// Strings are matched before <see cref="IEnumerable"/> so they remain scalar values rather than character
@@ -200,7 +200,7 @@ internal sealed class ScribanTemplateService : ITemplateService
         };
     }
 
-    /// <summary>Recursively converts a strongly typed, string-keyed dictionary to Scriban globals.</summary>
+    /// <summary>Recursively converts a strongly typed, string-keyed dictionary to template engine globals.</summary>
     private static ScriptObject ToScriptObject(IReadOnlyDictionary<string, object?> dictionary)
     {
         var result = new ScriptObject();
@@ -215,7 +215,7 @@ internal sealed class ScribanTemplateService : ITemplateService
 
     /// <summary>Converts a non-generic dictionary while enforcing string keys.</summary>
     /// <remarks>
-    /// Scriban object members are named strings. Rejecting other key types avoids ambiguous culture-sensitive
+    /// The template engine's object members are named strings. Rejecting other key types avoids ambiguous culture-sensitive
     /// string conversion and keeps access behavior consistent with JSON objects.
     /// </remarks>
     private static ScriptObject ToScriptObject(IDictionary dictionary)
@@ -237,7 +237,7 @@ internal sealed class ScribanTemplateService : ITemplateService
         return result;
     }
 
-    /// <summary>Materializes an enumerable as a recursively converted Scriban array.</summary>
+    /// <summary>Materializes an enumerable as a recursively converted template engine array.</summary>
     /// <remarks>Materialization gives the template a stable snapshot and avoids exposing iterator methods.</remarks>
     private static ScriptArray ToScriptArray(IEnumerable values)
     {
@@ -251,7 +251,7 @@ internal sealed class ScribanTemplateService : ITemplateService
         return result;
     }
 
-    /// <summary>Maps a <see cref="JsonNode"/> tree to Scriban's object, array, and scalar types.</summary>
+    /// <summary>Maps a <see cref="JsonNode"/> tree to the template engine's object, array, and scalar types.</summary>
     /// <remarks>
     /// Integer and decimal representations are attempted before floating point to retain precision where the JSON
     /// value permits it. JSON null, or a value outside the supported JSON scalar forms, becomes a template null.
@@ -280,10 +280,10 @@ internal sealed class ScribanTemplateService : ITemplateService
         return JsonSerializer.Serialize(ToPlainValue(value), FlowControlJson.Options);
     }
 
-    /// <summary>Removes Scriban container types before passing a value to <see cref="JsonSerializer"/>.</summary>
+    /// <summary>Removes template engine container types before passing a value to <see cref="JsonSerializer"/>.</summary>
     /// <remarks>
     /// Converting to ordinary dictionaries and arrays ensures the output describes caller data, rather than
-    /// Scriban runtime implementation details, and recursively supports objects nested inside arrays.
+    /// the template engine's runtime implementation details, and recursively supports objects nested inside arrays.
     /// </remarks>
     private static object? ToPlainValue(object? value)
     {
@@ -306,9 +306,9 @@ internal sealed class ScribanTemplateService : ITemplateService
         message.Span.Start.Line + 1,
         message.Span.Start.Column + 1);
 
-    /// <summary>Maps Scriban runtime failures to application-level error categories.</summary>
+    /// <summary>Maps template engine runtime failures to application-level error categories.</summary>
     /// <remarks>
-    /// Scriban does not expose a structured error code for every failure used here, so classification necessarily
+    /// The template engine does not expose a structured error code for every failure used here, so classification necessarily
     /// uses its original message. Checks run from the most specific policy failure to the general fallback.
     /// </remarks>
     private static TemplateError ClassifyRuntimeError(ScriptRuntimeException exception)
@@ -334,7 +334,7 @@ internal sealed class ScribanTemplateService : ITemplateService
         return TemplateError.RenderFailed;
     }
 
-    /// <summary>Creates an isolated Scriban context whose expression output follows the requested format.</summary>
+    /// <summary>Creates an isolated template engine context whose expression output follows the requested format.</summary>
     private static TemplateContext CreateContext(RenderAs renderAs)
     {
         var context = renderAs switch
@@ -361,7 +361,7 @@ internal sealed class ScribanTemplateService : ITemplateService
         return context;
     }
 
-    /// <summary>Verifies format-level guarantees that Scriban syntax validation cannot provide.</summary>
+    /// <summary>Verifies format-level guarantees that the template engine syntax validation cannot provide.</summary>
     private static void ValidateRenderedOutput(string output, RenderAs renderAs)
     {
         if (renderAs != RenderAs.Json)
@@ -400,22 +400,22 @@ internal sealed class ScribanTemplateService : ITemplateService
         return builtins;
     }
 
-    /// <summary>A Scriban context that serializes each emitted expression as a complete JSON value.</summary>
+    /// <summary>A template engine context that serializes each emitted expression as a complete JSON value.</summary>
     /// <remarks>
     /// Overriding <see cref="TemplateContext.Write(SourceSpan, object?)"/> affects only values written into the
-    /// output document. Scriban can still use its normal conversions internally for comparisons, concatenation,
+    /// output document. The template engine can still use its normal conversions internally for comparisons, concatenation,
     /// indexing, and function execution. Literal template text is also written unchanged.
     /// </remarks>
     private sealed class JsonTemplateContext(ScriptObject builtins)
         : TemplateContext(builtins, StringComparer.Ordinal)
     {
         /// <summary>
-        /// Preserves an evaluated <see langword="null"/> long enough for Scriban's output pipeline to write it.
+        /// Preserves an evaluated <see langword="null"/> long enough for the template engine's output pipeline to write it.
         /// </summary>
         /// <remarks>
-        /// Scriban normally suppresses null expression results before calling <see cref="Write(SourceSpan, object?)"/>.
+        /// The template engine normally suppresses null expression results before calling <see cref="Write(SourceSpan, object?)"/>.
         /// JSON requires an explicit <c>null</c> token, so only output statements receive this sentinel; nulls used
-        /// internally by conditions and other expressions retain Scriban's normal semantics.
+        /// internally by conditions and other expressions retain the template engine's normal semantics.
         /// </remarks>
         public override object? Evaluate(ScriptNode? scriptNode, bool aliasReturnedFunction)
         {
@@ -435,7 +435,7 @@ internal sealed class ScribanTemplateService : ITemplateService
         }
     }
 
-    /// <summary>Represents a JSON null that Scriban must not treat as absent output.</summary>
+    /// <summary>Represents a JSON null that the template engine must not treat as absent output.</summary>
     private sealed class JsonNullValue
     {
         public static JsonNullValue Instance { get; } = new();
@@ -448,7 +448,7 @@ internal sealed class ScribanTemplateService : ITemplateService
     /// <summary>An output sink that rejects a write before it would cross the configured character limit.</summary>
     /// <remarks>
     /// Enforcing the bound during writes limits memory growth. The post-render length check remains as defense in
-    /// depth in case Scriban returns content through a path that does not use this sink in a future version.
+    /// depth in case the template engine returns content through a path that does not use this sink in a future version.
     /// </remarks>
     private sealed class BoundedScriptOutput(int maximumLength) : IScriptOutput
     {
@@ -467,7 +467,7 @@ internal sealed class ScribanTemplateService : ITemplateService
             _builder.Append(text, offset, count);
         }
 
-        /// <summary>Provides Scriban's asynchronous output contract with the same synchronous bound check.</summary>
+        /// <summary>Provides the template engine's asynchronous output contract with the same synchronous bound check.</summary>
         public ValueTask WriteAsync(
             string text,
             int offset,
