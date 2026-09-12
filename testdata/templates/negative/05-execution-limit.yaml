@@ -1,3 +1,3 @@
 name: 05-execution-limit
-template: '{{ for value in 1..1001 }}{{ value }}{{ end }}'
+template: '{{ for value in 1..2001 }}{{ value }}{{ end }}'
 expectedError: ExecutionLimitExceeded

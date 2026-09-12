@@ -13,8 +13,8 @@ namespace Server.Services.Templating;
 
 internal sealed class ScribanTemplateService : ITemplateService
 {
-    private const int MaximumLoopCount = 1_000;
-    private const int MaximumOutputLength = 1_048_576;
+    private const int MaximumLoopCount = 2_000;
+    private const int MaximumOutputLength = 1_000_000;
     private const int MaximumRecursionDepth = 64;
 
     public TemplateValidationResult Validate(string template)
@@ -230,8 +230,15 @@ internal sealed class ScribanTemplateService : ITemplateService
 
     private static TemplateError ClassifyRuntimeError(ScriptRuntimeException exception)
     {
+        if (exception.OriginalMessage.Contains("output exceeds", StringComparison.OrdinalIgnoreCase))
+        {
+            return TemplateError.OutputLimitExceeded;
+        }
+
         if (exception.OriginalMessage.Contains("was not found", StringComparison.OrdinalIgnoreCase)
-            || exception.OriginalMessage.Contains("not found", StringComparison.OrdinalIgnoreCase))
+            || exception.OriginalMessage.Contains("not found", StringComparison.OrdinalIgnoreCase)
+            || exception.OriginalMessage.Contains("cannot get", StringComparison.OrdinalIgnoreCase)
+            || exception.OriginalMessage.Contains("cannot access target", StringComparison.OrdinalIgnoreCase))
         {
             return TemplateError.MissingValue;
         }

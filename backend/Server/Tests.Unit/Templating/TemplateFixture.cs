@@ -1,6 +1,6 @@
 namespace Tests.Unit.Templating;
 
-internal sealed record TemplateFixture
+public sealed record TemplateFixture
 {
     public string? Name { get; init; }
 

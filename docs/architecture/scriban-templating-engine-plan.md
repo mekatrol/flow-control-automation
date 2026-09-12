@@ -16,7 +16,7 @@ remain responsibilities of their respective adapters.
 
 ## Implementation status (2026-09-12)
 
-Phases 0, 1, and 2 are complete. Phase 3 remains pending.
+Phases 0 through 3 are complete.
 
 ### Completed
 
@@ -48,18 +48,17 @@ Phases 0, 1, and 2 are complete. Phase 3 remains pending.
 - The test fixture loader discovers fixtures deterministically, rejects malformed
   YAML and duplicate keys or names, validates the fixture envelope, and loads
   fixtures from the test output directory.
+- Fixture-driven tests cover exact positive rendering, stable negative error
+  categories, JSON and MQTT-style reads and writes, multiple-value payloads,
+  argument boundaries, singleton resolution, render isolation, concurrency,
+  invariant culture, and execution and output limits.
 
 ### Verification completed
 
-- The focused templating and service-boundary suite passed: 13 tests.
-- The full backend unit suite passed: 340 tests.
+- The focused templating and service-boundary suite passed: 33 tests.
+- The full backend unit suite passed: 360 tests.
 - The backend solution build succeeded with zero warnings and zero errors.
 - `git diff --check` completed without whitespace errors.
-
-### Remaining
-
-- Phase 3: add comprehensive fixture-driven validation and rendering tests,
-  plus the remaining boundary, isolation, concurrency, culture, and limit tests.
 
 ## Required outcomes
 
@@ -312,10 +311,10 @@ Acceptance criteria:
   exception messages;
 - positive and negative fixture discovery is deterministic.
 
-### Phase 3 — Fixture-driven unit tests (pending)
+### Phase 3 — Fixture-driven unit tests (complete)
 
-1. Add `ScribanTemplateServiceTests` using NUnit
-   `TestCaseSource`, matching the existing test-suite style.
+1. Add `ScribanTemplateServiceTests` using MSTest
+   `DynamicData` for fixture-driven cases.
 2. Run every positive fixture through YAML deserialization, template
    validation, and rendering; compare output exactly, including whitespace.
 3. Run every negative template fixture through YAML deserialization and then
@@ -327,6 +326,12 @@ Acceptance criteria:
    DI lifetime/resolution, repeated render isolation, and concurrent rendering.
 6. Run the focused templating tests, the full backend unit suite, and the
    backend build.
+7. Create tests with JSON payloads and positive and negative test reading values. Use JsonSerializer to create test JSON.
+8. Create tests that render JSON payloads and confirm rendered result. Use JsonSerializer to confirm valid JSON and rendered values.
+9. Create tests with MQTT payloads and positive and negative test reading values.
+10. Create tests that render MQTT payloads and confirm rendered result.
+11. Create tests that read multiple values from a single payload using templates.
+13. Create tests that render multiple values to a single payload using templates.
 
 Acceptance criteria:
 

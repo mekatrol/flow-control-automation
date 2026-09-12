@@ -1,5 +1,5 @@
 name: 01-unmatched-delimiter
-template: '{{ value '
+template: '{{ value }'
 values:
   value: sample
 expectedError: InvalidTemplate

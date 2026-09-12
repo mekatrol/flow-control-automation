@@ -9,6 +9,7 @@ internal static class TemplateFixtureLoader
 {
     private static readonly IDeserializer Deserializer = new DeserializerBuilder()
         .WithNamingConvention(CamelCaseNamingConvention.Instance)
+        .WithAttemptingUnquotedStringTypeDeserialization()
         .Build();
 
     public static IReadOnlyList<TemplateFixture> LoadDirectory(string directory)
