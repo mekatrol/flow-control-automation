@@ -118,7 +118,7 @@ internal sealed class PointSourceDatabaseService(
             throw new PointSourceConflictException("stale revision");
         }
 
-        if (!string.Equals(source.Kind, previous.Kind, StringComparison.Ordinal)
+        if (!EqualityComparer<PointSourceKind>.Default.Equals(source.Kind, previous.Kind)
             && await IsReferenced(id, cancellationToken))
         {
             throw new PointSourceConflictException("source kind cannot change while points reference it");

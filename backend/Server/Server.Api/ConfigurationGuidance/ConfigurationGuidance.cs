@@ -40,11 +40,25 @@ public static class ConfigurationGuidance
         };
 
         var current = ConfigurationYaml.ParseToJson(yaml, kind);
-        var types = configurationType switch
+
+        Type[] types = configurationType switch
         {
-            "point" => new[] { typeof(PointDocument), typeof(AutomationPoint) },
-            "point-source" => new[] { typeof(PointSource), typeof(PointSourceConnection), typeof(TlsOptions), typeof(PointSourceTimeouts), typeof(PointMapping), typeof(AutomationPoint) },
-            _ => new[] { typeof(ControllerTemplate), typeof(ControllerCapabilities), typeof(ControllerLimits) }
+            "point" => [typeof(PointDocument), typeof(AutomationPoint)],
+
+            "point-source" => [
+                typeof(PointSource),
+                typeof(PointSourceConnection),
+                typeof(TlsOptions),
+                typeof(PointSourceTimeouts),
+                typeof(PointMapping),
+                typeof(AutomationPoint)
+            ],
+
+            _ => [
+                typeof(ControllerTemplate),
+                typeof(ControllerCapabilities),
+                typeof(ControllerLimits)
+            ]
         };
 
         var markdown = new StringBuilder();

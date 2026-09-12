@@ -50,7 +50,7 @@ internal sealed class ConnectivityService(
         }
 
         var target = new Uri(
-            source.Kind == "mqtt"
+            source.Kind == PointSourceKind.Mqtt
                 ? source.Connection.BrokerUrl!
                 : source.Connection.BaseUrl!);
         var connectTimeout = TimeSpan.FromMilliseconds(
@@ -180,7 +180,7 @@ internal sealed class ConnectivityService(
 
             try
             {
-                if (source.Kind == "mqtt")
+                if (source.Kind == PointSourceKind.Mqtt)
                 {
                     diagnostic = await mqtt.CheckAsync(
                         connection,
@@ -205,7 +205,7 @@ internal sealed class ConnectivityService(
             }
             catch
             {
-                diagnostic = source.Kind == "mqtt"
+                diagnostic = source.Kind == PointSourceKind.Mqtt
                     ? "MQTT protocol check failed"
                     : "HTTP protocol check failed";
             }

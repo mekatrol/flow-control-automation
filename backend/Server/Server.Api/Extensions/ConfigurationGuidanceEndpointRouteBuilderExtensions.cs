@@ -1,3 +1,4 @@
+using Server.Common.Extensions;
 using Server.Services;
 using System.Text.Json.Nodes;
 
@@ -21,17 +22,21 @@ public static class ConfigurationGuidanceEndpointRouteBuilderExtensions
         try
         {
             await using var stream = new MemoryStream();
+
             await request.Body.CopyToAsync(stream, cancellationToken);
+
             var yaml = stream.ToArray();
+
             var sourceKind = await ResolvePointSourceKind(
                 configurationType,
                 yaml,
                 sources,
                 cancellationToken);
+
             var markdown = ConfigurationGuidance.ConfigurationGuidance.Render(
                 configurationType,
                 yaml,
-                sourceKind);
+                sourceKind?.ToString().ToCamelCase());
 
             return Results.Text(markdown, "text/markdown; charset=utf-8");
         }
@@ -45,7 +50,7 @@ public static class ConfigurationGuidanceEndpointRouteBuilderExtensions
         }
     }
 
-    private static async Task<string?> ResolvePointSourceKind(
+    private static async Task<PointSourceKind?> ResolvePointSourceKind(
         string configurationType,
         byte[] yaml,
         IPointSourceService sources,

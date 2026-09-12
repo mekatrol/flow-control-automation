@@ -205,18 +205,19 @@ revision/dependency conflicts are `409`, forbidden command/network operation is
 Implementation status (2026-09-13): Phase 1 and Phase 2 are complete. The normative contract is
 `point-source-v1-contract.md` plus the paired YAML/normalized-JSON fixtures under
 `testdata/contracts/point-sources/valid`; aggregate parser, models, validation, and mapping
-resolution now implement that contract. Later persistence, adapter, API, and editor cutovers remain
-tracked by Phases 3–7.
+resolution now implement that contract. Validator matrix coverage and the later persistence,
+adapter, API, and editor cutovers remain tracked by Phases 3–8.
 
 | Phase | Status |
 | --- | --- |
 | Phase 1 — Freeze the version-1 contract and fixtures | Complete |
 | Phase 2 — Replace common models, parsing, and validation | Complete |
-| Phase 3 — Replace persistence and aggregate services | Pending |
-| Phase 4 — Implement mapping execution and point operations | Pending |
-| Phase 5 — Cut over HTTP endpoints and configuration guidance | Pending |
-| Phase 6 — Replace the frontend source and point workflows | Pending |
-| Phase 7 — Remove legacy artifacts, update documentation, and verify | Pending |
+| Phase 3 — Add exhaustive point-source and point-definition validator tests | Pending |
+| Phase 4 — Replace persistence and aggregate services | Pending |
+| Phase 5 — Implement mapping execution and point operations | Pending |
+| Phase 6 — Cut over HTTP endpoints and configuration guidance | Pending |
+| Phase 7 — Replace the frontend source and point workflows | Pending |
+| Phase 8 — Remove legacy artifacts, update documentation, and verify | Pending |
 
 Each phase below is intended to leave a reviewable, testable result. Because
 this is a breaking aggregate replacement, intermediate branches need not run
@@ -289,7 +290,60 @@ all removed shapes; aggregate validation tests cover every source/value kind,
 shared mappings, bad references, capabilities, and template diagnostics; the
 solution compiles without the removed contracts.
 
-### Phase 3 — Replace persistence and aggregate services
+### Phase 3 — Add exhaustive point-source and point-definition validator tests
+
+1. Add focused unit-test fixtures and tests under
+   `backend/Server/Tests.Unit/Points/Validation`. Exercise
+   `PointSourceValidator` and `PointDefinitionValidator` directly rather than
+   relying on endpoint or persistence tests to reach their behavior.
+2. Create a YAML fixture matrix containing every Cartesian combination of the
+   five version-1 `PointSource.Kind` values (`virtual`, `physical`,
+   `homeAssistant`, `mqtt`, and `httpJson`) and the five
+   `AutomationPoint.ValueType` values (`analog`, `digital`, `multiState`,
+   `integer`, and `text`). Provide at least one valid and one invalid aggregate
+   fixture for each of the 25 combinations. Keep each source-kind connection
+   and mapping valid while varying the point contract so failures identify the
+   value-type rule under test; add kind-specific negative variants separately
+   where the mapping or connection is the intended failure.
+3. Give every fixture a declared expected outcome and stable diagnostic
+   fragment or category. Positive fixtures must parse and pass both applicable
+   validators. Negative fixtures must state whether strict YAML parsing,
+   aggregate/source validation, mapping resolution, or point-definition
+   validation is expected to reject the document, and tests must assert that
+   rejection occurs at that boundary.
+4. Cover source validation beyond the matrix: identifiers, required names,
+   credentials, connection URLs and schemes, TLS requirements, timeout and
+   response bounds, MQTT QoS/topics, kind-discriminated mapping fields,
+   duplicate mapping/point IDs, duplicate and case-sensitive aliases, malformed
+   and unknown mapping paths, readable/commandable operation compatibility,
+   template syntax/output aliases, and global point-ID uniqueness across
+   aggregates.
+5. Cover all value-type and shared point-definition rules, including required
+   and forbidden limits, finite numeric ranges and ordering, digital and
+   multi-state labels, multi-state cardinality/index rules, integer bounds,
+   text length bounds, direction/readable/commandable combinations,
+   persistence, relinquish defaults, and safe-disable policies. Add boundary
+   cases immediately below, at, and immediately above each numeric or length
+   limit where applicable.
+6. Parameterize fixture discovery so every YAML file is executed and fail the
+   suite when a fixture lacks an expectation or an expectation names a missing
+   fixture. Assert explicitly that the matrix contains all 25 kind/value-type
+   cells in both the positive and negative sets, preventing silent coverage
+   gaps when kinds or value types are added.
+7. Reuse the normative Phase 1 fixtures where they express the exact scenario,
+   but keep validator-specific fixtures isolated from endpoint and persistence
+   setup. Use a real `ITemplateService` for integration-level template cases
+   and a controlled test double for deterministic propagation of template
+   diagnostics.
+
+Verification: all 25 source-kind/value-type combinations have passing positive
+and negative YAML cases; direct tests cover every branch of
+`PointSourceValidator` and `PointDefinitionValidator`; every invalid Phase 1
+point-source fixture is consumed and rejected for its declared reason; fixture
+discovery and completeness checks pass; focused backend validation tests pass
+without a database or HTTP server.
+
+### Phase 4 — Replace persistence and aggregate services
 
 1. Replace separate `PointSourceEntity` and `PointEntity` persistence with one
    source aggregate representation and its owned mapping/point data. Choose
@@ -318,7 +372,7 @@ CRUD, concurrency, global point uniqueness, cascades/dependency rejection, and
 catalogue lookup. Assert that the EF model contains no legacy point-source
 foreign-key fields, standalone point-definition context values, or old tables.
 
-### Phase 4 — Implement mapping execution and point operations
+### Phase 5 — Implement mapping execution and point operations
 
 1. Introduce a source-kind adapter boundary with operations for connectivity,
    mapping read, and mapping command. Implement it for every current kind,
@@ -344,7 +398,7 @@ aliases from one read, multiple points sharing a mapping/alias, all conversions,
 partial conversion failure, one-call scheduling, command rendering, readback,
 cancellation, communication loss, and disabled/safe-disable behavior.
 
-### Phase 5 — Cut over HTTP endpoints and configuration guidance
+### Phase 6 — Cut over HTTP endpoints and configuration guidance
 
 1. Change point-source create/get/update to consume and return the full
    aggregate YAML and change list summaries to include counts. Preserve body
@@ -373,7 +427,7 @@ every status code, payload bounds, cancellation, redaction, SSRF policy, and
 strict rejection of every old endpoint/body. Guidance coverage tests require
 help for every current aggregate field and source kind.
 
-### Phase 6 — Replace the frontend source and point workflows
+### Phase 7 — Replace the frontend source and point workflows
 
 1. Update `pointSourceSchema.ts` and strict DTO parsing for the complete
    aggregate, including kind-discriminated mappings, nested points, mapping
@@ -411,7 +465,7 @@ guidance. Browser tests cover create, edit, test, flow selection, delete
 dependency failure, and successful aggregate deletion with keyboard and screen
 reader assertions.
 
-### Phase 7 — Remove legacy artifacts, update documentation, and verify
+### Phase 8 — Remove legacy artifacts, update documentation, and verify
 
 1. Delete standalone point serializers/documents, services, database entities,
    mutation endpoints, frontend editors/stores/routes, compatibility helpers,

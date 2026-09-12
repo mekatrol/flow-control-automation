@@ -20,7 +20,7 @@ internal sealed class HttpProtocolCheck(IDnsLookup dns) : IHttpProtocolCheck
     {
         var endpoint = new Uri(source.Connection.BaseUrl!);
 
-        if (source.Kind == "homeAssistant")
+        if (source.Kind == PointSourceKind.HomeAssistant)
         {
             endpoint = new Uri(
                 endpoint,

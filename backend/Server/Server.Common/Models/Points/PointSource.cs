@@ -9,7 +9,7 @@ public sealed record PointSource
     public required string Name { get; init; }
     public string? Description { get; init; }
     public bool Enabled { get; init; }
-    public required string Kind { get; init; }
+    public required PointSourceKind Kind { get; init; }
     public PointSourceConnection Connection { get; init; } = new();
     public string? CredentialRef { get; init; }
     public TlsOptions Tls { get; init; } = new();

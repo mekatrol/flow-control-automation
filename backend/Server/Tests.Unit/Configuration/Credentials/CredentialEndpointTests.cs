@@ -548,7 +548,7 @@ internal sealed class CredentialEndpointTests
         Id = "weather",
         Name = "Weather",
         Enabled = true,
-        Kind = "httpJson",
+        Kind = PointSourceKind.HttpJson,
         Connection = new PointSourceConnection
         {
             BaseUrl = "https://example.test",

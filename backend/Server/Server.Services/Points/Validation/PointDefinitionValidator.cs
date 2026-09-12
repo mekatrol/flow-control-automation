@@ -16,7 +16,7 @@ internal sealed partial class PointDefinitionValidator : IPointDefinitionValidat
 
         var owner = context.Sources.Values.SingleOrDefault(source =>
             source.Points.Any(candidate => candidate.Id == point.Id));
-        var isVirtual = owner?.Kind == "virtual" || point.Direction == DataDirectionType.Value;
+        var isVirtual = owner?.Kind == PointSourceKind.Virtual || point.Direction == DataDirectionType.Value;
         var direction = point.Direction;
         var valueType = point.ValueType;
         var persistence = ParsePersistence(point.Persistence);
@@ -125,7 +125,6 @@ internal sealed partial class PointDefinitionValidator : IPointDefinitionValidat
             return (null, null);
         }
 
-        var kind = ParseSourceKind(source.Kind);
         var segments = point.Mapping.Split('/', StringSplitOptions.None);
         var mapping = segments.Length == 2
             ? source.Mappings.SingleOrDefault(candidate => candidate.Id == segments[0])
@@ -133,7 +132,7 @@ internal sealed partial class PointDefinitionValidator : IPointDefinitionValidat
 
         return mapping is null
             ? throw new PointDefinitionValidationException("mapping reference is invalid")
-            : (kind, mapping);
+            : (source.Kind, mapping);
     }
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality", "IDE0051", Justification = "Removed in aggregate persistence phase")]
@@ -645,16 +644,6 @@ internal sealed partial class PointDefinitionValidator : IPointDefinitionValidat
         "volatile" => PointPersistence.Volatile,
         "retained" => PointPersistence.Retained,
         _ => throw new PointDefinitionValidationException("persistence is invalid")
-    };
-
-    private static PointSourceKind ParseSourceKind(string value) => value switch
-    {
-        "virtual" => PointSourceKind.Virtual,
-        "physical" => PointSourceKind.Physical,
-        "homeAssistant" => PointSourceKind.HomeAssistant,
-        "mqtt" => PointSourceKind.Mqtt,
-        "httpJson" => PointSourceKind.HttpJson,
-        _ => throw new PointDefinitionValidationException($"source kind '{value}' is invalid")
     };
 
     private static void Fail(string message) =>

@@ -43,10 +43,10 @@ internal sealed partial class PointSourceValidator(ITemplateService? templates =
 
         var address = source.Kind switch
         {
-            "virtual" or "physical" => null,
-            "homeAssistant" => RequireBaseUrl(source),
-            "httpJson" => ValidateHttpJson(source),
-            "mqtt" => ValidateMqtt(source),
+            PointSourceKind.Virtual or PointSourceKind.Physical => null,
+            PointSourceKind.HomeAssistant => RequireBaseUrl(source),
+            PointSourceKind.HttpJson => ValidateHttpJson(source),
+            PointSourceKind.Mqtt => ValidateMqtt(source),
             _ => throw new PointSourceValidationException(
                 "kind must be virtual, physical, homeAssistant, mqtt, or httpJson")
         };
@@ -116,21 +116,21 @@ internal sealed partial class PointSourceValidator(ITemplateService? templates =
         }
     }
 
-    private static void ValidateMappingForKind(string kind, PointMapping mapping)
+    private static void ValidateMappingForKind(PointSourceKind kind, PointMapping mapping)
     {
         var valid = kind switch
         {
-            "virtual" => mapping.Virtual is not null && mapping.Physical is null
+            PointSourceKind.Virtual => mapping.Virtual is not null && mapping.Physical is null
                 && HasNoTransportFields(mapping),
-            "physical" => mapping.Physical is not null && mapping.Virtual is null
+            PointSourceKind.Physical => mapping.Physical is not null && mapping.Virtual is null
                 && HasNoTransportFields(mapping),
-            "homeAssistant" => mapping.Physical is null && mapping.Virtual is null
+            PointSourceKind.HomeAssistant => mapping.Physical is null && mapping.Virtual is null
                 && (mapping.Read is null || !string.IsNullOrWhiteSpace(mapping.Read.EntityId))
                 && (mapping.Command is null || !string.IsNullOrWhiteSpace(mapping.Command.Service)),
-            "mqtt" => mapping.Physical is null && mapping.Virtual is null
+            PointSourceKind.Mqtt => mapping.Physical is null && mapping.Virtual is null
                 && (mapping.Read is null || !string.IsNullOrWhiteSpace(mapping.Read.Topic))
                 && (mapping.Command is null || !string.IsNullOrWhiteSpace(mapping.Command.Topic)),
-            "httpJson" => mapping.Physical is null && mapping.Virtual is null
+            PointSourceKind.HttpJson => mapping.Physical is null && mapping.Virtual is null
                 && (mapping.Read is null || IsHttpRead(mapping.Read))
                 && (mapping.Command is null || IsHttpCommand(mapping.Command)),
             _ => false
@@ -269,7 +269,7 @@ internal sealed partial class PointSourceValidator(ITemplateService? templates =
                 "connection URL must be absolute and must not contain credentials");
         }
 
-        var allowedScheme = source.Kind == "mqtt"
+        var allowedScheme = source.Kind == PointSourceKind.Mqtt
             ? uri.Scheme is "mqtt" or "mqtts"
             : uri.Scheme is "http" or "https";
 

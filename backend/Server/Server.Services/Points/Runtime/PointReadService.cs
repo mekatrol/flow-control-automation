@@ -30,7 +30,7 @@ internal sealed class PointReadService(
         var source = sourcePage.Items.SingleOrDefault(candidate =>
             candidate.Points.Any(nested => nested.Id == point.Id));
 
-        if (source?.Kind == "virtual" || point.Direction == DataDirectionType.Value)
+        if (source?.Kind == PointSourceKind.Virtual || point.Direction == DataDirectionType.Value)
         {
             if (virtualPoints is not null && virtualPoints.TrySnapshot("server", point.Id, out var snapshot))
             {
@@ -57,7 +57,7 @@ internal sealed class PointReadService(
                 "Virtual point has no commissioned runtime value.");
         }
 
-        if (source?.Kind == "physical")
+        if (source?.Kind == PointSourceKind.Physical)
         {
             return Unavailable(point, "unconfigured", "Physical point has no commissioned hardware read adapter.");
         }
@@ -72,7 +72,7 @@ internal sealed class PointReadService(
             return Unavailable(point, "disconnected", "Referenced point source is disabled.");
         }
 
-        if (source.Kind == "httpJson")
+        if (source.Kind == PointSourceKind.HttpJson)
         {
             return await ReadHttpJson(point, source, cancellationToken);
         }
@@ -204,11 +204,11 @@ internal sealed class PointReadService(
             diagnostic,
             deviceResponse);
 
-    private static string SourceLabel(string kind) => kind switch
+    private static string SourceLabel(PointSourceKind kind) => kind switch
     {
-        "homeAssistant" => "Home Assistant",
-        "mqtt" => "MQTT",
-        "httpJson" => "HTTP/JSON",
+        PointSourceKind.HomeAssistant => "Home Assistant",
+        PointSourceKind.Mqtt => "MQTT",
+        PointSourceKind.HttpJson => "HTTP/JSON",
         _ => "Point source"
     };
 }

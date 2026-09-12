@@ -215,7 +215,7 @@ public static class PointSourceEndpointRouteBuilderExtensions
                     [source.Id] = source
                 }));
 
-            if (source.Kind != "httpJson" || validated.Mapping is not HttpJsonPointMapping mapping)
+            if (source.Kind != PointSourceKind.HttpJson || validated.Mapping is not HttpJsonPointMapping mapping)
             {
                 return Error(StatusCodes.Status400BadRequest, "point testing requires an HTTP/JSON mapping");
             }

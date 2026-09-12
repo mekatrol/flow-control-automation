@@ -56,7 +56,7 @@ public sealed class PointSourceAggregateTests
         Id = "source",
         Name = "Source",
         Enabled = true,
-        Kind = "virtual",
+        Kind = PointSourceKind.Virtual,
         Mappings = [new PointMapping { Id = "mapping", Aliases = ["valueAlias"], Read = new(), Virtual = new() }],
         Points = [new AutomationPoint
         {

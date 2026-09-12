@@ -271,7 +271,7 @@ internal sealed class ProtocolCheckTests
     {
         Id = "http-check",
         Name = "HTTP check",
-        Kind = "httpJson",
+        Kind = PointSourceKind.HttpJson,
         Connection = new PointSourceConnection
         {
             BaseUrl = uri.ToString(),
@@ -290,7 +290,7 @@ internal sealed class ProtocolCheckTests
     {
         Id = "plant-mqtt",
         Name = "Plant MQTT",
-        Kind = "mqtt",
+        Kind = PointSourceKind.Mqtt,
         Connection = new PointSourceConnection
         {
             BrokerUrl = "mqtt://example.test:1883",
