@@ -2,12 +2,26 @@ using Server.Common.Contracts.Templating;
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 
 namespace Tests.Unit.Templating;
 
 [TestFixture]
 public sealed class ScribanTemplateServiceTests
 {
+    private enum OperatingMode
+    {
+        Automatic
+    }
+
+    private sealed record RenderedValues(
+        int Integer,
+        double DoubleValue,
+        bool Boolean,
+        string Text,
+        float FloatValue,
+        OperatingMode Mode);
+
     private static string FixtureRoot => Path.Combine(
         TestContext.CurrentContext.TestDirectory,
         "TemplateFixtures");
@@ -169,6 +183,7 @@ public sealed class ScribanTemplateServiceTests
     {
         using var provider = Helpers.TestServices.CreateProvider();
         var service = provider.GetRequiredService<ITemplateService>();
+
         var json = JsonSerializer.Serialize(new
         {
             readings = new[]
@@ -177,12 +192,63 @@ public sealed class ScribanTemplateServiceTests
                 new { name = "return", value = -4.25 }
             }
         });
+
         var values = new Dictionary<string, object?> { ["payload"] = JsonNode.Parse(json) };
 
         using (Assert.EnterMultipleScope())
         {
             Assert.That(service.Render("{{ payload.readings[0].value }}", values), Is.EqualTo("21.75"));
             Assert.That(service.Render("{{ payload.readings[1].value }}", values), Is.EqualTo("-4.25"));
+        }
+    }
+
+    [Test]
+    public void Render_UsesAllValuesDeserializedFromJsonSerializer()
+    {
+        using var provider = Helpers.TestServices.CreateProvider();
+        var service = provider.GetRequiredService<ITemplateService>();
+
+        var options = new JsonSerializerOptions
+        {
+            UnknownTypeHandling = JsonUnknownTypeHandling.JsonNode,
+            Converters = { new JsonStringEnumConverter() }
+        };
+
+        var json = JsonSerializer.Serialize(new
+        {
+            integer = 42,
+            doubleValue = -21.75d,
+            boolean = true,
+            text = "supply",
+            floatValue = 4.25f,
+            mode = OperatingMode.Automatic
+        }, options);
+
+        var values = JsonSerializer.Deserialize<Dictionary<string, object?>>(json, options)!;
+
+        var renderedJson = service.Render(
+            """
+            {
+              "Integer": {{ integer | json }},
+              "DoubleValue": {{ doubleValue | json }},
+              "Boolean": {{ boolean | json }},
+              "Text": {{ text | json }},
+              "FloatValue": {{ floatValue | json }},
+              "Mode": {{ mode | json }}
+            }
+            """,
+            values);
+
+        var renderedValues = JsonSerializer.Deserialize<RenderedValues>(renderedJson, options)!;
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(renderedValues.Integer, Is.EqualTo(42));
+            Assert.That(renderedValues.DoubleValue, Is.EqualTo(-21.75d));
+            Assert.That(renderedValues.Boolean, Is.True);
+            Assert.That(renderedValues.Text, Is.EqualTo("supply"));
+            Assert.That(renderedValues.FloatValue, Is.EqualTo(4.25f));
+            Assert.That(renderedValues.Mode, Is.EqualTo(OperatingMode.Automatic));
         }
     }
 
@@ -221,6 +287,7 @@ public sealed class ScribanTemplateServiceTests
         var payloadValues = new Dictionary<string, object?> { ["mqtt"] = JsonNode.Parse(mqttPayload) };
         var supply = service.Render("{{ mqtt.supply }}", payloadValues);
         var returnValue = service.Render("{{ mqtt[\"returnValue\"] }}", payloadValues);
+
         var outputValues = new Dictionary<string, object?>
         {
             ["supply"] = decimal.Parse(supply, CultureInfo.InvariantCulture),
