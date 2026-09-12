@@ -236,6 +236,7 @@ import {
   type PointTestResult,
   type PointSourceKind
 } from '@/features/pointSources/api/pointSourceApi';
+import { formatPointTestValue } from '@/features/pointSources/formatPointTestValue';
 import { pointSourceSchema } from '@/features/pointSources/pointSourceSchema';
 
 const props = defineProps<{ sourceId?: string }>();
@@ -378,7 +379,9 @@ const parsedSource = computed(() => {
 });
 const parsedPoint = computed(() => {
   try {
-    return parse(pointYaml.value) as { points?: { commandable?: boolean; valueType?: string }[] };
+    return parse(pointYaml.value) as {
+      points?: { commandable?: boolean; valueType?: string; units?: string }[];
+    };
   } catch {
     return undefined;
   }
@@ -391,10 +394,9 @@ const pointTestDisabled = computed(
     hasEditorErrors.value ||
     pointDiagnostics.value.some(({ severity }) => severity === 'error')
 );
-const displayPointValue = computed(() => {
-  const value = pointTestResult.value?.value;
-  return typeof value === 'string' ? value : JSON.stringify(value);
-});
+const displayPointValue = computed(() =>
+  formatPointTestValue(pointTestResult.value?.value, parsedPoint.value?.points?.[0]?.units)
+);
 const pointTestSchema = {
   ...pointSourceSchema,
   required: ['schemaVersion', 'points'],

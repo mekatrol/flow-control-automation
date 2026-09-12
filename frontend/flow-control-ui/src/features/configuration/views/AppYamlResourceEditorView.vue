@@ -223,6 +223,7 @@ import {
   pointSchema
 } from '@/features/configuration/configurationSchemas';
 import { pointSourceApi, type PointTestResult } from '@/features/pointSources/api/pointSourceApi';
+import { formatPointTestValue } from '@/features/pointSources/formatPointTestValue';
 
 type ResourceKind = 'point' | 'controller';
 const props = defineProps<{ kind: ResourceKind; resourceId?: string }>();
@@ -439,6 +440,7 @@ const pointDefinition = computed(() => {
         points?: {
           sourceId?: string;
           commandable?: boolean;
+          units?: string;
           mapping?: { path?: string; method?: string };
         }[];
       }
@@ -448,11 +450,9 @@ const pointDefinition = computed(() => {
   }
 });
 const pointCommandable = computed(() => pointDefinition.value?.commandable === true);
-const displayTestValue = computed(() => {
-  const value = pointTestResult.value?.value;
-  if (value === null || value === undefined) return 'Unavailable';
-  return typeof value === 'string' ? value : JSON.stringify(value);
-});
+const displayTestValue = computed(() =>
+  formatPointTestValue(pointTestResult.value?.value, pointDefinition.value?.units)
+);
 
 const api = computed(() =>
   props.kind === 'point' ? pointConfigurationApi : controllerTemplateConfigurationApi
