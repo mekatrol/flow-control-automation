@@ -134,10 +134,20 @@ public static class ConfigurationYaml
     {
         var document = ParseToJson(yaml, kind);
 
-        return document.Deserialize<T>(FlowControlJson.Options)
-            ?? throw new ConfigurationYamlException(
+        try
+        {
+            return document.Deserialize<T>(FlowControlJson.Options)
+                ?? throw new ConfigurationYamlException(
+                    ConfigurationYamlError.InvalidShape,
+                    "YAML does not match the requested contract.");
+        }
+        catch (JsonException exception)
+        {
+            throw new ConfigurationYamlException(
                 ConfigurationYamlError.InvalidShape,
-                "YAML does not match the requested contract.");
+                "YAML does not match the requested contract.",
+                exception);
+        }
     }
 
     public static string Render<T>(T value)

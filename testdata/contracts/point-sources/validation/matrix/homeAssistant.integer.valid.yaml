@@ -1,0 +1,24 @@
+schemaVersion: 1
+id: matrix-homeassistant-integer-valid
+name: Matrix homeAssistant integer valid
+enabled: true
+kind: homeAssistant
+connection: { baseUrl: https://ha.example.test }
+tls: { verifyServerCertificate: true }
+timeouts: { connectMilliseconds: 100 }
+mappings:
+  - id: values
+    aliases: [value]
+    read: { entityId: sensor.fixture, property: state }
+points:
+  - id: matrix-point
+    name: Matrix point
+    enabled: true
+    direction: input
+    valueType: integer
+    units: count
+    limits: { minimum: 0, maximum: 100 }
+    readable: true
+    commandable: false
+    persistence: volatile
+    mapping: values/value

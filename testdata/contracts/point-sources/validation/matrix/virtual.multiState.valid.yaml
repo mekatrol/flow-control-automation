@@ -1,0 +1,24 @@
+schemaVersion: 1
+id: matrix-virtual-multistate-valid
+name: Matrix virtual multiState valid
+enabled: true
+kind: virtual
+connection: {}
+tls: { verifyServerCertificate: true }
+timeouts: { connectMilliseconds: 100 }
+mappings:
+  - id: values
+    aliases: [value]
+    read: {}
+    virtual: { persistence: volatile }
+points:
+  - id: matrix-point
+    name: Matrix point
+    enabled: true
+    direction: value
+    valueType: multiState
+    stateLabels: [{ key: idle, label: Idle }, { key: run, label: Running }]
+    readable: true
+    commandable: false
+    persistence: volatile
+    mapping: values/value

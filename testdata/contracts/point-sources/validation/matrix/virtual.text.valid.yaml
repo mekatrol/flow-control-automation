@@ -1,0 +1,24 @@
+schemaVersion: 1
+id: matrix-virtual-text-valid
+name: Matrix virtual text valid
+enabled: true
+kind: virtual
+connection: {}
+tls: { verifyServerCertificate: true }
+timeouts: { connectMilliseconds: 100 }
+mappings:
+  - id: values
+    aliases: [value]
+    read: {}
+    virtual: { persistence: volatile }
+points:
+  - id: matrix-point
+    name: Matrix point
+    enabled: true
+    direction: value
+    valueType: text
+    limits: { maximumLength: 32 }
+    readable: true
+    commandable: false
+    persistence: volatile
+    mapping: values/value

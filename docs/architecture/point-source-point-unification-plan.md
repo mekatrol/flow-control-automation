@@ -212,7 +212,7 @@ adapter, API, and editor cutovers remain tracked by Phases 3–8.
 | --- | --- |
 | Phase 1 — Freeze the version-1 contract and fixtures | Complete |
 | Phase 2 — Replace common models, parsing, and validation | Complete |
-| Phase 3 — Add exhaustive point-source and point-definition validator tests | Pending |
+| Phase 3 — Add exhaustive point-source and point-definition validator tests | Complete |
 | Phase 4 — Replace persistence and aggregate services | Pending |
 | Phase 5 — Implement mapping execution and point operations | Pending |
 | Phase 6 — Cut over HTTP endpoints and configuration guidance | Pending |

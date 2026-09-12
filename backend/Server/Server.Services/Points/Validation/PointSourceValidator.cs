@@ -102,7 +102,16 @@ internal sealed partial class PointSourceValidator(ITemplateService? templates =
                 throw new PointSourceValidationException("point id and name are required and must be valid");
             }
 
-            var resolution = resolver.Resolve(source, point);
+            PointMappingResolution resolution;
+
+            try
+            {
+                resolution = resolver.Resolve(source, point);
+            }
+            catch (ArgumentException exception)
+            {
+                throw new PointSourceValidationException(exception.Message);
+            }
 
             if (point.Readable && resolution.Mapping.Read is null)
             {

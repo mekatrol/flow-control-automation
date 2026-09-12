@@ -13,7 +13,9 @@ internal static class TestServices
                 ["ConnectionStrings:FlowControl"] = "Data Source=:memory:"
             })
             .Build();
+
         var services = new ServiceCollection();
+
         services.AddServerServices(configuration);
         configure?.Invoke(services);
 

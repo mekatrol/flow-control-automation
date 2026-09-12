@@ -1,0 +1,25 @@
+schemaVersion: 1
+id: matrix-physical-integer-valid
+name: Matrix physical integer valid
+enabled: true
+kind: physical
+connection: {}
+tls: { verifyServerCertificate: true }
+timeouts: { connectMilliseconds: 100 }
+mappings:
+  - id: values
+    aliases: [value]
+    read: {}
+    physical: { controllerId: controller, channel: channel-1, address: "0", electricalType: voltage }
+points:
+  - id: matrix-point
+    name: Matrix point
+    enabled: true
+    direction: input
+    valueType: integer
+    units: count
+    limits: { minimum: 0, maximum: 100 }
+    readable: true
+    commandable: false
+    persistence: volatile
+    mapping: values/value

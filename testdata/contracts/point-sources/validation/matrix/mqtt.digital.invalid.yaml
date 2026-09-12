@@ -1,0 +1,23 @@
+schemaVersion: 1
+id: matrix-mqtt-digital-invalid
+name: Matrix mqtt digital invalid
+enabled: true
+kind: mqtt
+connection: { brokerUrl: mqtts://mqtt.example.test, qos: 1, testTopic: fixtures/state }
+tls: { verifyServerCertificate: true }
+timeouts: { connectMilliseconds: 100 }
+mappings:
+  - id: values
+    aliases: [value]
+    read: { topic: fixtures/state, qos: 1, format: json, template: '{ "value": {{ value }} }' }
+points:
+  - id: matrix-point
+    name: Matrix point
+    enabled: true
+    direction: input
+    valueType: digital
+    readable: true
+    commandable: false
+    persistence: volatile
+    mapping: values/value
+

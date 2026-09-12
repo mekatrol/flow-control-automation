@@ -1,0 +1,25 @@
+schemaVersion: 1
+id: matrix-virtual-integer-valid
+name: Matrix virtual integer valid
+enabled: true
+kind: virtual
+connection: {}
+tls: { verifyServerCertificate: true }
+timeouts: { connectMilliseconds: 100 }
+mappings:
+  - id: values
+    aliases: [value]
+    read: {}
+    virtual: { persistence: volatile }
+points:
+  - id: matrix-point
+    name: Matrix point
+    enabled: true
+    direction: value
+    valueType: integer
+    units: count
+    limits: { minimum: 0, maximum: 100 }
+    readable: true
+    commandable: false
+    persistence: volatile
+    mapping: values/value

@@ -1,0 +1,51 @@
+fixture,kind,valueType,outcome,boundary,diagnostic
+virtual.analog.valid.yaml,virtual,analog,valid,none,
+virtual.analog.invalid.yaml,virtual,analog,invalid,point-definition,stateLabels apply only
+virtual.digital.valid.yaml,virtual,digital,valid,none,
+virtual.digital.invalid.yaml,virtual,digital,invalid,point-definition,digital points require stateLabels
+virtual.multiState.valid.yaml,virtual,multiState,valid,none,
+virtual.multiState.invalid.yaml,virtual,multiState,invalid,point-definition,multi_state points require stateLabels
+virtual.integer.valid.yaml,virtual,integer,valid,none,
+virtual.integer.invalid.yaml,virtual,integer,invalid,point-definition,safe whole JSON number
+virtual.text.valid.yaml,virtual,text,valid,none,
+virtual.text.invalid.yaml,virtual,text,invalid,point-definition,text points require limits.maximumLength
+physical.analog.valid.yaml,physical,analog,valid,none,
+physical.analog.invalid.yaml,physical,analog,invalid,point-definition,stateLabels apply only
+physical.digital.valid.yaml,physical,digital,valid,none,
+physical.digital.invalid.yaml,physical,digital,invalid,point-definition,digital points require stateLabels
+physical.multiState.valid.yaml,physical,multiState,valid,none,
+physical.multiState.invalid.yaml,physical,multiState,invalid,point-definition,multi_state points require stateLabels
+physical.integer.valid.yaml,physical,integer,valid,none,
+physical.integer.invalid.yaml,physical,integer,invalid,point-definition,safe whole JSON number
+physical.text.valid.yaml,physical,text,valid,none,
+physical.text.invalid.yaml,physical,text,invalid,point-definition,text points require limits.maximumLength
+homeAssistant.analog.valid.yaml,homeAssistant,analog,valid,none,
+homeAssistant.analog.invalid.yaml,homeAssistant,analog,invalid,point-definition,stateLabels apply only
+homeAssistant.digital.valid.yaml,homeAssistant,digital,valid,none,
+homeAssistant.digital.invalid.yaml,homeAssistant,digital,invalid,point-definition,digital points require stateLabels
+homeAssistant.multiState.valid.yaml,homeAssistant,multiState,valid,none,
+homeAssistant.multiState.invalid.yaml,homeAssistant,multiState,invalid,point-definition,multi_state points require stateLabels
+homeAssistant.integer.valid.yaml,homeAssistant,integer,valid,none,
+homeAssistant.integer.invalid.yaml,homeAssistant,integer,invalid,point-definition,safe whole JSON number
+homeAssistant.text.valid.yaml,homeAssistant,text,valid,none,
+homeAssistant.text.invalid.yaml,homeAssistant,text,invalid,point-definition,text points require limits.maximumLength
+mqtt.analog.valid.yaml,mqtt,analog,valid,none,
+mqtt.analog.invalid.yaml,mqtt,analog,invalid,point-definition,stateLabels apply only
+mqtt.digital.valid.yaml,mqtt,digital,valid,none,
+mqtt.digital.invalid.yaml,mqtt,digital,invalid,point-definition,digital points require stateLabels
+mqtt.multiState.valid.yaml,mqtt,multiState,valid,none,
+mqtt.multiState.invalid.yaml,mqtt,multiState,invalid,point-definition,multi_state points require stateLabels
+mqtt.integer.valid.yaml,mqtt,integer,valid,none,
+mqtt.integer.invalid.yaml,mqtt,integer,invalid,point-definition,safe whole JSON number
+mqtt.text.valid.yaml,mqtt,text,valid,none,
+mqtt.text.invalid.yaml,mqtt,text,invalid,point-definition,text points require limits.maximumLength
+httpJson.analog.valid.yaml,httpJson,analog,valid,none,
+httpJson.analog.invalid.yaml,httpJson,analog,invalid,point-definition,stateLabels apply only
+httpJson.digital.valid.yaml,httpJson,digital,valid,none,
+httpJson.digital.invalid.yaml,httpJson,digital,invalid,point-definition,digital points require stateLabels
+httpJson.multiState.valid.yaml,httpJson,multiState,valid,none,
+httpJson.multiState.invalid.yaml,httpJson,multiState,invalid,point-definition,multi_state points require stateLabels
+httpJson.integer.valid.yaml,httpJson,integer,valid,none,
+httpJson.integer.invalid.yaml,httpJson,integer,invalid,point-definition,safe whole JSON number
+httpJson.text.valid.yaml,httpJson,text,valid,none,
+httpJson.text.invalid.yaml,httpJson,text,invalid,point-definition,text points require limits.maximumLength

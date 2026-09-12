@@ -1,0 +1,23 @@
+schemaVersion: 1
+id: matrix-homeassistant-multistate-invalid
+name: Matrix homeAssistant multiState invalid
+enabled: true
+kind: homeAssistant
+connection: { baseUrl: https://ha.example.test }
+tls: { verifyServerCertificate: true }
+timeouts: { connectMilliseconds: 100 }
+mappings:
+  - id: values
+    aliases: [value]
+    read: { entityId: sensor.fixture, property: state }
+points:
+  - id: matrix-point
+    name: Matrix point
+    enabled: true
+    direction: input
+    valueType: multiState
+    readable: true
+    commandable: false
+    persistence: volatile
+    mapping: values/value
+

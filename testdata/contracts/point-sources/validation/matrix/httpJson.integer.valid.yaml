@@ -1,0 +1,24 @@
+schemaVersion: 1
+id: matrix-httpjson-integer-valid
+name: Matrix httpJson integer valid
+enabled: true
+kind: httpJson
+connection: { baseUrl: https://api.example.test, maximumResponseBytes: 1024 }
+tls: { verifyServerCertificate: true }
+timeouts: { connectMilliseconds: 100 }
+mappings:
+  - id: values
+    aliases: [value]
+    read: { path: /value, method: GET, format: json, template: '{ "value": {{ value }} }' }
+points:
+  - id: matrix-point
+    name: Matrix point
+    enabled: true
+    direction: input
+    valueType: integer
+    units: count
+    limits: { minimum: 0, maximum: 100 }
+    readable: true
+    commandable: false
+    persistence: volatile
+    mapping: values/value
