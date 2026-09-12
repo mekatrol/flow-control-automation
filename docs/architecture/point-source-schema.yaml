@@ -1,0 +1,81 @@
+schemaVersion: 1
+id: lego-train
+name: Lego train
+description: Lego train ESP32 web control
+enabled: true
+kind: httpJson
+connection:
+  baseUrl: "http://lego-train.lan/api"
+  defaultPollMilliseconds: 60000
+  followRedirects: false
+  maximumResponseBytes: 65536
+  allowPrivateNetwork: true
+
+tls:
+  verifyServerCertificate: true
+
+timeouts:
+  connectMilliseconds: 2000
+  requestMilliseconds: 5000
+
+mappings:
+  - id: outputs
+    read:
+      path: "/output?index=0"
+      method: GET
+      format: json
+      template: |
+        {
+          "intensity": {{ intensity }}
+        }
+    command:
+      path: "/output?index=0"
+      method: POST
+      format: json
+      template: |
+        {
+          "intensity": {{ intensity }}
+        }
+
+  - id: inputs
+    read:
+      path: /button
+      method: GET
+      format: json
+      template: |
+        {
+          "pressed": {{ pressed }}
+        }
+
+points:
+  - id: lego-train-output
+    name: Lego train output
+    enabled: true
+    direction: output
+    valueType: analog
+    units: "%"
+    readable: true
+    commandable: true
+    persistence: volatile
+    limits:
+      minimum: 0
+      maximum: 100
+    safeDisablePolicy:
+      startup: relinquish
+      shutdown: relinquish
+      communicationLoss: relinquish
+      disable: relinquish
+    mapping: outputs/intensity
+
+  - id: lego-train-input
+    name: Lego train input
+    enabled: true
+    direction: input
+    valueType: digital
+    stateLabels:
+      false: "Off"
+      true: "On"
+    readable: true
+    commandable: false
+    persistence: volatile
+    mapping: inputs/pressed
