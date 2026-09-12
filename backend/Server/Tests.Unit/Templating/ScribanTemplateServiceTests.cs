@@ -1,14 +1,11 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Server.Common.Contracts.Templating;
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Assert = NUnit.Framework.Assert;
-using TestContext = NUnit.Framework.TestContext;
 
 namespace Tests.Unit.Templating;
 
-[TestClass]
+[TestFixture]
 public sealed class ScribanTemplateServiceTests
 {
     private static string FixtureRoot => Path.Combine(
@@ -23,8 +20,7 @@ public sealed class ScribanTemplateServiceTests
         TemplateFixtureLoader.LoadDirectory(Path.Combine(FixtureRoot, "negative"))
             .Select(fixture => new object[] { fixture });
 
-    [TestMethod]
-    [DynamicData(nameof(GetPositiveFixtures))]
+    [TestCaseSource(nameof(GetPositiveFixtures))]
     public void Render_PositiveFixtureValidatesAndMatchesExactly(TemplateFixture fixture)
     {
         using var provider = Helpers.TestServices.CreateProvider();
@@ -41,8 +37,7 @@ public sealed class ScribanTemplateServiceTests
         }
     }
 
-    [TestMethod]
-    [DynamicData(nameof(GetNegativeFixtures))]
+    [TestCaseSource(nameof(GetNegativeFixtures))]
     public void Render_NegativeFixtureReportsStableCategory(TemplateFixture fixture)
     {
         using var provider = Helpers.TestServices.CreateProvider();
@@ -73,7 +68,7 @@ public sealed class ScribanTemplateServiceTests
         }
     }
 
-    [TestMethod]
+    [Test]
     public void AddServerServices_RegistersExactlyOneSingletonTemplateService()
     {
         using var provider = Helpers.TestServices.CreateProvider();
@@ -87,7 +82,7 @@ public sealed class ScribanTemplateServiceTests
         }
     }
 
-    [TestMethod]
+    [Test]
     public void Validate_NullTemplateThrowsArgumentNullException()
     {
         using var provider = Helpers.TestServices.CreateProvider();
@@ -96,7 +91,7 @@ public sealed class ScribanTemplateServiceTests
         Assert.Throws<ArgumentNullException>(() => service.Validate(null!));
     }
 
-    [TestMethod]
+    [Test]
     public void Render_NullArgumentsThrowArgumentNullException()
     {
         using var provider = Helpers.TestServices.CreateProvider();
@@ -109,7 +104,7 @@ public sealed class ScribanTemplateServiceTests
         }
     }
 
-    [TestMethod]
+    [Test]
     public void Render_RepeatedCallsDoNotLeakValues()
     {
         using var provider = Helpers.TestServices.CreateProvider();
@@ -130,7 +125,7 @@ public sealed class ScribanTemplateServiceTests
         Assert.That(exception!.Category, Is.EqualTo(TemplateError.MissingValue));
     }
 
-    [TestMethod]
+    [Test]
     public async Task Render_ConcurrentCallsKeepContextsIsolated()
     {
         await using var provider = Helpers.TestServices.CreateProvider();
@@ -146,8 +141,8 @@ public sealed class ScribanTemplateServiceTests
         Assert.That(results, Is.EqualTo(Enumerable.Range(0, 100).Select(value => value.ToString(CultureInfo.InvariantCulture))));
     }
 
-    [TestMethod]
-    [DoNotParallelize]
+    [Test]
+    [NonParallelizable]
     public void Render_UsesInvariantCultureUnderFrenchCulture()
     {
         using var provider = Helpers.TestServices.CreateProvider();
@@ -169,7 +164,7 @@ public sealed class ScribanTemplateServiceTests
         }
     }
 
-    [TestMethod]
+    [Test]
     public void Render_ExtractsPositiveAndNegativeReadingsFromSerializedJson()
     {
         using var provider = Helpers.TestServices.CreateProvider();
@@ -191,7 +186,7 @@ public sealed class ScribanTemplateServiceTests
         }
     }
 
-    [TestMethod]
+    [Test]
     public void Render_CreatesValidJsonPayloadWithMultipleValues()
     {
         using var provider = Helpers.TestServices.CreateProvider();
@@ -217,7 +212,7 @@ public sealed class ScribanTemplateServiceTests
         }
     }
 
-    [TestMethod]
+    [Test]
     public void Render_ExtractsMultipleMqttReadingsAndCreatesCombinedPayload()
     {
         using var provider = Helpers.TestServices.CreateProvider();

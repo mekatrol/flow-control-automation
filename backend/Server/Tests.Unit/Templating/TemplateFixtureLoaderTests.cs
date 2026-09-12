@@ -1,13 +1,13 @@
 namespace Tests.Unit.Templating;
 
-[Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
+[TestFixture]
 public sealed class TemplateFixtureLoaderTests
 {
     private static string FixtureRoot => Path.Combine(
         TestContext.CurrentContext.TestDirectory,
         "TemplateFixtures");
 
-    [Microsoft.VisualStudio.TestTools.UnitTesting.TestMethod]
+    [Test]
     public void LoadDirectory_DiscoversValidFixturesDeterministically()
     {
         var positive = TemplateFixtureLoader.LoadDirectory(Path.Combine(FixtureRoot, "positive"));
@@ -26,7 +26,7 @@ public sealed class TemplateFixtureLoaderTests
         });
     }
 
-    [Microsoft.VisualStudio.TestTools.UnitTesting.TestMethod]
+    [Test]
     public void Load_PreservesMultilineTemplateExactly()
     {
         var fixture = TemplateFixtureLoader.Load(
@@ -37,20 +37,19 @@ public sealed class TemplateFixtureLoaderTests
             Is.EqualTo("{\n  \"value\": {{ value | json }},\n  \"source\": {{ source | json }}\n}"));
     }
 
-    [Microsoft.VisualStudio.TestTools.UnitTesting.TestMethod]
-    [Microsoft.VisualStudio.TestTools.UnitTesting.DataRow("syntax.yaml")]
-    [Microsoft.VisualStudio.TestTools.UnitTesting.DataRow("duplicate-key.yaml")]
-    [Microsoft.VisualStudio.TestTools.UnitTesting.DataRow("missing-name.yaml")]
-    [Microsoft.VisualStudio.TestTools.UnitTesting.DataRow("missing-template.yaml")]
-    [Microsoft.VisualStudio.TestTools.UnitTesting.DataRow("both-outcomes.yaml")]
-    [Microsoft.VisualStudio.TestTools.UnitTesting.DataRow("neither-outcome.yaml")]
+    [TestCase("syntax.yaml")]
+    [TestCase("duplicate-key.yaml")]
+    [TestCase("missing-name.yaml")]
+    [TestCase("missing-template.yaml")]
+    [TestCase("both-outcomes.yaml")]
+    [TestCase("neither-outcome.yaml")]
     public void Load_RejectsMalformedFixture(string file)
     {
         Assert.Throws<TemplateFixtureException>(() => TemplateFixtureLoader.Load(
             Path.Combine(FixtureRoot, "malformed", file)));
     }
 
-    [Microsoft.VisualStudio.TestTools.UnitTesting.TestMethod]
+    [Test]
     public void LoadDirectory_RejectsDuplicateFixtureNames()
     {
         Assert.Throws<TemplateFixtureException>(() => TemplateFixtureLoader.LoadDirectory(
