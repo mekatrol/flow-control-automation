@@ -16,4 +16,11 @@ public interface ITemplateService
     string Render(
         string template,
         IReadOnlyDictionary<string, object?> values);
+
+    /// <summary>Renders a template using the public members of the supplied model.</summary>
+    /// <param name="template">The Scriban template text.</param>
+    /// <param name="model">The object model exposed to Scriban.</param>
+    /// <returns>The rendered text.</returns>
+    /// <exception cref="TemplateRenderException">The template is invalid or cannot be rendered safely.</exception>
+    string Render(string template, object model);
 }

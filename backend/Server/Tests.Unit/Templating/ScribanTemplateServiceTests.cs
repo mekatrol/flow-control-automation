@@ -140,6 +140,24 @@ public sealed class ScribanTemplateServiceTests
     }
 
     [Test]
+    public void Render_ObjectModelExposesMembersToScriban()
+    {
+        using var provider = Helpers.TestServices.CreateProvider();
+        var service = provider.GetRequiredService<ITemplateService>();
+        var model = new
+        {
+            DeviceName = "supply",
+            Reading = new { Value = -4.25m }
+        };
+
+        var result = service.Render(
+            "{{ device_name }}={{ reading.value }}",
+            model);
+
+        Assert.That(result, Is.EqualTo("supply=-4.25"));
+    }
+
+    [Test]
     public async Task Render_ConcurrentCallsKeepContextsIsolated()
     {
         await using var provider = Helpers.TestServices.CreateProvider();

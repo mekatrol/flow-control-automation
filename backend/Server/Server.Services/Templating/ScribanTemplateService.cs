@@ -33,18 +33,6 @@ internal sealed class ScribanTemplateService : ITemplateService
         ArgumentNullException.ThrowIfNull(template);
         ArgumentNullException.ThrowIfNull(values);
 
-        var parsed = Template.Parse(template);
-
-        if (parsed.HasErrors)
-        {
-            var diagnostics = parsed.Messages.Select(ToDiagnostic).ToArray();
-
-            throw new TemplateRenderException(
-                TemplateError.InvalidTemplate,
-                "The template contains invalid Scriban syntax.",
-                diagnostics);
-        }
-
         var globals = new ScriptObject();
 
         foreach (var (name, value) in values)
@@ -64,6 +52,41 @@ internal sealed class ScribanTemplateService : ITemplateService
             }
 
             globals.SetValue(name, ToScriptValue(value), true);
+        }
+
+        return Render(template, globals);
+    }
+
+    public string Render(string template, object model)
+    {
+        ArgumentNullException.ThrowIfNull(template);
+        ArgumentNullException.ThrowIfNull(model);
+
+        var globals = new ScriptObject();
+        globals.Import(model, renamer: StandardMemberRenamer.Default);
+
+        if (globals.ContainsKey("json"))
+        {
+            throw new TemplateRenderException(
+                TemplateError.UnsupportedValue,
+                "The template value name 'json' is reserved.");
+        }
+
+        return Render(template, globals);
+    }
+
+    private static string Render(string template, ScriptObject globals)
+    {
+        var parsed = Template.Parse(template);
+
+        if (parsed.HasErrors)
+        {
+            var diagnostics = parsed.Messages.Select(ToDiagnostic).ToArray();
+
+            throw new TemplateRenderException(
+                TemplateError.InvalidTemplate,
+                "The template contains invalid Scriban syntax.",
+                diagnostics);
         }
 
         globals.SetValue(
