@@ -1,5 +1,6 @@
 name: 05-json-scalars
-template: '[{{ number | to_json }},{{ boolean | to_json }},{{ text | to_json }},{{ nothing | to_json }}]'
+format: json
+template: '[{{ number }},{{ boolean }},{{ text }},{{ nothing }}]'
 values:
   number: 12.5
   boolean: true

@@ -1,3 +1,5 @@
+using Server.Common.Contracts.Templating;
+
 namespace Tests.Unit.Templating;
 
 public sealed record TemplateFixture
@@ -5,6 +7,8 @@ public sealed record TemplateFixture
     public string? Name { get; init; }
 
     public string? Template { get; init; }
+
+    public RenderAs Format { get; init; } = RenderAs.Text;
 
     public Dictionary<string, object?> Values { get; init; } = [];
 

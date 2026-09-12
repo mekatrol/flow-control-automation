@@ -41,7 +41,7 @@ public sealed class ScribanTemplateServiceTests
         var service = provider.GetRequiredService<ITemplateService>();
 
         var validation = service.Validate(fixture.Template!);
-        var result = service.Render(fixture.Template!, fixture.Values);
+        var result = service.Render(fixture.Template!, fixture.Values, fixture.Format);
 
         using (Assert.EnterMultipleScope())
         {
@@ -59,7 +59,7 @@ public sealed class ScribanTemplateServiceTests
 
         var validation = service.Validate(fixture.Template!);
         var exception = Assert.Throws<TemplateRenderException>(
-            () => service.Render(fixture.Template!, fixture.Values));
+            () => service.Render(fixture.Template!, fixture.Values, fixture.Format));
 
         Assert.That(
             exception!.Category,
@@ -113,36 +113,8 @@ public sealed class ScribanTemplateServiceTests
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.Throws<ArgumentNullException>(() => service.Render(null!, new Dictionary<string, object?>()));
-            Assert.Throws<ArgumentNullException>(() => service.Render("literal", null!));
-        }
-    }
-
-    [Test]
-    public void Render_JsonValueNameRemainsAvailableToTemplates()
-    {
-        using var provider = Helpers.TestServices.CreateProvider();
-        var service = provider.GetRequiredService<ITemplateService>();
-        var values = new Dictionary<string, object?> { ["json"] = "payload" };
-
-        var result = service.Render("{{ json }}", values);
-
-        Assert.That(result, Is.EqualTo("payload"));
-    }
-
-    [Test]
-    public void Render_ToJsonValueNameIsReservedForTheSerializationFilter()
-    {
-        using var provider = Helpers.TestServices.CreateProvider();
-        var service = provider.GetRequiredService<ITemplateService>();
-        var values = new Dictionary<string, object?> { ["to_json"] = "payload" };
-
-        var exception = Assert.Throws<TemplateRenderException>(() => service.Render("literal", values));
-
-        using (Assert.EnterMultipleScope())
-        {
-            Assert.That(exception!.Category, Is.EqualTo(TemplateError.UnsupportedValue));
-            Assert.That(exception.Message, Does.Contain("'to_json'"));
+            Assert.Throws<ArgumentNullException>(() => service.Render(null!, new Dictionary<string, object?>(), RenderAs.Text));
+            Assert.Throws<ArgumentNullException>(() => service.Render("literal", null!, RenderAs.Text));
         }
     }
 
@@ -155,15 +127,15 @@ public sealed class ScribanTemplateServiceTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(
-                    service.Render("{{ value }}", new Dictionary<string, object?> { ["value"] = "first" }),
+                    service.Render("{{ value }}", new Dictionary<string, object?> { ["value"] = "first" }, RenderAs.Text),
                     Is.EqualTo("first"));
             Assert.That(
-                service.Render("{{ value }}", new Dictionary<string, object?> { ["value"] = "second" }),
+                service.Render("{{ value }}", new Dictionary<string, object?> { ["value"] = "second" }, RenderAs.Text),
                 Is.EqualTo("second"));
         }
 
         var exception = Assert.Throws<TemplateRenderException>(
-            () => service.Render("{{ value }}", new Dictionary<string, object?>()));
+            () => service.Render("{{ value }}", new Dictionary<string, object?>(), RenderAs.Text));
         Assert.That(exception!.Category, Is.EqualTo(TemplateError.MissingValue));
     }
 
@@ -180,7 +152,8 @@ public sealed class ScribanTemplateServiceTests
 
         var result = service.Render(
             "{{ device_name }}={{ reading.value }}",
-            model);
+            model,
+            RenderAs.Text);
 
         Assert.That(result, Is.EqualTo("supply=-4.25"));
     }
@@ -193,7 +166,8 @@ public sealed class ScribanTemplateServiceTests
         var tasks = Enumerable.Range(0, 100)
             .Select(value => Task.Run(() => service.Render(
                 "{{ value }}",
-                new Dictionary<string, object?> { ["value"] = value })))
+                new Dictionary<string, object?> { ["value"] = value },
+                RenderAs.Text)))
             .ToArray();
 
         var results = await Task.WhenAll(tasks);
@@ -214,7 +188,8 @@ public sealed class ScribanTemplateServiceTests
             CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("fr-FR");
             var result = service.Render(
                 "{{ value }}",
-                new Dictionary<string, object?> { ["value"] = 1234.5m });
+                new Dictionary<string, object?> { ["value"] = 1234.5m },
+                RenderAs.Text);
 
             Assert.That(result, Is.EqualTo("1234.5"));
         }
@@ -243,8 +218,8 @@ public sealed class ScribanTemplateServiceTests
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(service.Render("{{ payload.readings[0].value }}", values), Is.EqualTo("21.75"));
-            Assert.That(service.Render("{{ payload.readings[1].value }}", values), Is.EqualTo("-4.25"));
+            Assert.That(service.Render("{{ payload.readings[0].value }}", values, RenderAs.Text), Is.EqualTo("21.75"));
+            Assert.That(service.Render("{{ payload.readings[1].value }}", values, RenderAs.Text), Is.EqualTo("-4.25"));
         }
     }
 
@@ -275,15 +250,16 @@ public sealed class ScribanTemplateServiceTests
         var renderedJson = service.Render(
             """
             {
-              "Integer": {{ integer | to_json }},
-              "DoubleValue": {{ doubleValue | to_json }},
-              "Boolean": {{ boolean | to_json }},
-              "Text": {{ text | to_json }},
-              "FloatValue": {{ floatValue | to_json }},
-              "Mode": {{ mode | to_json }}
+              "Integer": {{ integer }},
+              "DoubleValue": {{ doubleValue }},
+              "Boolean": {{ boolean }},
+              "Text": {{ text }},
+              "FloatValue": {{ floatValue }},
+              "Mode": {{ mode }}
             }
             """,
-            values);
+            values,
+            RenderAs.Json);
 
         var renderedValues = JsonSerializer.Deserialize<RenderedValues>(renderedJson, options)!;
 
@@ -311,8 +287,9 @@ public sealed class ScribanTemplateServiceTests
         };
 
         var result = service.Render(
-            "{\"temperature\":{{ temperature | to_json }},\"enabled\":{{ enabled | to_json }},\"source\":{{ source | to_json }}}",
-            values);
+            "{\"temperature\":{{ temperature }},\"enabled\":{{ enabled }},\"source\":{{ source }}}",
+            values,
+            RenderAs.Json);
         using var document = JsonDocument.Parse(result);
         var root = document.RootElement;
 
@@ -325,14 +302,32 @@ public sealed class ScribanTemplateServiceTests
     }
 
     [Test]
+    public void Render_JsonRejectsAnInvalidCompletedDocument()
+    {
+        using var provider = Helpers.TestServices.CreateProvider();
+        var service = provider.GetRequiredService<ITemplateService>();
+
+        var exception = Assert.Throws<TemplateRenderException>(() => service.Render(
+            "{\"value\": {{ value }}",
+            new Dictionary<string, object?> { ["value"] = "payload" },
+            RenderAs.Json));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(exception!.Category, Is.EqualTo(TemplateError.RenderFailed));
+            Assert.That(exception.Message, Does.Contain("valid JSON document"));
+        }
+    }
+
+    [Test]
     public void Render_ExtractsMultipleMqttReadingsAndCreatesCombinedPayload()
     {
         using var provider = Helpers.TestServices.CreateProvider();
         var service = provider.GetRequiredService<ITemplateService>();
         var mqttPayload = JsonSerializer.Serialize(new { supply = 19.5, returnValue = -2.75 });
         var payloadValues = new Dictionary<string, object?> { ["mqtt"] = JsonNode.Parse(mqttPayload) };
-        var supply = service.Render("{{ mqtt.supply }}", payloadValues);
-        var returnValue = service.Render("{{ mqtt[\"returnValue\"] }}", payloadValues);
+        var supply = service.Render("{{ mqtt.supply }}", payloadValues, RenderAs.Text);
+        var returnValue = service.Render("{{ mqtt[\"returnValue\"] }}", payloadValues, RenderAs.Text);
 
         var outputValues = new Dictionary<string, object?>
         {
@@ -342,7 +337,8 @@ public sealed class ScribanTemplateServiceTests
 
         var result = service.Render(
             "supply={{ supply }};return={{ return }}",
-            outputValues);
+            outputValues,
+            RenderAs.Text);
 
         Assert.That(result, Is.EqualTo("supply=19.5;return=-2.75"));
     }

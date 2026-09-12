@@ -34,7 +34,7 @@ public sealed class TemplateFixtureLoaderTests
 
         Assert.That(
             fixture.Template,
-            Is.EqualTo("{\n  \"value\": {{ value | to_json }},\n  \"source\": {{ source | to_json }}\n}"));
+            Is.EqualTo("{\n  \"value\": {{ value }},\n  \"source\": {{ source }}\n}"));
     }
 
     [TestCase("syntax.yaml")]

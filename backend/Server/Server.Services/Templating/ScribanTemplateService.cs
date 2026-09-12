@@ -27,11 +27,9 @@ namespace Server.Services.Templating;
 /// dictionary value types. These restrictions keep rendering deterministic and bound its resource use.
 /// </para>
 /// <para>
-/// A service-owned <c>to_json</c> function is always installed so templates can safely emit JSON values with
-/// <c>{{ value | to_json }}</c>. The action-oriented name distinguishes conversion from caller data named
-/// <c>json</c>, while retaining concise filter syntax. Consequently, only <c>to_json</c> is reserved: allowing
-/// caller data to replace the function would make template behavior depend on the supplied model and could bypass
-/// the JSON escaping and formatting expected by a template author.
+/// In <see cref="RenderAs.Json"/> mode, values emitted by Scriban expressions are serialized automatically with
+/// the application's JSON options and the completed document is validated. Encoding follows the declared output
+/// format rather than a user-visible filter, so ordinary data names never collide with service-owned globals.
 /// </para>
 /// </remarks>
 internal sealed class ScribanTemplateService : ITemplateService
@@ -45,7 +43,8 @@ internal sealed class ScribanTemplateService : ITemplateService
     /// <inheritdoc />
     /// <remarks>
     /// Validation only parses the source. It does not execute the template, so missing values and execution
-    /// limit failures are intentionally reported later by <see cref="Render(string, IReadOnlyDictionary{string, object?})"/>.
+    /// limit failures are intentionally reported later by
+    /// <see cref="Render(string, IReadOnlyDictionary{string, object?}, RenderAs)"/>.
     /// Scriban positions are converted to the one-based coordinates expected by API consumers.
     /// </remarks>
     public TemplateValidationResult Validate(string template)
@@ -65,7 +64,8 @@ internal sealed class ScribanTemplateService : ITemplateService
     /// </remarks>
     public string Render(
         string template,
-        IReadOnlyDictionary<string, object?> values)
+        IReadOnlyDictionary<string, object?> values,
+        RenderAs renderAs)
     {
         ArgumentNullException.ThrowIfNull(template);
         ArgumentNullException.ThrowIfNull(values);
@@ -81,20 +81,10 @@ internal sealed class ScribanTemplateService : ITemplateService
                     "Template value names must not be empty.");
             }
 
-            // `to_json` is injected below as the service's JSON serializer. Reject a collision rather than silently
-            // overwriting caller data or letting caller data shadow a function on which templates rely. The
-            // comparison is ordinal because the template context and global object are also case-sensitive.
-            if (string.Equals(name, "to_json", StringComparison.Ordinal))
-            {
-                throw new TemplateRenderException(
-                    TemplateError.UnsupportedValue,
-                    "The template value name 'to_json' is reserved.");
-            }
-
             globals.SetValue(name, ToScriptValue(value), true);
         }
 
-        return Render(template, globals);
+        return Render(template, globals, renderAs);
     }
 
     /// <inheritdoc />
@@ -103,7 +93,7 @@ internal sealed class ScribanTemplateService : ITemplateService
     /// Scriban's conventional snake_case names (for example, <c>DeviceName</c> becomes <c>device_name</c>).
     /// Use the dictionary overload when values must pass through the restricted recursive type conversion.
     /// </remarks>
-    public string Render(string template, object model)
+    public string Render(string template, object model, RenderAs renderAs)
     {
         ArgumentNullException.ThrowIfNull(template);
         ArgumentNullException.ThrowIfNull(model);
@@ -111,21 +101,11 @@ internal sealed class ScribanTemplateService : ITemplateService
         var globals = new ScriptObject();
         globals.Import(model, renamer: StandardMemberRenamer.Default);
 
-        // Import can create a `to_json` global from a property, field, or dictionary entry. It must not collide with
-        // the serializer installed by the common render path; rejecting it makes both public overloads obey the
-        // same reserved-name contract.
-        if (globals.ContainsKey("to_json"))
-        {
-            throw new TemplateRenderException(
-                TemplateError.UnsupportedValue,
-                "The template value name 'to_json' is reserved.");
-        }
-
-        return Render(template, globals);
+        return Render(template, globals, renderAs);
     }
 
     /// <summary>Executes a parsed template using isolated globals and the service's safety policy.</summary>
-    private static string Render(string template, ScriptObject globals)
+    private static string Render(string template, ScriptObject globals, RenderAs renderAs)
     {
         var parsed = Template.Parse(template);
 
@@ -139,31 +119,9 @@ internal sealed class ScribanTemplateService : ITemplateService
                 diagnostics);
         }
 
-        // A function (rather than Scriban's generic string conversion) preserves JSON types and applies the
-        // application's shared serializer options and escaping rules.
-        globals.SetValue(
-            "to_json",
-            DynamicCustomFunction.Create(new Func<object?, string>(SerializeJson)),
-            true);
-
         // Ordinal lookup gives stable, culture-independent, case-sensitive variable semantics. Strict access
         // settings turn missing or inaccessible data into diagnostics instead of quietly producing empty output.
-        var context = new TemplateContext(CreateBuiltins(), StringComparer.Ordinal)
-        {
-            EnableRelaxedFunctionAccess = false,
-            EnableRelaxedIndexerAccess = false,
-            EnableRelaxedMemberAccess = false,
-            EnableRelaxedTargetAccess = false,
-            LimitToString = MaximumOutputLength,
-            LoopLimit = MaximumLoopCount,
-            RecursiveLimit = MaximumRecursionDepth,
-            RegexTimeOut = TimeSpan.FromSeconds(1),
-            StrictVariables = true,
-
-            // Template composition is intentionally unavailable: rendering must not read files or resolve
-            // external templates, and all executable text must be present in the supplied template string.
-            TemplateLoader = null
-        };
+        var context = CreateContext(renderAs);
         context.PushGlobal(globals);
 
         // LimitToString covers Scriban string conversions; the bounded sink independently caps the complete
@@ -180,6 +138,8 @@ internal sealed class ScribanTemplateService : ITemplateService
                     TemplateError.OutputLimitExceeded,
                     $"Template output exceeds the {MaximumOutputLength} character limit.");
             }
+
+            ValidateRenderedOutput(output, renderAs);
 
             return output;
         }
@@ -329,6 +289,7 @@ internal sealed class ScribanTemplateService : ITemplateService
     {
         return value switch
         {
+            JsonNullValue => null,
             ScriptObject scriptObject => scriptObject.ToDictionary(
                 item => item.Key,
                 item => ToPlainValue(item.Value),
@@ -373,6 +334,54 @@ internal sealed class ScribanTemplateService : ITemplateService
         return TemplateError.RenderFailed;
     }
 
+    /// <summary>Creates an isolated Scriban context whose expression output follows the requested format.</summary>
+    private static TemplateContext CreateContext(RenderAs renderAs)
+    {
+        var context = renderAs switch
+        {
+            RenderAs.Text => new TemplateContext(CreateBuiltins(), StringComparer.Ordinal),
+            RenderAs.Json => new JsonTemplateContext(CreateBuiltins()),
+            _ => throw new ArgumentOutOfRangeException(nameof(renderAs), renderAs, "Unsupported render format.")
+        };
+
+        context.EnableRelaxedFunctionAccess = false;
+        context.EnableRelaxedIndexerAccess = false;
+        context.EnableRelaxedMemberAccess = false;
+        context.EnableRelaxedTargetAccess = false;
+        context.LimitToString = MaximumOutputLength;
+        context.LoopLimit = MaximumLoopCount;
+        context.RecursiveLimit = MaximumRecursionDepth;
+        context.RegexTimeOut = TimeSpan.FromSeconds(1);
+        context.StrictVariables = true;
+
+        // Template composition is intentionally unavailable: rendering must not read files or resolve external
+        // templates, and all executable text must be present in the supplied template string.
+        context.TemplateLoader = null;
+
+        return context;
+    }
+
+    /// <summary>Verifies format-level guarantees that Scriban syntax validation cannot provide.</summary>
+    private static void ValidateRenderedOutput(string output, RenderAs renderAs)
+    {
+        if (renderAs != RenderAs.Json)
+        {
+            return;
+        }
+
+        try
+        {
+            using var _ = JsonDocument.Parse(output);
+        }
+        catch (JsonException exception)
+        {
+            throw new TemplateRenderException(
+                TemplateError.RenderFailed,
+                "The rendered output is not a valid JSON document.",
+                innerException: exception);
+        }
+    }
+
     /// <summary>Builds the allowed built-in function set for each rendering context.</summary>
     /// <remarks>
     /// <c>include</c> and <c>include_join</c> are removed because external template loading is outside this
@@ -389,6 +398,51 @@ internal sealed class ScribanTemplateService : ITemplateService
         builtins.Remove("object");
 
         return builtins;
+    }
+
+    /// <summary>A Scriban context that serializes each emitted expression as a complete JSON value.</summary>
+    /// <remarks>
+    /// Overriding <see cref="TemplateContext.Write(SourceSpan, object?)"/> affects only values written into the
+    /// output document. Scriban can still use its normal conversions internally for comparisons, concatenation,
+    /// indexing, and function execution. Literal template text is also written unchanged.
+    /// </remarks>
+    private sealed class JsonTemplateContext(ScriptObject builtins)
+        : TemplateContext(builtins, StringComparer.Ordinal)
+    {
+        /// <summary>
+        /// Preserves an evaluated <see langword="null"/> long enough for Scriban's output pipeline to write it.
+        /// </summary>
+        /// <remarks>
+        /// Scriban normally suppresses null expression results before calling <see cref="Write(SourceSpan, object?)"/>.
+        /// JSON requires an explicit <c>null</c> token, so only output statements receive this sentinel; nulls used
+        /// internally by conditions and other expressions retain Scriban's normal semantics.
+        /// </remarks>
+        public override object? Evaluate(ScriptNode? scriptNode, bool aliasReturnedFunction)
+        {
+            var value = base.Evaluate(scriptNode, aliasReturnedFunction);
+
+            return value is null && scriptNode is ScriptExpressionStatement
+                ? JsonNullValue.Instance
+                : value;
+        }
+
+        /// <summary>Serializes one evaluated output expression, including <see langword="null"/>.</summary>
+        public override TemplateContext Write(SourceSpan span, object? textAsObject)
+        {
+            Write(SerializeJson(textAsObject));
+
+            return this;
+        }
+    }
+
+    /// <summary>Represents a JSON null that Scriban must not treat as absent output.</summary>
+    private sealed class JsonNullValue
+    {
+        public static JsonNullValue Instance { get; } = new();
+
+        private JsonNullValue()
+        {
+        }
     }
 
     /// <summary>An output sink that rejects a write before it would cross the configured character limit.</summary>

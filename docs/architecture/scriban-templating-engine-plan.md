@@ -36,7 +36,7 @@ Phases 0 through 3 are complete.
   into Scriban-owned structures.
 - Includes, dynamic object evaluation, and clock access are removed from the
   available Scriban built-ins.
-- The reserved `to_json` filter serializes values with `System.Text.Json` so JSON
+- `RenderAs.Json` serializes emitted values with `System.Text.Json` so JSON
   payload templates correctly handle strings, numbers, booleans, and null.
 - `AddTemplatingServices` registers `ITemplateService` through the existing
   `AddServerServices` composition root.
@@ -162,7 +162,7 @@ name confirmed against Scriban conventions, that delegates to
 `System.Text.Json.JsonSerializer.Serialize`. The intended template form is:
 
 ```scriban
-{"value": {{ value | to_json }}}
+{"value": {{ value }}}
 ```
 
 This preserves JSON strings, booleans, numbers, and null correctly. Add tests
@@ -178,8 +178,8 @@ the fixture does not add a trailing newline to the template:
 name: mqtt-json-numeric-value
 template: |-
   {
-    "value": {{ value | to_json }},
-    "source": {{ source | to_json }}
+    "value": {{ value }},
+    "source": {{ source }}
   }
 values:
   value: 21.75
