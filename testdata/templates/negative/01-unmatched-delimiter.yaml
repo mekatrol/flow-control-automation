@@ -1,0 +1,5 @@
+name: 01-unmatched-delimiter
+template: '{{ value '
+values:
+  value: sample
+expectedError: InvalidTemplate

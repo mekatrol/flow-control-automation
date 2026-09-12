@@ -1,0 +1,4 @@
+name: both-outcomes
+template: text
+expected: text
+expectedError: RenderFailed

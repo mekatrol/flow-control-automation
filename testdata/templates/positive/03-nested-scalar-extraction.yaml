@@ -1,0 +1,9 @@
+name: 03-nested-scalar-extraction
+template: '{{ input.payload.readings[1].value }}'
+values:
+  input:
+    payload:
+      readings:
+        - value: 18.5
+        - value: 21.75
+expected: '21.75'

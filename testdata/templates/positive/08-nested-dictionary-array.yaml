@@ -1,0 +1,7 @@
+name: 08-nested-dictionary-array
+template: '{{ device.channels[0].labels[1] }}'
+values:
+  device:
+    channels:
+      - labels: [supply, return]
+expected: return

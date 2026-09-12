@@ -1,0 +1,3 @@
+name: repeated-name
+template: first
+expected: first

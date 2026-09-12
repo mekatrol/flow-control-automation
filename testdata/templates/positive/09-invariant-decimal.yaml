@@ -1,0 +1,5 @@
+name: 09-invariant-decimal
+template: '{{ value }}'
+values:
+  value: 1234.5
+expected: '1234.5'

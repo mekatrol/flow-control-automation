@@ -1,0 +1,5 @@
+name: 07-conditional
+template: '{{ if enabled }}online{{ else }}offline{{ end }}'
+values:
+  enabled: true
+expected: online

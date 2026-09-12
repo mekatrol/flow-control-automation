@@ -1,0 +1,14 @@
+name: 04-mqtt-json-payload
+template: |-
+  {
+    "value": {{ value | json }},
+    "source": {{ source | json }}
+  }
+values:
+  value: 21.75
+  source: room-temperature
+expected: |-
+  {
+    "value": 21.75,
+    "source": "room-temperature"
+  }

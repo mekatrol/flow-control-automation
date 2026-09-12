@@ -1,0 +1,7 @@
+name: 06-json-escaping
+template: '{{ value | json }}'
+values:
+  value: |-
+    Quote: " Backslash: \ Unicode: café 東京
+    second line
+expected: '"Quote: \u0022 Backslash: \\ Unicode: caf\u00E9 \u6771\u4EAC\nsecond line"'

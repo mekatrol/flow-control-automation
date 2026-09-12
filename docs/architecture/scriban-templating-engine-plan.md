@@ -16,7 +16,7 @@ remain responsibilities of their respective adapters.
 
 ## Implementation status (2026-09-12)
 
-Phases 0 and 1 are complete. Phases 2 and 3 remain pending.
+Phases 0, 1, and 2 are complete. Phase 3 remains pending.
 
 ### Completed
 
@@ -42,17 +42,22 @@ Phases 0 and 1 are complete. Phases 2 and 3 remain pending.
   `AddServerServices` composition root.
 - Initial unit coverage verifies DI lifetime, invalid-template diagnostics,
   JSON rendering, missing-value classification, and architecture boundaries.
+- Positive and negative YAML fixture catalogues cover literal and nested value
+  rendering, JSON payload generation and escaping, conditionals, invariant
+  formatting, syntax and runtime failures, and execution and output limits.
+- The test fixture loader discovers fixtures deterministically, rejects malformed
+  YAML and duplicate keys or names, validates the fixture envelope, and loads
+  fixtures from the test output directory.
 
 ### Verification completed
 
-- The focused templating and service-boundary suite passed: 12 tests.
-- The full backend unit suite passed: 331 tests.
+- The focused templating and service-boundary suite passed: 13 tests.
+- The full backend unit suite passed: 340 tests.
 - The backend solution build succeeded with zero warnings and zero errors.
 - `git diff --check` completed without whitespace errors.
 
 ### Remaining
 
-- Phase 2: add the positive and negative YAML fixture catalogue and loader.
 - Phase 3: add comprehensive fixture-driven validation and rendering tests,
   plus the remaining boundary, isolation, concurrency, culture, and limit tests.
 
@@ -271,7 +276,7 @@ Acceptance criteria:
   `ITemplateService`;
 - no transport dependency is introduced into the templating implementation.
 
-### Phase 2 — Positive and negative YAML fixtures (pending)
+### Phase 2 — Positive and negative YAML fixtures (complete)
 
 1. Add a fixture loader in `Tests.Unit/Templating` using the repository's
    existing YamlDotNet dependency and conventions.

@@ -1,0 +1,5 @@
+name: 02-scalar-substitution
+template: 'Temperature: {{ value }}'
+values:
+  value: 21.75
+expected: 'Temperature: 21.75'

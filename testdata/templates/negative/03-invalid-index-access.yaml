@@ -1,0 +1,6 @@
+name: 03-invalid-index-access
+template: '{{ values["missing"] }}'
+values:
+  values:
+    present: yes
+expectedError: MissingValue

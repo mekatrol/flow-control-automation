@@ -1,0 +1,8 @@
+name: 05-json-scalars
+template: '[{{ number | json }},{{ boolean | json }},{{ text | json }},{{ nothing | json }}]'
+values:
+  number: 12.5
+  boolean: true
+  text: sample
+  nothing: null
+expected: '[12.5,true,"sample",null]'

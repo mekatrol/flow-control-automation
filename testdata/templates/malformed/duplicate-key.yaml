@@ -1,0 +1,4 @@
+name: duplicate-key
+template: first
+template: second
+expected: never
