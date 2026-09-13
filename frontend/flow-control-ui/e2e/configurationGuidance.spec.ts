@@ -5,11 +5,11 @@ test('opens YAML help while its guidance is loading', async ({ page }) => {
   const guidanceReleased = new Promise<void>((resolve) => {
     releaseGuidance = resolve;
   });
-  await page.route('**/api/configuration-guidance/point', async (route) => {
+  await page.route('**/api/configuration-guidance/point-source', async (route) => {
     await guidanceReleased;
     await route.fulfill({ contentType: 'text/markdown', body: '# Point guidance' });
   });
-  await page.goto('/points/new');
+  await page.goto('/point-sources/new');
   await expect(page.locator('.monaco-editor')).toBeVisible({ timeout: 60_000 });
 
   await page.getByRole('button', { name: 'YAML help' }).click();

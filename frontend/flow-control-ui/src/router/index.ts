@@ -10,7 +10,6 @@ export const ROUTE_NAMES = {
   flowDesigner: 'flow-designer',
   flowSimulator: 'flow-simulator',
   flowDebugger: 'flow-debugger',
-  points: 'points',
   controllerTemplates: 'controller-templates',
   controllerTemplateNew: 'controller-template-new',
   controllerTemplateDetail: 'controller-template-detail',
@@ -74,11 +73,6 @@ export const routes: RouteRecordRaw[] = [
           flowId: String(route.params.flowId),
           workspaceMode: WorkspaceMode.Debugger
         })
-      },
-      {
-        path: 'points',
-        name: ROUTE_NAMES.points,
-        component: () => import('@/features/points/views/AppPointListView.vue')
       },
       {
         path: 'controller-templates',
