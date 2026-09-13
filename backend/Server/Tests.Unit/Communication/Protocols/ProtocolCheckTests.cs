@@ -109,6 +109,32 @@ internal sealed class ProtocolCheckTests
     }
 
     [Test]
+    public async Task HttpWriteErrorDiagnosticIncludesConstructedRequestBody()
+    {
+        await using var server = await LoopbackHttpServer.Start(
+            "HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
+        await using var factory = Factory(new FakeDns(IPAddress.Loopback));
+        await using var scope = factory.Services.CreateAsyncScope();
+        var check = scope.ServiceProvider.GetRequiredService<IHttpProtocolCheck>();
+
+        var result = await check.WriteAsync(
+            HttpSource(server.Url),
+            server.Url,
+            "POST",
+            "{\"command\":21.5}",
+            "application/json",
+            string.Empty,
+            [IPAddress.Loopback],
+            CancellationToken.None);
+
+        Assert.That(
+            result.Diagnostic,
+            Is.EqualTo(
+                $"HTTP protocol check for POST {server.Url.AbsoluteUri} returned status 400; "
+                + "request body: {\"command\":21.5}"));
+    }
+
+    [Test]
     public async Task HttpWriteSendsFormEncodedBody()
     {
         await using var server = await LoopbackHttpServer.Start(

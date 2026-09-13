@@ -218,9 +218,14 @@ internal sealed class HttpProtocolCheck(IDnsLookup dns) : IHttpProtocolCheck
 
                 if ((int)response.StatusCode >= 400)
                 {
+                    var requestBodyDiagnostic = body is null
+                        ? string.Empty
+                        : $"; request body: {body}";
+
                     return new(
                         $"HTTP protocol check for {method.Method} {endpoint.AbsoluteUri} "
-                        + $"returned status {(int)response.StatusCode}",
+                        + $"returned status {(int)response.StatusCode}"
+                        + requestBodyDiagnostic,
                         responsePreview);
                 }
 
