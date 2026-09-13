@@ -13,6 +13,13 @@ internal static class PointServiceCollectionExtensions
         services.AddSingleton<IVirtualPointRuntimeStore, VirtualPointRuntimeStore>();
         services.AddSingleton<IPointSourceValidator, PointSourceValidator>();
         services.AddSingleton<IPointMappingResolver, PointMappingResolver>();
+        services.AddSingleton<IPointValueConverter, PointValueConverter>();
+        services.AddScoped<IPointMappingExecutionService, PointMappingExecutionService>();
+        services.AddScoped<IPointMappingAdapter, HttpJsonPointMappingAdapter>();
+        services.AddScoped<IPointMappingAdapter, MqttPointMappingAdapter>();
+        services.AddScoped<IPointMappingAdapter, HomeAssistantPointMappingAdapter>();
+        services.AddScoped<IPointMappingAdapter, PhysicalPointMappingAdapter>();
+        services.AddScoped<IPointMappingAdapter, VirtualPointMappingAdapter>();
         services.AddSingleton<IPointDefinitionValidator, PointDefinitionValidator>();
         services.AddScoped<IPointDefinitionStore, PointDefinitionDatabaseStore>();
         services.AddScoped<IPointReadService, PointReadService>();

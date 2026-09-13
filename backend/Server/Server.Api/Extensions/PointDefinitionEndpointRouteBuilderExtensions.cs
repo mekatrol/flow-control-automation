@@ -64,6 +64,7 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
             options.Value.PageSize));
     }
 
+    [Obsolete]
     private static async Task<IResult> CreatePoint(
         HttpRequest request,
         HttpResponse response,
@@ -91,6 +92,7 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
             PointYaml.Render,
             StatusCodes.Status200OK);
 
+    [Obsolete]
     private static async Task<IResult> UpdatePoint(
         string pointId,
         HttpRequest request,
@@ -113,6 +115,7 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
             : Error(400, "invalid_revision", "If-Match must contain the last observed revision"));
     }
 
+    [Obsolete]
     private static async Task<IResult> DeletePoint(
         string pointId,
         HttpRequest request,

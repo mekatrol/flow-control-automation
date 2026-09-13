@@ -202,11 +202,12 @@ revision/dependency conflicts are `409`, forbidden command/network operation is
 
 ## Delivery phases
 
-Implementation status (2026-09-13): Phases 1 through 4 are complete. The normative contract is
+Implementation status (2026-09-13): Phases 1 through 5 are complete. The normative contract is
 `point-source-v1-contract.md` plus the paired YAML/normalized-JSON fixtures under
 `testdata/contracts/point-sources/valid`; aggregate parser, models, validation, and mapping
-resolution now implement that contract. Exhaustive validator coverage and aggregate persistence
-are complete; adapter, API, and editor cutovers remain tracked by Phases 5–8.
+resolution now implement that contract. Exhaustive validator coverage, aggregate persistence,
+mapping execution, and typed point operations are complete; API and editor cutovers remain tracked
+by Phases 6–8.
 
 | Phase | Status |
 | --- | --- |
@@ -214,7 +215,7 @@ are complete; adapter, API, and editor cutovers remain tracked by Phases 5–8.
 | Phase 2 — Replace common models, parsing, and validation | Complete |
 | Phase 3 — Add exhaustive point-source and point-definition validator tests | Complete |
 | Phase 4 — Replace persistence and aggregate services | Complete |
-| Phase 5 — Implement mapping execution and point operations | Pending |
+| Phase 5 — Implement mapping execution and point operations | Complete |
 | Phase 6 — Cut over HTTP endpoints and configuration guidance | Pending |
 | Phase 7 — Replace the frontend source and point workflows | Pending |
 | Phase 8 — Remove legacy artifacts, update documentation, and verify | Pending |
@@ -372,7 +373,7 @@ CRUD, concurrency, global point uniqueness, cascades/dependency rejection, and
 catalogue lookup. Assert that the EF model contains no legacy point-source
 foreign-key fields, standalone point-definition context values, or old tables.
 
-### Phase 5 — Implement mapping execution and point operations
+### Phase 5 — Implement mapping execution and point operations (complete)
 
 1. Introduce a source-kind adapter boundary with operations for connectivity,
    mapping read, and mapping command. Implement it for every current kind,

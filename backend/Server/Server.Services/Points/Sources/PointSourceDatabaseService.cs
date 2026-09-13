@@ -153,10 +153,10 @@ internal sealed class PointSourceDatabaseService(
         context.PointSourcePoints.AddRange(updated.Points
             .Where(point => !existingPointIds.Contains(point.Id))
             .Select(point => new PointSourcePointEntity
-        {
-            PointId = point.Id,
-            SourceId = id
-        }));
+            {
+                PointId = point.Id,
+                SourceId = id
+            }));
 
         try
         {

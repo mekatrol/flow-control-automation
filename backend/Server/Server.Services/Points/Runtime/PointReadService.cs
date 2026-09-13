@@ -1,13 +1,13 @@
-using System.Text.Json.Nodes;
-
 namespace Server.Services.Points.Runtime;
+
+#pragma warning disable IDE0011
 
 internal sealed class PointReadService(
     IPointDefinitionStore definitions,
     IPointSourceService sources,
-    IDnsLookup dns,
-    ICredentialResolver credentials,
-    IHttpProtocolCheck http,
+    IPointMappingResolver resolver,
+    IPointMappingExecutionService mappings,
+    IPointValueConverter values,
     IVirtualPointRuntimeStore? virtualPoints = null) : IPointReadService
 {
     public async Task<PointRuntimeEnvelope> ReadAsync(
@@ -57,11 +57,6 @@ internal sealed class PointReadService(
                 "Virtual point has no commissioned runtime value.");
         }
 
-        if (source?.Kind == PointSourceKind.Physical)
-        {
-            return Unavailable(point, "unconfigured", "Physical point has no commissioned hardware read adapter.");
-        }
-
         if (source is null)
         {
             return Unavailable(point, "unconfigured", "Point has no source.");
@@ -72,117 +67,33 @@ internal sealed class PointReadService(
             return Unavailable(point, "disconnected", "Referenced point source is disabled.");
         }
 
-        if (source.Kind == PointSourceKind.HttpJson)
-        {
-            return await ReadHttpJson(point, source, cancellationToken);
-        }
-
-        return Unavailable(
-            point,
-            "disconnected",
-            $"{SourceLabel(source.Kind)} read adapter has not produced a live sample.");
+        return await ReadMapping(point, source, cancellationToken);
     }
 
-    private async Task<PointRuntimeEnvelope> ReadHttpJson(
+    private async Task<PointRuntimeEnvelope> ReadMapping(
         AutomationPoint point,
         PointSource source,
         CancellationToken cancellationToken)
     {
-        var segments = point.Mapping.Split('/', StringSplitOptions.None);
-        var mapping = segments.Length == 2
-            ? source.Mappings.SingleOrDefault(candidate => candidate.Id == segments[0])
-            : null;
-        var path = mapping?.Read?.Path;
-        string? pointer = null;
-
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            return Unavailable(point, "unconfigured", "HTTP/JSON point mapping has no path.");
-        }
-
-        var endpoint = new Uri(new Uri(source.Connection.BaseUrl!), path);
-        IReadOnlyList<System.Net.IPAddress> addresses;
-
         try
         {
-            addresses = await dns.LookupAsync(endpoint.Host, cancellationToken);
+            var resolution = resolver.Resolve(source, point);
+            var result = await mappings.ReadAsync(resolution, cancellationToken);
+            if (result.Quality != DataQualityType.Good)
+                return Unavailable(point, "disconnected", result.Diagnostic ?? "Mapping read failed.", result.Response);
+            if (!result.Values.TryGetValue(resolution.Alias, out var raw))
+                return Unavailable(point, "bad_data", $"Mapping did not return alias '{resolution.Alias}'.", result.Response);
+            var converted = values.Parse(point, raw);
+            if (converted.Quality != DataQualityType.Good)
+                return new(point.Id, null, point.Units, converted.Quality, "bad_data", result.Timestamp.ToString("O"),
+                    result.Timestamp.ToString("O"), "connected", "unavailable", converted.Diagnostic ?? "Value conversion failed.", result.Response);
+
+            return new(point.Id, converted.Value, point.Units, DataQualityType.Good, "reliable",
+                result.Timestamp.ToString("O"), result.Timestamp.ToString("O"), "connected", "live", string.Empty, result.Response);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
-            return Unavailable(point, "disconnected", "HTTP/JSON host lookup failed.");
-        }
-
-        if (addresses.Count == 0 || addresses.Any(address => Server.Services.Communication.Network.ConnectivityPolicy.IsForbidden(
-            address,
-            source.Connection.AllowPrivateNetwork == true)))
-        {
-            return Unavailable(point, "disconnected", "HTTP/JSON destination is forbidden or unavailable.");
-        }
-
-        string credential;
-
-        try
-        {
-            credential = await credentials.ResolveAsync(source.CredentialRef ?? string.Empty, cancellationToken);
-        }
-        catch (Exception exception) when (exception is not OperationCanceledException)
-        {
-            return Unavailable(point, "disconnected", "HTTP/JSON credential could not be resolved.");
-        }
-
-        var result = await http.ReadAsync(source, endpoint, credential, addresses, cancellationToken);
-
-        if (result.Diagnostic is not null || result.Response is null)
-        {
-            return Unavailable(point, "disconnected", result.Diagnostic ?? "HTTP/JSON response was unavailable.");
-        }
-
-        try
-        {
-            var value = JsonNode.Parse(result.Response.Body);
-
-            if (!string.IsNullOrEmpty(pointer))
-            {
-                foreach (var rawSegment in pointer.Split('/', StringSplitOptions.RemoveEmptyEntries))
-                {
-                    var segment = rawSegment.Replace("~1", "/").Replace("~0", "~");
-                    value = value is JsonArray array && int.TryParse(segment, out var index)
-                        ? array[index]
-                        : value?[segment];
-                }
-            }
-
-            if (value is null)
-            {
-                return Unavailable(
-                    point,
-                    "bad_data",
-                    $"JSON pointer '{pointer}' did not select a value.",
-                    result.Response);
-            }
-
-            var now = DateTimeOffset.UtcNow.ToString("O");
-
-            return new(
-                point.Id,
-                value.DeepClone(),
-                point.Units,
-                DataQualityType.Good,
-                "reliable",
-                null,
-                now,
-                "connected",
-                "live",
-                string.Empty,
-                result.Response);
-        }
-        catch (Exception exception) when (exception is not OperationCanceledException)
-        {
-            return Unavailable(
-                point,
-                "bad_data",
-                "HTTP/JSON response was not valid JSON for this mapping.",
-                result.Response);
+            return Unavailable(point, "disconnected", exception.Message);
         }
     }
 
@@ -204,11 +115,4 @@ internal sealed class PointReadService(
             diagnostic,
             deviceResponse);
 
-    private static string SourceLabel(PointSourceKind kind) => kind switch
-    {
-        PointSourceKind.HomeAssistant => "Home Assistant",
-        PointSourceKind.Mqtt => "MQTT",
-        PointSourceKind.HttpJson => "HTTP/JSON",
-        _ => "Point source"
-    };
 }
