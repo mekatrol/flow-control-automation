@@ -202,18 +202,18 @@ revision/dependency conflicts are `409`, forbidden command/network operation is
 
 ## Delivery phases
 
-Implementation status (2026-09-13): Phase 1 and Phase 2 are complete. The normative contract is
+Implementation status (2026-09-13): Phases 1 through 4 are complete. The normative contract is
 `point-source-v1-contract.md` plus the paired YAML/normalized-JSON fixtures under
 `testdata/contracts/point-sources/valid`; aggregate parser, models, validation, and mapping
-resolution now implement that contract. Validator matrix coverage and the later persistence,
-adapter, API, and editor cutovers remain tracked by Phases 3–8.
+resolution now implement that contract. Exhaustive validator coverage and aggregate persistence
+are complete; adapter, API, and editor cutovers remain tracked by Phases 5–8.
 
 | Phase | Status |
 | --- | --- |
 | Phase 1 — Freeze the version-1 contract and fixtures | Complete |
 | Phase 2 — Replace common models, parsing, and validation | Complete |
 | Phase 3 — Add exhaustive point-source and point-definition validator tests | Complete |
-| Phase 4 — Replace persistence and aggregate services | Pending |
+| Phase 4 — Replace persistence and aggregate services | Complete |
 | Phase 5 — Implement mapping execution and point operations | Pending |
 | Phase 6 — Cut over HTTP endpoints and configuration guidance | Pending |
 | Phase 7 — Replace the frontend source and point workflows | Pending |
@@ -290,7 +290,7 @@ all removed shapes; aggregate validation tests cover every source/value kind,
 shared mappings, bad references, capabilities, and template diagnostics; the
 solution compiles without the removed contracts.
 
-### Phase 3 — Add exhaustive point-source and point-definition validator tests
+### Phase 3 — Add exhaustive point-source and point-definition validator tests (complete)
 
 1. Add focused unit-test fixtures and tests under
    `backend/Server/Tests.Unit/Points/Validation`. Exercise
@@ -343,7 +343,7 @@ point-source fixture is consumed and rejected for its declared reason; fixture
 discovery and completeness checks pass; focused backend validation tests pass
 without a database or HTTP server.
 
-### Phase 4 — Replace persistence and aggregate services
+### Phase 4 — Replace persistence and aggregate services (complete)
 
 1. Replace separate `PointSourceEntity` and `PointEntity` persistence with one
    source aggregate representation and its owned mapping/point data. Choose

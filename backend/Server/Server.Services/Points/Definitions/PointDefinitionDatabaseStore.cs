@@ -1,201 +1,36 @@
 using Server.Data.Context;
-using Server.Data.Entities;
-using System.Globalization;
 using System.Text.Json;
 
 namespace Server.Services.Points.Definitions;
 
-internal sealed class PointDefinitionDatabaseStore(
-    IFlowControlDbContext context,
-    TimeProvider timeProvider,
-    IPointDefinitionValidator validator) : IPointDefinitionStore
+/// <summary>Read-only point catalogue projected from persisted source aggregates.</summary>
+internal sealed class PointDefinitionDatabaseStore(IFlowControlDbContext context) : IPointDefinitionStore
 {
     public async Task<IReadOnlyList<AutomationPoint>> ListPointsAsync(
-        CancellationToken cancellationToken)
-    {
-        return [.. (await context.Points.AsNoTracking().ToListAsync(cancellationToken))
-            .Select(DeserializePoint)
+        CancellationToken cancellationToken) =>
+        [.. (await Sources(cancellationToken))
+            .SelectMany(source => source.Points)
             .OrderBy(point => point.Name, StringComparer.OrdinalIgnoreCase)
             .ThenBy(point => point.Id, StringComparer.Ordinal)];
-    }
 
     public async Task<AutomationPoint> GetPointAsync(
         string id,
         CancellationToken cancellationToken)
     {
-        var entity = await context.Points
-            .AsNoTracking()
-            .SingleOrDefaultAsync(point => point.Id == id, cancellationToken);
+        var ownership = await context.PointSourcePoints.AsNoTracking()
+            .SingleOrDefaultAsync(item => item.PointId == id, cancellationToken)
+            ?? throw new PointDefinitionNotFoundException("point", id);
 
-        return entity is null
-            ? throw new PointDefinitionNotFoundException("point", id)
-            : DeserializePoint(entity);
+        var entity = await context.PointSources.AsNoTracking()
+            .SingleAsync(source => source.Id == ownership.SourceId, cancellationToken);
+        var source = JsonSerializer.Deserialize<PointSource>(entity.Json, FlowControlJson.Options)
+            ?? throw new InvalidOperationException($"Stored point source {entity.Id} is null.");
+
+        return source.Points.Single(point => point.Id == id);
     }
 
-    public async Task<AutomationPoint> CreatePointAsync(
-        AutomationPoint point,
-        CancellationToken cancellationToken)
-    {
-        validator.Validate(point, await Context(cancellationToken));
-
-        var now = timeProvider.GetUtcNow();
-
-        var created = point with
-        {
-            Revision = 1,
-            CreatedAt = Timestamp(now),
-            UpdatedAt = Timestamp(now)
-        };
-
-        context.Points.Add(Entity(created, now));
-
-        await SaveCreate("point ID or name already exists", cancellationToken);
-
-        return created;
-    }
-
-    public async Task<AutomationPoint> UpdatePointAsync(
-        string id,
-        AutomationPoint point,
-        int revision,
-        CancellationToken cancellationToken)
-    {
-        var entity = await FindPoint(id, cancellationToken);
-        var previous = DeserializePoint(entity);
-        EnsureRevision(revision, previous.Revision);
-        validator.Validate(point, await Context(cancellationToken));
-        var now = timeProvider.GetUtcNow();
-        var updated = point with
-        {
-            Revision = previous.Revision + 1,
-            CreatedAt = previous.CreatedAt,
-            UpdatedAt = Timestamp(now)
-        };
-
-        if (point.Id == id)
-        {
-            Update(entity, updated, now);
-            await SaveUpdate(entity, "point name already exists", cancellationToken);
-        }
-        else
-        {
-            // EF Core does not allow a tracked primary key to be changed. Replace
-            // the row in one SaveChanges call so a rename is atomic while the
-            // public resource revision and creation timestamp remain continuous.
-            context.Points.Remove(entity);
-            context.Points.Add(Entity(updated, now));
-            await SaveUpdate(entity: null, "point ID or name already exists", cancellationToken);
-        }
-
-        return updated;
-    }
-
-    public async Task DeletePointAsync(
-        string id,
-        int revision,
-        CancellationToken cancellationToken)
-    {
-        var entity = await FindPoint(id, cancellationToken);
-        EnsureRevision(revision, DeserializePoint(entity).Revision);
-        context.Points.Remove(entity);
-        await SaveUpdate(entity: null, "unable to delete point", cancellationToken);
-    }
-
-    private async Task<PointValidationContext> Context(
-        CancellationToken cancellationToken) =>
-        new(await Sources(cancellationToken));
-
-    private async Task<IReadOnlyDictionary<string, PointSource>> Sources(
-        CancellationToken cancellationToken) =>
-        (await context.PointSources.AsNoTracking().ToListAsync(cancellationToken))
-        .Select(DeserializeSource)
-        .ToDictionary(source => source.Id, StringComparer.Ordinal);
-
-    private async Task<PointEntity> FindPoint(
-        string id,
-        CancellationToken cancellationToken) =>
-        await context.Points.SingleOrDefaultAsync(point => point.Id == id, cancellationToken)
-        ?? throw new PointDefinitionNotFoundException("point", id);
-
-    private async Task SaveCreate(
-        string conflictMessage,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            await context.SaveChangesAsync(cancellationToken);
-        }
-        catch (DbUpdateException exception) when (IsUniqueConstraint(exception))
-        {
-            throw new PointDefinitionConflictException(conflictMessage, exception);
-        }
-    }
-
-    private async Task SaveUpdate(
-        BaseEntity? entity,
-        string conflictMessage,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            await context.SaveChangesAsync(cancellationToken);
-
-            if (entity is not null)
-            {
-                await context.ReloadAsync(entity, cancellationToken);
-            }
-        }
-        catch (DbUpdateConcurrencyException exception)
-        {
-            throw new PointDefinitionConflictException("stale revision", exception);
-        }
-        catch (DbUpdateException exception) when (IsUniqueConstraint(exception))
-        {
-            throw new PointDefinitionConflictException(conflictMessage, exception);
-        }
-    }
-
-    private static void EnsureRevision(int supplied, int current)
-    {
-        if (supplied != current)
-        {
-            throw new PointDefinitionConflictException("stale revision");
-        }
-    }
-
-    private static PointEntity Entity(AutomationPoint point, DateTimeOffset now) => new()
-    {
-        Id = point.Id,
-        Key = NormalizeName(point.Name),
-        Json = JsonSerializer.Serialize(point, FlowControlJson.Options),
-        Created = now,
-        Updated = now
-    };
-
-    private static void Update(PointEntity entity, AutomationPoint point, DateTimeOffset now)
-    {
-        entity.Key = NormalizeName(point.Name);
-        entity.Json = JsonSerializer.Serialize(point, FlowControlJson.Options);
-        entity.Updated = now;
-    }
-
-    private static AutomationPoint DeserializePoint(PointEntity entity) =>
-        JsonSerializer.Deserialize<AutomationPoint>(entity.Json, FlowControlJson.Options)
-        ?? throw new InvalidOperationException($"Stored point {entity.Id} is null.");
-
-    private static PointSource DeserializeSource(PointSourceEntity entity) =>
-        JsonSerializer.Deserialize<PointSource>(entity.Json, FlowControlJson.Options)
-        ?? throw new InvalidOperationException($"Stored point source {entity.Id} is null.");
-
-    private static string Timestamp(DateTimeOffset value) =>
-        value.ToString(
-            "yyyy-MM-dd'T'HH:mm:ss.FFFFFFFK",
-            CultureInfo.InvariantCulture);
-
-    private static string NormalizeName(string name) => name.ToUpperInvariant();
-
-    private static bool IsUniqueConstraint(DbUpdateException exception) =>
-        exception.InnerException?.Message.Contains(
-            "UNIQUE constraint failed",
-            StringComparison.Ordinal) == true;
+    private async Task<IReadOnlyList<PointSource>> Sources(CancellationToken cancellationToken) =>
+        [.. (await context.PointSources.AsNoTracking().ToListAsync(cancellationToken))
+            .Select(entity => JsonSerializer.Deserialize<PointSource>(entity.Json, FlowControlJson.Options)
+                ?? throw new InvalidOperationException($"Stored point source {entity.Id} is null."))];
 }

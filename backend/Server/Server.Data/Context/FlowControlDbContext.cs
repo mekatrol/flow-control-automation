@@ -6,7 +6,7 @@ internal sealed class FlowControlDbContext(DbContextOptions<FlowControlDbContext
     : DbContext(options), IFlowControlDbContext
 {
     private static readonly string[] TableNames =
-        [nameof(Flows), nameof(PointSources), nameof(Points), nameof(Credentials),
+        [nameof(Flows), nameof(PointSources), nameof(Credentials),
             nameof(ExecutionContexts), nameof(ExecutionInstances), nameof(ExecutionContextDeployments),
             nameof(VirtualPointRetainedStates), nameof(AuditRecords)];
 
@@ -14,7 +14,7 @@ internal sealed class FlowControlDbContext(DbContextOptions<FlowControlDbContext
 
     public DbSet<PointSourceEntity> PointSources => Set<PointSourceEntity>();
 
-    public DbSet<PointEntity> Points => Set<PointEntity>();
+    public DbSet<PointSourcePointEntity> PointSourcePoints => Set<PointSourcePointEntity>();
 
     public DbSet<CredentialEntity> Credentials => Set<CredentialEntity>();
 
@@ -56,7 +56,18 @@ internal sealed class FlowControlDbContext(DbContextOptions<FlowControlDbContext
     {
         ConfigureEntity(modelBuilder.Entity<FlowEntity>());
         ConfigureEntity(modelBuilder.Entity<PointSourceEntity>());
-        ConfigureEntity(modelBuilder.Entity<PointEntity>());
+        modelBuilder.Entity<PointSourcePointEntity>(entity =>
+        {
+            entity.ToTable("PointSourcePoints");
+            entity.HasKey(item => item.PointId);
+            entity.Property(item => item.PointId).IsRequired();
+            entity.Property(item => item.SourceId).IsRequired();
+            entity.HasIndex(item => item.SourceId);
+            entity.HasOne<PointSourceEntity>()
+                .WithMany()
+                .HasForeignKey(item => item.SourceId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
         ConfigureEntity(modelBuilder.Entity<CredentialEntity>());
         ConfigureEntity(modelBuilder.Entity<ExecutionContextEntity>());
         ConfigureEntity(modelBuilder.Entity<ExecutionInstanceEntity>());

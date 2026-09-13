@@ -92,7 +92,7 @@ public sealed class RegistrationTests
 
         public DbSet<PointSourceEntity> PointSources => throw new NotSupportedException();
 
-        public DbSet<PointEntity> Points => throw new NotSupportedException();
+        public DbSet<PointSourcePointEntity> PointSourcePoints => throw new NotSupportedException();
 
         public DbSet<CredentialEntity> Credentials => throw new NotSupportedException();
 

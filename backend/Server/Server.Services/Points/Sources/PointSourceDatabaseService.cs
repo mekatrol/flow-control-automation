@@ -63,14 +63,16 @@ internal sealed class PointSourceDatabaseService(
         PointSource source,
         CancellationToken cancellationToken)
     {
-        validator.Validate(source);
+        validator.Validate(source, await LoadSources(cancellationToken));
         await EnsureNameAvailable(source.Name, exceptId: null, cancellationToken);
         var now = timeProvider.GetUtcNow();
+        var timestamp = Timestamp(now);
         var created = source with
         {
             Revision = 1,
-            CreatedAt = Timestamp(now),
-            UpdatedAt = Timestamp(now)
+            CreatedAt = timestamp,
+            UpdatedAt = timestamp,
+            Points = StampPoints(source.Points, 1, timestamp, timestamp)
         };
         context.PointSources.Add(new PointSourceEntity
         {
@@ -84,6 +86,11 @@ internal sealed class PointSourceDatabaseService(
             Created = now,
             Updated = now
         });
+        context.PointSourcePoints.AddRange(created.Points.Select(point => new PointSourcePointEntity
+        {
+            PointId = point.Id,
+            SourceId = created.Id
+        }));
 
         try
         {
@@ -118,24 +125,38 @@ internal sealed class PointSourceDatabaseService(
             throw new PointSourceConflictException("stale revision");
         }
 
-        if (!EqualityComparer<PointSourceKind>.Default.Equals(source.Kind, previous.Kind)
-            && await IsReferenced(id, cancellationToken))
-        {
-            throw new PointSourceConflictException("source kind cannot change while points reference it");
-        }
-
-        validator.Validate(source);
+        validator.Validate(source, await LoadSources(cancellationToken));
         await EnsureNameAvailable(source.Name, id, cancellationToken);
         var now = timeProvider.GetUtcNow();
+        var timestamp = Timestamp(now);
         var updated = source with
         {
             Revision = previous.Revision + 1,
             CreatedAt = previous.CreatedAt,
-            UpdatedAt = Timestamp(now)
+            UpdatedAt = timestamp,
+            Points = StampUpdatedPoints(
+                source.Points,
+                previous.Points,
+                previous.Revision + 1,
+                timestamp)
         };
         entity.Json = Serialize(updated);
         entity.Key = NormalizeName(updated.Name);
         entity.Updated = now;
+        var oldOwnership = await context.PointSourcePoints
+            .Where(item => item.SourceId == id)
+            .ToListAsync(cancellationToken);
+        var updatedPointIds = updated.Points.Select(point => point.Id).ToHashSet(StringComparer.Ordinal);
+        var existingPointIds = oldOwnership.Select(item => item.PointId).ToHashSet(StringComparer.Ordinal);
+        context.PointSourcePoints.RemoveRange(
+            oldOwnership.Where(item => !updatedPointIds.Contains(item.PointId)));
+        context.PointSourcePoints.AddRange(updated.Points
+            .Where(point => !existingPointIds.Contains(point.Id))
+            .Select(point => new PointSourcePointEntity
+        {
+            PointId = point.Id,
+            SourceId = id
+        }));
 
         try
         {
@@ -163,10 +184,12 @@ internal sealed class PointSourceDatabaseService(
             throw new PointSourceConflictException("stale revision");
         }
 
-        if (await IsReferenced(id, cancellationToken))
+        var source = Deserialize(entity);
+
+        if (await IsReferencedByFlow(source.Points.Select(point => point.Id), cancellationToken))
         {
             throw new PointSourceConflictException(
-                "source is referenced by one or more points");
+                "one or more source points are referenced by a flow");
         }
 
         context.PointSources.Remove(entity);
@@ -199,14 +222,70 @@ internal sealed class PointSourceDatabaseService(
             cancellationToken)
         ?? throw new PointSourceNotFoundException(id);
 
-    private async Task<bool> IsReferenced(
-        string id,
+    private async Task<bool> IsReferencedByFlow(
+        IEnumerable<string> pointIds,
         CancellationToken cancellationToken)
     {
-        var source = await context.PointSources.AsNoTracking()
-            .SingleOrDefaultAsync(candidate => candidate.Id == id, cancellationToken);
+        var ids = pointIds.ToHashSet(StringComparer.Ordinal);
 
-        return source is not null && Deserialize(source).Points.Count > 0;
+        if (ids.Count == 0)
+        {
+            return false;
+        }
+
+        foreach (var entity in await context.Flows.AsNoTracking().ToListAsync(cancellationToken))
+        {
+            using var document = JsonDocument.Parse(entity.Json);
+
+            if (document.RootElement.TryGetProperty("nodes", out var nodes))
+            {
+                foreach (var node in nodes.EnumerateArray())
+                {
+                    if (node.TryGetProperty("configuration", out var configuration)
+                        && configuration.TryGetProperty("pointId", out var pointId)
+                        && pointId.ValueKind == JsonValueKind.String
+                        && ids.Contains(pointId.GetString()!))
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private async Task<IReadOnlyList<PointSource>> LoadSources(CancellationToken cancellationToken) =>
+        [.. (await context.PointSources.AsNoTracking().ToListAsync(cancellationToken)).Select(Deserialize)];
+
+    private static IReadOnlyList<AutomationPoint> StampPoints(
+        IReadOnlyList<AutomationPoint> points,
+        int revision,
+        string createdAt,
+        string updatedAt) =>
+        [.. points.Select(point => point with
+        {
+            Revision = revision,
+            CreatedAt = point.CreatedAt ?? createdAt,
+            UpdatedAt = updatedAt
+        })];
+
+    private static IReadOnlyList<AutomationPoint> StampUpdatedPoints(
+        IReadOnlyList<AutomationPoint> points,
+        IReadOnlyList<AutomationPoint> previousPoints,
+        int revision,
+        string timestamp)
+    {
+        var previousById = previousPoints.ToDictionary(point => point.Id, StringComparer.Ordinal);
+
+        return [.. points.Select(point => point with
+        {
+            Revision = revision,
+            CreatedAt = previousById.TryGetValue(point.Id, out var previous)
+                ? previous.CreatedAt ?? timestamp
+                : timestamp,
+            UpdatedAt = timestamp
+        })];
     }
 
     private async Task SaveWithConcurrencyMapping(
@@ -239,11 +318,6 @@ internal sealed class PointSourceDatabaseService(
     private static PointSource Deserialize(PointSourceEntity entity) =>
         JsonSerializer.Deserialize<PointSource>(entity.Json, FlowControlJson.Options)
         ?? throw new InvalidOperationException($"Stored point source {entity.Id} is null.");
-
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality", "IDE0051", Justification = "Removed in aggregate persistence phase")]
-    private static AutomationPoint DeserializePoint(PointEntity entity) =>
-        JsonSerializer.Deserialize<AutomationPoint>(entity.Json, FlowControlJson.Options)
-        ?? throw new InvalidOperationException($"Stored point {entity.Id} is null.");
 
     private static bool IsUniqueConstraint(DbUpdateException exception) =>
         exception.InnerException?.Message.Contains(

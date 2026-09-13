@@ -8,7 +8,7 @@ public interface IFlowControlDbContext
 
     DbSet<PointSourceEntity> PointSources { get; }
 
-    DbSet<PointEntity> Points { get; }
+    DbSet<PointSourcePointEntity> PointSourcePoints { get; }
 
     DbSet<CredentialEntity> Credentials { get; }
 

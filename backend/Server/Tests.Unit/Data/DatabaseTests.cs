@@ -52,9 +52,67 @@ public sealed class DatabaseTests
         var triggerCount = Convert.ToInt32(await command.ExecuteScalarAsync());
 
         // Expected outcome: `triggerCount` has the required value.
-        // Acceptance criteria: `triggerCount` must equal `9`, because this condition proves that
+        // Acceptance criteria: `triggerCount` must equal `8`, because this condition proves that
         // initialization is idempotent and creates schema and triggers.
-        Assert.That(triggerCount, Is.EqualTo(9));
+        Assert.That(triggerCount, Is.EqualTo(8));
+    }
+
+    [Test]
+    public async Task PointSchemaContainsOnlyAggregateAndOwnershipIndex()
+    {
+        await using var provider = CreateProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<IFlowControlDbContext>();
+        await context.InitializeDatabase();
+
+        await using var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText =
+            "SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE 'Point%' ORDER BY name";
+        await using var reader = await command.ExecuteReaderAsync();
+        var tables = new List<string>();
+
+        while (await reader.ReadAsync())
+        {
+            tables.Add(reader.GetString(0));
+        }
+
+        Assert.That(tables, Is.EqualTo(new[] { "PointSourcePoints", "PointSources" }));
+    }
+
+    [Test]
+    public async Task PointOwnershipIndexEnforcesGlobalIdsAndCascadesWithSource()
+    {
+        await using var provider = CreateProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<IFlowControlDbContext>();
+        await context.InitializeDatabase();
+        var now = DateTimeOffset.UtcNow;
+        context.PointSources.AddRange(
+            CreatePointSource("source-one", now),
+            CreatePointSource("source-two", now));
+        context.PointSourcePoints.Add(new PointSourcePointEntity
+        {
+            PointId = "shared-point",
+            SourceId = "source-one"
+        });
+        await context.SaveChangesAsync(CancellationToken.None);
+        context.PointSourcePoints.Add(new PointSourcePointEntity
+        {
+            PointId = "shared-point",
+            SourceId = "source-two"
+        });
+
+        Assert.That(
+            async () => await context.SaveChangesAsync(CancellationToken.None),
+            Throws.TypeOf<DbUpdateException>());
+
+        context.PointSourcePoints.Remove(context.PointSourcePoints.Local.Single(item => item.SourceId == "source-two"));
+        context.PointSources.Remove(await context.PointSources.SingleAsync(item => item.Id == "source-one"));
+        await context.SaveChangesAsync(CancellationToken.None);
+
+        Assert.That(await context.PointSourcePoints.CountAsync(), Is.Zero);
     }
 
     /// <summary>
@@ -158,5 +216,14 @@ public sealed class DatabaseTests
         Json = "{}",
         Created = DateTimeOffset.UtcNow,
         Updated = DateTimeOffset.UtcNow
+    };
+
+    private static PointSourceEntity CreatePointSource(string id, DateTimeOffset now) => new()
+    {
+        Id = id,
+        Key = id,
+        Json = "{}",
+        Created = now,
+        Updated = now
     };
 }

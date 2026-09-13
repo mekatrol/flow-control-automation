@@ -109,22 +109,6 @@ public partial class InitialCreate : Migration
             });
 
         migrationBuilder.CreateTable(
-            name: "Points",
-            columns: table => new
-            {
-                Id = table.Column<string>(type: "TEXT", nullable: false),
-                Key = table.Column<string>(type: "TEXT", nullable: false),
-                Json = table.Column<string>(type: "TEXT", nullable: false),
-                Created = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
-                Updated = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
-                RowVersion = table.Column<int>(type: "INTEGER", nullable: false, defaultValue: 1)
-            },
-            constraints: table =>
-            {
-                table.PrimaryKey("PK_Points", x => x.Id);
-            });
-
-        migrationBuilder.CreateTable(
             name: "PointSources",
             columns: table => new
             {
@@ -156,6 +140,24 @@ public partial class InitialCreate : Migration
             constraints: table =>
             {
                 table.PrimaryKey("PK_VirtualPointRetainedStates", x => x.Id);
+            });
+
+        migrationBuilder.CreateTable(
+            name: "PointSourcePoints",
+            columns: table => new
+            {
+                PointId = table.Column<string>(type: "TEXT", nullable: false),
+                SourceId = table.Column<string>(type: "TEXT", nullable: false)
+            },
+            constraints: table =>
+            {
+                table.PrimaryKey("PK_PointSourcePoints", x => x.PointId);
+                table.ForeignKey(
+                    name: "FK_PointSourcePoints_PointSources_SourceId",
+                    column: x => x.SourceId,
+                    principalTable: "PointSources",
+                    principalColumn: "Id",
+                    onDelete: ReferentialAction.Cascade);
             });
 
         migrationBuilder.CreateIndex(
@@ -201,10 +203,9 @@ public partial class InitialCreate : Migration
             unique: true);
 
         migrationBuilder.CreateIndex(
-            name: "IX_Points_Key",
-            table: "Points",
-            column: "Key",
-            unique: true);
+            name: "IX_PointSourcePoints_SourceId",
+            table: "PointSourcePoints",
+            column: "SourceId");
 
         migrationBuilder.CreateIndex(
             name: "IX_PointSources_Key",
@@ -258,7 +259,7 @@ public partial class InitialCreate : Migration
             name: "Flows");
 
         migrationBuilder.DropTable(
-            name: "Points");
+            name: "PointSourcePoints");
 
         migrationBuilder.DropTable(
             name: "PointSources");

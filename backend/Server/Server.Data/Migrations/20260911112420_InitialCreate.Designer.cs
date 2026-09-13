@@ -229,37 +229,20 @@ namespace Server.Data.Migrations
                     b.ToTable("Flows");
                 });
 
-            modelBuilder.Entity("Server.Data.Entities.PointEntity", b =>
+            modelBuilder.Entity("Server.Data.Entities.PointSourcePointEntity", b =>
                 {
-                    b.Property<string>("Id")
+                    b.Property<string>("PointId")
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("Created")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Json")
+                    b.Property<string>("SourceId")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Key")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
+                    b.HasKey("PointId");
 
-                    b.Property<int>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(1);
+                    b.HasIndex("SourceId");
 
-                    b.Property<DateTimeOffset>("Updated")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Key")
-                        .IsUnique();
-
-                    b.ToTable("Points");
+                    b.ToTable("PointSourcePoints", (string)null);
                 });
 
             modelBuilder.Entity("Server.Data.Entities.PointSourceEntity", b =>
@@ -337,6 +320,15 @@ namespace Server.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("VirtualPointRetainedStates");
+                });
+
+            modelBuilder.Entity("Server.Data.Entities.PointSourcePointEntity", b =>
+                {
+                    b.HasOne("Server.Data.Entities.PointSourceEntity", null)
+                        .WithMany()
+                        .HasForeignKey("SourceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }
