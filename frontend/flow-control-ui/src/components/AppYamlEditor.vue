@@ -144,7 +144,7 @@ onMounted(async () => {
     lineNumbersMinChars: 3,
     minimap: { enabled: false },
     readOnly: props.readOnly,
-    scrollbar: { handleMouseWheel: false },
+    scrollbar: { handleMouseWheel: true },
     scrollBeyondLastLine: false,
     tabSize: 2,
     wordWrap: 'on'

@@ -487,37 +487,30 @@ const testPoint = async (operation: 'read' | 'command'): Promise<void> => {
         value = writeValue.value;
       }
     }
-    await withSpinner(
-      () => {
-        pointTestController?.abort();
-        pointTestController = controller;
-        pointTesting.value = operation;
-        pointTestResult.value = undefined;
-        pointTestError.value = '';
-      },
-      () =>
-        props.sourceId
-          ? pointSourceApi.testSavedPoint(
-              props.sourceId,
-              selectedPointId.value,
-              operation,
-              value,
-              controller.signal
-            )
-          : pointSourceApi.testPoint(
-              yaml.value,
-              selectedPointId.value,
-              operation,
-              value,
-              controller.signal,
-              { trackWait: false }
-            ),
-      (result) => {
-        if (pointTestController !== controller) return;
-        pointTestResult.value = result;
-        status.value = `Point ${operation} test completed.`;
-      }
-    );
+    pointTestController?.abort();
+    pointTestController = controller;
+    pointTesting.value = operation;
+    pointTestResult.value = undefined;
+    pointTestError.value = '';
+    const result = props.sourceId
+      ? await pointSourceApi.testSavedPoint(
+          props.sourceId,
+          selectedPointId.value,
+          operation,
+          value,
+          controller.signal
+        )
+      : await pointSourceApi.testPoint(
+          yaml.value,
+          selectedPointId.value,
+          operation,
+          value,
+          controller.signal,
+          { trackWait: false }
+        );
+    if (pointTestController !== controller) return;
+    pointTestResult.value = result;
+    status.value = `Point ${operation} test completed.`;
   } catch (reason) {
     if (pointTestController === controller && !controller.signal.aborted)
       pointTestError.value =
