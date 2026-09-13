@@ -82,7 +82,11 @@
         "units": { "type": "string" }, "stateLabels": {}, "readable": { "type": "boolean" }, "commandable": { "type": "boolean" },
         "persistence": { "enum": ["volatile", "retained"] }, "relinquishDefault": {},
         "mapping": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*/[A-Za-z][A-Za-z0-9_-]*$" },
-        "limits": { "$ref": "#/$defs/limits" }, "safeDisablePolicy": { "$ref": "#/$defs/safetyPolicy" }
+        "limits": { "$ref": "#/$defs/limits" },
+        "safeDisablePolicy": {
+          "$ref": "#/$defs/safetyPolicy",
+          "default": { "startup": "relinquish", "shutdown": "relinquish", "communicationLoss": "relinquish", "disable": "relinquish" }
+        }
       },
       "allOf": [
         { "if": { "properties": { "valueType": { "const": "digital" } }, "required": ["valueType"] }, "then": { "required": ["stateLabels"], "properties": { "stateLabels": { "$ref": "#/$defs/digitalLabels" } }, "not": { "required": ["limits"] } } },
@@ -95,7 +99,7 @@
             "properties": { "limits": { "not": { "required": ["maximumLength"] } } }
           }
         },
-        { "if": { "properties": { "commandable": { "const": false } }, "required": ["commandable"] }, "then": { "not": { "required": ["safeDisablePolicy"] } } }
+        { "if": { "properties": { "commandable": { "const": true } }, "required": ["commandable"] }, "then": { "required": ["safeDisablePolicy"] }, "else": { "not": { "required": ["safeDisablePolicy"] } } }
       ]
     }
   }

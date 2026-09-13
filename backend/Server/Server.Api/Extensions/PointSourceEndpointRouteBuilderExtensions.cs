@@ -64,6 +64,10 @@ public static class PointSourceEndpointRouteBuilderExtensions
         {
             return Error(StatusCodes.Status400BadRequest, exception.Message);
         }
+        catch (PointDefinitionValidationException exception)
+        {
+            return Error(StatusCodes.Status400BadRequest, exception.Message);
+        }
     }
 
     private static async Task<IResult> Create(
@@ -360,6 +364,10 @@ public static class PointSourceEndpointRouteBuilderExtensions
             return Error(StatusCodes.Status409Conflict, exception.Message);
         }
         catch (PointSourceValidationException exception)
+        {
+            return Error(StatusCodes.Status400BadRequest, exception.Message);
+        }
+        catch (PointDefinitionValidationException exception)
         {
             return Error(StatusCodes.Status400BadRequest, exception.Message);
         }

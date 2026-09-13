@@ -339,6 +339,48 @@ internal sealed class PointSourceEndpointTests
         // validation and duplicate names roll back.
         Assert.That(invalidResponseLimit.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
 
+        using var invalidPoint = await SendYaml(
+            client,
+            HttpMethod.Post,
+            "/api/point-sources",
+            source with
+            {
+                Id = "invalid-point",
+                Name = "Invalid point",
+                Mappings = [new PointMapping
+                {
+                    Id = "output",
+                    Aliases = ["value"],
+                    Command = new MappingCommandOperation
+                    {
+                        Path = "/output",
+                        Method = "POST",
+                        Template = "{ \"value\": {{ value }} }"
+                    }
+                }],
+                Points = [new AutomationPoint
+                {
+                    Id = "invalid-output",
+                    Name = "Invalid output",
+                    Enabled = true,
+                    Direction = DataDirectionType.Output,
+                    ValueType = AutomationPointValueType.Analog,
+                    Commandable = true,
+                    Persistence = "volatile",
+                    Mapping = "output/value"
+                }]
+            });
+        var invalidPointError =
+            await invalidPoint.Content.ReadFromJsonAsync<Dictionary<string, string>>();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(invalidPoint.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+            Assert.That(
+                invalidPointError!["message"],
+                Is.EqualTo("commandable points require safeDisablePolicy"));
+        });
+
         using var loaded = await client.GetAsync("/api/point-sources/weather");
 
         // Expected outcome: `loaded.StatusCode` has the required value.

@@ -8,7 +8,8 @@ namespace Server.Services.Points.Sources;
 internal sealed class PointSourceDatabaseService(
     IFlowControlDbContext context,
     TimeProvider timeProvider,
-    IPointSourceValidator validator) : IPointSourceService
+    IPointSourceValidator validator,
+    IPointDefinitionValidator pointValidator) : IPointSourceService
 {
     public async Task<PaginatedResult<PointSource>> ListAsync(
         PointSourceListOptions options,
@@ -64,6 +65,7 @@ internal sealed class PointSourceDatabaseService(
         CancellationToken cancellationToken)
     {
         validator.Validate(source, await LoadSources(cancellationToken));
+        ValidatePoints(source);
         await EnsureNameAvailable(source.Name, exceptId: null, cancellationToken);
         var now = timeProvider.GetUtcNow();
         var timestamp = Timestamp(now);
@@ -126,6 +128,7 @@ internal sealed class PointSourceDatabaseService(
         }
 
         validator.Validate(source, await LoadSources(cancellationToken));
+        ValidatePoints(source);
         await EnsureNameAvailable(source.Name, id, cancellationToken);
         var now = timeProvider.GetUtcNow();
         var timestamp = Timestamp(now);
@@ -257,6 +260,20 @@ internal sealed class PointSourceDatabaseService(
 
     private async Task<IReadOnlyList<PointSource>> LoadSources(CancellationToken cancellationToken) =>
         [.. (await context.PointSources.AsNoTracking().ToListAsync(cancellationToken)).Select(Deserialize)];
+
+    private void ValidatePoints(PointSource source)
+    {
+        var validationContext = new PointValidationContext(
+            new Dictionary<string, PointSource>(StringComparer.Ordinal)
+            {
+                [source.Id] = source
+            });
+
+        foreach (var point in source.Points)
+        {
+            pointValidator.Validate(point, validationContext);
+        }
+    }
 
     private static IReadOnlyList<AutomationPoint> StampPoints(
         IReadOnlyList<AutomationPoint> points,
