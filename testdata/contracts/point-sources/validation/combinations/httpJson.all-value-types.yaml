@@ -1,0 +1,22 @@
+schemaVersion: 1
+id: combined-httpjson
+name: Combined httpJson
+enabled: true
+kind: httpJson
+connection: { baseUrl: https://api.example.test, maximumResponseBytes: 4096 }
+tls: { verifyServerCertificate: true }
+timeouts: { connectMilliseconds: 100 }
+mappings:
+  - id: primary
+    aliases: [analogValue, digitalValue, multiValue]
+    read: { path: /primary, method: GET, format: json, template: '{ "analogValue": {{ analogValue }}, "digitalValue": {{ digitalValue }}, "multiValue": {{ multiValue }} }' }
+  - id: secondary
+    aliases: [integerValue, textValue]
+    read: { path: /secondary, method: GET, format: json, template: '{ "integerValue": {{ integerValue }}, "textValue": {{ textValue }} }' }
+points:
+  - { id: analog-point, name: Analog point, enabled: true, direction: input, valueType: analog, units: percent, readable: true, commandable: false, persistence: volatile, limits: { minimum: 0, maximum: 100 }, mapping: primary/analogValue }
+  - { id: digital-point, name: Digital point, enabled: true, direction: input, valueType: digital, stateLabels: { false: Off, true: On }, readable: true, commandable: false, persistence: volatile, mapping: primary/digitalValue }
+  - { id: multi-state-point, name: Multi-state point, enabled: true, direction: input, valueType: multiState, stateLabels: [{ key: idle, label: Idle }, { key: run, label: Running }], readable: true, commandable: false, persistence: volatile, mapping: primary/multiValue }
+  - { id: integer-point, name: Integer point, enabled: true, direction: input, valueType: integer, units: count, readable: true, commandable: false, persistence: volatile, limits: { minimum: 0, maximum: 100 }, mapping: secondary/integerValue }
+  - { id: text-point, name: Text point, enabled: true, direction: input, valueType: text, readable: true, commandable: false, persistence: volatile, limits: { maximumLength: 64 }, mapping: secondary/textValue }
+

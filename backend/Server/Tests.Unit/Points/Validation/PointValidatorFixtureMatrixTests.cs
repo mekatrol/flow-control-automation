@@ -56,13 +56,52 @@ public sealed class PointValidatorFixtureMatrixTests
         var declared = LoadExpectations().Select(item => Path.GetFileName(item.FixturePath)).ToArray();
         var discovered = Directory.GetFiles(directory, "*.yaml").Select(Path.GetFileName).ToArray();
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(declared, Is.Unique);
             Assert.That(declared, Is.EquivalentTo(discovered));
-            Assert.That(LoadExpectations(), Has.All.Matches<MatrixExpectation>(item =>
-                item.Outcome == "valid" || !string.IsNullOrWhiteSpace(item.Diagnostic)));
-        });
+            Assert.That(LoadExpectations(), Has.All.Matches<MatrixExpectation>(item => item.Outcome == "valid" || !string.IsNullOrWhiteSpace(item.Diagnostic)));
+        }
+    }
+
+    [TestCaseSource(nameof(CombinedAggregateCases))]
+    public void CombinedAggregateFixture_ValidatesEveryValueTypeAcrossMultipleMappings(
+        string fixturePath)
+    {
+        using var provider = TestServices.CreateProvider();
+
+        var source = PointSourceYaml.Parse(File.ReadAllBytes(fixturePath));
+        var sourceValidator = provider.GetRequiredService<IPointSourceValidator>();
+        var pointValidator = provider.GetRequiredService<IPointDefinitionValidator>();
+        var expectedTypes = Enum.GetValues<AutomationPointValueType>();
+
+        Assert.DoesNotThrow(() => sourceValidator.Validate(source));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(source.Mappings, Has.Count.GreaterThanOrEqualTo(2));
+            Assert.That(source.Points.Select(point => point.ValueType), Is.EquivalentTo(expectedTypes));
+            Assert.That(source.Points.Select(point => point.Mapping.Split('/')[0]).Distinct().ToArray(), Has.Length.GreaterThanOrEqualTo(2));
+
+            foreach (var point in source.Points)
+            {
+                Assert.DoesNotThrow(() => pointValidator.Validate(point, Context(source)), $"{source.Kind}/{point.ValueType}");
+            }
+        }
+    }
+
+    [Test]
+    public void CombinedAggregateFixtures_CoverEverySourceKindExactlyOnce()
+    {
+        var sources = CombinedAggregateCases()
+            .Select(path => PointSourceYaml.Parse(File.ReadAllBytes(path))).ToArray();
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(sources, Has.Length.EqualTo(Kinds.Length));
+            Assert.That(sources.Select(source => source.Kind), Is.EquivalentTo(Enum.GetValues<PointSourceKind>()));
+            Assert.That(sources.Select(source => source.Kind), Is.Unique);
+        }
     }
 
     [TestCase(99, "timeouts.connectMilliseconds")]
@@ -193,6 +232,9 @@ public sealed class PointValidatorFixtureMatrixTests
 
     private static MatrixExpectation[] MatrixCases() => LoadExpectations();
 
+    private static string[] CombinedAggregateCases() =>
+        Directory.GetFiles(CombinedAggregateDirectory(), "*.yaml");
+
     private static MatrixExpectation[] LoadExpectations()
     {
         var path = Path.Combine(MatrixDirectory(), ExpectationFileName);
@@ -210,6 +252,10 @@ public sealed class PointValidatorFixtureMatrixTests
     private static string MatrixDirectory() => Path.Combine(
         TestContext.CurrentContext.TestDirectory, "ContractFixtures", "point-sources",
         "validation", FixtureDirectoryName);
+
+    private static string CombinedAggregateDirectory() => Path.Combine(
+        TestContext.CurrentContext.TestDirectory, "ContractFixtures", "point-sources",
+        "validation", "combinations");
 
     private static string InvalidFixturePath(string fixture) => Path.Combine(
         TestContext.CurrentContext.TestDirectory, "ContractFixtures", "point-sources",
