@@ -47,7 +47,7 @@ import {
   type ConfigurationGuidanceType
 } from '@/features/configuration/api/configurationGuidanceApi';
 
-const props = defineProps<{ type: ConfigurationGuidanceType; yaml: string }>();
+const props = defineProps<{ type: ConfigurationGuidanceType; yaml: string; pointId?: string }>();
 const markdown = ref('');
 const error = ref('');
 const visible = ref(false);
@@ -121,7 +121,7 @@ const load = async (): Promise<void> => {
   loading.value = true;
   error.value = '';
   try {
-    markdown.value = await fetchConfigurationGuidance(props.type, props.yaml);
+    markdown.value = await fetchConfigurationGuidance(props.type, props.yaml, props.pointId);
   } catch (reason) {
     error.value = reason instanceof Error ? reason.message : 'Unable to load guidance.';
   } finally {

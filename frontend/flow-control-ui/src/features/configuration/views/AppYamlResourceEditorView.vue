@@ -118,22 +118,25 @@
           </div>
           <h3>Test response</h3>
           <p>
-            Status: {{ pointTestResult.httpResponse.statusCode }}
-            {{ pointTestResult.httpResponse.reasonPhrase }}
+            Status: {{ pointTestResult.httpResponse?.statusCode }}
+            {{ pointTestResult.httpResponse?.reasonPhrase }}
           </p>
-          <p v-if="pointTestResult.httpResponse.contentType">
-            Content-Type: {{ pointTestResult.httpResponse.contentType }}
+          <p v-if="pointTestResult.httpResponse?.contentType">
+            Content-Type: {{ pointTestResult.httpResponse?.contentType }}
           </p>
-          <pre tabindex="0"><code>{{ pointTestResult.httpResponse.body }}</code></pre>
+          <pre
+            v-if="pointTestResult.httpResponse"
+            tabindex="0"
+          ><code>{{ pointTestResult.httpResponse.body }}</code></pre>
         </template>
         <div v-if="pointCommandable" class="point-write-controls">
           <label for="test-point-value">Set point value</label>
           <input id="test-point-value" v-model="pointWriteValue" type="text" />
           <AppButton
-            :text="pointTesting === 'write' ? 'Writing…' : 'Write point'"
+            :text="pointTesting === 'command' ? 'Commanding…' : 'Command point'"
             :icon="checkIcon"
             :disabled="pointTesting !== undefined || !pointWriteValue.trim()"
-            @click="testPoint('write')"
+            @click="testPoint('command')"
           />
         </div>
         <p v-else class="runtime-diagnostic">This point is read-only.</p>
@@ -402,7 +405,7 @@ const errorSummary = ref<HTMLElement>();
 const runtime = ref<RuntimeEnvelope>();
 const runtimeLoading = ref(false);
 const runtimePaused = ref(false);
-const pointTesting = ref<'read' | 'write'>();
+const pointTesting = ref<'read' | 'command'>();
 const pointTestResult = ref<PointTestResult>();
 const pointTestError = ref('');
 const pointWriteValue = ref('');
@@ -438,6 +441,7 @@ const pointDefinition = computed(() => {
     return (
       parse(yaml.value) as {
         points?: {
+          id?: string;
           sourceId?: string;
           commandable?: boolean;
           units?: string;
@@ -578,7 +582,7 @@ const validateTemplate = async (): Promise<void> => {
     validating.value = false;
   }
 };
-const testPoint = async (operation: 'read' | 'write'): Promise<void> => {
+const testPoint = async (operation: 'read' | 'command'): Promise<void> => {
   const sourceId = pointDefinition.value?.sourceId;
   pointTestResult.value = undefined;
   pointTestError.value = '';
@@ -625,6 +629,10 @@ const testPoint = async (operation: 'read' | 'write'): Promise<void> => {
             );
           }
           pointTestResult.value = {
+            sourceId,
+            pointId: props.resourceId,
+            mappingId: '',
+            alias: '',
             operation,
             value: result.value,
             diagnostic: result.diagnostic || undefined,
@@ -636,7 +644,7 @@ const testPoint = async (operation: 'read' | 'write'): Promise<void> => {
           return;
         }
         let value: unknown;
-        if (operation === 'write') {
+        if (operation === 'command') {
           try {
             value = JSON.parse(pointWriteValue.value);
           } catch {
@@ -645,7 +653,7 @@ const testPoint = async (operation: 'read' | 'write'): Promise<void> => {
         }
         pointTestResult.value = await pointSourceApi.testPoint(
           source.yaml,
-          yaml.value,
+          pointDefinition.value?.id ?? '',
           operation,
           value,
           pointTestController!.signal,

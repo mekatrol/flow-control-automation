@@ -1,12 +1,18 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { executionContextApi } from '@/features/flows/api/executionContextApi';
 import { AutomationPointValueType, DataDirectionType } from '@/types/serverTypes';
-const PointSourceType = { Physical: 'physical', Virtual: 'virtual', Remote: 'remote' } as const;
+const PointSourceKind = {
+  Physical: 'physical',
+  Virtual: 'virtual',
+  HomeAssistant: 'homeAssistant',
+  Mqtt: 'mqtt',
+  HttpJson: 'httpJson'
+} as const;
 
 const point = {
   exists: true,
   pointKey: 'room.temperature',
-  pointSourceType: 'virtual',
+  sourceKind: 'virtual',
   valueType: 'analog',
   enabled: true,
   readable: true,
@@ -22,15 +28,15 @@ describe('execution context point resolution', () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it('accepts every backend point source and value type without changing wire values', async () => {
-    for (const pointSourceType of Object.values(PointSourceType)) {
+    for (const sourceKind of Object.values(PointSourceKind)) {
       for (const valueType of Object.values(AutomationPointValueType)) {
-        respond({ ...point, pointSourceType, valueType });
+        respond({ ...point, sourceKind, valueType });
         await expect(executionContextApi.resolvePoint(point.pointKey)).resolves.toMatchObject({
           id: point.pointKey,
-          pointSourceType,
+          sourceKind,
           valueType,
           direction:
-            pointSourceType === PointSourceType.Virtual
+            sourceKind === PointSourceKind.Virtual
               ? DataDirectionType.Value
               : DataDirectionType.InputOutput
         });
@@ -41,8 +47,8 @@ describe('execution context point resolution', () => {
   it.each([
     null,
     [],
-    { ...point, pointSourceType: 'unsupported' },
-    { ...point, pointSourceType: 0 },
+    { ...point, sourceKind: 'unsupported' },
+    { ...point, sourceKind: 0 },
     { ...point, valueType: 'Analog' },
     { ...point, valueType: ['analog'] },
     { ...point, valueType: 1 }

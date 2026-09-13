@@ -4,10 +4,12 @@ export type ConfigurationGuidanceType = 'point' | 'point-source' | 'controller-t
 
 export const fetchConfigurationGuidance = async (
   type: ConfigurationGuidanceType,
-  yaml: string
+  yaml: string,
+  pointId?: string
 ): Promise<string> => {
+  const query = pointId ? `?pointId=${encodeURIComponent(pointId)}` : '';
   const response = await waitForFetch(
-    `/api/configuration-guidance/${type}`,
+    `/api/configuration-guidance/${type}${query}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/yaml', Accept: 'text/markdown' },

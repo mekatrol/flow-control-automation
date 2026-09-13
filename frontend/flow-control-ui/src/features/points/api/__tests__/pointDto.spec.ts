@@ -6,14 +6,16 @@ const point = {
   name: 'Room temperature',
   description: 'Measured temperature',
   enabled: true,
-  pointSourceType: 'remote',
+  sourceKind: 'httpJson',
+  sourceName: 'Building controller',
   direction: 'input',
   valueType: 'analog',
   units: 'deg_c',
   readable: true,
   commandable: false,
   persistence: 'volatile',
-  sourceId: null,
+  sourceId: 'building-controller',
+  mapping: 'temperatures/room',
   revision: 2,
   updatedAt: '2026-07-25T00:00:00Z'
 };
@@ -51,7 +53,7 @@ describe('point DTO parsing', () => {
    */
   it.each([
     [{ ...point, enabled: 'yes' }, /point.enabled/],
-    [{ ...point, pointSourceType: 'unknown' }, /point.pointSourceType/],
+    [{ ...point, sourceKind: 'unknown' }, /point.sourceKind/],
     [{ ...point, direction: 'sideways' }, /point.direction/],
     [{ ...point, valueType: 'float' }, /point.valueType/],
     [{ ...point, revision: 1.5 }, /point.revision/]

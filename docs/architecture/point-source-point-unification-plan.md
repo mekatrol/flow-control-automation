@@ -202,12 +202,13 @@ revision/dependency conflicts are `409`, forbidden command/network operation is
 
 ## Delivery phases
 
-Implementation status (2026-09-13): Phases 1 through 6 are complete. The normative contract is
+Implementation status (2026-09-13): Phases 1 through 7 are complete. The normative contract is
 `point-source-v1-contract.md` plus the paired YAML/normalized-JSON fixtures under
 `testdata/contracts/point-sources/valid`; aggregate parser, models, validation, and mapping
 resolution now implement that contract. Exhaustive validator coverage, aggregate persistence,
-mapping execution, typed point operations, aggregate HTTP endpoints, nested point testing, and
-source-led guidance are complete; the editor cutover and final cleanup remain tracked by Phases 7–8.
+mapping execution, typed point operations, aggregate HTTP endpoints, nested point testing,
+source-led guidance, and the frontend aggregate workflow are complete; final cleanup remains
+tracked by Phase 8.
 
 | Phase | Status |
 | --- | --- |
@@ -217,7 +218,7 @@ source-led guidance are complete; the editor cutover and final cleanup remain tr
 | Phase 4 — Replace persistence and aggregate services | Complete |
 | Phase 5 — Implement mapping execution and point operations | Complete |
 | Phase 6 — Cut over HTTP endpoints and configuration guidance | Complete |
-| Phase 7 — Replace the frontend source and point workflows | Pending |
+| Phase 7 — Replace the frontend source and point workflows | Complete |
 | Phase 8 — Remove legacy artifacts, update documentation, and verify | Pending |
 
 Each phase below is intended to leave a reviewable, testable result. Because
@@ -428,7 +429,7 @@ every status code, payload bounds, cancellation, redaction, SSRF policy, and
 strict rejection of every old endpoint/body. Guidance coverage tests require
 help for every current aggregate field and source kind.
 
-### Phase 7 — Replace the frontend source and point workflows
+### Phase 7 — Replace the frontend source and point workflows (complete)
 
 1. Update `pointSourceSchema.ts` and strict DTO parsing for the complete
    aggregate, including kind-discriminated mappings, nested points, mapping

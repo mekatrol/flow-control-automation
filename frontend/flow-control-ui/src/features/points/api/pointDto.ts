@@ -9,6 +9,9 @@ export interface PointSummary {
   description?: string;
   enabled: boolean;
   sourceKind: PointSourceKind;
+  sourceId?: string;
+  sourceName?: string;
+  mapping: string;
   direction: DataDirectionType;
   valueType: AutomationPointValueType;
   units?: string;
@@ -64,7 +67,7 @@ const enumeration = <T extends string>(value: unknown, values: readonly T[], pat
 export const parsePoint = (value: unknown, path = 'point'): PointSummary => {
   const item = object(value, path);
   enumeration(item.persistence, Object.values(VirtualPointPersistenceType), `${path}.persistence`);
-  for (const field of ['mapping', 'limits', 'safeDisablePolicy'] as const) {
+  for (const field of ['limits', 'safeDisablePolicy'] as const) {
     if (item[field] !== undefined && item[field] !== null) object(item[field], `${path}.${field}`);
   }
   if (item.stateLabels !== undefined && item.stateLabels !== null) {
@@ -82,6 +85,9 @@ export const parsePoint = (value: unknown, path = 'point'): PointSummary => {
       ['virtual', 'physical', 'homeAssistant', 'mqtt', 'httpJson'],
       `${path}.sourceKind`
     ),
+    sourceId: optionalString(item.sourceId, `${path}.sourceId`),
+    sourceName: optionalString(item.sourceName, `${path}.sourceName`),
+    mapping: string(item.mapping, `${path}.mapping`),
     direction: enumeration(item.direction, Object.values(DataDirectionType), `${path}.direction`),
     valueType: enumeration(
       item.valueType,

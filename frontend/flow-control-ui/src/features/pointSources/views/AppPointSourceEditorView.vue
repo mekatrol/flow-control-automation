@@ -19,7 +19,7 @@
     <div v-else class="source-editor-layout" :class="{ 'has-guidance': isNew }">
       <form @submit.prevent="save">
         <div class="editor-actions">
-          <AppConfigurationGuidance type="point-source" :yaml="yaml" />
+          <AppConfigurationGuidance type="point-source" :yaml="yaml" :point-id="selectedPointId" />
           <AppButton
             type="submit"
             :text="saving ? 'Saving…' : 'Save'"
@@ -84,57 +84,66 @@
           min-height="650px"
           @[EVENTS.DIAGNOSTICS]="setEditorDiagnostics"
         />
-        <section v-if="isHttpJson" class="point-test" aria-labelledby="point-test-heading">
+        <section v-if="nestedPoints.length" class="point-test" aria-labelledby="point-test-heading">
           <div class="point-test-heading">
             <div>
               <p>Interactive test</p>
-              <h2 id="point-test-heading">Test an HTTP JSON point</h2>
-              <p>The point mapping below is combined with the unsaved source YAML above.</p>
+              <h2 id="point-test-heading">Test a nested point</h2>
+              <p>The server resolves the selected point's mapping and alias from this aggregate.</p>
             </div>
           </div>
-          <AppYamlEditor
-            v-model="pointYaml"
-            label="Test point YAML"
-            help="Define one point and its HTTP path, method, and JSON pointer. Testing does not save it."
-            :schema="pointTestSchema"
-            schema-uri="app://schemas/http-json-point-test-v1.json"
-            min-height="390px"
-            @[EVENTS.DIAGNOSTICS]="setPointDiagnostics"
-          />
           <div class="point-test-actions">
+            <label for="point-test-selection">Point</label>
+            <select id="point-test-selection" v-model="selectedPointId">
+              <option v-for="point in nestedPoints" :key="point.id" :value="point.id">
+                {{ point.name }} ({{ point.mapping }})
+              </option>
+            </select>
             <AppButton
               :text="pointTesting === 'read' ? 'Reading…' : 'Read point'"
               :icon="testConnectionIcon"
-              :disabled="pointTestDisabled"
+              :disabled="pointTestDisabled || !selectedPoint?.readable"
               @click="testPoint('read')"
             />
             <template v-if="pointCommandable">
               <label for="point-test-value">Value to write</label>
               <input id="point-test-value" v-model="writeValue" type="text" />
               <AppButton
-                :text="pointTesting === 'write' ? 'Writing…' : 'Write point'"
+                :text="pointTesting === 'command' ? 'Commanding…' : 'Command point'"
                 :icon="checkIcon"
                 :disabled="pointTestDisabled || !writeValue.trim()"
-                @click="testPoint('write')"
+                @click="testPoint('command')"
               />
             </template>
             <p v-else class="readonly-note">This point is read-only.</p>
           </div>
           <section v-if="pointTestResult" class="point-test-result" aria-live="polite">
-            <h3>{{ pointTestResult.operation === 'read' ? 'Read' : 'Write' }} result</h3>
+            <h3>{{ pointTestResult.operation === 'read' ? 'Read' : 'Command' }} result</h3>
+            <p>
+              Mapping: <code>{{ pointTestResult.mappingId }}/{{ pointTestResult.alias }}</code>
+              <span v-if="pointTestResult.quality"> · Quality: {{ pointTestResult.quality }}</span>
+            </p>
             <div class="point-value">
               <span>Point value</span>
               <strong>{{ displayPointValue }}</strong>
             </div>
-            <h4>HTTP response</h4>
-            <p>
+            <h4 v-if="pointTestResult.httpResponse">Communication response</h4>
+            <p v-if="pointTestResult.httpResponse">
               Status: {{ pointTestResult.httpResponse.statusCode }}
               {{ pointTestResult.httpResponse.reasonPhrase }}
             </p>
-            <p v-if="pointTestResult.httpResponse.contentType">
+            <p v-if="pointTestResult.httpResponse?.contentType">
               Content-Type: {{ pointTestResult.httpResponse.contentType }}
             </p>
-            <pre tabindex="0"><code>{{ pointTestResult.httpResponse.body }}</code></pre>
+            <pre
+              v-if="pointTestResult.renderedRequest"
+              tabindex="0"
+            ><code>{{ pointTestResult.renderedRequest }}</code></pre>
+            <pre
+              v-if="pointTestResult.httpResponse"
+              tabindex="0"
+            ><code>{{ pointTestResult.httpResponse.body }}</code></pre>
+            <p v-if="pointTestResult.diagnostic">{{ pointTestResult.diagnostic }}</p>
           </section>
           <p v-if="pointTestError" class="request-error" role="alert">{{ pointTestError }}</p>
         </section>
@@ -206,12 +215,7 @@
 </template>
 
 <script setup lang="ts">
-import { DataDirectionType } from '@/types/serverTypes';
-
-import { AutomationPointValueType, VirtualPointPersistenceType } from '@/types/serverTypes';
-const PointSourceType = { Remote: 'remote' } as const;
-
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { parse } from 'yaml';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import { useSpinner } from '@/composables/useSpinner';
@@ -235,6 +239,11 @@ import {
 } from '@/features/pointSources/api/pointSourceApi';
 import { formatPointTestValue } from '@/features/pointSources/formatPointTestValue';
 import { pointSourceSchema } from '@/features/pointSources/pointSourceSchema';
+import homeAssistantYaml from '@contracts/point-sources/valid/home-assistant.v1.yaml?raw';
+import httpJsonYaml from '@contracts/point-sources/valid/http-json.v1.yaml?raw';
+import mqttYaml from '@contracts/point-sources/valid/mqtt.v1.yaml?raw';
+import physicalYaml from '@contracts/point-sources/valid/physical.v1.yaml?raw';
+import virtualYaml from '@contracts/point-sources/valid/virtual.v1.yaml?raw';
 
 const props = defineProps<{ sourceId?: string }>();
 const router = useRouter();
@@ -247,76 +256,34 @@ interface SourceExample {
 }
 const sourceExamples: SourceExample[] = [
   {
+    kind: 'virtual',
+    name: 'Virtual',
+    summary: 'Store source-owned runtime values without external communication.',
+    yaml: virtualYaml
+  },
+  {
+    kind: 'physical',
+    name: 'Physical',
+    summary: 'Bind controller channels and electrical I/O.',
+    yaml: physicalYaml
+  },
+  {
     kind: 'homeAssistant',
     name: 'Home Assistant',
     summary: 'Read entities and subscribe to Home Assistant events.',
-    yaml: `schemaVersion: 1
-sources:
-  - id: home-assistant
-    name: Home Assistant
-    description: Home automation server
-    enabled: true
-    kind: homeAssistant
-    connection:
-      baseUrl: https://homeassistant.local:8123
-      subscribeEvents: true
-    credentialRef: secret://home-assistant
-    tls:
-      verifyServerCertificate: true
-    timeouts:
-      connectMilliseconds: 2000
-      requestMilliseconds: 5000
-`
+    yaml: homeAssistantYaml
   },
   {
     kind: 'mqtt',
     name: 'MQTT',
     summary: 'Connect to a broker for read-only topic subscriptions.',
-    yaml: `schemaVersion: 1
-sources:
-  - id: plant-mqtt
-    name: Plant MQTT
-    description: Read-only telemetry broker
-    enabled: true
-    kind: mqtt
-    connection:
-      brokerUrl: mqtts://mqtt.example.com:8883
-      clientIdPrefix: flow-control
-      testTopic: plant/telemetry/temperature
-      allowPrivateNetwork: true
-      qos: 1
-      cleanStart: true
-      keepAliveSeconds: 30
-    credentialRef: secret://plant-mqtt
-    tls:
-      verifyServerCertificate: true
-    timeouts:
-      connectMilliseconds: 3000
-`
+    yaml: mqttYaml
   },
   {
     kind: 'httpJson',
     name: 'HTTP / JSON',
     summary: 'Read and write points through a JSON web API.',
-    yaml: `schemaVersion: 1
-sources:
-  - id: new-source
-    name: HTTP JSON API
-    description: JSON web API
-    enabled: true
-    kind: httpJson
-    connection:
-      baseUrl: https://api.example.com
-      allowPrivateNetwork: false
-      defaultPollMilliseconds: 60000
-      followRedirects: false
-      maximumResponseBytes: 65536
-    tls:
-      verifyServerCertificate: true
-    timeouts:
-      connectMilliseconds: 2000
-      requestMilliseconds: 5000
-`
+    yaml: httpJsonYaml
   }
 ];
 const selectedExampleKind = ref<PointSourceKind>('httpJson');
@@ -334,33 +301,21 @@ const status = ref('');
 const testResult = ref<ConnectionTestResult>();
 const testError = ref('');
 const editorDiagnostics = ref<YamlDiagnostic[]>([]);
-const pointDiagnostics = ref<YamlDiagnostic[]>([]);
-const pointYaml = ref(`schemaVersion: 1
-points:
-  - id: test-temperature
-    name: Test temperature
-    enabled: true
-    pointSourceType: remote
-    direction: input
-    valueType: analog
-    units: celsius
-    readable: true
-    commandable: false
-    persistence: volatile
-    sourceId: new-source
-    mapping:
-      path: /temperature
-      method: GET
-      jsonPointer: /value
-`);
+interface NestedPoint {
+  id: string;
+  name: string;
+  mapping: string;
+  valueType: string;
+  units?: string;
+  readable: boolean;
+  commandable: boolean;
+}
+const selectedPointId = ref('');
 const writeValue = ref('');
-const pointTesting = ref<'read' | 'write'>();
+const pointTesting = ref<'read' | 'command'>();
 const pointTestResult = ref<PointTestResult>();
 const pointTestError = ref('');
 let pointTestController: AbortController | undefined;
-const setPointDiagnostics = (diagnostics: YamlDiagnostic[]): void => {
-  pointDiagnostics.value = diagnostics;
-};
 const setEditorDiagnostics = (diagnostics: YamlDiagnostic[]): void => {
   editorDiagnostics.value = diagnostics;
 };
@@ -369,87 +324,31 @@ const hasEditorErrors = computed(() =>
 );
 const parsedSource = computed(() => {
   try {
-    return parse(yaml.value) as { sources?: { kind?: string }[] };
+    return parse(yaml.value) as { kind?: string; points?: NestedPoint[] };
   } catch {
     return undefined;
   }
 });
-const parsedPoint = computed(() => {
-  try {
-    return parse(pointYaml.value) as {
-      points?: { commandable?: boolean; valueType?: string; units?: string }[];
-    };
-  } catch {
-    return undefined;
-  }
-});
-const isHttpJson = computed(() => parsedSource.value?.sources?.[0]?.kind === 'httpJson');
-const pointCommandable = computed(() => parsedPoint.value?.points?.[0]?.commandable === true);
+const nestedPoints = computed(() => parsedSource.value?.points ?? []);
+const selectedPoint = computed(() =>
+  nestedPoints.value.find(({ id }) => id === selectedPointId.value)
+);
+watch(
+  nestedPoints,
+  (points) => {
+    if (!points.some(({ id }) => id === selectedPointId.value)) {
+      selectedPointId.value = points[0]?.id ?? '';
+    }
+  },
+  { immediate: true }
+);
+const pointCommandable = computed(() => selectedPoint.value?.commandable === true);
 const pointTestDisabled = computed(
-  () =>
-    pointTesting.value !== undefined ||
-    hasEditorErrors.value ||
-    pointDiagnostics.value.some(({ severity }) => severity === 'error')
+  () => pointTesting.value !== undefined || hasEditorErrors.value || !selectedPoint.value
 );
 const displayPointValue = computed(() =>
-  formatPointTestValue(pointTestResult.value?.value, parsedPoint.value?.points?.[0]?.units)
+  formatPointTestValue(pointTestResult.value?.value, selectedPoint.value?.units)
 );
-const pointTestSchema = {
-  ...pointSourceSchema,
-  required: ['schemaVersion', 'points'],
-  properties: {
-    schemaVersion: { const: 1 },
-    points: {
-      type: 'array',
-      minItems: 1,
-      maxItems: 1,
-      items: {
-        type: 'object',
-        required: [
-          'id',
-          'name',
-          'enabled',
-          'pointSourceType',
-          'direction',
-          'valueType',
-          'readable',
-          'commandable',
-          'persistence',
-          'sourceId',
-          'mapping'
-        ],
-        properties: {
-          id: { type: 'string' },
-          name: { type: 'string' },
-          enabled: { type: 'boolean' },
-          pointSourceType: { const: PointSourceType.Remote },
-          direction: {
-            enum: [DataDirectionType.Input, DataDirectionType.Output, DataDirectionType.InputOutput]
-          },
-          valueType: { enum: Object.values(AutomationPointValueType) },
-          units: { type: 'string' },
-          readable: { type: 'boolean' },
-          commandable: { type: 'boolean' },
-          persistence: { enum: Object.values(VirtualPointPersistenceType) },
-          sourceId: { type: 'string' },
-          mapping: {
-            type: 'object',
-            required: ['path', 'method'],
-            properties: {
-              path: { type: 'string', pattern: '^/' },
-              method: { enum: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH'] },
-              jsonPointer: { type: 'string' },
-              valuePointer: { type: 'string' },
-              contentType: {
-                enum: ['application/json', 'application/x-www-form-urlencoded']
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-};
 let loadController: AbortController | undefined;
 let testController: AbortController | undefined;
 let allowNavigation = false;
@@ -558,11 +457,16 @@ const testConnection = async (): Promise<void> => {
   }
 };
 const cancelTest = (): void => testController?.abort();
-const testPoint = async (operation: 'read' | 'write'): Promise<void> => {
+const testPoint = async (operation: 'read' | 'command'): Promise<void> => {
+  if (
+    operation === 'command' &&
+    !window.confirm('Send this command to the selected point? This may change external equipment.')
+  )
+    return;
   const controller = new AbortController();
   try {
     let value: unknown;
-    if (operation === 'write') {
+    if (operation === 'command') {
       try {
         value = JSON.parse(writeValue.value);
       } catch {
@@ -578,9 +482,22 @@ const testPoint = async (operation: 'read' | 'write'): Promise<void> => {
         pointTestError.value = '';
       },
       () =>
-        pointSourceApi.testPoint(yaml.value, pointYaml.value, operation, value, controller.signal, {
-          trackWait: false
-        }),
+        props.sourceId
+          ? pointSourceApi.testSavedPoint(
+              props.sourceId,
+              selectedPointId.value,
+              operation,
+              value,
+              controller.signal
+            )
+          : pointSourceApi.testPoint(
+              yaml.value,
+              selectedPointId.value,
+              operation,
+              value,
+              controller.signal,
+              { trackWait: false }
+            ),
       (result) => {
         if (pointTestController !== controller) return;
         pointTestResult.value = result;

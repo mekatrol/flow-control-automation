@@ -6,14 +6,16 @@ interface CataloguePoint {
   id: string;
   name: string;
   enabled: boolean;
-  pointSourceType: string;
+  sourceKind: string;
+  sourceName: string;
   direction: string;
   valueType: string;
   units: string | null;
   readable: boolean;
   commandable: boolean;
   persistence: string;
-  sourceId: null;
+  sourceId: string;
+  mapping: string;
   revision: number;
 }
 
@@ -21,14 +23,16 @@ const point = (index: number): CataloguePoint => ({
   id: `point-${index}`,
   name: `Point ${String(index).padStart(2, '0')}`,
   enabled: index % 2 === 0,
-  pointSourceType: index === 1 ? 'remote' : 'virtual',
+  sourceKind: index === 1 ? 'httpJson' : 'virtual',
+  sourceName: index === 1 ? 'Weather API' : 'Runtime values',
   direction: index === 1 ? 'input' : 'value',
   valueType: index === 1 ? 'analog' : 'digital',
   units: index === 1 ? 'deg_c' : null,
   readable: true,
   commandable: index !== 1,
   persistence: 'volatile',
-  sourceId: null,
+  sourceId: index === 1 ? 'weather-api' : 'runtime-values',
+  mapping: `values/point${index}`,
   revision: 1
 });
 
@@ -80,12 +84,7 @@ test('navigates, filters, pages and remains keyboard usable after reload', async
   // Expected outcome: `page.getByText('Group: room')` is visible to the user.
   // Acceptance criteria: `page.getByText('Group: room')` must be visible, because this condition proves that
   // navigates, filters, pages and remains keyboard usable after reload.
-  await expect(page.getByText('Group: room')).toBeVisible();
-
-  // Expected outcome: `page.getByText('Inherited from group')` is visible to the user.
-  // Acceptance criteria: `page.getByText('Inherited from group')` must be visible, because this condition proves that
-  // navigates, filters, pages and remains keyboard usable after reload.
-  await expect(page.getByText('Inherited from group')).toBeVisible();
+  await expect(page.getByText('values/point1')).toBeVisible();
 
   await page.getByRole('navigation', { name: 'Top list pagination' }).getByRole('button', { name: 'Next page' }).focus();
   await page.keyboard.press('Enter');

@@ -26,22 +26,14 @@
         </div>
       </template>
 
-      <template #column-header-name-pre>
-        <AppButton
-          type="button"
-          class="add-point-btn"
-          text="Add point"
-          :icon="newIcon"
-          aria-label="Add a new point"
-          hide-text
-          @click="$router.push({ name: 'point-new' })"
-        />
-      </template>
-
       <template #cell-name="{ row }">
-        <RouterLink :to="{ name: 'point-detail', params: { resourceId: row.id } }">
+        <RouterLink
+          v-if="row.sourceId"
+          :to="{ name: 'point-source-detail', params: { sourceId: row.sourceId } }"
+        >
           {{ row.name }}
         </RouterLink>
+        <span v-else>{{ row.name }}</span>
         <small>{{ row.description || row.id }}</small>
       </template>
 
@@ -60,8 +52,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
-import newIcon from '@/assets/icons/new-icon.svg';
-import AppButton from '@/components/AppButton.vue';
 import AppErrorNotice from '@/components/AppErrorNotice.vue';
 import AppListView from '@/components/list-view/AppListView.vue';
 import { EVENTS } from '@/constants/events';
@@ -75,7 +65,8 @@ interface PointRow extends ListRow {
   name: string;
   description: string;
   source: string;
-  pointSourceType: string;
+  sourceId: string;
+  mapping: string;
   direction: string;
   valueType: string;
   units: string;
@@ -87,7 +78,7 @@ interface PointRow extends ListRow {
 const columns: ListColumn<PointRow>[] = [
   { key: 'name', label: 'Name', sortable: true },
   { key: 'source', label: 'Source', width: '12rem' },
-  { key: 'pointSourceType', label: 'Source type', width: '10rem' },
+  { key: 'mapping', label: 'Mapping', width: '14rem' },
   { key: 'direction', label: 'Direction', width: '9rem' },
   { key: 'valueType', label: 'Value type', width: '10rem' },
   { key: 'capabilities', label: 'Capabilities', width: '12rem' },
@@ -118,8 +109,9 @@ const toRow = (point: PointSummary): PointRow => ({
   id: point.id,
   name: point.name,
   description: point.description ?? '',
-  source: label(point.sourceKind),
-  pointSourceType: label(point.sourceKind),
+  source: point.sourceName ?? label(point.sourceKind),
+  sourceId: point.sourceId ?? '',
+  mapping: point.mapping,
   direction: label(point.direction),
   valueType: label(point.valueType),
   units: point.units ?? '',
@@ -163,9 +155,5 @@ onBeforeUnmount(store.cancel);
 .status.enabled {
   color: var(--color-action-primary-strong);
   background: var(--color-action-primary-surface);
-}
-
-.add-point-btn {
-  margin-right: 0.5rem;
 }
 </style>

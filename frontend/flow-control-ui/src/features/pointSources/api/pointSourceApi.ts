@@ -6,6 +6,8 @@ export interface PointSourceSummary {
   description?: string;
   enabled: boolean;
   kind: PointSourceKind;
+  mappingCount: number;
+  pointCount: number;
   revision: number;
   updatedAt: string;
 }
@@ -37,10 +39,16 @@ export interface ConnectionTestResult {
 }
 
 export interface PointTestResult {
-  operation: 'read' | 'write';
-  value: unknown;
+  sourceId: string;
+  pointId: string;
+  mappingId: string;
+  alias: string;
+  operation: 'read' | 'command';
+  value?: unknown;
+  quality?: 'good' | 'bad' | 'uncertain' | 'unavailable';
+  renderedRequest?: string;
   diagnostic?: string;
-  httpResponse: {
+  httpResponse?: {
     statusCode: number;
     reasonPhrase?: string;
     contentType?: string;
@@ -125,8 +133,8 @@ export const pointSourceApi = {
   },
   async testPoint(
     sourceYaml: string,
-    pointYaml: string,
-    operation: 'read' | 'write',
+    pointId: string,
+    operation: 'read' | 'command',
     value: unknown,
     signal: AbortSignal,
     options: { trackWait?: boolean } = {}
@@ -136,10 +144,29 @@ export const pointSourceApi = {
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sourceYaml, pointYaml, operation, value }),
+        body: JSON.stringify({ sourceYaml, pointId, operation, value }),
         signal
       },
       options
+    );
+    return response.json() as Promise<PointTestResult>;
+  },
+  async testSavedPoint(
+    sourceId: string,
+    pointId: string,
+    operation: 'read' | 'command',
+    value: unknown,
+    signal: AbortSignal
+  ): Promise<PointTestResult> {
+    const response = await request(
+      `/api/point-sources/${encodeURIComponent(sourceId)}/points/${encodeURIComponent(pointId)}/test`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pointId, operation, value }),
+        signal
+      },
+      { trackWait: false }
     );
     return response.json() as Promise<PointTestResult>;
   }

@@ -78,6 +78,8 @@ interface PointSourceRow extends ListRow {
   name: string;
   description: string;
   kind: string;
+  mappingCount: number;
+  pointCount: number;
   status: string;
   enabled: boolean;
   updatedAt: string;
@@ -86,6 +88,8 @@ interface PointSourceRow extends ListRow {
 const columns: ListColumn<PointSourceRow>[] = [
   { key: 'name', label: 'Name', sortable: true },
   { key: 'kind', label: 'Kind', sortable: true, width: '12rem' },
+  { key: 'mappingCount', label: 'Mappings', width: '7rem' },
+  { key: 'pointCount', label: 'Points', width: '7rem' },
   { key: 'status', label: 'Status', sortable: true, width: '10rem' },
   { key: 'updatedAt', label: 'Updated', sortable: true, width: '14rem' }
 ];
@@ -117,6 +121,8 @@ const allRows = computed<PointSourceRow[]>(() =>
     name: source.name,
     description: source.description ?? '',
     kind: kindLabel(source.kind),
+    mappingCount: source.mappingCount,
+    pointCount: source.pointCount,
     status: source.enabled ? 'Enabled' : 'Disabled',
     enabled: source.enabled,
     updatedAt: source.updatedAt

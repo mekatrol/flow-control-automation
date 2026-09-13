@@ -3,6 +3,8 @@ import { waitForFetch } from '@/api/waitForFetch';
 import type { VirtualPointDefinition } from '@/features/flows/types';
 import type { PointSummary } from '@/features/points/api/pointDto';
 
+const pointSourceKinds = ['virtual', 'physical', 'homeAssistant', 'mqtt', 'httpJson'] as const;
+
 export interface ExecutionContextSummary {
   id: string;
   name: string;
@@ -88,6 +90,7 @@ export const executionContextApi = {
       body.exists !== true ||
       typeof body.pointKey !== 'string' ||
       typeof body.sourceKind !== 'string' ||
+      !pointSourceKinds.includes(body.sourceKind as (typeof pointSourceKinds)[number]) ||
       !isEnumValue(AutomationPointValueType, body.valueType)
     )
       throw new Error('Point resolution is malformed.');
@@ -102,6 +105,7 @@ export const executionContextApi = {
       units: typeof body.units === 'string' ? body.units : undefined,
       readable: body.readable === true,
       commandable: body.commandable === true,
+      mapping: '',
       revision: typeof body.revision === 'number' ? body.revision : 0
     };
   }

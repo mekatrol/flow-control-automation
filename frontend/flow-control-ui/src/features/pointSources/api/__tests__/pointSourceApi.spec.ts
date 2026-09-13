@@ -5,9 +5,13 @@ import { pointSourceApi } from '@/features/pointSources/api/pointSourceApi';
 describe('pointSourceApi', () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it('combines unsaved source and point YAML when testing a write', async () => {
+  it('sends an unsaved aggregate and nested point identity when testing a command', async () => {
     const result = {
-      operation: 'write' as const,
+      operation: 'command' as const,
+      sourceId: 'source',
+      pointId: 'point',
+      mappingId: 'mapping',
+      alias: 'value',
       value: 21.5,
       httpResponse: { statusCode: 200, body: '{"value":21.5}' }
     };
@@ -22,8 +26,8 @@ describe('pointSourceApi', () => {
     await expect(
       pointSourceApi.testPoint(
         'source yaml',
-        'point yaml',
-        'write',
+        'point',
+        'command',
         21.5,
         new AbortController().signal
       )
@@ -34,8 +38,8 @@ describe('pointSourceApi', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         sourceYaml: 'source yaml',
-        pointYaml: 'point yaml',
-        operation: 'write',
+        pointId: 'point',
+        operation: 'command',
         value: 21.5
       }),
       signal: expect.any(AbortSignal)

@@ -11,8 +11,6 @@ export const ROUTE_NAMES = {
   flowSimulator: 'flow-simulator',
   flowDebugger: 'flow-debugger',
   points: 'points',
-  pointNew: 'point-new',
-  pointDetail: 'point-detail',
   controllerTemplates: 'controller-templates',
   controllerTemplateNew: 'controller-template-new',
   controllerTemplateDetail: 'controller-template-detail',
@@ -81,18 +79,6 @@ export const routes: RouteRecordRaw[] = [
         path: 'points',
         name: ROUTE_NAMES.points,
         component: () => import('@/features/points/views/AppPointListView.vue')
-      },
-      {
-        path: 'points/new',
-        name: ROUTE_NAMES.pointNew,
-        component: () => import('@/features/configuration/views/AppYamlResourceEditorView.vue'),
-        props: { kind: 'point' }
-      },
-      {
-        path: 'points/:resourceId',
-        name: ROUTE_NAMES.pointDetail,
-        component: () => import('@/features/configuration/views/AppYamlResourceEditorView.vue'),
-        props: (route) => ({ kind: 'point', resourceId: String(route.params.resourceId) })
       },
       {
         path: 'controller-templates',

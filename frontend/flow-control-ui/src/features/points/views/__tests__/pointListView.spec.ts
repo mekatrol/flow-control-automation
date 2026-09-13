@@ -29,7 +29,8 @@ describe('PointListView', () => {
                 id: 'temperature',
                 name: 'Temperature',
                 enabled: true,
-                pointSourceType: 'remote',
+                sourceKind: 'httpJson',
+                sourceName: 'Building controller',
                 direction: 'input',
                 valueType: 'analog',
                 units: 'deg_c',
@@ -37,6 +38,7 @@ describe('PointListView', () => {
                 commandable: false,
                 persistence: 'volatile',
                 sourceId: 'building-controller',
+                mapping: 'temperatures/room',
                 revision: 1
               }
             ],
@@ -64,10 +66,9 @@ describe('PointListView', () => {
     // renders a semantic, keyboard-reachable table with point relationships.
     expect(wrapper.get('table caption').text()).toContain('Configured points');
 
-    expect(wrapper.get('thead th button').attributes('aria-label')).toBe('Add a new point');
-
     expect(wrapper.get('tbody td').text()).toContain('Temperature');
-    expect(wrapper.text()).toContain('building-controller');
+    expect(wrapper.text()).toContain('Building controller');
+    expect(wrapper.text()).toContain('temperatures/room');
 
     // Expected outcome: `wrapper.get('input[type="search"]'` has the required value.
     // Acceptance criteria: `wrapper.get('input[type="search"]'` must be `'points-filter'`, because this condition proves that

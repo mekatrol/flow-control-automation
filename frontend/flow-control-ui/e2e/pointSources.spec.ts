@@ -5,20 +5,25 @@ import { expect, test } from '@playwright/test';
 test.describe.configure({ mode: 'serial' });
 
 const sourceYAML = `schemaVersion: 1
-sources:
-  - id: weather
-    name: Weather API
-    enabled: true
-    kind: httpJson
-    connection:
-      baseUrl: https://weather.example.test
-      followRedirects: false
-      maximumResponseBytes: 65536
-    tls:
-      verifyServerCertificate: true
-    timeouts:
-      connectMilliseconds: 2000
-      requestMilliseconds: 5000
+id: weather
+name: Weather API
+enabled: true
+kind: httpJson
+connection:
+  baseUrl: https://weather.example.test
+  followRedirects: false
+  maximumResponseBytes: 65536
+tls:
+  verifyServerCertificate: true
+timeouts:
+  connectMilliseconds: 2000
+  requestMilliseconds: 5000
+mappings:
+  - id: current
+    aliases: [temperature]
+    read: { path: /current, method: GET, format: json, template: '{ "temperature": {{ temperature }} }' }
+points:
+  - { id: temperature, name: Temperature, enabled: true, direction: input, valueType: analog, readable: true, commandable: false, persistence: volatile, mapping: current/temperature }
 `;
 
 test.beforeEach(async ({ page }) => {
@@ -42,6 +47,8 @@ test('catalogue supports filtering, sorting, and opening a point source', async 
             description: 'Outdoor observations',
             enabled: true,
             kind: 'httpJson',
+            mappingCount: 1,
+            pointCount: 1,
             revision: 2,
             updatedAt: '2026-09-10T03:00:00Z'
           },
@@ -50,6 +57,8 @@ test('catalogue supports filtering, sorting, and opening a point source', async 
             name: 'Building MQTT',
             enabled: false,
             kind: 'mqtt',
+            mappingCount: 1,
+            pointCount: 2,
             revision: 1,
             updatedAt: '2026-09-09T03:00:00Z'
           }
@@ -239,17 +248,18 @@ test('reports schema and indentation errors before a source can be tested or sav
   await sourceEditor.locator('.monaco-editor .view-lines').click();
   await page.keyboard.press('ControlOrMeta+A');
   await page.keyboard.insertText(`schemaVersion: 1
-sources:
-  - id: broken-mqtt
-    name: Broken MQTT
-    enabled: true
-    kind: mqtt
-    connection:
-    brokerUrl: mqtt://mqtt.lan:1883
-    tls:
-      verifyServerCertificate: true
-    timeouts:
-      connectMilliseconds: 3000
+id: broken-mqtt
+name: Broken MQTT
+enabled: true
+kind: mqtt
+connection:
+brokerUrl: mqtt://mqtt.lan:1883
+tls:
+  verifyServerCertificate: true
+timeouts:
+  connectMilliseconds: 3000
+mappings: []
+points: []
 `);
 
   const summary = page.getByRole('heading', { name: /YAML problems?/ });
