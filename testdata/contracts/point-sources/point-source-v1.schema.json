@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "app://schemas/point-source-v1.json",
+  "title": "Flow Control Automation point-source aggregate, version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "name", "enabled", "kind", "connection", "tls", "timeouts", "mappings", "points"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "$ref": "#/$defs/identifier" },
+    "name": { "$ref": "#/$defs/nonEmptyString" },
+    "description": { "type": "string" },
+    "enabled": { "type": "boolean" },
+    "kind": { "enum": ["virtual", "physical", "homeAssistant", "mqtt", "httpJson"] },
+    "connection": { "$ref": "#/$defs/connection" },
+    "credentialRef": { "type": "string", "pattern": "^(?:secret://|env:).+" },
+    "tls": { "$ref": "#/$defs/tls" },
+    "timeouts": { "$ref": "#/$defs/timeouts" },
+    "mappings": { "type": "array", "items": { "$ref": "#/$defs/mapping" } },
+    "points": { "type": "array", "items": { "$ref": "#/$defs/point" } }
+  },
+  "allOf": [
+    { "if": { "properties": { "kind": { "const": "virtual" } }, "required": ["kind"] }, "then": { "properties": { "connection": { "maxProperties": 0 }, "mappings": { "items": { "$ref": "#/$defs/virtualMapping" } } } } },
+    { "if": { "properties": { "kind": { "const": "physical" } }, "required": ["kind"] }, "then": { "properties": { "connection": { "maxProperties": 0 }, "mappings": { "items": { "$ref": "#/$defs/physicalMapping" } } } } },
+    { "if": { "properties": { "kind": { "const": "homeAssistant" } }, "required": ["kind"] }, "then": { "properties": { "connection": { "$ref": "#/$defs/homeAssistantConnection" }, "mappings": { "items": { "$ref": "#/$defs/homeAssistantMapping" } } } } },
+    { "if": { "properties": { "kind": { "const": "mqtt" } }, "required": ["kind"] }, "then": { "properties": { "connection": { "$ref": "#/$defs/mqttConnection" }, "mappings": { "items": { "$ref": "#/$defs/mqttMapping" } } } } },
+    { "if": { "properties": { "kind": { "const": "httpJson" } }, "required": ["kind"] }, "then": { "properties": { "connection": { "$ref": "#/$defs/httpConnection" }, "mappings": { "items": { "$ref": "#/$defs/httpMapping" } } } } }
+  ],
+  "$defs": {
+    "identifier": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$" },
+    "alias": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]*$" },
+    "nonEmptyString": { "type": "string", "minLength": 1, "pattern": "\\S" },
+    "connection": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "baseUrl": { "type": "string", "pattern": "^https?://" }, "subscribeEvents": { "type": "boolean" },
+        "brokerUrl": { "type": "string", "pattern": "^mqtts?://" }, "clientIdPrefix": { "type": "string" }, "testTopic": { "type": "string" },
+        "qos": { "type": "integer", "minimum": 0, "maximum": 2 }, "cleanStart": { "type": "boolean" }, "keepAliveSeconds": { "type": "integer", "minimum": 1 },
+        "defaultPollMilliseconds": { "type": "integer", "minimum": 100 }, "followRedirects": { "type": "boolean" },
+        "maximumResponseBytes": { "type": "integer", "minimum": 1, "maximum": 10485760 }, "allowPrivateNetwork": { "type": "boolean" }
+      }
+    },
+    "homeAssistantConnection": { "allOf": [{ "$ref": "#/$defs/connection" }, { "required": ["baseUrl"], "not": { "anyOf": [{ "required": ["brokerUrl"] }, { "required": ["defaultPollMilliseconds"] }, { "required": ["followRedirects"] }, { "required": ["maximumResponseBytes"] }, { "required": ["allowPrivateNetwork"] }] } }] },
+    "mqttConnection": { "allOf": [{ "$ref": "#/$defs/connection" }, { "required": ["brokerUrl"], "not": { "anyOf": [{ "required": ["baseUrl"] }, { "required": ["subscribeEvents"] }, { "required": ["defaultPollMilliseconds"] }, { "required": ["followRedirects"] }, { "required": ["maximumResponseBytes"] }, { "required": ["allowPrivateNetwork"] }] } }] },
+    "httpConnection": { "allOf": [{ "$ref": "#/$defs/connection" }, { "required": ["baseUrl"], "not": { "anyOf": [{ "required": ["brokerUrl"] }, { "required": ["subscribeEvents"] }, { "required": ["clientIdPrefix"] }, { "required": ["testTopic"] }, { "required": ["qos"] }, { "required": ["cleanStart"] }, { "required": ["keepAliveSeconds"] }] } }] },
+    "tls": { "type": "object", "additionalProperties": false, "required": ["verifyServerCertificate"], "properties": { "verifyServerCertificate": { "const": true } } },
+    "timeouts": { "type": "object", "additionalProperties": false, "required": ["connectMilliseconds"], "properties": { "connectMilliseconds": { "type": "integer", "minimum": 100, "maximum": 30000 }, "requestMilliseconds": { "type": "integer", "minimum": 100, "maximum": 60000 } } },
+    "mapping": {
+      "type": "object", "additionalProperties": false, "required": ["id", "aliases"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" }, "aliases": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/alias" } },
+        "read": { "$ref": "#/$defs/readOperation" }, "command": { "$ref": "#/$defs/commandOperation" },
+        "physical": { "$ref": "#/$defs/physicalAddress" }, "virtual": { "$ref": "#/$defs/virtualOptions" }
+      }
+    },
+    "readOperation": { "type": "object", "additionalProperties": false, "properties": { "path": { "type": "string" }, "method": { "type": "string" }, "format": { "enum": ["json", "text"] }, "template": { "type": "string" }, "topic": { "type": "string" }, "qos": { "type": "integer", "minimum": 0, "maximum": 2 }, "entityId": { "type": "string" }, "property": { "type": "string" }, "pollMilliseconds": { "type": "integer", "minimum": 100 } } },
+    "commandOperation": { "type": "object", "additionalProperties": false, "properties": { "path": { "type": "string" }, "method": { "type": "string" }, "format": { "enum": ["json", "text"] }, "contentType": { "type": "string" }, "template": { "type": "string" }, "topic": { "type": "string" }, "qos": { "type": "integer", "minimum": 0, "maximum": 2 }, "retain": { "type": "boolean" }, "service": { "type": "string" }, "serviceData": { "type": "object" } } },
+    "virtualMapping": { "allOf": [{ "$ref": "#/$defs/mapping" }, { "required": ["virtual"], "not": { "required": ["physical"] }, "properties": { "read": { "maxProperties": 0 }, "command": { "maxProperties": 0 } } }] },
+    "physicalMapping": { "allOf": [{ "$ref": "#/$defs/mapping" }, { "required": ["physical"], "not": { "required": ["virtual"] }, "properties": { "read": { "maxProperties": 0 }, "command": { "maxProperties": 0 } } }] },
+    "homeAssistantMapping": { "allOf": [{ "$ref": "#/$defs/mapping" }, { "not": { "anyOf": [{ "required": ["physical"] }, { "required": ["virtual"] }] }, "properties": { "read": { "$ref": "#/$defs/homeAssistantRead" }, "command": { "$ref": "#/$defs/homeAssistantCommand" } } }] },
+    "mqttMapping": { "allOf": [{ "$ref": "#/$defs/mapping" }, { "not": { "anyOf": [{ "required": ["physical"] }, { "required": ["virtual"] }] }, "properties": { "read": { "$ref": "#/$defs/mqttRead" }, "command": { "$ref": "#/$defs/mqttCommand" } } }] },
+    "httpMapping": { "allOf": [{ "$ref": "#/$defs/mapping" }, { "not": { "anyOf": [{ "required": ["physical"] }, { "required": ["virtual"] }] }, "properties": { "read": { "$ref": "#/$defs/httpRead" }, "command": { "$ref": "#/$defs/httpCommand" } } }] },
+    "homeAssistantRead": { "allOf": [{ "$ref": "#/$defs/readOperation" }, { "required": ["entityId"], "not": { "anyOf": [{ "required": ["path"] }, { "required": ["method"] }, { "required": ["topic"] }, { "required": ["qos"] }, { "required": ["format"] }, { "required": ["template"] }, { "required": ["pollMilliseconds"] }] } }] },
+    "homeAssistantCommand": { "allOf": [{ "$ref": "#/$defs/commandOperation" }, { "required": ["service"], "not": { "anyOf": [{ "required": ["path"] }, { "required": ["method"] }, { "required": ["topic"] }, { "required": ["qos"] }, { "required": ["retain"] }, { "required": ["format"] }, { "required": ["contentType"] }, { "required": ["template"] }] } }] },
+    "mqttRead": { "allOf": [{ "$ref": "#/$defs/readOperation" }, { "required": ["topic"], "not": { "anyOf": [{ "required": ["path"] }, { "required": ["method"] }, { "required": ["entityId"] }, { "required": ["property"] }, { "required": ["pollMilliseconds"] }] } }] },
+    "mqttCommand": { "allOf": [{ "$ref": "#/$defs/commandOperation" }, { "required": ["topic"], "not": { "anyOf": [{ "required": ["path"] }, { "required": ["method"] }, { "required": ["contentType"] }, { "required": ["service"] }, { "required": ["serviceData"] }] } }] },
+    "httpRead": { "allOf": [{ "$ref": "#/$defs/readOperation" }, { "required": ["path", "method", "template"], "properties": { "path": { "type": "string", "pattern": "^/(?!/)" }, "method": { "enum": ["GET", "HEAD"] } }, "not": { "anyOf": [{ "required": ["topic"] }, { "required": ["qos"] }, { "required": ["entityId"] }, { "required": ["property"] }] } }] },
+    "httpCommand": { "allOf": [{ "$ref": "#/$defs/commandOperation" }, { "required": ["path", "method", "template"], "properties": { "path": { "type": "string", "pattern": "^/(?!/)" }, "method": { "enum": ["POST", "PUT", "PATCH", "DELETE"] } }, "not": { "anyOf": [{ "required": ["topic"] }, { "required": ["qos"] }, { "required": ["retain"] }, { "required": ["service"] }, { "required": ["serviceData"] }] } }] },
+    "physicalAddress": { "type": "object", "additionalProperties": false, "required": ["controllerId", "channel"], "properties": { "controllerId": { "$ref": "#/$defs/identifier" }, "channel": { "$ref": "#/$defs/nonEmptyString" }, "address": { "type": "string" }, "electricalType": { "type": "string" } } },
+    "virtualOptions": { "type": "object", "additionalProperties": false, "properties": { "persistence": { "enum": ["volatile", "retained"] } } },
+    "limits": { "type": "object", "additionalProperties": false, "properties": { "minimum": { "type": "number" }, "maximum": { "type": "number" }, "maximumLength": { "type": "integer", "minimum": 1 } } },
+    "digitalLabels": { "type": "object", "additionalProperties": false, "required": ["false", "true"], "properties": { "false": { "$ref": "#/$defs/nonEmptyString" }, "true": { "$ref": "#/$defs/nonEmptyString" } } },
+    "multiStateLabels": { "type": "array", "minItems": 2, "items": { "type": "object", "additionalProperties": false, "required": ["key", "label"], "properties": { "key": { "$ref": "#/$defs/nonEmptyString" }, "label": { "$ref": "#/$defs/nonEmptyString" } } } },
+    "safetyPolicy": { "type": "object", "additionalProperties": false, "required": ["startup", "shutdown", "communicationLoss", "disable"], "properties": { "startup": { "$ref": "#/$defs/safetyAction" }, "shutdown": { "$ref": "#/$defs/safetyAction" }, "communicationLoss": { "$ref": "#/$defs/safetyAction" }, "disable": { "$ref": "#/$defs/safetyAction" } } },
+    "safetyAction": { "enum": ["hold_last", "safe_value", "relinquish", "stop_driving"] },
+    "point": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "name", "enabled", "direction", "valueType", "readable", "commandable", "persistence", "mapping"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" }, "name": { "$ref": "#/$defs/nonEmptyString" }, "description": { "type": "string" }, "enabled": { "type": "boolean" },
+        "direction": { "enum": ["input", "output", "inputOutput", "value"] }, "valueType": { "enum": ["analog", "digital", "multiState", "integer", "text"] },
+        "units": { "type": "string" }, "stateLabels": {}, "readable": { "type": "boolean" }, "commandable": { "type": "boolean" },
+        "persistence": { "enum": ["volatile", "retained"] }, "relinquishDefault": {},
+        "mapping": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*/[A-Za-z][A-Za-z0-9_-]*$" },
+        "limits": { "$ref": "#/$defs/limits" }, "safeDisablePolicy": { "$ref": "#/$defs/safetyPolicy" }
+      },
+      "allOf": [
+        { "if": { "properties": { "valueType": { "const": "digital" } }, "required": ["valueType"] }, "then": { "required": ["stateLabels"], "properties": { "stateLabels": { "$ref": "#/$defs/digitalLabels" } }, "not": { "required": ["limits"] } } },
+        { "if": { "properties": { "valueType": { "const": "multiState" } }, "required": ["valueType"] }, "then": { "required": ["stateLabels"], "properties": { "stateLabels": { "$ref": "#/$defs/multiStateLabels" } }, "not": { "anyOf": [{ "required": ["limits"] }, { "required": ["units"] }] } } },
+        { "if": { "properties": { "valueType": { "const": "text" } }, "required": ["valueType"] }, "then": { "required": ["limits"], "properties": { "limits": { "required": ["maximumLength"], "not": { "anyOf": [{ "required": ["minimum"] }, { "required": ["maximum"] }] } } }, "not": { "anyOf": [{ "required": ["stateLabels"] }, { "required": ["units"] }] } } },
+        {
+          "if": { "properties": { "valueType": { "enum": ["analog", "integer"] } }, "required": ["valueType"] },
+          "then": {
+            "not": { "required": ["stateLabels"] },
+            "properties": { "limits": { "not": { "required": ["maximumLength"] } } }
+          }
+        },
+        { "if": { "properties": { "commandable": { "const": false } }, "required": ["commandable"] }, "then": { "not": { "required": ["safeDisablePolicy"] } } }
+      ]
+    }
+  }
+}

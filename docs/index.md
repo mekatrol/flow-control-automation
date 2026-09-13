@@ -14,6 +14,7 @@ the managed server and supported hardware controllers.
 - [PLC scan cycle](architecture/plc-scan-cycle.md)
 - [Flow authoring and controller targets](architecture/flow-authoring-and-controller-targets.md)
 - [Frontend hosting and API access](architecture/frontend-hosting-and-api-access.md)
+- [Point-source aggregate architecture and v1 contract](architecture/point-source-v1-contract.md)
 - [Scriban templating engine implementation plan](architecture/scriban-templating-engine-plan.md)
 
 ## Reference
@@ -21,6 +22,7 @@ the managed server and supported hardware controllers.
 - [Virtual-points API](reference/virtual-points-api.md)
 - [Point model](reference/point-model.md)
 - [Configuration vocabulary v1](reference/configuration-vocabulary-v1.md)
+- [Point-source YAML JSON Schema](../testdata/contracts/point-sources/point-source-v1.schema.json)
 - [UI flow schema](reference/ui-flow-schema.md)
 - [Runtime API](reference/runtime-api.md)
 - [Flow IL v1](reference/flow-il-v1.md)
