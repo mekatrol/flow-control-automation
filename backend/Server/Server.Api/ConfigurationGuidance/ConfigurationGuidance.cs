@@ -12,12 +12,14 @@ public static class ConfigurationGuidance
     private static readonly Dictionary<Type, Dictionary<string, string>> Help =
         new Dictionary<Type, Dictionary<string, string>>
         {
-            [typeof(PointDocument)] = H(("schemaVersion", "Configuration format version; currently `1`."), ("points", "Point definitions in this document.")),
-            [typeof(AutomationPoint)] = H(("id", "Stable lowercase, hyphen-separated identifier."), ("name", "Operator-facing display name."), ("description", "Optional explanation of what the point represents."), ("enabled", "Whether the point participates in runtime processing."), ("direction", "Permitted data direction."), ("valueType", "Logical type of the point value."), ("pointSourceType", "Whether the value is virtual, physical, or remote."), ("units", "Engineering units for analog and integer values."), ("stateLabels", "Labels for digital or multi-state values."), ("readable", "Whether clients and flows may read the value."), ("commandable", "Whether clients and flows may command the value."), ("persistence", "Runtime persistence: `volatile` or `retained`."), ("relinquishDefault", "Typed fallback used when no writer supplies a value."), ("sourceId", "Remote point-source identifier."), ("mapping", "Source-relative address and read/write settings."), ("limits", "Optional type-specific value constraints."), ("safeDisablePolicy", "Required transition behavior for commandable non-virtual points.")),
-            [typeof(PointSource)] = H(("id", "Stable lowercase, hyphen-separated source identifier."), ("name", "Operator-facing source name."), ("description", "Optional explanation of the external system."), ("enabled", "Whether connections and point operations are allowed."), ("kind", "Integration kind: `homeAssistant`, `mqtt`, or `httpJson`."), ("connection", "Kind-specific connection settings."), ("credentialRef", "Credential-store reference such as `secret://weather`."), ("tls", "TLS verification settings."), ("timeouts", "Connection and request timeout settings.")),
+            [typeof(AutomationPoint)] = H(("id", "Globally unique point identifier."), ("name", "Operator-facing display name."), ("description", "Optional explanation of what the point represents."), ("enabled", "Whether the point participates in runtime processing."), ("direction", "Permitted data direction."), ("valueType", "Logical type used to convert the mapping alias."), ("units", "Engineering units for analog and integer values."), ("stateLabels", "Labels for digital or multi-state values."), ("readable", "Whether clients and flows may read the value."), ("commandable", "Whether clients and flows may command the value."), ("persistence", "Runtime persistence: `volatile` or `retained`."), ("relinquishDefault", "Typed fallback used when no writer supplies a value."), ("mapping", "Strict `<mapping-id>/<alias>` reference owned by this source."), ("limits", "Optional type-specific value constraints."), ("safeDisablePolicy", "Required safe transition for commandable points.")),
+            [typeof(PointSource)] = H(("schemaVersion", "Configuration format version; currently `1`."), ("id", "Stable lowercase, hyphen-separated source identifier."), ("name", "Operator-facing source name."), ("description", "Optional explanation of the source."), ("enabled", "Whether connections and point operations are allowed."), ("kind", "Integration kind: `virtual`, `physical`, `homeAssistant`, `mqtt`, or `httpJson`."), ("connection", "Kind-specific connection settings."), ("credentialRef", "Credential-store reference such as `secret://weather`."), ("tls", "TLS verification settings."), ("timeouts", "Connection and request timeout settings."), ("mappings", "Reusable source-local communication mappings."), ("points", "Point definitions owned by this source.")),
             [typeof(PointSourceConnection)] = H(("baseUrl", "HTTP base URL for Home Assistant or HTTP/JSON."), ("subscribeEvents", "Subscribe to Home Assistant events."), ("brokerUrl", "MQTT broker URL."), ("clientIdPrefix", "Prefix for generated MQTT client IDs."), ("testTopic", "Exact read-only MQTT topic used by connectivity tests."), ("qos", "MQTT quality-of-service level: `0`, `1`, or `2`."), ("cleanStart", "Start MQTT sessions without previous session state."), ("keepAliveSeconds", "MQTT keepalive interval."), ("defaultPollMilliseconds", "Default HTTP polling interval."), ("followRedirects", "Whether HTTP redirects may be followed."), ("maximumResponseBytes", "Maximum accepted HTTP response size."), ("allowPrivateNetwork", "Explicitly permit private-network destinations.")),
             [typeof(TlsOptions)] = H(("verifyServerCertificate", "Must remain `true`; insecure TLS is not supported.")),
             [typeof(PointSourceTimeouts)] = H(("connectMilliseconds", "Connection timeout in milliseconds."), ("requestMilliseconds", "Optional complete-request timeout in milliseconds.")),
+            [typeof(PointMapping)] = H(("id", "Source-local mapping identifier."), ("aliases", "Case-sensitive values exposed by this mapping."), ("read", "Optional kind-specific read communication."), ("command", "Optional kind-specific command communication."), ("physical", "Physical controller/channel/address configuration."), ("virtual", "Virtual runtime behavior.")),
+            [typeof(MappingReadOperation)] = H(("path", "Relative HTTP read path."), ("method", "Safe read method."), ("format", "Transport format."), ("template", "Template rendering an alias object from the response."), ("topic", "MQTT state topic."), ("qos", "MQTT read QoS."), ("entityId", "Home Assistant entity identifier."), ("property", "Home Assistant state property."), ("pollMilliseconds", "Optional mapping polling interval.")),
+            [typeof(MappingCommandOperation)] = H(("path", "Relative HTTP command path."), ("method", "Command method."), ("format", "Transport format."), ("contentType", "Command content type."), ("template", "Template rendering the transport command."), ("topic", "MQTT command topic."), ("qos", "MQTT command QoS."), ("retain", "Whether MQTT retains the command."), ("service", "Home Assistant service."), ("serviceData", "Home Assistant service payload.")),
             [typeof(HomeAssistantPointMapping)] = H(("entityId", "Home Assistant entity ID."), ("stateProperty", "Optional property read from the entity state."), ("commandService", "Optional Home Assistant service used for commands.")),
             [typeof(MqttPointMapping)] = H(("stateTopic", "Topic subscribed to for readable values."), ("commandTopic", "Topic used for commands."), ("qos", "MQTT quality-of-service level."), ("retain", "Whether command publications use MQTT retain."), ("jsonPointer", "Optional JSON Pointer selecting the value from a payload.")),
             [typeof(HttpJsonPointMapping)] = H(("path", "Required path relative to the source base URL."), ("method", "Command method (`POST`, `PUT`, or `PATCH`) for commandable points; otherwise `GET` or `HEAD`. Readback always uses a safe read request."), ("jsonPointer", "Optional JSON Pointer selecting the value from a read response."), ("valuePointer", "Optional JSON Pointer where the commanded value is placed in the request body."), ("contentType", "Optional command body type: `application/json` (default) or `application/x-www-form-urlencoded`.")),
@@ -29,11 +31,10 @@ public static class ConfigurationGuidance
     public static string Render(
         string configurationType,
         ReadOnlySpan<byte> yaml,
-        string? pointSourceKind = null)
+        string? selectedPointId = null)
     {
         var kind = configurationType switch
         {
-            "point" => ConfigurationKind.Points,
             "point-source" => ConfigurationKind.PointSources,
             "controller-template" => ConfigurationKind.Controller,
             _ => throw new ArgumentException("unknown configuration type", nameof(configurationType))
@@ -43,14 +44,14 @@ public static class ConfigurationGuidance
 
         Type[] types = configurationType switch
         {
-            "point" => [typeof(PointDocument), typeof(AutomationPoint)],
-
             "point-source" => [
                 typeof(PointSource),
                 typeof(PointSourceConnection),
                 typeof(TlsOptions),
                 typeof(PointSourceTimeouts),
                 typeof(PointMapping),
+                typeof(MappingReadOperation),
+                typeof(MappingCommandOperation),
                 typeof(AutomationPoint)
             ],
 
@@ -63,124 +64,32 @@ public static class ConfigurationGuidance
 
         var markdown = new StringBuilder();
 
-        if (configurationType == "point")
-        {
-            RenderPoint(markdown, current, pointSourceKind);
-        }
-        else
-        {
-            markdown.Append($"# {Title(configurationType)} YAML guidance\n\nGenerated from the server's current C# configuration contract.\n\n");
+        markdown.Append($"# {Title(configurationType)} YAML guidance\n\nGenerated from the server's current C# configuration contract.\n\n");
 
-            foreach (var type in types)
-            {
-                AppendType(markdown, type);
-            }
+        foreach (var type in types)
+        {
+            AppendType(markdown, type);
+        }
+
+        if (configurationType == "point-source" && !string.IsNullOrWhiteSpace(selectedPointId))
+        {
+            RenderSelectedPoint(markdown, current, selectedPointId);
         }
 
         markdown.Append("## YAML structure for this selection\n\n```yaml\n");
-        markdown.Append(configurationType == "point" ? PointSample(current, pointSourceKind) : Encoding.UTF8.GetString(yaml).Trim());
+        markdown.Append(Encoding.UTF8.GetString(yaml).Trim());
         markdown.Append("\n```\n");
 
         return markdown.ToString();
     }
 
-    private static void RenderPoint(
-        StringBuilder markdown,
-        JsonNode current,
-        string? pointSourceKind)
+    private static void RenderSelectedPoint(StringBuilder markdown, JsonNode current, string pointId)
     {
-        var point = current["points"]?[0];
-        var sourceType = StringValue(point?["pointSourceType"]) ?? "point";
-        var valueType = StringValue(point?["valueType"]) ?? "point";
-        var direction = StringValue(point?["direction"]) ?? "value";
-        var commandable = BoolValue(point?["commandable"]);
-        var title = $"{Title(valueType)} {Title(direction)} {Title(sourceType)} point";
-        markdown.Append($"# {title} YAML guidance\n\nOnly fields applicable to the selected point type are shown. This is generated from the server's current C# configuration contract.\n\n");
-        AppendType(markdown, typeof(PointDocument));
-
-        var fields = new HashSet<string>(["id", "name", "description", "enabled", "direction", "valueType", "pointSourceType", "readable", "commandable", "persistence"], StringComparer.Ordinal);
-
-        if (valueType is "analog" or "integer")
-        {
-            fields.Add("units");
-        }
-
-        if (valueType is "digital" or "multiState")
-        {
-            fields.Add("stateLabels");
-        }
-
-        if (valueType is "analog" or "integer" or "text")
-        {
-            fields.Add("limits");
-        }
-
-        if (sourceType == "virtual")
-        {
-            fields.Add("relinquishDefault");
-        }
-
-        if (sourceType == "remote")
-        {
-            fields.Add("sourceId");
-            fields.Add("mapping");
-        }
-
-        if (sourceType != "virtual" && commandable)
-        {
-            fields.Add("safeDisablePolicy");
-        }
-
-        AppendType(markdown, typeof(AutomationPoint), fields);
-
-        if (sourceType == "remote")
-        {
-            var mappingType = MappingType(pointSourceKind);
-
-            if (mappingType is null)
-            {
-                markdown.Append("## Mapping\n\nThe referenced point source could not be resolved, so its mapping fields cannot be shown.\n\n");
-            }
-            else
-            {
-                markdown.Append($"## {Title(pointSourceKind!)} mapping\n\nThese are the fields accepted by the referenced `{pointSourceKind}` point source.\n\n");
-                AppendType(markdown, mappingType);
-            }
-        }
+        var point = current["points"]?.AsArray().OfType<JsonObject>()
+            .SingleOrDefault(candidate => candidate["id"]?.GetValue<string>() == pointId);
+        ArgumentNullException.ThrowIfNull(point, $"point '{pointId}' is not present in the aggregate");
+        markdown.Append($"## Selected point `{pointId}`\n\nValue type: `{point["valueType"]}`. Resolved mapping: `{point["mapping"]}`.\n\n");
     }
-
-    private static string PointSample(JsonNode current, string? pointSourceKind)
-    {
-        var sample = current.DeepClone();
-        var point = sample["points"]?[0];
-
-        if (point is not null && StringValue(point["pointSourceType"]) == "remote")
-        {
-            point["mapping"] = pointSourceKind switch
-            {
-                "homeAssistant" => new JsonObject { ["entityId"] = "binary_sensor.example", ["stateProperty"] = "state" },
-                "mqtt" => new JsonObject { ["stateTopic"] = "devices/example/state", ["qos"] = 1, ["retain"] = false },
-                "httpJson" => new JsonObject { ["path"] = "/points/example", ["method"] = "GET", ["jsonPointer"] = "/value" },
-                _ => point["mapping"]?.DeepClone()
-            };
-        }
-
-        return ConfigurationYaml.Render(sample).Trim();
-    }
-
-    private static Type? MappingType(string? pointSourceKind) => pointSourceKind switch
-    {
-        "homeAssistant" => typeof(HomeAssistantPointMapping),
-        "mqtt" => typeof(MqttPointMapping),
-        "httpJson" => typeof(HttpJsonPointMapping),
-        _ => null
-    };
-
-    private static string? StringValue(JsonNode? node) =>
-        node is JsonValue value && value.TryGetValue<string>(out var result) ? result : null;
-
-    private static bool BoolValue(JsonNode? node) =>
-        node is JsonValue value && value.TryGetValue<bool>(out var result) && result;
 
     public static IReadOnlyList<string> CoverageErrors()
     {

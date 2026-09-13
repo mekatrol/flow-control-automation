@@ -7,6 +7,20 @@ namespace Tests.Unit.Points.Sources;
 [TestFixture]
 internal sealed class PointSourceEndpointTests
 {
+    [TestCase("POST", "/api/points")]
+    [TestCase("GET", "/api/points/example")]
+    [TestCase("PUT", "/api/points/example")]
+    [TestCase("DELETE", "/api/points/example?revision=1")]
+    public async Task StandalonePointDefinitionRoutesAreRemoved(string method, string path)
+    {
+        await using var factory = new Api.FlowControlApplicationFactory();
+        using var client = factory.CreateClient();
+        using var request = new HttpRequestMessage(new HttpMethod(method), path);
+        using var response = await client.SendAsync(request);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
     /// <summary>
     /// Purpose: Protects the behavioral contract that crud uses yaml etags and revision conflicts.
     /// Description: Arranges the inputs for crud uses yaml etags and revision conflicts, exercises the relevant operation,
@@ -189,7 +203,7 @@ internal sealed class PointSourceEndpointTests
         }
 
         using var secondClient = factory.CreateClient();
-        var page = await secondClient.GetFromJsonAsync<PaginatedResult<PointSource>>(
+        var page = await secondClient.GetFromJsonAsync<PaginatedResult<Server.Api.Contracts.PointSourceSummary>>(
             "/api/point-sources?page=2&pageSize=10&filter=WEATHER&sort=descending",
             FlowControlJson.Options);
 
@@ -241,7 +255,9 @@ internal sealed class PointSourceEndpointTests
             // Expected outcome: `page.Items[0].CreatedAt` is available.
             // Acceptance criteria: `page.Items[0].CreatedAt` must not be null, because this condition proves that
             // list filters sorts paginates and persists across scopes.
-            Assert.That(page.Items[0].CreatedAt, Is.Not.Null);
+            Assert.That(page.Items[0].UpdatedAt, Is.Not.Null);
+            Assert.That(page.Items[0].MappingCount, Is.Zero);
+            Assert.That(page.Items[0].PointCount, Is.Zero);
         });
     }
 

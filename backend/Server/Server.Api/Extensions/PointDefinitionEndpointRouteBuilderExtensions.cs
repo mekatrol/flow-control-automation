@@ -1,7 +1,6 @@
 using Server.Api.Contracts;
 using Server.Services;
 using System.Globalization;
-using System.Text;
 
 namespace Server.Api.Extensions;
 
@@ -11,10 +10,6 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
         this IEndpointRouteBuilder endpoints)
     {
         endpoints.MapGet("/api/points", ListPoints);
-        endpoints.MapPost("/api/points", CreatePoint);
-        endpoints.MapGet("/api/points/{pointId}", GetPoint);
-        endpoints.MapPut("/api/points/{pointId}", UpdatePoint);
-        endpoints.MapDelete("/api/points/{pointId}", DeletePoint);
         endpoints.MapGet("/api/points/{pointId}/runtime", GetPointRuntime);
 
         return endpoints;
@@ -62,168 +57,6 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
             Sort(filtered, options.Value.Sort, point => point.Name, point => point.Id),
             options.Value.Page,
             options.Value.PageSize));
-    }
-
-    [Obsolete]
-    private static async Task<IResult> CreatePoint(
-        HttpRequest request,
-        HttpResponse response,
-        IPointDefinitionStore definitions,
-        CancellationToken cancellationToken)
-    {
-        var decoded = await Decode(request, PointYaml.Parse, cancellationToken);
-
-        return decoded.Error
-            ?? await Write(
-                response,
-                () => definitions.CreatePointAsync(decoded.Value!, cancellationToken),
-                PointYaml.Render,
-                StatusCodes.Status201Created);
-    }
-
-    private static async Task<IResult> GetPoint(
-        string pointId,
-        HttpResponse response,
-        IPointDefinitionStore definitions,
-        CancellationToken cancellationToken) =>
-        await Write(
-            response,
-            () => definitions.GetPointAsync(pointId, cancellationToken),
-            PointYaml.Render,
-            StatusCodes.Status200OK);
-
-    [Obsolete]
-    private static async Task<IResult> UpdatePoint(
-        string pointId,
-        HttpRequest request,
-        HttpResponse response,
-        IPointDefinitionStore definitions,
-        CancellationToken cancellationToken)
-    {
-        var decoded = await Decode(request, PointYaml.Parse, cancellationToken);
-
-        return decoded.Error ?? (TryRevision(request.Headers.IfMatch.ToString(), "If-Match", out var revision)
-            ? await Write(
-                response,
-                () => definitions.UpdatePointAsync(
-                    pointId,
-                    decoded.Value!,
-                    revision,
-                    cancellationToken),
-                PointYaml.Render,
-                StatusCodes.Status200OK)
-            : Error(400, "invalid_revision", "If-Match must contain the last observed revision"));
-    }
-
-    [Obsolete]
-    private static async Task<IResult> DeletePoint(
-        string pointId,
-        HttpRequest request,
-        IPointDefinitionStore definitions,
-        CancellationToken cancellationToken)
-    {
-        if (!TryRevision(request.Query["revision"].ToString(), "revision", out var revision))
-        {
-            return Error(400, "invalid_revision", "revision must be a positive integer");
-        }
-
-        return await Delete(
-            () => definitions.DeletePointAsync(pointId, revision, cancellationToken));
-    }
-
-    private static async Task<IResult> Delete(Func<Task> operation)
-    {
-        try
-        {
-            await operation();
-
-            return Results.NoContent();
-        }
-        catch (PointDefinitionNotFoundException)
-        {
-            return Error(404, "not_found", "point definition not found");
-        }
-        catch (PointDefinitionConflictException exception)
-        {
-            return Error(409, ConflictCode(exception), exception.Message);
-        }
-        catch (Exception exception) when (exception is not OperationCanceledException)
-        {
-            return Error(500, "persistence_failed", "unable to persist point definition");
-        }
-    }
-
-    private static async Task<IResult> Write<T>(
-        HttpResponse response,
-        Func<Task<T>> operation,
-        Func<T, string> render,
-        int status)
-        where T : class
-    {
-        try
-        {
-            var value = await operation();
-            var revision = value is AutomationPoint point
-                ? point.Revision
-                : throw new InvalidOperationException("Unsupported point resource.");
-            response.Headers.ETag = revision.ToString(CultureInfo.InvariantCulture);
-
-            return Results.Text(render(value), "application/yaml", Encoding.UTF8, status);
-        }
-        catch (PointDefinitionNotFoundException exception)
-        {
-            return Error(404, "not_found", exception.Message);
-        }
-        catch (PointDefinitionConflictException exception)
-        {
-            return Error(409, ConflictCode(exception), exception.Message);
-        }
-        catch (PointDefinitionValidationException exception)
-        {
-            return Error(400, "validation_failed", exception.Message);
-        }
-        catch (Exception exception) when (exception is not OperationCanceledException)
-        {
-            return Error(500, "persistence_failed", "unable to persist point definition");
-        }
-    }
-
-    private static async Task<(T? Value, IResult? Error)> Decode<T>(
-        HttpRequest request,
-        Func<ReadOnlySpan<byte>, T> parse,
-        CancellationToken cancellationToken)
-        where T : class
-    {
-        try
-        {
-            var buffer = new byte[ConfigurationYaml.MaximumBytes + 1];
-            var length = 0;
-
-            while (length < buffer.Length)
-            {
-                var read = await request.Body.ReadAsync(
-                    buffer.AsMemory(length, buffer.Length - length),
-                    cancellationToken);
-
-                if (read == 0)
-                {
-                    break;
-                }
-
-                length += read;
-            }
-
-            if (length > ConfigurationYaml.MaximumBytes)
-            {
-                return (null, Error(400, "request_too_large", "unable to read YAML request"));
-            }
-
-            return (parse(buffer.AsSpan(0, length)), null);
-        }
-        catch (ConfigurationYamlException exception)
-        {
-            return (null, Error(400, YamlCode(exception.Category), exception.Message));
-        }
     }
 
     private static (PointListOptions? Value, IResult? Error) ParsePointListOptions(
@@ -319,29 +152,6 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
             out result)
             && result > 0;
     }
-
-    private static bool TryRevision(string value, string _, out int revision) =>
-        int.TryParse(
-            value,
-            NumberStyles.Integer,
-            CultureInfo.InvariantCulture,
-            out revision)
-        && revision > 0;
-
-    private static string ConflictCode(PointDefinitionConflictException exception) =>
-        exception.Message.Contains("stale revision", StringComparison.Ordinal)
-            ? "stale_revision"
-            : "resource_conflict";
-
-    private static string YamlCode(ConfigurationYamlError error) => error switch
-    {
-        ConfigurationYamlError.Syntax => "yaml_syntax",
-        ConfigurationYamlError.TooLarge => "request_too_large",
-        ConfigurationYamlError.MultipleDocuments => "multiple_yaml_documents",
-        ConfigurationYamlError.UnsupportedFeature => "unsupported_yaml",
-        ConfigurationYamlError.UnsupportedSchema => "unsupported_schema",
-        _ => "invalid_yaml"
-    };
 
     private static IResult Error(
         int status,

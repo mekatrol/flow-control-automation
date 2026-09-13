@@ -202,12 +202,12 @@ revision/dependency conflicts are `409`, forbidden command/network operation is
 
 ## Delivery phases
 
-Implementation status (2026-09-13): Phases 1 through 5 are complete. The normative contract is
+Implementation status (2026-09-13): Phases 1 through 6 are complete. The normative contract is
 `point-source-v1-contract.md` plus the paired YAML/normalized-JSON fixtures under
 `testdata/contracts/point-sources/valid`; aggregate parser, models, validation, and mapping
 resolution now implement that contract. Exhaustive validator coverage, aggregate persistence,
-mapping execution, and typed point operations are complete; API and editor cutovers remain tracked
-by Phases 6–8.
+mapping execution, typed point operations, aggregate HTTP endpoints, nested point testing, and
+source-led guidance are complete; the editor cutover and final cleanup remain tracked by Phases 7–8.
 
 | Phase | Status |
 | --- | --- |
@@ -216,7 +216,7 @@ by Phases 6–8.
 | Phase 3 — Add exhaustive point-source and point-definition validator tests | Complete |
 | Phase 4 — Replace persistence and aggregate services | Complete |
 | Phase 5 — Implement mapping execution and point operations | Complete |
-| Phase 6 — Cut over HTTP endpoints and configuration guidance | Pending |
+| Phase 6 — Cut over HTTP endpoints and configuration guidance | Complete |
 | Phase 7 — Replace the frontend source and point workflows | Pending |
 | Phase 8 — Remove legacy artifacts, update documentation, and verify | Pending |
 
@@ -399,7 +399,7 @@ aliases from one read, multiple points sharing a mapping/alias, all conversions,
 partial conversion failure, one-call scheduling, command rendering, readback,
 cancellation, communication loss, and disabled/safe-disable behavior.
 
-### Phase 6 — Cut over HTTP endpoints and configuration guidance
+### Phase 6 — Cut over HTTP endpoints and configuration guidance (complete)
 
 1. Change point-source create/get/update to consume and return the full
    aggregate YAML and change list summaries to include counts. Preserve body

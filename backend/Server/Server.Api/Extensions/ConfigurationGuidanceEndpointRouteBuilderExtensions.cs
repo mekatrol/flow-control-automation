@@ -1,7 +1,3 @@
-using Server.Common.Extensions;
-using Server.Services;
-using System.Text.Json.Nodes;
-
 namespace Server.Api.Extensions;
 
 public static class ConfigurationGuidanceEndpointRouteBuilderExtensions
@@ -16,7 +12,6 @@ public static class ConfigurationGuidanceEndpointRouteBuilderExtensions
     private static async Task<IResult> Render(
         string configurationType,
         HttpRequest request,
-        IPointSourceService sources,
         CancellationToken cancellationToken)
     {
         try
@@ -27,16 +22,10 @@ public static class ConfigurationGuidanceEndpointRouteBuilderExtensions
 
             var yaml = stream.ToArray();
 
-            var sourceKind = await ResolvePointSourceKind(
-                configurationType,
-                yaml,
-                sources,
-                cancellationToken);
-
             var markdown = ConfigurationGuidance.ConfigurationGuidance.Render(
                 configurationType,
                 yaml,
-                sourceKind?.ToString().ToCamelCase());
+                request.Query["pointId"].ToString());
 
             return Results.Text(markdown, "text/markdown; charset=utf-8");
         }
@@ -50,37 +39,4 @@ public static class ConfigurationGuidanceEndpointRouteBuilderExtensions
         }
     }
 
-    private static async Task<PointSourceKind?> ResolvePointSourceKind(
-        string configurationType,
-        byte[] yaml,
-        IPointSourceService sources,
-        CancellationToken cancellationToken)
-    {
-        if (configurationType != "point")
-        {
-            return null;
-        }
-
-        var document = ConfigurationYaml.ParseToJson(yaml, ConfigurationKind.Points);
-        var point = document["points"]?[0];
-        var sourceType = StringValue(point?["pointSourceType"]);
-        var sourceId = StringValue(point?["sourceId"]);
-
-        if (sourceType != "remote" || string.IsNullOrWhiteSpace(sourceId))
-        {
-            return null;
-        }
-
-        try
-        {
-            return (await sources.GetAsync(sourceId, cancellationToken)).Kind;
-        }
-        catch (PointSourceNotFoundException)
-        {
-            return null;
-        }
-    }
-
-    private static string? StringValue(JsonNode? node) =>
-        node is JsonValue value && value.TryGetValue<string>(out var result) ? result : null;
 }
