@@ -4,7 +4,7 @@ namespace Server.Common.Models;
 /// Describes whether a point is available for use within an execution context or instance
 /// and, when available, exposes the point characteristics needed to configure a flow.
 /// The available point may be defined by the execution context or supplied by the shared
-/// automation-point catalogue.
+/// automation-point read projection.
 /// </summary>
 public sealed record PointAvailability
 {

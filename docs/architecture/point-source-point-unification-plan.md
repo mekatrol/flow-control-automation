@@ -202,13 +202,13 @@ revision/dependency conflicts are `409`, forbidden command/network operation is
 
 ## Delivery phases
 
-Implementation status (2026-09-13): Phases 1 through 7 are complete. The normative contract is
+Implementation status (2026-09-13): Phases 1 through 8 are complete. The normative contract is
 `point-source-v1-contract.md` plus the paired YAML/normalized-JSON fixtures under
 `testdata/contracts/point-sources/valid`; aggregate parser, models, validation, and mapping
 resolution now implement that contract. Exhaustive validator coverage, aggregate persistence,
 mapping execution, typed point operations, aggregate HTTP endpoints, nested point testing,
-source-led guidance, and the frontend aggregate workflow are complete; final cleanup remains
-tracked by Phase 8.
+source-led guidance, the frontend aggregate workflow, legacy-artifact removal, and current
+documentation are complete.
 
 | Phase | Status |
 | --- | --- |
@@ -219,7 +219,7 @@ tracked by Phase 8.
 | Phase 5 — Implement mapping execution and point operations | Complete |
 | Phase 6 — Cut over HTTP endpoints and configuration guidance | Complete |
 | Phase 7 — Replace the frontend source and point workflows | Complete |
-| Phase 8 — Remove legacy artifacts, update documentation, and verify | Pending |
+| Phase 8 — Remove legacy artifacts, update documentation, and verify | Complete |
 
 Each phase below is intended to leave a reviewable, testable result. Because
 this is a breaking aggregate replacement, intermediate branches need not run
@@ -467,7 +467,7 @@ guidance. Browser tests cover create, edit, test, flow selection, delete
 dependency failure, and successful aggregate deletion with keyboard and screen
 reader assertions.
 
-### Phase 8 — Remove legacy artifacts, update documentation, and verify
+### Phase 8 — Remove legacy artifacts, update documentation, and verify (complete)
 
 1. Delete standalone point serializers/documents, services, database entities,
    mutation endpoints, frontend editors/stores/routes, compatibility helpers,

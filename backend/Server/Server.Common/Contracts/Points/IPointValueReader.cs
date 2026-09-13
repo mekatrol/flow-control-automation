@@ -1,7 +1,7 @@
 namespace Server.Common.Contracts.Points;
 
 /// <summary>Reads current runtime values through the authoritative point abstraction.</summary>
-public interface IPointReadService
+public interface IPointValueReader
 {
     /// <summary>Reads one configured point and returns its value together with quality and freshness metadata.</summary>
     /// <param name="pointId">The non-empty canonical identifier of an enabled readable point.</param>

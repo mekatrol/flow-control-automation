@@ -9,7 +9,7 @@ namespace Server.Compiler.Services.Implementation;
 internal sealed class FlowCompilationTargetResolver(
     IControllerTemplateStore controllerTemplates,
     IControllerTemplateValidator controllerTemplateValidator,
-    IPointDefinitionStore pointDefinitions) : IFlowCompilationTargetResolver
+    IPointDefinitionReader points) : IFlowCompilationTargetResolver
 {
     public async Task<FlowCompilationTarget> ResolveAsync(
         ExecutableFlowSource source,
@@ -50,7 +50,7 @@ internal sealed class FlowCompilationTargetResolver(
         ValidateCapabilities(source, validated);
         ValidateLimits(source, template.Limits);
 
-        var allPoints = await pointDefinitions.ListPointsAsync(cancellationToken);
+        var allPoints = await points.ListPointsAsync(cancellationToken);
         var pointsById = allPoints.ToDictionary(point => point.Id, StringComparer.Ordinal);
 
         foreach (var definition in source.VirtualPointDefinitions)

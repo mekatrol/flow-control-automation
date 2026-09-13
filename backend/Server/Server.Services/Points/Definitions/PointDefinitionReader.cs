@@ -3,8 +3,8 @@ using System.Text.Json;
 
 namespace Server.Services.Points.Definitions;
 
-/// <summary>Read-only point catalogue projected from persisted source aggregates.</summary>
-internal sealed class PointDefinitionDatabaseStore(IFlowControlDbContext context) : IPointDefinitionStore
+/// <summary>Queries points projected from persisted source aggregates.</summary>
+internal sealed class PointDefinitionReader(IFlowControlDbContext context) : IPointDefinitionReader
 {
     public async Task<IReadOnlyList<AutomationPoint>> ListPointsAsync(
         CancellationToken cancellationToken) =>

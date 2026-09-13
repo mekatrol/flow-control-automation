@@ -11,10 +11,10 @@ public interface IPointDefinitionValidator
         AutomationPoint point,
         PointValidationContext context);
 
-    /// <summary>Validates an entire point document as one self-consistent snapshot.</summary>
-    /// <param name="document">The current-version document containing unique points with valid revisions.</param>
+    /// <summary>Validates all aggregate-owned points as one self-consistent projection.</summary>
+    /// <param name="points">The points projected from all current source aggregates.</param>
     /// <param name="sources">All sources available to mappings in the document, keyed by canonical source ID.</param>
     void ValidateDocument(
-        PointDocument document,
+        IReadOnlyList<AutomationPoint> points,
         IReadOnlyDictionary<string, PointSource> sources);
 }

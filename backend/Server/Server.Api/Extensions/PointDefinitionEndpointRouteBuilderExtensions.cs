@@ -17,7 +17,7 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
 
     private static async Task<IResult> GetPointRuntime(
         string pointId,
-        IPointReadService reader,
+        IPointValueReader reader,
         CancellationToken cancellationToken)
     {
         try
@@ -32,7 +32,7 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
 
     private static async Task<IResult> ListPoints(
         HttpRequest request,
-        IPointDefinitionStore definitions,
+        IPointDefinitionReader points,
         CancellationToken cancellationToken)
     {
         var options = ParsePointListOptions(request);
@@ -42,7 +42,7 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
             return options.Error;
         }
 
-        var all = await definitions.ListPointsAsync(cancellationToken);
+        var all = await points.ListPointsAsync(cancellationToken);
         IEnumerable<AutomationPoint> filtered = all;
 
         if (!string.IsNullOrWhiteSpace(options.Value!.Filter))

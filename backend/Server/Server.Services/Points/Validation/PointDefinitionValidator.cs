@@ -43,20 +43,15 @@ internal sealed partial class PointDefinitionValidator : IPointDefinitionValidat
     }
 
     public void ValidateDocument(
-        PointDocument document,
+        IReadOnlyList<AutomationPoint> points,
         IReadOnlyDictionary<string, PointSource> sources)
     {
-        if (document.SchemaVersion != 1)
-        {
-            Fail("schemaVersion must be 1");
-        }
-
-        RejectDuplicates(document.Points.Select(point => point.Id), "point id");
-        RejectDuplicates(document.Points.Select(point => point.Name), "point name");
+        RejectDuplicates(points.Select(point => point.Id), "point id");
+        RejectDuplicates(points.Select(point => point.Name), "point name");
 
         var context = new PointValidationContext(sources);
 
-        foreach (var point in document.Points)
+        foreach (var point in points)
         {
             Validate(point, context);
         }

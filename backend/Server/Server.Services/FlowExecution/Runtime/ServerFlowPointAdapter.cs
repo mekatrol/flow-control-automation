@@ -14,7 +14,7 @@ internal sealed class ServerFlowPointAdapter(
         CancellationToken cancellationToken)
     {
         await using var scope = scopes.CreateAsyncScope();
-        var reader = scope.ServiceProvider.GetRequiredService<IPointReadService>();
+        var reader = scope.ServiceProvider.GetRequiredService<IPointValueReader>();
         var result = new FlowVmInput[pointIds.Count];
 
         for (var index = 0; index < pointIds.Count; index++)

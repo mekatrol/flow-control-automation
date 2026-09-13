@@ -3,25 +3,6 @@ export interface YamlResource {
   revision: number;
 }
 
-export interface RuntimeEnvelope {
-  pointId: string;
-  value: unknown;
-  units?: string;
-  quality: string;
-  reliability: string;
-  sourceTimestamp?: string;
-  updatedAt?: string;
-  connectionState: string;
-  status: 'live' | 'cached' | 'simulated' | 'unavailable';
-  diagnostic: string;
-  deviceResponse?: {
-    statusCode: number;
-    reasonPhrase?: string;
-    contentType?: string;
-    body: string;
-  };
-}
-
 export interface ValidationDiagnostic {
   code: string;
   path: string;
@@ -102,22 +83,6 @@ const yamlApi = (base: string): YamlCrudApi => ({
     });
   }
 });
-
-export const pointConfigurationApi = {
-  ...yamlApi('/api/points'),
-  async runtime(
-    id: string,
-    signal?: AbortSignal,
-    options: { trackWait?: boolean } = {}
-  ): Promise<RuntimeEnvelope> {
-    const response = await request(
-      `/api/points/${encodeURIComponent(id)}/runtime`,
-      { signal },
-      options
-    );
-    return response.json() as Promise<RuntimeEnvelope>;
-  }
-};
 
 export const controllerTemplateConfigurationApi = {
   ...yamlApi('/api/controller-templates'),

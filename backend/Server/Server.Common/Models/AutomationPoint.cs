@@ -37,7 +37,7 @@ public record AutomationPoint : IAutomationPoint
     /// Gets or sets whether the point may participate in runtime operations.
     /// </summary>
     /// <remarks>
-    /// Keeping disabled points in the catalogue preserves references and configuration while
+    /// Keeping disabled points in the read projection preserves references and configuration while
     /// preventing the runtime from treating them as available.
     /// </remarks>
     public bool Enabled { get; set; }

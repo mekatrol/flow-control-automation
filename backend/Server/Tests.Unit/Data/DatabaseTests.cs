@@ -98,6 +98,7 @@ public sealed class DatabaseTests
             SourceId = "source-one"
         });
         await context.SaveChangesAsync(CancellationToken.None);
+        ((DbContext)context).ChangeTracker.Clear();
         context.PointSourcePoints.Add(new PointSourcePointEntity
         {
             PointId = "shared-point",
@@ -108,7 +109,7 @@ public sealed class DatabaseTests
             async () => await context.SaveChangesAsync(CancellationToken.None),
             Throws.TypeOf<DbUpdateException>());
 
-        context.PointSourcePoints.Remove(context.PointSourcePoints.Local.Single(item => item.SourceId == "source-two"));
+        ((DbContext)context).ChangeTracker.Clear();
         context.PointSources.Remove(await context.PointSources.SingleAsync(item => item.Id == "source-one"));
         await context.SaveChangesAsync(CancellationToken.None);
 

@@ -1,22 +1,17 @@
 <template>
   <section class="configuration-page editor-page">
-    <AppErrorNotice
-      id="yaml-resource-error-notice"
-      :message="apiError"
-      :details="noticeErrorDetails"
-    />
+    <AppErrorNotice id="yaml-resource-error-notice" :message="apiError" :details="noticeDetails" />
     <nav aria-label="Breadcrumb">
-      <RouterLink :to="{ name: listRoute }">{{ pluralLabel }}</RouterLink> /
-      {{ isNew ? `New ${singularLabel}` : readOnly ? singularLabel : `Edit ${singularLabel}` }}
+      <RouterLink :to="{ name: 'controller-templates' }">Controller templates</RouterLink> /
+      {{ isNew ? 'New' : 'Edit' }}
     </nav>
     <div class="page-heading">
       <div>
         <p>YAML configuration</p>
         <h1>{{ heading }}</h1>
-        <p>{{ helpText }}</p>
+        <p>Define the capabilities and limits supported by this deployment target.</p>
       </div>
     </div>
-
     <div
       v-if="error"
       ref="errorSummary"
@@ -24,28 +19,18 @@
       role="alert"
       tabindex="-1"
     >
-      <strong>There is a problem</strong>
-      <span>{{ error }}</span>
+      <strong>There is a problem</strong><span>{{ error }}</span>
       <ul v-if="serverDiagnostics.length">
         <li v-for="item in serverDiagnostics" :key="`${item.path}:${item.message}`">
           <strong>{{ item.path }}</strong
-          >: {{ item.message
-          }}<span v-if="item.line"> (line {{ item.line }}, column {{ item.column }})</span>
+          >: {{ item.message }}
         </li>
       </ul>
     </div>
-    <p v-if="isSpinnerVisible" role="status">Loading {{ singularLabel }}…</p>
+    <p v-if="isSpinnerVisible" role="status">Loading controller template…</p>
     <form v-else @submit.prevent="save">
-      <div v-if="isNew && kind === 'point'" class="example-picker">
-        <label for="point-example">Start with a point example</label>
-        <select id="point-example" v-model="selectedExample" @change="useExample">
-          <option v-for="example in pointExamples" :key="example.name" :value="example.name">
-            {{ example.name }}
-          </option>
-        </select>
-      </div>
       <div class="editor-actions">
-        <AppConfigurationGuidance :type="guidanceType" :yaml="yaml" />
+        <AppConfigurationGuidance type="controller-template" :yaml="yaml" />
         <AppButton
           v-if="!readOnly"
           type="submit"
@@ -54,18 +39,11 @@
           :disabled="busy || hasEditorErrors"
         />
         <AppButton
-          v-if="kind === 'controller' && !readOnly"
+          v-if="!readOnly"
           text="Validate"
           :icon="checkIcon"
           :disabled="busy || hasEditorErrors"
           @click="validateTemplate"
-        />
-        <AppButton
-          v-if="kind === 'point'"
-          :text="pointTesting ? 'Stop testing' : 'Test point'"
-          :icon="checkIcon"
-          :disabled="busy || (!pointTesting && hasEditorErrors)"
-          @click="pointTesting ? stopPointTest() : testPoint('read')"
         />
         <AppButton
           v-if="!isNew && !readOnly"
@@ -74,297 +52,64 @@
           :disabled="busy"
           @click="remove"
         />
-        <RouterLink
-          v-if="kind === 'controller' && readOnly"
-          class="primary-link"
-          :to="{ name: 'controller-template-new' }"
-        >
+        <RouterLink v-if="readOnly" class="primary-link" :to="{ name: 'controller-template-new' }">
           <AppSvg :src="newIcon" size="1em" />
           Create custom template from example
         </RouterLink>
       </div>
       <AppYamlEditor
         v-model="yaml"
-        :label="`${singularLabel} YAML`"
-        :help="editorHelp"
-        :schema="schema"
+        label="Controller template YAML"
+        help="Use schema version 1."
+        :schema="controllerTemplateSchema"
         :schema-uri="schemaUri"
         min-height="620px"
         :read-only="readOnly"
         @[EVENTS.DIAGNOSTICS]="setEditorDiagnostics"
       />
-      <section
-        v-if="kind === 'point' && (pointTesting || pointTestResult || pointTestError)"
-        ref="pointTestPanel"
-        class="point-test-panel"
-        aria-labelledby="point-test-heading"
-        aria-live="polite"
-        tabindex="-1"
-      >
-        <h2 id="point-test-heading">Point test</h2>
-        <p v-if="pointTesting">{{ pointTesting === 'read' ? 'Reading' : 'Writing' }} point…</p>
-        <p v-if="pointTestError" class="request-error" role="alert">{{ pointTestError }}</p>
-        <template v-if="pointTestResult">
-          <p v-if="pointTestResult.diagnostic" class="request-error" role="alert">
-            {{ pointTestResult.diagnostic }}
-          </p>
-          <div v-if="pointTestUrl" class="tested-request-url">
-            <span>Request URL</span>
-            <code>{{ pointTestUrl }}</code>
-          </div>
-          <div class="tested-value">
-            <span>Point value</span>
-            <strong>{{ displayTestValue }}</strong>
-          </div>
-          <h3>Test response</h3>
-          <p>
-            Status: {{ pointTestResult.httpResponse?.statusCode }}
-            {{ pointTestResult.httpResponse?.reasonPhrase }}
-          </p>
-          <p v-if="pointTestResult.httpResponse?.contentType">
-            Content-Type: {{ pointTestResult.httpResponse?.contentType }}
-          </p>
-          <pre
-            v-if="pointTestResult.httpResponse"
-            tabindex="0"
-          ><code>{{ pointTestResult.httpResponse.body }}</code></pre>
-        </template>
-        <div v-if="pointCommandable" class="point-write-controls">
-          <label for="test-point-value">Set point value</label>
-          <input id="test-point-value" v-model="pointWriteValue" type="text" />
-          <AppButton
-            :text="pointTesting === 'command' ? 'Commanding…' : 'Command point'"
-            :icon="checkIcon"
-            :disabled="pointTesting !== undefined || !pointWriteValue.trim()"
-            @click="testPoint('command')"
-          />
-        </div>
-        <p v-else class="runtime-diagnostic">This point is read-only.</p>
-      </section>
     </form>
-
-    <section
-      v-if="kind === 'point' && !isNew"
-      class="runtime-panel"
-      aria-labelledby="runtime-heading"
-    >
-      <div>
-        <h2 id="runtime-heading">Live point value</h2>
-        <AppButton
-          :text="runtimePaused ? 'Resume updates' : 'Pause updates'"
-          :icon="runtimePaused ? playIcon : pauseIcon"
-          @click="runtimePaused = !runtimePaused"
-        />
-        <AppButton text="Retry now" :icon="retryIcon" @click="loadRuntime" />
-      </div>
-      <p v-if="runtimeLoading" role="status">Reading point value…</p>
-      <dl v-if="runtime">
-        <div>
-          <dt>Status</dt>
-          <dd>{{ runtime.status }}</dd>
-        </div>
-        <div>
-          <dt>Value</dt>
-          <dd>{{ displayValue }}</dd>
-        </div>
-        <div>
-          <dt>Units</dt>
-          <dd>{{ runtime.units || '—' }}</dd>
-        </div>
-        <div>
-          <dt>Quality</dt>
-          <dd>{{ runtime.quality }}</dd>
-        </div>
-        <div>
-          <dt>Reliability</dt>
-          <dd>{{ runtime.reliability }}</dd>
-        </div>
-        <div>
-          <dt>Connection</dt>
-          <dd>{{ runtime.connectionState }}</dd>
-        </div>
-        <div>
-          <dt>Source timestamp</dt>
-          <dd>{{ runtime.sourceTimestamp || '—' }}</dd>
-        </div>
-      </dl>
-      <p v-if="runtime" class="runtime-diagnostic">{{ runtime.diagnostic }}</p>
-    </section>
     <p class="visually-hidden" role="status" aria-live="polite">{{ status }}</p>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { parse } from 'yaml';
-import { useSaveShortcut } from '@/composables/useSaveShortcut';
-import { useSpinner } from '@/composables/useSpinner';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
 import checkIcon from '@/assets/icons/check-icon.svg';
 import deleteIcon from '@/assets/icons/delete-flow-icon.svg';
 import newIcon from '@/assets/icons/new-icon.svg';
-import pauseIcon from '@/assets/icons/pause-icon.svg';
-import playIcon from '@/assets/icons/play-icon.svg';
-import retryIcon from '@/assets/icons/retry-icon.svg';
 import saveIcon from '@/assets/icons/save-icon.svg';
 import AppButton from '@/components/AppButton.vue';
 import AppErrorNotice from '@/components/AppErrorNotice.vue';
 import AppSvg from '@/components/AppSvg.vue';
 import AppYamlEditor, { type YamlDiagnostic } from '@/components/AppYamlEditor.vue';
-import AppConfigurationGuidance from '@/features/configuration/components/AppConfigurationGuidance.vue';
-import type { ConfigurationGuidanceType } from '@/features/configuration/api/configurationGuidanceApi';
 import { EVENTS } from '@/constants/events';
+import { useSaveShortcut } from '@/composables/useSaveShortcut';
+import { useSpinner } from '@/composables/useSpinner';
 import {
   controllerTemplateConfigurationApi,
-  pointConfigurationApi,
-  type RuntimeEnvelope,
   type ValidationDiagnostic,
   YamlResourceError
 } from '@/features/configuration/api/yamlResourceApi';
-import {
-  controllerTemplateSchema,
-  pointSchema
-} from '@/features/configuration/configurationSchemas';
-import { pointSourceApi, type PointTestResult } from '@/features/pointSources/api/pointSourceApi';
-import { formatPointTestValue } from '@/features/pointSources/formatPointTestValue';
+import AppConfigurationGuidance from '@/features/configuration/components/AppConfigurationGuidance.vue';
+import { controllerTemplateSchema } from '@/features/configuration/configurationSchemas';
 
-type ResourceKind = 'point' | 'controller';
-const props = defineProps<{ kind: ResourceKind; resourceId?: string }>();
-const guidanceType = computed<ConfigurationGuidanceType>(() =>
-  props.kind === 'controller' ? 'controller-template' : 'point'
-);
+const props = defineProps<{ resourceId?: string }>();
 const router = useRouter();
 const isNew = computed(() => !props.resourceId);
-const singularLabel = computed(() => (props.kind === 'point' ? 'point' : 'controller template'));
-const pluralLabel = computed(() => (props.kind === 'point' ? 'Points' : 'Controller templates'));
-const listRoute = computed(() => (props.kind === 'point' ? 'points' : 'controller-templates'));
-const detailRoute = computed(() =>
-  props.kind === 'point' ? 'point-detail' : 'controller-template-detail'
+const readOnly = computed(() => props.resourceId === 'default');
+const heading = computed(() =>
+  isNew.value
+    ? 'New controller template'
+    : readOnly.value
+      ? 'Default controller template'
+      : `Edit ${props.resourceId}`
 );
-const schema = computed(() => (props.kind === 'point' ? pointSchema : controllerTemplateSchema));
-const schemaUri = computed(() => schema.value.$id as string);
-const helpText = computed(() =>
-  props.kind === 'point'
-    ? 'Configure type, source mapping, limits, and safe behavior.'
-    : 'Define the capabilities and limits supported by this deployment target.'
-);
-const editorHelp = computed(() =>
-  // Empty for now, but could be used to provide additional context or guidance in the editor.
-  readOnly.value ? '' : ''
-);
-
-const pointExamples = [
-  {
-    name: 'AI — Analog input',
-    yaml: `schemaVersion: 1
-points:
-  - id: new-analog-input
-    name: New analog input
-    enabled: true
-    pointSourceType: remote
-    direction: input
-    valueType: analog
-    units: percent
-    readable: true
-    commandable: false
-    persistence: volatile
-    sourceId: point-source
-    mapping: {channel: AI-1}
-`
-  },
-  {
-    name: 'DI — Digital input',
-    yaml: `schemaVersion: 1
-points:
-  - id: new-digital-input
-    name: New digital input
-    enabled: true
-    pointSourceType: remote
-    direction: input
-    valueType: digital
-    stateLabels: {false: "Off", true: "On"}
-    readable: true
-    commandable: false
-    persistence: volatile
-    sourceId: point-source
-    mapping: {channel: DI-1}
-`
-  },
-  {
-    name: 'AO — Analog output',
-    yaml: `schemaVersion: 1
-points:
-  - id: new-analog-output
-    name: New analog output
-    enabled: true
-    pointSourceType: remote
-    direction: output
-    valueType: analog
-    units: percent
-    readable: true
-    commandable: true
-    persistence: volatile
-    sourceId: point-source
-    mapping: {channel: AO-1}
-`
-  },
-  {
-    name: 'DO — Digital output',
-    yaml: `schemaVersion: 1
-points:
-  - id: new-digital-output
-    name: New digital output
-    enabled: true
-    pointSourceType: remote
-    direction: output
-    valueType: digital
-    stateLabels: {false: "Off", true: "On"}
-    readable: true
-    commandable: true
-    persistence: volatile
-    sourceId: point-source
-    mapping: {channel: DO-1}
-`
-  },
-  {
-    name: 'AV — Analog virtual',
-    yaml: `schemaVersion: 1
-points:
-  - id: new-analog-virtual
-    name: New analog virtual point
-    enabled: true
-    pointSourceType: virtual
-    direction: value
-    valueType: analog
-    units: percent
-    readable: true
-    commandable: true
-    persistence: retained
-    relinquishDefault: 0
-`
-  },
-  {
-    name: 'DV — Digital virtual',
-    yaml: `schemaVersion: 1
-points:
-  - id: new-digital-virtual
-    name: New digital virtual point
-    enabled: true
-    pointSourceType: virtual
-    direction: value
-    valueType: digital
-    stateLabels: {false: "Off", true: "On"}
-    readable: true
-    commandable: true
-    persistence: retained
-    relinquishDefault: false
-`
-  }
-];
-const controllerExample = `schemaVersion: 1
+const schemaUri = String(controllerTemplateSchema.$id);
+const example = `schemaVersion: 1
 id: custom-controller
 name: Custom controller
-description: Constrained deployment target
 readOnly: false
 capabilities:
   pointTypes: [digital]
@@ -374,502 +119,128 @@ capabilities:
   flowFunctions: [and, readPoint, writePoint]
   executionModes: [interval]
   runtimeFeatures: [physicalPoints]
-limits:
-  maxFlows: 8
-  maxNodesPerFlow: 64
-  maxConnectionsPerFlow: 96
-  minimumIntervalMilliseconds: 100
+limits: {maxFlows: 8, maxNodesPerFlow: 128, maxConnectionsPerFlow: 256}
 `;
-const initial = computed(() =>
-  props.kind === 'point' ? pointExamples[0]!.yaml : controllerExample
-);
-const selectedExample = ref(pointExamples[0]!.name);
-const yaml = ref('');
-const baseline = ref('');
+const yaml = ref(example);
+const baseline = ref(example);
 const revision = ref(0);
 const saving = ref(false);
 const validating = ref(false);
+const deleting = ref(false);
 const error = ref('');
 const apiError = ref('');
-const apiErrorDetails = ref<string[]>([]);
-const noticeErrorDetails = computed(() =>
-  apiErrorDetails.value.length > 0 ? apiErrorDetails.value : apiError.value ? [apiError.value] : []
-);
 const status = ref('');
 const serverDiagnostics = ref<ValidationDiagnostic[]>([]);
 const editorDiagnostics = ref<YamlDiagnostic[]>([]);
-const setEditorDiagnostics = (diagnostics: YamlDiagnostic[]): void => {
-  editorDiagnostics.value = diagnostics;
-};
 const errorSummary = ref<HTMLElement>();
-const runtime = ref<RuntimeEnvelope>();
-const runtimeLoading = ref(false);
-const runtimePaused = ref(false);
-const pointTesting = ref<'read' | 'command'>();
-const pointTestResult = ref<PointTestResult>();
-const pointTestError = ref('');
-const pointWriteValue = ref('');
-const pointTestUrl = ref('');
-const pointTestPanel = ref<HTMLElement>();
-let allowNavigation = false;
-let loadController: AbortController | undefined;
-let runtimeController: AbortController | undefined;
-let pointTestController: AbortController | undefined;
+const loadController = new AbortController();
 const { isSpinnerVisible, withSpinner } = useSpinner();
-const dirty = computed(() => yaml.value !== baseline.value);
-const busy = computed(() => saving.value || validating.value);
+const busy = computed(() => saving.value || validating.value || deleting.value);
 const hasEditorErrors = computed(() =>
   editorDiagnostics.value.some(({ severity }) => severity === 'error')
 );
-const readOnly = computed(() => props.kind === 'controller' && props.resourceId === 'default');
-const heading = computed(() =>
-  isNew.value
-    ? `New ${singularLabel.value}`
-    : readOnly.value
-      ? 'Built-in default controller'
-      : singularLabel.value
+const noticeDetails = computed(() =>
+  serverDiagnostics.value.map((item) => `${item.path}: ${item.message}`)
 );
-const displayValue = computed(() =>
-  runtime.value?.value === null || runtime.value?.value === undefined
-    ? 'Unavailable'
-    : typeof runtime.value.value === 'string'
-      ? runtime.value.value
-      : JSON.stringify(runtime.value.value)
-);
-const pointDefinition = computed(() => {
+const setEditorDiagnostics = (items: YamlDiagnostic[]): void => {
+  editorDiagnostics.value = items;
+};
+const resourceIdFromYaml = (): string => {
   try {
-    return (
-      parse(yaml.value) as {
-        points?: {
-          id?: string;
-          sourceId?: string;
-          commandable?: boolean;
-          units?: string;
-          mapping?: { path?: string; method?: string };
-        }[];
-      }
-    ).points?.[0];
-  } catch {
-    return undefined;
-  }
-});
-const pointCommandable = computed(() => pointDefinition.value?.commandable === true);
-const displayTestValue = computed(() =>
-  formatPointTestValue(pointTestResult.value?.value, pointDefinition.value?.units)
-);
-
-const api = computed(() =>
-  props.kind === 'point' ? pointConfigurationApi : controllerTemplateConfigurationApi
-);
-const resourceIdFromYaml = (source = yaml.value): string => {
-  try {
-    const document = parse(source) as {
-      id?: unknown;
-      points?: { id?: unknown }[];
-    };
-    const id = props.kind === 'controller' ? document.id : document.points?.[0]?.id;
+    const id = (parse(yaml.value) as { id?: unknown }).id;
     return typeof id === 'string' ? id : '';
   } catch {
     return '';
   }
 };
-const useExample = (): void => {
-  yaml.value =
-    pointExamples.find(({ name }) => name === selectedExample.value)?.yaml ??
-    pointExamples[0]!.yaml;
-};
 const showFailure = async (reason: unknown, fallback: string): Promise<void> => {
-  apiError.value = reason instanceof Error ? reason.message : fallback;
-  apiErrorDetails.value = [];
-  serverDiagnostics.value = [];
-  if (reason instanceof YamlResourceError && reason.details) {
-    const details = reason.details as { diagnostics?: ValidationDiagnostic[] };
-    serverDiagnostics.value = details.diagnostics ?? [];
-    apiErrorDetails.value = serverDiagnostics.value.map(
-      ({ path, message }) => `${path || 'Request'}: ${message}`
-    );
-  }
+  error.value = reason instanceof Error ? reason.message : fallback;
+  apiError.value = error.value;
+  serverDiagnostics.value =
+    reason instanceof YamlResourceError && Array.isArray(reason.details)
+      ? (reason.details as ValidationDiagnostic[])
+      : [];
+  await nextTick();
+  errorSummary.value?.focus();
 };
 const load = async (): Promise<void> => {
-  yaml.value = baseline.value = initial.value;
   if (!props.resourceId) return;
-  const controller = new AbortController();
   try {
     await withSpinner(
-      () => {
-        loadController?.abort();
-        loadController = controller;
-        apiError.value = '';
-      },
-      () => api.value.get(props.resourceId!, controller.signal),
-      (result) => {
-        if (loadController !== controller) return;
-        yaml.value = baseline.value = result.yaml;
+      null,
+      async () => {
+        const result = await controllerTemplateConfigurationApi.get(
+          props.resourceId!,
+          loadController.signal
+        );
+        yaml.value = result.yaml;
+        baseline.value = result.yaml;
         revision.value = result.revision;
-      }
+      },
+      null
     );
   } catch (reason) {
-    if (loadController === controller && !controller.signal.aborted)
-      await showFailure(reason, `Unable to load ${singularLabel.value}`);
-  } finally {
-    if (loadController === controller) {
-      loadController = undefined;
-    }
+    if (!loadController.signal.aborted)
+      await showFailure(reason, 'Unable to load controller template');
   }
 };
 const save = async (): Promise<void> => {
+  if (readOnly.value || busy.value) return;
+  const id = resourceIdFromYaml();
+  if (!id) {
+    await showFailure(new Error('The YAML must contain an id.'), 'Unable to save');
+    return;
+  }
+  saving.value = true;
   try {
-    const requestedResourceId = resourceIdFromYaml();
-    if (!requestedResourceId) {
-      throw new Error(`The ${singularLabel.value} YAML must contain a valid id.`);
-    }
-    await withSpinner(
-      () => {
-        apiError.value = '';
-        saving.value = true;
-        error.value = '';
-        serverDiagnostics.value = [];
-      },
-      () =>
-        props.resourceId
-          ? api.value.update(props.resourceId, yaml.value, revision.value)
-          : api.value.create(yaml.value),
-      async (result) => {
-        yaml.value = baseline.value = result.yaml;
-        revision.value = result.revision;
-        status.value = `${singularLabel.value} saved.`;
-        const savedResourceId = resourceIdFromYaml(result.yaml) || requestedResourceId;
-        if (!props.resourceId || savedResourceId !== props.resourceId) {
-          allowNavigation = true;
-          await router.replace({
-            name: detailRoute.value,
-            params: { resourceId: savedResourceId }
-          });
-        }
-      }
-    );
+    const result = props.resourceId
+      ? await controllerTemplateConfigurationApi.update(
+          props.resourceId,
+          yaml.value,
+          revision.value
+        )
+      : await controllerTemplateConfigurationApi.create(yaml.value);
+    baseline.value = result.yaml;
+    revision.value = result.revision;
+    status.value = 'Controller template saved.';
+    if (!props.resourceId)
+      await router.replace({ name: 'controller-template-detail', params: { resourceId: id } });
   } catch (reason) {
-    await showFailure(reason, `Unable to save ${singularLabel.value}`);
+    await showFailure(reason, 'Unable to save controller template');
   } finally {
     saving.value = false;
   }
 };
-useSaveShortcut(
-  save,
-  () => !isSpinnerVisible.value && !busy.value && !readOnly.value && !hasEditorErrors.value
-);
 const validateTemplate = async (): Promise<void> => {
+  validating.value = true;
   try {
-    await withSpinner(
-      () => {
-        apiError.value = '';
-        validating.value = true;
-        error.value = '';
-      },
-      () => controllerTemplateConfigurationApi.validate(yaml.value),
-      async (diagnostics) => {
-        serverDiagnostics.value = diagnostics;
-        if (diagnostics.length) {
-          error.value = 'Controller template validation found problems.';
-          await nextTick();
-          errorSummary.value?.focus();
-        } else status.value = 'Controller template YAML is valid.';
-      }
-    );
+    serverDiagnostics.value = await controllerTemplateConfigurationApi.validate(yaml.value);
+    error.value = serverDiagnostics.value.length ? 'Validation failed.' : '';
+    status.value = serverDiagnostics.value.length
+      ? 'Controller template is invalid.'
+      : 'Controller template is valid.';
   } catch (reason) {
     await showFailure(reason, 'Unable to validate controller template');
   } finally {
     validating.value = false;
   }
 };
-const testPoint = async (operation: 'read' | 'command'): Promise<void> => {
-  const sourceId = pointDefinition.value?.sourceId;
-  pointTestResult.value = undefined;
-  pointTestError.value = '';
-  pointTestUrl.value = '';
-  pointTestController?.abort();
-  pointTestController = new AbortController();
-  const timeout = window.setTimeout(
-    () => pointTestController?.abort('Point test timed out.'),
-    15000
-  );
-  pointTesting.value = operation;
-  try {
-    await withSpinner(
-      null,
-      async () => {
-        if (!sourceId) {
-          pointTestError.value = 'The point YAML must reference a point source with sourceId.';
-          return;
-        }
-        const source = await pointSourceApi.get(sourceId, pointTestController!.signal, {
-          trackWait: false
-        });
-        const parsedSource = parse(source.yaml) as {
-          sources?: { connection?: { baseUrl?: string } }[];
-        };
-        const baseUrl = parsedSource.sources?.[0]?.connection?.baseUrl;
-        const path = pointDefinition.value?.mapping?.path;
-        if (baseUrl && path) {
-          try {
-            pointTestUrl.value = new URL(path, baseUrl).toString();
-          } catch {
-            pointTestUrl.value = `${baseUrl.replace(/\/$/, '')}/${path.replace(/^\//, '')}`;
-          }
-        }
-        if (operation === 'read' && props.resourceId) {
-          const result = await pointConfigurationApi.runtime(
-            props.resourceId,
-            pointTestController!.signal,
-            { trackWait: false }
-          );
-          if (!result.deviceResponse) {
-            throw new Error(
-              result.diagnostic || 'The point device did not return an HTTP response.'
-            );
-          }
-          pointTestResult.value = {
-            sourceId,
-            pointId: props.resourceId,
-            mappingId: '',
-            alias: '',
-            operation,
-            value: result.value,
-            diagnostic: result.diagnostic || undefined,
-            httpResponse: result.deviceResponse
-          };
-          status.value = result.diagnostic
-            ? 'Point read test completed with a data-mapping problem.'
-            : 'Point read test completed.';
-          return;
-        }
-        let value: unknown;
-        if (operation === 'command') {
-          try {
-            value = JSON.parse(pointWriteValue.value);
-          } catch {
-            value = pointWriteValue.value;
-          }
-        }
-        pointTestResult.value = await pointSourceApi.testPoint(
-          source.yaml,
-          pointDefinition.value?.id ?? '',
-          operation,
-          value,
-          pointTestController!.signal,
-          { trackWait: false }
-        );
-        status.value = `Point ${operation} test completed.`;
-      },
-      null
-    );
-  } catch (reason) {
-    pointTestError.value = pointTestController.signal.aborted
-      ? pointTestController.signal.reason === 'Point test stopped by user.'
-        ? 'The point test was stopped.'
-        : 'The point test timed out after 15 seconds.'
-      : reason instanceof Error
-        ? reason.message
-        : `Unable to ${operation} point`;
-  } finally {
-    window.clearTimeout(timeout);
-    pointTesting.value = undefined;
-    await nextTick();
-    pointTestPanel.value?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    pointTestPanel.value?.focus({ preventScroll: true });
-  }
-};
-const stopPointTest = (): void => {
-  if (!pointTestController || !pointTesting.value) return;
-  pointTestController.abort('Point test stopped by user.');
-  status.value = 'Point test stopped.';
-};
 const remove = async (): Promise<void> => {
-  if (!props.resourceId || !window.confirm(`Delete this ${singularLabel.value}?`)) return;
-  apiError.value = '';
+  if (!props.resourceId || !window.confirm('Delete this controller template?')) return;
+  deleting.value = true;
   try {
-    await withSpinner(
-      null,
-      () => api.value.delete(props.resourceId!, revision.value),
-      async () => {
-        allowNavigation = true;
-        await router.push({ name: listRoute.value });
-      }
-    );
+    await controllerTemplateConfigurationApi.delete(props.resourceId, revision.value);
+    await router.push({ name: 'controller-templates' });
   } catch (reason) {
-    await showFailure(reason, `Unable to delete ${singularLabel.value}`);
-  }
-};
-const loadRuntime = async (): Promise<void> => {
-  if (!props.resourceId || props.kind !== 'point' || runtimePaused.value || document.hidden) return;
-  apiError.value = '';
-  runtimeController?.abort();
-  runtimeController = new AbortController();
-  runtimeLoading.value = true;
-  try {
-    runtime.value = await pointConfigurationApi.runtime(
-      props.resourceId,
-      runtimeController.signal,
-      { trackWait: false }
-    );
-  } catch (reason) {
-    if (!runtimeController.signal.aborted)
-      await showFailure(reason, 'Unable to read point runtime');
+    await showFailure(reason, 'Unable to delete controller template');
   } finally {
-    runtimeLoading.value = false;
+    deleting.value = false;
   }
 };
-watch(runtimePaused, (paused) => {
-  if (!paused) void loadRuntime();
-});
-watch(
-  () => props.resourceId,
-  () => {
-    void loadRuntime();
-  }
+useSaveShortcut(save);
+onBeforeRouteLeave(() =>
+  yaml.value !== baseline.value && !window.confirm('Discard unsaved changes?') ? false : true
 );
-watch(error, async (value) => {
-  if (value) {
-    await nextTick();
-    errorSummary.value?.focus();
-  }
-});
-onBeforeRouteLeave(
-  () =>
-    allowNavigation ||
-    !dirty.value ||
-    window.confirm(`Discard unsaved ${singularLabel.value} changes?`)
-);
-onMounted(() => {
-  void load().then(() => {
-    void loadRuntime();
-  });
-});
-onBeforeUnmount(() => {
-  loadController?.abort();
-  runtimeController?.abort();
-  pointTestController?.abort();
-});
+onMounted(load);
+onBeforeUnmount(() => loadController.abort());
 </script>
-
-<style scoped lang="css">
-.example-picker {
-  display: grid;
-  gap: var(--space-3);
-  max-width: 360px;
-  margin-bottom: var(--space-9);
-  font-weight: var(--font-weight-bold);
-}
-
-.example-picker select {
-  min-height: 44px;
-  padding: var(--space-3-5) var(--space-4-5);
-  color: var(--color-text-primary);
-  background: var(--color-surface-raised);
-  border: var(--border-width-default) solid var(--color-border-default);
-  border-radius: var(--radius-lg);
-}
-
-.runtime-panel {
-  margin-top: var(--space-14);
-  padding: var(--space-10);
-  background: var(--color-surface-raised);
-  border: var(--border-width-default) solid var(--color-border-default);
-  border-radius: var(--radius-2xl);
-}
-
-.point-test-panel {
-  margin-top: var(--space-10);
-  padding: var(--space-10);
-  background: var(--color-surface-subtle);
-  border: var(--border-width-default) solid var(--color-border-default);
-  border-radius: var(--radius-2xl);
-}
-
-.tested-value {
-  display: flex;
-  gap: var(--space-5);
-  align-items: baseline;
-  padding: var(--space-5);
-  background: var(--color-surface-raised);
-  border-radius: var(--radius-lg);
-}
-
-.tested-value span {
-  color: var(--color-text-secondary);
-}
-
-.tested-request-url {
-  display: grid;
-  gap: var(--space-2);
-  margin-bottom: var(--space-5);
-  padding: var(--space-5);
-  overflow-wrap: anywhere;
-  background: var(--color-surface-raised);
-  border-radius: var(--radius-lg);
-}
-
-.tested-request-url span {
-  color: var(--color-text-secondary);
-}
-
-.point-test-panel pre {
-  max-height: 280px;
-  padding: var(--space-5);
-  overflow: auto;
-  background: var(--color-surface-inset);
-  border-radius: var(--radius-lg);
-}
-.point-write-controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-4-5);
-  align-items: center;
-  margin-top: var(--space-8);
-}
-.point-write-controls label {
-  font-weight: var(--font-weight-strong);
-}
-.point-write-controls input {
-  min-height: 42px;
-  padding: var(--space-3) var(--space-4);
-  color: var(--color-text-primary);
-  background: var(--color-surface-raised);
-  border: var(--border-width-default) solid var(--color-border-default);
-  border-radius: var(--radius-lg);
-}
-
-.runtime-panel > div:first-child,
-.runtime-panel dl {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-5-5) var(--space-10);
-  align-items: center;
-}
-
-.runtime-panel h2 {
-  margin-right: auto;
-}
-
-.runtime-panel dl div {
-  min-width: 130px;
-}
-
-.runtime-panel dt {
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-strong);
-  text-transform: uppercase;
-}
-
-.runtime-panel dd {
-  margin: var(--space-1-5) var(--space-0) var(--space-0);
-  font-weight: var(--font-weight-semibold);
-}
-
-.runtime-diagnostic {
-  padding: var(--space-5-5);
-  background: var(--color-surface-subtle);
-  border-radius: var(--radius-lg);
-}
-</style>

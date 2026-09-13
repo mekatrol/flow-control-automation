@@ -21,8 +21,8 @@ internal static class PointServiceCollectionExtensions
         services.AddScoped<IPointMappingAdapter, PhysicalPointMappingAdapter>();
         services.AddScoped<IPointMappingAdapter, VirtualPointMappingAdapter>();
         services.AddSingleton<IPointDefinitionValidator, PointDefinitionValidator>();
-        services.AddScoped<IPointDefinitionStore, PointDefinitionDatabaseStore>();
-        services.AddScoped<IPointReadService, PointReadService>();
+        services.AddScoped<IPointDefinitionReader, PointDefinitionReader>();
+        services.AddScoped<IPointValueReader, PointValueReader>();
         services.AddScoped<IPointSourceService, PointSourceDatabaseService>();
 
         return services;

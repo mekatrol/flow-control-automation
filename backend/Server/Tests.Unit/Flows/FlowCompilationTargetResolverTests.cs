@@ -135,7 +135,7 @@ public sealed class FlowCompilationTargetResolverTests
         services.AddSingleton<IControllerTemplateStore>(
             new StubTemplateStore(template));
 
-        services.AddSingleton<IPointDefinitionStore>(points);
+        services.AddSingleton<IPointDefinitionReader>(points);
 
         return new ResolverContext(services.BuildServiceProvider());
     }
@@ -341,7 +341,7 @@ public sealed class FlowCompilationTargetResolverTests
     }
 
     private sealed class StubPointStore(
-        IReadOnlyList<AutomationPoint> points) : IPointDefinitionStore
+        IReadOnlyList<AutomationPoint> points) : IPointDefinitionReader
     {
         public int ListCallCount { get; private set; }
 

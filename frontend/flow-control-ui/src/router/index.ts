@@ -90,13 +90,13 @@ export const routes: RouteRecordRaw[] = [
         path: 'controller-templates/new',
         name: ROUTE_NAMES.controllerTemplateNew,
         component: () => import('@/features/configuration/views/AppYamlResourceEditorView.vue'),
-        props: { kind: 'controller' }
+        props: true
       },
       {
         path: 'controller-templates/:resourceId',
         name: ROUTE_NAMES.controllerTemplateDetail,
         component: () => import('@/features/configuration/views/AppYamlResourceEditorView.vue'),
-        props: (route) => ({ kind: 'controller', resourceId: String(route.params.resourceId) })
+        props: (route) => ({ resourceId: String(route.params.resourceId) })
       },
       {
         path: 'point-sources',

@@ -15,7 +15,7 @@ internal sealed partial class ExecutionConfigurationService(
     IFlowControlDbContext context,
     TimeProvider timeProvider,
     IControllerTemplateStore controllerTemplates,
-    IPointDefinitionStore pointDefinitions,
+    IPointDefinitionReader pointDefinitions,
     IFlowStore flows,
     IFlowCompilationTargetResolver targetResolver,
     IFlowCompiler compiler) : IExecutionConfigurationService

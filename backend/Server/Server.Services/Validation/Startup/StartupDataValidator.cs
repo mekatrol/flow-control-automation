@@ -4,7 +4,7 @@ internal sealed class StartupDataValidator(
     IFlowService flows,
     IPointSourceService pointSources,
     IPointSourceValidator pointSourceValidator,
-    IPointDefinitionStore pointDefinitions,
+    IPointDefinitionReader points,
     IPointDefinitionValidator pointDefinitionValidator,
     IControllerTemplateStore controllerTemplates,
     ICredentialStore credentials,
@@ -48,10 +48,7 @@ internal sealed class StartupDataValidator(
         }
 
         pointDefinitionValidator.ValidateDocument(
-            new PointDocument
-            {
-                Points = await pointDefinitions.ListPointsAsync(cancellationToken)
-            },
+            await points.ListPointsAsync(cancellationToken),
             sources);
 
         await controllerTemplates.ListAsync(cancellationToken);

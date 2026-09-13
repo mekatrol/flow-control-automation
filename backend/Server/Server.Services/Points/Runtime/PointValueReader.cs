@@ -2,19 +2,19 @@ namespace Server.Services.Points.Runtime;
 
 #pragma warning disable IDE0011
 
-internal sealed class PointReadService(
-    IPointDefinitionStore definitions,
+internal sealed class PointValueReader(
+    IPointDefinitionReader points,
     IPointSourceService sources,
     IPointMappingResolver resolver,
     IPointMappingExecutionService mappings,
     IPointValueConverter values,
-    IVirtualPointRuntimeStore? virtualPoints = null) : IPointReadService
+    IVirtualPointRuntimeStore? virtualPoints = null) : IPointValueReader
 {
     public async Task<PointRuntimeEnvelope> ReadAsync(
         string pointId,
         CancellationToken cancellationToken)
     {
-        var point = await definitions.GetPointAsync(pointId, cancellationToken);
+        var point = await points.GetPointAsync(pointId, cancellationToken);
 
         if (!point.Enabled)
         {
