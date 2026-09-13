@@ -53,6 +53,13 @@
             </ol>
             <section v-if="testResult.httpResponse" class="http-response-preview">
               <h3>HTTP response</h3>
+              <p v-if="testResult.httpResponse.requestUri">
+                Request:
+                <code
+                  >{{ testResult.httpResponse.requestMethod ?? 'GET' }}
+                  {{ testResult.httpResponse.requestUri }}</code
+                >
+              </p>
               <p>
                 Status: {{ testResult.httpResponse.statusCode }}
                 {{ testResult.httpResponse.reasonPhrase }}
@@ -128,6 +135,13 @@
               <strong>{{ displayPointValue }}</strong>
             </div>
             <h4 v-if="pointTestResult.httpResponse">Communication response</h4>
+            <p v-if="pointTestResult.httpResponse?.requestUri">
+              Request:
+              <code
+                >{{ pointTestResult.httpResponse.requestMethod }}
+                {{ pointTestResult.httpResponse.requestUri }}</code
+              >
+            </p>
             <p v-if="pointTestResult.httpResponse">
               Status: {{ pointTestResult.httpResponse.statusCode }}
               {{ pointTestResult.httpResponse.reasonPhrase }}

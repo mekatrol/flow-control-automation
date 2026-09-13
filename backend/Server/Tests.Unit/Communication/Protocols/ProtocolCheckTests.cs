@@ -79,11 +79,33 @@ internal sealed class ProtocolCheckTests
         Assert.Multiple(() =>
         {
             Assert.That(result.Diagnostic, Is.Null);
+            Assert.That(result.Response?.RequestMethod, Is.EqualTo("PATCH"));
+            Assert.That(result.Response?.RequestUri, Is.EqualTo(server.Url.AbsoluteUri));
             Assert.That(request, Does.StartWith("PATCH / HTTP/1.1"));
             Assert.That(request, Does.Contain("Content-Type: application/json\r\n"));
             Assert.That(request, Does.Not.Contain("charset="));
             Assert.That(request, Does.EndWith("{\"command\":21.5}"));
         });
+    }
+
+    [Test]
+    public async Task HttpErrorDiagnosticIncludesMethodAndUri()
+    {
+        await using var server = await LoopbackHttpServer.Start(
+            "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
+        await using var factory = Factory(new FakeDns(IPAddress.Loopback));
+        await using var scope = factory.Services.CreateAsyncScope();
+        var check = scope.ServiceProvider.GetRequiredService<IHttpProtocolCheck>();
+
+        var result = await check.CheckAsync(
+            HttpSource(server.Url),
+            string.Empty,
+            [IPAddress.Loopback],
+            CancellationToken.None);
+
+        Assert.That(
+            result.Diagnostic,
+            Is.EqualTo($"HTTP protocol check for GET {server.Url.AbsoluteUri} returned status 404"));
     }
 
     [Test]

@@ -19,7 +19,7 @@ internal sealed class HttpJsonPointMappingAdapter(
     {
         var operation = resolution.Mapping.Read
             ?? throw new InvalidOperationException("Mapping does not support reads.");
-        var endpoint = new Uri(new Uri(resolution.Source.Connection.BaseUrl!), operation.Path!);
+        var endpoint = BuildEndpoint(resolution.Source.Connection.BaseUrl!, operation.Path!);
         var addresses = await ResolveAddresses(resolution.Source, endpoint, cancellationToken);
         var credential = await credentials.ResolveAsync(resolution.Source.CredentialRef ?? string.Empty, cancellationToken);
         var response = await http.ReadAsync(resolution.Source, endpoint, credential, addresses, cancellationToken);
@@ -53,7 +53,7 @@ internal sealed class HttpJsonPointMappingAdapter(
         var raw = values.Serialize(resolution.Point, value);
         var rendered = templates.Render(operation.Template!,
             new Dictionary<string, object?>(StringComparer.Ordinal) { [resolution.Alias] = raw }, RenderAs.Json);
-        var endpoint = new Uri(new Uri(resolution.Source.Connection.BaseUrl!), operation.Path!);
+        var endpoint = BuildEndpoint(resolution.Source.Connection.BaseUrl!, operation.Path!);
         var addresses = await ResolveAddresses(resolution.Source, endpoint, cancellationToken);
         var credential = await credentials.ResolveAsync(resolution.Source.CredentialRef ?? string.Empty, cancellationToken);
         var response = await http.WriteAsync(resolution.Source, endpoint, operation.Method!, rendered,
@@ -68,6 +68,9 @@ internal sealed class HttpJsonPointMappingAdapter(
             throw new InvalidOperationException("HTTP/JSON destination is forbidden or unavailable.");
         return addresses;
     }
+
+    internal static Uri BuildEndpoint(string baseUrl, string mappingPath) =>
+        new(baseUrl.TrimEnd('/') + "/" + mappingPath.TrimStart('/'), UriKind.Absolute);
 
     private PointMappingReadResult Failed(string diagnostic, HttpResponsePreview? response) =>
         new(new Dictionary<string, string?>(), DataQualityType.Unavailable, timeProvider.GetUtcNow(), diagnostic, response);

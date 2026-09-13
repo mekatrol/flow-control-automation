@@ -206,7 +206,9 @@ internal sealed class HttpProtocolCheck(IDnsLookup dns) : IHttpProtocolCheck
                     (int)response.StatusCode,
                     response.ReasonPhrase,
                     response.Content.Headers.ContentType?.ToString(),
-                    Encoding.UTF8.GetString(preview.ToArray()));
+                    Encoding.UTF8.GetString(preview.ToArray()),
+                    method.Method,
+                    endpoint.AbsoluteUri);
 
                 if (response.StatusCode is HttpStatusCode.Unauthorized
                     or HttpStatusCode.Forbidden)
@@ -217,7 +219,8 @@ internal sealed class HttpProtocolCheck(IDnsLookup dns) : IHttpProtocolCheck
                 if ((int)response.StatusCode >= 400)
                 {
                     return new(
-                        $"HTTP protocol check returned status {(int)response.StatusCode}",
+                        $"HTTP protocol check for {method.Method} {endpoint.AbsoluteUri} "
+                        + $"returned status {(int)response.StatusCode}",
                         responsePreview);
                 }
 

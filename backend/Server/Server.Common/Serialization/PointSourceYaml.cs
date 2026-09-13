@@ -12,6 +12,12 @@ public static class PointSourceYaml
         ArgumentNullException.ThrowIfNull(source);
         var transportSource = source with
         {
+            Points = [.. source.Points.Select(point => point with
+            {
+                Revision = 0,
+                CreatedAt = null,
+                UpdatedAt = null
+            })],
             Revision = 0,
             CreatedAt = null,
             UpdatedAt = null

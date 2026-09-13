@@ -1,4 +1,5 @@
 using Server.Api.Contracts;
+using Server.Common.Models.Communication;
 using Server.Services;
 using System.Globalization;
 using System.Text;
@@ -287,7 +288,9 @@ public static class PointSourceEndpointRouteBuilderExtensions
 
             if (result.Quality != DataQualityType.Good)
             {
-                return Error(502, result.Diagnostic ?? "mapping read failed");
+                return Error(502, PointTestDiagnostic(
+                    result.Diagnostic ?? "mapping read failed",
+                    result.Response));
             }
 
             result.Values.TryGetValue(resolution.Alias, out var raw);
@@ -304,7 +307,7 @@ public static class PointSourceEndpointRouteBuilderExtensions
 
             if (result.Diagnostic is not null)
             {
-                return Error(502, result.Diagnostic);
+                return Error(502, PointTestDiagnostic(result.Diagnostic, result.Response));
             }
 
             return Results.Json(new PointTestResult(source.Id, pointId, resolution.Mapping.Id,
@@ -313,6 +316,19 @@ public static class PointSourceEndpointRouteBuilderExtensions
         }
 
         return Error(400, "point does not support the requested operation");
+    }
+
+    private static string PointTestDiagnostic(
+        string diagnostic,
+        HttpResponsePreview? response)
+    {
+        if (response?.RequestUri is null
+            || diagnostic.Contains(response.RequestUri, StringComparison.Ordinal))
+        {
+            return diagnostic;
+        }
+
+        return $"{diagnostic} ({response.RequestMethod ?? "HTTP"} {response.RequestUri})";
     }
 
     private static PointSourceSummary Summary(PointSource source) => new(

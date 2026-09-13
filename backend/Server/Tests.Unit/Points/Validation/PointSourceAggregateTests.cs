@@ -21,6 +21,58 @@ public sealed class PointSourceAggregateTests
         Assert.That(PointSourceYaml.Render(restored), Is.EqualTo(rendered));
     }
 
+    [Test]
+    public void Render_StripsPersistenceMetadataFromNestedPoints()
+    {
+        var source = Source("mapping/valueAlias") with
+        {
+            Revision = 2,
+            CreatedAt = "2026-09-13T02:59:46.9993997+00:00",
+            UpdatedAt = "2026-09-13T03:00:10.0445082+00:00",
+            Points = [Source("mapping/valueAlias").Points[0] with
+            {
+                Revision = 2,
+                CreatedAt = "2026-09-13T02:59:46.9993997+00:00",
+                UpdatedAt = "2026-09-13T03:00:10.0445082+00:00"
+            }]
+        };
+
+        var rendered = PointSourceYaml.Render(source);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(rendered, Does.Not.Contain("revision:"));
+            Assert.That(rendered, Does.Not.Contain("createdAt:"));
+            Assert.That(rendered, Does.Not.Contain("updatedAt:"));
+            Assert.DoesNotThrow(() => PointSourceYaml.Parse(Encoding.UTF8.GetBytes(rendered)));
+        });
+    }
+
+    [Test]
+    public void Render_QuotesBooleanLikeStateLabelKeys()
+    {
+        var source = Source("mapping/valueAlias") with
+        {
+            Points = [Source("mapping/valueAlias").Points[0] with
+            {
+                ValueType = AutomationPointValueType.Digital,
+                StateLabels = new System.Text.Json.Nodes.JsonObject
+                {
+                    ["false"] = "Not Pressed",
+                    ["true"] = "Pressed"
+                }
+            }]
+        };
+
+        var rendered = PointSourceYaml.Render(source);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(rendered, Does.Contain("'false': Not Pressed").Or.Contain("\"false\": Not Pressed"));
+            Assert.That(rendered, Does.Contain("'true': Pressed").Or.Contain("\"true\": Pressed"));
+        });
+    }
+
     [TestCase("mapping")]
     [TestCase("mapping/alias/extra")]
     [TestCase("/alias")]

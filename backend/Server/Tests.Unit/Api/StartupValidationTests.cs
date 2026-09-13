@@ -90,4 +90,81 @@ internal sealed class StartupValidationTests
         Assert.ThrowsAsync<CredentialResolutionException>(
             async () => await validator.ValidateAsync(CancellationToken.None));
     }
+
+    [Test]
+    public async Task ValidatorAllowsStoredPointDefinitionToBeRepaired()
+    {
+        await using var factory = new FlowControlApplicationFactory();
+        using var client = factory.CreateClient();
+
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<IFlowControlDbContext>();
+            var timestamp = DateTimeOffset.UtcNow;
+            var source = new PointSource
+            {
+                Id = "legacy-source",
+                Name = "Legacy source",
+                Enabled = true,
+                Kind = PointSourceKind.HttpJson,
+                Connection = new PointSourceConnection
+                {
+                    BaseUrl = "https://example.test",
+                    MaximumResponseBytes = 1024
+                },
+                Tls = new TlsOptions
+                {
+                    VerifyServerCertificate = true
+                },
+                Timeouts = new PointSourceTimeouts
+                {
+                    ConnectMilliseconds = 100,
+                    RequestMilliseconds = 100
+                },
+                Mappings = [new PointMapping
+                {
+                    Id = "output",
+                    Aliases = ["value"],
+                    Command = new MappingCommandOperation
+                    {
+                        Path = "/output",
+                        Method = "POST",
+                        Template = "{ \"value\": {{ value }} }"
+                    }
+                }],
+                Points = [new AutomationPoint
+                {
+                    Id = "legacy-output",
+                    Name = "Legacy output",
+                    Enabled = true,
+                    Direction = DataDirectionType.Output,
+                    ValueType = AutomationPointValueType.Analog,
+                    Commandable = true,
+                    Persistence = "volatile",
+                    Mapping = "output/value"
+                }]
+            };
+            context.PointSources.Add(new PointSourceEntity
+            {
+                Id = source.Id,
+                Key = source.Name.ToUpperInvariant(),
+                Json = JsonSerializer.Serialize(source, FlowControlJson.Options),
+                Created = timestamp,
+                Updated = timestamp
+            });
+            context.PointSourcePoints.Add(new PointSourcePointEntity
+            {
+                PointId = source.Points[0].Id,
+                SourceId = source.Id
+            });
+            await context.SaveChangesAsync(CancellationToken.None);
+        }
+
+        await using var validationScope = factory.Services.CreateAsyncScope();
+        var validator =
+            validationScope.ServiceProvider.GetRequiredService<IStartupDataValidator>();
+
+        Assert.DoesNotThrowAsync(
+            async () => await validator.ValidateAsync(CancellationToken.None));
+    }
 }

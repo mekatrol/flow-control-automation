@@ -35,6 +35,8 @@ export interface ConnectionTestResult {
     reasonPhrase?: string;
     contentType?: string;
     body: string;
+    requestMethod?: string;
+    requestUri?: string;
   };
 }
 
@@ -53,6 +55,8 @@ export interface PointTestResult {
     reasonPhrase?: string;
     contentType?: string;
     body: string;
+    requestMethod?: string;
+    requestUri?: string;
   };
 }
 

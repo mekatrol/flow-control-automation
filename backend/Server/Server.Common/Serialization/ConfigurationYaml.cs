@@ -156,6 +156,7 @@ public static class ConfigurationYaml
 
         return new SerializerBuilder()
             .DisableAliases()
+            .WithQuotingNecessaryStrings()
             .Build()
             .Serialize(ToYamlValue(json));
     }

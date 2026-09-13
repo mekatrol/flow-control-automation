@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+
 namespace Server.Services.Validation.Startup;
 
 internal sealed class StartupDataValidator(
@@ -8,7 +10,8 @@ internal sealed class StartupDataValidator(
     IPointDefinitionValidator pointDefinitionValidator,
     IControllerTemplateStore controllerTemplates,
     ICredentialStore credentials,
-    ICredentialResolver credentialResolver) : IStartupDataValidator
+    ICredentialResolver credentialResolver,
+    ILogger<StartupDataValidator> logger) : IStartupDataValidator
 {
     public async Task ValidateAsync(CancellationToken cancellationToken)
     {
@@ -47,9 +50,21 @@ internal sealed class StartupDataValidator(
             }
         }
 
-        pointDefinitionValidator.ValidateDocument(
-            await points.ListPointsAsync(cancellationToken),
-            sources);
+        try
+        {
+            pointDefinitionValidator.ValidateDocument(
+                await points.ListPointsAsync(cancellationToken),
+                sources);
+        }
+        catch (PointDefinitionValidationException exception)
+        {
+            // Stored definitions may predate newly introduced semantic rules. Keep the
+            // management API available so an operator can repair them; create and update
+            // operations still enforce the current contract.
+            logger.LogError(
+                exception,
+                "Stored point definitions failed validation. Repair them before running flows.");
+        }
 
         await controllerTemplates.ListAsync(cancellationToken);
 

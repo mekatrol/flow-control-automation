@@ -4,4 +4,6 @@ public sealed record HttpResponsePreview(
     int StatusCode,
     string? ReasonPhrase,
     string? ContentType,
-    string Body);
+    string Body,
+    string? RequestMethod = null,
+    string? RequestUri = null);

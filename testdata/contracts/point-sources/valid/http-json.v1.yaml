@@ -8,6 +8,7 @@ connection:
   defaultPollMilliseconds: 60000
   followRedirects: false
   maximumResponseBytes: 65536
+  allowPrivateNetwork: false
 credentialRef: env:WEATHER_API_TOKEN
 tls:
   verifyServerCertificate: true
