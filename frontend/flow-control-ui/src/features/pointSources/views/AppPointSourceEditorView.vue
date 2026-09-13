@@ -472,11 +472,6 @@ const testConnection = async (): Promise<void> => {
 };
 const cancelTest = (): void => testController?.abort();
 const testPoint = async (operation: 'read' | 'command'): Promise<void> => {
-  if (
-    operation === 'command' &&
-    !window.confirm('Send this command to the selected point? This may change external equipment.')
-  )
-    return;
   const controller = new AbortController();
   try {
     let value: unknown;
