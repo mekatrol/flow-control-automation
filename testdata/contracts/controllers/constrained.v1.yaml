@@ -5,13 +5,26 @@ description: Interval-only target with digital I/O
 readOnly: false
 revision: 1
 capabilities:
-  pointTypes: [digital]
-  pointDirections: [input, output]
-  pointFeatures: [read, command]
-  connectorDataTypes: [boolean]
-  flowFunctions: [and, not, or, readPoint, writePoint]
-  executionModes: [interval]
-  runtimeFeatures: [physicalPoints]
+  pointTypes:
+    - digital
+  pointDirections:
+    - input
+    - output
+  pointFeatures:
+    - read
+    - command
+  connectorDataTypes:
+    - boolean
+  flowFunctions:
+    - and
+    - not
+    - or
+    - readPoint
+    - writePoint
+  executionModes:
+    - interval
+  runtimeFeatures:
+    - physicalPoints
 limits:
   maxFlows: 8
   maxNodesPerFlow: 64

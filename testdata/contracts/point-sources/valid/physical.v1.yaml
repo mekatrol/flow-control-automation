@@ -4,14 +4,47 @@ name: Local IO
 enabled: true
 kind: physical
 connection: {}
-tls: { verifyServerCertificate: true }
-timeouts: { connectMilliseconds: 100 }
+tls:
+  verifyServerCertificate: true
+timeouts:
+  connectMilliseconds: 100
 mappings:
   - id: panel
-    aliases: [temperature, fanEnable]
+    aliases:
+      - temperature
+      - fanEnable
     read: {}
     command: {}
-    physical: { controllerId: main-controller, channel: io-1, address: "0", electricalType: voltage }
+    physical:
+      controllerId: main-controller
+      channel: io-1
+      address: "0"
+      electricalType: voltage
 points:
-  - { id: panel-temperature, name: Panel temperature, enabled: true, direction: input, valueType: analog, units: degC, readable: true, commandable: false, persistence: volatile, mapping: panel/temperature }
-  - { id: panel-fan-enable, name: Panel fan enable, enabled: true, direction: output, valueType: digital, stateLabels: { false: Stopped, true: Running }, readable: true, commandable: true, persistence: volatile, safeDisablePolicy: { startup: relinquish, shutdown: relinquish, communicationLoss: relinquish, disable: relinquish }, mapping: panel/fanEnable }
+  - id: panel-temperature
+    name: Panel temperature
+    enabled: true
+    direction: input
+    valueType: analog
+    units: degC
+    readable: true
+    commandable: false
+    persistence: volatile
+    mapping: panel/temperature
+  - id: panel-fan-enable
+    name: Panel fan enable
+    enabled: true
+    direction: output
+    valueType: digital
+    stateLabels:
+      false: Stopped
+      true: Running
+    readable: true
+    commandable: true
+    persistence: volatile
+    safeDisablePolicy:
+      startup: relinquish
+      shutdown: relinquish
+      communicationLoss: relinquish
+      disable: relinquish
+    mapping: panel/fanEnable

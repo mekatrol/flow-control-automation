@@ -3,18 +3,76 @@ id: plant-mqtt
 name: Plant MQTT
 enabled: true
 kind: mqtt
-connection: { brokerUrl: mqtts://mqtt.example.test:8883, clientIdPrefix: flow-control, testTopic: plant/status, qos: 1, cleanStart: true, keepAliveSeconds: 30 }
+connection:
+  brokerUrl: mqtts://mqtt.example.test:8883
+  clientIdPrefix: flow-control
+  testTopic: plant/status
+  qos: 1
+  cleanStart: true
+  keepAliveSeconds: 30
 credentialRef: env:PLANT_MQTT_CREDENTIAL
-tls: { verifyServerCertificate: true }
-timeouts: { connectMilliseconds: 3000 }
+tls:
+  verifyServerCertificate: true
+timeouts:
+  connectMilliseconds: 3000
 mappings:
   - id: status
-    aliases: [message, running]
-    read: { topic: plant/status, qos: 1, format: json, template: '{ "message": {{ message }}, "running": {{ running }} }' }
+    aliases:
+      - message
+      - running
+    read:
+      topic: plant/status
+      qos: 1
+      format: json
+      template: '{ "message": {{ message }}, "running": {{ running }} }'
   - id: command
-    aliases: [setpoint]
-    command: { topic: plant/setpoint, qos: 1, retain: false, format: text, template: '{{ setpoint }}' }
+    aliases:
+      - setpoint
+    command:
+      topic: plant/setpoint
+      qos: 1
+      retain: false
+      format: text
+      template: '{{ setpoint }}'
 points:
-  - { id: plant-status, name: Plant status, enabled: true, direction: input, valueType: text, readable: true, commandable: false, persistence: volatile, limits: { maximumLength: 256 }, mapping: status/message }
-  - { id: plant-running, name: Plant running, enabled: true, direction: input, valueType: digital, stateLabels: { false: Stopped, true: Running }, readable: true, commandable: false, persistence: volatile, mapping: status/running }
-  - { id: plant-setpoint, name: Plant setpoint, enabled: true, direction: output, valueType: analog, units: degC, readable: false, commandable: true, persistence: volatile, limits: { minimum: 5, maximum: 35 }, safeDisablePolicy: { startup: relinquish, shutdown: relinquish, communicationLoss: relinquish, disable: relinquish }, mapping: command/setpoint }
+  - id: plant-status
+    name: Plant status
+    enabled: true
+    direction: input
+    valueType: text
+    readable: true
+    commandable: false
+    persistence: volatile
+    limits:
+      maximumLength: 256
+    mapping: status/message
+  - id: plant-running
+    name: Plant running
+    enabled: true
+    direction: input
+    valueType: digital
+    stateLabels:
+      false: Stopped
+      true: Running
+    readable: true
+    commandable: false
+    persistence: volatile
+    mapping: status/running
+  - id: plant-setpoint
+    name: Plant setpoint
+    enabled: true
+    direction: output
+    valueType: analog
+    units: degC
+    readable: false
+    commandable: true
+    persistence: volatile
+    limits:
+      minimum: 5
+      maximum: 35
+    safeDisablePolicy:
+      startup: relinquish
+      shutdown: relinquish
+      communicationLoss: relinquish
+      disable: relinquish
+    mapping: command/setpoint

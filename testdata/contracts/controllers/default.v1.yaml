@@ -5,17 +5,77 @@ description: Built-in unrestricted application target
 readOnly: true
 revision: 1
 capabilities:
-  pointTypes: [analog, digital, multiState, integer, text]
-  pointDirections: [input, output, inputOutput, value]
-  pointFeatures: [read, command, retain, override, relinquish, quality, alarms, trends]
-  connectorDataTypes: [any, boolean, event, number, string]
+  pointTypes:
+    - analog
+    - digital
+    - multiState
+    - integer
+    - text
+  pointDirections:
+    - input
+    - output
+    - inputOutput
+    - value
+  pointFeatures:
+    - read
+    - command
+    - retain
+    - override
+    - relinquish
+    - quality
+    - alarms
+    - trends
+  connectorDataTypes:
+    - any
+    - boolean
+    - event
+    - number
+    - string
   flowFunctions:
-    [and, average, calculator, calendar, clamp, comparator, delay, digitalSwitch,
-     levelShifter, line, max, min, nand, nor, not, or, override, pointChanged,
-     pulse, readPoint, releasePointCommand, schedule, analogSwitch, sequence,
-     split, timer, writePoint, xnor, xor, a2d, d2a, subtract, multiply, divide, power, negate]
-  executionModes: [event, interval]
-  runtimeFeatures: [virtualPoints, physicalPoints, commandArbitration, qualityPropagation]
+    - and
+    - average
+    - calculator
+    - calendar
+    - clamp
+    - comparator
+    - delay
+    - digitalSwitch
+    - levelShifter
+    - line
+    - max
+    - min
+    - nand
+    - nor
+    - not
+    - or
+    - override
+    - pointChanged
+    - pulse
+    - readPoint
+    - releasePointCommand
+    - schedule
+    - analogSwitch
+    - sequence
+    - split
+    - timer
+    - writePoint
+    - xnor
+    - xor
+    - a2d
+    - d2a
+    - subtract
+    - multiply
+    - divide
+    - power
+    - negate
+  executionModes:
+    - event
+    - interval
+  runtimeFeatures:
+    - virtualPoints
+    - physicalPoints
+    - commandArbitration
+    - qualityPropagation
 limits:
   maxFlows: null
   maxNodesPerFlow: null

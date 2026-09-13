@@ -3,14 +3,46 @@ id: weather-api
 name: Weather API
 enabled: true
 kind: httpJson
-connection: { baseUrl: https://weather.example.test, defaultPollMilliseconds: 60000, followRedirects: false, maximumResponseBytes: 65536 }
+connection:
+  baseUrl: https://weather.example.test
+  defaultPollMilliseconds: 60000
+  followRedirects: false
+  maximumResponseBytes: 65536
 credentialRef: env:WEATHER_API_TOKEN
-tls: { verifyServerCertificate: true }
-timeouts: { connectMilliseconds: 2000, requestMilliseconds: 5000 }
+tls:
+  verifyServerCertificate: true
+timeouts:
+  connectMilliseconds: 2000
+  requestMilliseconds: 5000
 mappings:
   - id: current
-    aliases: [temperature, summary]
-    read: { path: /current, method: GET, format: json, template: '{ "temperature": {{ temperature }}, "summary": {{ summary }} }' }
+    aliases:
+      - temperature
+      - summary
+    read:
+      path: /current
+      method: GET
+      format: json
+      template: '{ "temperature": {{ temperature }}, "summary": {{ summary }} }'
 points:
-  - { id: outside-air-temperature, name: Outside air temperature, enabled: true, direction: input, valueType: analog, units: degC, readable: true, commandable: false, persistence: volatile, mapping: current/temperature }
-  - { id: weather-summary, name: Weather summary, enabled: true, direction: input, valueType: text, readable: true, commandable: false, persistence: volatile, limits: { maximumLength: 128 }, mapping: current/summary }
+  - id: outside-air-temperature
+    name: Outside air temperature
+    enabled: true
+    direction: input
+    valueType: analog
+    units: degC
+    readable: true
+    commandable: false
+    persistence: volatile
+    mapping: current/temperature
+  - id: weather-summary
+    name: Weather summary
+    enabled: true
+    direction: input
+    valueType: text
+    readable: true
+    commandable: false
+    persistence: volatile
+    limits:
+      maximumLength: 128
+    mapping: current/summary
