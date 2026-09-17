@@ -7,7 +7,7 @@ public sealed class PointValidatorFixtureMatrixTests
 {
     private const string FixtureDirectoryName = "matrix";
     private const string ExpectationFileName = "expectations.csv";
-    private static readonly string[] Kinds = ["virtual", "physical", "homeAssistant", "mqtt", "httpJson"];
+    private static readonly string[] Kinds = ["virtual", "physical", "homeAssistant", "mqtt", "http"];
     private static readonly string[] ValueTypes = ["analog", "digital", "multiState", "integer", "text"];
 
     [TestCaseSource(nameof(MatrixCases))]
@@ -318,7 +318,7 @@ public sealed class PointValidatorFixtureMatrixTests
         Id = "source",
         Name = "Source",
         Enabled = true,
-        Kind = PointSourceKind.HttpJson,
+        Kind = PointSourceKind.Http,
         Connection = new()
         {
             BaseUrl = "https://api.example.test",

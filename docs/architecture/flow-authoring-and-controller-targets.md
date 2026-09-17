@@ -108,7 +108,7 @@ command arbitration rather than last-write-wins.
 ## Point sources and live values
 
 A point source is a reusable external connection. Initial source kinds are Home
-Assistant, MQTT, and HTTP/JSON. The source owns server or broker location, TLS,
+Assistant, MQTT, and HTTP. The source owns server or broker location, TLS,
 timeouts, reconnect behaviour, and a credential reference. It never contains a
 literal secret. One source can serve many points.
 

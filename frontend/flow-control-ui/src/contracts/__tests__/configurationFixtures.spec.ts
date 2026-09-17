@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 
 import haJson from '@contracts/point-sources/valid/home-assistant.v1.normalized.json';
 import haYaml from '@contracts/point-sources/valid/home-assistant.v1.yaml?raw';
-import httpJson from '@contracts/point-sources/valid/http-json.v1.normalized.json';
-import httpYaml from '@contracts/point-sources/valid/http-json.v1.yaml?raw';
+import http from '@contracts/point-sources/valid/http.v1.normalized.json';
+import httpYaml from '@contracts/point-sources/valid/http.v1.yaml?raw';
 import mqttJson from '@contracts/point-sources/valid/mqtt.v1.normalized.json';
 import mqttYaml from '@contracts/point-sources/valid/mqtt.v1.yaml?raw';
 import physicalJson from '@contracts/point-sources/valid/physical.v1.normalized.json';
@@ -73,7 +73,7 @@ describe('point-source version 1 fixtures', () => {
     ['physical', physicalYaml, physicalJson],
     ['Home Assistant', haYaml, haJson],
     ['MQTT', mqttYaml, mqttJson],
-    ['HTTP/JSON', httpYaml, httpJson]
+    ['HTTP', httpYaml, http]
   ])('%s YAML agrees with normalized JSON', (_name, yaml, json) => {
     expect(parseStrict(yaml as string)).toEqual(json);
   });

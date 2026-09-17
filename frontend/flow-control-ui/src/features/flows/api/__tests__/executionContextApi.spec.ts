@@ -6,7 +6,7 @@ const PointSourceKind = {
   Virtual: 'virtual',
   HomeAssistant: 'homeAssistant',
   Mqtt: 'mqtt',
-  HttpJson: 'httpJson'
+  Http: 'http'
 } as const;
 
 const point = {

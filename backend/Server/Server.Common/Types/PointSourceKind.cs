@@ -6,5 +6,5 @@ public enum PointSourceKind
     Physical,
     HomeAssistant,
     Mqtt,
-    HttpJson
+    Http
 }

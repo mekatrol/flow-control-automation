@@ -144,7 +144,7 @@ internal sealed partial class PointDefinitionValidator : IPointDefinitionValidat
                     ? RequiredString(mapping, "commandService")
                     : OptionalString(mapping, "commandService")),
             PointSourceKind.Mqtt => ParseMqttMapping(point, mapping),
-            PointSourceKind.HttpJson => ParseHttpMapping(point, mapping),
+            PointSourceKind.Http => ParseHttpMapping(point, mapping),
             _ => throw new InvalidOperationException("Unsupported source kind.")
         };
 
@@ -171,7 +171,7 @@ internal sealed partial class PointDefinitionValidator : IPointDefinitionValidat
             OptionalString(mapping, "jsonPointer"));
     }
 
-    private static HttpJsonPointMapping ParseHttpMapping(AutomationPoint point, JsonObject mapping)
+    private static HttpPointMapping ParseHttpMapping(AutomationPoint point, JsonObject mapping)
     {
         var path = RequiredString(mapping, "path");
 
@@ -219,7 +219,7 @@ internal sealed partial class PointDefinitionValidator : IPointDefinitionValidat
             Fail("form-encoded HTTP mappings require a single-segment mapping.valuePointer");
         }
 
-        return new HttpJsonPointMapping(
+        return new HttpPointMapping(
             path,
             method,
             jsonPointer,

@@ -1,12 +1,12 @@
 import type { Page, Route } from '@playwright/test';
 
 import homeAssistant from '@contracts/point-sources/valid/home-assistant.v1.normalized.json';
-import httpJson from '@contracts/point-sources/valid/http-json.v1.normalized.json';
+import http from '@contracts/point-sources/valid/http.v1.normalized.json';
 import mqtt from '@contracts/point-sources/valid/mqtt.v1.normalized.json';
 import physical from '@contracts/point-sources/valid/physical.v1.normalized.json';
 import virtual from '@contracts/point-sources/valid/virtual.v1.normalized.json';
 
-const sources = [homeAssistant, httpJson, mqtt, physical, virtual];
+const sources = [homeAssistant, http, mqtt, physical, virtual];
 const points = sources.flatMap((source) =>
   source.points.map((point) => ({ ...point, sourceKind: source.kind, revision: 1 }))
 );

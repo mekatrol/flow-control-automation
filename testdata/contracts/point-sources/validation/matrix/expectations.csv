@@ -39,13 +39,13 @@ mqtt.integer.valid.yaml,mqtt,integer,valid,none,
 mqtt.integer.invalid.yaml,mqtt,integer,invalid,point-definition,safe whole JSON number
 mqtt.text.valid.yaml,mqtt,text,valid,none,
 mqtt.text.invalid.yaml,mqtt,text,invalid,point-definition,text points require limits.maximumLength
-httpJson.analog.valid.yaml,httpJson,analog,valid,none,
-httpJson.analog.invalid.yaml,httpJson,analog,invalid,point-definition,stateLabels apply only
-httpJson.digital.valid.yaml,httpJson,digital,valid,none,
-httpJson.digital.invalid.yaml,httpJson,digital,invalid,point-definition,digital points require stateLabels
-httpJson.multiState.valid.yaml,httpJson,multiState,valid,none,
-httpJson.multiState.invalid.yaml,httpJson,multiState,invalid,point-definition,multi_state points require stateLabels
-httpJson.integer.valid.yaml,httpJson,integer,valid,none,
-httpJson.integer.invalid.yaml,httpJson,integer,invalid,point-definition,safe whole JSON number
-httpJson.text.valid.yaml,httpJson,text,valid,none,
-httpJson.text.invalid.yaml,httpJson,text,invalid,point-definition,text points require limits.maximumLength
+http.analog.valid.yaml,http,analog,valid,none,
+http.analog.invalid.yaml,http,analog,invalid,point-definition,stateLabels apply only
+http.digital.valid.yaml,http,digital,valid,none,
+http.digital.invalid.yaml,http,digital,invalid,point-definition,digital points require stateLabels
+http.multiState.valid.yaml,http,multiState,valid,none,
+http.multiState.invalid.yaml,http,multiState,invalid,point-definition,multi_state points require stateLabels
+http.integer.valid.yaml,http,integer,valid,none,
+http.integer.invalid.yaml,http,integer,invalid,point-definition,safe whole JSON number
+http.text.valid.yaml,http,text,valid,none,
+http.text.invalid.yaml,http,text,invalid,point-definition,text points require limits.maximumLength

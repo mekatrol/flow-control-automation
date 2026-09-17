@@ -12,7 +12,7 @@ public sealed class ConfigurationFixtureTests
 
     private static IEnumerable<TestCaseData> ValidFixtures()
     {
-        foreach (var name in new[] { "virtual", "physical", "home-assistant", "mqtt", "http-json" })
+        foreach (var name in new[] { "virtual", "physical", "home-assistant", "mqtt", "http" })
         {
             yield return new TestCaseData(
                 $"point-sources/valid/{name}.v1.yaml",
@@ -138,7 +138,7 @@ public sealed class ConfigurationFixtureTests
             ($"schemaVersion: 1{Environment.NewLine}sources: !custom []{Environment.NewLine}", ConfigurationYamlError.UnsupportedFeature),
             ($"schemaVersion: 1{Environment.NewLine}sources: []{Environment.NewLine}---\nschemaVersion: 1\nsources: []{Environment.NewLine}", ConfigurationYamlError.MultipleDocuments),
             (
-                $"schemaVersion: 1{Environment.NewLine}sources:{Environment.NewLine}  - id: source{Environment.NewLine}    name: source{Environment.NewLine}    enabled: true{Environment.NewLine}    kind: httpJson{Environment.NewLine}    connection:{Environment.NewLine}{new string(' ', 8)}nested: [{string.Concat(Enumerable.Repeat("[", 21))}0{string.Concat(Enumerable.Repeat("]", 21))}]{Environment.NewLine}    tls: {{verifyServerCertificate: true}}{Environment.NewLine}    timeouts: {{connectMilliseconds: 100}}{Environment.NewLine}",
+                $"schemaVersion: 1{Environment.NewLine}sources:{Environment.NewLine}  - id: source{Environment.NewLine}    name: source{Environment.NewLine}    enabled: true{Environment.NewLine}    kind: http{Environment.NewLine}    connection:{Environment.NewLine}{new string(' ', 8)}nested: [{string.Concat(Enumerable.Repeat("[", 21))}0{string.Concat(Enumerable.Repeat("]", 21))}]{Environment.NewLine}    tls: {{verifyServerCertificate: true}}{Environment.NewLine}    timeouts: {{connectMilliseconds: 100}}{Environment.NewLine}",
                 ConfigurationYamlError.ExcessiveNesting)
         };
 
@@ -195,7 +195,7 @@ public sealed class ConfigurationFixtureTests
     [Test]
     public void TypedParseAndRender_PreservePointSourceContract()
     {
-        var yaml = File.ReadAllBytes(Path.Combine(FixtureRoot, "point-sources/valid/http-json.v1.yaml"));
+        var yaml = File.ReadAllBytes(Path.Combine(FixtureRoot, "point-sources/valid/http.v1.yaml"));
         var document = ConfigurationYaml.Parse<PointSource>(
             yaml,
             ConfigurationKind.PointSources);

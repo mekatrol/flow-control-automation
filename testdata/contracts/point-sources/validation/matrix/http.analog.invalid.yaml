@@ -1,8 +1,8 @@
 schemaVersion: 1
-id: matrix-httpjson-digital-invalid
-name: Matrix httpJson digital invalid
+id: matrix-httpjson-analog-invalid
+name: Matrix http analog invalid
 enabled: true
-kind: httpJson
+kind: http
 connection: { baseUrl: https://api.example.test, maximumResponseBytes: 1024 }
 tls: { verifyServerCertificate: true }
 timeouts: { connectMilliseconds: 100 }
@@ -15,9 +15,9 @@ points:
     name: Matrix point
     enabled: true
     direction: input
-    valueType: digital
+    valueType: analog
+    stateLabels: { false: Off, true: On }
     readable: true
     commandable: false
     persistence: volatile
     mapping: values/value
-

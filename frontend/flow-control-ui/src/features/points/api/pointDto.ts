@@ -82,7 +82,7 @@ export const parsePoint = (value: unknown, path = 'point'): PointSummary => {
     enabled: boolean(item.enabled, `${path}.enabled`),
     sourceKind: enumeration(
       item.sourceKind,
-      ['virtual', 'physical', 'homeAssistant', 'mqtt', 'httpJson'],
+      ['virtual', 'physical', 'homeAssistant', 'mqtt', 'http'],
       `${path}.sourceKind`
     ),
     sourceId: optionalString(item.sourceId, `${path}.sourceId`),

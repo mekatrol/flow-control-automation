@@ -2,7 +2,7 @@ schemaVersion: 1
 id: bad
 name: Bad
 enabled: true
-kind: httpJson
+kind: http
 connection: { baseUrl: https://example.test, maximumResponseBytes: 1000 }
 tls: { verifyServerCertificate: true }
 timeouts: { connectMilliseconds: 100 }

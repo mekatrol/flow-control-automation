@@ -45,10 +45,10 @@ internal sealed partial class PointSourceValidator(ITemplateService? templates =
         {
             PointSourceKind.Virtual or PointSourceKind.Physical => null,
             PointSourceKind.HomeAssistant => RequireBaseUrl(source),
-            PointSourceKind.HttpJson => ValidateHttpJson(source),
+            PointSourceKind.Http => ValidateHttp(source),
             PointSourceKind.Mqtt => ValidateMqtt(source),
             _ => throw new PointSourceValidationException(
-                "kind must be virtual, physical, homeAssistant, mqtt, or httpJson")
+                "kind must be virtual, physical, homeAssistant, mqtt, or http")
         };
 
         if (address is not null)
@@ -141,7 +141,7 @@ internal sealed partial class PointSourceValidator(ITemplateService? templates =
             PointSourceKind.Mqtt => mapping.Physical is null && mapping.Virtual is null
                 && (mapping.Read is null || IsMqttRead(mapping.Read))
                 && (mapping.Command is null || IsMqttCommand(mapping.Command)),
-            PointSourceKind.HttpJson => mapping.Physical is null && mapping.Virtual is null
+            PointSourceKind.Http => mapping.Physical is null && mapping.Virtual is null
                 && (mapping.Read is null || IsHttpRead(mapping.Read))
                 && (mapping.Command is null || IsHttpCommand(mapping.Command)),
             _ => false
@@ -255,7 +255,7 @@ internal sealed partial class PointSourceValidator(ITemplateService? templates =
             ? throw new PointSourceValidationException("connection.baseUrl is required")
             : source.Connection.BaseUrl;
 
-    private static string ValidateHttpJson(PointSource source)
+    private static string ValidateHttp(PointSource source)
     {
         var address = RequireBaseUrl(source);
 

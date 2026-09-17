@@ -112,7 +112,7 @@ const kindLabel = (kind: PointSourceKind): string =>
     physical: 'Physical',
     homeAssistant: 'Home Assistant',
     mqtt: 'MQTT',
-    httpJson: 'HTTP/JSON'
+    http: 'HTTP'
   })[kind];
 
 const allRows = computed<PointSourceRow[]>(() =>

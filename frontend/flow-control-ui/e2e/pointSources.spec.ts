@@ -8,7 +8,7 @@ const sourceYAML = `schemaVersion: 1
 id: weather
 name: Weather API
 enabled: true
-kind: httpJson
+kind: http
 connection:
   baseUrl: https://weather.example.test
   followRedirects: false
@@ -46,7 +46,7 @@ test('catalogue supports filtering, sorting, and opening a point source', async 
             name: 'Weather API',
             description: 'Outdoor observations',
             enabled: true,
-            kind: 'httpJson',
+            kind: 'http',
             mappingCount: 1,
             pointCount: 1,
             revision: 2,
@@ -76,7 +76,7 @@ test('catalogue supports filtering, sorting, and opening a point source', async 
   await expect(page.getByRole('heading', { name: 'Configured point sources' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Weather API' })).toBeVisible();
   await expect(page.getByText('Outdoor observations')).toBeVisible();
-  await expect(page.getByRole('cell', { name: 'HTTP/JSON' })).toBeVisible();
+  await expect(page.getByRole('cell', { name: 'HTTP' })).toBeVisible();
 
   await page.getByLabel('Filter list').fill('weather');
   await page.getByRole('button', { name: 'Apply' }).click();
@@ -187,9 +187,9 @@ test('catalogue and YAML editor support create, test, retry, and keyboard use', 
   await page.getByRole('button', { name: 'Use this example' }).click();
 
   // Expected outcome: Loading the selected HTTP example replaces the editor configuration.
-  // Acceptance criteria: The rendered YAML contains `kind: httpJson` because the selected
+  // Acceptance criteria: The rendered YAML contains `kind: http` because the selected
   // example must become the active configuration before it can be tested or saved.
-  await expect(sourceEditor.locator('.monaco-editor .view-lines')).toContainText('kind: httpJson');
+  await expect(sourceEditor.locator('.monaco-editor .view-lines')).toContainText('kind: http');
 
   // Expected outcome: A valid loaded example is eligible for persistence.
   // Acceptance criteria: Save is enabled because the HTTP example satisfies the point-source

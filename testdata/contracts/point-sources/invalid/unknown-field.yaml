@@ -4,7 +4,7 @@ sources:
     name: Invalid source
     description: Contains an unknown field
     enabled: true
-    kind: httpJson
+    kind: http
     connection:
       baseUrl: https://example.test
     plaintextPassword: forbidden

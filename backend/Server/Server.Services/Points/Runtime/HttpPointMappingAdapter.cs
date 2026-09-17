@@ -5,7 +5,7 @@ using System.Text.Json.Nodes;
 
 namespace Server.Services.Points.Runtime;
 
-internal sealed class HttpJsonPointMappingAdapter(
+internal sealed class HttpPointMappingAdapter(
     IDnsLookup dns,
     ICredentialResolver credentials,
     IHttpProtocolCheck http,
@@ -13,7 +13,7 @@ internal sealed class HttpJsonPointMappingAdapter(
     TimeProvider timeProvider,
     IPointValueConverter values) : IPointMappingAdapter
 {
-    public PointSourceKind Kind => PointSourceKind.HttpJson;
+    public PointSourceKind Kind => PointSourceKind.Http;
 
     public async Task<PointMappingReadResult> ReadAsync(PointMappingResolution resolution, CancellationToken cancellationToken)
     {
@@ -24,7 +24,7 @@ internal sealed class HttpJsonPointMappingAdapter(
         var credential = await credentials.ResolveAsync(resolution.Source.CredentialRef ?? string.Empty, cancellationToken);
         var response = await http.ReadAsync(resolution.Source, endpoint, credential, addresses, cancellationToken);
         if (response.Diagnostic is not null || response.Response is null)
-            return Failed(response.Diagnostic ?? "HTTP/JSON response was unavailable.", response.Response);
+            return Failed(response.Diagnostic ?? "HTTP response was unavailable.", response.Response);
 
         try
         {
@@ -41,7 +41,7 @@ internal sealed class HttpJsonPointMappingAdapter(
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
-            return Failed($"HTTP/JSON mapping output was invalid: {exception.Message}", response.Response);
+            return Failed($"HTTP mapping output was invalid: {exception.Message}", response.Response);
         }
     }
 
@@ -65,7 +65,7 @@ internal sealed class HttpJsonPointMappingAdapter(
     {
         var addresses = await dns.LookupAsync(endpoint.Host, token);
         if (addresses.Count == 0 || addresses.Any(address => Server.Services.Communication.Network.ConnectivityPolicy.IsForbidden(address, source.Connection.AllowPrivateNetwork == true)))
-            throw new InvalidOperationException("HTTP/JSON destination is forbidden or unavailable.");
+            throw new InvalidOperationException("HTTP destination is forbidden or unavailable.");
         return addresses;
     }
 

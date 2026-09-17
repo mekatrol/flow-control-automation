@@ -319,7 +319,7 @@ internal sealed class ProtocolCheckTests
     {
         Id = "http-check",
         Name = "HTTP check",
-        Kind = PointSourceKind.HttpJson,
+        Kind = PointSourceKind.Http,
         Connection = new PointSourceConnection
         {
             BaseUrl = uri.ToString(),

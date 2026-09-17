@@ -1,8 +1,8 @@
 schemaVersion: 1
 id: combined-httpjson
-name: Combined httpJson
+name: Combined http
 enabled: true
-kind: httpJson
+kind: http
 connection: { baseUrl: https://api.example.test, maximumResponseBytes: 4096 }
 tls: { verifyServerCertificate: true }
 timeouts: { connectMilliseconds: 100 }

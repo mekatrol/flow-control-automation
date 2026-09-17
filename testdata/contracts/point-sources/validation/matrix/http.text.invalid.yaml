@@ -1,8 +1,8 @@
 schemaVersion: 1
-id: matrix-httpjson-multistate-valid
-name: Matrix httpJson multiState valid
+id: matrix-httpjson-text-invalid
+name: Matrix http text invalid
 enabled: true
-kind: httpJson
+kind: http
 connection: { baseUrl: https://api.example.test, maximumResponseBytes: 1024 }
 tls: { verifyServerCertificate: true }
 timeouts: { connectMilliseconds: 100 }
@@ -15,9 +15,9 @@ points:
     name: Matrix point
     enabled: true
     direction: input
-    valueType: multiState
-    stateLabels: [{ key: idle, label: Idle }, { key: run, label: Running }]
+    valueType: text
     readable: true
     commandable: false
     persistence: volatile
     mapping: values/value
+

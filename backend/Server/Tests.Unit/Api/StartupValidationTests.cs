@@ -106,7 +106,7 @@ internal sealed class StartupValidationTests
                 Id = "legacy-source",
                 Name = "Legacy source",
                 Enabled = true,
-                Kind = PointSourceKind.HttpJson,
+                Kind = PointSourceKind.Http,
                 Connection = new PointSourceConnection
                 {
                     BaseUrl = "https://example.test",

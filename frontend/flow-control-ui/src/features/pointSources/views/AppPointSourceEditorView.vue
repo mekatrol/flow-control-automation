@@ -254,7 +254,7 @@ import {
 import { formatPointTestValue } from '@/features/pointSources/formatPointTestValue';
 import { pointSourceSchema } from '@/features/pointSources/pointSourceSchema';
 import homeAssistantYaml from '@contracts/point-sources/valid/home-assistant.v1.yaml?raw';
-import httpJsonYaml from '@contracts/point-sources/valid/http-json.v1.yaml?raw';
+import httpYaml from '@contracts/point-sources/valid/http.v1.yaml?raw';
 import mqttYaml from '@contracts/point-sources/valid/mqtt.v1.yaml?raw';
 import physicalYaml from '@contracts/point-sources/valid/physical.v1.yaml?raw';
 import virtualYaml from '@contracts/point-sources/valid/virtual.v1.yaml?raw';
@@ -294,13 +294,13 @@ const sourceExamples: SourceExample[] = [
     yaml: mqttYaml
   },
   {
-    kind: 'httpJson',
+    kind: 'http',
     name: 'HTTP / JSON',
     summary: 'Read and write points through a JSON web API.',
-    yaml: httpJsonYaml
+    yaml: httpYaml
   }
 ];
-const selectedExampleKind = ref<PointSourceKind>('httpJson');
+const selectedExampleKind = ref<PointSourceKind>('http');
 const selectedExample = computed(
   () => sourceExamples.find(({ kind }) => kind === selectedExampleKind.value) ?? sourceExamples[2]!
 );

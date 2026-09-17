@@ -1,8 +1,8 @@
 schemaVersion: 1
 id: matrix-httpjson-digital-valid
-name: Matrix httpJson digital valid
+name: Matrix http digital valid
 enabled: true
-kind: httpJson
+kind: http
 connection: { baseUrl: https://api.example.test, maximumResponseBytes: 1024 }
 tls: { verifyServerCertificate: true }
 timeouts: { connectMilliseconds: 100 }

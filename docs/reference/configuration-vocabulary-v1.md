@@ -9,7 +9,7 @@ contains one complete source aggregate with its connection, mappings, and points
 
 | Contract | Wire values |
 | --- | --- |
-| Source kind | `virtual`, `physical`, `homeAssistant`, `mqtt`, `httpJson` |
+| Source kind | `virtual`, `physical`, `homeAssistant`, `mqtt`, `http` |
 | Point direction | `input`, `output`, `inputOutput`, `value` |
 | Point value type | `analog`, `digital`, `multiState`, `integer`, `text` |
 | Point persistence | `volatile`, `retained` |

@@ -404,7 +404,7 @@ internal sealed class ConnectivityEndpointTests
         Id = "weather",
         Name = "Weather",
         Enabled = true,
-        Kind = PointSourceKind.HttpJson,
+        Kind = PointSourceKind.Http,
         Connection = new PointSourceConnection
         {
             BaseUrl = "https://example.test",

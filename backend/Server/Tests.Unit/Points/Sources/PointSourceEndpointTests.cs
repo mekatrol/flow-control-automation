@@ -394,7 +394,7 @@ internal sealed class PointSourceEndpointTests
     /// Purpose: Ensures HTTP JSON sources can connect directly to devices on a private LAN.
     /// </summary>
     [Test]
-    public async Task HttpJsonSourceAllowsHttpBaseUrl()
+    public async Task HttpSourceAllowsHttpBaseUrl()
     {
         await using var factory = new Api.FlowControlApplicationFactory();
         using var client = factory.CreateClient();
@@ -482,7 +482,7 @@ internal sealed class PointSourceEndpointTests
                 name: Weather
                 name: Duplicate
                 enabled: true
-                kind: httpJson
+                kind: http
                 connection:
                   baseUrl: https://example.test
                   maximumResponseBytes: 1024
@@ -523,7 +523,7 @@ internal sealed class PointSourceEndpointTests
         Id = "weather",
         Name = "Weather",
         Enabled = true,
-        Kind = PointSourceKind.HttpJson,
+        Kind = PointSourceKind.Http,
         Connection = new PointSourceConnection
         {
             BaseUrl = "https://example.test",

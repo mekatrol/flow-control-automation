@@ -2,7 +2,7 @@ schemaVersion: 1
 id: weather-api
 name: Weather API
 enabled: true
-kind: httpJson
+kind: http
 connection:
   baseUrl: https://weather.example.test
   defaultPollMilliseconds: 60000

@@ -1,8 +1,8 @@
 schemaVersion: 1
 id: matrix-httpjson-integer-valid
-name: Matrix httpJson integer valid
+name: Matrix http integer valid
 enabled: true
-kind: httpJson
+kind: http
 connection: { baseUrl: https://api.example.test, maximumResponseBytes: 1024 }
 tls: { verifyServerCertificate: true }
 timeouts: { connectMilliseconds: 100 }

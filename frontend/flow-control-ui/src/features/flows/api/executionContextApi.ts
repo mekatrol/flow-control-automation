@@ -3,7 +3,7 @@ import { waitForFetch } from '@/api/waitForFetch';
 import type { VirtualPointDefinition } from '@/features/flows/types';
 import type { PointSummary } from '@/features/points/api/pointDto';
 
-const pointSourceKinds = ['virtual', 'physical', 'homeAssistant', 'mqtt', 'httpJson'] as const;
+const pointSourceKinds = ['virtual', 'physical', 'homeAssistant', 'mqtt', 'http'] as const;
 
 export interface ExecutionContextSummary {
   id: string;

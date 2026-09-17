@@ -15,7 +15,7 @@ internal static class PointServiceCollectionExtensions
         services.AddSingleton<IPointMappingResolver, PointMappingResolver>();
         services.AddSingleton<IPointValueConverter, PointValueConverter>();
         services.AddScoped<IPointMappingExecutionService, PointMappingExecutionService>();
-        services.AddScoped<IPointMappingAdapter, HttpJsonPointMappingAdapter>();
+        services.AddScoped<IPointMappingAdapter, HttpPointMappingAdapter>();
         services.AddScoped<IPointMappingAdapter, MqttPointMappingAdapter>();
         services.AddScoped<IPointMappingAdapter, HomeAssistantPointMappingAdapter>();
         services.AddScoped<IPointMappingAdapter, PhysicalPointMappingAdapter>();

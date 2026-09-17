@@ -11,7 +11,7 @@
     "name": { "$ref": "#/$defs/nonEmptyString" },
     "description": { "type": "string" },
     "enabled": { "type": "boolean" },
-    "kind": { "enum": ["virtual", "physical", "homeAssistant", "mqtt", "httpJson"] },
+    "kind": { "enum": ["virtual", "physical", "homeAssistant", "mqtt", "http"] },
     "connection": { "$ref": "#/$defs/connection" },
     "credentialRef": { "type": "string", "pattern": "^(?:secret://|env:).+" },
     "tls": { "$ref": "#/$defs/tls" },
@@ -24,7 +24,7 @@
     { "if": { "properties": { "kind": { "const": "physical" } }, "required": ["kind"] }, "then": { "properties": { "connection": { "maxProperties": 0 }, "mappings": { "items": { "$ref": "#/$defs/physicalMapping" } } } } },
     { "if": { "properties": { "kind": { "const": "homeAssistant" } }, "required": ["kind"] }, "then": { "properties": { "connection": { "$ref": "#/$defs/homeAssistantConnection" }, "mappings": { "items": { "$ref": "#/$defs/homeAssistantMapping" } } } } },
     { "if": { "properties": { "kind": { "const": "mqtt" } }, "required": ["kind"] }, "then": { "properties": { "connection": { "$ref": "#/$defs/mqttConnection" }, "mappings": { "items": { "$ref": "#/$defs/mqttMapping" } } } } },
-    { "if": { "properties": { "kind": { "const": "httpJson" } }, "required": ["kind"] }, "then": { "properties": { "connection": { "$ref": "#/$defs/httpConnection" }, "mappings": { "items": { "$ref": "#/$defs/httpMapping" } } } } }
+    { "if": { "properties": { "kind": { "const": "http" } }, "required": ["kind"] }, "then": { "properties": { "connection": { "$ref": "#/$defs/httpConnection" }, "mappings": { "items": { "$ref": "#/$defs/httpMapping" } } } } }
   ],
   "$defs": {
     "identifier": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$" },

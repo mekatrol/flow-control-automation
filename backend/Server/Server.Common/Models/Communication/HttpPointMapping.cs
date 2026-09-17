@@ -1,6 +1,6 @@
 namespace Server.Common.Models.Communication;
 
-public sealed record HttpJsonPointMapping(
+public sealed record HttpPointMapping(
     string Path,
     string Method,
     string? JsonPointer,

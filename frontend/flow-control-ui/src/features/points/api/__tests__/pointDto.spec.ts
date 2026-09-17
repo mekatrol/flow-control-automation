@@ -6,7 +6,7 @@ const point = {
   name: 'Room temperature',
   description: 'Measured temperature',
   enabled: true,
-  sourceKind: 'httpJson',
+  sourceKind: 'http',
   sourceName: 'Building controller',
   direction: 'input',
   valueType: 'analog',

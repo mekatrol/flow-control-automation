@@ -4,7 +4,7 @@ A point is a typed value boundary used by flows and operators. Configuration own
 every point is nested under exactly one `PointSource`, and the source aggregate is the unit of
 validation, persistence, revision control, and deletion.
 
-The owning source `kind` identifies virtual, physical, Home Assistant, MQTT, or HTTP/JSON
+The owning source `kind` identifies virtual, physical, Home Assistant, MQTT, or HTTP
 behavior. A point does not carry `sourceId`, `pointSourceType`, or an inline protocol object.
 Catalogue projections may expose the owning `sourceKind`, but it is derived rather than persisted.
 

@@ -17,7 +17,7 @@ rules that JSON Schema cannot express across records.
 
 Every point is nested under exactly one source. A point has neither `sourceId` nor
 `pointSourceType`; the owning `kind` selects `virtual`, `physical`, `homeAssistant`, `mqtt`, or
-`httpJson` behavior. Source and point IDs are globally unique. Mapping IDs are source-local,
+`http` behavior. Source and point IDs are globally unique. Mapping IDs are source-local,
 aliases are mapping-local and case-sensitive, and identifiers match
 `^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$`. A point selects one alias using exactly
 `<mapping-id>/<alias>`. Multiple points may share a mapping or alias.
@@ -35,7 +35,7 @@ Mapping fields are strictly discriminated by source kind:
 - `physical` contains controller, channel, optional address, and electrical metadata.
 - `homeAssistant` uses entity/property reads and service/service-data commands.
 - `mqtt` uses state and command topics, QoS, retain behavior, response/body formats, and templates.
-- `httpJson` uses relative paths, safe read methods, command methods, response/body formats,
+- `http` uses relative paths, safe read methods, command methods, response/body formats,
   optional compatible content types,
   templates, polling overrides, response bounds, redirects, and private-network policy.
 

@@ -8,7 +8,7 @@ public sealed class PointSourceAggregateTests
     [TestCase("physical")]
     [TestCase("home-assistant")]
     [TestCase("mqtt")]
-    [TestCase("http-json")]
+    [TestCase("http")]
     public void CanonicalFixture_RoundTripsAndValidates(string name)
     {
         var path = Path.Combine(TestContext.CurrentContext.TestDirectory,

@@ -93,7 +93,7 @@ sources:
   - id: ${sourceId}
     name: Compatibility source ${suffix}
     enabled: true
-    kind: httpJson
+    kind: http
     connection:
       baseUrl: https://example.test
       maximumResponseBytes: 1024
