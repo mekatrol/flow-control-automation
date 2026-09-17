@@ -22,13 +22,14 @@ internal sealed class HttpPointMappingAdapter(
         var endpoint = BuildEndpoint(resolution.Source.Connection.BaseUrl!, operation.Path!);
         var addresses = await ResolveAddresses(resolution.Source, endpoint, cancellationToken);
         var credential = await credentials.ResolveAsync(resolution.Source.CredentialRef ?? string.Empty, cancellationToken);
-        var response = await http.ReadAsync(resolution.Source, endpoint, credential, addresses, cancellationToken);
+        var response = await http.ReadAsync(
+            resolution.Source, endpoint, operation.Accept, credential, addresses, cancellationToken);
         if (response.Diagnostic is not null || response.Response is null)
             return Failed(response.Diagnostic ?? "HTTP response was unavailable.", response.Response);
 
         try
         {
-            var model = ResponseModel(operation.ResponseFormat!, response.Response.Body);
+            var model = ResponseModel(operation.PayloadFormat!, response.Response.Body);
             var rendered = templates.Render(operation.Template!, ToTemplateObject(model), RenderAs.Json);
             var aliases = JsonNode.Parse(rendered) as JsonObject
                 ?? throw new InvalidOperationException("Read template must render a JSON object.");
@@ -52,7 +53,7 @@ internal sealed class HttpPointMappingAdapter(
         var raw = values.Serialize(resolution.Point, value);
         var rendered = templates.Render(operation.Template!,
             new Dictionary<string, object?>(StringComparer.Ordinal) { [resolution.Alias] = raw },
-            operation.BodyFormat == "json" ? RenderAs.Json : RenderAs.Text);
+            operation.PayloadFormat == "json" ? RenderAs.Json : RenderAs.Text);
         var endpoint = BuildEndpoint(resolution.Source.Connection.BaseUrl!, operation.Path!);
         var addresses = await ResolveAddresses(resolution.Source, endpoint, cancellationToken);
         var credential = await credentials.ResolveAsync(resolution.Source.CredentialRef ?? string.Empty, cancellationToken);
@@ -80,11 +81,11 @@ internal sealed class HttpPointMappingAdapter(
         _ => throw new InvalidOperationException($"Unsupported response format '{format}'.")
     };
 
-    private static string ContentType(MappingCommandOperation operation) => operation.BodyFormat switch
+    private static string ContentType(MappingCommandOperation operation) => operation.PayloadFormat switch
     {
         "json" => operation.ContentType ?? "application/json",
         "text" => operation.ContentType ?? "text/plain",
-        _ => throw new InvalidOperationException($"Unsupported command body format '{operation.BodyFormat}'.")
+        _ => throw new InvalidOperationException($"Unsupported command body format '{operation.PayloadFormat}'.")
     };
 
     private PointMappingReadResult Failed(string diagnostic, HttpResponsePreview? response) =>

@@ -129,7 +129,7 @@ internal sealed class StartupValidationTests
                     {
                         Path = "/output",
                         Method = "POST",
-                        BodyFormat = "json",
+                        PayloadFormat = "json",
                         Template = "{ \"value\": {{ value }} }"
                     }
                 }],

@@ -89,6 +89,32 @@ internal sealed class ProtocolCheckTests
     }
 
     [Test]
+    public async Task HttpReadSendsConfiguredAcceptHeader()
+    {
+        await using var server = await LoopbackHttpServer.Start(
+            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}");
+        await using var factory = Factory(new FakeDns(IPAddress.Loopback));
+        await using var scope = factory.Services.CreateAsyncScope();
+        var check = scope.ServiceProvider.GetRequiredService<IHttpProtocolCheck>();
+
+        var result = await check.ReadAsync(
+            HttpSource(server.Url),
+            server.Url,
+            "application/json",
+            string.Empty,
+            [IPAddress.Loopback],
+            CancellationToken.None);
+        var request = await server.Request;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Diagnostic, Is.Null);
+            Assert.That(request, Does.Contain("Accept: application/json\r\n"));
+            Assert.That(request, Does.Not.Contain("Content-Type:"));
+        });
+    }
+
+    [Test]
     public async Task HttpErrorDiagnosticIncludesMethodAndUri()
     {
         await using var server = await LoopbackHttpServer.Start(

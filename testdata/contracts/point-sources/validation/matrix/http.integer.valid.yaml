@@ -9,7 +9,7 @@ timeouts: { connectMilliseconds: 100 }
 mappings:
   - id: values
     aliases: [value]
-    read: { path: /value, method: GET, responseFormat: json, template: '{ "value": {{ value }} }' }
+    read: { path: /value, method: GET, payloadFormat: json, template: '{ "value": {{ value }} }' }
 points:
   - id: matrix-point
     name: Matrix point

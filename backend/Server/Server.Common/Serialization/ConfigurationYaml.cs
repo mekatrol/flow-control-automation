@@ -28,10 +28,10 @@ public static class ConfigurationYaml
     private static readonly IReadOnlySet<string> MappingFields = new HashSet<string>(
         ["id", "aliases", "read", "command", "physical", "virtual"]);
     private static readonly IReadOnlySet<string> ReadFields = new HashSet<string>(
-        ["path", "method", "responseFormat", "template", "topic", "qos", "entityId", "property",
+        ["path", "method", "payloadFormat", "accept", "template", "topic", "qos", "entityId", "property",
          "pollMilliseconds"]);
     private static readonly IReadOnlySet<string> CommandFields = new HashSet<string>(
-        ["path", "method", "bodyFormat", "contentType", "template", "topic", "qos", "retain",
+        ["path", "method", "payloadFormat", "contentType", "template", "topic", "qos", "retain",
          "service", "serviceData"]);
     private static readonly IReadOnlySet<string> PhysicalFields = new HashSet<string>(
         ["controllerId", "channel", "address", "electricalType"]);

@@ -20,6 +20,7 @@ public interface IHttpProtocolCheck
     Task<HttpProtocolCheckResult> ReadAsync(
         PointSource source,
         Uri endpoint,
+        string? accept,
         string credential,
         IReadOnlyList<IPAddress> pinnedAddresses,
         CancellationToken cancellationToken) =>

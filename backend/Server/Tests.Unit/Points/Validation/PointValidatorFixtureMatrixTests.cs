@@ -211,7 +211,7 @@ public sealed class PointValidatorFixtureMatrixTests
                 Read = new()
                 {
                     Topic = "fixture/state",
-                    ResponseFormat = "json",
+                    PayloadFormat = "json",
                     Template = "{ \"value\": 1 }"
                 }
             }]
@@ -224,8 +224,8 @@ public sealed class PointValidatorFixtureMatrixTests
     [TestCase("form", "application/x-www-form-urlencoded", "incompatible")]
     [TestCase("json", null, null)]
     [TestCase("text", "text/plain", null)]
-    public void SourceValidator_ValidatesHttpCommandBodyFormat(
-        string bodyFormat,
+    public void SourceValidator_ValidatesHttpCommandPayloadFormat(
+        string payloadFormat,
         string? contentType,
         string? diagnostic)
     {
@@ -238,12 +238,28 @@ public sealed class PointValidatorFixtureMatrixTests
             {
                 Path = "/output?index=0",
                 Method = "POST",
-                BodyFormat = bodyFormat,
+                PayloadFormat = payloadFormat,
                 ContentType = contentType,
                 Template = "intensity={{ intensity }}"
             }
         };
         var source = baseline with { Mappings = [.. baseline.Mappings, command] };
+
+        AssertSourceOutcome(source, diagnostic);
+    }
+
+    [TestCase(null, null)]
+    [TestCase("application/json", null)]
+    [TestCase("text/plain; q=0.8", null)]
+    [TestCase("not a media type", "incompatible")]
+    public void SourceValidator_ValidatesHttpAccept(string? accept, string? diagnostic)
+    {
+        var baseline = ValidSource();
+        var read = baseline.Mappings[0].Read! with { Accept = accept };
+        var source = baseline with
+        {
+            Mappings = [baseline.Mappings[0] with { Read = read }]
+        };
 
         AssertSourceOutcome(source, diagnostic);
     }
@@ -334,7 +350,7 @@ public sealed class PointValidatorFixtureMatrixTests
             {
                 Path = "/value",
                 Method = "GET",
-                ResponseFormat = "json",
+                PayloadFormat = "json",
                 Template = "{ \"value\": 1 }"
             }
         }],

@@ -27,12 +27,13 @@ internal sealed class HttpProtocolCheck(IDnsLookup dns) : IHttpProtocolCheck
                 endpoint.AbsolutePath.TrimEnd('/') + "/api/");
         }
 
-        return await ReadAsync(source, endpoint, credential, pinnedAddresses, cancellationToken);
+        return await ReadAsync(source, endpoint, null, credential, pinnedAddresses, cancellationToken);
     }
 
     public async Task<HttpProtocolCheckResult> ReadAsync(
         PointSource source,
         Uri endpoint,
+        string? accept,
         string credential,
         IReadOnlyList<IPAddress> pinnedAddresses,
         CancellationToken cancellationToken)
@@ -42,6 +43,7 @@ internal sealed class HttpProtocolCheck(IDnsLookup dns) : IHttpProtocolCheck
             HttpMethod.Get,
             null,
             "application/json",
+            accept,
             credential,
             pinnedAddresses,
             cancellationToken);
@@ -61,6 +63,7 @@ internal sealed class HttpProtocolCheck(IDnsLookup dns) : IHttpProtocolCheck
             new HttpMethod(method),
             body,
             contentType,
+            null,
             credential,
             pinnedAddresses,
             cancellationToken);
@@ -71,6 +74,7 @@ internal sealed class HttpProtocolCheck(IDnsLookup dns) : IHttpProtocolCheck
         HttpMethod method,
         string? body,
         string contentType,
+        string? accept,
         string credential,
         IReadOnlyList<IPAddress> pinnedAddresses,
         CancellationToken cancellationToken)
@@ -88,6 +92,11 @@ internal sealed class HttpProtocolCheck(IDnsLookup dns) : IHttpProtocolCheck
                     ?? source.Timeouts.ConnectMilliseconds)
             };
             using var request = new HttpRequestMessage(method, endpoint);
+
+            if (accept is not null)
+            {
+                request.Headers.Accept.ParseAdd(accept);
+            }
 
             if (body is not null)
             {

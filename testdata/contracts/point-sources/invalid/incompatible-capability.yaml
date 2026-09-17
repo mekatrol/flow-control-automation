@@ -6,5 +6,5 @@ kind: mqtt
 connection: { brokerUrl: mqtt://broker.test, qos: 0 }
 tls: { verifyServerCertificate: true }
 timeouts: { connectMilliseconds: 100 }
-mappings: [{ id: command, aliases: [value], command: { topic: set, qos: 0, bodyFormat: text, template: '{{ value }}' } }]
+mappings: [{ id: command, aliases: [value], command: { topic: set, qos: 0, payloadFormat: text, template: '{{ value }}' } }]
 points: [{ id: bad-point, name: Bad, enabled: true, direction: input, valueType: text, readable: true, commandable: false, persistence: volatile, limits: { maximumLength: 5 }, mapping: command/value }]

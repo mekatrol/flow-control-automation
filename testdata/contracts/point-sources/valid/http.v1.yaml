@@ -23,7 +23,8 @@ mappings:
     read:
       path: /current
       method: GET
-      responseFormat: json
+      payloadFormat: json
+      accept: application/json
       template: '{ "temperature": {{ temperature }}, "summary": {{ summary }} }'
 points:
   - id: outside-air-temperature

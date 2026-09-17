@@ -1,4 +1,5 @@
 using Server.Common.Contracts.Templating;
+using System.Net.Http.Headers;
 using System.Text.RegularExpressions;
 
 namespace Server.Services.Points.Validation;
@@ -135,9 +136,10 @@ internal sealed partial class PointSourceValidator(ITemplateService? templates =
                 && HasNoTransportFields(mapping),
             PointSourceKind.HomeAssistant => mapping.Physical is null && mapping.Virtual is null
                 && (mapping.Read is null || (!string.IsNullOrWhiteSpace(mapping.Read.EntityId)
-                    && mapping.Read.ResponseFormat is null))
+                    && mapping.Read.PayloadFormat is null
+                    && mapping.Read.Accept is null))
                 && (mapping.Command is null || (!string.IsNullOrWhiteSpace(mapping.Command.Service)
-                    && mapping.Command.BodyFormat is null)),
+                    && mapping.Command.PayloadFormat is null)),
             PointSourceKind.Mqtt => mapping.Physical is null && mapping.Virtual is null
                 && (mapping.Read is null || IsMqttRead(mapping.Read))
                 && (mapping.Command is null || IsMqttCommand(mapping.Command)),
@@ -161,27 +163,32 @@ internal sealed partial class PointSourceValidator(ITemplateService? templates =
     private static bool IsHttpRead(MappingReadOperation read) =>
         !string.IsNullOrWhiteSpace(read.Path)
         && read.Method is "GET" or "HEAD"
-        && read.ResponseFormat is "json" or "text"
+        && read.PayloadFormat is "json" or "text"
+        && IsValidAccept(read.Accept)
         && !string.IsNullOrWhiteSpace(read.Template);
 
     private static bool IsMqttRead(MappingReadOperation read) =>
         !string.IsNullOrWhiteSpace(read.Topic)
-        && read.ResponseFormat is "json" or "text"
+        && read.PayloadFormat is "json" or "text"
+        && read.Accept is null
         && !string.IsNullOrWhiteSpace(read.Template);
+
+    private static bool IsValidAccept(string? accept) => accept is null
+        || MediaTypeWithQualityHeaderValue.TryParse(accept, out _);
 
     private static bool IsMqttCommand(MappingCommandOperation command) =>
         !string.IsNullOrWhiteSpace(command.Topic)
-        && command.BodyFormat is "json" or "text"
+        && command.PayloadFormat is "json" or "text"
         && !string.IsNullOrWhiteSpace(command.Template);
 
     private static bool IsHttpCommand(MappingCommandOperation command) =>
         !string.IsNullOrWhiteSpace(command.Path)
         && command.Method is "POST" or "PUT" or "PATCH" or "DELETE"
-        && command.BodyFormat is "json" or "text"
+        && command.PayloadFormat is "json" or "text"
         && IsMatchingContentType(command)
         && !string.IsNullOrWhiteSpace(command.Template);
 
-    private static bool IsMatchingContentType(MappingCommandOperation command) => command.BodyFormat switch
+    private static bool IsMatchingContentType(MappingCommandOperation command) => command.PayloadFormat switch
     {
         "json" => command.ContentType is null or "application/json",
         "text" => command.ContentType is null or "application/x-www-form-urlencoded"

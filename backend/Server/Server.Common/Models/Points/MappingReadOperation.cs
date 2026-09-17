@@ -4,7 +4,8 @@ public sealed record MappingReadOperation
 {
     public string? Path { get; init; }
     public string? Method { get; init; }
-    public string? ResponseFormat { get; init; }
+    public string? PayloadFormat { get; init; }
+    public string? Accept { get; init; }
     public string? Template { get; init; }
     public string? Topic { get; init; }
     public int? Qos { get; init; }
