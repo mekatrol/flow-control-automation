@@ -28,8 +28,7 @@ internal sealed class HttpJsonPointMappingAdapter(
 
         try
         {
-            var model = JsonNode.Parse(response.Response.Body)
-                ?? throw new InvalidOperationException("Response JSON was null.");
+            var model = ResponseModel(operation.ResponseFormat!, response.Response.Body);
             var rendered = templates.Render(operation.Template!, ToTemplateObject(model), RenderAs.Json);
             var aliases = JsonNode.Parse(rendered) as JsonObject
                 ?? throw new InvalidOperationException("Read template must render a JSON object.");
@@ -52,12 +51,13 @@ internal sealed class HttpJsonPointMappingAdapter(
             ?? throw new InvalidOperationException("Mapping does not support commands.");
         var raw = values.Serialize(resolution.Point, value);
         var rendered = templates.Render(operation.Template!,
-            new Dictionary<string, object?>(StringComparer.Ordinal) { [resolution.Alias] = raw }, RenderAs.Json);
+            new Dictionary<string, object?>(StringComparer.Ordinal) { [resolution.Alias] = raw },
+            operation.BodyFormat == "json" ? RenderAs.Json : RenderAs.Text);
         var endpoint = BuildEndpoint(resolution.Source.Connection.BaseUrl!, operation.Path!);
         var addresses = await ResolveAddresses(resolution.Source, endpoint, cancellationToken);
         var credential = await credentials.ResolveAsync(resolution.Source.CredentialRef ?? string.Empty, cancellationToken);
         var response = await http.WriteAsync(resolution.Source, endpoint, operation.Method!, rendered,
-            operation.ContentType ?? "application/json", credential, addresses, cancellationToken);
+            ContentType(operation), credential, addresses, cancellationToken);
         return new(rendered, timeProvider.GetUtcNow(), response.Diagnostic, response.Response);
     }
 
@@ -71,6 +71,21 @@ internal sealed class HttpJsonPointMappingAdapter(
 
     internal static Uri BuildEndpoint(string baseUrl, string mappingPath) =>
         new(baseUrl.TrimEnd('/') + "/" + mappingPath.TrimStart('/'), UriKind.Absolute);
+
+    private static JsonNode ResponseModel(string format, string body) => format switch
+    {
+        "json" => JsonNode.Parse(body)
+            ?? throw new InvalidOperationException("Response JSON was null."),
+        "text" => new JsonObject { ["response"] = body },
+        _ => throw new InvalidOperationException($"Unsupported response format '{format}'.")
+    };
+
+    private static string ContentType(MappingCommandOperation operation) => operation.BodyFormat switch
+    {
+        "json" => operation.ContentType ?? "application/json",
+        "text" => operation.ContentType ?? "text/plain",
+        _ => throw new InvalidOperationException($"Unsupported command body format '{operation.BodyFormat}'.")
+    };
 
     private PointMappingReadResult Failed(string diagnostic, HttpResponsePreview? response) =>
         new(new Dictionary<string, string?>(), DataQualityType.Unavailable, timeProvider.GetUtcNow(), diagnostic, response);

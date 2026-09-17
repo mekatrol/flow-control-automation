@@ -9,10 +9,10 @@ timeouts: { connectMilliseconds: 100 }
 mappings:
   - id: primary
     aliases: [analogValue, digitalValue, multiValue]
-    read: { topic: fixtures/primary, qos: 1, format: json, template: '{ "analogValue": {{ analogValue }}, "digitalValue": {{ digitalValue }}, "multiValue": {{ multiValue }} }' }
+    read: { topic: fixtures/primary, qos: 1, responseFormat: json, template: '{ "analogValue": {{ analogValue }}, "digitalValue": {{ digitalValue }}, "multiValue": {{ multiValue }} }' }
   - id: secondary
     aliases: [integerValue, textValue]
-    read: { topic: fixtures/secondary, qos: 1, format: json, template: '{ "integerValue": {{ integerValue }}, "textValue": {{ textValue }} }' }
+    read: { topic: fixtures/secondary, qos: 1, responseFormat: json, template: '{ "integerValue": {{ integerValue }}, "textValue": {{ textValue }} }' }
 points:
   - { id: analog-point, name: Analog point, enabled: true, direction: input, valueType: analog, units: percent, readable: true, commandable: false, persistence: volatile, limits: { minimum: 0, maximum: 100 }, mapping: primary/analogValue }
   - { id: digital-point, name: Digital point, enabled: true, direction: input, valueType: digital, stateLabels: { false: Off, true: On }, readable: true, commandable: false, persistence: volatile, mapping: primary/digitalValue }

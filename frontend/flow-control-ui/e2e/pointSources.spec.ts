@@ -21,7 +21,7 @@ timeouts:
 mappings:
   - id: current
     aliases: [temperature]
-    read: { path: /current, method: GET, format: json, template: '{ "temperature": {{ temperature }} }' }
+    read: { path: /current, method: GET, responseFormat: json, template: '{ "temperature": {{ temperature }} }' }
 points:
   - { id: temperature, name: Temperature, enabled: true, direction: input, valueType: analog, readable: true, commandable: false, persistence: volatile, mapping: current/temperature }
 `;

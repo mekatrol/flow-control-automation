@@ -355,6 +355,7 @@ internal sealed class PointSourceEndpointTests
                     {
                         Path = "/output",
                         Method = "POST",
+                        BodyFormat = "json",
                         Template = "{ \"value\": {{ value }} }"
                     }
                 }],

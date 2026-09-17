@@ -23,7 +23,7 @@ mappings:
     read:
       topic: plant/status
       qos: 1
-      format: json
+      responseFormat: json
       template: '{ "message": {{ message }}, "running": {{ running }} }'
   - id: command
     aliases:
@@ -32,7 +32,7 @@ mappings:
       topic: plant/setpoint
       qos: 1
       retain: false
-      format: text
+      bodyFormat: text
       template: '{{ setpoint }}'
 points:
   - id: plant-status

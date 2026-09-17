@@ -134,11 +134,13 @@ internal sealed partial class PointSourceValidator(ITemplateService? templates =
             PointSourceKind.Physical => mapping.Physical is not null && mapping.Virtual is null
                 && HasNoTransportFields(mapping),
             PointSourceKind.HomeAssistant => mapping.Physical is null && mapping.Virtual is null
-                && (mapping.Read is null || !string.IsNullOrWhiteSpace(mapping.Read.EntityId))
-                && (mapping.Command is null || !string.IsNullOrWhiteSpace(mapping.Command.Service)),
+                && (mapping.Read is null || (!string.IsNullOrWhiteSpace(mapping.Read.EntityId)
+                    && mapping.Read.ResponseFormat is null))
+                && (mapping.Command is null || (!string.IsNullOrWhiteSpace(mapping.Command.Service)
+                    && mapping.Command.BodyFormat is null)),
             PointSourceKind.Mqtt => mapping.Physical is null && mapping.Virtual is null
-                && (mapping.Read is null || !string.IsNullOrWhiteSpace(mapping.Read.Topic))
-                && (mapping.Command is null || !string.IsNullOrWhiteSpace(mapping.Command.Topic)),
+                && (mapping.Read is null || IsMqttRead(mapping.Read))
+                && (mapping.Command is null || IsMqttCommand(mapping.Command)),
             PointSourceKind.HttpJson => mapping.Physical is null && mapping.Virtual is null
                 && (mapping.Read is null || IsHttpRead(mapping.Read))
                 && (mapping.Command is null || IsHttpCommand(mapping.Command)),
@@ -159,12 +161,33 @@ internal sealed partial class PointSourceValidator(ITemplateService? templates =
     private static bool IsHttpRead(MappingReadOperation read) =>
         !string.IsNullOrWhiteSpace(read.Path)
         && read.Method is "GET" or "HEAD"
+        && read.ResponseFormat is "json" or "text"
         && !string.IsNullOrWhiteSpace(read.Template);
+
+    private static bool IsMqttRead(MappingReadOperation read) =>
+        !string.IsNullOrWhiteSpace(read.Topic)
+        && read.ResponseFormat is "json" or "text"
+        && !string.IsNullOrWhiteSpace(read.Template);
+
+    private static bool IsMqttCommand(MappingCommandOperation command) =>
+        !string.IsNullOrWhiteSpace(command.Topic)
+        && command.BodyFormat is "json" or "text"
+        && !string.IsNullOrWhiteSpace(command.Template);
 
     private static bool IsHttpCommand(MappingCommandOperation command) =>
         !string.IsNullOrWhiteSpace(command.Path)
         && command.Method is "POST" or "PUT" or "PATCH" or "DELETE"
+        && command.BodyFormat is "json" or "text"
+        && IsMatchingContentType(command)
         && !string.IsNullOrWhiteSpace(command.Template);
+
+    private static bool IsMatchingContentType(MappingCommandOperation command) => command.BodyFormat switch
+    {
+        "json" => command.ContentType is null or "application/json",
+        "text" => command.ContentType is null or "application/x-www-form-urlencoded"
+            || command.ContentType.StartsWith("text/", StringComparison.OrdinalIgnoreCase),
+        _ => false
+    };
 
     private void ValidateTemplate(PointMapping mapping, string operation, string? template)
     {

@@ -9,7 +9,7 @@ timeouts: { connectMilliseconds: 100 }
 mappings:
   - id: values
     aliases: [value]
-    read: { topic: fixtures/state, qos: 1, format: json, template: '{ "value": {{ value }} }' }
+    read: { topic: fixtures/state, qos: 1, responseFormat: json, template: '{ "value": {{ value }} }' }
 points:
   - id: matrix-point
     name: Matrix point

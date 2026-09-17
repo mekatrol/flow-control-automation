@@ -208,9 +208,42 @@ public sealed class PointValidatorFixtureMatrixTests
             },
             Mappings = [baseline.Mappings[0] with
             {
-                Read = new() { Topic = "fixture/state", Template = "{ \"value\": 1 }" }
+                Read = new()
+                {
+                    Topic = "fixture/state",
+                    ResponseFormat = "json",
+                    Template = "{ \"value\": 1 }"
+                }
             }]
         };
+
+        AssertSourceOutcome(source, diagnostic);
+    }
+
+    [TestCase("text", "application/x-www-form-urlencoded", null)]
+    [TestCase("form", "application/x-www-form-urlencoded", "incompatible")]
+    [TestCase("json", null, null)]
+    [TestCase("text", "text/plain", null)]
+    public void SourceValidator_ValidatesHttpCommandBodyFormat(
+        string bodyFormat,
+        string? contentType,
+        string? diagnostic)
+    {
+        var baseline = ValidSource();
+        var command = new PointMapping
+        {
+            Id = "output",
+            Aliases = ["intensity"],
+            Command = new()
+            {
+                Path = "/output?index=0",
+                Method = "POST",
+                BodyFormat = bodyFormat,
+                ContentType = contentType,
+                Template = "intensity={{ intensity }}"
+            }
+        };
+        var source = baseline with { Mappings = [.. baseline.Mappings, command] };
 
         AssertSourceOutcome(source, diagnostic);
     }
@@ -297,7 +330,13 @@ public sealed class PointValidatorFixtureMatrixTests
         {
             Id = "values",
             Aliases = ["value"],
-            Read = new() { Path = "/value", Method = "GET", Template = "{ \"value\": 1 }" }
+            Read = new()
+            {
+                Path = "/value",
+                Method = "GET",
+                ResponseFormat = "json",
+                Template = "{ \"value\": 1 }"
+            }
         }],
         Points = [new AutomationPoint
         {

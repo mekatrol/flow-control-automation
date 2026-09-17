@@ -34,13 +34,22 @@ Mapping fields are strictly discriminated by source kind:
 - `virtual` contains local volatile or retained options and empty read/command markers.
 - `physical` contains controller, channel, optional address, and electrical metadata.
 - `homeAssistant` uses entity/property reads and service/service-data commands.
-- `mqtt` uses state and command topics, QoS, retain behavior, format, and templates.
-- `httpJson` uses relative paths, safe read methods, command methods, format/content type,
+- `mqtt` uses state and command topics, QoS, retain behavior, response/body formats, and templates.
+- `httpJson` uses relative paths, safe read methods, command methods, response/body formats,
+  optional compatible content types,
   templates, polling overrides, response bounds, redirects, and private-network policy.
 
 A readable point requires `read`; a commandable point requires `command`. The shared resolver
 validates both mapping-path segments and returns the source, mapping, and alias. Compilation,
 runtime access, guidance, and saved/unsaved tests all use it.
+
+Transport operations use directional format names. `read.responseFormat` is `json` or `text` and
+controls how the received payload is exposed to the read template; text payloads are available as
+`response`. `command.bodyFormat` is `json` or `text` and maps directly to the template renderer.
+JSON commands default to `application/json` and text commands to `text/plain`. HTTP media type is
+separate: URL-encoded form bodies use `bodyFormat: text` with
+`contentType: application/x-www-form-urlencoded`. A supplied content type must be compatible with
+the selected body format.
 
 Adapters exchange transport text and do not infer the consuming point type. Read templates receive
 the adapter response model and render one JSON object containing every declared alias exactly once

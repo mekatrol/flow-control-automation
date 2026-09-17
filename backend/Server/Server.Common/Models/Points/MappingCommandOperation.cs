@@ -6,7 +6,7 @@ public sealed record MappingCommandOperation
 {
     public string? Path { get; init; }
     public string? Method { get; init; }
-    public string? Format { get; init; }
+    public string? BodyFormat { get; init; }
     public string? ContentType { get; init; }
     public string? Template { get; init; }
     public string? Topic { get; init; }
