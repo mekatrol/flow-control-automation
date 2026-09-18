@@ -8,6 +8,7 @@
     <button type="submit">Continue</button>
     <p v-if="authenticationError" role="alert">{{ authenticationError }}</p>
   </form>
+
   <div v-else class="app-content" :inert="isSpinnerVisible || undefined">
     <RouterView />
   </div>
@@ -24,6 +25,7 @@ const { isSpinnerVisible } = useSpinner();
 const authenticated = ref(Boolean(getApiKey()));
 const apiKey = ref('');
 const authenticationError = ref('');
+
 const authenticate = async (): Promise<void> => {
   storeApiKey(apiKey.value);
   const response = await fetch('/api/execution-configurations', {
