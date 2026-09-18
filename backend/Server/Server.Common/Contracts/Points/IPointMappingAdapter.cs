@@ -12,4 +12,12 @@ public interface IPointMappingAdapter
         PointMappingResolution resolution,
         object? value,
         CancellationToken cancellationToken);
+
+    Task<PointMappingReadResult> ReadMappingAsync(
+        PointSource source, PointMapping mapping,
+        CancellationToken cancellationToken);
+
+    Task<PointMappingCommandResult> CommandMappingAsync(
+        PointSource source, PointMapping mapping, string payload,
+        CancellationToken cancellationToken);
 }

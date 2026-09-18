@@ -18,8 +18,10 @@ public static class PointSourceEndpointRouteBuilderExtensions
         endpoints.MapDelete("/api/point-sources/{sourceId}", Delete);
         endpoints.MapPost("/api/point-sources/test", TestUnsaved);
         endpoints.MapPost("/api/point-sources/test-point", TestUnsavedPoint);
+        endpoints.MapPost("/api/point-sources/test-mapping", TestUnsavedMapping);
         endpoints.MapPost("/api/point-sources/{sourceId}/test", TestSaved);
         endpoints.MapPost("/api/point-sources/{sourceId}/points/{pointId}/test", TestSavedPoint);
+        endpoints.MapPost("/api/point-sources/{sourceId}/mappings/{mappingId}/test", TestSavedMapping);
 
         return endpoints;
     }
@@ -268,6 +270,98 @@ public static class PointSourceEndpointRouteBuilderExtensions
         {
             return Error(400, exception.Message);
         }
+    }
+
+    private static async Task<IResult> TestUnsavedMapping(
+        MappingTestRequest request,
+        IPointSourceValidator sourceValidator,
+        IPointMappingExecutionService execution,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(request.SourceYaml))
+            {
+                return Error(400, "sourceYaml is required");
+            }
+
+            var source = PointSourceYaml.Parse(Encoding.UTF8.GetBytes(request.SourceYaml));
+            sourceValidator.Validate(source);
+
+            return await ExecuteMappingTest(source, request.MappingId, request.Operation,
+                request.Payload, execution, cancellationToken);
+        }
+        catch (Exception exception) when (exception is ConfigurationYamlException
+            or PointSourceValidationException or ArgumentException or InvalidOperationException)
+        {
+            return Error(400, exception.Message);
+        }
+    }
+
+    private static async Task<IResult> TestSavedMapping(
+        string sourceId, string mappingId, MappingTestRequest request,
+        IPointSourceService sources, IPointMappingExecutionService execution,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(request.MappingId)
+                && !string.Equals(mappingId, request.MappingId, StringComparison.Ordinal))
+            {
+                return Error(400, "mappingId must match request path");
+            }
+
+            var source = await sources.GetAsync(sourceId, cancellationToken);
+
+            return await ExecuteMappingTest(source, mappingId, request.Operation,
+                request.Payload, execution, cancellationToken);
+        }
+        catch (PointSourceNotFoundException)
+        {
+            return Error(404, "point source not found");
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+        {
+            return Error(400, exception.Message);
+        }
+    }
+
+    private static async Task<IResult> ExecuteMappingTest(
+        PointSource source, string? mappingId, string operation,
+        System.Text.Json.Nodes.JsonNode? payload,
+        IPointMappingExecutionService execution, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(mappingId))
+        {
+            return Error(400, "mappingId is required");
+        }
+
+        var mapping = source.Mappings.SingleOrDefault(item => item.Id == mappingId);
+
+        if (mapping is null)
+        {
+            return Error(404, "mapping not found in point source");
+        }
+
+        if (operation == "read" && mapping.Read is not null)
+        {
+            var result = await execution.ReadMappingAsync(source, mapping, cancellationToken);
+
+            return Results.Json(new MappingTestResult(source.Id, mapping.Id, operation,
+                result.Values, null, result.Diagnostic, result.Response));
+        }
+
+        if (operation == "command" && mapping.Command is not null)
+        {
+            var body = payload is System.Text.Json.Nodes.JsonValue value
+                && value.TryGetValue<string>(out var text) ? text : payload?.ToJsonString() ?? string.Empty;
+            var result = await execution.CommandMappingAsync(source, mapping, body, cancellationToken);
+
+            return Results.Json(new MappingTestResult(source.Id, mapping.Id, operation,
+                null, result.RenderedRequest, result.Diagnostic, result.Response));
+        }
+
+        return Error(400, "mapping does not support the requested operation");
     }
 
     private static async Task<IResult> ExecutePointTest(

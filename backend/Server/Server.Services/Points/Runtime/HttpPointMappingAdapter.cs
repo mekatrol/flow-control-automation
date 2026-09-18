@@ -15,15 +15,19 @@ internal sealed class HttpPointMappingAdapter(
 {
     public PointSourceKind Kind => PointSourceKind.Http;
 
-    public async Task<PointMappingReadResult> ReadAsync(PointMappingResolution resolution, CancellationToken cancellationToken)
+    public async Task<PointMappingReadResult> ReadAsync(PointMappingResolution resolution, CancellationToken cancellationToken) =>
+        await ReadMappingAsync(resolution.Source, resolution.Mapping, cancellationToken);
+
+    public async Task<PointMappingReadResult> ReadMappingAsync(
+        PointSource source, PointMapping mapping, CancellationToken cancellationToken)
     {
-        var operation = resolution.Mapping.Read
+        var operation = mapping.Read
             ?? throw new InvalidOperationException("Mapping does not support reads.");
-        var endpoint = BuildEndpoint(resolution.Source.Connection.BaseUrl!, operation.Path!);
-        var addresses = await ResolveAddresses(resolution.Source, endpoint, cancellationToken);
-        var credential = await credentials.ResolveAsync(resolution.Source.CredentialRef ?? string.Empty, cancellationToken);
+        var endpoint = BuildEndpoint(source.Connection.BaseUrl!, operation.Path!);
+        var addresses = await ResolveAddresses(source, endpoint, cancellationToken);
+        var credential = await credentials.ResolveAsync(source.CredentialRef ?? string.Empty, cancellationToken);
         var response = await http.ReadAsync(
-            resolution.Source, endpoint, operation.Accept, credential, addresses, cancellationToken);
+            source, endpoint, operation.Accept, credential, addresses, cancellationToken);
         if (response.Diagnostic is not null || response.Response is null)
             return Failed(response.Diagnostic ?? "HTTP response was unavailable.", response.Response);
 
@@ -33,8 +37,8 @@ internal sealed class HttpPointMappingAdapter(
             var rendered = templates.Render(operation.Template!, ToTemplateObject(model), RenderAs.Json);
             var aliases = JsonNode.Parse(rendered) as JsonObject
                 ?? throw new InvalidOperationException("Read template must render a JSON object.");
-            if (aliases.Count != resolution.Mapping.Aliases.Count
-                || aliases.Any(item => !resolution.Mapping.Aliases.Contains(item.Key, StringComparer.Ordinal)))
+            if (aliases.Count != mapping.Aliases.Count
+                || aliases.Any(item => !mapping.Aliases.Contains(item.Key, StringComparer.Ordinal)))
                 throw new InvalidOperationException("Read template aliases do not match the mapping declaration.");
 
             return new(aliases.ToDictionary(item => item.Key, item => Raw(item.Value), StringComparer.Ordinal),
@@ -60,6 +64,20 @@ internal sealed class HttpPointMappingAdapter(
         var response = await http.WriteAsync(resolution.Source, endpoint, operation.Method!, rendered,
             ContentType(operation), credential, addresses, cancellationToken);
         return new(rendered, timeProvider.GetUtcNow(), response.Diagnostic, response.Response);
+    }
+
+    public async Task<PointMappingCommandResult> CommandMappingAsync(
+        PointSource source, PointMapping mapping, string payload, CancellationToken cancellationToken)
+    {
+        var operation = mapping.Command
+            ?? throw new InvalidOperationException("Mapping does not support commands.");
+        var endpoint = BuildEndpoint(source.Connection.BaseUrl!, operation.Path!);
+        var addresses = await ResolveAddresses(source, endpoint, cancellationToken);
+        var credential = await credentials.ResolveAsync(source.CredentialRef ?? string.Empty, cancellationToken);
+        var response = await http.WriteAsync(source, endpoint, operation.Method!, payload,
+            ContentType(operation), credential, addresses, cancellationToken);
+
+        return new(payload, timeProvider.GetUtcNow(), response.Diagnostic, response.Response);
     }
 
     private async Task<IReadOnlyList<System.Net.IPAddress>> ResolveAddresses(PointSource source, Uri endpoint, CancellationToken token)

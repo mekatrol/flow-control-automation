@@ -45,4 +45,42 @@ describe('pointSourceApi', () => {
       signal: expect.any(AbortSignal)
     });
   });
+
+  it('sends the complete payload when testing an unsaved mapping command', async () => {
+    const result = {
+      operation: 'command' as const,
+      sourceId: 'source',
+      mappingId: 'outputs',
+      renderedRequest: '{"speed":42,"enabled":true}'
+    };
+    const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValue(
+      new Response(JSON.stringify(result), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    );
+    vi.stubGlobal('fetch', fetch);
+
+    await expect(
+      pointSourceApi.testMapping(
+        'source yaml',
+        'outputs',
+        'command',
+        { speed: 42, enabled: true },
+        new AbortController().signal
+      )
+    ).resolves.toEqual(result);
+
+    expect(fetch).toHaveBeenCalledWith('/api/point-sources/test-mapping', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sourceYaml: 'source yaml',
+        mappingId: 'outputs',
+        operation: 'command',
+        payload: { speed: 42, enabled: true }
+      }),
+      signal: expect.any(AbortSignal)
+    });
+  });
 });

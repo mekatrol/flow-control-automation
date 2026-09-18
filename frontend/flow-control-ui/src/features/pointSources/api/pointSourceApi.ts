@@ -60,6 +60,16 @@ export interface PointTestResult {
   };
 }
 
+export interface MappingTestResult {
+  sourceId: string;
+  mappingId: string;
+  operation: 'read' | 'command';
+  values?: Record<string, unknown>;
+  renderedRequest?: string;
+  diagnostic?: string;
+  httpResponse?: PointTestResult['httpResponse'];
+}
+
 const messageFrom = async (response: Response): Promise<string> => {
   try {
     return (
@@ -173,6 +183,44 @@ export const pointSourceApi = {
       { trackWait: false }
     );
     return response.json() as Promise<PointTestResult>;
+  },
+  async testMapping(
+    sourceYaml: string,
+    mappingId: string,
+    operation: 'read' | 'command',
+    payload: unknown,
+    signal: AbortSignal
+  ): Promise<MappingTestResult> {
+    const response = await request(
+      '/api/point-sources/test-mapping',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sourceYaml, mappingId, operation, payload }),
+        signal
+      },
+      { trackWait: false }
+    );
+    return response.json() as Promise<MappingTestResult>;
+  },
+  async testSavedMapping(
+    sourceId: string,
+    mappingId: string,
+    operation: 'read' | 'command',
+    payload: unknown,
+    signal: AbortSignal
+  ): Promise<MappingTestResult> {
+    const response = await request(
+      `/api/point-sources/${encodeURIComponent(sourceId)}/mappings/${encodeURIComponent(mappingId)}/test`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mappingId, operation, payload }),
+        signal
+      },
+      { trackWait: false }
+    );
+    return response.json() as Promise<MappingTestResult>;
   }
 };
 import { waitForFetch } from '@/api/waitForFetch';

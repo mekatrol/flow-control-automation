@@ -12,8 +12,18 @@ internal sealed class PointMappingExecutionService(IEnumerable<IPointMappingAdap
     public Task<PointMappingCommandResult> CommandAsync(PointMappingResolution resolution, object? value, CancellationToken cancellationToken) =>
         Adapter(resolution).CommandAsync(resolution, value, cancellationToken);
 
+    public Task<PointMappingReadResult> ReadMappingAsync(PointSource source, PointMapping mapping, CancellationToken cancellationToken) =>
+        Adapter(source).ReadMappingAsync(source, mapping, cancellationToken);
+
+    public Task<PointMappingCommandResult> CommandMappingAsync(
+        PointSource source, PointMapping mapping, string payload, CancellationToken cancellationToken) =>
+        Adapter(source).CommandMappingAsync(source, mapping, payload, cancellationToken);
+
     private IPointMappingAdapter Adapter(PointMappingResolution resolution) =>
-        _adapters.TryGetValue(resolution.Source.Kind, out var adapter)
+        Adapter(resolution.Source);
+
+    private IPointMappingAdapter Adapter(PointSource source) =>
+        _adapters.TryGetValue(source.Kind, out var adapter)
             ? adapter
-            : throw new InvalidOperationException($"No mapping adapter is registered for '{resolution.Source.Kind}'.");
+            : throw new InvalidOperationException($"No mapping adapter is registered for '{source.Kind}'.");
 }

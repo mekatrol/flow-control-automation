@@ -14,6 +14,14 @@ internal abstract class UnavailablePointMappingAdapter(TimeProvider timeProvider
     public Task<PointMappingCommandResult> CommandAsync(PointMappingResolution resolution, object? value, CancellationToken cancellationToken) =>
         Task.FromResult(new PointMappingCommandResult(string.Empty, timeProvider.GetUtcNow(),
             $"{Label} mapping has no commissioned command transport."));
+
+    public Task<PointMappingReadResult> ReadMappingAsync(PointSource source, PointMapping mapping, CancellationToken cancellationToken) =>
+        Task.FromResult(new PointMappingReadResult(new Dictionary<string, string?>(), DataQualityType.Unavailable,
+            timeProvider.GetUtcNow(), $"{Label} mapping has not produced a commissioned sample."));
+
+    public Task<PointMappingCommandResult> CommandMappingAsync(PointSource source, PointMapping mapping, string payload, CancellationToken cancellationToken) =>
+        Task.FromResult(new PointMappingCommandResult(payload, timeProvider.GetUtcNow(),
+            $"{Label} mapping has no commissioned command transport."));
 }
 
 internal sealed class MqttPointMappingAdapter(TimeProvider timeProvider) : UnavailablePointMappingAdapter(timeProvider)

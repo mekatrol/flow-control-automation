@@ -1,10 +1,10 @@
 <template>
-  <div class="yaml-editor">
+  <div class="yaml-editor" :class="{ 'fill-available': fillAvailable }">
     <label :id="labelId">{{ label }}</label>
     <div
       ref="container"
       class="yaml-editor-surface"
-      :style="{ minHeight }"
+      :style="fillAvailable ? undefined : { minHeight }"
       role="group"
       :aria-labelledby="labelId"
     ></div>
@@ -60,11 +60,13 @@ const props = withDefaults(
     schemaUri: string;
     minHeight?: string;
     readOnly?: boolean;
+    fillAvailable?: boolean;
   }>(),
   {
     help: 'Use Ctrl+Space for suggestions and Shift+Alt+F to format the document.',
     minHeight: '560px',
-    readOnly: false
+    readOnly: false,
+    fillAvailable: false
   }
 );
 const emit = defineEmits<{
@@ -176,6 +178,19 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped lang="css">
+.yaml-editor.fill-available {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.yaml-editor.fill-available .yaml-editor-surface {
+  height: 0;
+  min-height: 0;
+  flex: 1;
+}
+
 .yaml-editor > label {
   display: block;
   margin-bottom: var(--space-3);
