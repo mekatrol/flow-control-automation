@@ -290,36 +290,38 @@ interface SourceExample {
   summary: string;
   yaml: string;
 }
+const quoteBooleanMappingKeys = (value: string): string =>
+  value.replace(/^(\s+)(true|false):/gm, '$1"$2":');
 const sourceExamples: SourceExample[] = [
   {
     kind: 'virtual',
     name: 'Virtual',
     summary: 'Store source-owned runtime values without external communication.',
-    yaml: virtualYaml
+    yaml: quoteBooleanMappingKeys(virtualYaml)
   },
   {
     kind: 'physical',
     name: 'Physical',
     summary: 'Bind controller channels and electrical I/O.',
-    yaml: physicalYaml
+    yaml: quoteBooleanMappingKeys(physicalYaml)
   },
   {
     kind: 'homeAssistant',
     name: 'Home Assistant',
     summary: 'Read entities and subscribe to Home Assistant events.',
-    yaml: homeAssistantYaml
+    yaml: quoteBooleanMappingKeys(homeAssistantYaml)
   },
   {
     kind: 'mqtt',
     name: 'MQTT',
     summary: 'Connect to a broker for read-only topic subscriptions.',
-    yaml: mqttYaml
+    yaml: quoteBooleanMappingKeys(mqttYaml)
   },
   {
     kind: 'http',
     name: 'HTTP / JSON',
     summary: 'Read and write points through a JSON web API.',
-    yaml: httpYaml
+    yaml: quoteBooleanMappingKeys(httpYaml)
   }
 ];
 const selectedExampleKind = ref<PointSourceKind>('http');

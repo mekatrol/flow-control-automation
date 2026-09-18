@@ -81,4 +81,26 @@ describe('pointSourceSchema', () => {
       items: { $ref: '#/$defs/mqttMapping' }
     });
   });
+
+  it('represents contextually forbidden fields with actionable diagnostics', () => {
+    const pointRules = definitions?.point?.allOf;
+    const commandableRule = pointRules?.find((rule) => {
+      if (typeof rule !== 'object' || typeof rule.if !== 'object') return false;
+      const commandable = rule.if.properties?.commandable;
+      return typeof commandable === 'object' && commandable.const === true;
+    });
+    const otherwise = typeof commandableRule === 'object' ? commandableRule.else : undefined;
+
+    expect(otherwise).toEqual({ properties: { safeDisablePolicy: false } });
+  });
+
+  it('inserts quoted YAML boolean keys for digital state labels', () => {
+    expect(definitions?.digitalLabels?.defaultSnippets).toEqual([
+      {
+        label: 'Digital state labels',
+        description: 'Labels for the false and true states.',
+        body: { '"false"': 'Off', '"true"': 'On' }
+      }
+    ]);
+  });
 });

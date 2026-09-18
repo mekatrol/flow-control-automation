@@ -9,14 +9,10 @@
       :aria-labelledby="labelId"
     ></div>
     <p v-if="help" :id="helpId" class="yaml-editor-help">{{ help }}</p>
-    <section
-      v-if="diagnostics.length > 0"
-      class="yaml-diagnostics"
-      aria-labelledby="diagnosticsHeadingId"
-    >
-      <h3 :id="diagnosticsHeadingId">
+    <details v-if="diagnostics.length > 0" class="yaml-diagnostics">
+      <summary>
         {{ diagnostics.length }} YAML {{ diagnostics.length === 1 ? 'problem' : 'problems' }}
-      </h3>
+      </summary>
       <ol>
         <li v-for="diagnostic in diagnostics" :key="diagnostic.key">
           <AppButton
@@ -26,7 +22,7 @@
           />
         </li>
       </ol>
-    </section>
+    </details>
   </div>
 </template>
 
@@ -78,7 +74,6 @@ const emit = defineEmits<{
 const editorId = Math.random().toString(36).slice(2);
 const labelId = `yaml-editor-label-${editorId}`;
 const helpId = `yaml-editor-help-${editorId}`;
-const diagnosticsHeadingId = `yaml-editor-diagnostics-${editorId}`;
 const modelUri = `file:///configuration-${editorId}.yaml`;
 const container = ref<HTMLElement>();
 const diagnostics = ref<YamlDiagnostic[]>([]);
@@ -227,22 +222,24 @@ onBeforeUnmount(() => {
 }
 
 .yaml-diagnostics {
-  margin-top: var(--space-5-5);
-  padding: var(--space-6-5);
+  margin-top: var(--space-3);
+  padding: var(--space-3) var(--space-4);
   border: var(--border-width-default) solid var(--color-danger-border);
   border-radius: var(--radius-lg);
 }
 
-.yaml-diagnostics h3 {
-  margin: var(--space-0) var(--space-0) var(--space-3-5);
-  font-size: var(--font-size-xl);
+.yaml-diagnostics summary {
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
 }
 
 .yaml-diagnostics ol {
   display: grid;
   gap: var(--space-2);
-  margin: var(--space-0);
+  max-height: min(14rem, 30vh);
+  margin: var(--space-3-5) var(--space-0) var(--space-0);
   padding-left: var(--space-11);
+  overflow: auto;
 }
 
 /* Monaco creates these descendants at runtime, so the scoped rule must cross
