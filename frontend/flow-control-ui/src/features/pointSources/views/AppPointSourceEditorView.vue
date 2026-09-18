@@ -1,29 +1,19 @@
 <template>
   <section class="configuration-page editor-page">
     <AppErrorNotice id="point-source-error-notice" :message="error" />
-    <nav aria-label="Breadcrumb">
-      <RouterLink :to="{ name: 'point-sources' }">Point sources</RouterLink> /
-      {{ isNew ? 'New source' : 'Edit source' }}
+    <nav class="editor-nav-bar">
+      <AppConfigurationGuidance type="point-source" :yaml="yaml" :point-id="selectedPointId" />
+      <AppButton
+        type="submit"
+        :text="saving ? 'Saving…' : 'Save'"
+        :icon="saveIcon"
+        :disabled="saving || hasEditorErrors"
+      />
+      <AppButton v-if="!isNew" text="Delete" :icon="deleteIcon" @click="remove" />
     </nav>
-
-    <p v-if="isSpinnerVisible" role="status">Loading source…</p>
-    <div v-else class="source-editor-layout" :class="{ 'has-guidance': isNew }">
+    <div class="source-editor-layout" :class="{ 'has-guidance': isNew }">
       <form @submit.prevent="save">
         <header class="editor-toolbar">
-          <div class="editor-actions">
-            <AppConfigurationGuidance
-              type="point-source"
-              :yaml="yaml"
-              :point-id="selectedPointId"
-            />
-            <AppButton
-              type="submit"
-              :text="saving ? 'Saving…' : 'Save'"
-              :icon="saveIcon"
-              :disabled="saving || hasEditorErrors"
-            />
-            <AppButton v-if="!isNew" text="Delete" :icon="deleteIcon" @click="remove" />
-          </div>
           <section v-if="mappings.length" class="point-test" aria-labelledby="mapping-test-heading">
             <div class="point-test-heading">
               <p>Interactive test</p>
@@ -585,6 +575,14 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
+.editor-nav-bar {
+  display: flex;
+  align-content: center;
+  align-items: center;
+  gap: var(--space-3-5);
+  outline-offset: -1px;
+}
+
 .source-editor-layout {
   display: flex;
   flex: 1;
@@ -728,9 +726,11 @@ onBeforeUnmount(() => {
   margin: var(--space-1) 0;
   font-size: var(--font-size-xl);
 }
+
 .point-test-heading p {
   margin: 0;
 }
+
 .point-test-actions {
   display: flex;
   flex-wrap: wrap;
@@ -738,9 +738,11 @@ onBeforeUnmount(() => {
   align-items: center;
   margin-top: var(--space-3);
 }
+
 .point-test-actions label {
   font-weight: var(--font-weight-strong);
 }
+
 .point-test-actions input,
 .point-test-actions textarea {
   min-height: 42px;
@@ -750,18 +752,22 @@ onBeforeUnmount(() => {
   border: var(--border-width-default) solid var(--color-border-default);
   border-radius: var(--radius-lg);
 }
+
 .point-test-actions textarea {
   min-width: min(32rem, 100%);
   resize: vertical;
 }
+
 .readonly-note {
   color: var(--color-text-secondary);
 }
+
 .point-test-result {
   margin-top: var(--space-4);
   padding-top: var(--space-4);
   border-top: var(--border-width-default) solid var(--color-border-subtle);
 }
+
 .point-value {
   display: flex;
   gap: var(--space-5);
@@ -770,9 +776,11 @@ onBeforeUnmount(() => {
   background: var(--color-surface-raised);
   border-radius: var(--radius-lg);
 }
+
 .point-value span {
   color: var(--color-text-secondary);
 }
+
 .point-test-result pre {
   max-height: 280px;
   padding: var(--space-5);
