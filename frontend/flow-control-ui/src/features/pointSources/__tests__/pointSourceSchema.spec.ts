@@ -4,11 +4,20 @@ import type { JSONSchema } from '@/components/yaml/MonacoYaml';
 import { pointSourceSchema } from '@/features/pointSources/pointSourceSchema';
 
 describe('pointSourceSchema', () => {
-  const connectionSchema = (): JSONSchema | undefined => {
-    const connection = pointSourceSchema.properties?.connection;
+  type SchemaWithDefinitions = JSONSchema & { $defs?: Record<string, JSONSchema> };
 
-    return typeof connection === 'object' && !Array.isArray(connection) ? connection : undefined;
-  };
+  const definitions = (pointSourceSchema as SchemaWithDefinitions).$defs;
+  const connectionSchema = (): JSONSchema | undefined => definitions?.connection;
+
+  const sourceKinds = (): unknown[] =>
+    pointSourceSchema.oneOf?.map((branch) => {
+      if (typeof branch !== 'object') return undefined;
+      const condition = branch.allOf?.[0];
+      if (typeof condition !== 'object') return undefined;
+      const kind = condition.properties?.kind;
+
+      return typeof kind === 'object' ? kind.const : undefined;
+    }) ?? [];
 
   it('accepts HTTP and HTTPS base URLs', () => {
     const connection = connectionSchema();
@@ -49,5 +58,27 @@ describe('pointSourceSchema', () => {
         'testTopic'
       ].sort()
     );
+  });
+
+  it('exposes source kinds as discriminated completion branches', () => {
+    expect(pointSourceSchema.allOf).toBeUndefined();
+    expect(sourceKinds()).toEqual(['virtual', 'physical', 'homeAssistant', 'mqtt', 'http']);
+  });
+
+  it('narrows connection and mapping schemas from the selected kind', () => {
+    const mqttBranch = pointSourceSchema.oneOf?.find((branch) => {
+      if (typeof branch !== 'object') return false;
+      const condition = branch.allOf?.[0];
+      if (typeof condition !== 'object') return false;
+      const kind = condition.properties?.kind;
+      return typeof kind === 'object' && kind.const === 'mqtt';
+    });
+    const rules = typeof mqttBranch === 'object' ? mqttBranch.allOf?.[1] : undefined;
+    const properties = typeof rules === 'object' ? rules.properties : undefined;
+
+    expect(properties?.connection).toEqual({ $ref: '#/$defs/mqttConnection' });
+    expect(properties?.mappings).toEqual({
+      items: { $ref: '#/$defs/mqttMapping' }
+    });
   });
 });

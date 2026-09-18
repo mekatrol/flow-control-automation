@@ -130,6 +130,14 @@ watch(
   (readOnly) => editor?.updateOptions({ readOnly })
 );
 
+watch(
+  () => [props.schemaUri, props.schema] as const,
+  ([schemaUri, schema]) => {
+    if (model) void configureYamlSchema(schemaUri, modelUri, schema);
+  },
+  { deep: true }
+);
+
 onMounted(async () => {
   await configureYamlSchema(props.schemaUri, modelUri, props.schema);
   // Route navigation may finish while the lazily loaded language worker is
@@ -146,11 +154,18 @@ onMounted(async () => {
     fontSize: 14,
     lineNumbersMinChars: 3,
     minimap: { enabled: false },
+    quickSuggestions: {
+      comments: false,
+      other: true,
+      strings: true
+    },
     readOnly: props.readOnly,
     scrollbar: { handleMouseWheel: true },
     scrollBeyondLastLine: false,
+    suggestOnTriggerCharacters: true,
     stickyScroll: { enabled: false },
     tabSize: 2,
+    wordBasedSuggestions: 'off',
     wordWrap: 'on'
   });
   contentSubscription = model.onDidChangeContent(() =>
