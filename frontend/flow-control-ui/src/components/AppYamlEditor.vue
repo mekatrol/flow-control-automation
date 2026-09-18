@@ -8,7 +8,7 @@
       role="group"
       :aria-labelledby="labelId"
     ></div>
-    <p :id="helpId" class="yaml-editor-help">{{ help }}</p>
+    <p v-if="help" :id="helpId" class="yaml-editor-help">{{ help }}</p>
     <section
       v-if="diagnostics.length > 0"
       class="yaml-diagnostics"

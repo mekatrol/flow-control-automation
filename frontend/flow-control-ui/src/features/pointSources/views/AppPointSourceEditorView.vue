@@ -603,6 +603,7 @@ onBeforeUnmount(() => {
 .editor-page {
   flex: 1;
   min-height: 0;
+  padding-bottom: 1rem;
   overflow: hidden;
 }
 
