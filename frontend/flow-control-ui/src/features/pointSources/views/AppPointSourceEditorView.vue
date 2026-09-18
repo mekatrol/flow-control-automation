@@ -4,6 +4,18 @@
     <nav class="editor-nav-bar">
       <AppConfigurationGuidance type="point-source" :yaml="yaml" :point-id="selectedPointId" />
       <AppButton
+        v-if="mappings.length"
+        text="Test mapping"
+        :icon="testConnectionIcon"
+        @click="mappingTestDialog?.showModal()"
+      />
+      <AppButton
+        v-if="nestedPoints.length"
+        text="Test point"
+        :icon="testConnectionIcon"
+        @click="pointTestDialog?.showModal()"
+      />
+      <AppButton
         type="submit"
         :text="saving ? 'Saving…' : 'Save'"
         :icon="saveIcon"
@@ -13,7 +25,12 @@
     </nav>
     <div class="source-editor-layout" :class="{ 'has-guidance': isNew }">
       <form @submit.prevent="save">
-        <header class="editor-toolbar">
+        <AppDialog
+          v-if="mappings.length"
+          ref="mappingTestDialog"
+          class="test-dialog"
+          content-label="Test a mapping"
+        >
           <section v-if="mappings.length" class="point-test" aria-labelledby="mapping-test-heading">
             <div class="point-test-heading">
               <p>Interactive test</p>
@@ -78,11 +95,17 @@
             </section>
             <p v-if="mappingTestError" class="request-error" role="alert">{{ mappingTestError }}</p>
           </section>
-          <section
-            v-if="nestedPoints.length"
-            class="point-test"
-            aria-labelledby="point-test-heading"
-          >
+          <footer class="test-dialog-actions">
+            <AppButton text="Close" :icon="cancelIcon" @click="mappingTestDialog?.close()" />
+          </footer>
+        </AppDialog>
+        <AppDialog
+          v-if="nestedPoints.length"
+          ref="pointTestDialog"
+          class="test-dialog"
+          content-label="Test a nested point"
+        >
+          <section class="point-test" aria-labelledby="point-test-heading">
             <div class="point-test-heading">
               <p>Interactive test</p>
               <h2 id="point-test-heading">Test a nested point</h2>
@@ -147,7 +170,10 @@
             </section>
             <p v-if="pointTestError" class="request-error" role="alert">{{ pointTestError }}</p>
           </section>
-        </header>
+          <footer class="test-dialog-actions">
+            <AppButton text="Close" :icon="cancelIcon" @click="pointTestDialog?.close()" />
+          </footer>
+        </AppDialog>
         <AppYamlEditor
           v-model="yaml"
           label="Point source YAML"
@@ -231,10 +257,12 @@ import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import { useSpinner } from '@/composables/useSpinner';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
 import checkIcon from '@/assets/icons/check-icon.svg';
+import cancelIcon from '@/assets/icons/cancel-icon.svg';
 import deleteIcon from '@/assets/icons/delete-flow-icon.svg';
 import saveIcon from '@/assets/icons/save-icon.svg';
 import testConnectionIcon from '@/assets/icons/test-connection-icon.svg';
 import AppButton from '@/components/AppButton.vue';
+import AppDialog from '@/components/AppDialog.vue';
 import AppErrorNotice from '@/components/AppErrorNotice.vue';
 import AppYamlEditor, { type YamlDiagnostic } from '@/components/AppYamlEditor.vue';
 import AppConfigurationGuidance from '@/features/configuration/components/AppConfigurationGuidance.vue';
@@ -256,6 +284,8 @@ import virtualYaml from '@contracts/point-sources/valid/virtual.v1.yaml?raw';
 const props = defineProps<{ sourceId?: string }>();
 const router = useRouter();
 const isNew = computed(() => !props.sourceId);
+const mappingTestDialog = ref<InstanceType<typeof AppDialog>>();
+const pointTestDialog = ref<InstanceType<typeof AppDialog>>();
 interface SourceExample {
   kind: PointSourceKind;
   name: string;
@@ -602,16 +632,6 @@ onBeforeUnmount(() => {
   min-height: 0;
 }
 
-.editor-toolbar {
-  position: sticky;
-  z-index: 5;
-  top: 0;
-  flex: none;
-  padding: var(--space-5) var(--space-0);
-  background: var(--color-page-background);
-  border-bottom: var(--border-width-default) solid var(--color-border-subtle);
-}
-
 .source-editor-layout > form > :deep(.yaml-editor) {
   padding-top: var(--space-5);
 }
@@ -715,11 +735,19 @@ onBeforeUnmount(() => {
 }
 
 .point-test {
-  margin-top: var(--space-4);
-  padding: var(--space-4);
-  background: var(--color-surface-subtle);
-  border: var(--border-width-default) solid var(--color-border-default);
-  border-radius: var(--radius-2xl);
+  margin: 0;
+}
+
+.test-dialog {
+  width: min(48rem, calc(100vw - 2rem));
+}
+
+.test-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-6-5);
+  padding-top: var(--space-5);
+  border-top: var(--border-width-default) solid var(--color-border-subtle);
 }
 
 .point-test-heading h2 {
