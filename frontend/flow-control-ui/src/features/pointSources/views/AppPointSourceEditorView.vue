@@ -176,8 +176,6 @@
         </AppDialog>
         <AppYamlEditor
           v-model="yaml"
-          label="Point source YAML"
-          help=""
           :schema="pointSourceSchema"
           schema-uri="app://schemas/point-source-v1.json"
           fill-available

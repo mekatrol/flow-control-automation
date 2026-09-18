@@ -63,7 +63,7 @@ a {
 .configuration-page {
   width: min(1120px, calc(100% - 40px));
   margin: var(--space-0) auto;
-  padding: var(--space-22) var(--space-0) var(--space-32);
+  padding: var(--space-5) var(--space-0) var(--space-32);
 }
 
 /* Full-width configuration editor variant.

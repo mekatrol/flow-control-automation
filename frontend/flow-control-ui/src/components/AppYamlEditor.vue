@@ -54,7 +54,7 @@ export interface YamlDiagnostic {
 const props = withDefaults(
   defineProps<{
     modelValue: string;
-    label: string;
+    label?: string;
     help?: string;
     schema: JSONSchema;
     schemaUri: string;
@@ -63,7 +63,8 @@ const props = withDefaults(
     fillAvailable?: boolean;
   }>(),
   {
-    help: 'Use Ctrl+Space for suggestions and Shift+Alt+F to format the document.',
+    label: undefined,
+    help: undefined,
     minHeight: '560px',
     readOnly: false,
     fillAvailable: false
