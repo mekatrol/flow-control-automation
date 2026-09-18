@@ -1,30 +1,33 @@
 <template>
   <section class="configuration-page editor-page">
     <AppErrorNotice id="point-source-error-notice" :message="error" />
-    <nav class="editor-nav-bar">
-      <AppConfigurationGuidance type="point-source" :yaml="yaml" :point-id="selectedPointId" />
-      <AppButton
-        v-if="mappings.length"
-        text="Test mapping"
-        :icon="testConnectionIcon"
-        @click="mappingTestDialog?.showModal()"
-      />
-      <AppButton
-        v-if="nestedPoints.length"
-        text="Test point"
-        :icon="testConnectionIcon"
-        @click="pointTestDialog?.showModal()"
-      />
-      <AppButton
-        type="submit"
-        :text="saving ? 'Saving…' : 'Save'"
-        :icon="saveIcon"
-        :disabled="saving || hasEditorErrors"
-      />
-      <AppButton v-if="!isNew" text="Delete" :icon="deleteIcon" @click="remove" />
-    </nav>
+    <Teleport to="#app-header-center">
+      <nav class="editor-nav-bar" aria-label="Point source actions">
+        <AppConfigurationGuidance type="point-source" :yaml="yaml" :point-id="selectedPointId" />
+        <AppButton
+          v-if="mappings.length"
+          text="Test mapping"
+          :icon="testConnectionIcon"
+          @click="mappingTestDialog?.showModal()"
+        />
+        <AppButton
+          v-if="nestedPoints.length"
+          text="Test point"
+          :icon="testConnectionIcon"
+          @click="pointTestDialog?.showModal()"
+        />
+        <AppButton
+          type="submit"
+          form="point-source-editor-form"
+          :text="saving ? 'Saving…' : 'Save'"
+          :icon="saveIcon"
+          :disabled="saving || hasEditorErrors"
+        />
+        <AppButton v-if="!isNew" text="Delete" :icon="deleteIcon" @click="remove" />
+      </nav>
+    </Teleport>
     <div class="source-editor-layout" :class="{ 'has-guidance': isNew }">
-      <form @submit.prevent="save">
+      <form id="point-source-editor-form" @submit.prevent="save">
         <AppDialog
           v-if="mappings.length"
           ref="mappingTestDialog"

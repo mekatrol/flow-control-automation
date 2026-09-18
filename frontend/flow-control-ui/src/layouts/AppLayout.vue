@@ -1,6 +1,10 @@
 <template>
   <div class="app-shell">
-    <AppHeader />
+    <AppHeader>
+      <template #header-center>
+        <div id="app-header-center" class="header-center-outlet" />
+      </template>
+    </AppHeader>
 
     <div class="page-layout-content">
       <aside class="primary-aside">
@@ -29,5 +33,13 @@ import AppHeader from '@/components/AppHeader.vue';
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+}
+
+.header-center-outlet {
+  display: flex;
+  align-items: center;
+  align-content: center;
+  justify-content: center;
+  width: 100%;  
 }
 </style>
