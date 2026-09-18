@@ -388,11 +388,33 @@ internal sealed class PointSourceEndpointTests
             HttpMethod.Post,
             "/api/point-sources",
             source with { Id = "forecast" });
+        var duplicateNameError =
+            await duplicateName.Content.ReadFromJsonAsync<Dictionary<string, string>>();
 
         // Expected outcome: `duplicateName.StatusCode` has the required value.
         // Acceptance criteria: `duplicateName.StatusCode` must equal `HttpStatusCode.Conflict`, because this condition proves that
         // validation and duplicate names roll back.
         Assert.That(duplicateName.StatusCode, Is.EqualTo(HttpStatusCode.Conflict));
+        Assert.That(
+            duplicateNameError!["message"],
+            Is.EqualTo(
+                "A point source named \"Weather\" already exists with ID \"weather\". "
+                + "Choose a different name."));
+
+        using var duplicateId = await SendYaml(
+            client,
+            HttpMethod.Post,
+            "/api/point-sources",
+            source);
+        var duplicateIdError =
+            await duplicateId.Content.ReadFromJsonAsync<Dictionary<string, string>>();
+
+        Assert.That(duplicateId.StatusCode, Is.EqualTo(HttpStatusCode.Conflict));
+        Assert.That(
+            duplicateIdError!["message"],
+            Is.EqualTo(
+                "A point source with ID \"weather\" already exists with name \"Weather\". "
+                + "Choose a different ID."));
 
         using var invalidResponseLimit = await SendYaml(
             client,

@@ -64,9 +64,10 @@ internal sealed class PointSourceDatabaseService(
         PointSource source,
         CancellationToken cancellationToken)
     {
-        validator.Validate(source, await LoadSources(cancellationToken));
+        var existingSources = await LoadSources(cancellationToken);
+        ThrowIfIdentityUnavailable(source, existingSources, exceptId: null);
+        validator.Validate(source, existingSources);
         ValidatePoints(source);
-        await EnsureNameAvailable(source.Name, exceptId: null, cancellationToken);
         var now = timeProvider.GetUtcNow();
         var timestamp = Timestamp(now);
         var created = source with
@@ -123,16 +124,9 @@ internal sealed class PointSourceDatabaseService(
         }
 
         var existingSources = await LoadSources(cancellationToken);
-        var conflictingSource = existingSources.FirstOrDefault(existing => existing.Id == source.Id);
-
-        if (source.Id != id && conflictingSource is not null)
-        {
-            throw DuplicateId(source.Id, conflictingSource.Name);
-        }
-
+        ThrowIfIdentityUnavailable(source, existingSources, id);
         validator.Validate(source, existingSources.Where(existing => existing.Id != id));
         ValidatePoints(source);
-        await EnsureNameAvailable(source.Name, id, cancellationToken);
         var now = timeProvider.GetUtcNow();
         var timestamp = Timestamp(now);
         var updated = source with
@@ -255,26 +249,33 @@ internal sealed class PointSourceDatabaseService(
         await SaveWithConcurrencyMapping(entity: null, cancellationToken);
     }
 
-    private async Task EnsureNameAvailable(
-        string name,
-        string? exceptId,
-        CancellationToken cancellationToken)
+    private static void ThrowIfIdentityUnavailable(
+        PointSource source,
+        IEnumerable<PointSource> existingSources,
+        string? exceptId)
     {
-        var sources = await context.PointSources.AsNoTracking().ToListAsync(cancellationToken);
+        var otherSources = existingSources.Where(existing => existing.Id != exceptId).ToList();
+        var idConflict = otherSources.FirstOrDefault(existing => existing.Id == source.Id);
 
-        if (sources.Any(entity =>
-            entity.Id != exceptId
-            && string.Equals(
-                Deserialize(entity).Name,
-                name,
-                StringComparison.OrdinalIgnoreCase)))
+        if (idConflict is not null)
         {
-            throw new PointSourceConflictException("source name already exists");
+            throw DuplicateId(source.Id, idConflict.Name);
+        }
+
+        var nameConflict = otherSources.FirstOrDefault(existing =>
+            string.Equals(existing.Name, source.Name, StringComparison.OrdinalIgnoreCase));
+
+        if (nameConflict is not null)
+        {
+            throw new PointSourceConflictException(
+                $"A point source named \"{nameConflict.Name}\" already exists with ID "
+                + $"\"{nameConflict.Id}\". Choose a different name.");
         }
     }
 
     private static PointSourceConflictException DuplicateId(string id, string name) =>
-        new($"A point source with ID \"{id}\" already exists with name: '{name}'.");
+        new($"A point source with ID \"{id}\" already exists with name \"{name}\". "
+            + "Choose a different ID.");
 
     private async Task<PointSourceEntity> FindTracked(
         string id,
