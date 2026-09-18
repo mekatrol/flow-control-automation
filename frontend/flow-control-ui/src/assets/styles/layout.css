@@ -5,10 +5,27 @@
   min-height: 0;
 }
 
+.app-shell:has(.source-editor-layout) {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .page-layout-main {
   flex: 1;
   min-width: 0;
   background-color: var(--color-bg);
+}
+
+.page-layout-content:has(.source-editor-layout),
+.page-layout-main:has(.source-editor-layout) {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.page-layout-main:has(.source-editor-layout) {
+  display: flex;
+  flex-direction: column;
 }
 
 .primary-aside:empty,
