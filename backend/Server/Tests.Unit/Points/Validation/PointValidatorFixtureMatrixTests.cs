@@ -137,12 +137,16 @@ public sealed class PointValidatorFixtureMatrixTests
 
         var exception = Assert.Throws<PointSourceValidationException>(() =>
             validator.Validate(source, [other]));
-        Assert.That(exception!.Message, Does.Contain("globally unique"));
+        Assert.That(
+            exception!.Message,
+            Is.EqualTo(
+                "A point with ID \"point\" already exists in point source "
+                + "\"Source\" (ID \"other-source\"). Choose a different point ID."));
     }
 
-    [TestCase("duplicate-alias.yaml", "mapping aliases")]
-    [TestCase("duplicate-mapping-id.yaml", "duplicate mapping id")]
-    [TestCase("duplicate-point-id.yaml", "duplicate point id")]
+    [TestCase("duplicate-alias.yaml", "is used more than once in mapping")]
+    [TestCase("duplicate-mapping-id.yaml", "mapping ID \"local\" is used more than once")]
+    [TestCase("duplicate-point-id.yaml", "point ID \"duplicate\" is used more than once")]
     [TestCase("incompatible-capability.yaml", "requires a read operation")]
     [TestCase("malformed-template-output.yaml", "template output is malformed")]
     [TestCase("unknown-alias.yaml", "unknown alias")]

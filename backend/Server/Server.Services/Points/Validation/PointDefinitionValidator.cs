@@ -46,7 +46,7 @@ internal sealed partial class PointDefinitionValidator : IPointDefinitionValidat
         IReadOnlyList<AutomationPoint> points,
         IReadOnlyDictionary<string, PointSource> sources)
     {
-        RejectDuplicates(points.Select(point => point.Id), "point id");
+        RejectDuplicates(points.Select(point => point.Id), "point ID");
         RejectDuplicates(points.Select(point => point.Name), "point name");
 
         var context = new PointValidationContext(sources);
@@ -288,7 +288,7 @@ internal sealed partial class PointDefinitionValidator : IPointDefinitionValidat
             if (labels.Count != 2 || string.Equals(
                 falseLabel, trueLabel, StringComparison.OrdinalIgnoreCase))
             {
-                Fail("digital stateLabels must contain two unique labels");
+                Fail("Digital state labels must provide different labels for false and true.");
             }
 
             return (new DigitalStateLabels(falseLabel, trueLabel), null);
@@ -485,7 +485,8 @@ internal sealed partial class PointDefinitionValidator : IPointDefinitionValidat
         {
             if (!seen.Add(value))
             {
-                Fail($"duplicate {description} \"{value}\"");
+                Fail($"The {description} \"{value}\" is used more than once. "
+                    + $"Each {description} must be unique.");
             }
         }
     }

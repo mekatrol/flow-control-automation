@@ -65,14 +65,21 @@ internal sealed partial class PointSourceValidator(ITemplateService? templates =
         Validate(source);
         ArgumentNullException.ThrowIfNull(existingSources);
         var ownedIds = source.Points.Select(point => point.Id).ToHashSet(StringComparer.Ordinal);
-        var duplicate = existingSources
+        var conflict = existingSources
             .Where(existing => existing.Id != source.Id)
-            .SelectMany(existing => existing.Points)
-            .FirstOrDefault(point => ownedIds.Contains(point.Id));
+            .Select(existing => new
+            {
+                Source = existing,
+                Point = existing.Points.FirstOrDefault(point => ownedIds.Contains(point.Id))
+            })
+            .FirstOrDefault(candidate => candidate.Point is not null);
 
-        if (duplicate is not null)
+        if (conflict is not null)
         {
-            throw new PointSourceValidationException($"point id '{duplicate.Id}' must be globally unique");
+            throw new PointSourceValidationException(
+                $"A point with ID \"{conflict.Point!.Id}\" already exists in point source "
+                + $"\"{conflict.Source.Name}\" (ID \"{conflict.Source.Id}\"). "
+                + "Choose a different point ID.");
         }
     }
 
@@ -88,7 +95,7 @@ internal sealed partial class PointSourceValidator(ITemplateService? templates =
                 throw new PointSourceValidationException("mapping id must be a lowercase hyphenated identifier");
             }
 
-            RejectDuplicateAliases(mapping.Aliases);
+            ValidateAliases(mapping);
             ValidateMappingForKind(source.Kind, mapping);
             ValidateTemplate(mapping, "read", mapping.Read?.Template);
             ValidateTemplate(mapping, "command", mapping.Command?.Template);
@@ -242,18 +249,42 @@ internal sealed partial class PointSourceValidator(ITemplateService? templates =
 
     private static void RejectDuplicateIds(IEnumerable<string> ids, string description)
     {
-        if (ids.GroupBy(id => id, StringComparer.Ordinal).Any(group => group.Count() > 1))
+        var duplicate = ids.GroupBy(id => id, StringComparer.Ordinal)
+            .FirstOrDefault(group => group.Count() > 1)?.Key;
+
+        if (duplicate is not null)
         {
-            throw new PointSourceValidationException($"duplicate {description} id");
+            throw new PointSourceValidationException(
+                $"The {description} ID \"{duplicate}\" is used more than once in this point source. "
+                + $"Each {description} needs a unique ID.");
         }
     }
 
-    private static void RejectDuplicateAliases(IReadOnlyList<string> aliases)
+    private static void ValidateAliases(PointMapping mapping)
     {
-        if (aliases.Count == 0 || aliases.Any(alias => !Alias().IsMatch(alias))
-            || aliases.Distinct(StringComparer.Ordinal).Count() != aliases.Count)
+        if (mapping.Aliases.Count == 0)
         {
-            throw new PointSourceValidationException("mapping aliases must be non-empty, valid, and unique");
+            throw new PointSourceValidationException(
+                $"Mapping \"{mapping.Id}\" needs at least one alias.");
+        }
+
+        var invalid = mapping.Aliases.FirstOrDefault(alias => !Alias().IsMatch(alias));
+
+        if (invalid is not null)
+        {
+            throw new PointSourceValidationException(
+                $"Alias \"{invalid}\" in mapping \"{mapping.Id}\" must be a lowercase "
+                + "hyphenated identifier.");
+        }
+
+        var duplicate = mapping.Aliases.GroupBy(alias => alias, StringComparer.Ordinal)
+            .FirstOrDefault(group => group.Count() > 1)?.Key;
+
+        if (duplicate is not null)
+        {
+            throw new PointSourceValidationException(
+                $"Alias \"{duplicate}\" is used more than once in mapping \"{mapping.Id}\". "
+                + "Each alias in a mapping must be unique.");
         }
     }
 

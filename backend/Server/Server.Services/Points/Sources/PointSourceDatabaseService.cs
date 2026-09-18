@@ -102,7 +102,7 @@ internal sealed class PointSourceDatabaseService(
         catch (DbUpdateException exception) when (IsUniqueConstraint(exception))
         {
             throw new PointSourceConflictException(
-                "source ID or name already exists",
+                "A point source with that ID or name already exists. Choose a unique ID and name.",
                 exception);
         }
 
@@ -173,7 +173,7 @@ internal sealed class PointSourceDatabaseService(
         catch (DbUpdateException exception) when (IsUniqueConstraint(exception))
         {
             throw new PointSourceConflictException(
-                "source name already exists",
+                "A point source with that name already exists. Choose a different name.",
                 exception);
         }
 
@@ -220,7 +220,8 @@ internal sealed class PointSourceDatabaseService(
         catch (DbUpdateException exception) when (IsUniqueConstraint(exception))
         {
             throw new PointSourceConflictException(
-                $"A point source with ID \"{updated.Id}\" already exists.",
+                $"A point source with ID \"{updated.Id}\" already exists. "
+                + "Choose a different ID.",
                 exception);
         }
     }
