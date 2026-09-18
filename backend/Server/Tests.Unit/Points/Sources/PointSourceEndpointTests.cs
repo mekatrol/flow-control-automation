@@ -173,6 +173,77 @@ internal sealed class PointSourceEndpointTests
     }
 
     /// <summary>
+    /// Purpose: Protects atomic point-source ID replacement through PUT.
+    /// Description: Renames a source and verifies that only the new resource identifier remains.
+    /// </summary>
+    [Test]
+    public async Task UpdateCanRenamePointSource()
+    {
+        await using var factory = new Api.FlowControlApplicationFactory();
+        using var client = factory.CreateClient();
+        var source = ValidHttpSource();
+
+        using var create = await SendYaml(client, HttpMethod.Post, "/api/point-sources", source);
+        Assert.That(create.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+
+        using var rename = await SendYaml(
+            client,
+            HttpMethod.Put,
+            "/api/point-sources/weather",
+            source with { Id = "outdoor-weather" },
+            revision: 1);
+        using var oldResource = await client.GetAsync("/api/point-sources/weather");
+        using var renamedResource = await client.GetAsync("/api/point-sources/outdoor-weather");
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(rename.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(oldResource.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+            Assert.That(renamedResource.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        }
+    }
+
+    /// <summary>
+    /// Purpose: Protects actionable duplicate-ID diagnostics during a rename.
+    /// Description: Attempts to rename onto another source and verifies its name is reported.
+    /// </summary>
+    [Test]
+    public async Task RenameRejectsExistingIdAndReportsExistingName()
+    {
+        await using var factory = new Api.FlowControlApplicationFactory();
+        using var client = factory.CreateClient();
+        var source = ValidHttpSource();
+        var existing = source with { Id = "indoor-climate", Name = "Indoor Climate" };
+
+        using var createSource = await SendYaml(
+            client,
+            HttpMethod.Post,
+            "/api/point-sources",
+            source);
+        using var createExisting = await SendYaml(
+            client,
+            HttpMethod.Post,
+            "/api/point-sources",
+            existing);
+        using var rename = await SendYaml(
+            client,
+            HttpMethod.Put,
+            "/api/point-sources/weather",
+            source with { Id = existing.Id },
+            revision: 1);
+        var responseBody = await rename.Content.ReadAsStringAsync();
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(createSource.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+            Assert.That(createExisting.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+            Assert.That(rename.StatusCode, Is.EqualTo(HttpStatusCode.Conflict));
+            Assert.That(responseBody, Does.Contain(existing.Id));
+            Assert.That(responseBody, Does.Contain(existing.Name));
+        }
+    }
+
+    /// <summary>
     /// Purpose: Protects the behavioral contract that list filters sorts paginates and persists across scopes.
     /// Description: Arranges the inputs for list filters sorts paginates and persists across scopes, exercises the relevant operation,
     /// and verifies the observable results required by that scenario.
@@ -419,12 +490,12 @@ internal sealed class PointSourceEndpointTests
     }
 
     /// <summary>
-    /// Purpose: Protects the behavioral contract that update requires if match and matching path.
-    /// Description: Arranges the inputs for update requires if match and matching path, exercises the relevant operation,
+    /// Purpose: Protects the behavioral contract that update requires if match.
+    /// Description: Arranges an update without a revision precondition, exercises the relevant operation,
     /// and verifies the observable results required by that scenario.
     /// </summary>
     [Test]
-    public async Task UpdateRequiresIfMatchAndMatchingPath()
+    public async Task UpdateRequiresIfMatch()
     {
         await using var factory = new Api.FlowControlApplicationFactory();
         using var client = factory.CreateClient();
@@ -433,7 +504,7 @@ internal sealed class PointSourceEndpointTests
 
         // Expected outcome: `created.StatusCode` has the required value.
         // Acceptance criteria: `created.StatusCode` must equal `HttpStatusCode.Created`, because this condition proves that
-        // update requires if match and matching path.
+        // update requires if match.
         Assert.That(created.StatusCode, Is.EqualTo(HttpStatusCode.Created));
 
         using var missingHeader = await SendYaml(
@@ -441,28 +512,11 @@ internal sealed class PointSourceEndpointTests
             HttpMethod.Put,
             "/api/point-sources/weather",
             source);
-        using var mismatch = await SendYaml(
-            client,
-            HttpMethod.Put,
-            "/api/point-sources/weather",
-            source with { Id = "different" },
-            revision: 1);
 
-        // Expected outcome: All related outcomes satisfy their contracts.
-        // Acceptance criteria: every assertion in the group must pass, because this condition proves that
-        // update requires if match and matching path.
-        Assert.Multiple(() =>
-        {
-            // Expected outcome: `missingHeader.StatusCode` has the required value.
-            // Acceptance criteria: `missingHeader.StatusCode` must equal `HttpStatusCode.BadRequest`, because this condition proves that
-            // update requires if match and matching path.
-            Assert.That(missingHeader.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
-
-            // Expected outcome: `mismatch.StatusCode` has the required value.
-            // Acceptance criteria: `mismatch.StatusCode` must equal `HttpStatusCode.BadRequest`, because this condition proves that
-            // update requires if match and matching path.
-            Assert.That(mismatch.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
-        });
+        // Expected outcome: `missingHeader.StatusCode` has the required value.
+        // Acceptance criteria: `missingHeader.StatusCode` must equal `HttpStatusCode.BadRequest`, because this condition proves that
+        // update requires if match.
+        Assert.That(missingHeader.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
     }
 
     /// <summary>

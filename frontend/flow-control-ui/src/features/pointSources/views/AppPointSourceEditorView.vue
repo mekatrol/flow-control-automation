@@ -374,6 +374,8 @@ const hasEditorErrors = computed(() =>
 const parsedSource = computed(() => {
   try {
     return parse(yaml.value) as {
+      id?: string;
+      name?: string;
       kind?: string;
       mappings?: SourceMapping[];
       points?: NestedPoint[];
@@ -382,6 +384,14 @@ const parsedSource = computed(() => {
     return undefined;
   }
 });
+const sourceIdentityFromYaml = (value: string): { id?: string; name?: string } => {
+  try {
+    const source = parse(value) as { id?: string; name?: string };
+    return { id: source.id, name: source.name };
+  } catch {
+    return {};
+  }
+};
 const mappings = computed(() => parsedSource.value?.mappings ?? []);
 const nestedPoints = computed(() => parsedSource.value?.points ?? []);
 const selectedMapping = computed(() =>
@@ -457,12 +467,11 @@ const load = async (): Promise<void> => {
   }
 };
 const save = async (): Promise<void> => {
+  saving.value = true;
+  error.value = '';
   try {
     await withSpinner(
-      () => {
-        saving.value = true;
-        error.value = '';
-      },
+      null,
       () =>
         props.sourceId
           ? pointSourceApi.update(props.sourceId, yaml.value, revision.value)
@@ -471,12 +480,11 @@ const save = async (): Promise<void> => {
         yaml.value = baseline.value = result.yaml;
         revision.value = result.revision;
         status.value = 'Point source saved.';
-        if (!props.sourceId) {
-          const match = yaml.value.match(/\bid:\s*([^\s]+)/);
-          allowNavigation = true;
+        const savedId = sourceIdentityFromYaml(result.yaml).id;
+        if (!props.sourceId || (savedId && savedId !== props.sourceId)) {
           await router.replace({
             name: 'point-source-detail',
-            params: { sourceId: match?.[1] ?? '' }
+            params: { sourceId: savedId ?? '' }
           });
         }
       }

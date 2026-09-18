@@ -117,17 +117,20 @@ internal sealed class PointSourceDatabaseService(
         var entity = await FindTracked(id, cancellationToken);
         var previous = Deserialize(entity);
 
-        if (source.Id != id)
-        {
-            throw new PointSourceValidationException("source id must match request path");
-        }
-
         if (revision != previous.Revision)
         {
             throw new PointSourceConflictException("stale revision");
         }
 
-        validator.Validate(source, await LoadSources(cancellationToken));
+        var existingSources = await LoadSources(cancellationToken);
+        var conflictingSource = existingSources.FirstOrDefault(existing => existing.Id == source.Id);
+
+        if (source.Id != id && conflictingSource is not null)
+        {
+            throw DuplicateId(source.Id, conflictingSource.Name);
+        }
+
+        validator.Validate(source, existingSources.Where(existing => existing.Id != id));
         ValidatePoints(source);
         await EnsureNameAvailable(source.Name, id, cancellationToken);
         var now = timeProvider.GetUtcNow();
@@ -143,6 +146,14 @@ internal sealed class PointSourceDatabaseService(
                 previous.Revision + 1,
                 timestamp)
         };
+
+        if (source.Id != id)
+        {
+            await Rename(entity, updated, cancellationToken);
+
+            return updated;
+        }
+
         entity.Json = Serialize(updated);
         entity.Key = NormalizeName(updated.Name);
         entity.Updated = now;
@@ -173,6 +184,51 @@ internal sealed class PointSourceDatabaseService(
         }
 
         return updated;
+    }
+
+    private async Task Rename(
+        PointSourceEntity previous,
+        PointSource updated,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await context.ExecuteInTransactionAsync(
+                async transactionCancellationToken =>
+                {
+                    // Free the unique name key before inserting the replacement. All steps are
+                    // committed together, so callers can never observe both source IDs or neither.
+                    previous.Key = $"renaming-{Guid.NewGuid():N}";
+                    await SaveWithConcurrencyMapping(previous, transactionCancellationToken);
+
+                    var replacement = new PointSourceEntity
+                    {
+                        Id = updated.Id,
+                        Key = NormalizeName(updated.Name),
+                        Json = Serialize(updated),
+                        Created = previous.Created,
+                        Updated = timeProvider.GetUtcNow()
+                    };
+                    context.PointSources.Add(replacement);
+                    await context.SaveChangesAsync(transactionCancellationToken);
+
+                    await context.PointSourcePoints
+                        .Where(item => item.SourceId == previous.Id)
+                        .ExecuteUpdateAsync(
+                            setters => setters.SetProperty(item => item.SourceId, updated.Id),
+                            transactionCancellationToken);
+
+                    context.PointSources.Remove(previous);
+                    await SaveWithConcurrencyMapping(replacement, transactionCancellationToken);
+                },
+                cancellationToken);
+        }
+        catch (DbUpdateException exception) when (IsUniqueConstraint(exception))
+        {
+            throw new PointSourceConflictException(
+                $"A point source with ID \"{updated.Id}\" already exists.",
+                exception);
+        }
     }
 
     public async Task DeleteAsync(
@@ -216,6 +272,9 @@ internal sealed class PointSourceDatabaseService(
             throw new PointSourceConflictException("source name already exists");
         }
     }
+
+    private static PointSourceConflictException DuplicateId(string id, string name) =>
+        new($"A point source with ID \"{id}\" already exists with name: '{name}'.");
 
     private async Task<PointSourceEntity> FindTracked(
         string id,

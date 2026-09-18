@@ -31,6 +31,24 @@ internal sealed class FlowControlDbContext(DbContextOptions<FlowControlDbContext
         where TEntity : class =>
         Entry(entity).ReloadAsync(cancellationToken);
 
+    public async Task ExecuteInTransactionAsync(
+        Func<CancellationToken, Task> operation,
+        CancellationToken cancellationToken)
+    {
+        await using var transaction = await Database.BeginTransactionAsync(cancellationToken);
+
+        try
+        {
+            await operation(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
     public async Task InitializeDatabase(CancellationToken cancellationToken = default)
     {
         await Database.MigrateAsync(cancellationToken);

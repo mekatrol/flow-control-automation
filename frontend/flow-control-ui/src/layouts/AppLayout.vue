@@ -40,6 +40,6 @@ import AppHeader from '@/components/AppHeader.vue';
   align-items: center;
   align-content: center;
   justify-content: center;
-  width: 100%;  
+  width: 100%;
 }
 </style>

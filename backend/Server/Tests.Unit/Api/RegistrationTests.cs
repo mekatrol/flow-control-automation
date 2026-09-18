@@ -102,6 +102,11 @@ public sealed class RegistrationTests
         public Task<int> SaveChangesAsync(CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
+        public Task ExecuteInTransactionAsync(
+            Func<CancellationToken, Task> operation,
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
         public Task ReloadAsync<TEntity>(
             TEntity entity,
             CancellationToken cancellationToken)

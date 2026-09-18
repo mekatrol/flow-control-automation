@@ -26,6 +26,10 @@ public interface IFlowControlDbContext
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 
+    Task ExecuteInTransactionAsync(
+        Func<CancellationToken, Task> operation,
+        CancellationToken cancellationToken);
+
     Task ReloadAsync<TEntity>(TEntity entity, CancellationToken cancellationToken)
         where TEntity : class;
 
