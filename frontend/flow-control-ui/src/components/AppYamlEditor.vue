@@ -149,6 +149,7 @@ onMounted(async () => {
     readOnly: props.readOnly,
     scrollbar: { handleMouseWheel: true },
     scrollBeyondLastLine: false,
+    stickyScroll: { enabled: false },
     tabSize: 2,
     wordWrap: 'on'
   });
