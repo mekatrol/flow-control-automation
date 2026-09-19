@@ -21,4 +21,7 @@ public interface IFlowExecutionContextService
     Task<FlowExecutionContext> ResetInputsAsync(string contextId, CancellationToken cancellationToken);
     Task<FlowExecutionContext> EnableLiveOutputAsync(string contextId, EnableFlowExecutionLiveOutput request, CancellationToken cancellationToken);
     Task<FlowExecutionContext> KeepAliveAsync(string contextId, CancellationToken cancellationToken);
+    Task<Flow> ReenableAsync(string flowId, CancellationToken cancellationToken);
+    Task CleanupExpiredAsync();
+    Task StopAllAsync(CancellationToken cancellationToken);
 }

@@ -45,6 +45,14 @@ internal sealed class FlowExecutionContextRegistry(TimeProvider timeProvider) : 
             Gate.Dispose();
             if (Debug is IDisposable disposable) disposable.Dispose();
         }
+
+        public void DisposeAfterCleanup()
+        {
+            if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
+
+            Gate.Dispose();
+            if (Debug is IDisposable disposable) disposable.Dispose();
+        }
     }
 
     private static readonly TimeSpan Lease = TimeSpan.FromMinutes(15);
@@ -52,7 +60,6 @@ internal sealed class FlowExecutionContextRegistry(TimeProvider timeProvider) : 
 
     public Entry Add(Entry entry, bool replaceExisting)
     {
-        RemoveExpired();
         var existing = _entries.Values.FirstOrDefault(value =>
             string.Equals(value.FlowId, entry.FlowId, StringComparison.Ordinal)
             && value.Context.Lifecycle != FlowExecutionLifecycle.Stopped);
@@ -65,7 +72,6 @@ internal sealed class FlowExecutionContextRegistry(TimeProvider timeProvider) : 
 
     public Entry Get(string id)
     {
-        RemoveExpired();
         if (!_entries.TryGetValue(id, out var entry)) throw new FlowExecutionContextNotFoundException(id);
         entry.LastAccess = timeProvider.GetUtcNow();
         return entry;
@@ -73,17 +79,28 @@ internal sealed class FlowExecutionContextRegistry(TimeProvider timeProvider) : 
 
     public Entry? Remove(string id) => _entries.TryRemove(id, out var entry) ? entry : null;
 
+    public Entry? Find(string id) => _entries.GetValueOrDefault(id);
+
+    public IReadOnlyList<string> ActiveIds() => [.. _entries
+        .Where(pair => pair.Value.Context.Lifecycle != FlowExecutionLifecycle.Stopped)
+        .Select(pair => pair.Key)];
+
+    public IReadOnlyList<Entry> TakeExpired()
+    {
+        var threshold = timeProvider.GetUtcNow() - Lease;
+
+        return [.. _entries
+            .Where(pair => pair.Value.LastAccess <= threshold
+                && pair.Value.Context.Lifecycle != FlowExecutionLifecycle.Stopped)
+            .Select(pair => Remove(pair.Key))
+            .Where(entry => entry is not null)
+            .Select(entry => entry!)];
+    }
+
     public uint Remaining(Entry entry)
     {
         var remaining = Lease - (timeProvider.GetUtcNow() - entry.LastAccess);
         return remaining <= TimeSpan.Zero ? 0u : checked((uint)Math.Min(uint.MaxValue, remaining.TotalMilliseconds));
-    }
-
-    private void RemoveExpired()
-    {
-        var threshold = timeProvider.GetUtcNow() - Lease;
-        foreach (var pair in _entries.Where(pair => pair.Value.LastAccess <= threshold).ToArray())
-            Remove(pair.Key)?.Dispose();
     }
 
     public void Dispose()

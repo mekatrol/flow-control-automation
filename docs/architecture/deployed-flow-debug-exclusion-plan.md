@@ -350,13 +350,22 @@ operations, startup cleanup of leases abandoned by a prior API process, and the
 architecture, and flow tests pass, as do frontend DTO tests, type checking, lint,
 format checking, and the production build.
 
-### Phase 2: Backend lifecycle integration
+### Phase 2: Backend lifecycle integration (complete)
 
 - Add the suspension coordinator and integrate debugger create/stop/expiry.
 - Remove debugger replacement behavior.
 - Gate deployment, enable/disable, scan-once, delete, and shutdown through the
   coordinator.
 - Add `/reenable`, terminal tombstones/reasons, and last-executed checkpointing.
+
+Completed 2026-09-20. Added a per-flow suspension coordinator backed by the
+persisted debug lease, non-replacing debugger creation, coordinated rollback,
+stop, re-enable, expiry, flow deletion, and application-shutdown cleanup. Deploy
+and scan-once operations now reject active debug reservations, lease heartbeats
+are refreshed by debugger keepalive, terminal contexts retain machine-readable
+stop reasons, and successful production scans checkpoint `LastExecutedAt` on a
+bounded five-second cadence without faulting execution when metadata storage is
+temporarily unavailable.
 
 ### Phase 3: Client synchronization and UI
 

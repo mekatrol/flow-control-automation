@@ -35,6 +35,7 @@ internal static class FlowExecutionServiceCollectionExtensions
             TimeSpan.FromSeconds(provider.GetRequiredService<IOptions<FlowSimulatorOptions>>().Value.SessionLeaseSeconds)));
         services.AddScoped<IFlowSimulatorService, FlowSimulatorService>();
         services.AddSingleton<FlowExecutionContextRegistry>();
+        services.AddScoped<IFlowDebugSuspensionCoordinator, FlowDebugSuspensionCoordinator>();
         services.AddScoped<IFlowExecutionContextService, FlowExecutionContextService>();
 
         return services;

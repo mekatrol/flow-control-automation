@@ -29,6 +29,7 @@ public partial class Program
 
         builder.Services.AddFlowCompilerServices();
         builder.Services.AddServerServices(builder.Configuration);
+        builder.Services.AddHostedService<ExecutionContextLeaseService>();
         builder.Services.ConfigureHttpJsonOptions(
             options => FlowControlJson.Configure(options.SerializerOptions));
         builder.Services.AddOptions<ApiAccessOptions>().Bind(builder.Configuration.GetSection(ApiAccessOptions.SectionName))

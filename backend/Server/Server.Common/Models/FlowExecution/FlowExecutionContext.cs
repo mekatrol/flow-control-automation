@@ -15,5 +15,6 @@ public sealed record FlowExecutionContext
     public FlowExecutionIo? Io { get; init; }
     public FlowExecutionPresentation Presentation { get; init; } = new();
     public FlowExecutionDiagnostic? Diagnostic { get; init; }
+    public string? TerminalReason { get; init; }
     public uint LeaseRemainingMilliseconds { get; init; }
 }

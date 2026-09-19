@@ -54,6 +54,8 @@ internal static class FlowExecutionContextEndpointRouteBuilderExtensions
     private static IResult Failure(Exception exception) => exception switch
     {
         FlowNotFoundException or FlowExecutionContextNotFoundException => Error(404, exception.Message),
+        FlowDebugLeaseConflictException conflict => Results.Json(
+            new { code = conflict.Code, message = conflict.Message }, statusCode: 409),
         FlowExecutionContextConflictException => Error(409, exception.Message),
         FlowCompilationException compilation => Results.Json(new { code = "compilation_failed", message = "The saved flow could not be compiled.", details = compilation.Diagnostics }, statusCode: 422),
         FlowExecutionCapabilityException or ControllerGatewayException or FlowSimulatorException => Error(422, exception.Message),

@@ -11,18 +11,20 @@ internal sealed class FlowRuntimeService(
     TimeProvider timeProvider,
     IFlowVirtualMachineFactory machines,
     IFlowPointAdapter points,
-    IVirtualPointRuntimeStore virtualPoints) : IFlowRuntimeService, IFlowRuntimeDeploymentService, IDisposable
+    IVirtualPointRuntimeStore virtualPoints,
+    IServiceScopeFactory? scopeFactory = null) : IFlowRuntimeService, IFlowRuntimeDeploymentService, IDisposable
 {
     public FlowRuntimeService(
         TimeProvider timeProvider,
         IFlowVirtualMachineFactory machines,
         IFlowPointAdapter points)
-        : this(timeProvider, machines, points, new VirtualPointRuntimeStore(timeProvider))
+        : this(timeProvider, machines, points, new VirtualPointRuntimeStore(timeProvider), null)
     {
     }
 
     private readonly ConcurrentDictionary<string, RuntimeInstance> _instances = [];
     private readonly ConcurrentDictionary<string, RuntimeSnapshot> _snapshots = [];
+    private readonly ConcurrentDictionary<string, DateTimeOffset> _metadataCheckpoints = [];
     private readonly CancellationTokenSource _shutdown = new();
     private readonly SemaphoreSlim _deploymentGate = new(1, 1);
     private bool _disposed;
@@ -272,6 +274,8 @@ internal sealed class FlowRuntimeService(
                 WriteOutputsMilliseconds = writeTimer.Elapsed.TotalMilliseconds,
                 Outputs = scan.Commands.ToDictionary(command => command.PointId, command => command.Value, StringComparer.Ordinal)
             };
+
+            await CheckpointExecutionAsync(instance.Flow.Id, cancellationToken);
         }
         finally
         {
@@ -297,6 +301,41 @@ internal sealed class FlowRuntimeService(
         {
             instance.DrainScans(TimeSpan.FromSeconds(5));
             instance.Dispose();
+        }
+    }
+
+    private async Task CheckpointExecutionAsync(string flowId, CancellationToken cancellationToken)
+    {
+        if (scopeFactory is null)
+        {
+            return;
+        }
+
+        var completedAt = timeProvider.GetUtcNow();
+        var previous = _metadataCheckpoints.GetValueOrDefault(flowId);
+
+        if (completedAt - previous < TimeSpan.FromSeconds(5)
+            || !_metadataCheckpoints.TryUpdate(flowId, completedAt, previous)
+                && !_metadataCheckpoints.TryAdd(flowId, completedAt))
+        {
+            return;
+        }
+
+        try
+        {
+            await using var scope = scopeFactory.CreateAsyncScope();
+            await scope.ServiceProvider.GetRequiredService<IFlowExecutionMetadataStore>()
+                .RecordSuccessfulExecutionAsync(flowId, completedAt, cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            // Runtime execution remains healthy when an eventually-consistent
+            // metadata checkpoint fails; the next cadence retries persistence.
+            _metadataCheckpoints.TryRemove(flowId, out _);
         }
     }
 

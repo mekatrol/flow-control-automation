@@ -16,11 +16,14 @@ internal sealed class FlowExecutionContextService(
     IFlowPointAdapter points,
     FlowEmulatorService emulators,
     FlowExecutionContextRegistry contexts,
+    IFlowDebugLeaseRepository leases,
+    IFlowDebugSuspensionCoordinator suspension,
     TimeProvider timeProvider) : IFlowExecutionContextService
 {
     public async Task<FlowExecutionContext> CreateAsync(CreateFlowExecutionContext request, CancellationToken token)
     {
         ArgumentNullException.ThrowIfNull(request);
+        await CleanupExpiredAsync();
         var flow = await flows.GetAsync(request.FlowId, token);
         if (flow.Revision < 0 || checked((uint)flow.Revision) != request.ExpectedRevision)
             throw new FlowExecutionContextConflictException("The saved flow revision does not match expectedRevision.");
@@ -30,6 +33,7 @@ internal sealed class FlowExecutionContextService(
         var source = FlowDeploymentService.ToExecutableSource(flow);
         var id = Guid.NewGuid().ToString("N");
         FlowExecutionContextRegistry.Entry? entry = null;
+        var acquiredDebugLease = false;
         try
         {
             if (request.Mode == FlowExecutionMode.Simulator)
@@ -46,20 +50,26 @@ internal sealed class FlowExecutionContextService(
             }
             else
             {
+                await suspension.AcquireAsync(flow, id, token);
+                acquiredDebugLease = true;
                 var host = request.TargetId == "server" ? "server" : "controller";
                 var registry = new FlowDebugSessionRegistry();
                 var debug = new FlowDebugService(targetResolver, compiler, transport, registry, machines, points, emulators);
-                var session = await debug.StartAsync(new StartFlowDebugSession(source, host, true), token);
+                var session = await debug.StartAsync(new StartFlowDebugSession(source, host, false), token);
                 if (request.Breakpoints.Count != 0)
                     session = await debug.ReplaceBreakpointsAsync(flow.Id, session.DebugSessionId, request.Breakpoints, token);
                 entry = NewEntry(id, flow, request, session.DebugSessionId, debug, null, Map(session, id, checked((uint)flow.Revision), request.TargetId));
             }
-            contexts.Add(entry, request.ReplaceExisting);
+            contexts.Add(entry, request.Mode == FlowExecutionMode.Simulator && request.ReplaceExisting);
             return Touch(entry);
         }
         catch
         {
             if (entry is not null) await Cleanup(entry, CancellationToken.None);
+            if (acquiredDebugLease)
+            {
+                await suspension.ReleaseAsync(flow, id, CancellationToken.None);
+            }
             throw;
         }
     }
@@ -93,6 +103,7 @@ internal sealed class FlowExecutionContextService(
     public Task<FlowExecutionContext> KeepAliveAsync(string id, CancellationToken token) => Execute(id, token, async entry =>
     {
         if (entry.Simulator is not null) await entry.Simulator.KeepAliveAsync(entry.FlowId, entry.SessionId, token);
+        else await leases.HeartbeatAsync(entry.FlowId, entry.Id, token);
         return entry.Context;
     });
 
@@ -102,11 +113,59 @@ internal sealed class FlowExecutionContextService(
         await entry.Gate.WaitAsync(token);
         try
         {
-            if (entry.Context.Lifecycle != FlowExecutionLifecycle.Stopped) await Cleanup(entry, token);
-            entry.Context = entry.Context with { Lifecycle = FlowExecutionLifecycle.Stopped, LeaseRemainingMilliseconds = 0 };
+            if (entry.Context.Lifecycle != FlowExecutionLifecycle.Stopped)
+            {
+                await Cleanup(entry, token);
+                if (entry.Mode == FlowExecutionMode.Debugger)
+                {
+                    await suspension.ReleaseAsync(await flows.GetAsync(entry.FlowId, token), entry.Id, token);
+                }
+            }
+            entry.Context = entry.Context with { Lifecycle = FlowExecutionLifecycle.Stopped, LeaseRemainingMilliseconds = 0, TerminalReason = "stopped_by_user" };
             return entry.Context;
         }
         finally { entry.Gate.Release(); }
+    }
+
+    public async Task<Flow> ReenableAsync(string flowId, CancellationToken token)
+    {
+        var flow = await flows.GetAsync(flowId, token);
+        var lease = await leases.GetByFlowAsync(flowId, token);
+        if (lease is null)
+        {
+            return flow;
+        }
+
+        var entry = contexts.Find(lease.ExecutionContextId);
+        if (entry is not null)
+        {
+            await entry.Gate.WaitAsync(token);
+            try
+            {
+                if (entry.Context.Lifecycle != FlowExecutionLifecycle.Stopped)
+                {
+                    await Cleanup(entry, token);
+                }
+                entry.Context = entry.Context with
+                {
+                    Lifecycle = FlowExecutionLifecycle.Stopped,
+                    LeaseRemainingMilliseconds = 0,
+                    TerminalReason = "stopped_by_reenable",
+                    Diagnostic = new FlowExecutionDiagnostic
+                    {
+                        Code = "stopped_by_reenable",
+                        Message = "The deployed flow was re-enabled from another client."
+                    }
+                };
+            }
+            finally
+            {
+                entry.Gate.Release();
+            }
+        }
+
+        await suspension.ReleaseAsync(flow, lease.ExecutionContextId, token);
+        return await flows.GetAsync(flowId, token);
     }
 
     private Task<FlowExecutionContext> Simulator(string id, CancellationToken token, string capability, Func<IFlowSimulatorService, FlowExecutionContextRegistry.Entry, Task<FlowSimulatorSession>> action) => Execute(id, token, async entry =>
@@ -118,6 +177,7 @@ internal sealed class FlowExecutionContextService(
         entry.Simulator is not null ? Map(await simulator(entry.Simulator, entry), entry.Id, entry.Revision) : Map(await debug(entry.Debug!, entry), entry.Id, entry.Revision, entry.TargetId));
     private async Task<FlowExecutionContext> Execute(string id, CancellationToken token, Func<FlowExecutionContextRegistry.Entry, Task<FlowExecutionContext>> action)
     {
+        await CleanupExpiredAsync();
         var entry = contexts.Get(id);
         await entry.Gate.WaitAsync(token);
         try
@@ -127,6 +187,40 @@ internal sealed class FlowExecutionContextService(
             return Touch(entry);
         }
         finally { entry.Gate.Release(); }
+    }
+
+    public async Task CleanupExpiredAsync()
+    {
+        foreach (var entry in contexts.TakeExpired())
+        {
+            await entry.Gate.WaitAsync(CancellationToken.None);
+
+            try
+            {
+                await Cleanup(entry, CancellationToken.None);
+
+                if (entry.Mode == FlowExecutionMode.Debugger)
+                {
+                    await suspension.ReleaseAsync(
+                        await flows.GetAsync(entry.FlowId, CancellationToken.None),
+                        entry.Id,
+                        CancellationToken.None);
+                }
+            }
+            finally
+            {
+                entry.Gate.Release();
+                entry.DisposeAfterCleanup();
+            }
+        }
+    }
+
+    public async Task StopAllAsync(CancellationToken token)
+    {
+        foreach (var contextId in contexts.ActiveIds())
+        {
+            await StopAsync(contextId, token);
+        }
     }
 
     private FlowExecutionContext Touch(FlowExecutionContextRegistry.Entry entry) => entry.Context = entry.Context with { LeaseRemainingMilliseconds = contexts.Remaining(entry) };

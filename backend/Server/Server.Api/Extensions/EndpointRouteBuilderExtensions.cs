@@ -29,6 +29,7 @@ public static class EndpointRouteBuilderExtensions
         endpoints.MapPost("/api/flows/{flowId}/deploy", DeployFlow);
         endpoints.MapPost("/api/flows/{flowId}/disable", DisableFlow);
         endpoints.MapPost("/api/flows/{flowId}/enable", EnableFlow);
+        endpoints.MapPost("/api/flows/{flowId}/reenable", ReenableFlow);
         endpoints.MapGet("/api/flows/{flowId}/runtime", GetRuntime);
         endpoints.MapPost("/api/flows/{flowId}/runtime/scan", ScanFlowOnce);
         endpoints.MapPointSourceEndpoints();
@@ -309,11 +310,14 @@ public static class EndpointRouteBuilderExtensions
     private static async Task<IResult> DeleteFlow(
         string flowId,
         IFlowService flows,
+        IFlowExecutionContextService contexts,
         IFlowRuntimeService runtime,
         CancellationToken cancellationToken)
     {
         try
         {
+            await flows.SetDisabledAsync(flowId, disabled: true, cancellationToken);
+            await contexts.ReenableAsync(flowId, cancellationToken);
             await flows.DeleteAsync(flowId, cancellationToken);
             runtime.Delete(flowId);
 
@@ -337,10 +341,12 @@ public static class EndpointRouteBuilderExtensions
         string flowId,
         IFlowService flows,
         IFlowDeploymentService deployment,
+        IFlowDebugSuspensionCoordinator suspension,
         CancellationToken cancellationToken)
     {
         try
         {
+            await suspension.EnsureAvailableAsync(flowId, cancellationToken);
             var flow = await flows.GetAsync(flowId, cancellationToken);
             var snapshot = await deployment.DeployAsync(flow, cancellationToken);
             await flows.MarkDeployedAsync(flowId, flow.Revision, cancellationToken);
@@ -350,6 +356,10 @@ public static class EndpointRouteBuilderExtensions
         catch (FlowNotFoundException)
         {
             return Error(StatusCodes.Status404NotFound, "flow not found");
+        }
+        catch (FlowExecutionContextConflictException exception)
+        {
+            return CodedError(StatusCodes.Status409Conflict, "debug_transition_in_progress", exception.Message);
         }
         catch (FlowCompilationException exception)
         {
@@ -373,10 +383,13 @@ public static class EndpointRouteBuilderExtensions
         string flowId,
         IFlowService flows,
         IFlowRuntimeService runtime,
+        IFlowDebugSuspensionCoordinator suspension,
         CancellationToken cancellationToken)
     {
         try
         {
+            await suspension.EnsureAvailableAsync(flowId, cancellationToken);
+
             return Results.Json(await runtime.ScanOnceAsync(
                 await flows.GetAsync(flowId, cancellationToken),
                 cancellationToken));
@@ -389,7 +402,17 @@ public static class EndpointRouteBuilderExtensions
         {
             return Error(StatusCodes.Status409Conflict, "flow is not deployed");
         }
+        catch (FlowExecutionContextConflictException exception)
+        {
+            return CodedError(StatusCodes.Status409Conflict, "debug_transition_in_progress", exception.Message);
+        }
     }
+
+    private static Task<IResult> ReenableFlow(
+        string flowId,
+        IFlowExecutionContextService contexts,
+        CancellationToken cancellationToken) =>
+        MapFlowResult(() => contexts.ReenableAsync(flowId, cancellationToken));
 
     private static async Task<IResult> DisableFlow(
         string flowId,
@@ -516,4 +539,7 @@ public static class EndpointRouteBuilderExtensions
 
     private static IResult Error(int status, string message) =>
         Results.Json(new ErrorResponse(message), statusCode: status);
+
+    private static IResult CodedError(int status, string code, string message) =>
+        Results.Json(new { code, message }, statusCode: status);
 }
