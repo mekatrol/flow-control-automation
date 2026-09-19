@@ -57,6 +57,39 @@ const parse = (value: unknown): FlowCompileResult => {
   };
 };
 
+const parseFailure = (value: unknown, status: number): FlowCompileResult => {
+  if (typeof value !== 'object' || value === null)
+    throw new Error(`Compile request failed with status ${status}.`);
+  const item = value as Record<string, unknown>;
+  const details = Array.isArray(item.details)
+    ? item.details
+    : item.details && typeof item.details === 'object'
+      ? (item.details as Record<string, unknown>).diagnostics
+      : item.diagnostics;
+  const diagnostics = Array.isArray(details)
+    ? details.flatMap((entry) => {
+        const diagnostic = parseDiagnostic(entry);
+        return diagnostic ? [diagnostic] : [];
+      })
+    : [];
+  if (diagnostics.length > 0) return { success: false, diagnostics };
+  const message = typeof item.message === 'string' ? item.message.trim() : '';
+  if (message)
+    return {
+      success: false,
+      diagnostics: [
+        {
+          code: typeof item.code === 'string' ? item.code : 'CompileError',
+          displayCode: 'FLOW',
+          path: '',
+          title: 'Compilation error',
+          message
+        }
+      ]
+    };
+  throw new Error(`Compile request failed with status ${status}.`);
+};
+
 export const flowCompileApi = {
   async compile(source: ExecutableFlowSource, signal?: AbortSignal): Promise<FlowCompileResult> {
     const response = await waitForFetch(`/api/flows/${encodeURIComponent(source.id)}/compile`, {
@@ -65,9 +98,7 @@ export const flowCompileApi = {
       body: JSON.stringify(source),
       signal
     });
-    const result = parse(await response.json());
-    if (!response.ok && result.diagnostics.length === 0)
-      throw new Error(`Compile request failed with status ${response.status}.`);
-    return result;
+    const payload: unknown = await response.json();
+    return response.ok ? parse(payload) : parseFailure(payload, response.status);
   }
 };

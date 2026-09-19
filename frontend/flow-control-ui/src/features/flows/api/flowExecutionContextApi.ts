@@ -74,6 +74,24 @@ export class FlowExecutionContextApiError extends Error {
   }
 }
 
+const diagnosticMessages = (value: unknown): string[] => {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((entry) => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return [];
+    const diagnostic = entry as Record<string, unknown>;
+    if (typeof diagnostic.message !== 'string' || !diagnostic.message.trim()) return [];
+    const path = typeof diagnostic.path === 'string' ? diagnostic.path.trim() : '';
+    return [path ? `${diagnostic.message.trim()} (${path})` : diagnostic.message.trim()];
+  });
+};
+
+const errorDetails = (body: Record<string, unknown>): unknown =>
+  Array.isArray(body.details)
+    ? body.details
+    : body.details && typeof body.details === 'object'
+      ? (body.details as Record<string, unknown>).diagnostics
+      : body.diagnostics;
+
 const parse = (value: unknown): FlowExecutionContext => {
   if (!value || typeof value !== 'object' || Array.isArray(value))
     throw new Error('Execution context is malformed.');
@@ -134,6 +152,8 @@ const request = async (path: string, init?: RequestInit): Promise<FlowExecutionC
       const body = (await response.json()) as Record<string, unknown>;
       if (typeof body.message === 'string') message = body.message;
       if (typeof body.code === 'string') code = body.code;
+      const details = diagnosticMessages(errorDetails(body));
+      if (details.length > 0) message = `${message} ${details.join(' ')}`;
     } catch {
       /* retain stable fallback */
     }

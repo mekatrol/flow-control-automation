@@ -61,4 +61,38 @@ describe('flow compile API', () => {
       expect.objectContaining({ method: 'POST', body: JSON.stringify(source) })
     );
   });
+
+  it('returns diagnostics from a standard error response', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof fetch>().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            code: 'compilation_failed',
+            message: 'The saved flow could not be compiled.',
+            details: [
+              {
+                displayCode: 'FLOW014',
+                path: '/nodes/1/configuration/pointId',
+                title: 'Duplicate point',
+                message: 'Input point IDs must be unique.'
+              }
+            ]
+          }),
+          { status: 422 }
+        )
+      )
+    );
+
+    await expect(flowCompileApi.compile(source)).resolves.toMatchObject({
+      success: false,
+      diagnostics: [
+        {
+          displayCode: 'FLOW014',
+          path: '/nodes/1/configuration/pointId',
+          message: 'Input point IDs must be unique.'
+        }
+      ]
+    });
+  });
 });
