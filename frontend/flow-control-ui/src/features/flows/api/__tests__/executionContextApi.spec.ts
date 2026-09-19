@@ -31,7 +31,9 @@ describe('execution context point resolution', () => {
     for (const sourceKind of Object.values(PointSourceKind)) {
       for (const valueType of Object.values(AutomationPointValueType)) {
         respond({ ...point, sourceKind, valueType });
-        await expect(executionContextApi.resolvePoint('source-a', point.pointKey)).resolves.toMatchObject({
+        await expect(
+          executionContextApi.resolvePoint('source-a', point.pointKey)
+        ).resolves.toMatchObject({
           id: point.pointKey,
           sourceKind,
           valueType,

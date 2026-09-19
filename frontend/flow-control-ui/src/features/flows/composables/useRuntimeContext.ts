@@ -52,8 +52,11 @@ export const useRuntimeContext = (options: {
   };
   const run = async (): Promise<void> => {
     await operate((id) => flowExecutionContextApi.run(id));
+
     if (context.value?.lifecycle !== 'running') return;
+
     stopPolling();
+
     polling = window.setInterval(() => void operate(flowExecutionContextApi.get), 250);
   };
   const stop = async (keepalive = false): Promise<void> => {

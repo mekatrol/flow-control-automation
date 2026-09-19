@@ -68,8 +68,7 @@ export const validatePointReference = async (
       : { state: 'valid', point: declared };
   }
   try {
-    if (!pointSourceId)
-      return { state: 'invalid', message: 'Point source ID is required.' };
+    if (!pointSourceId) return { state: 'invalid', message: 'Point source ID is required.' };
     const point = await executionContextApi.resolvePoint(
       pointSourceId,
       key,

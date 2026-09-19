@@ -143,17 +143,25 @@ const parse = (value: unknown): FlowExecutionContext => {
   return value as FlowExecutionContext;
 };
 
-const request = async (path: string, init?: RequestInit): Promise<FlowExecutionContext> => {
-  const response = await waitForFetch(path, init);
+const request = async (
+  path: string,
+  init?: RequestInit,
+  options?: { trackWait?: boolean }
+): Promise<FlowExecutionContext> => {
+  const response = await waitForFetch(path, init, options);
+
   if (!response.ok) {
     let message = `Execution operation failed (${response.status}).`;
     let code = 'request_failed';
+
     try {
       const body = (await response.json()) as Record<string, unknown>;
       if (typeof body.message === 'string') message = body.message;
       if (typeof body.code === 'string') code = body.code;
       const details = diagnosticMessages(errorDetails(body));
-      if (details.length > 0) message = `${message} ${details.join(' ')}`;
+      if (details.length > 0) {
+        message = `${message} ${details.join(' ')}`;
+      }
     } catch {
       /* retain stable fallback */
     }
@@ -179,30 +187,47 @@ export const flowExecutionContextApi = {
         breakpoints: value.breakpoints ?? []
       })
     ),
-  get: (id: string) => request(base(id)),
+
+  get: (id: string) => request(base(id), undefined, { trackWait: false }),
+
   stop: (id: string, keepalive = false) =>
     request(`${base(id)}/stop`, { ...json('POST'), keepalive }),
+
   run: (id: string, intervalMilliseconds = 100) =>
     request(`${base(id)}/run`, json('POST', { intervalMilliseconds })),
+
   pause: (id: string) => request(`${base(id)}/pause`, json('POST')),
+
   restart: (id: string) => request(`${base(id)}/restart`, json('POST')),
+
   stepTick: (id: string) => request(`${base(id)}/step-tick`, json('POST')),
+
   stepNode: (id: string) => request(`${base(id)}/step-node`, json('POST')),
+
   stepInstruction: (id: string) => request(`${base(id)}/step-instruction`, json('POST')),
+
   runTo: (id: string, boundary: FlowDebugBreakpoint) =>
     request(`${base(id)}/run-to`, json('POST', boundary)),
+
   replaceBreakpoints: (id: string, values: FlowDebugBreakpoint[]) =>
     request(`${base(id)}/breakpoints`, json('PUT', values)),
+
   applyInputs: (id: string, inputs: EmulatorInputChange[]) =>
     request(`${base(id)}/inputs`, json('PUT', { inputs })),
+
   advance: (id: string, milliseconds: number) =>
     request(`${base(id)}/advance`, json('POST', { milliseconds })),
+
   injectFault: (id: string, fault: string | null) =>
     request(`${base(id)}/fault`, json('PUT', { fault })),
+
   resetIo: (id: string, powerCycle: boolean) =>
     request(`${base(id)}/reset-io`, json('POST', { powerCycle })),
+
   resetInputs: (id: string) => request(`${base(id)}/reset-inputs`, json('POST')),
+
   enableLiveOutput: (id: string, pointIds: string[]) =>
     request(`${base(id)}/live-output`, json('POST', { pointIds })),
+
   keepAlive: (id: string) => request(`${base(id)}/keepalive`, json('POST'))
 };
