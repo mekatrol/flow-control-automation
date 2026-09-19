@@ -13,6 +13,18 @@ namespace Server.Common.Models;
 /// </remarks>
 public record AutomationPoint : IAutomationPoint
 {
+    /// <summary>Gets the owning point-source identifier in read projections.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? SourceId { get; init; }
+
+    /// <summary>Gets the owning point-source display name in read projections.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? SourceName { get; init; }
+
+    /// <summary>Gets the owning point-source kind in read projections.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public PointSourceKind? SourceKind { get; init; }
+
     /// <summary>
     /// Gets the stable, machine-readable identifier used to reference the point from configuration
     /// and flow definitions.

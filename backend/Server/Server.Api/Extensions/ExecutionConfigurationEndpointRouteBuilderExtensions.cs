@@ -46,8 +46,8 @@ public static class ExecutionConfigurationEndpointRouteBuilderExtensions
 
             await runtime.RestoreRetainedAsync(id, backup.Values, token);
         }));
-        endpoints.MapGet("/api/point-resolution/{pointKey}", async (string pointKey, string? executionContextId, string? executionInstanceId, IExecutionConfigurationService service, CancellationToken token) =>
-            await Map(() => service.ResolvePointAsync(pointKey, executionContextId, executionInstanceId, token)));
+        endpoints.MapGet("/api/point-resolution/{pointSourceId}/{pointKey}", async (string pointSourceId, string pointKey, string? executionContextId, string? executionInstanceId, IExecutionConfigurationService service, CancellationToken token) =>
+            await Map(() => service.ResolvePointAsync(pointSourceId, pointKey, executionContextId, executionInstanceId, token)));
 
         endpoints.MapGet("/api/execution-configurations/{contextId}/deployments", async (string contextId, IExecutionConfigurationService service, CancellationToken token) => await Map(() => service.ListDeploymentsAsync(contextId, token)));
         endpoints.MapPost("/api/execution-configurations/{contextId}/deployments", async (string contextId, HttpRequest request, IExecutionConfigurationService service, IOptions<JsonOptions> options, CancellationToken token) => await DecodeAndMap<ExecutionContextDeployment>(request, options, value => EnsureId(contextId, value.ExecutionContextId, () => service.SaveDeploymentAsync(value, true, token)), 201, token));

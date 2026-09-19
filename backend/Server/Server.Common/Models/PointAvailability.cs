@@ -17,6 +17,12 @@ public sealed record PointAvailability
     /// <summary>Gets the key of the point whose availability was evaluated.</summary>
     public required string PointKey { get; init; }
 
+    /// <summary>Gets the owning source ID for a persisted point.</summary>
+    public string? PointSourceId { get; init; }
+
+    /// <summary>Gets the source kind used to provide the point.</summary>
+    public PointSourceKind? SourceKind { get; init; }
+
     /// <summary>Gets whether the point is available in the requested scope.</summary>
     public bool Exists { get; init; }
 

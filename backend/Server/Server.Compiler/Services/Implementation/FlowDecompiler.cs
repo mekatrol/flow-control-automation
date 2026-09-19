@@ -965,8 +965,17 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
 
         FlowNodeType ConfigureControllerPoint()
         {
+            var separator = point.Id.IndexOf('/', StringComparison.Ordinal);
+
+            if (separator <= 0 || separator == point.Id.Length - 1)
+            {
+                Fail(FlowCompilationDiagnosticCode.InvalidPointOperand, $"/instructions/{instructionIndex}/auxiliary");
+            }
+
+            configuration["pointSourceId"] =
+                JsonSerializer.SerializeToElement(point.Id[..separator]);
             configuration["pointId"] =
-                JsonSerializer.SerializeToElement(point.Id);
+                JsonSerializer.SerializeToElement(point.Id[(separator + 1)..]);
 
             if (!string.IsNullOrEmpty(point.Units))
             {

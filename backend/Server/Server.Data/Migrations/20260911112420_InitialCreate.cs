@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -151,7 +151,7 @@ public partial class InitialCreate : Migration
             },
             constraints: table =>
             {
-                table.PrimaryKey("PK_PointSourcePoints", x => x.PointId);
+                table.PrimaryKey("PK_PointSourcePoints", x => new { x.SourceId, x.PointId });
                 table.ForeignKey(
                     name: "FK_PointSourcePoints_PointSources_SourceId",
                     column: x => x.SourceId,

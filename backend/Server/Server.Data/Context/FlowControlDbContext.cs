@@ -77,7 +77,7 @@ internal sealed class FlowControlDbContext(DbContextOptions<FlowControlDbContext
         modelBuilder.Entity<PointSourcePointEntity>(entity =>
         {
             entity.ToTable("PointSourcePoints");
-            entity.HasKey(item => item.PointId);
+            entity.HasKey(item => new { item.SourceId, item.PointId });
             entity.Property(item => item.PointId).IsRequired();
             entity.Property(item => item.SourceId).IsRequired();
             entity.HasIndex(item => item.SourceId);

@@ -14,6 +14,7 @@
       "id": "input-01-node",
       "nodeType": "digitalInput",
       "configuration": {
+        "pointSourceId": "controller",
         "pointId": "input-01"
       },
       "label": "Digital Input",
@@ -25,6 +26,7 @@
       "id": "input-08-node",
       "nodeType": "digitalInput",
       "configuration": {
+        "pointSourceId": "controller",
         "pointId": "input-08"
       },
       "label": "Digital Input",
@@ -45,6 +47,7 @@
       "id": "output-01-node",
       "nodeType": "digitalOutput",
       "configuration": {
+        "pointSourceId": "controller",
         "pointId": "output-01"
       },
       "label": "Digital Output",

@@ -592,7 +592,7 @@ internal sealed class FlowDebugService(
         {
             var ids = local.Source.Nodes
                 .Where(node => node.NodeType == FlowNodeType.DigitalInput)
-                .Select(node => node.Configuration["pointId"].GetString()!)
+                .Select(node => $"{node.Configuration["pointSourceId"].GetString()}/{node.Configuration["pointId"].GetString()}")
                 .Distinct(StringComparer.Ordinal)
                 .Order(StringComparer.Ordinal)
                 .ToArray();

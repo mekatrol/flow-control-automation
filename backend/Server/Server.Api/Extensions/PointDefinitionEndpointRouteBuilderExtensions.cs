@@ -10,19 +10,20 @@ public static class PointDefinitionEndpointRouteBuilderExtensions
         this IEndpointRouteBuilder endpoints)
     {
         endpoints.MapGet("/api/points", ListPoints);
-        endpoints.MapGet("/api/points/{pointId}/runtime", GetPointRuntime);
+        endpoints.MapGet("/api/points/{sourceId}/{pointId}/runtime", GetPointRuntime);
 
         return endpoints;
     }
 
     private static async Task<IResult> GetPointRuntime(
+        string sourceId,
         string pointId,
         IPointValueReader reader,
         CancellationToken cancellationToken)
     {
         try
         {
-            return Results.Json(await reader.ReadAsync(pointId, cancellationToken));
+            return Results.Json(await reader.ReadAsync($"{sourceId}/{pointId}", cancellationToken));
         }
         catch (PointDefinitionNotFoundException)
         {

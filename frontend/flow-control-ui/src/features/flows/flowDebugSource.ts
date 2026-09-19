@@ -95,7 +95,13 @@ const configurationFor = (node: FlowNode): Record<string, unknown> => {
     const pointId = node.configuration.pointId;
     if (typeof pointId !== 'string' || !pointId.trim())
       throw new FlowDebugSourceError(`${node.label} (${node.id}) requires a point ID.`, node.id);
-    return { pointId: pointId.trim() };
+    const pointSourceId = node.configuration.pointSourceId;
+    return {
+      ...(typeof pointSourceId === 'string' && pointSourceId.trim()
+        ? { pointSourceId: pointSourceId.trim() }
+        : {}),
+      pointId: pointId.trim()
+    };
   }
   if (node.nodeType === FlowNodeType.DigitalConstant)
     return { value: Boolean(node.configuration.value) };

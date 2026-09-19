@@ -64,23 +64,6 @@ internal sealed partial class PointSourceValidator(ITemplateService? templates =
     {
         Validate(source);
         ArgumentNullException.ThrowIfNull(existingSources);
-        var ownedIds = source.Points.Select(point => point.Id).ToHashSet(StringComparer.Ordinal);
-        var conflict = existingSources
-            .Where(existing => existing.Id != source.Id)
-            .Select(existing => new
-            {
-                Source = existing,
-                Point = existing.Points.FirstOrDefault(point => ownedIds.Contains(point.Id))
-            })
-            .FirstOrDefault(candidate => candidate.Point is not null);
-
-        if (conflict is not null)
-        {
-            throw new PointSourceValidationException(
-                $"A point with ID \"{conflict.Point!.Id}\" already exists in point source "
-                + $"\"{conflict.Source.Name}\" (ID \"{conflict.Source.Id}\"). "
-                + "Choose a different point ID.");
-        }
     }
 
     private void ValidateAggregate(PointSource source)

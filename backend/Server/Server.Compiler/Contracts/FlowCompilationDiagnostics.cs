@@ -35,7 +35,7 @@ public static class FlowCompilationDiagnostics
 
                 // Configuration
                 [FlowCompilationDiagnosticCode.MissingPointId] = D(1301, "Missing point ID", "A pointId string is required."),
-                [FlowCompilationDiagnosticCode.UnexpectedPointConfigurationProperty] = D(1302, "Unsupported point configuration", "Only pointId and optional units are supported for this node."),
+                [FlowCompilationDiagnosticCode.UnexpectedPointConfigurationProperty] = D(1302, "Unsupported point configuration", "Only pointSourceId, pointId, and optional units are supported for this node."),
                 [FlowCompilationDiagnosticCode.InvalidPointUnits] = D(1303, "Invalid point units", "Point units must be a string."),
                 [FlowCompilationDiagnosticCode.InvalidBooleanConfiguration] = D(1304, "Invalid Boolean configuration", "A Boolean value is required."),
                 [FlowCompilationDiagnosticCode.InvalidComparisonOperator] = D(1305, "Invalid comparison operator", "A supported comparison operator is required."),

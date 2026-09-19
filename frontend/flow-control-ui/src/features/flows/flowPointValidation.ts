@@ -59,7 +59,8 @@ export const validatePointReference = async (
   if (!key) return { state: 'invalid', message: 'Point ID is required.' };
   if (!/^[a-zA-Z0-9](?:[a-zA-Z0-9._-]{0,126}[a-zA-Z0-9])?$/.test(key))
     return { state: 'invalid', message: 'Point ID contains unsupported characters.' };
-  const declared = definitions.find((point) => point.key === key);
+  const pointSourceId = String(node.configuration.pointSourceId ?? '').trim();
+  const declared = pointSourceId ? undefined : definitions.find((point) => point.key === key);
   if (declared) {
     const message = pointCompatibilityError(node, declared);
     return message
@@ -67,7 +68,10 @@ export const validatePointReference = async (
       : { state: 'valid', point: declared };
   }
   try {
+    if (!pointSourceId)
+      return { state: 'invalid', message: 'Point source ID is required.' };
     const point = await executionContextApi.resolvePoint(
+      pointSourceId,
       key,
       executionContextId,
       executionInstanceId,

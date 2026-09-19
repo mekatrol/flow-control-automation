@@ -788,6 +788,7 @@ public sealed class FlowCompilerTests
                 .Where(node => node.NodeType is FlowNodeType.DigitalInput or FlowNodeType.DigitalOutput or FlowNodeType.AnalogInput or FlowNodeType.AnalogOutput)
                 .Select(node => new PhysicalAutomationPoint
                 {
+                    SourceId = node.Configuration["pointSourceId"].GetString()!,
                     Id = node.Configuration["pointId"].GetString()!,
                     Name = node.Configuration["pointId"].GetString()!,
                     Enabled = true,
@@ -798,7 +799,7 @@ public sealed class FlowCompilerTests
                     Persistence = "volatile",
                     Revision = 1
                 })
-                .DistinctBy(point => point.Id, StringComparer.Ordinal)]
+                .DistinctBy(point => (point.SourceId, point.Id))]
         }
     };
 

@@ -12,22 +12,22 @@
   "nodes": [
     {
       "id": "constant-2",
-      "nodeType": "analogConstant",
+      "nodeType": "numericConstant",
       "configuration": {
         "value": 2
       },
-      "label": "Analog Constant",
+      "label": "Numeric Constant",
       "x": 0,
       "y": 0,
       "zOrder": 0
     },
     {
       "id": "constant-3",
-      "nodeType": "analogConstant",
+      "nodeType": "numericConstant",
       "configuration": {
         "value": 3
       },
-      "label": "Analog Constant",
+      "label": "Numeric Constant",
       "x": 0,
       "y": 0,
       "zOrder": 0
@@ -57,7 +57,7 @@
       "id": "compare-1",
       "nodeType": "comparator",
       "configuration": {
-        "operator": "gt"
+        "operator": 5
       },
       "label": "Comparator",
       "x": 0,

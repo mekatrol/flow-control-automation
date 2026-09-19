@@ -67,6 +67,7 @@ export const executionContextApi = {
     return body.map(parseContext);
   },
   async resolvePoint(
+    pointSourceId: string | undefined,
     pointKey: string,
     executionContextId?: string,
     executionInstanceId?: string,
@@ -77,7 +78,7 @@ export const executionContextApi = {
     if (executionInstanceId) query.set('executionInstanceId', executionInstanceId);
     const suffix = query.size ? `?${query}` : '';
     const response = await waitForFetch(
-      `/api/point-resolution/${encodeURIComponent(pointKey)}${suffix}`,
+      `/api/point-resolution/${encodeURIComponent(pointSourceId ?? '')}/${encodeURIComponent(pointKey)}${suffix}`,
       { signal }
     );
     await requireOk(response, 'Unable to resolve point');
@@ -99,6 +100,7 @@ export const executionContextApi = {
       name: body.pointKey,
       enabled: body.enabled === true,
       sourceKind: body.sourceKind as PointSummary['sourceKind'],
+      sourceId: pointSourceId,
       direction:
         body.sourceKind === 'virtual' ? DataDirectionType.Value : DataDirectionType.InputOutput,
       valueType: body.valueType,

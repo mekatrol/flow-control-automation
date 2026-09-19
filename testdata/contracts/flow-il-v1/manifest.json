@@ -3,8 +3,8 @@
   "fixtures": [
     {
       "id": "valid-two-button-and",
-      "artifactLength": 1030,
-      "artifactSha256": "6288f6b99d6776cc3838921dca62d6c834d14a5996d624b219ebbc1aba2d1a1e",
+      "artifactLength": 1096,
+      "artifactSha256": "4892bb5f01895b891258a842d6132ffc950a8a0b989748721baca31c27a30f11",
       "expected": {
         "valid": true,
         "reason": "ok",
@@ -13,8 +13,8 @@
     },
     {
       "id": "valid-memory-feedback",
-      "artifactLength": 975,
-      "artifactSha256": "764819a61488ffdb154cf03ef9c37ca0cb7e305d2f7992486f04d99faded2807",
+      "artifactLength": 1066,
+      "artifactSha256": "f3148702d0bfa45406dfe6d8e381f0614127389fd2b0d4e57efb2747b681cebe",
       "expected": {
         "valid": true,
         "reason": "ok",
@@ -23,8 +23,8 @@
     },
     {
       "id": "valid-expanded-boolean",
-      "artifactLength": 1583,
-      "artifactSha256": "888ab73d6eb1f6eafc393281b6d1490a2e2e0188001ad3f9e86b0324da5cf41c",
+      "artifactLength": 1671,
+      "artifactSha256": "2721344e1aae7a1af1870e73686e415cd14ea4e19ea4bf4e6ee9a5f93f742e43",
       "expected": {
         "valid": true,
         "reason": "ok",
@@ -33,8 +33,8 @@
     },
     {
       "id": "valid-numeric-language",
-      "artifactLength": 1034,
-      "artifactSha256": "a4ccc408915d4a194ae7d03dda0416b2fc41ce26daf2ca84724aa4ab2ac7bfba",
+      "artifactLength": 1028,
+      "artifactSha256": "a876f97ec6455ae92603d55d7cf7c63d42d203d9788b6466ac00950a2ff4a5db",
       "expected": {
         "valid": true,
         "reason": "ok",
@@ -43,8 +43,8 @@
     },
     {
       "id": "valid-quality-timer-event",
-      "artifactLength": 971,
-      "artifactSha256": "3684148706631ad06740b50ca7c90d0b06ee6e740b95575e51a352e1fd80dcdc",
+      "artifactLength": 993,
+      "artifactSha256": "4b58af25d10ec63ab25fdbdf013d5a0feaa8434a2ce98361058b6b59c1aac391",
       "expected": {
         "valid": true,
         "reason": "ok",
@@ -53,8 +53,8 @@
     },
     {
       "id": "valid-analog-points",
-      "artifactLength": 932,
-      "artifactSha256": "ad226610f74ae86988e6932c7a4d88ccc8157b0b00f89d52f9f524695795b4ce",
+      "artifactLength": 984,
+      "artifactSha256": "7064be093ddd67dfe252cc1a84df9d9890b20b84f01972da72434a2c4e705163",
       "expected": {
         "valid": true,
         "reason": "ok",
@@ -63,8 +63,8 @@
     },
     {
       "id": "valid-source-order-permutation",
-      "artifactLength": 1030,
-      "artifactSha256": "6288f6b99d6776cc3838921dca62d6c834d14a5996d624b219ebbc1aba2d1a1e",
+      "artifactLength": 1096,
+      "artifactSha256": "4892bb5f01895b891258a842d6132ffc950a8a0b989748721baca31c27a30f11",
       "expected": {
         "valid": true,
         "reason": "ok",
@@ -83,8 +83,8 @@
     },
     {
       "id": "malformed-truncated",
-      "artifactLength": 1029,
-      "artifactSha256": "02eb384a0d80509996019ad869444377a9798bcb7a2e7077bc9504481a623f11",
+      "artifactLength": 1095,
+      "artifactSha256": "ac4118953427d99f7f0a1cf9e6b28b10b7873f172e02edaa4b43e107c0523494",
       "expected": {
         "valid": false,
         "reason": "length_mismatch",
@@ -93,8 +93,8 @@
     },
     {
       "id": "invalid-operand",
-      "artifactLength": 1030,
-      "artifactSha256": "69ad93b92738eb2afc8d82e987f3391b2f96520a4729490c59aa07969a56994a",
+      "artifactLength": 1096,
+      "artifactSha256": "3e2e86c2a5d535e2dda3ba3af4733059f5e07a7185f75e62b88db781d3cfef30",
       "expected": {
         "valid": false,
         "reason": "invalid_operand",
@@ -103,8 +103,8 @@
     },
     {
       "id": "unknown-section",
-      "artifactLength": 1030,
-      "artifactSha256": "7791129741bc24442cdeecb718f635e2b49ebec1c662d28702b0c07af2d4c576",
+      "artifactLength": 1096,
+      "artifactSha256": "8787a4839dcfb304eaeaed3bc532830c7921c0cd9317771f50cad341fbe3a00c",
       "expected": {
         "valid": false,
         "reason": "unknown_section",
@@ -113,8 +113,8 @@
     },
     {
       "id": "noncanonical-section-order",
-      "artifactLength": 1030,
-      "artifactSha256": "39b6299fd07821860c770ae7abdf3ed3d5bf06369af5672f6fba570dfa7320cf",
+      "artifactLength": 1096,
+      "artifactSha256": "26d77bdacd671eb9a8478957d42bfb4224b97bcc5baf4fa271427e65982aa88c",
       "expected": {
         "valid": false,
         "reason": "non_canonical_order",

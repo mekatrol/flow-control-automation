@@ -144,7 +144,9 @@ const points = computed<SimulationPoint[]>(() => {
       node.nodeType === FlowNodeType.DigitalOutput ||
       virtualWrite;
     if (!input && !output) continue;
-    const pointId = String(node.configuration.pointId ?? '');
+    const localPointId = String(node.configuration.pointId ?? '');
+    const pointSourceId = String(node.configuration.pointSourceId ?? '');
+    const pointId = pointSourceId ? `${pointSourceId}/${localPointId}` : localPointId;
     if (!pointId || result.has(pointId)) continue;
     const flowDefinition = flowDefinitions.value.get(pointId);
     const definition = flowDefinition ?? contextDefinitions.value.get(pointId);

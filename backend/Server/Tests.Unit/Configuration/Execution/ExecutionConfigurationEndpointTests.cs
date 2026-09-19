@@ -134,7 +134,7 @@ internal sealed class ExecutionConfigurationEndpointTests
         Assert.That(createdContext.PointContracts, Has.Count.EqualTo(1));
 
         var resolution = await client.GetFromJsonAsync<PointAvailability>(
-            "/api/point-resolution/temp-setpoint?executionContextId=climate&executionInstanceId=server",
+            "/api/point-resolution/climate/temp-setpoint?executionContextId=climate&executionInstanceId=server",
             FlowControlJson.Options);
 
         Assert.Multiple(() =>
@@ -146,7 +146,7 @@ internal sealed class ExecutionConfigurationEndpointTests
         });
 
         var missingResolution = await client.GetFromJsonAsync<PointAvailability>(
-            "/api/point-resolution/missing?executionContextId=climate",
+            "/api/point-resolution/climate/missing?executionContextId=climate",
             FlowControlJson.Options);
         Assert.That(missingResolution!.Exists, Is.False);
 

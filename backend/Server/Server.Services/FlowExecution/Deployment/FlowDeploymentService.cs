@@ -33,7 +33,7 @@ internal sealed class FlowDeploymentService(
 
         var inputPointIds = source.Nodes
             .Where(node => node.NodeType == FlowNodeType.DigitalInput)
-            .Select(node => node.Configuration["pointId"].GetString()!)
+            .Select(PointKey)
             .Distinct(StringComparer.Ordinal)
             .Order(StringComparer.Ordinal)
             .ToArray();
@@ -45,6 +45,9 @@ internal sealed class FlowDeploymentService(
             TimeSpan.FromMilliseconds(100),
             cancellationToken);
     }
+
+    private static string PointKey(ExecutableFlowNode node) =>
+        $"{node.Configuration["pointSourceId"].GetString()}/{node.Configuration["pointId"].GetString()}";
 
     internal static ExecutableFlowSource ToExecutableSource(
         Flow flow,

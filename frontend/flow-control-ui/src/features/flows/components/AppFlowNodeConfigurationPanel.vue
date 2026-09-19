@@ -22,28 +22,37 @@
 
       <label v-for="field in nodeEditorFields" :key="field.key">
         <span>{{ field.label }}</span>
-        <template v-if="field.key === 'pointId' && !isVirtualPointNode(node)">
-          <input
-            type="text"
+        <template v-if="field.key === 'pointSourceId' && !isVirtualPointNode(node)">
+          <select
+            :value="node.configuration.pointSourceId"
+            :aria-invalid="Boolean(errors.pointSourceId)"
+            @change="updatePointSourceId($event)"
+          >
+            <option value="">Choose a point source</option>
+            <option v-for="source in pointSources" :key="source.id" :value="source.id">
+              {{ source.id }} — {{ source.name }}
+            </option>
+          </select>
+        </template>
+        <template v-else-if="field.key === 'pointId' && !isVirtualPointNode(node)">
+          <select
             :value="node.configuration.pointId"
-            :list="`${node.id}-compatible-points`"
-            autocomplete="off"
+            :disabled="!validPointSourceId"
             :aria-invalid="Boolean(errors.pointId)"
             aria-describedby="point-lookup-help"
-            @input="updatePointId(field, $event)"
-            @blur="validatePointId"
-          />
-          <datalist :id="`${node.id}-compatible-points`">
+            @change="updatePointId(field, $event)"
+          >
+            <option value="">Choose a point</option>
             <option v-for="point in compatiblePoints" :key="point.id" :value="point.id">
-              {{ point.name }} · {{ point.sourceKind }} · {{ point.valueType
+              {{ point.id }} — {{ point.name }} · {{ point.valueType
               }}{{ point.units ? ` · ${point.units}` : '' }}
             </option>
-          </datalist>
+          </select>
           <small v-if="validationState === 'pending'" role="status" class="field-help"
             >Validating point…</small
           >
           <small v-else-if="!errors.pointId" id="point-lookup-help" class="field-help">
-            Search declared compatible points or enter a point ID manually.
+            Choose a compatible point declared by the selected point source.
           </small>
         </template>
         <input
@@ -83,8 +92,6 @@
 </template>
 
 <script lang="ts">
-import { DataDirectionType } from '@/types/serverTypes';
-
 import type { FlowConfigurationValue as EditorValue } from '@/features/flows/types';
 import type { NodeEditorField as EditorField } from '@/features/flows/nodeTypes';
 
@@ -138,6 +145,10 @@ import type {
 import type { PointSummary } from '@/features/points/api/pointDto';
 import { pointApi } from '@/features/points/api/pointApi';
 import {
+  pointSourceApi,
+  type PointSourceSummary
+} from '@/features/pointSources/api/pointSourceApi';
+import {
   pointCompatibilityError,
   validatePointReference,
   type PointValidationState
@@ -168,23 +179,19 @@ const definitions = computed(() => {
   return [...merged.values()];
 });
 const remotePoints = ref<PointSummary[]>([]);
+const pointSources = ref<PointSourceSummary[]>([]);
 const pointDraft = ref(String(props.node.configuration.pointId ?? ''));
 const validationState = ref<PointValidationState>('idle');
-let debounceTimer: number | undefined;
 let lookupController: AbortController | undefined;
+const validPointSourceId = computed(() =>
+  pointSources.value.some((source) => source.id === props.node.configuration.pointSourceId)
+);
 const compatiblePoints = computed(() =>
-  [
-    ...definitions.value.map((point) => ({
-      ...point,
-      id: point.key,
-      name: point.key,
-      sourceKind: 'virtual' as const,
-      enabled: true,
-      direction: DataDirectionType.Value,
-      revision: 0
-    })),
-    ...remotePoints.value
-  ].filter((point) => !pointCompatibilityError(props.node, point))
+  remotePoints.value.filter(
+    (point) =>
+      point.sourceId === props.node.configuration.pointSourceId &&
+      !pointCompatibilityError(props.node, point)
+  )
 );
 
 const pointIdError = (value: string): string | undefined => {
@@ -225,34 +232,27 @@ const validatePointId = async (): Promise<void> => {
 };
 
 const updatePointId = (field: NodeEditorField, event: Event): void => {
-  const target = event.target as HTMLInputElement;
+  const target = event.target as HTMLSelectElement;
   pointDraft.value = target.value;
-  const error = validatePointIdDraft(target.value);
-  if (error) {
-    errors.value.pointId = error;
-    validationState.value = 'invalid';
-    emit('validation', props.node.id, 'invalid');
-  } else {
-    delete errors.value.pointId;
-    if (!pointIdError(target.value))
-      emit(EVENTS.UPDATE_CONFIGURATION, field.key, target.value.trim());
-    validationState.value = 'pending';
-    emit('validation', props.node.id, 'pending');
+  emit(EVENTS.UPDATE_CONFIGURATION, field.key, target.value);
+  void validatePointId();
+};
+
+const updatePointSourceId = (event: Event): void => {
+  const sourceId = (event.target as HTMLSelectElement).value;
+  emit(EVENTS.UPDATE_CONFIGURATION, 'pointSourceId', sourceId);
+  emit(EVENTS.UPDATE_CONFIGURATION, 'pointId', '');
+  pointDraft.value = '';
+};
+
+const loadPoints = async (sourceId: FlowConfigurationValue | undefined): Promise<void> => {
+  remotePoints.value = [];
+  if (!pointSources.value.some((source) => source.id === sourceId)) return;
+  try {
+    remotePoints.value = (await pointApi.list({ filter: '', page: 1, pageSize: 50 })).items;
+  } catch {
+    remotePoints.value = [];
   }
-  window.clearTimeout(debounceTimer);
-  debounceTimer = window.setTimeout(async () => {
-    // Leave a syntactically incomplete separator suffix alone while the user
-    // is typing. The blur handler applies the strict, finished-ID rule.
-    if (validatePointIdDraft(target.value) === undefined && pointIdError(target.value)) return;
-    try {
-      remotePoints.value = (
-        await pointApi.list({ filter: target.value, page: 1, pageSize: 20 })
-      ).items;
-    } catch {
-      remotePoints.value = [];
-    }
-    await validatePointId();
-  }, 350);
 };
 
 watch(
@@ -264,8 +264,22 @@ watch(
   { immediate: true }
 );
 watch(definitions, () => void validatePointId());
+watch(
+  () => props.node.configuration.pointSourceId,
+  (sourceId) => loadPoints(sourceId),
+  { immediate: true }
+);
+
+void pointSourceApi
+  .list()
+  .then((page) => {
+    pointSources.value = page.items.filter((source) => source.enabled);
+    void loadPoints(props.node.configuration.pointSourceId);
+  })
+  .catch(() => {
+    pointSources.value = [];
+  });
 onBeforeUnmount(() => {
-  window.clearTimeout(debounceTimer);
   lookupController?.abort();
 });
 

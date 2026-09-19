@@ -25,7 +25,7 @@ internal sealed partial class ExecutionConfigurationService(
     public async Task<IReadOnlyList<ExecutionContextDefinition>> ListContextsAsync(CancellationToken cancellationToken) =>
         [.. (await context.ExecutionContexts.AsNoTracking().OrderBy(item => item.Key).ToListAsync(cancellationToken)).Select(Deserialize<ExecutionContextDefinition>)];
 
-    public async Task<PointAvailability> ResolvePointAsync(string pointKey, string? contextId, string? instanceId, CancellationToken cancellationToken)
+    public async Task<PointAvailability> ResolvePointAsync(string? pointSourceId, string pointKey, string? contextId, string? instanceId, CancellationToken cancellationToken)
     {
         ValidateId(pointKey, "pointKey");
         ExecutionContextDefinition? definition = null;
@@ -49,6 +49,7 @@ internal sealed partial class ExecutionConfigurationService(
                 ExecutionContextId = contextId,
                 ExecutionInstanceId = instanceId,
                 PointKey = pointKey,
+                SourceKind = PointSourceKind.Virtual,
                 Exists = true,
                 ValueType = contract.ValueType,
                 Readable = contract.Readable,
@@ -61,7 +62,13 @@ internal sealed partial class ExecutionConfigurationService(
 
         AutomationPoint? point = null;
 
-        try { point = await pointDefinitions.GetPointAsync(pointKey, cancellationToken); }
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(pointSourceId))
+            {
+                point = await pointDefinitions.GetPointAsync(pointSourceId, pointKey, cancellationToken);
+            }
+        }
         catch (PointDefinitionNotFoundException) { }
 
         return point is null
@@ -71,6 +78,8 @@ internal sealed partial class ExecutionConfigurationService(
                 ExecutionContextId = contextId,
                 ExecutionInstanceId = instanceId,
                 PointKey = pointKey,
+                PointSourceId = pointSourceId,
+                SourceKind = point.SourceKind,
                 Exists = true,
                 ValueType = point.ValueType,
                 Readable = point.Readable,

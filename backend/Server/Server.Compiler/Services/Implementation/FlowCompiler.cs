@@ -1457,9 +1457,9 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         out int recordCount)
     {
         var resolvedPoints = request.Target.Points
-            .GroupBy(point => point.Id, StringComparer.Ordinal)
+            .GroupBy(PointKey, StringComparer.Ordinal)
             .Select(group => group.Single())
-            .OrderBy(point => point.Id, StringComparer.Ordinal)
+            .OrderBy(PointKey, StringComparer.Ordinal)
             .ToArray();
 
         // ---------------------------------------------------------------------
@@ -1482,7 +1482,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             .Distinct(StringComparer.Ordinal)
             .Select(pointId =>
             {
-                var resolved = resolvedPoints.SingleOrDefault(candidate => candidate.Id == pointId)
+                var resolved = resolvedPoints.SingleOrDefault(candidate => PointKey(candidate) == pointId)
                     ?? throw Failure(FlowCompilationDiagnosticCode.MissingPoint, $"/points/{Escape(pointId)}", pointId);
 
                 var revision = resolved.Revision;
@@ -2663,7 +2663,8 @@ internal sealed partial class FlowCompiler : IFlowCompiler
      * Return the numeric index of the canonical point/interface record used by
      * this node. Instructions store this compact index rather than a point ID.
      *
-     * Physical I/O nodes identify a binding with configuration["pointId"], while
+     * Physical I/O nodes identify a binding with configuration["pointSourceId"] and
+     * configuration["pointId"], while
      * The lookup also includes direction, data type, and node type so two records with the
      * same textual ID cannot be confused when they represent different bindings.
      *
@@ -2680,7 +2681,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
      */
     private static ushort PointIndex(IReadOnlyList<PointRecord> points, ExecutableFlowNode node, DataDirectionType direction, DataType type)
     {
-        var pointId = node.Configuration["pointId"].GetString();
+        var pointId = PointKey(node);
 
         return checked((ushort)points.Select((point, index) => new { point, index })
             .Single(item =>
@@ -2838,14 +2839,17 @@ internal sealed partial class FlowCompiler : IFlowCompiler
 
         if (node.NodeType is FlowNodeType.DigitalInput or FlowNodeType.DigitalOutput or FlowNodeType.AnalogInput or FlowNodeType.AnalogOutput)
         {
-            if (!node.Configuration.TryGetValue("pointId", out var point)
+            if (!node.Configuration.TryGetValue("pointSourceId", out var source)
+                || source.ValueKind != JsonValueKind.String
+                || source.GetString() is not string pointSourceId
+                || !node.Configuration.TryGetValue("pointId", out var point)
                 || point.ValueKind != JsonValueKind.String
                 || point.GetString() is not string pointId)
             {
                 throw Failure(FlowCompilationDiagnosticCode.MissingPointId, path);
             }
 
-            if (node.Configuration.Keys.Any(key => key is not ("pointId" or "units")))
+            if (node.Configuration.Keys.Any(key => key is not ("pointSourceId" or "pointId" or "units")))
             {
                 throw Failure(FlowCompilationDiagnosticCode.UnexpectedPointConfigurationProperty, path);
             }
@@ -2857,6 +2861,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             }
 
             const int MaxIdentifierBytes = 63;
+            ValidateIdentifier(pointSourceId, $"{path}/pointSourceId", MaxIdentifierBytes);
             ValidateIdentifier(pointId, $"{path}/pointId", MaxIdentifierBytes);
         }
         else if (node.NodeType == FlowNodeType.DigitalConstant)
@@ -3287,7 +3292,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
 
         foreach (var node in nodes.Where(node => node.NodeType is FlowNodeType.DigitalOutput or FlowNodeType.AnalogOutput))
         {
-            var pointId = node.Configuration["pointId"].GetString()!;
+            var pointId = PointKey(node);
 
             if (!outputPoints.Add(pointId))
             {
@@ -3384,7 +3389,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             .Select(node => new PointRecord(
 
                 // Id
-                node.Configuration["pointId"].GetString()!,
+                PointKey(node),
 
                 // Direction
                 node.NodeType switch
@@ -3430,8 +3435,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         ExecutableFlowNode node,
         IReadOnlyList<AutomationPoint> resolvedPoints)
     {
-        var pointId = node.Configuration["pointId"].GetString();
-        var point = resolvedPoints.SingleOrDefault(candidate => candidate.Id == pointId);
+        var point = ResolvePoint(node, resolvedPoints);
 
         return point is VirtualAutomationPoint || point?.Direction == DataDirectionType.Value
             ? PointBindingType.VirtualPoint
@@ -3451,11 +3455,24 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             return units.GetString();
         }
 
-        return resolvedPoints
-            .SingleOrDefault(point =>
-                point.Id == node.Configuration["pointId"].GetString())
-            ?.Units;
+        return ResolvePoint(node, resolvedPoints)?.Units;
     }
+
+    private static AutomationPoint? ResolvePoint(
+        ExecutableFlowNode node,
+        IReadOnlyList<AutomationPoint> resolvedPoints)
+    {
+        var sourceId = node.Configuration["pointSourceId"].GetString();
+        var pointId = node.Configuration["pointId"].GetString();
+
+        return resolvedPoints.SingleOrDefault(point =>
+            point.SourceId == sourceId && point.Id == pointId);
+    }
+
+    private static string PointKey(ExecutableFlowNode node) =>
+        $"{node.Configuration["pointSourceId"].GetString()}/{node.Configuration["pointId"].GetString()}";
+
+    private static string PointKey(AutomationPoint point) => $"{point.SourceId}/{point.Id}";
 
     // Encode a required identifier/string as [length:u8][UTF-8 bytes].
     // The length is BYTE length, not C# char count; this matters for non-ASCII text.
@@ -3544,7 +3561,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
 
             var value = node.NodeType switch
             {
-                FlowNodeType.AnalogInput => request.Target.Points.SingleOrDefault(point => point.Id == node.Configuration["pointId"].GetString())?.Units,
+                FlowNodeType.AnalogInput => ResolvePoint(node, request.Target.Points)?.Units,
                 FlowNodeType.AnalogConstant => null,
                 FlowNodeType.Add or FlowNodeType.Subtract => RequireMatchingUnits(source, units, id, "a", "b"),
                 FlowNodeType.Multiply or FlowNodeType.Divide or FlowNodeType.Power => null,
@@ -3567,7 +3584,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             {
                 var inputUnits = units[SourceNode(source, id, "in")];
 
-                var pointUnits = request.Target.Points.SingleOrDefault(point => point.Id == node.Configuration["pointId"].GetString())?.Units;
+                var pointUnits = ResolvePoint(node, request.Target.Points)?.Units;
 
                 if (!string.Equals(inputUnits, pointUnits, StringComparison.Ordinal))
                 {

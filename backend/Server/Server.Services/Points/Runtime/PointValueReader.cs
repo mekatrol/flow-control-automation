@@ -14,7 +14,16 @@ internal sealed class PointValueReader(
         string pointId,
         CancellationToken cancellationToken)
     {
-        var point = await points.GetPointAsync(pointId, cancellationToken);
+        var separator = pointId.IndexOf('/', StringComparison.Ordinal);
+
+        if (separator <= 0 || separator == pointId.Length - 1)
+        {
+            throw new PointDefinitionNotFoundException("point", pointId);
+        }
+
+        var sourceId = pointId[..separator];
+        var localPointId = pointId[(separator + 1)..];
+        var point = await points.GetPointAsync(sourceId, localPointId, cancellationToken);
 
         if (!point.Enabled)
         {
@@ -27,8 +36,7 @@ internal sealed class PointValueReader(
         }
 
         var sourcePage = await sources.ListAsync(new PointSourceListOptions(), cancellationToken);
-        var source = sourcePage.Items.SingleOrDefault(candidate =>
-            candidate.Points.Any(nested => nested.Id == point.Id));
+        var source = sourcePage.Items.SingleOrDefault(candidate => candidate.Id == sourceId);
 
         if (source?.Kind == PointSourceKind.Virtual || point.Direction == DataDirectionType.Value)
         {

@@ -128,20 +128,14 @@ public sealed class PointValidatorFixtureMatrixTests
     }
 
     [Test]
-    public void SourceValidator_EnforcesGlobalPointIdentity()
+    public void SourceValidator_AllowsTheSamePointIdInDifferentSources()
     {
         var source = ValidSource();
         var other = source with { Id = "other-source" };
         using var provider = TestServices.CreateProvider();
         var validator = provider.GetRequiredService<IPointSourceValidator>();
 
-        var exception = Assert.Throws<PointSourceValidationException>(() =>
-            validator.Validate(source, [other]));
-        Assert.That(
-            exception!.Message,
-            Is.EqualTo(
-                "A point with ID \"point\" already exists in point source "
-                + "\"Source\" (ID \"other-source\"). Choose a different point ID."));
+        Assert.DoesNotThrow(() => validator.Validate(source, [other]));
     }
 
     [TestCase("duplicate-alias.yaml", "is used more than once in mapping")]

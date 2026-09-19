@@ -6,6 +6,9 @@ public interface IPointDefinitionReader
     /// <summary>Lists all points nested in persisted point-source aggregates.</summary>
     Task<IReadOnlyList<AutomationPoint>> ListPointsAsync(CancellationToken cancellationToken);
 
-    /// <summary>Gets a globally identified point definition from its owning source aggregate.</summary>
-    Task<AutomationPoint> GetPointAsync(string id, CancellationToken cancellationToken);
+    /// <summary>Gets a point definition by its globally unique source/point identity.</summary>
+    Task<AutomationPoint> GetPointAsync(
+        string sourceId,
+        string pointId,
+        CancellationToken cancellationToken);
 }

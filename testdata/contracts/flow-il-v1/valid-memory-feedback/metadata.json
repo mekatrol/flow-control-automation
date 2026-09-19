@@ -1,20 +1,22 @@
 {
-  "flowId": "valid-memory-feedback",
+  "flowId": "memory-feedback",
   "flowRevision": 2,
   "sectionCount": 8,
-  "instructionCount": 5,
-  "slotCount": 4,
+  "instructionCount": 6,
+  "slotCount": 5,
   "pointCount": 1,
   "stateCount": 1,
   "schedule": [
-    "constant-2",
+    "constant-true",
     "memory-1",
+    "or-1",
     "output-01-node"
   ],
   "slots": {
-    "constant-2": 0,
+    "constant-true": 0,
     "memory-1": 1,
-    "output-01-node": 2
+    "or-1": 2,
+    "output-01-node": 3
   },
-  "artifactLength": 975
+  "artifactLength": 1066
 }

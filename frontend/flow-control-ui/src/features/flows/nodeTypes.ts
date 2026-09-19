@@ -216,8 +216,11 @@ export const nodeTypeRegistry: Record<
         side: 'right'
       }
     ],
-    [{ key: 'pointId', label: 'Input point ID', input: 'text' }],
-    { pointId: 'analog-input-point' },
+    [
+      { key: 'pointSourceId', label: 'Point source ID', input: 'text' },
+      { key: 'pointId', label: 'Input point ID', input: 'text' }
+    ],
+    { pointSourceId: '', pointId: '' },
     'io'
   ),
   [FlowNodeType.AnalogOutput]: executableDefinition(
@@ -231,8 +234,11 @@ export const nodeTypeRegistry: Record<
         side: 'left'
       }
     ],
-    [{ key: 'pointId', label: 'Output point ID', input: 'text' }],
-    { pointId: 'analog-output-point' },
+    [
+      { key: 'pointSourceId', label: 'Point source ID', input: 'text' },
+      { key: 'pointId', label: 'Output point ID', input: 'text' }
+    ],
+    { pointSourceId: '', pointId: '' },
     'io'
   ),
   [FlowNodeType.AnalogVirtual]: executableDefinition(
@@ -433,15 +439,21 @@ export const nodeTypeRegistry: Record<
   [FlowNodeType.DigitalInput]: executableDefinition(
     FlowNodeType.DigitalInput,
     [booleanPort('value', 'Value', DataDirectionType.Output, 'right')],
-    [{ key: 'pointId', label: 'Input point ID', input: 'text' }],
-    { pointId: 'input-point' },
+    [
+      { key: 'pointSourceId', label: 'Point source ID', input: 'text' },
+      { key: 'pointId', label: 'Input point ID', input: 'text' }
+    ],
+    { pointSourceId: '', pointId: '' },
     'io'
   ),
   [FlowNodeType.DigitalOutput]: executableDefinition(
     FlowNodeType.DigitalOutput,
     [booleanPort('in', 'Input', DataDirectionType.Input, 'left')],
-    [{ key: 'pointId', label: 'Output point ID', input: 'text' }],
-    { pointId: 'output-point' },
+    [
+      { key: 'pointSourceId', label: 'Point source ID', input: 'text' },
+      { key: 'pointId', label: 'Output point ID', input: 'text' }
+    ],
+    { pointSourceId: '', pointId: '' },
     'io'
   ),
   [FlowNodeType.DigitalVirtual]: executableDefinition(

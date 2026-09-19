@@ -452,7 +452,7 @@ internal sealed class FlowEmulatorService : IFlowEmulatorService, IDisposable
                 && node.Configuration.TryGetValue("pointId", out _))
             .Select(node => new
             {
-                PointId = node.Configuration["pointId"].GetString(),
+                PointId = $"{node.Configuration["pointSourceId"].GetString()}/{node.Configuration["pointId"].GetString()}",
                 node.NodeType
             })
             .Where(static item => !string.IsNullOrEmpty(item.PointId))

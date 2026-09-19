@@ -51,20 +51,22 @@ internal sealed class FlowCompilationTargetResolver(
         ValidateLimits(source, template.Limits);
 
         var allPoints = await points.ListPointsAsync(cancellationToken);
-        var pointsById = allPoints.ToDictionary(point => point.Id, StringComparer.Ordinal);
-
-        foreach (var definition in source.VirtualPointDefinitions)
-        {
-            pointsById.TryAdd(definition.Key, VirtualPoint(definition));
-        }
+        var pointsById = allPoints.ToDictionary(
+            point => new PointIdentity(point.SourceId!, point.Id));
 
         var resolvedPoints = new List<AutomationPoint>();
 
         foreach (var reference in PointReferences(source))
         {
-            if (!pointsById.TryGetValue(reference.PointId, out var point))
+            if (!pointsById.TryGetValue(
+                    new PointIdentity(reference.PointSourceId, reference.PointId),
+                    out var point))
             {
-                throw Failure(FlowCompilationDiagnosticCode.MissingPoint, $"/points/{Escape(reference.PointId)}", reference.PointId);
+                throw Failure(
+                    FlowCompilationDiagnosticCode.MissingPoint,
+                    $"/points/{Escape(reference.PointSourceId)}/{Escape(reference.PointId)}",
+                    reference.PointSourceId,
+                    reference.PointId);
             }
 
             ValidatePoint(reference, point);
@@ -77,23 +79,6 @@ internal sealed class FlowCompilationTargetResolver(
             Points = resolvedPoints
         };
     }
-
-    private static VirtualAutomationPoint VirtualPoint(VirtualPointDefinition definition) => new()
-    {
-        Id = definition.Key,
-        Name = definition.Key,
-        Enabled = true,
-        Direction = DataDirectionType.Value,
-        ValueType = definition.ValueType,
-        Units = definition.Units,
-        Readable = definition.Readable,
-        Commandable = definition.Commandable,
-        Persistence = definition.Persistence == VirtualPointPersistenceType.Retained ? "retained" : "volatile",
-        RelinquishDefault = definition.RelinquishDefault is { } value
-            ? System.Text.Json.Nodes.JsonNode.Parse(value.GetRawText())
-            : null,
-        Revision = 1
-    };
 
     private static void ValidateCapabilities(
         ExecutableFlowSource source,
@@ -170,21 +155,25 @@ internal sealed class FlowCompilationTargetResolver(
 
     private static IReadOnlyList<PointReference> PointReferences(ExecutableFlowSource source) =>
         [.. source.Nodes
-            .Select(node => new { Node = node, PointId = PointId(node) })
-            .Where(item => item.PointId is not null)
+            .Select(node => new { Node = node, Point = ParsePointIdentity(node) })
+            .Where(item => item.Point is not null)
             .Select(item => new PointReference(
-                item.PointId!,
+                item.Point!.Value.SourceId,
+                item.Point.Value.PointId,
                 item.Node.NodeType is FlowNodeType.DigitalInput or FlowNodeType.AnalogInput,
                 item.Node.NodeType.ToString().StartsWith("Analog", StringComparison.Ordinal)))
             .Distinct()
-            .OrderBy(reference => reference.PointId, StringComparer.Ordinal)
+            .OrderBy(reference => reference.PointSourceId, StringComparer.Ordinal)
+            .ThenBy(reference => reference.PointId, StringComparer.Ordinal)
             .ThenBy(reference => reference.IsInput ? 0 : 1)];
 
-    private static string? PointId(ExecutableFlowNode node) =>
+    private static PointIdentity? ParsePointIdentity(ExecutableFlowNode node) =>
         node.NodeType is FlowNodeType.DigitalInput or FlowNodeType.DigitalOutput or FlowNodeType.AnalogInput or FlowNodeType.AnalogOutput &&
-        node.Configuration.TryGetValue("pointId", out var value) &&
-        value.ValueKind == System.Text.Json.JsonValueKind.String
-            ? value.GetString()
+        node.Configuration.TryGetValue("pointSourceId", out var sourceValue) &&
+        sourceValue.ValueKind == System.Text.Json.JsonValueKind.String &&
+        node.Configuration.TryGetValue("pointId", out var pointValue) &&
+        pointValue.ValueKind == System.Text.Json.JsonValueKind.String
+            ? new(sourceValue.GetString()!, pointValue.GetString()!)
             : null;
 
     private static void ValidatePoint(PointReference reference, AutomationPoint point)
@@ -202,7 +191,8 @@ internal sealed class FlowCompilationTargetResolver(
         {
             throw Failure(
                 FlowCompilationDiagnosticCode.PointDirectionMismatch,
-                $"/points/{Escape(reference.PointId)}",
+                $"/points/{Escape(reference.PointSourceId)}/{Escape(reference.PointId)}",
+                reference.PointSourceId,
                 reference.PointId,
                 reference.IsAnalog ? "analog" : "digital",
                 reference.IsInput ? "input" : "output"
@@ -231,5 +221,10 @@ internal sealed class FlowCompilationTargetResolver(
     private static string Escape(string value) => value.Replace("~", "~0", StringComparison.Ordinal)
         .Replace("/", "~1", StringComparison.Ordinal);
 
-    private sealed record PointReference(string PointId, bool IsInput, bool IsAnalog);
+    private readonly record struct PointIdentity(string SourceId, string PointId);
+    private sealed record PointReference(
+        string PointSourceId,
+        string PointId,
+        bool IsInput,
+        bool IsAnalog);
 }

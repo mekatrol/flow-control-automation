@@ -14,6 +14,7 @@
       "id": "input-01-node",
       "nodeType": "digitalInput",
       "configuration": {
+        "pointSourceId": "controller",
         "pointId": "input-01"
       },
       "label": "Digital Input",

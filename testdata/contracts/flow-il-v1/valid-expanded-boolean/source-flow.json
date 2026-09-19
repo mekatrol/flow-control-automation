@@ -72,6 +72,7 @@
       "id": "output-nand",
       "nodeType": "digitalOutput",
       "configuration": {
+        "pointSourceId": "controller",
         "pointId": "output-nand"
       },
       "label": "Digital Output",
@@ -83,6 +84,7 @@
       "id": "output-nor",
       "nodeType": "digitalOutput",
       "configuration": {
+        "pointSourceId": "controller",
         "pointId": "output-nor"
       },
       "label": "Digital Output",
@@ -94,6 +96,7 @@
       "id": "output-xor",
       "nodeType": "digitalOutput",
       "configuration": {
+        "pointSourceId": "controller",
         "pointId": "output-xor"
       },
       "label": "Digital Output",
@@ -105,6 +108,7 @@
       "id": "output-xnor",
       "nodeType": "digitalOutput",
       "configuration": {
+        "pointSourceId": "controller",
         "pointId": "output-xnor"
       },
       "label": "Digital Output",

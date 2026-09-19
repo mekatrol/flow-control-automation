@@ -82,7 +82,7 @@ public sealed class DatabaseTests
     }
 
     [Test]
-    public async Task PointOwnershipIndexEnforcesGlobalIdsAndCascadesWithSource()
+    public async Task PointOwnershipIndexAllowsCrossSourceIdsRejectsLocalDuplicatesAndCascades()
     {
         await using var provider = CreateProvider();
         await using var scope = provider.CreateAsyncScope();
@@ -105,6 +105,16 @@ public sealed class DatabaseTests
             SourceId = "source-two"
         });
 
+        await context.SaveChangesAsync(CancellationToken.None);
+        Assert.That(await context.PointSourcePoints.CountAsync(), Is.EqualTo(2));
+
+        ((DbContext)context).ChangeTracker.Clear();
+        context.PointSourcePoints.Add(new PointSourcePointEntity
+        {
+            PointId = "shared-point",
+            SourceId = "source-two"
+        });
+
         Assert.That(
             async () => await context.SaveChangesAsync(CancellationToken.None),
             Throws.TypeOf<DbUpdateException>());
@@ -113,7 +123,10 @@ public sealed class DatabaseTests
         context.PointSources.Remove(await context.PointSources.SingleAsync(item => item.Id == "source-one"));
         await context.SaveChangesAsync(CancellationToken.None);
 
-        Assert.That(await context.PointSourcePoints.CountAsync(), Is.Zero);
+        Assert.That(await context.PointSourcePoints.CountAsync(), Is.EqualTo(1));
+        Assert.That(
+            await context.PointSourcePoints.SingleAsync(),
+            Has.Property(nameof(PointSourcePointEntity.SourceId)).EqualTo("source-two"));
     }
 
     /// <summary>

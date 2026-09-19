@@ -72,7 +72,7 @@ public sealed class FlowCompilationTargetResolverTests
         AssertDiagnostic(
             async () => await context.Resolver.ResolveAsync(Source(), default),
             FlowCompilationDiagnosticCode.MissingPoint,
-            "/points/output-01");
+            "/points/source-a/output-01");
     }
 
     [Test]
@@ -85,7 +85,7 @@ public sealed class FlowCompilationTargetResolverTests
         AssertDiagnostic(
             async () => await context.Resolver.ResolveAsync(Source(), default),
             FlowCompilationDiagnosticCode.PointDirectionMismatch,
-            "/points/output-01");
+            "/points/source-a/output-01");
     }
 
     [Test]
@@ -165,7 +165,7 @@ public sealed class FlowCompilationTargetResolverTests
         string pointId)
     {
         using var document =
-            JsonDocument.Parse($$"""{"pointId":"{{pointId}}"}""");
+            JsonDocument.Parse($$"""{"pointSourceId":"source-a","pointId":"{{pointId}}"}""");
 
         return new ExecutableFlowNode
         {
@@ -173,6 +173,9 @@ public sealed class FlowCompilationTargetResolverTests
             NodeType = kind,
             Configuration = new Dictionary<string, JsonElement>
             {
+                ["pointSourceId"] = document.RootElement
+                    .GetProperty("pointSourceId")
+                    .Clone(),
                 ["pointId"] = document.RootElement
                     .GetProperty("pointId")
                     .Clone()
@@ -239,6 +242,7 @@ public sealed class FlowCompilationTargetResolverTests
         bool commandable = false) => new()
         {
             Id = id,
+            SourceId = "source-a",
             Name = id,
             Enabled = true,
             Direction = DataDirectionType.Value,
@@ -255,6 +259,7 @@ public sealed class FlowCompilationTargetResolverTests
         bool commandable = false) => new()
         {
             Id = id,
+            SourceId = "source-a",
             Name = id,
             Enabled = true,
             Direction = direction,
@@ -354,7 +359,8 @@ public sealed class FlowCompilationTargetResolverTests
         }
 
         public Task<AutomationPoint> GetPointAsync(
-            string id,
+            string sourceId,
+            string pointId,
             CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 

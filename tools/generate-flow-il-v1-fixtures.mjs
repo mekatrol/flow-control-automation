@@ -59,14 +59,15 @@ function schedule(source) {
 }
 
 function compile(source) {
+  const pointKey = (node) => `${node.pointSourceId ?? 'controller'}/${node.pointId}`;
   const orderedIds = schedule(source);
   const nodes = new Map(source.nodes.map((node) => [node.id, node]));
   const slotByNode = new Map(orderedIds.map((id, index) => [id, index]));
   const memoryIds = orderedIds.filter((id) => nodes.get(id).nodeType === 'memory');
   const stateIds = orderedIds.filter((id) => ['memory', 'onDelay', 'risingEdge'].includes(nodes.get(id).nodeType));
   const stateSlotByNode = new Map(stateIds.map((id, index) => [id, orderedIds.length + index]));
-  const points = [...new Map(source.nodes.filter((node) => node.pointId).map((node) => [node.pointId, {
-    id: node.pointId, direction: node.nodeType === 'input' || node.nodeType === 'analogInput' ? 1 : 2,
+  const points = [...new Map(source.nodes.filter((node) => node.pointId).map((node) => [pointKey(node), {
+    id: pointKey(node), direction: node.nodeType === 'input' || node.nodeType === 'analogInput' ? 1 : 2,
     type: node.nodeType === 'analogInput' || node.nodeType === 'analogOutput' ? 2 : 1,
     units: node.units ?? ''
   }])).values()].sort((left, right) => compare(left.id, right.id) || left.direction - right.direction);
@@ -92,8 +93,8 @@ function compile(source) {
     const node = nodes.get(id);
     const result = slotByNode.get(id);
     const instruction = { nodeId: id, discriminator: 0, result, op0: 0xffff, op1: 0xffff, aux: 0xffff };
-    if (node.nodeType === 'input') Object.assign(instruction, { opcode: opcodes.readPoint, aux: pointIndex.get(node.pointId) });
-    if (node.nodeType === 'analogInput') Object.assign(instruction, { opcode: opcodes.readPoint, aux: pointIndex.get(node.pointId) });
+    if (node.nodeType === 'input') Object.assign(instruction, { opcode: opcodes.readPoint, aux: pointIndex.get(pointKey(node)) });
+    if (node.nodeType === 'analogInput') Object.assign(instruction, { opcode: opcodes.readPoint, aux: pointIndex.get(pointKey(node)) });
     if (node.nodeType === 'constant') Object.assign(instruction, { opcode: opcodes.constant, aux: constantIndex(1, Boolean(node.value) ? 1 : 0) });
     if (node.nodeType === 'not') Object.assign(instruction, { opcode: opcodes.not, op0: inputSlot(id, 'in') });
     if (node.nodeType === 'and') Object.assign(instruction, { opcode: opcodes.and, op0: inputSlot(id, 'a'), op1: inputSlot(id, 'b') });
@@ -110,8 +111,8 @@ function compile(source) {
     if (node.nodeType === 'onDelay') Object.assign(instruction, { opcode: 18, op0: inputSlot(id, 'in'), aux: stateSlotByNode.get(id) });
     if (node.nodeType === 'risingEdge') Object.assign(instruction, { opcode: 19, op0: inputSlot(id, 'in'), aux: stateSlotByNode.get(id) });
     if (node.nodeType === 'memory') Object.assign(instruction, { opcode: opcodes.loadState, aux: stateSlotByNode.get(id) });
-    if (node.nodeType === 'output') Object.assign(instruction, { opcode: opcodes.proposeOutput, op0: inputSlot(id, 'in'), aux: pointIndex.get(node.pointId) });
-    if (node.nodeType === 'analogOutput') Object.assign(instruction, { opcode: opcodes.proposeOutput, op0: inputSlot(id, 'in'), aux: pointIndex.get(node.pointId) });
+    if (node.nodeType === 'output') Object.assign(instruction, { opcode: opcodes.proposeOutput, op0: inputSlot(id, 'in'), aux: pointIndex.get(pointKey(node)) });
+    if (node.nodeType === 'analogOutput') Object.assign(instruction, { opcode: opcodes.proposeOutput, op0: inputSlot(id, 'in'), aux: pointIndex.get(pointKey(node)) });
     instructions.push(instruction);
   }
   for (const id of memoryIds) instructions.push({ opcode: opcodes.stageState, nodeId: id, discriminator: 1,
@@ -129,7 +130,7 @@ function compile(source) {
   const instructionBytes = instructions.map((item) => Buffer.concat([u8(item.opcode), u8(0), u16(item.result), u16(item.op0), u16(item.op1), u16(item.aux), u16(0)]));
   const commits = [];
   for (const id of memoryIds) commits.push(Buffer.concat([u8(1), u8(0), u16(stateSlotByNode.get(id)), u16(inputSlot(id, 'in')), u16(0)]));
-  for (const id of orderedIds.filter((nodeId) => ['output', 'analogOutput'].includes(nodes.get(nodeId).nodeType))) commits.push(Buffer.concat([u8(2), u8(0), u16(pointIndex.get(nodes.get(id).pointId)), u16(slotByNode.get(id)), u16(0)]));
+  for (const id of orderedIds.filter((nodeId) => ['output', 'analogOutput'].includes(nodes.get(nodeId).nodeType))) commits.push(Buffer.concat([u8(2), u8(0), u16(pointIndex.get(pointKey(nodes.get(id)))), u16(slotByNode.get(id)), u16(0)]));
   const symbols = instructions.map((item, index) => {
     const node = nodes.get(item.nodeId);
     const label = node ? (node.label ?? authoringLabel(node.nodeType)) : '';
@@ -186,6 +187,7 @@ function compile(source) {
 function currentSource(source) {
   const nodeType = (value) => value === 'input' ? 'digitalInput' : value === 'output' ? 'digitalOutput' : value === 'constant' ? 'digitalConstant' : value;
   const configuration = (node) => Object.fromEntries([
+    ['pointSourceId', node.pointId ? (node.pointSourceId ?? 'controller') : undefined],
     ['pointId', node.pointId], ['value', node.value], ['operator', node.operator], ['gain', node.gain],
     ['offset', node.offset], ['durationMs', node.durationMs]
   ].filter(([, value]) => value !== undefined));
@@ -195,7 +197,7 @@ function currentSource(source) {
     revision: source.revision,
     controllerTemplateId: source.controllerTemplateId,
     controllerTemplateRevision: source.controllerTemplateRevision,
-    execution: { mode: 'manual', intervalMs: 0, inputQualityPolicy: source.inputQualityPolicy ?? 'require_good' },
+    execution: { mode: 'manual', intervalMs: 0, inputQualityPolicy: source.inputQualityPolicy === 'propagate' ? 'propagate' : 'requireGood' },
     nodes: source.nodes.map((node) => ({ id: node.id, nodeType: nodeType(node.nodeType), configuration: configuration(node),
       label: node.label ?? authoringLabel(node.nodeType), x: node.x ?? 0, y: node.y ?? 0, zOrder: node.zOrder ?? 0,
       ...(node.groupId ? { groupId: node.groupId } : {}) })),

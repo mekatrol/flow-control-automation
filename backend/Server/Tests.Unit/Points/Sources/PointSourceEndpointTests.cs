@@ -7,6 +7,41 @@ namespace Tests.Unit.Points.Sources;
 [TestFixture]
 internal sealed class PointSourceEndpointTests
 {
+    [Test]
+    public async Task PointIdsAreUniqueWithinTheirSourceAndReusableAcrossSources()
+    {
+        await using var factory = new Api.FlowControlApplicationFactory();
+        using var client = factory.CreateClient();
+        var template = PointSourceYaml.Parse(File.ReadAllBytes(Path.Combine(
+            TestContext.CurrentContext.TestDirectory,
+            "ContractFixtures",
+            "point-sources",
+            "valid",
+            "virtual.v1.yaml")));
+        var first = template with { Id = "panel-a", Name = "Panel A" };
+        var second = template with { Id = "panel-b", Name = "Panel B" };
+
+        using var firstResponse = await SendYaml(client, HttpMethod.Post, "/api/point-sources", first);
+        using var secondResponse = await SendYaml(client, HttpMethod.Post, "/api/point-sources", second);
+        using var duplicateResponse = await SendYaml(
+            client,
+            HttpMethod.Post,
+            "/api/point-sources",
+            template with
+            {
+                Id = "panel-c",
+                Name = "Panel C",
+                Points = [.. template.Points, template.Points[0]]
+            });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(firstResponse.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+            Assert.That(secondResponse.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+            Assert.That(duplicateResponse.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        });
+    }
+
     [TestCase("POST", "/api/points")]
     [TestCase("GET", "/api/points/example")]
     [TestCase("PUT", "/api/points/example")]

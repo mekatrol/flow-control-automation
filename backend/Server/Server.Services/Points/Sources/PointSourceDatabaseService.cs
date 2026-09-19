@@ -240,7 +240,7 @@ internal sealed class PointSourceDatabaseService(
 
         var source = Deserialize(entity);
 
-        if (await IsReferencedByFlow(source.Points.Select(point => point.Id), cancellationToken))
+        if (await IsReferencedByFlow(source.Id, source.Points.Select(point => point.Id), cancellationToken))
         {
             throw new PointSourceConflictException(
                 "one or more source points are referenced by a flow");
@@ -287,6 +287,7 @@ internal sealed class PointSourceDatabaseService(
         ?? throw new PointSourceNotFoundException(id);
 
     private async Task<bool> IsReferencedByFlow(
+        string sourceId,
         IEnumerable<string> pointIds,
         CancellationToken cancellationToken)
     {
@@ -306,6 +307,9 @@ internal sealed class PointSourceDatabaseService(
                 foreach (var node in nodes.EnumerateArray())
                 {
                     if (node.TryGetProperty("configuration", out var configuration)
+                        && configuration.TryGetProperty("pointSourceId", out var pointSourceId)
+                        && pointSourceId.ValueKind == JsonValueKind.String
+                        && pointSourceId.GetString() == sourceId
                         && configuration.TryGetProperty("pointId", out var pointId)
                         && pointId.ValueKind == JsonValueKind.String
                         && ids.Contains(pointId.GetString()!))

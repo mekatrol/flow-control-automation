@@ -56,7 +56,9 @@ export const createExecutionNodeRuntime = ({
     flow.nodes.map((flowNode) => {
       const writeNodeId = `${flowNode.id}--write`;
       const node = snapshotsByNode.get(flowNode.id) ?? snapshotsByNode.get(writeNodeId);
-      const pointId = String(flowNode.configuration.pointId ?? '');
+      const localPointId = String(flowNode.configuration.pointId ?? '');
+      const pointSourceId = String(flowNode.configuration.pointSourceId ?? '');
+      const pointId = pointSourceId ? `${pointSourceId}/${localPointId}` : localPointId;
       const ioValue = isInputPointNode(flowNode)
         ? inputValues.get(pointId)
         : isOutputPointNode(flowNode)

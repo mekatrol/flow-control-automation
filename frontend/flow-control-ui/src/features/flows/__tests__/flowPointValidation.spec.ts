@@ -3,7 +3,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { validatePointReference } from '@/features/flows/flowPointValidation';
 import type { FlowNode, VirtualPointDefinition } from '@/features/flows/types';
 
-const node = (nodeType: FlowNode['nodeType'], pointId: string): FlowNode => ({
+const node = (
+  nodeType: FlowNode['nodeType'],
+  pointId: string,
+  pointSourceId?: string
+): FlowNode => ({
   id: 'point-node',
   nodeType,
   label: 'Point',
@@ -11,7 +15,7 @@ const node = (nodeType: FlowNode['nodeType'], pointId: string): FlowNode => ({
   y: 0,
   zOrder: 0,
   connectors: [],
-  configuration: { pointId }
+  configuration: { ...(pointSourceId ? { pointSourceId } : {}), pointId }
 });
 const definition: VirtualPointDefinition = {
   key: 'temperature',
@@ -53,12 +57,12 @@ describe('flow point validation', () => {
       )
     );
     await expect(
-      validatePointReference(node('digitalInput', 'missing'), [])
+      validatePointReference(node('digitalInput', 'missing', 'source-a'), [])
     ).resolves.toMatchObject({ state: 'invalid', message: 'Point “missing” does not exist.' });
 
     vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new Error('offline'));
     await expect(
-      validatePointReference(node('digitalInput', 'unknown'), [])
+      validatePointReference(node('digitalInput', 'unknown', 'source-a'), [])
     ).resolves.toMatchObject({
       state: 'unavailable',
       message: expect.stringContaining('unavailable')

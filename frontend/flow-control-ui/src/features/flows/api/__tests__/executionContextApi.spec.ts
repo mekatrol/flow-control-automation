@@ -31,7 +31,7 @@ describe('execution context point resolution', () => {
     for (const sourceKind of Object.values(PointSourceKind)) {
       for (const valueType of Object.values(AutomationPointValueType)) {
         respond({ ...point, sourceKind, valueType });
-        await expect(executionContextApi.resolvePoint(point.pointKey)).resolves.toMatchObject({
+        await expect(executionContextApi.resolvePoint('source-a', point.pointKey)).resolves.toMatchObject({
           id: point.pointKey,
           sourceKind,
           valueType,
@@ -54,13 +54,13 @@ describe('execution context point resolution', () => {
     { ...point, valueType: 1 }
   ])('rejects malformed responses and non-enum values: %j', async (body) => {
     respond(body);
-    await expect(executionContextApi.resolvePoint(point.pointKey)).rejects.toThrow(
+    await expect(executionContextApi.resolvePoint('source-a', point.pointKey)).rejects.toThrow(
       'Point resolution is malformed.'
     );
   });
 
   it('returns undefined for a missing point', async () => {
     respond({ exists: false });
-    await expect(executionContextApi.resolvePoint('missing')).resolves.toBeUndefined();
+    await expect(executionContextApi.resolvePoint('source-a', 'missing')).resolves.toBeUndefined();
   });
 });

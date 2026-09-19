@@ -1,5 +1,5 @@
 {
-  "flowId": "valid-expanded-boolean",
+  "flowId": "expanded-boolean",
   "flowRevision": 1,
   "sectionCount": 8,
   "instructionCount": 11,
@@ -30,5 +30,5 @@
     "xor-1": 8,
     "output-xor": 9
   },
-  "artifactLength": 1583
+  "artifactLength": 1671
 }
