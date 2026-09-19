@@ -748,6 +748,107 @@ public sealed class FlowCompilerTests
             "/nodes/3/configuration/formula");
     }
 
+    [Test]
+    public void UnitlessD2AOutputCanDriveAUnitBearingPoint()
+    {
+        var source = new ExecutableFlowSource
+        {
+            Id = "unitless-d2a-output",
+            Revision = 1,
+            ControllerTemplateId = "fixture",
+            ControllerTemplateRevision = 1,
+            Nodes =
+            [
+                new() { Id = "digital", NodeType = FlowNodeType.DigitalConstant, Configuration = Config("value", true) },
+                new() { Id = "d2a", NodeType = FlowNodeType.D2A, Configuration = Config(("lowValue", 0D), ("highValue", 100D)) },
+                new() { Id = "output", NodeType = FlowNodeType.AnalogOutput, Configuration = Config(("pointSourceId", "source"), ("pointId", "light")) }
+            ],
+            Connections =
+            [
+                new(new("digital", "value"), new("d2a", "in")),
+                new(new("d2a", "value"), new("output", "in"))
+            ]
+        };
+        var request = BuildCompilationRequest(source);
+        request = request with
+        {
+            Target = request.Target with
+            {
+                Points = [request.Target.Points.Single() with { Units = "%" }]
+            }
+        };
+
+        Assert.DoesNotThrow(() => _compiler.Compile(request));
+    }
+
+    [Test]
+    public void UnitlessNumericOperandCanBeCombinedWithAUnitBearingOperand()
+    {
+        var source = new ExecutableFlowSource
+        {
+            Id = "unitless-numeric-operand",
+            Revision = 1,
+            ControllerTemplateId = "fixture",
+            ControllerTemplateRevision = 1,
+            Nodes =
+            [
+                new() { Id = "input", NodeType = FlowNodeType.AnalogInput, Configuration = Config(("pointSourceId", "source"), ("pointId", "temperature")) },
+                new() { Id = "offset", NodeType = FlowNodeType.AnalogConstant, Configuration = Config("value", 1D) },
+                new() { Id = "add", NodeType = FlowNodeType.Add, Configuration = Config() }
+            ],
+            Connections =
+            [
+                new(new("input", "value"), new("add", "a")),
+                new(new("offset", "value"), new("add", "b"))
+            ]
+        };
+        var request = BuildCompilationRequest(source);
+        request = request with
+        {
+            Target = request.Target with
+            {
+                Points = [request.Target.Points.Single() with { Units = "°C" }]
+            }
+        };
+
+        Assert.DoesNotThrow(() => _compiler.Compile(request));
+    }
+
+    [Test]
+    public void AnalogOutputRejectsDifferentUnitsWhenBothEndsDeclareUnits()
+    {
+        var source = new ExecutableFlowSource
+        {
+            Id = "mismatched-analog-units",
+            Revision = 1,
+            ControllerTemplateId = "fixture",
+            ControllerTemplateRevision = 1,
+            Nodes =
+            [
+                new() { Id = "input", NodeType = FlowNodeType.AnalogInput, Configuration = Config(("pointSourceId", "source"), ("pointId", "temperature")) },
+                new() { Id = "output", NodeType = FlowNodeType.AnalogOutput, Configuration = Config(("pointSourceId", "source"), ("pointId", "light")) }
+            ],
+            Connections = [new(new("input", "value"), new("output", "in"))]
+        };
+        var request = BuildCompilationRequest(source);
+        request = request with
+        {
+            Target = request.Target with
+            {
+                Points =
+                [
+                    request.Target.Points.Single(point => point.Id == "temperature") with { Units = "°C" },
+                    request.Target.Points.Single(point => point.Id == "light") with { Units = "%" }
+                ]
+            }
+        };
+
+        AssertDiagnostic(
+            () => _compiler.Compile(request),
+            FlowCompilationDiagnosticCode.AnalogOutputUnitMismatch,
+            "/nodes/output");
+    }
+
     private static Dictionary<string, JsonElement> Config(string key, object value) =>
         new() { [key] = JsonSerializer.SerializeToElement(value) };
 

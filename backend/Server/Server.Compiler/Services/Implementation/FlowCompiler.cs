@@ -3586,7 +3586,11 @@ internal sealed partial class FlowCompiler : IFlowCompiler
 
                 var pointUnits = ResolvePoint(node, request.Target.Points)?.Units;
 
-                if (!string.Equals(inputUnits, pointUnits, StringComparison.Ordinal))
+                // Unitless/unspecified numeric values are compatible with any destination.
+                // Only reject a write when both ends declare units and those units differ.
+                if (inputUnits is not null
+                    && pointUnits is not null
+                    && !string.Equals(inputUnits, pointUnits, StringComparison.Ordinal))
                 {
                     throw Failure(FlowCompilationDiagnosticCode.AnalogOutputUnitMismatch, $"/nodes/{Escape(id)}");
                 }
@@ -3612,7 +3616,9 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         var left = units[SourceNode(source, nodeId, leftPort)];
         var right = units[SourceNode(source, nodeId, rightPort)];
 
-        if (!string.Equals(left, right, StringComparison.Ordinal))
+        if (left is not null
+            && right is not null
+            && !string.Equals(left, right, StringComparison.Ordinal))
         {
             throw Failure(FlowCompilationDiagnosticCode.NumericOperandUnitMismatch, $"/nodes/{Escape(nodeId)}");
         }

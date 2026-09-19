@@ -249,4 +249,12 @@ describe('node-type registry', () => {
       defaultConfiguration: {}
     });
   });
+
+  it('keeps D2A output unitless', () => {
+    expect(nodeTypeRegistry.d2a.editor).toEqual([
+      { key: 'lowValue', label: 'Low analog value', input: 'number' },
+      { key: 'highValue', label: 'High analog value', input: 'number' }
+    ]);
+    expect(nodeTypeRegistry.d2a.defaultConfiguration).toEqual({ lowValue: 0, highValue: 100 });
+  });
 });

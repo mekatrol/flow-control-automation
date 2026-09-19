@@ -497,6 +497,7 @@ export const nodeTypeRegistry: Record<
         side: 'right'
       }
     ],
+    // D2A values are intentionally unitless; only their numeric range is configured.
     [
       { key: 'lowValue', label: 'Low analog value', input: 'number' },
       { key: 'highValue', label: 'High analog value', input: 'number' }
