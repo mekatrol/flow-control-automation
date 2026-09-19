@@ -165,7 +165,7 @@ internal sealed class FlowExecutionContextService(
         Snapshot = value.Snapshot,
         Inspection = value.Inspection,
         Io = new FlowExecutionIo { LiveOutputEnabled = value.LiveOutputEnabled, LiveOutputPointIds = value.AffectedOutputPoints },
-        Presentation = new FlowExecutionPresentation { ModeLabel = "Debugger", HostLabel = target == "server" ? "Server" : target, UsesPhysicalIo = target != "server" },
+        Presentation = new FlowExecutionPresentation { ModeLabel = "Debugger", HostLabel = target == "server" ? "Server" : target, UsesPhysicalIo = true },
         LeaseRemainingMilliseconds = value.LeaseRemainingMilliseconds
     };
     private static FlowExecutionLifecycle Lifecycle(string value) => value switch { "ready" => FlowExecutionLifecycle.Ready, "running" => FlowExecutionLifecycle.Running, "paused" => FlowExecutionLifecycle.Paused, "stepping" => FlowExecutionLifecycle.Stepping, "fault" or "faulted" => FlowExecutionLifecycle.Faulted, "stale" => FlowExecutionLifecycle.Stale, "stopped" => FlowExecutionLifecycle.Stopped, _ => FlowExecutionLifecycle.Ready };

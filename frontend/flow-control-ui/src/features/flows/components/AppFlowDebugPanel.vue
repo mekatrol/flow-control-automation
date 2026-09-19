@@ -3,7 +3,9 @@
     <div class="debug-controls">
       <strong>{{ hostLabel }} debug</strong>
       <span class="mode">{{
-        host === 'controller' ? 'Shadow outputs by default' : 'Server-hosted execution'
+        host === 'controller'
+          ? 'Shadow outputs by default'
+          : 'Server-hosted execution · live point I/O'
       }}</span>
       <AppButton
         text="Create context"
@@ -108,7 +110,9 @@
       <span>Arbitration losses {{ snapshot.arbitrationLossCount ?? 0 }}</span>
       <span>Input {{ snapshot.inputValidity.join(', ') || 'unavailable' }}</span>
       <span v-if="stale">Stale snapshot — graph revision changed</span>
-      <span v-else>Current shadow snapshot</span>
+      <span v-else>{{
+        host === 'server' ? 'Current live snapshot' : 'Current shadow snapshot'
+      }}</span>
       <span v-if="snapshot.lastReason">{{ snapshot.lastReason }}</span>
       <button
         v-if="snapshot.lastReasonPath"
@@ -121,9 +125,12 @@
         </svg>
         Go to affected node {{ diagnosticNodeId }}
       </button>
-      <ul v-if="snapshot.proposedOutputs.length" aria-label="Proposed non-physical outputs">
+      <ul v-if="snapshot.proposedOutputs.length" aria-label="Output commands">
         <li v-for="output in snapshot.proposedOutputs" :key="output.pointId">
-          {{ output.pointId }}: {{ output.proposedValue }} ({{ output.quality }}) — proposed only
+          {{ output.pointId }}: {{ output.proposedNumber ?? output.proposedValue }} ({{
+            output.quality
+          }}) —
+          {{ outputStatus }}
         </li>
       </ul>
     </div>
@@ -216,6 +223,9 @@ const canEnableLiveOutput = computed(
   () => !props.stale && ['ready', 'paused'].includes(props.lifecycle)
 );
 const stateLabel = computed(() => (props.stale ? 'stale' : props.lifecycle));
+const outputStatus = computed(() =>
+  props.host === 'server' || props.liveOutputEnabled ? 'commanded' : 'proposed only'
+);
 const executionOrder = computed(() => props.executionOrder ?? []);
 const breakpoints = computed(() => props.breakpoints ?? []);
 const diagnosticNodeId = computed(() => {

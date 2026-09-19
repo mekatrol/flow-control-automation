@@ -90,4 +90,44 @@ describe('flow debug panel', () => {
     expect(wrapper.text()).not.toContain('Live physical outputs');
     expect(wrapper.text()).not.toContain('Enable live outputs');
   });
+
+  it('identifies committed server-debug outputs as commanded', () => {
+    const wrapper = mount(AppFlowDebugPanel, {
+      props: {
+        lifecycle: 'ready',
+        targetAvailable: true,
+        host: 'server',
+        snapshot: {
+          debugSessionId: 'server-debug',
+          flowId: 'lighting',
+          revision: 1,
+          lifecycleState: 'ready',
+          mode: 'manual',
+          tickNumber: 1,
+          sampledAtMs: 1,
+          completedAtMs: 2,
+          executionDurationUs: 3,
+          inputValidity: [],
+          nodes: [],
+          proposedOutputs: [
+            {
+              pointId: 'lights/intensity',
+              state: 'proposed',
+              quality: 'good',
+              proposedNumber: 25,
+              typedValue: { type: 'number', number: 25 }
+            }
+          ],
+          overrunCount: 0,
+          evaluationFailureCount: 0,
+          lastReasonCode: 0,
+          lastReason: 'ok',
+          lastReasonPath: ''
+        }
+      }
+    });
+
+    expect(wrapper.text()).toContain('Server-hosted execution · live point I/O');
+    expect(wrapper.text()).toContain('lights/intensity: 25 (good) — commanded');
+  });
 });

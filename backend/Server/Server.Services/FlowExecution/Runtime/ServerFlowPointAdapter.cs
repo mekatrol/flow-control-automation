@@ -42,6 +42,56 @@ internal sealed class ServerFlowPointAdapter(
         cancellationToken.ThrowIfCancellationRequested();
         await virtualPoints.CommitAsync("server", flowId, commands, cancellationToken);
 
+        await using var scope = scopes.CreateAsyncScope();
+        var definitions = scope.ServiceProvider.GetRequiredService<IPointDefinitionReader>();
+        var sources = scope.ServiceProvider.GetRequiredService<IPointSourceService>();
+        var resolver = scope.ServiceProvider.GetRequiredService<IPointMappingResolver>();
+        var mappings = scope.ServiceProvider.GetRequiredService<IPointMappingExecutionService>();
+
+        foreach (var command in commands)
+        {
+            var separator = command.PointId.IndexOf('/', StringComparison.Ordinal);
+
+            if (separator <= 0 || separator == command.PointId.Length - 1)
+            {
+                continue;
+            }
+
+            var sourceId = command.PointId[..separator];
+            var pointId = command.PointId[(separator + 1)..];
+            var point = await definitions.GetPointAsync(sourceId, pointId, cancellationToken);
+
+            if (!point.Enabled || !point.Commandable)
+            {
+                throw new InvalidOperationException($"Point '{command.PointId}' is not enabled and commandable.");
+            }
+
+            var source = await sources.GetAsync(sourceId, cancellationToken);
+
+            if (!source.Enabled)
+            {
+                throw new InvalidOperationException($"Point source '{sourceId}' is disabled.");
+            }
+
+            if (source.Kind == PointSourceKind.Virtual || point.Direction == DataDirectionType.Value)
+            {
+                continue;
+            }
+
+            var result = await mappings.CommandAsync(
+                resolver.Resolve(source, point),
+                command.TypedValue.DataType == DataType.Number
+                    ? command.TypedValue.Number
+                    : command.TypedValue.Boolean,
+                cancellationToken);
+
+            if (result.Diagnostic is not null)
+            {
+                throw new InvalidOperationException(
+                    $"Commanding point '{command.PointId}' failed: {result.Diagnostic}");
+            }
+        }
+
         lock (_gate)
         {
             _latestCommands[flowId] = [.. commands];
