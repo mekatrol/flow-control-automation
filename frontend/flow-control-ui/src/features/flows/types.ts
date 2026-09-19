@@ -100,6 +100,10 @@ export interface FlowDefinition {
   disabled: boolean;
   /** ISO 8601 UTC instant at which this revision was last persisted. */
   updatedAt: string;
+  /** UTC completion time of the latest successful deployed scan. */
+  lastExecutedAt: string | null;
+  /** Active debugger-owned suspension of a previously enabled deployment. */
+  temporaryDisable: { contextId: string; startedAt: string } | null;
   /** Nodes in stable persisted order; node IDs must be unique. */
   nodes: FlowNode[];
   /** Directed edges in stable persisted order; connection IDs must be unique. */

@@ -22,6 +22,8 @@ const tutorialFlow = (nodeType: FlowNodeType): FlowDefinition => ({
   disabled: false,
   revision: 1,
   updatedAt: '2026-08-15T00:00:00.000Z',
+  lastExecutedAt: null,
+  temporaryDisable: null,
   nodes: [createDefaultNode(nodeType, { x: 240, y: 160 }, 0, `tutorial-${nodeType}-node`)],
   connections: []
 });

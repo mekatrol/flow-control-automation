@@ -2,6 +2,7 @@ using Server.Services.Configuration.ControllerTemplates;
 using Server.Services.Configuration.Credentials;
 using Server.Services.Configuration.Execution;
 using Server.Services.Configuration.Flows;
+using Server.Services.FlowExecution.ExecutionContext;
 
 namespace Server.Services.ServiceExtensions;
 
@@ -14,6 +15,9 @@ internal static class ConfigurationServiceCollectionExtensions
             static provider => provider.GetRequiredService<FlowDatabaseService>());
         services.AddScoped<IFlowStore>(
             static provider => provider.GetRequiredService<FlowDatabaseService>());
+        services.AddScoped<IFlowExecutionMetadataStore>(
+            static provider => provider.GetRequiredService<FlowDatabaseService>());
+        services.AddScoped<IFlowDebugLeaseRepository, FlowDebugLeaseRepository>();
         services.AddSingleton<IControllerTemplateValidator, ControllerTemplateValidator>();
         services.AddSingleton<IControllerTemplateStore, ControllerTemplateFileStore>();
         services.AddScoped<CredentialDatabaseService>();

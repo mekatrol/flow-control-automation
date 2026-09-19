@@ -13,7 +13,7 @@ namespace Server.Services.Configuration.Flows;
 internal sealed class FlowDatabaseService(
     IFlowControlDbContext context,
     IFlowValidator flowValidator,
-    TimeProvider timeProvider) : IFlowStore
+    TimeProvider timeProvider) : IFlowStore, IFlowExecutionMetadataStore
 {
     public async Task<PaginatedResult<Flow>> ListAsync(
         FlowListOptions options,
@@ -49,9 +49,12 @@ internal sealed class FlowDatabaseService(
         var stored = await context.Flows
             .AsNoTracking()
             .ToListAsync(cancellationToken);
+        var leases = await context.FlowDebugLeases
+            .AsNoTracking()
+            .ToDictionaryAsync(item => item.FlowId, StringComparer.Ordinal, cancellationToken);
         var filter = options.Filter.Trim();
         var matches = stored
-            .Select(Deserialize)
+            .Select(entity => Enrich(Deserialize(entity), entity, leases.GetValueOrDefault(entity.Id)))
             .Where(flow =>
                 (filter.Length == 0
                     || flow.Name.Contains(filter, StringComparison.OrdinalIgnoreCase))
@@ -79,7 +82,13 @@ internal sealed class FlowDatabaseService(
             .AsNoTracking()
             .SingleOrDefaultAsync(flow => flow.Id == id, cancellationToken);
 
-        return entity is null ? throw new FlowNotFoundException(id) : Deserialize(entity);
+        var found = entity ?? throw new FlowNotFoundException(id);
+
+        var lease = await context.FlowDebugLeases
+            .AsNoTracking()
+            .SingleOrDefaultAsync(item => item.FlowId == id, cancellationToken);
+
+        return Enrich(Deserialize(found), found, lease);
     }
 
     public async Task<Flow> CreateAsync(string name, CancellationToken cancellationToken)
@@ -255,6 +264,22 @@ internal sealed class FlowDatabaseService(
         await SaveWithConcurrencyMapping(id, entity: null, cancellationToken);
     }
 
+    public async Task RecordSuccessfulExecutionAsync(
+        string flowId,
+        DateTimeOffset completedAt,
+        CancellationToken cancellationToken)
+    {
+        var entity = await FindTrackedAsync(flowId, cancellationToken);
+
+        if (entity.LastExecutedAt is not null && entity.LastExecutedAt >= completedAt)
+        {
+            return;
+        }
+
+        entity.LastExecutedAt = completedAt;
+        await SaveWithConcurrencyMapping(flowId, entity, cancellationToken);
+    }
+
     private static Flow Deserialize(FlowEntity entity) =>
         JsonSerializer.Deserialize<Flow>(entity.Json, FlowControlJson.Options)
         ?? throw new InvalidOperationException($"Stored flow {entity.Id} is null.");
@@ -279,7 +304,28 @@ internal sealed class FlowDatabaseService(
             == JsonSerializer.Serialize(deployed.Connections, FlowControlJson.Options);
 
     private static string Serialize(Flow flow) =>
-        JsonSerializer.Serialize(flow, FlowControlJson.Options);
+        JsonSerializer.Serialize(
+            flow with { LastExecutedAt = null, TemporaryDisable = null },
+            FlowControlJson.Options);
+
+    private static Flow Enrich(
+        Flow flow,
+        FlowEntity entity,
+        FlowDebugLeaseEntity? lease) => flow with
+        {
+            LastExecutedAt = entity.LastExecutedAt?.ToString(
+                "yyyy-MM-dd'T'HH:mm:ss.FFFFFFFK",
+                CultureInfo.InvariantCulture),
+            TemporaryDisable = lease?.SuspendedEnabledDeployment == true
+                ? new FlowTemporaryDisable
+                {
+                    ContextId = lease.ExecutionContextId,
+                    StartedAt = lease.StartedAt.ToString(
+                        "yyyy-MM-dd'T'HH:mm:ss.FFFFFFFK",
+                        CultureInfo.InvariantCulture)
+                }
+                : null
+        };
 
     private async Task ReconcileContainingContextsAsync(Flow saved, CancellationToken cancellationToken)
     {

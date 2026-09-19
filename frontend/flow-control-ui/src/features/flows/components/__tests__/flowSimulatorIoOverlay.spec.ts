@@ -22,6 +22,8 @@ describe('flow simulator I/O overlay', () => {
       disabled: false,
       revision: 1,
       updatedAt: '2026-01-01T00:00:00Z',
+      lastExecutedAt: null,
+      temporaryDisable: null,
       nodes: [input, output],
       connections: [
         {
@@ -120,6 +122,8 @@ describe('flow simulator I/O overlay', () => {
       disabled: false,
       revision: 1,
       updatedAt: '2026-01-01T00:00:00Z',
+      lastExecutedAt: null,
+      temporaryDisable: null,
       nodes: [input, sink],
       connections: [
         {

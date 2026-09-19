@@ -59,6 +59,16 @@ public partial class Program
         {
             var context = scope.ServiceProvider.GetRequiredService<IFlowControlDbContext>();
             await context.InitializeDatabase(app.Lifetime.ApplicationStopping);
+
+            // No in-memory debugger can survive an API process restart. Clear every
+            // lease from the previous process before runtime activation so deployed
+            // flows are not left temporarily disabled by an abandoned reservation.
+            var debugLeases = scope.ServiceProvider
+                .GetRequiredService<IFlowDebugLeaseRepository>();
+            var timeProvider = scope.ServiceProvider.GetRequiredService<TimeProvider>();
+            await debugLeases.ReleaseExpiredAsync(
+                timeProvider.GetUtcNow().AddTicks(1),
+                app.Lifetime.ApplicationStopping);
             var dataValidator =
                 scope.ServiceProvider.GetRequiredService<IStartupDataValidator>();
             await dataValidator.ValidateAsync(app.Lifetime.ApplicationStopping);

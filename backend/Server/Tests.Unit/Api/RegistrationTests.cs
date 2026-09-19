@@ -90,6 +90,8 @@ public sealed class RegistrationTests
     {
         public DbSet<FlowEntity> Flows => throw new NotSupportedException();
 
+        public DbSet<FlowDebugLeaseEntity> FlowDebugLeases => throw new NotSupportedException();
+
         public DbSet<PointSourceEntity> PointSources => throw new NotSupportedException();
 
         public DbSet<PointSourcePointEntity> PointSourcePoints => throw new NotSupportedException();

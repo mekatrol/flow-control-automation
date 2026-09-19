@@ -336,11 +336,19 @@ one dialog is shown. A context is active for navigation purposes in
 
 ## Implementation phases
 
-### Phase 1: Contract and persistence
+### Phase 1: Contract and persistence (complete)
 
 - Add `LastExecutedAt`, temporary-disable response metadata, structured error
   codes, debug lease entity/repository, EF migration, and serialization tests.
 - Add database uniqueness/concurrency tests and startup lease reconciliation.
+
+Completed 2026-09-20. Implemented persisted `LastExecutedAt` metadata, API and
+frontend temporary-disable contracts, a database-enforced `FlowDebugLeaseEntity`
+with heartbeat and optimistic concurrency support, identity-safe lease repository
+operations, startup cleanup of leases abandoned by a prior API process, and the
+`flow_already_being_debugged` conflict code. Focused backend persistence,
+architecture, and flow tests pass, as do frontend DTO tests, type checking, lint,
+format checking, and the production build.
 
 ### Phase 2: Backend lifecycle integration
 

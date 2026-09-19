@@ -86,6 +86,7 @@ public sealed partial class ServiceBoundaryTests
                 Path.Combine("Tests.Unit", "Data", "DatabaseTests.cs"),
                 Path.Combine("Tests.Unit", "Flows", "FlowCompilationTargetResolverTests.cs"),
                 Path.Combine("Tests.Unit", "Flows", "FlowCompilerTests.cs"),
+                Path.Combine("Tests.Unit", "Flows", "FlowDebugLeaseRepositoryTests.cs"),
                 Path.Combine("Tests.Unit", "Flows", "FlowDecompilerTests.cs"),
                 Path.Combine("Tests.Unit", "Flows", "FlowServiceTests.cs")
             }), "Service tests must use the shared composition helper; only infrastructure and explicit composition-root tests may build their own collection.");

@@ -45,10 +45,17 @@ export interface FlowDto {
   status: FlowStatus;
   disabled: boolean;
   updatedAt: string;
+  lastExecutedAt: string | null;
+  temporaryDisable: FlowTemporaryDisableDto | null;
   nodes: FlowNodeDto[];
   connections: FlowConnectionDto[];
   revision: number;
   deployedRevision?: number;
+}
+
+export interface FlowTemporaryDisableDto {
+  contextId: string;
+  startedAt: string;
 }
 
 // Validation errors include a data path so API failures can identify the exact
@@ -235,6 +242,23 @@ export const parseFlowDto = (value: unknown): FlowDto => {
 
   const updatedAt = asString(source.updatedAt, 'flow.updatedAt');
   if (Number.isNaN(Date.parse(updatedAt))) fail('flow.updatedAt', 'expected an ISO date-time');
+  const lastExecutedAt =
+    source.lastExecutedAt === undefined || source.lastExecutedAt === null
+      ? null
+      : asString(source.lastExecutedAt, 'flow.lastExecutedAt');
+  if (lastExecutedAt !== null && Number.isNaN(Date.parse(lastExecutedAt)))
+    fail('flow.lastExecutedAt', 'expected an ISO date-time or null');
+  const temporaryDisable = (() => {
+    if (source.temporaryDisable === undefined || source.temporaryDisable === null) return null;
+    const value = asRecord(source.temporaryDisable, 'flow.temporaryDisable');
+    const startedAt = asString(value.startedAt, 'flow.temporaryDisable.startedAt');
+    if (Number.isNaN(Date.parse(startedAt)))
+      fail('flow.temporaryDisable.startedAt', 'expected an ISO date-time');
+    return {
+      contextId: asString(value.contextId, 'flow.temporaryDisable.contextId'),
+      startedAt
+    };
+  })();
 
   const revision = asFiniteNumber(source.revision, 'flow.revision');
   if (!Number.isInteger(revision) || revision < 1)
@@ -261,6 +285,8 @@ export const parseFlowDto = (value: unknown): FlowDto => {
         ? source.disabled
         : fail('flow.disabled', 'expected a boolean'),
     updatedAt,
+    lastExecutedAt,
+    temporaryDisable,
     nodes,
     connections,
     revision,

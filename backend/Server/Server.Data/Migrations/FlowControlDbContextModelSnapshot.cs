@@ -193,6 +193,38 @@ namespace Server.Data.Migrations
                     b.ToTable("ExecutionInstances");
                 });
 
+            modelBuilder.Entity("Server.Data.Entities.FlowDebugLeaseEntity", b =>
+                {
+                    b.Property<string>("FlowId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ExecutionContextId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("LastHeartbeatAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(1);
+
+                    b.Property<DateTimeOffset>("StartedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("SuspendedEnabledDeployment")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("FlowId");
+
+                    b.HasIndex("ExecutionContextId")
+                        .IsUnique();
+
+                    b.ToTable("FlowDebugLeases");
+                });
+
             modelBuilder.Entity("Server.Data.Entities.FlowEntity", b =>
                 {
                     b.Property<string>("Id")
@@ -207,6 +239,9 @@ namespace Server.Data.Migrations
 
                     b.Property<string>("Key")
                         .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("LastExecutedAt")
                         .HasColumnType("TEXT");
 
                     b.Property<int>("RowVersion")
@@ -224,22 +259,6 @@ namespace Server.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("Flows");
-                });
-
-            modelBuilder.Entity("Server.Data.Entities.PointSourcePointEntity", b =>
-                {
-                    b.Property<string>("PointId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("SourceId")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("SourceId", "PointId");
-
-                    b.HasIndex("SourceId");
-
-                    b.ToTable("PointSourcePoints", (string)null);
                 });
 
             modelBuilder.Entity("Server.Data.Entities.PointSourceEntity", b =>
@@ -273,6 +292,21 @@ namespace Server.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("PointSources");
+                });
+
+            modelBuilder.Entity("Server.Data.Entities.PointSourcePointEntity", b =>
+                {
+                    b.Property<string>("SourceId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PointId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("SourceId", "PointId");
+
+                    b.HasIndex("SourceId");
+
+                    b.ToTable("PointSourcePoints", (string)null);
                 });
 
             modelBuilder.Entity("Server.Data.Entities.VirtualPointRetainedStateEntity", b =>
@@ -317,6 +351,15 @@ namespace Server.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("VirtualPointRetainedStates");
+                });
+
+            modelBuilder.Entity("Server.Data.Entities.FlowDebugLeaseEntity", b =>
+                {
+                    b.HasOne("Server.Data.Entities.FlowEntity", null)
+                        .WithMany()
+                        .HasForeignKey("FlowId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Server.Data.Entities.PointSourcePointEntity", b =>

@@ -9,6 +9,8 @@ export const sampleFlows: FlowDefinition[] = [
     disabled: false,
     revision: 1,
     updatedAt: '2026-07-13T09:30:00+10:00',
+    lastExecutedAt: null,
+    temporaryDisable: null,
     nodes: [
       {
         id: 'temperature-average',
@@ -90,6 +92,8 @@ export const sampleFlows: FlowDefinition[] = [
     disabled: false,
     revision: 1,
     updatedAt: '2026-07-12T18:15:00+10:00',
+    lastExecutedAt: null,
+    temporaryDisable: null,
     nodes: [
       {
         id: 'watering-pulse',

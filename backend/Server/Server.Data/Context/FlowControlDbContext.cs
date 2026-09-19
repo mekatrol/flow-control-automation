@@ -8,9 +8,11 @@ internal sealed class FlowControlDbContext(DbContextOptions<FlowControlDbContext
     private static readonly string[] TableNames =
         [nameof(Flows), nameof(PointSources), nameof(Credentials),
             nameof(ExecutionContexts), nameof(ExecutionInstances), nameof(ExecutionContextDeployments),
-            nameof(VirtualPointRetainedStates), nameof(AuditRecords)];
+            nameof(VirtualPointRetainedStates), nameof(AuditRecords), nameof(FlowDebugLeases)];
 
     public DbSet<FlowEntity> Flows => Set<FlowEntity>();
+
+    public DbSet<FlowDebugLeaseEntity> FlowDebugLeases => Set<FlowDebugLeaseEntity>();
 
     public DbSet<PointSourceEntity> PointSources => Set<PointSourceEntity>();
 
@@ -73,6 +75,18 @@ internal sealed class FlowControlDbContext(DbContextOptions<FlowControlDbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         ConfigureEntity(modelBuilder.Entity<FlowEntity>());
+        modelBuilder.Entity<FlowDebugLeaseEntity>(entity =>
+        {
+            entity.HasKey(item => item.FlowId);
+            entity.Property(item => item.FlowId).IsRequired();
+            entity.Property(item => item.ExecutionContextId).IsRequired();
+            entity.Property(item => item.RowVersion).HasDefaultValue(1).IsConcurrencyToken();
+            entity.HasIndex(item => item.ExecutionContextId).IsUnique();
+            entity.HasOne<FlowEntity>()
+                .WithMany()
+                .HasForeignKey(item => item.FlowId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
         ConfigureEntity(modelBuilder.Entity<PointSourceEntity>());
         modelBuilder.Entity<PointSourcePointEntity>(entity =>
         {

@@ -30,6 +30,23 @@ describe('flow DTO validation', () => {
     expect(parseFlowDto(validFlow())).toEqual(sampleFlows[0]);
   });
 
+  it('validates execution metadata and temporary disable metadata', () => {
+    const payload = validFlow() as Record<string, unknown>;
+    payload.lastExecutedAt = '2026-09-20T01:02:03Z';
+    payload.temporaryDisable = {
+      contextId: 'debug-context',
+      startedAt: '2026-09-20T01:00:00Z'
+    };
+
+    expect(parseFlowDto(payload)).toMatchObject({
+      lastExecutedAt: '2026-09-20T01:02:03Z',
+      temporaryDisable: { contextId: 'debug-context' }
+    });
+
+    payload.lastExecutedAt = 'not-a-date';
+    expect(() => parseFlowDto(payload)).toThrow(/lastExecutedAt/);
+  });
+
   it('rejects obsolete node aliases instead of migrating them', () => {
     const payload = validFlow() as (typeof sampleFlows)[number];
     (payload.nodes[0] as unknown as { nodeType: string }).nodeType = 'invert';

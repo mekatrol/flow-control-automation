@@ -14,6 +14,14 @@ public sealed record Flow
 
     public required string UpdatedAt { get; init; }
 
+    [System.Text.Json.Serialization.JsonIgnore(
+        Condition = System.Text.Json.Serialization.JsonIgnoreCondition.Never)]
+    public string? LastExecutedAt { get; init; }
+
+    [System.Text.Json.Serialization.JsonIgnore(
+        Condition = System.Text.Json.Serialization.JsonIgnoreCondition.Never)]
+    public FlowTemporaryDisable? TemporaryDisable { get; init; }
+
     public IReadOnlyList<FlowNode> Nodes { get; init; } = [];
 
     public IReadOnlyList<FlowConnection> Connections { get; init; } = [];

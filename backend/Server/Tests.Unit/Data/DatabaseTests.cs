@@ -54,7 +54,7 @@ public sealed class DatabaseTests
         // Expected outcome: `triggerCount` has the required value.
         // Acceptance criteria: `triggerCount` must equal `8`, because this condition proves that
         // initialization is idempotent and creates schema and triggers.
-        Assert.That(triggerCount, Is.EqualTo(8));
+        Assert.That(triggerCount, Is.EqualTo(9));
     }
 
     [Test]

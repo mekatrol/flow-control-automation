@@ -6,6 +6,8 @@ public interface IFlowControlDbContext
 {
     DbSet<FlowEntity> Flows { get; }
 
+    DbSet<FlowDebugLeaseEntity> FlowDebugLeases { get; }
+
     DbSet<PointSourceEntity> PointSources { get; }
 
     DbSet<PointSourcePointEntity> PointSourcePoints { get; }

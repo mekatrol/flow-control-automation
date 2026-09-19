@@ -12,6 +12,8 @@ const emptyFlow = (): FlowDefinition => ({
   disabled: false,
   revision: 1,
   updatedAt: '2026-07-14T09:00:00+10:00',
+  lastExecutedAt: null,
+  temporaryDisable: null,
   nodes: [],
   connections: []
 });
@@ -141,6 +143,8 @@ test('renders a large validated graph without dropping nodes or connections', as
     disabled: false,
     revision: 1,
     updatedAt: '2026-07-14T09:00:00+10:00',
+    lastExecutedAt: null,
+    temporaryDisable: null,
     nodes,
     connections: nodes.slice(1).map((node, index) => ({
       id: `connection-${index}`,
