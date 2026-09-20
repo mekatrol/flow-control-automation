@@ -216,6 +216,11 @@ public enum FlowOpcodeType : byte
     Clock = 41,
 
     /// <summary>
+    /// Toggles a Boolean output on each rising input edge.
+    /// </summary>
+    Toggle = 42,
+
+    /// <summary>
     /// Commits staged state changes at the end of a scan.
     /// </summary>
     Commit = byte.MaxValue

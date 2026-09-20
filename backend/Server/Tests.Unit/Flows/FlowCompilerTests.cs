@@ -35,7 +35,7 @@ public sealed class FlowCompilerTests
         FlowNodeType.DigitalSwitch, FlowNodeType.Line, FlowNodeType.LevelShifter, FlowNodeType.Max, FlowNodeType.Memory, FlowNodeType.Min,
         FlowNodeType.Nand, FlowNodeType.Nor, FlowNodeType.Not, FlowNodeType.AnalogConstant, FlowNodeType.OnDelay, FlowNodeType.Or, FlowNodeType.Override, FlowNodeType.Pulse,
         FlowNodeType.QualityGood, FlowNodeType.RisingEdge, FlowNodeType.Schedule, FlowNodeType.AnalogSwitch, FlowNodeType.Sequence, FlowNodeType.Split ,FlowNodeType.Timer,
-        FlowNodeType.D2A, FlowNodeType.Xnor, FlowNodeType.Xor, FlowNodeType.Counter, FlowNodeType.Clock
+        FlowNodeType.D2A, FlowNodeType.Xnor, FlowNodeType.Xor, FlowNodeType.Counter, FlowNodeType.Clock, FlowNodeType.Toggle
     ];
 
     private static readonly string FixtureSourceRoot = Path.Combine(
@@ -71,6 +71,7 @@ public sealed class FlowCompilerTests
         string[] booleanInputs = kind switch
         {
             FlowNodeType.Not or FlowNodeType.OnDelay or FlowNodeType.RisingEdge => ["in"],
+            FlowNodeType.Toggle => ["trigger"],
             FlowNodeType.Counter => ["count", "reset"],
             FlowNodeType.And or FlowNodeType.Or or FlowNodeType.Nand or FlowNodeType.Nor or FlowNodeType.Xnor or FlowNodeType.Xor or FlowNodeType.Sequence => ["a", "b"],
             FlowNodeType.DigitalSwitch => ["condition", "whenTrue", "whenFalse"],
@@ -711,6 +712,46 @@ public sealed class FlowCompilerTests
             Assert.That(machine.Scan([new("count", true), new("reset", false)], 0).Commands.Single().TypedValue.Number, Is.EqualTo(1D));
             Assert.That(machine.Scan([new("count", false), new("reset", true)], 1).Commands.Single().TypedValue.Number, Is.EqualTo(0D));
             Assert.That(machine.Scan([new("count", true), new("reset", true)], 2).Commands.Single().TypedValue.Number, Is.EqualTo(0D));
+        });
+    }
+
+    [Test]
+    public void ToggleChangesOutputOnlyOnRisingEdges()
+    {
+        var source = new ExecutableFlowSource
+        {
+            Id = "toggle-edges",
+            Revision = 1,
+            ControllerTemplateId = "fixture",
+            ControllerTemplateRevision = 1,
+            Nodes =
+            [
+                new() { Id = "trigger-input", NodeType = FlowNodeType.DigitalInput, Configuration = Config(("pointSourceId", "controller"), ("pointId", "trigger")) },
+                new() { Id = "toggle", NodeType = FlowNodeType.Toggle },
+                new() { Id = "output", NodeType = FlowNodeType.DigitalOutput, Configuration = Config(("pointSourceId", "controller"), ("pointId", "value")) }
+            ],
+            Connections =
+            [
+                new(new("trigger-input", "value"), new("toggle", "trigger")),
+                new(new("toggle", "value"), new("output", "in"))
+            ]
+        };
+        var compilation = _compiler.Compile(BuildCompilationRequest(source));
+        using var machine = CreateMachine(compilation.Artifact);
+
+        bool Scan(bool trigger, ulong sampledAt) => machine
+            .Scan([new("controller/trigger", trigger)], sampledAt)
+            .Commands.Single().TypedValue.Boolean;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Scan(false, 0), Is.False);
+            Assert.That(Scan(true, 1), Is.True);
+            Assert.That(Scan(true, 2), Is.True);
+            Assert.That(Scan(false, 3), Is.True);
+            Assert.That(Scan(true, 4), Is.False);
+            Assert.That(Scan(false, 5), Is.False);
+            Assert.That(Scan(true, 6), Is.True);
         });
     }
 

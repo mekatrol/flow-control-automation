@@ -406,6 +406,10 @@ export const nodeTypeRegistry: Record<
       side: 'right'
     }
   ]),
+  [FlowNodeType.Toggle]: executableDefinition(FlowNodeType.Toggle, [
+    booleanPort('trigger', 'Trigger', DataDirectionType.Input, 'left'),
+    booleanPort('value', 'Value', DataDirectionType.Output, 'right')
+  ]),
   [FlowNodeType.Clock]: executableDefinition(
     FlowNodeType.Clock,
     [

@@ -15,7 +15,7 @@ internal partial class FlowValidator : IFlowValidator
         FlowNodeType.Delay, FlowNodeType.DigitalConstant, FlowNodeType.DigitalInput, FlowNodeType.DigitalOutput, FlowNodeType.DigitalSwitch,
         FlowNodeType.LevelShifter, FlowNodeType.Line, FlowNodeType.Max, FlowNodeType.Memory, FlowNodeType.Min, FlowNodeType.Nand, FlowNodeType.Nor, FlowNodeType.Not, FlowNodeType.AnalogConstant, FlowNodeType.Or, FlowNodeType.Override,
         FlowNodeType.Pulse, FlowNodeType.Schedule, FlowNodeType.AnalogSwitch, FlowNodeType.Sequence, FlowNodeType.Split,
-        FlowNodeType.D2A, FlowNodeType.OnDelay, FlowNodeType.QualityGood, FlowNodeType.RisingEdge, FlowNodeType.Timer, FlowNodeType.Xnor, FlowNodeType.Xor, FlowNodeType.Counter, FlowNodeType.Clock, FlowNodeType.AnalogVirtual, FlowNodeType.DigitalVirtual
+        FlowNodeType.D2A, FlowNodeType.OnDelay, FlowNodeType.QualityGood, FlowNodeType.RisingEdge, FlowNodeType.Timer, FlowNodeType.Xnor, FlowNodeType.Xor, FlowNodeType.Counter, FlowNodeType.Clock, FlowNodeType.Toggle, FlowNodeType.AnalogVirtual, FlowNodeType.DigitalVirtual
     ];
 
     private static readonly HashSet<string> ValidStatuses = ["draft", "deployed"];

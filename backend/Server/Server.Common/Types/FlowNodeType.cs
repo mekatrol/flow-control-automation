@@ -247,5 +247,10 @@ public enum FlowNodeType : byte
     /// <summary>
     /// Represents an internal Boolean point with no direct physical I/O mapping.
     /// </summary>
-    DigitalVirtual
+    DigitalVirtual,
+
+    /// <summary>
+    /// Toggles a Boolean output on each rising input edge.
+    /// </summary>
+    Toggle
 }

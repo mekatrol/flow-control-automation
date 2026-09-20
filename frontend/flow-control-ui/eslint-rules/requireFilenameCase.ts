@@ -25,6 +25,8 @@ const DEFAULT_PASCAL_CASE_DIRECTORIES: readonly string[] = [
   'classes'
 ];
 
+const APP_PREFIX_DIRECTORIES: readonly string[] = ['features', 'components'];
+
 const TEST_DIRECTORIES: readonly string[] = ['__tests__', 'tests'];
 
 const DEFAULT_IGNORED_FILENAMES: readonly string[] = [
@@ -393,7 +395,11 @@ const requireFilenameCase = createRule<Options, MessageIds>({
           return;
         }
 
-        if (extension === '.vue' && !normalizedFilename.startsWith('App')) {
+        if (
+          extension === '.vue' &&
+          isInsideDirectory(absoluteFilename, APP_PREFIX_DIRECTORIES) &&
+          !normalizedFilename.startsWith('App')
+        ) {
           context.report({
             node,
             messageId: 'appPrefixRequired',

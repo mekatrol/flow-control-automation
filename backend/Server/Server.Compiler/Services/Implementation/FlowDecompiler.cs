@@ -480,6 +480,11 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
                 decoded.Constants,
                 instruction.Auxiliary,
                 instructionIndex),
+            FlowOpcodeType.Toggle => ValidateToggleState(
+                decoded.Slots,
+                decoded.Constants,
+                instruction.Auxiliary,
+                instructionIndex),
             _ => throw Error(FlowCompilationDiagnosticCode.UnsupportedOpcode, $"/instructions/{instructionIndex}/opcode", instruction.Opcode)
         };
     }
@@ -541,6 +546,10 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
                     AddInputConnection("reset", instruction.Operand1);
                 }
 
+                break;
+
+            case FlowOpcodeType.Toggle:
+                AddInputConnection("trigger", instruction.Operand0);
                 break;
 
             case FlowOpcodeType.Delay:
@@ -1056,6 +1065,23 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
         return FlowNodeType.Counter;
     }
 
+    private static FlowNodeType ValidateToggleState(
+        IReadOnlyDictionary<ushort, SlotRecord> slots,
+        IReadOnlyList<ConstantRecord> constants,
+        ushort stateSlotIndex,
+        int instructionIndex)
+    {
+        if (!slots.TryGetValue(stateSlotIndex, out var slot)
+            || slot.Kind != FlowSlotType.ToggleState
+            || slot.InitialConstant >= constants.Count
+            || constants[slot.InitialConstant].DataType != DataType.Number)
+        {
+            throw Error(FlowCompilationDiagnosticCode.InvalidStateSlotOperand, $"/instructions/{instructionIndex}/auxiliary");
+        }
+
+        return FlowNodeType.Toggle;
+    }
+
     /*
      * Recover a analog constant node configuration from its constant-pool index.
      */
@@ -1241,6 +1267,7 @@ internal sealed class FlowDecompiler(IFlowValidator flowValidator) : IFlowDecomp
                 [BooleanInput("in", "Input"), BooleanOutput("value", "Value")],
             FlowNodeType.Counter =>
                 [BooleanInput("count", "Count"), BooleanInput("reset", "Reset"), NumberOutput("value", "Count")],
+            FlowNodeType.Toggle => [BooleanInput("trigger", "Trigger"), BooleanOutput("value", "Value")],
             FlowNodeType.Clock => [BooleanInput("enable", "Enable"), BooleanOutput("output", "Clock")],
             _ => []
         };

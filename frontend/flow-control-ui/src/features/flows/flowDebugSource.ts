@@ -32,6 +32,7 @@ const supportedNodeTypes = new Set<FlowNodeType>([
   FlowNodeType.Negate,
   FlowNodeType.Comparator,
   FlowNodeType.Counter,
+  FlowNodeType.Toggle,
   FlowNodeType.Clock,
   FlowNodeType.LevelShifter,
   FlowNodeType.QualityGood,

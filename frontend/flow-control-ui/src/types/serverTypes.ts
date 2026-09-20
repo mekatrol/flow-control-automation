@@ -184,7 +184,8 @@ export const FlowNodeType = {
   Counter: 'counter',
   Clock: 'clock',
   AnalogVirtual: 'analogVirtual',
-  DigitalVirtual: 'digitalVirtual'
+  DigitalVirtual: 'digitalVirtual',
+  Toggle: 'toggle'
 } as const;
 export type FlowNodeType = (typeof FlowNodeType)[keyof typeof FlowNodeType];
 

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+     fill="none" stroke="white" stroke-width="1.0"
+     stroke-linecap="round" stroke-linejoin="round">
+  
+  <!-- input / output -->
+  <path d="M1 12h4"/>
+  <path d="M19 12h4"/>
+
+  <!-- function block -->
+  <rect x="5" y="4" width="14" height="16" rx="1.5"/>
+
+  <!-- state 0 -->
+  <text x="8.5" y="9.3"
+        fill="white" stroke="none"
+        font-family="Arial, sans-serif"
+        font-size="4.5"
+        text-anchor="middle">0</text>
+
+  <!-- state 1 -->
+  <text x="15.5" y="16.8"
+        fill="white" stroke="none"
+        font-family="Arial, sans-serif"
+        font-size="4.5"
+        text-anchor="middle">1</text>
+
+  <!-- alternating-state arrows -->
+  <path d="M10.4 9.5c2.6-1.1 5.1.2 5.6 2.2"/>
+  <path d="M15.9 9.4l.2 2.4-2.3-.7"/>
+
+  <path d="M13.6 14.5c-2.6 1.1-5.1-.2-5.6-2.2"/>
+  <path d="M8.1 14.6l-.2-2.4 2.3.7"/>
+</svg>

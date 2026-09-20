@@ -38,7 +38,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
         _points = [.. image.Points];
         _slotDataTypes = [.. image.Slots.Select(item => item.DataType)];
         _instructions = image.Instructions;
-        var stateSlots = image.Slots.Where(item => item.Kind is FlowSlotType.MemoryState or FlowSlotType.TimerState or FlowSlotType.EdgeState or FlowSlotType.CounterState).ToArray();
+        var stateSlots = image.Slots.Where(item => item.Kind is FlowSlotType.MemoryState or FlowSlotType.TimerState or FlowSlotType.EdgeState or FlowSlotType.CounterState or FlowSlotType.ToggleState).ToArray();
         var stateBase = stateSlots.Length == 0 ? image.Slots.Length : stateSlots.Min(item => item.Index);
 
         if (stateSlots.Select((item, index) => item.Index != stateBase + index).Any(invalid => invalid))
@@ -54,6 +54,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
                     FlowSlotType.EdgeState => FlowVmValue.FromBoolean(false),
                     FlowSlotType.TimerState => FlowVmValue.FromBoolean(false),
                     FlowSlotType.CounterState => FlowVmValue.FromNumber(0D),
+                    FlowSlotType.ToggleState => FlowVmValue.FromNumber(0D),
                     _ => throw Error(FlowVmErrorCode.InvalidInstruction, "/slots/state")
                 })
             ];
@@ -286,6 +287,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
             case FlowOpcodeType.Clock: Clock(instruction, a); break;
             case FlowOpcodeType.RisingEdge: RisingEdge(instruction, a); break;
             case FlowOpcodeType.Counter: Counter(instruction, a, b); break;
+            case FlowOpcodeType.Toggle: Toggle(instruction, a); break;
             case FlowOpcodeType.Min: Number(instruction, Math.Min(a.Number, b.Number), quality); break;
             case FlowOpcodeType.Max: Number(instruction, Math.Max(a.Number, b.Number), quality); break;
             case FlowOpcodeType.Clamp:
@@ -483,6 +485,23 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
         Number(instruction, count, Worse(countInput.Quality, resetInput.Quality));
         var next = (count * 4D) + (countInput.Boolean ? 1D : 0D) + (resetInput.Boolean ? 2D : 0D);
         _stagedState[state] = FlowVmValue.FromNumber(next);
+        _stagedStateValid[state] = true;
+    }
+
+    private void Toggle(Instruction instruction, FlowVmValue trigger)
+    {
+        var state = State(instruction.Auxiliary);
+        var encoded = (byte)_currentState[state].Number;
+        var previousTrigger = (encoded & 1) != 0;
+        var output = (encoded & 2) != 0;
+
+        if (trigger.Boolean && !previousTrigger)
+        {
+            output = !output;
+        }
+
+        _slots[instruction.Result] = FlowVmValue.FromBoolean(output, trigger.Quality);
+        _stagedState[state] = FlowVmValue.FromNumber((trigger.Boolean ? 1D : 0D) + (output ? 2D : 0D));
         _stagedStateValid[state] = true;
     }
 

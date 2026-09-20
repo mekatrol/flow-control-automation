@@ -28,5 +28,10 @@ public enum FlowSlotType : byte
     /// <summary>
     /// Stores persistent state for a counter operation.
     /// </summary>
-    CounterState = 6
+    CounterState = 6,
+
+    /// <summary>
+    /// Stores the previous input and output for a toggle operation.
+    /// </summary>
+    ToggleState = 7
 }

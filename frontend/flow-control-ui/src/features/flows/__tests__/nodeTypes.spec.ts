@@ -20,7 +20,7 @@ describe('node-type registry', () => {
     // Expected outcome: `flowNodeTypes` contains the required number of entries.
     // Acceptance criteria: `flowNodeTypes` must contain exactly 36 entries, because this condition proves that
     // contains complete rendering, connector, and editor metadata for every supported nodeType.
-    expect(flowNodeTypes).toHaveLength(47);
+    expect(flowNodeTypes).toHaveLength(48);
 
     // Expected outcome: `flowNodeTypes` matches the required structure.
     // Acceptance criteria: `flowNodeTypes` must equal `expect.arrayContaining(['and', 'average', 'calculator', 'nand', 'nor', 'not', 'xnor', 'xor']`, because this condition proves that
@@ -92,6 +92,7 @@ describe('node-type registry', () => {
           'negate',
           'average',
           'counter',
+          'toggle',
           'and',
           'digitalSwitch',
           'max',
