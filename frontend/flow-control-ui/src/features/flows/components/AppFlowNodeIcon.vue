@@ -1,15 +1,14 @@
 <template>
   <g class="node-icon" aria-hidden="true">
-    <path class="node-icon-shade" d="M2 0h38v60H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2Z" />
     <image
       class="node-icon-foreground"
       :href="getNodeIconUrl(icon)"
-      x="8"
-      y="18"
-      width="24"
-      height="24"
+      x="16"
+      y="16"
+      width="40"
+      height="40"
+      preserveAspectRatio="xMidYMid meet"
     />
-    <path class="node-icon-separator" d="M39.5.5v59" />
   </g>
 </template>
 
@@ -32,16 +31,5 @@ defineProps<{ icon: string }>();
    * light, dark, or system theme.
    */
   filter: var(--filter-node-icon-foreground);
-}
-
-.node-icon-shade {
-  fill: var(--color-control-contrast);
-  fill-opacity: 0.3;
-}
-
-.node-icon-separator {
-  fill: none;
-  stroke: var(--color-node-icon-outline);
-  stroke-opacity: 0.4;
 }
 </style>

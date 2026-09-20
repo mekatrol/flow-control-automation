@@ -41,7 +41,7 @@ describe('FlowNode', () => {
    * Description: Exercises uses registry metadata and exposes an accessible node name and status from its arranged starting state and
    * verifies the observable results required by the scenario.
    */
-  it('uses registry metadata and exposes an accessible node name and status', () => {
+  it('uses registry metadata and exposes an accessible node name and status', async () => {
     const node = sampleFlows[0]!.nodes[0]!;
     const wrapper = mount(AppFlowNode, {
       props: {
@@ -71,10 +71,17 @@ describe('FlowNode', () => {
       '/icons/flow-nodes/calculator.svg'
     );
 
-    // Expected outcome: `wrapper.text()` includes the required value.
-    // Acceptance criteria: `wrapper.text()` must contain `'Calculator'`, because this condition proves that
-    // uses registry metadata and exposes an accessible node name and status.
-    expect(wrapper.text()).toContain('Calculator');
+    expect(wrapper.find('.node-label').exists()).toBe(false);
+    const selector = wrapper.get('.node-selector');
+    const tooltipContainer = wrapper.get('.node-tooltip-container');
+    const tooltip = wrapper.get('[role="tooltip"]');
+    expect(tooltip.text()).toBe('Calculator');
+    expect(selector.attributes('aria-describedby')).toBe(tooltip.attributes('id'));
+    expect(tooltipContainer.attributes('style')).toContain('display: none');
+    await wrapper.trigger('mouseenter');
+    expect(tooltipContainer.attributes('style')).not.toContain('display: none');
+    await selector.trigger('keydown', { key: 'Escape' });
+    expect(tooltipContainer.attributes('style')).toContain('display: none');
 
     // Expected outcome: `wrapper.get('.node-status'` has the required value.
     // Acceptance criteria: `wrapper.get('.node-status'` must be `'running: 21.5 °C'`, because this condition proves that
@@ -109,15 +116,24 @@ describe('FlowNode', () => {
     expect(wrapper.findAll('rect.connector-port')).toHaveLength(node.connectors.length);
 
     // Expected outcome: `wrapper.get('.node-body'` has the required value.
-    // Acceptance criteria: `wrapper.get('.node-body'` must be `'200'`, because this condition proves that
+    // Acceptance criteria: the icon-only function node uses its compact footprint.
     // uses registry metadata and exposes an accessible node name and status.
-    expect(wrapper.get('.node-body').attributes('width')).toBe('200');
+    expect(wrapper.get('.node-body').attributes('width')).toBe('72');
+    expect(wrapper.get('.node-icon-foreground').attributes()).toMatchObject({
+      x: '16',
+      y: '16',
+      width: '40',
+      height: '40'
+    });
+    expect(wrapper.get('.node-icon-foreground').element.getAttribute('preserveAspectRatio')).toBe(
+      'xMidYMid meet'
+    );
 
     // Expected outcome: `wrapper.findAll('.node-marker'` matches the required structure.
     // Acceptance criteria: `wrapper.findAll('.node-marker'` must equal `['translate(110 -8`, because this condition proves that
     // uses registry metadata and exposes an accessible node name and status.
     expect(wrapper.findAll('.node-marker').map((marker) => marker.attributes('transform'))).toEqual(
-      ['translate(140 -8)', 'translate(160 -8)', 'translate(180 -8)']
+      ['translate(12 -8)', 'translate(32 -8)', 'translate(52 -8)']
     );
 
     // Expected outcome: `wrapper .findAll('.flow-connector'` has the required value.
@@ -126,7 +142,7 @@ describe('FlowNode', () => {
     expect(
       wrapper
         .findAll('.flow-connector')
-        .some((connector) => connector.attributes('transform')?.startsWith('translate(200 '))
+        .some((connector) => connector.attributes('transform')?.startsWith('translate(72 '))
     ).toBe(true);
   });
 

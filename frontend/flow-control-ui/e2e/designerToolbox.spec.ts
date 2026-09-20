@@ -128,11 +128,11 @@ test('searches the node palette and adds registry-backed nodes', async ({ page }
 });
 
 /**
- * Purpose: Protects the behavioral contract that keeps dark-theme function blocks at WCAG AA text contrast.
- * Description: Exercises keeps dark-theme function blocks at WCAG AA text contrast from its arranged starting state and
+ * Purpose: Protects the behavioral contract that keeps dark-theme node tooltips at WCAG AA text contrast.
+ * Description: Exercises node tooltips at WCAG AA text contrast from their arranged starting state and
  * verifies the observable results required by the scenario.
  */
-test('keeps dark-theme function blocks at WCAG AA text contrast', async ({ page }) => {
+test('keeps dark-theme node tooltips at WCAG AA text contrast', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('theme-preference', 'dark'));
   await page.goto('/flows/climate-control');
 
@@ -172,8 +172,9 @@ test('keeps dark-theme function blocks at WCAG AA text contrast', async ({ page 
           const node = nodes.find(
             (candidate) => candidate.getAttribute('data-node-category') === category
           )!;
-          const background = getComputedStyle(node.querySelector('.node-body')!).fill;
-          const foreground = getComputedStyle(node.querySelector('.node-label')!).fill;
+          const tooltipStyle = getComputedStyle(node.querySelector('.node-tooltip')!);
+          const background = tooltipStyle.backgroundColor;
+          const foreground = tooltipStyle.color;
           const lighter = Math.max(luminance(background), luminance(foreground));
           const darker = Math.min(luminance(background), luminance(foreground));
           return [category, (lighter + 0.05) / (darker + 0.05)];
@@ -189,7 +190,7 @@ test('keeps dark-theme function blocks at WCAG AA text contrast', async ({ page 
   for (const ratio of Object.values(contrastByCategory)) {
     // Expected outcome: `ratio` satisfies the required boundary.
     // Acceptance criteria: `ratio` must satisfy the asserted boundary against `4.5`, because this condition proves that
-    // keeps dark-theme function blocks at WCAG AA text contrast.
+    // keeps dark-theme node tooltips at WCAG AA text contrast.
     expect(ratio).toBeGreaterThanOrEqual(4.5);
   }
 });

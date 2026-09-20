@@ -20,9 +20,9 @@ export interface FlowNodeTypeDefinition {
   executable: boolean;
 }
 
-// A shared footprint keeps mixed node types aligned. The width accommodates the
-// longest built-in label and the extra height gives clustered ports more room.
-const defaultNodeSize = (): FlowNodeTypeDefinition['defaultSize'] => ({ width: 200, height: 60 });
+// Function blocks only display their icon. The square footprint gives every
+// aspect-ratio-preserving icon the same 40-pixel viewport with comfortable padding.
+const defaultNodeSize = (): FlowNodeTypeDefinition['defaultSize'] => ({ width: 72, height: 72 });
 
 // Each node type declares everything the palette, canvas, and inspector need.
 // Keeping these concerns together prevents their labels, connectors, and

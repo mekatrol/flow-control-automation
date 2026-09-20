@@ -1,7 +1,7 @@
 <template>
   <g
     class="node-status"
-    transform="translate(0 69)"
+    :transform="`translate(0 ${y})`"
     :aria-label="value ? `${status}: ${value}` : status"
   >
     <rect class="status-background" y="-1" :width="width" height="14" rx="2" />
@@ -19,6 +19,7 @@ defineProps<{
   status: 'draft' | 'deployed' | 'idle' | 'running' | 'stopped' | 'error';
   value?: string;
   width: number;
+  y: number;
 }>();
 </script>
 

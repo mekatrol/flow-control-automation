@@ -6,6 +6,10 @@
     :class="{ selected, current, breakpoint: breakpointPositions?.length }"
     role="group"
     :aria-label="nodeAriaLabel"
+    @mouseenter="showTooltip"
+    @mouseleave="hideTooltip"
+    @focusin="showTooltip"
+    @focusout="hideTooltip"
   >
     <g
       class="node-selector"
@@ -14,11 +18,13 @@
       role="button"
       tabindex="0"
       :aria-label="nodeAriaLabel"
+      :aria-describedby="tooltipId"
       :aria-pressed="selected"
       @click="emit(EVENTS.SELECT, node.id)"
       @pointerdown.stop="emit(EVENTS.DRAG_START, node.id, $event)"
       @keydown.enter.prevent="emit(EVENTS.SELECT, node.id)"
       @keydown.space.prevent="emit(EVENTS.SELECT, node.id)"
+      @keydown.esc.stop="dismissTooltip"
     >
       <rect
         class="node-body"
@@ -27,12 +33,12 @@
         rx="2"
       />
       <AppFlowNodeIcon :icon="definition.icon" />
-      <AppFlowNodeLabel :label="node.label" :type-label="definition.label" />
       <AppFlowNodeStatus
         v-if="status"
         :status="status"
         :value="statusValue"
         :width="definition.defaultSize.width"
+        :y="definition.defaultSize.height + 9"
       />
       <AppFlowNodeMarker shape="square" color="orange" :x="definition.defaultSize.width - 60" />
       <AppFlowNodeMarker shape="triangle" color="green" :x="definition.defaultSize.width - 40" />
@@ -49,6 +55,19 @@
         A
       </text>
     </g>
+    <foreignObject
+      v-show="tooltipVisible"
+      class="node-tooltip-container"
+      :transform="transform"
+      :x="-(tooltipWidth - definition.defaultSize.width) / 2"
+      y="-48"
+      :width="tooltipWidth"
+      height="36"
+    >
+      <div :id="tooltipId" class="node-tooltip" role="tooltip">
+        {{ definition.label }}
+      </div>
+    </foreignObject>
     <g :transform="transform">
       <AppFlowConnector
         v-for="layout in connectorLayouts"
@@ -87,10 +106,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 import AppFlowNodeIcon from './AppFlowNodeIcon.vue';
-import AppFlowNodeLabel from './AppFlowNodeLabel.vue';
 import AppFlowNodeMarker from './AppFlowNodeMarker.vue';
 import AppFlowNodeStatus from './AppFlowNodeStatus.vue';
 import AppFlowConnector from './AppFlowConnector.vue';
@@ -120,6 +138,28 @@ const emit = defineEmits<{
   (event: typeof EVENTS.CONNECTOR_RELEASE, endpoint: FlowConnectionEndpoint): void;
   (event: typeof EVENTS.CONNECTOR_PREVIEW, endpoint: FlowConnectionEndpoint): void;
 }>();
+
+const tooltipWidth = 180;
+const tooltipVisible = ref(false);
+const tooltipDismissed = ref(false);
+
+const tooltipId = computed(
+  () => `flow-node-tooltip-${props.node.id.replace(/[^a-zA-Z0-9_-]/g, '-')}`
+);
+
+const showTooltip = (): void => {
+  if (!tooltipDismissed.value) tooltipVisible.value = true;
+};
+
+const hideTooltip = (): void => {
+  tooltipVisible.value = false;
+  tooltipDismissed.value = false;
+};
+
+const dismissTooltip = (): void => {
+  tooltipVisible.value = false;
+  tooltipDismissed.value = true;
+};
 
 // A node is positioned by translating one SVG group. Its body, label, status,
 // and connectors can then use stable coordinates local to that group. Because an
@@ -190,13 +230,16 @@ const nodeAriaLabel = computed(() => {
   stroke: var(--color-action-primary-text);
   stroke-width: var(--stroke-width-heavy);
 }
+
 .flow-node.current .node-body {
   stroke: var(--color-warning-text);
   stroke-width: var(--stroke-width-heavy);
 }
+
 .flow-node.breakpoint .node-body {
   stroke-dasharray: 6 3;
 }
+
 .connector-value {
   fill: var(--color-text-primary);
   font-size: var(--font-size-xs);
@@ -204,9 +247,31 @@ const nodeAriaLabel = computed(() => {
   stroke: var(--color-surface-raised);
   stroke-width: var(--stroke-width-heavy);
 }
+
 .breakpoint-marker {
   fill: var(--color-warning-text);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
+}
+
+.node-tooltip-container {
+  overflow: visible;
+  pointer-events: auto;
+}
+
+.node-tooltip {
+  box-sizing: border-box;
+  width: max-content;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: var(--space-1) var(--space-2);
+  border: var(--stroke-width-fine) solid var(--color-control-neutral);
+  border-radius: 2px;
+  color: var(--color-text-primary);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-menu);
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+  text-align: center;
 }
 </style>
