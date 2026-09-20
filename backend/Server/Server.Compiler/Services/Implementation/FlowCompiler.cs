@@ -1035,6 +1035,11 @@ internal sealed partial class FlowCompiler : IFlowCompiler
                 instructions.AddRange(CreateCalculatorInstructions(
                     source, id, resultSlotIndex, slots, calculatorExpressions[id], ref nextTemporarySlot));
             }
+            else if (node.NodeType == FlowNodeType.Schedule)
+            {
+                instructions.AddRange(CreateScheduleInstructions(
+                    source, node, id, resultSlotIndex, slots, constants));
+            }
             else
             {
                 instructions.Add(CreatePrimaryInstruction(
@@ -2098,8 +2103,6 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             FlowNodeType.AnalogConstant or
             FlowNodeType.Calendar => CreateSourceInstruction(context, node),
 
-            FlowNodeType.Schedule => CreateScheduleInstruction(context, node),
-
             FlowNodeType.Not or
             FlowNodeType.And or
             FlowNodeType.Or or
@@ -2253,32 +2256,53 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         };
     }
 
-    private static CompiledInstructionV1 CreateScheduleInstruction(
-        InstructionCreationContext context,
-        ExecutableFlowNode node)
+    private static IEnumerable<CompiledInstructionV1> CreateScheduleInstructions(
+        ExecutableFlowSource source,
+        ExecutableFlowNode node,
+        string nodeId,
+        ushort resultSlot,
+        Dictionary<string, ushort> slots,
+        ConstantRecord[] constants)
     {
-        if (!node.Configuration["enabled"].GetBoolean())
+        var disabled = !node.Configuration["enabled"].GetBoolean();
+        var windows = disabled ? [] : WeeklyScheduleWindows(node).ToArray();
+
+        if (windows.Length == 0)
         {
-            return new(
+            yield return new(
                 new(
                     FlowOpcodeType.DigitalConstant,
-                    context.ResultSlotIndex,
+                    resultSlot,
                     FlowILV1Format.Unused,
                     FlowILV1Format.Unused,
-                    ConstantIndex(context.Constants, GetBooleanConstant(false))),
-                context.NodeId,
+                    ConstantIndex(constants, GetBooleanConstant(false))),
+                nodeId,
                 NodeInstructionRole.Primary);
+            yield break;
         }
 
-        return new(
+        yield return new(
             new(
-                FlowOpcodeType.Not,
-                context.ResultSlotIndex,
-                InputSlot(context.Source, context.Slots, context.NodeId, "disable"),
+                FlowOpcodeType.DigitalConstant,
+                resultSlot,
                 FlowILV1Format.Unused,
-                FlowILV1Format.Unused),
-            context.NodeId,
-            NodeInstructionRole.Primary);
+                FlowILV1Format.Unused,
+                ConstantIndex(constants, GetBooleanConstant(false))),
+            nodeId,
+            NodeInstructionRole.Secondary);
+
+        foreach (var (window, index) in windows.Select((value, index) => (value, index)))
+        {
+            yield return new(
+                new(
+                    FlowOpcodeType.Schedule,
+                    resultSlot,
+                    InputSlot(source, slots, nodeId, "disable"),
+                    FlowILV1Format.Unused,
+                    ConstantIndex(constants, new ConstantRecord(DataType.Number, window))),
+                nodeId,
+                index == windows.Length - 1 ? NodeInstructionRole.Primary : NodeInstructionRole.Secondary);
+        }
     }
 
     private static CompiledInstructionV1 CreateBinaryBooleanInstruction(
@@ -3033,7 +3057,14 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         }
         else if (node.NodeType is FlowNodeType.Schedule or FlowNodeType.Calendar)
         {
-            if (node.Configuration.Count != 1 || !node.Configuration.TryGetValue("enabled", out var enabled) ||
+            var allowedConfigurationCount = node.NodeType == FlowNodeType.Schedule &&
+                node.Configuration.TryGetValue("weeklySchedule", out var weeklySchedule) &&
+                weeklySchedule.ValueKind == JsonValueKind.String
+                ? 2
+                : 1;
+
+            if (node.Configuration.Count != allowedConfigurationCount ||
+                !node.Configuration.TryGetValue("enabled", out var enabled) ||
                 enabled.ValueKind is not (JsonValueKind.True or JsonValueKind.False))
             {
                 throw Failure(FlowCompilationDiagnosticCode.InvalidEnabledConfiguration, path);
@@ -3198,11 +3229,63 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         {
             yield return new ConstantRecord(DataType.Number, 0D);
         }
-        else if (node.NodeType is FlowNodeType.Schedule or FlowNodeType.Calendar)
+        else if (node.NodeType == FlowNodeType.Schedule)
+        {
+            yield return GetBooleanConstant(false);
+
+            foreach (var window in WeeklyScheduleWindows(node))
+            {
+                yield return new ConstantRecord(DataType.Number, window);
+            }
+        }
+        else if (node.NodeType == FlowNodeType.Calendar)
         {
             yield return GetBooleanConstant(node.Configuration["enabled"].GetBoolean());
         }
     }
+
+    private static IEnumerable<double> WeeklyScheduleWindows(ExecutableFlowNode node)
+    {
+        if (!node.Configuration.TryGetValue("weeklySchedule", out var value) ||
+            value.ValueKind != JsonValueKind.String)
+        {
+            yield break;
+        }
+
+        using var document = JsonDocument.Parse(value.GetString()!);
+        var days = new[] { "sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday" };
+
+        for (var day = 0; day < days.Length; day++)
+        {
+            if (!document.RootElement.TryGetProperty(days[day], out var periods))
+            {
+                continue;
+            }
+
+            foreach (var period in periods.EnumerateArray())
+            {
+                var on = MinuteOfDay(period.GetProperty("on").GetString()!);
+                var off = MinuteOfDay(period.GetProperty("off").GetString()!);
+
+                if (off > on)
+                {
+                    yield return PackScheduleWindow(day, on, off);
+                }
+                else if (off < on)
+                {
+                    yield return PackScheduleWindow(day, on, 1_440);
+                    yield return PackScheduleWindow((day + 1) % days.Length, 0, off);
+                }
+            }
+        }
+    }
+
+    private static double PackScheduleWindow(int day, int on, int off) =>
+        (day * 4_194_304D) + (on * 2_048D) + off;
+
+    private static int MinuteOfDay(string value) =>
+        (int.Parse(value.AsSpan(0, 2), System.Globalization.CultureInfo.InvariantCulture) * 60) +
+        int.Parse(value.AsSpan(3, 2), System.Globalization.CultureInfo.InvariantCulture);
 
     private static ConstantRecord ClockPeriodConstant(ExecutableFlowNode node) =>
         new(DataType.Number, 1_000D / node.Configuration["frequencyHz"].GetDouble());

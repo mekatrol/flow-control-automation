@@ -144,7 +144,15 @@ const configurationFor = (node: FlowNode): Record<string, unknown> => {
       lowValue: Number(node.configuration.lowValue),
       highValue: Number(node.configuration.highValue)
     };
-  if (node.nodeType === FlowNodeType.Schedule || node.nodeType === FlowNodeType.Calendar)
+  if (node.nodeType === FlowNodeType.Schedule)
+    return {
+      enabled: Boolean(node.configuration.enabled),
+      weeklySchedule: String(
+        node.configuration.weeklySchedule ??
+          '{"monday":[],"tuesday":[],"wednesday":[],"thursday":[],"friday":[],"saturday":[],"sunday":[]}'
+      )
+    };
+  if (node.nodeType === FlowNodeType.Calendar)
     return { enabled: Boolean(node.configuration.enabled) };
   return {};
 };

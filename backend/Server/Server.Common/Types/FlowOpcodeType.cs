@@ -221,6 +221,11 @@ public enum FlowOpcodeType : byte
     Toggle = 42,
 
     /// <summary>
+    /// Produces true while the local wall clock is inside a configured weekly window.
+    /// </summary>
+    Schedule = 43,
+
+    /// <summary>
     /// Commits staged state changes at the end of a scan.
     /// </summary>
     Commit = byte.MaxValue

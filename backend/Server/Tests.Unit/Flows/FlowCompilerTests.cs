@@ -421,16 +421,58 @@ public sealed class FlowCompilerTests
             Nodes = [.. source.Nodes.Select(node => node.Id switch
             {
                 "boolean-disable" => node with { Configuration = Config("value", disable) },
-                "test-node" => node with { Configuration = Config("enabled", enabled) },
+                "test-node" => node with
+                {
+                    Configuration = Config(
+                        ("enabled", enabled),
+                        ("weeklySchedule", "{\"sunday\":[{\"on\":\"00:00\",\"off\":\"23:59\"}]}"))
+                },
                 _ => node
             })]
         };
         var compilation = _compiler.Compile(BuildCompilationRequest(source));
-        using var machine = CreateMachine(compilation.Artifact);
+        var time = new MutableTimeProvider(DateTimeOffset.Parse("2026-09-20T12:00:00Z"));
+        using var provider = TestServices.CreateProvider(services => services.AddSingleton<TimeProvider>(time));
+        using var machine = provider.GetRequiredService<IFlowVirtualMachineFactory>().Create(compilation.Artifact);
 
         var scan = machine.Scan([], 1);
 
         Assert.That(scan.Slots[compilation.NodeIndices["test-node"]].Boolean, Is.EqualTo(expected));
+    }
+
+    [Test]
+    public void ScheduleEvaluatesOvernightWindowsAcrossTheDayBoundary()
+    {
+        var source = GetSourceFromNodeType(FlowNodeType.Schedule);
+        source = source with
+        {
+            Nodes = [.. source.Nodes.Select(node => node.Id switch
+            {
+                "boolean-disable" => node with { Configuration = Config("value", false) },
+                "test-node" => node with
+                {
+                    Configuration = Config(
+                        ("enabled", true),
+                        ("weeklySchedule", "{\"sunday\":[{\"on\":\"18:40\",\"off\":\"06:00\"}]}"))
+                },
+                _ => node
+            })]
+        };
+
+        var compilation = _compiler.Compile(BuildCompilationRequest(source));
+        var time = new MutableTimeProvider(DateTimeOffset.Parse("2026-09-20T18:39:00Z"));
+        using var provider = TestServices.CreateProvider(services => services.AddSingleton<TimeProvider>(time));
+        using var machine = provider.GetRequiredService<IFlowVirtualMachineFactory>().Create(compilation.Artifact);
+
+        bool Scan() => machine.Scan([], 1).Slots[compilation.NodeIndices["test-node"]].Boolean;
+
+        Assert.That(Scan(), Is.False);
+        time.UtcNow = DateTimeOffset.Parse("2026-09-20T18:40:00Z");
+        Assert.That(Scan(), Is.True);
+        time.UtcNow = DateTimeOffset.Parse("2026-09-21T05:59:00Z");
+        Assert.That(Scan(), Is.True);
+        time.UtcNow = DateTimeOffset.Parse("2026-09-21T06:00:00Z");
+        Assert.That(Scan(), Is.False);
     }
 
     [Test]
@@ -1021,5 +1063,14 @@ public sealed class FlowCompilerTests
         using var provider = TestServices.CreateProvider();
 
         return provider.GetRequiredService<IFlowVirtualMachineFactory>().Create(artifact);
+    }
+
+    private sealed class MutableTimeProvider(DateTimeOffset utcNow) : TimeProvider
+    {
+        public DateTimeOffset UtcNow { get; set; } = utcNow;
+
+        public override DateTimeOffset GetUtcNow() => UtcNow;
+
+        public override TimeZoneInfo LocalTimeZone => TimeZoneInfo.Utc;
     }
 }

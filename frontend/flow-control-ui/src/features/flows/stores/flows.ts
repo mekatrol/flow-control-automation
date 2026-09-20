@@ -5,6 +5,7 @@ import { reorderNode as reorderNodeGraph, type ZOrderCommand } from '@/features/
 import { parseFlowDto, type FlowDto } from '@/features/flows/api/flowDto';
 import { flowDomainToDto, flowDtoToDomain } from '@/features/flows/api/flowMapper';
 import { addConnection as addGraphConnection } from '@/features/flows/graph/connections';
+import { getNodeTypeDefinition } from '@/features/flows/nodeTypes';
 import type {
   FlowConfigurationValue,
   FlowConnectionEndpoint,
@@ -163,9 +164,15 @@ export const useFlowsStore = defineStore('flows', () => {
   ): boolean => {
     const flow = findFlow(flowId);
     const node = flow?.nodes.find(({ id }) => id === nodeId);
-    // Editors may update configured fields but cannot silently expand the saved
-    // schema with an unknown key produced by stale UI metadata.
-    if (!node || !(key in node.configuration)) return false;
+    // Existing saved nodes can predate newly introduced configuration fields.
+    // Permit fields declared by the current registry while continuing to reject
+    // arbitrary keys produced by stale or malformed editor metadata.
+    if (
+      !node ||
+      (!(key in node.configuration) &&
+        !(key in getNodeTypeDefinition(node.nodeType).defaultConfiguration))
+    )
+      return false;
     node.configuration[key] = value;
     return true;
   };

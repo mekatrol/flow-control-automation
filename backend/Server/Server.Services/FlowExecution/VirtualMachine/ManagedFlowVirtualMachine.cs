@@ -9,6 +9,7 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
     private const ushort Unused = ushort.MaxValue;
     private readonly Lock _gate = new();
     private readonly byte _qualityPolicy;
+    private readonly TimeProvider _timeProvider;
     private readonly ConstantRecord[] _constants;
     private readonly Point[] _points;
     private readonly DataType[] _slotDataTypes;
@@ -30,8 +31,9 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
     private bool _executing;
     private bool _disposed;
 
-    public ManagedFlowVirtualMachine(ReadOnlyMemory<byte> artifact)
+    public ManagedFlowVirtualMachine(ReadOnlyMemory<byte> artifact, TimeProvider timeProvider)
     {
+        _timeProvider = timeProvider;
         var image = Image.Parse(artifact.Span);
         _qualityPolicy = image.QualityPolicy;
         _constants = image.Constants;
@@ -288,6 +290,16 @@ internal sealed class ManagedFlowVirtualMachine : IFlowVirtualMachine
             case FlowOpcodeType.RisingEdge: RisingEdge(instruction, a); break;
             case FlowOpcodeType.Counter: Counter(instruction, a, b); break;
             case FlowOpcodeType.Toggle: Toggle(instruction, a); break;
+            case FlowOpcodeType.Schedule:
+                var packedWindow = checked((long)Constant(instruction.Auxiliary, DataType.Number).Number);
+                var day = (int)(packedWindow >> 22);
+                var onMinute = (int)((packedWindow >> 11) & 0x7FF);
+                var offMinute = (int)(packedWindow & 0x7FF);
+                var localNow = _timeProvider.GetLocalNow();
+                var minute = (localNow.Hour * 60) + localNow.Minute;
+                var active = (int)localNow.DayOfWeek == day && minute >= onMinute && minute < offMinute;
+                _slots[instruction.Result] = FlowVmValue.FromBoolean(!a.Boolean && (_slots[instruction.Result].Boolean || active), a.Quality);
+                break;
             case FlowOpcodeType.Min: Number(instruction, Math.Min(a.Number, b.Number), quality); break;
             case FlowOpcodeType.Max: Number(instruction, Math.Max(a.Number, b.Number), quality); break;
             case FlowOpcodeType.Clamp:

@@ -4,7 +4,7 @@ import { FlowNodeType, type FlowNodeConnector } from './types';
 export interface NodeEditorField {
   key: string;
   label: string;
-  input: 'checkbox' | 'number' | 'select' | 'text';
+  input: 'checkbox' | 'number' | 'schedule' | 'select' | 'text';
   options?: string[];
 }
 
@@ -706,8 +706,15 @@ export const nodeTypeRegistry: Record<
       booleanPort('disable', 'Disable', DataDirectionType.Input, 'left'),
       booleanPort('output', 'Active', DataDirectionType.Output, 'right')
     ],
-    [{ key: 'enabled', label: 'Enabled', input: 'checkbox' }],
-    { enabled: true },
+    [
+      { key: 'enabled', label: 'Enabled', input: 'checkbox' },
+      { key: 'weeklySchedule', label: 'Weekly schedule', input: 'schedule' }
+    ],
+    {
+      enabled: true,
+      weeklySchedule:
+        '{"monday":[],"tuesday":[],"wednesday":[],"thursday":[],"friday":[],"saturday":[],"sunday":[]}'
+    },
     'timing'
   ),
   [FlowNodeType.AnalogSwitch]: executableDefinition(

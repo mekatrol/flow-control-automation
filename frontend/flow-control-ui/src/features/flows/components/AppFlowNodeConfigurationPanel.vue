@@ -20,7 +20,13 @@
         <small v-if="errors.label" role="alert">{{ errors.label }}</small>
       </label>
 
-      <label v-for="field in nodeEditorFields" :key="field.key">
+      <AppWeeklyScheduleEditor
+        v-if="scheduleField"
+        :value="node.configuration[scheduleField.key]"
+        @update="emit(EVENTS.UPDATE_CONFIGURATION, scheduleField.key, $event)"
+      />
+
+      <label v-for="field in standardEditorFields" :key="field.key">
         <span>{{ field.label }}</span>
         <template v-if="field.key === 'pointSourceId' && !isVirtualPointNode(node)">
           <select
@@ -134,6 +140,7 @@ import { isVirtualPointNode } from '@/features/flows/types';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 
 import AppSvg from '@/components/AppSvg.vue';
+import AppWeeklyScheduleEditor from '@/features/flows/components/AppWeeklyScheduleEditor.vue';
 import { EVENTS } from '@/constants/events';
 import { getNodeIconUrl, getNodeTypeDefinition } from '@/features/flows/nodeTypes';
 import type { NodeEditorField } from '@/features/flows/nodeTypes';
@@ -168,6 +175,12 @@ const emit = defineEmits<{
 
 const definition = computed(() => getNodeTypeDefinition(props.node.nodeType));
 const nodeEditorFields = computed(() => definition.value.editor);
+const scheduleField = computed(() =>
+  nodeEditorFields.value.find((field) => field.input === 'schedule')
+);
+const standardEditorFields = computed(() =>
+  nodeEditorFields.value.filter((field) => field.input !== 'schedule')
+);
 const errors = ref<Record<string, string>>({});
 const definitions = computed(() => {
   const merged = new Map<string, VirtualPointDefinition>();

@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { sampleFlows } from '@/features/flows/__tests__/fixtures/sampleFlows';
 import { createDefaultNode } from '@/features/flows/graph/createNode';
 import { useFlowsStore } from '@/features/flows/stores/flows';
+import { FlowNodeType } from '@/features/flows/types';
 
 describe('flows store', () => {
   beforeEach(() => {
@@ -360,6 +361,21 @@ describe('flows store', () => {
     expect(
       store.updateNodeConfiguration('climate-control', 'temperature-average', 'missing', 1)
     ).toBe(false);
+  });
+
+  it('adds a registry field when an existing node predates that field', () => {
+    const store = useFlowsStore();
+    const schedule = createDefaultNode(FlowNodeType.Schedule, { x: 0, y: 0 }, 1, 'schedule');
+    delete schedule.configuration.weeklySchedule;
+    expect(store.addNode('climate-control', schedule)).toBe(true);
+
+    const value = '{"monday":[{"on":"09:00","off":"17:00"}]}';
+    expect(
+      store.updateNodeConfiguration('climate-control', 'schedule', 'weeklySchedule', value)
+    ).toBe(true);
+    expect(store.findFlow('climate-control')?.nodes.at(-1)?.configuration.weeklySchedule).toBe(
+      value
+    );
   });
 
   /**

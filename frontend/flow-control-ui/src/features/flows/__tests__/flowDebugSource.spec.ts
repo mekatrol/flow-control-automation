@@ -115,6 +115,18 @@ describe('designer debug source', () => {
     });
   });
 
+  it('preserves weekly schedule windows in the executable source', () => {
+    const flow = debugFlow();
+    const schedule = createDefaultNode('schedule', { x: 0, y: 0 }, 1, 'schedule');
+    schedule.configuration.weeklySchedule = '{"sunday":[{"on":"18:40","off":"18:41"}]}';
+    flow.nodes[1] = schedule;
+
+    expect(createExecutableFlowSource(flow, target).nodes[1]?.configuration).toEqual({
+      enabled: true,
+      weeklySchedule: '{"sunday":[{"on":"18:40","off":"18:41"}]}'
+    });
+  });
+
   it('derives virtual point definitions from virtual nodes', () => {
     const flow = reactive(debugFlow());
     const virtual = createDefaultNode('analogVirtual', { x: 0, y: 0 }, 2, 'virtual');
