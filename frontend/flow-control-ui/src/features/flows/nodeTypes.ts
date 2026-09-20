@@ -702,7 +702,10 @@ export const nodeTypeRegistry: Record<
   ]),
   [FlowNodeType.Schedule]: executableDefinition(
     FlowNodeType.Schedule,
-    [booleanPort('output', 'Active', DataDirectionType.Output, 'right')],
+    [
+      booleanPort('disable', 'Disable', DataDirectionType.Input, 'left'),
+      booleanPort('output', 'Active', DataDirectionType.Output, 'right')
+    ],
     [{ key: 'enabled', label: 'Enabled', input: 'checkbox' }],
     { enabled: true },
     'timing'

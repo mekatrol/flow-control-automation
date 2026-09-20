@@ -78,6 +78,7 @@ public sealed class FlowCompilerTests
             FlowNodeType.AnalogSwitch => ["condition"],
             FlowNodeType.Override or FlowNodeType.Delay or FlowNodeType.Timer or FlowNodeType.Pulse => ["input"],
             FlowNodeType.Clock => ["enable"],
+            FlowNodeType.Schedule => ["disable"],
             FlowNodeType.DigitalOutput or FlowNodeType.D2A => ["in"],
             _ => []
         };
@@ -406,6 +407,30 @@ public sealed class FlowCompilerTests
         var scan = machine.Scan([], 1);
 
         Assert.That(scan.Slots[compilation.NodeIndices["test-node"]].Number, Is.EqualTo(1.8));
+    }
+
+    [TestCase(true, false, true)]
+    [TestCase(true, true, false)]
+    [TestCase(false, false, false)]
+    [TestCase(false, true, false)]
+    public void ScheduleDisableInputIsActiveHigh(bool enabled, bool disable, bool expected)
+    {
+        var source = GetSourceFromNodeType(FlowNodeType.Schedule);
+        source = source with
+        {
+            Nodes = [.. source.Nodes.Select(node => node.Id switch
+            {
+                "boolean-disable" => node with { Configuration = Config("value", disable) },
+                "test-node" => node with { Configuration = Config("enabled", enabled) },
+                _ => node
+            })]
+        };
+        var compilation = _compiler.Compile(BuildCompilationRequest(source));
+        using var machine = CreateMachine(compilation.Artifact);
+
+        var scan = machine.Scan([], 1);
+
+        Assert.That(scan.Slots[compilation.NodeIndices["test-node"]].Boolean, Is.EqualTo(expected));
     }
 
     [Test]

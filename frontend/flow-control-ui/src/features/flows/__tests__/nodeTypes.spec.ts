@@ -67,7 +67,6 @@ describe('node-type registry', () => {
         nodeType !== 'digitalInput' &&
           nodeType !== 'analogInput' &&
           nodeType !== 'calendar' &&
-          nodeType !== 'schedule' &&
           nodeType !== 'digitalConstant' &&
           nodeType !== 'analogConstant'
       );

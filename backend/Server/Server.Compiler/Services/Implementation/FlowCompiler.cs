@@ -326,7 +326,7 @@ internal sealed partial class FlowCompiler : IFlowCompiler
         [FlowNodeType.Timer] = new([new("input", DataDirectionType.Input, DataType.Boolean), new("output", DataDirectionType.Output, DataType.Boolean)]),
         [FlowNodeType.Pulse] = new([new("input", DataDirectionType.Input, DataType.Boolean), new("output", DataDirectionType.Output, DataType.Boolean)]),
         [FlowNodeType.Clock] = new([new("enable", DataDirectionType.Input, DataType.Boolean), new("output", DataDirectionType.Output, DataType.Boolean)]),
-        [FlowNodeType.Schedule] = new([new("output", DataDirectionType.Output, DataType.Boolean)]),
+        [FlowNodeType.Schedule] = new([new("disable", DataDirectionType.Input, DataType.Boolean), new("output", DataDirectionType.Output, DataType.Boolean)]),
         [FlowNodeType.Calendar] = new([new("output", DataDirectionType.Output, DataType.Boolean)]),
         [FlowNodeType.A2D] = new([new("in", DataDirectionType.Input, DataType.Number), new("value", DataDirectionType.Output, DataType.Boolean)]),
         [FlowNodeType.D2A] = new([new("in", DataDirectionType.Input, DataType.Boolean), new("value", DataDirectionType.Output, DataType.Number)])
@@ -2096,8 +2096,9 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             FlowNodeType.AnalogInput or
             FlowNodeType.DigitalConstant or
             FlowNodeType.AnalogConstant or
-            FlowNodeType.Schedule or
             FlowNodeType.Calendar => CreateSourceInstruction(context, node),
+
+            FlowNodeType.Schedule => CreateScheduleInstruction(context, node),
 
             FlowNodeType.Not or
             FlowNodeType.And or
@@ -2250,6 +2251,34 @@ internal sealed partial class FlowCompiler : IFlowCompiler
             FlowNodeType.Xnor => CreateBinaryBooleanInstruction(context, FlowOpcodeType.Xnor),
             _ => throw new UnreachableException()
         };
+    }
+
+    private static CompiledInstructionV1 CreateScheduleInstruction(
+        InstructionCreationContext context,
+        ExecutableFlowNode node)
+    {
+        if (!node.Configuration["enabled"].GetBoolean())
+        {
+            return new(
+                new(
+                    FlowOpcodeType.DigitalConstant,
+                    context.ResultSlotIndex,
+                    FlowILV1Format.Unused,
+                    FlowILV1Format.Unused,
+                    ConstantIndex(context.Constants, GetBooleanConstant(false))),
+                context.NodeId,
+                NodeInstructionRole.Primary);
+        }
+
+        return new(
+            new(
+                FlowOpcodeType.Not,
+                context.ResultSlotIndex,
+                InputSlot(context.Source, context.Slots, context.NodeId, "disable"),
+                FlowILV1Format.Unused,
+                FlowILV1Format.Unused),
+            context.NodeId,
+            NodeInstructionRole.Primary);
     }
 
     private static CompiledInstructionV1 CreateBinaryBooleanInstruction(
