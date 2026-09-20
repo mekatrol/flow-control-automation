@@ -367,13 +367,23 @@ stop reasons, and successful production scans checkpoint `LastExecutedAt` on a
 bounded five-second cadence without faulting execution when metadata storage is
 temporarily unavailable.
 
-### Phase 3: Client synchronization and UI
+### Phase 3: Client synchronization and UI (complete)
 
 - Implement execution-context SSE, or the bounded all-active-state polling
   fallback.
 - Update API parsers/stores and add the list column/action.
 - Update debugger conflicts, forced-stop presentation, and the combined route
   and unload guards.
+
+Completed 2026-09-20. Added bounded polling for every active execution-context
+lifecycle, including ready and paused contexts, with terminal tombstone and
+post-tombstone handling for cross-client forced stops. The flow list now shows
+the last successful execution timestamp and gives temporary suspension a
+dedicated **Reenable** action. Debugger creation no longer requests replacement,
+stable conflicts and forced stops have user-facing messages, and navigation now
+uses one combined unsaved-change/debug-context confirmation which awaits a
+successful backend stop. Browser unload prompts without treating a best-effort
+request as authoritative, while same-flow workspace navigation remains intact.
 
 ### Phase 4: Hardening and rollout
 

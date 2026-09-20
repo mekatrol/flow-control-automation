@@ -61,7 +61,7 @@
     <AppPromptDialog
       id="discard-changes-dialog"
       ref="discardDialog"
-      content-label="Discard unsaved flow changes confirmation"
+      content-label="Leave flow workspace confirmation"
       @cancel="keepEditing"
       @confirm="discardChanges"
     >
@@ -72,16 +72,16 @@
           aria-describedby="discard-description"
           @keydown.esc.prevent="cancel"
         >
-          <h2 id="discard-title">Discard unsaved changes?</h2>
-          <p id="discard-description">This flow has changes that have not been saved.</p>
+          <h2 id="discard-title">Leave this flow?</h2>
+          <p id="discard-description">{{ leaveConfirmationMessage }}</p>
           <div class="designer-prompt-actions">
             <AppButton
-              text="Keep editing"
+              text="Stay here"
               :icon="renameFlowIcon"
               data-dialog-initial-focus
               @click="cancel"
             />
-            <AppButton text="Discard changes" :icon="discardIcon" @click="confirm" />
+            <AppButton text="Leave workspace" :icon="discardIcon" @click="confirm" />
           </div>
         </section>
       </template>
@@ -418,8 +418,18 @@ const showCanvasDefaultValues = computed(
   () => isSimulatorWorkspace.value || isDebuggerWorkspace.value
 );
 const isDebugging = computed(() =>
-  ['ready', 'running', 'paused', 'stepping'].includes(execution.lifecycle.value)
+  ['preparing', 'ready', 'running', 'paused', 'stepping'].includes(execution.lifecycle.value)
 );
+const hasActiveDebugContext = computed(
+  () => isDebugging.value && execution.context.value?.mode === 'debugger'
+);
+const leaveConfirmationMessage = computed(() => {
+  if (dirty.value && hasActiveDebugContext.value)
+    return 'This flow has unsaved changes and is currently being debugged. Leaving will discard the changes, stop the debug context, and resume the deployed version if debugging suspended it.';
+  if (hasActiveDebugContext.value)
+    return 'This flow is currently being debugged. Leaving will stop the debug context and resume the deployed version if debugging suspended it.';
+  return 'This flow has changes that have not been saved. Leaving will discard them.';
+});
 const debugConnectorValues = computed(() => undefined);
 const debugLifecycle = computed(() =>
   execution.lifecycle.value === 'faulted'
@@ -471,7 +481,7 @@ const createExecution = async (): Promise<void> => {
     mode: isSimulatorWorkspace.value ? 'simulator' : 'debugger',
     expectedRevision: flow.value?.revision ?? 1,
     targetId: isSimulatorWorkspace.value ? 'server' : debugTargetId.value,
-    replaceExisting: true,
+    replaceExisting: isSimulatorWorkspace.value ? true : undefined,
     breakpoints: debugBreakpoints.value
   });
 };
@@ -851,8 +861,7 @@ useSaveShortcut(saveFlow, () => !saving.value);
 
 watch(
   () => props.flowId,
-  (flowId, previous) => {
-    if (previous !== undefined && flowId !== previous) void execution.stop(true);
+  (flowId) => {
     void loadFlow(flowId);
   },
   { immediate: true }
@@ -864,12 +873,11 @@ onBeforeUnmount(() => {
   loadController?.abort();
   controllerTemplates.cancel();
   pointValidationController?.abort();
-  void execution.stop(true);
+  if (execution.context.value?.mode === 'simulator') void execution.stop(true);
 });
 
 const handleBeforeUnload = (event: BeforeUnloadEvent): void => {
-  void execution.stop(true);
-  if (!dirty.value) return;
+  if (!dirty.value && !hasActiveDebugContext.value) return;
   // Browsers show their own confirmation wording for tab close and page refresh.
   // Setting returnValue is still required by browsers that support this prompt.
   event.preventDefault();
@@ -883,9 +891,13 @@ const keepEditing = (): void => {
 const discardChanges = async (): Promise<void> => {
   const target = pendingRoute.value;
   if (!target) return;
+  if (hasActiveDebugContext.value && !(await execution.stop())) {
+    runtimeError.value = execution.error.value ?? 'Unable to stop the debug context.';
+    return;
+  }
   // Restore the last server-confirmed graph before allowing the blocked route to
   // continue, so the discarded draft cannot reappear from shared store state.
-  flowStore.resetFlow(props.flowId);
+  if (dirty.value) flowStore.resetFlow(props.flowId);
   pendingRoute.value = undefined;
   allowNavigation = true;
   await router.push(target);
@@ -900,10 +912,7 @@ onBeforeRouteLeave((to) => {
   if (to.params.flowId === props.flowId && workspaceRoutes.includes(String(to.name))) return true;
   // Client-side routing does not trigger beforeunload, so it needs a separate
   // guard and an application-owned dialog that can keep or discard the draft.
-  if (allowNavigation || !dirty.value) {
-    void execution.stop(true);
-    return true;
-  }
+  if (allowNavigation || (!dirty.value && !hasActiveDebugContext.value)) return true;
   pendingRoute.value = to.fullPath;
   discardDialog.value?.showModal();
   return false;

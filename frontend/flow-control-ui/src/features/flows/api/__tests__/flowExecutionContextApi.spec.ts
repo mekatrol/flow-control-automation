@@ -35,4 +35,53 @@ describe('flow execution context API', () => {
       'The saved flow could not be compiled. Input point IDs must be unique. (/nodes/1/configuration/pointId) The OR node requires two inputs. (/nodes/2)'
     );
   });
+
+  it('does not request replacement when creating a debugger context', async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          id: 'context-1',
+          flowId: 'flow-1',
+          revision: 1,
+          mode: 'debugger',
+          lifecycle: 'ready',
+          capabilities: Object.fromEntries(
+            [
+              'canRun',
+              'canPause',
+              'canStop',
+              'canRestart',
+              'canStepTick',
+              'canStepNode',
+              'canStepInstruction',
+              'canUseBreakpoints',
+              'canRunTo',
+              'canEditInputs',
+              'canAdvanceVirtualTime',
+              'canInjectFaults',
+              'canResetIo',
+              'canEnableLiveOutputs',
+              'locksFlowEditing'
+            ].map((name) => [name, false])
+          ),
+          breakpoints: [],
+          presentation: {},
+          leaseRemainingMilliseconds: 1000
+        }),
+        { status: 201 }
+      )
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await flowExecutionContextApi.create('flow-1', {
+      mode: 'debugger',
+      expectedRevision: 1,
+      targetId: 'server'
+    });
+
+    const body = fetchMock.mock.calls[0]?.[1]?.body;
+    expect(typeof body).toBe('string');
+    const request = JSON.parse(body as string) as Record<string, unknown>;
+    expect(request).not.toHaveProperty('replaceExisting');
+  });
 });

@@ -82,7 +82,7 @@ describe('flow API client', () => {
   });
 
   /**
-   * Purpose: Protects the behavioral contract that lists, creates, disables, enables, and deletes flows through typed endpoints.
+   * Purpose: Protects the behavioral contract that lists, creates, disables, enables, reenables, and deletes flows through typed endpoints.
    * Description: Exercises lists, creates, disables, enables, and deletes flows through typed endpoints from its arranged starting state and
    * verifies the observable results required by the scenario.
    */
@@ -92,6 +92,7 @@ describe('flow API client', () => {
       .mockResolvedValueOnce(response(flowPage))
       .mockResolvedValueOnce(response(sampleFlows[0]))
       .mockResolvedValueOnce(response({ ...sampleFlows[1], disabled: true }))
+      .mockResolvedValueOnce(response(sampleFlows[1]))
       .mockResolvedValueOnce(response(sampleFlows[1]))
       .mockResolvedValueOnce(new Response(null, { status: 204 }));
     vi.stubGlobal('fetch', fetchMock);
@@ -121,6 +122,8 @@ describe('flow API client', () => {
     await expect(flowApi.setFlowDisabled('garden irrigation', false)).resolves.toMatchObject({
       disabled: false
     });
+
+    await expect(flowApi.reenableFlow('garden irrigation')).resolves.toEqual(sampleFlows[1]);
 
     // Expected outcome: `flowApi.deleteFlow('climate control')` is not supplied.
     // Acceptance criteria: `flowApi.deleteFlow('climate control')` must be undefined, because this condition proves that
@@ -168,7 +171,11 @@ describe('flow API client', () => {
     // Expected outcome: `fetchMock` receives the required call in sequence.
     // Acceptance criteria: `fetchMock` must have the numbered call and arguments `5, '/api/flows/climate%20control', { method: 'DELETE', signal: undefined }`, because this condition proves that
     // lists, creates, disables, enables, and deletes flows through typed endpoints.
-    expect(fetchMock).toHaveBeenNthCalledWith(5, '/api/flows/climate%20control', {
+    expect(fetchMock).toHaveBeenNthCalledWith(5, '/api/flows/garden%20irrigation/reenable', {
+      method: 'POST',
+      signal: undefined
+    });
+    expect(fetchMock).toHaveBeenNthCalledWith(6, '/api/flows/climate%20control', {
       method: 'DELETE',
       signal: undefined
     });

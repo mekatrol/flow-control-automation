@@ -38,6 +38,7 @@
         @[EVENTS.CANCEL_RENAME]="cancelRename"
         @[EVENTS.BEGIN_DELETE]="beginDelete"
         @[EVENTS.TOGGLE_DISABLED]="setFlowDisabled"
+        @reenable="reenableFlow"
         @[EVENTS.ADD_FLOW]="showCreateFlowDialog"
         @[EVENTS.IMPORT_IL]="showILImportDialog"
       />
@@ -485,6 +486,26 @@ const setFlowDisabled = async (flowId: string, disabled: boolean): Promise<void>
   } catch (caught) {
     error.value =
       caught instanceof Error ? caught.message : 'Unable to change the flow execution state.';
+  } finally {
+    togglingDisabledId.value = undefined;
+  }
+};
+
+const reenableFlow = async (flowId: string): Promise<void> => {
+  try {
+    await withSpinner(
+      () => {
+        errorRetry.value = false;
+        togglingDisabledId.value = flowId;
+        error.value = undefined;
+      },
+      () => flowApi.reenableFlow(flowId),
+      (saved) => {
+        flowStore.replaceFlowFromPayload(saved);
+      }
+    );
+  } catch (caught) {
+    error.value = caught instanceof Error ? caught.message : 'Unable to re-enable the flow.';
   } finally {
     togglingDisabledId.value = undefined;
   }

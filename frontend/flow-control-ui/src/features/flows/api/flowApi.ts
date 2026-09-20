@@ -202,6 +202,7 @@ export interface FlowApiClient {
   saveFlow(flow: FlowDto, signal?: AbortSignal): Promise<FlowDto>;
   revertToDeployed(flowId: string, signal?: AbortSignal): Promise<FlowDto>;
   setFlowDisabled(flowId: string, disabled: boolean, signal?: AbortSignal): Promise<FlowDto>;
+  reenableFlow(flowId: string, signal?: AbortSignal): Promise<FlowDto>;
   deleteFlow(flowId: string, signal?: AbortSignal): Promise<void>;
   importFlowIl(
     artifactBase64: string,
@@ -247,6 +248,11 @@ export const flowApi: FlowApiClient = {
     }),
   setFlowDisabled: (flowId, disabled, signal) =>
     requestFlow(`/api/flows/${encodeURIComponent(flowId)}/${disabled ? 'disable' : 'enable'}`, {
+      method: 'POST',
+      signal
+    }),
+  reenableFlow: (flowId, signal) =>
+    requestFlow(`/api/flows/${encodeURIComponent(flowId)}/reenable`, {
       method: 'POST',
       signal
     }),

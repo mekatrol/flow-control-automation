@@ -183,7 +183,6 @@ export const flowExecutionContextApi = {
       json('POST', {
         flowId,
         ...value,
-        replaceExisting: value.replaceExisting ?? true,
         breakpoints: value.breakpoints ?? []
       })
     ),

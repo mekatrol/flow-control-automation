@@ -119,6 +119,13 @@
         </time>
       </template>
 
+      <template #cell-lastExecutedAt="{ row }">
+        <time v-if="row.lastExecutedAt" :datetime="row.lastExecutedAt">
+          {{ formatDateTime(row.lastExecutedAt) }}
+        </time>
+        <span v-else>—</span>
+      </template>
+
       <template #cell-disabled="{ row }">
         <a :href="`tel:${row.disabled}`">{{ row.disabled }}</a>
       </template>
@@ -127,10 +134,14 @@
         <div class="actions">
           <AppButton
             class="light-weight"
-            :text="row.disabled ? 'Enable' : 'Disable'"
-            :icon="row.disabled ? enableFlowIcon : disableFlowIcon"
+            :text="row.temporaryDisable ? 'Reenable' : row.disabled ? 'Enable' : 'Disable'"
+            :icon="row.disabled || row.temporaryDisable ? enableFlowIcon : disableFlowIcon"
             :disabled="togglingDisabledId === row.id"
-            @click="emit(EVENTS.TOGGLE_DISABLED, row.id, !row.disabled)"
+            @click="
+              row.temporaryDisable
+                ? emit('reenable', row.id)
+                : emit(EVENTS.TOGGLE_DISABLED, row.id, !row.disabled)
+            "
           />
 
           <AppButton
@@ -207,15 +218,18 @@ const emit = defineEmits<{
   'cancel-rename': [];
   'begin-delete': [flowId: string];
   'toggle-disabled': [flowId: string, disabled: boolean];
+  reenable: [flowId: string];
 }>();
 
 export interface FlowRow extends ListRow {
   id: string;
   name: string;
   updatedAt: string;
+  lastExecutedAt: string | null;
   nodes: FlowNode[];
   status: FlowStatus;
   disabled: boolean;
+  temporaryDisable: FlowDefinition['temporaryDisable'];
   actions: string;
 }
 
@@ -243,6 +257,11 @@ const columns: ListColumn<FlowRow>[] = [
   {
     key: 'updatedAt',
     label: 'Updated',
+    width: '12rem'
+  },
+  {
+    key: 'lastExecutedAt',
+    label: 'Last executed',
     width: '12rem'
   },
   {
@@ -316,18 +335,21 @@ const rows = computed<FlowRow[]>(() =>
     id: flow.id,
     name: flow.name,
     updatedAt: flow.updatedAt,
+    lastExecutedAt: flow.lastExecutedAt,
     nodes: flow.nodes,
     status: flow.status as FlowStatus,
     disabled: flow.disabled,
+    temporaryDisable: flow.temporaryDisable,
     actions: ''
   }))
 );
 
-const formattedUpdatedAt = (row: FlowRow): string =>
+const formatDateTime = (value: string): string =>
   new Intl.DateTimeFormat(undefined, {
     dateStyle: 'medium',
     timeStyle: 'short'
-  }).format(new Date(row.updatedAt));
+  }).format(new Date(value));
+const formattedUpdatedAt = (row: FlowRow): string => formatDateTime(row.updatedAt);
 </script>
 
 <style lang="css">
