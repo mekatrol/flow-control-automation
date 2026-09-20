@@ -1,5 +1,6 @@
 import { FlowDtoValidationError, parseFlowDto, type FlowDto } from './flowDto';
 import { waitForFetch } from '@/api/waitForFetch';
+import { parseFlowExport } from '@/features/flows/flowTransfer';
 
 export type FlowApiErrorKind = 'cancelled' | 'http' | 'network' | 'validation';
 
@@ -204,6 +205,8 @@ export interface FlowApiClient {
   setFlowDisabled(flowId: string, disabled: boolean, signal?: AbortSignal): Promise<FlowDto>;
   reenableFlow(flowId: string, signal?: AbortSignal): Promise<FlowDto>;
   deleteFlow(flowId: string, signal?: AbortSignal): Promise<void>;
+  exportFlow(flowId: string, signal?: AbortSignal): Promise<string>;
+  importFlow(document: string, overwrite?: boolean, signal?: AbortSignal): Promise<FlowDto>;
   importFlowIl(
     artifactBase64: string,
     name: string | undefined,
@@ -258,6 +261,40 @@ export const flowApi: FlowApiClient = {
     }),
   deleteFlow: (flowId, signal) =>
     requestEmpty(`/api/flows/${encodeURIComponent(flowId)}`, { method: 'DELETE', signal }),
+  exportFlow: async (flowId, signal) => {
+    let document: string;
+    try {
+      const response = await waitForFetch(`/api/flows/${encodeURIComponent(flowId)}/export`, {
+        method: 'GET',
+        signal
+      });
+      if (!response.ok) throw await httpError(response);
+      document = await response.text();
+    } catch (error) {
+      if (error instanceof FlowApiError) throw error;
+      if (error instanceof DOMException && error.name === 'AbortError')
+        throw new FlowApiError('cancelled', 'The flow export was cancelled.');
+      throw new FlowApiError('network', 'Unable to export the flow.');
+    }
+    try {
+      parseFlowExport(document);
+      return document;
+    } catch (error) {
+      throw new FlowApiError(
+        'validation',
+        `The server returned an invalid flow export: ${error instanceof Error ? error.message : 'unknown error'}`
+      );
+    }
+  },
+  importFlow: (document, overwrite = false, signal) => {
+    parseFlowExport(document);
+    return requestFlow(`/api/flows/import${overwrite ? '?overwrite=true' : ''}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: document,
+      signal
+    });
+  },
   importFlowIl: async (artifactBase64, name, save, signal) => {
     try {
       const response = await waitForFetch('/api/flows/import-il', {

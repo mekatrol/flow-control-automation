@@ -9,6 +9,100 @@ namespace Tests.Unit.Api;
 [TestFixture]
 internal sealed class FlowEndpointTests
 {
+    [Test]
+    public async Task ExportAndImportRoundTripCreatesOneNewDraft()
+    {
+        await using var factory = new FlowControlApplicationFactory();
+        using var client = factory.CreateClient();
+        var created = await CreateFlow(client, "Portable flow");
+        var source = created with { Description = "Transferred as one document" };
+        using var save = await client.PutAsJsonAsync(
+            $"/api/flows/{created.Id}",
+            source,
+            FlowControlJson.Options);
+        Assert.That(save.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+        using var export = await client.GetAsync($"/api/flows/{created.Id}/export");
+        var document = await export.Content.ReadAsStringAsync();
+        using var parsed = JsonDocument.Parse(document);
+        using var delete = await client.DeleteAsync($"/api/flows/{created.Id}");
+        using var import = await client.PostAsync(
+            "/api/flows/import",
+            new StringContent(document, Encoding.UTF8, "application/json"));
+        var imported = await import.Content.ReadFromJsonAsync<Flow>(FlowControlJson.Options);
+        var page = await client.GetFromJsonAsync<PaginatedResult<Flow>>(
+            "/api/flows?pageSize=10",
+            FlowControlJson.Options);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(export.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(parsed.RootElement.GetProperty("formatVersion").GetInt32(), Is.EqualTo(1));
+            Assert.That(import.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+            Assert.That(imported!.Id, Is.EqualTo("portable-flow"));
+            Assert.That(imported.Description, Is.EqualTo("Transferred as one document"));
+            Assert.That(imported.Status, Is.EqualTo("draft"));
+            Assert.That(imported.Revision, Is.EqualTo(1));
+            Assert.That(page!.TotalItems, Is.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task ImportRejectsAnExistingFlowIdWithoutCreatingACopy()
+    {
+        await using var factory = new FlowControlApplicationFactory();
+        using var client = factory.CreateClient();
+        var created = await CreateFlow(client, "Existing flow");
+        using var export = await client.GetAsync($"/api/flows/{created.Id}/export");
+        var document = await export.Content.ReadAsStringAsync();
+        using var import = await client.PostAsync(
+            "/api/flows/import",
+            new StringContent(document, Encoding.UTF8, "application/json"));
+        var conflict = await import.Content.ReadFromJsonAsync<Dictionary<string, string>>();
+        using var overwrite = await client.PostAsync(
+            "/api/flows/import?overwrite=true",
+            new StringContent(document, Encoding.UTF8, "application/json"));
+        var overwritten = await overwrite.Content.ReadFromJsonAsync<Flow>(FlowControlJson.Options);
+        var page = await client.GetFromJsonAsync<PaginatedResult<Flow>>(
+            "/api/flows?pageSize=10",
+            FlowControlJson.Options);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(import.StatusCode, Is.EqualTo(HttpStatusCode.Conflict));
+            Assert.That(
+                conflict!["message"],
+                Is.EqualTo("A flow with the ID 'existing-flow' and name 'Existing flow' already exists."));
+            Assert.That(overwrite.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+            Assert.That(overwritten!.Id, Is.EqualTo("existing-flow"));
+            Assert.That(overwritten.Status, Is.EqualTo("draft"));
+            Assert.That(overwritten.Revision, Is.EqualTo(2));
+            Assert.That(page!.TotalItems, Is.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task ImportRejectsUnsupportedVersionWithoutCreatingAFlow()
+    {
+        await using var factory = new FlowControlApplicationFactory();
+        using var client = factory.CreateClient();
+        using var response = await client.PostAsync(
+            "/api/flows/import",
+            new StringContent(
+                """{"formatVersion":2,"flow":{}}""",
+                Encoding.UTF8,
+                "application/json"));
+        var page = await client.GetFromJsonAsync<PaginatedResult<Flow>>(
+            "/api/flows?pageSize=10",
+            FlowControlJson.Options);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+            Assert.That(page!.TotalItems, Is.Zero);
+        });
+    }
+
     /// <summary>
     /// Purpose: Protects the behavioral contract that crud persists across application restart.
     /// Description: Arranges the inputs for crud persists across application restart, exercises the relevant operation,

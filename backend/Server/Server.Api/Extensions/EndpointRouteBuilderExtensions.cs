@@ -20,7 +20,9 @@ public static class EndpointRouteBuilderExtensions
         endpoints.MapFlowSimulatorEndpoints();
         endpoints.MapGet("/api/flows", ListFlows);
         endpoints.MapPost("/api/flows", CreateFlow);
+        endpoints.MapPost("/api/flows/import", ImportFlow);
         endpoints.MapPost("/api/flows/import-il", ImportFlowIl);
+        endpoints.MapGet("/api/flows/{flowId}/export", ExportFlow);
         endpoints.MapGet("/api/flows/{flowId}", GetFlow);
         endpoints.MapPut("/api/flows/{flowId}", SaveFlow);
         endpoints.MapPost("/api/flows/{flowId}/compile", CompileFlow);
@@ -189,6 +191,65 @@ public static class EndpointRouteBuilderExtensions
         {
             return Error(StatusCodes.Status500InternalServerError, "unable to import Flow IL");
         }
+    }
+
+    private static async Task<IResult> ExportFlow(
+        string flowId,
+        IFlowService flows,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return Results.Json(new FlowTransferDocument(
+                1,
+                await flows.GetAsync(flowId, cancellationToken)));
+        }
+        catch (FlowNotFoundException)
+        {
+            return Error(StatusCodes.Status404NotFound, "flow not found");
+        }
+    }
+
+    private static async Task<IResult> ImportFlow(
+        HttpRequest request,
+        IFlowService flows,
+        IFlowRuntimeService runtime,
+        IOptions<JsonOptions> jsonOptions,
+        CancellationToken cancellationToken)
+    {
+        var decoded = await DecodeAsync<FlowTransferDocument>(
+            request,
+            jsonOptions.Value.SerializerOptions,
+            cancellationToken);
+
+        if (decoded.Error is not null)
+        {
+            return decoded.Error;
+        }
+
+        if (decoded.Value!.FormatVersion != 1)
+        {
+            return Error(StatusCodes.Status400BadRequest, "unsupported flow export version");
+        }
+
+        var overwriteText = request.Query["overwrite"].ToString();
+
+        if (overwriteText is not ("" or "true" or "false"))
+        {
+            return Error(StatusCodes.Status400BadRequest, "overwrite must be true or false");
+        }
+
+        var overwrite = overwriteText == "true";
+        var result = await MapFlowResult(
+            () => flows.ImportAsync(decoded.Value.Flow, overwrite, cancellationToken),
+            StatusCodes.Status201Created);
+
+        if (overwrite && result is IValueHttpResult<Flow> { Value: not null } imported)
+        {
+            runtime.Delete(imported.Value.Id);
+        }
+
+        return result;
     }
 
     private static async Task<IResult> GetFlow(
@@ -478,6 +539,10 @@ public static class EndpointRouteBuilderExtensions
         catch (FlowNotFoundException)
         {
             return Error(StatusCodes.Status404NotFound, "flow not found");
+        }
+        catch (FlowAlreadyExistsException exception)
+        {
+            return Error(StatusCodes.Status409Conflict, exception.Message);
         }
         catch (FlowValidationException exception)
         {

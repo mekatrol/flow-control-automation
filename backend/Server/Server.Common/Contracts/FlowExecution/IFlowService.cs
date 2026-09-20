@@ -23,6 +23,16 @@ public interface IFlowService
     /// <returns>The new flow with its initial positive revision and timestamps.</returns>
     Task<Flow> CreateAsync(string name, CancellationToken cancellationToken);
 
+    /// <summary>Validates and atomically imports a complete flow as a new editable draft.</summary>
+    /// <param name="flow">The portable flow definition whose identity is preserved.</param>
+    /// <param name="overwrite">Whether an existing flow with the same ID may be atomically replaced.</param>
+    /// <param name="cancellationToken">Cancels before the atomic insert commits.</param>
+    /// <returns>The newly persisted draft with regenerated lifecycle metadata.</returns>
+    Task<Flow> ImportAsync(
+        Flow flow,
+        bool overwrite,
+        CancellationToken cancellationToken);
+
     /// <summary>Validates and atomically replaces an existing flow revision.</summary>
     /// <param name="id">The non-empty route ID, which must equal <paramref name="flow"/>'s ID.</param>
     /// <param name="flow">The complete replacement carrying the currently stored revision for optimistic concurrency.</param>

@@ -40,22 +40,50 @@
         @[EVENTS.TOGGLE_DISABLED]="setFlowDisabled"
         @reenable="reenableFlow"
         @[EVENTS.ADD_FLOW]="showCreateFlowDialog"
-        @[EVENTS.IMPORT_IL]="showILImportDialog"
+        @[EVENTS.IMPORT_FLOW]="showImportDialog"
+        @[EVENTS.EXPORT_FLOW]="exportFlow"
       />
     </div>
 
     <AppFlowCreateDialog ref="createFlowDialog" v-model="newFlowName" @confirm="createFlow" />
 
-    <AppDialog ref="ilImportDialog" content-label="Import compiled Flow IL">
+    <AppDialog ref="importDialog" content-label="Import flow">
       <section class="il-import" aria-labelledby="il-import-title">
         <div>
-          <h2 id="il-import-title">Import compiled Flow IL</h2>
-          <p>Preview a validated artifact before saving it as a new editable draft.</p>
+          <h2 id="il-import-title">Import flow</h2>
+          <p>Import an editable JSON flow or recover a compiled Flow IL artifact.</p>
         </div>
-        <div class="il-import-controls">
+        <div class="il-import-controls import-type-control">
+          <label for="flow-import-type">Import type</label>
+          <select id="flow-import-type" v-model="importType">
+            <option value="json">Flow JSON</option>
+            <option value="il">Compiled Flow IL</option>
+          </select>
+        </div>
+        <div v-if="importType === 'json'" class="il-import-controls">
+          <label for="flow-json-file">Flow JSON file</label>
+          <input
+            id="flow-json-file"
+            :key="importInputKey"
+            type="file"
+            accept=".json,.flow.json,application/json"
+            @change="selectFlowFile"
+          />
+          <div class="import-dialog-actions">
+            <AppButton
+              text="Import"
+              :icon="importIcon"
+              :disabled="!selectedFlowFile || importing"
+              @click="importFlow"
+            />
+            <AppButton text="Cancel" :icon="cancelIcon" @click="cancelImportDialog" />
+          </div>
+        </div>
+        <div v-else class="il-import-controls">
           <label for="flow-il-file">Flow IL artifact</label>
           <input
             id="flow-il-file"
+            :key="importInputKey"
             type="file"
             accept=".bin,.fil,application/octet-stream"
             @change="selectILArtifact"
@@ -73,6 +101,7 @@
             :disabled="!importArtifact || importing"
             @click="previewIL"
           />
+          <AppButton text="Cancel" :icon="cancelIcon" @click="cancelImportDialog" />
         </div>
         <div v-if="importPreview" class="il-import-preview" role="status">
           <p>
@@ -97,6 +126,18 @@
     </AppDialog>
 
     <AppPromptDialog
+      id="overwrite-flow-dialog"
+      ref="overwriteFlowDialog"
+      content-label="Overwrite existing flow"
+      title="Overwrite existing flow?"
+      :message="overwriteConfirmationMessage"
+      cancel-text="Cancel"
+      confirm-text="Yes"
+      @cancel="cancelOverwrite"
+      @confirm="confirmOverwrite"
+    />
+
+    <AppPromptDialog
       id="delete-flow-dialog"
       ref="deleteFlowDialog"
       content-label="Delete flow"
@@ -117,6 +158,8 @@ import { useRoute, useRouter } from 'vue-router';
 
 import previewIcon from '@/assets/icons/visibility-icon.svg';
 import saveIcon from '@/assets/icons/save-icon.svg';
+import cancelIcon from '@/assets/icons/cancel-icon.svg';
+import importIcon from '@/assets/icons/import-icon.svg';
 import AppButton from '@/components/AppButton.vue';
 import AppDialog from '@/components/AppDialog.vue';
 import AppErrorNotice from '@/components/AppErrorNotice.vue';
@@ -126,6 +169,7 @@ import { type MultiSelectOption } from '@/components/AppMultiSelectDropdown.vue'
 import { useServerPagination } from '@/composables/useServerPagination';
 import { EVENTS } from '@/constants/events';
 import {
+  FlowApiError,
   flowApi,
   type FlowIlImportResult,
   type FlowListParameters
@@ -133,6 +177,8 @@ import {
 import AppFlowTable from '@/features/flows/components/AppFlowTable.vue';
 import { useFlowsStore } from '@/features/flows/stores/flows';
 import { useSpinner } from '@/composables/useSpinner';
+import { FlowDtoValidationError } from '@/features/flows/api/flowDto';
+import { flowExportFilename, parseFlowExport } from '@/features/flows/flowTransfer';
 
 const route = useRoute();
 const router = useRouter();
@@ -146,6 +192,11 @@ const importArtifact = ref('');
 const importName = ref('');
 const importPreview = ref<FlowIlImportResult>();
 const importing = ref(false);
+const importType = ref<'json' | 'il'>('json');
+const selectedFlowFile = ref<File>();
+const importInputKey = ref(0);
+const pendingImportDocument = ref<string>();
+const overwriteConfirmationMessage = ref('');
 const editingFlowId = ref<string>();
 const renameValue = ref('');
 const renaming = ref(false);
@@ -213,8 +264,9 @@ const hasActiveFilters = computed(
 const items = computed(() => flows.value);
 
 const createFlowDialog = ref<InstanceType<typeof AppFlowCreateDialog>>();
-const ilImportDialog = ref<InstanceType<typeof AppDialog>>();
+const importDialog = ref<InstanceType<typeof AppDialog>>();
 const deleteFlowDialog = ref<InstanceType<typeof AppPromptDialog>>();
+const overwriteFlowDialog = ref<InstanceType<typeof AppPromptDialog>>();
 
 const deleteConfirmationMessage = computed(() => {
   const flow = flows.value.find(({ id }) => id === confirmingDeleteId.value);
@@ -226,9 +278,111 @@ const showCreateFlowDialog = async (): Promise<void> => {
   createFlowDialog.value?.showModal();
 };
 
-const showILImportDialog = async (): Promise<void> => {
+const showImportDialog = async (): Promise<void> => {
   await nextTick();
-  ilImportDialog.value?.showModal();
+  importDialog.value?.showModal();
+};
+
+const resetImportDialog = (): void => {
+  selectedFlowFile.value = undefined;
+  importArtifact.value = '';
+  importName.value = '';
+  importPreview.value = undefined;
+  importInputKey.value += 1;
+};
+
+const cancelImportDialog = (): void => {
+  importDialog.value?.close();
+  resetImportDialog();
+};
+
+const selectFlowFile = (event: Event): void => {
+  selectedFlowFile.value = (event.target as HTMLInputElement).files?.[0];
+};
+
+const exportFlow = async (flowId: string): Promise<void> => {
+  const flow = flowStore.flowPayload(flowId);
+  if (!flow) {
+    error.value = 'Unable to find the flow to export.';
+    return;
+  }
+
+  try {
+    const exported = await flowApi.exportFlow(flowId);
+    const url = URL.createObjectURL(new Blob([exported], { type: 'application/json' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = flowExportFilename(flow.name);
+    link.click();
+    URL.revokeObjectURL(url);
+  } catch (caught) {
+    error.value = caught instanceof Error ? caught.message : 'Unable to export the flow.';
+  }
+};
+
+const saveFlowImport = async (document: string, overwrite = false): Promise<void> => {
+  try {
+    await withSpinner(
+      () => {
+        importing.value = true;
+        error.value = undefined;
+        errorRetry.value = false;
+      },
+      () => flowApi.importFlow(document, overwrite),
+      async (saved) => {
+        pendingImportDocument.value = undefined;
+        flowStore.replaceFlowFromPayload(saved);
+        await router.push({ name: 'flow-designer', params: { flowId: saved.id } });
+      }
+    );
+  } catch (caught) {
+    if (!overwrite && caught instanceof FlowApiError && caught.status === 409) {
+      pendingImportDocument.value = document;
+      overwriteConfirmationMessage.value = `${caught.message.replace(/^Flow request failed:\s*/, '')} Do you want to overwrite it?`;
+      await nextTick();
+      overwriteFlowDialog.value?.showModal();
+      return;
+    }
+    error.value =
+      caught instanceof FlowDtoValidationError
+        ? `The flow JSON is invalid: ${caught.message}`
+        : caught instanceof Error
+          ? caught.message
+          : 'Unable to import the flow.';
+  } finally {
+    importing.value = false;
+  }
+};
+
+const importFlow = async (): Promise<void> => {
+  const file = selectedFlowFile.value;
+  if (!file) return;
+  importDialog.value?.close();
+
+  try {
+    const document = await file.text();
+    parseFlowExport(document);
+    selectedFlowFile.value = undefined;
+    importInputKey.value += 1;
+    await saveFlowImport(document);
+  } catch (caught) {
+    error.value =
+      caught instanceof FlowDtoValidationError
+        ? `The flow JSON is invalid: ${caught.message}`
+        : caught instanceof Error
+          ? caught.message
+          : 'Unable to import the flow.';
+  }
+};
+
+const cancelOverwrite = (): void => {
+  pendingImportDocument.value = undefined;
+  overwriteConfirmationMessage.value = '';
+};
+
+const confirmOverwrite = (): void => {
+  const document = pendingImportDocument.value;
+  if (document) void saveFlowImport(document, true);
 };
 
 watch(
@@ -596,13 +750,29 @@ h1 {
 }
 
 .il-import-controls input,
+.il-import-controls select,
 .il-import button {
   min-height: var(--control-min-height);
+}
+
+.il-import-controls select {
+  padding: var(--space-3) var(--space-4);
+  color: var(--color-text-primary);
+  background: var(--color-surface-raised);
+  border: var(--border-width-default) solid var(--color-border-default);
+  border-radius: var(--radius-md);
 }
 
 .il-import-preview {
   padding-top: var(--space-5);
   border-top: var(--border-width-default) solid var(--color-border-default);
+}
+
+.import-dialog-actions {
+  display: flex;
+  gap: var(--space-3-5);
+  width: 100%;
+  justify-content: flex-end;
 }
 
 .create-flow input {

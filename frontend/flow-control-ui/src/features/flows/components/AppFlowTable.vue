@@ -52,10 +52,10 @@
         <AppButton
           type="button"
           class="flow-table-header-btn"
-          text="Import IL"
+          text="Import flow"
           hide-text
           :icon="importIcon"
-          @click="$emit(EVENTS.IMPORT_IL)"
+          @click="$emit(EVENTS.IMPORT_FLOW)"
         />
       </template>
 
@@ -153,6 +153,13 @@
 
           <AppButton
             class="light-weight"
+            text="Export"
+            :icon="exportIcon"
+            @click="emit(EVENTS.EXPORT_FLOW, row.id)"
+          />
+
+          <AppButton
+            class="light-weight"
             text="Delete"
             :icon="deleteFlowIcon"
             @click="emit(EVENTS.BEGIN_DELETE, row.id)"
@@ -183,6 +190,7 @@ import cancelIcon from '@/assets/icons/cancel-icon.svg';
 import deleteFlowIcon from '@/assets/icons/delete-flow-icon.svg';
 import disableFlowIcon from '@/assets/icons/disable-flow-icon.svg';
 import enableFlowIcon from '@/assets/icons/enable-flow-icon.svg';
+import exportIcon from '@/assets/icons/export-icon.svg';
 import importIcon from '@/assets/icons/import-icon.svg';
 import renameFlowIcon from '@/assets/icons/rename-flow-icon.svg';
 import saveIcon from '@/assets/icons/save-icon.svg';
@@ -206,7 +214,8 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'add-flow': [];
-  'import-il': [];
+  'import-flow': [];
+  'export-flow': [flowId: string];
   'toggle-sort': [];
   'update:filter': [filter: string];
   'update:statuses': [statuses: FlowStatus[]];
@@ -268,7 +277,7 @@ const columns: ListColumn<FlowRow>[] = [
     key: 'actions',
     label: 'Actions',
     sortable: false,
-    width: '24rem'
+    width: '30rem'
   }
 ];
 

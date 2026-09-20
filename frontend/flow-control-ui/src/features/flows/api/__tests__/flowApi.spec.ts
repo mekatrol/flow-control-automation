@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { sampleFlows } from '@/features/flows/__tests__/fixtures/sampleFlows';
 import { FlowApiError, flowApi } from '@/features/flows/api/flowApi';
+import { serializeFlowExport } from '@/features/flows/flowTransfer';
 
 const response = (body: unknown, status = 200): Response =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
@@ -15,6 +16,29 @@ const flowPage = {
 
 describe('flow API client', () => {
   afterEach(() => vi.unstubAllGlobals());
+
+  it('exports and atomically imports versioned flow documents through the API', async () => {
+    const document = serializeFlowExport(sampleFlows[0]!);
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response(document, { status: 200 }))
+      .mockResolvedValueOnce(response(sampleFlows[0]));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(flowApi.exportFlow('climate control')).resolves.toBe(document);
+    await expect(flowApi.importFlow(document, true)).resolves.toEqual(sampleFlows[0]);
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/flows/climate%20control/export', {
+      method: 'GET',
+      signal: undefined
+    });
+    expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/flows/import?overwrite=true', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: document,
+      signal: undefined
+    });
+  });
 
   /**
    * Purpose: Protects the behavioral contract that validates a successful response and sends a serialised save.

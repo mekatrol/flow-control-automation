@@ -94,25 +94,7 @@ internal sealed class FlowDatabaseService(
     public async Task<Flow> CreateAsync(string name, CancellationToken cancellationToken)
     {
         var trimmedName = name.Trim();
-        var baseId = Slug(trimmedName);
-
-        if (baseId.Length == 0)
-        {
-            baseId = "flow";
-        }
-
-        var existingIds = await context.Flows
-            .AsNoTracking()
-            .Where(flow => flow.Id == baseId || flow.Id.StartsWith(baseId + "-"))
-            .Select(flow => flow.Id)
-            .ToListAsync(cancellationToken);
-        var used = existingIds.ToHashSet(StringComparer.Ordinal);
-        var id = baseId;
-
-        for (var suffix = 2; used.Contains(id); suffix++)
-        {
-            id = $"{baseId}-{suffix}";
-        }
+        var id = await NextIdAsync(trimmedName, cancellationToken);
 
         var now = Timestamp();
         var flow = new Flow
@@ -145,6 +127,68 @@ internal sealed class FlowDatabaseService(
         }
 
         return flow;
+    }
+
+    public async Task<Flow> ImportAsync(
+        Flow flow,
+        bool overwrite,
+        CancellationToken cancellationToken)
+    {
+        var trimmedName = flow.Name.Trim();
+        var id = flow.Id.Trim();
+        var now = Timestamp();
+        var existing = await context.Flows.SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
+        var existingFlow = existing is null ? null : Deserialize(existing);
+        var imported = flow with
+        {
+            Id = id,
+            Name = trimmedName,
+            Status = "draft",
+            Disabled = false,
+            UpdatedAt = now,
+            LastExecutedAt = null,
+            TemporaryDisable = null,
+            Revision = existingFlow is null ? 1 : checked(existingFlow.Revision + 1),
+            DeployedRevision = null,
+            DeployedVersion = null
+        };
+
+        flowValidator.Validate(imported);
+
+        if (existingFlow is not null && !overwrite)
+        {
+            throw new FlowAlreadyExistsException(id, existingFlow.Name);
+        }
+
+        if (existing is not null)
+        {
+            existing.Json = Serialize(imported);
+            existing.Updated = timeProvider.GetUtcNow();
+            await ReconcileContainingContextsAsync(imported, cancellationToken);
+            await SaveWithConcurrencyMapping(id, existing, cancellationToken);
+
+            return imported;
+        }
+
+        context.Flows.Add(new FlowEntity
+        {
+            Id = id,
+            Key = id,
+            Json = Serialize(imported),
+            Created = timeProvider.GetUtcNow(),
+            Updated = timeProvider.GetUtcNow()
+        });
+
+        try
+        {
+            await context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception) when (IsUniqueConstraint(exception))
+        {
+            throw new FlowAlreadyExistsException(id, trimmedName, exception);
+        }
+
+        return imported;
     }
 
     public async Task<Flow> SaveAsync(
@@ -391,6 +435,31 @@ internal sealed class FlowDatabaseService(
         CancellationToken cancellationToken) =>
         await context.Flows.SingleOrDefaultAsync(flow => flow.Id == id, cancellationToken)
         ?? throw new FlowNotFoundException(id);
+
+    private async Task<string> NextIdAsync(string name, CancellationToken cancellationToken)
+    {
+        var baseId = Slug(name);
+
+        if (baseId.Length == 0)
+        {
+            baseId = "flow";
+        }
+
+        var existingIds = await context.Flows
+            .AsNoTracking()
+            .Where(flow => flow.Id == baseId || flow.Id.StartsWith(baseId + "-"))
+            .Select(flow => flow.Id)
+            .ToListAsync(cancellationToken);
+        var used = existingIds.ToHashSet(StringComparer.Ordinal);
+        var id = baseId;
+
+        for (var suffix = 2; used.Contains(id); suffix++)
+        {
+            id = $"{baseId}-{suffix}";
+        }
+
+        return id;
+    }
 
     private async Task SaveWithConcurrencyMapping(
         string id,
