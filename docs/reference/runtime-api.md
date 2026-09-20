@@ -21,6 +21,14 @@ be synthesized merely from the saved graph.
   A flow that has never been deployed uses `409`.
 - `POST /api/flows/{flowId}/revert-to-deployed` replaces the editable draft with
   the deployed graph and persists the result as a new revision.
+- `POST /api/flows/{flowId}/reenable` stops the debugger which owns the flow's
+  temporary suspension and resumes an eligible deployed snapshot. The command
+  is idempotent and returns the updated flow. It does not replace the durable
+  `/enable` and `/disable` preference.
+
+An active debugger reservation prevents deploy and explicit scan operations for
+the same flow. Creating a second debugger returns `409` with code
+`flow_already_being_debugged`; it cannot replace the existing debugger.
 
 The normal `GET` and `PUT /api/flows/{flowId}` routes operate on the editable
 draft. Saving content that differs from the deployed snapshot sets its status to
@@ -55,3 +63,26 @@ The initial frontend transport refreshes the snapshot after loading the graph an
 after deployment. A failed refresh marks the connection as disconnected and clears
 node values, because retaining them would misleadingly present stale telemetry as
 current. Streaming transports must preserve the same snapshot semantics.
+
+## Flow execution metadata
+
+Flow list and detail responses include:
+
+```json
+{
+  "lastExecutedAt": "2026-09-20T01:02:03+00:00",
+  "temporaryDisable": {
+    "contextId": "8f349f38cfd147ab82f1b33c40483b61",
+    "startedAt": "2026-09-20T01:02:00+00:00"
+  }
+}
+```
+
+`lastExecutedAt` is nullable and records the most recent successful deployed
+production scan. It is checkpointed on a bounded five-second cadence; debugger,
+simulator, failed, and cancelled executions do not update it.
+
+`temporaryDisable` is nullable. It is present only when a debugger suspended a
+deployment that had been enabled, and is separate from the durable `disabled`
+field. Full coordination semantics are defined by the
+[deployed flow and debugger exclusion architecture](../architecture/deployed-flow-debug-exclusion.md).

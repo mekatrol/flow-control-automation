@@ -13,6 +13,7 @@ the managed server and supported hardware controllers.
 - [Portable flow runtime](architecture/portable-flow-runtime.md)
 - [PLC scan cycle](architecture/plc-scan-cycle.md)
 - [Flow authoring and controller targets](architecture/flow-authoring-and-controller-targets.md)
+- [Deployed flow and debugger exclusion](architecture/deployed-flow-debug-exclusion.md)
 - [Frontend hosting and API access](architecture/frontend-hosting-and-api-access.md)
 - [Point-source aggregate architecture and v1 contract](architecture/point-source-v1-contract.md)
 - [Scriban templating engine implementation plan](architecture/scriban-templating-engine-plan.md)

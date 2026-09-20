@@ -45,6 +45,13 @@ Flows can exchange data and commands with Home Assistant or other home automatio
 
 The backend provides the API used by the flow designer, stores flow definitions, and manages the lifecycle of each running flow. Individual flows can be started, updated, or stopped without interrupting other automations.
 
+Starting a debugger safely suspends an enabled deployment of the same flow and
+reserves that flow against a second debugger. The backend owns this state, so
+re-enabling from another client stops the debugger before production resumes;
+the durable manual enable/disable choice remains separate. See
+[`deployed flow and debugger exclusion`](docs/architecture/deployed-flow-debug-exclusion.md)
+for the state model, lifecycle guarantees, and last-executed timestamp semantics.
+
 ## Deployment
 
 The application is intended to run in Docker as either:

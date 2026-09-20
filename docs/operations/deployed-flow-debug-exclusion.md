@@ -1,5 +1,10 @@
 # Deployed flow debug exclusion operations
 
+This runbook covers rollout and monitoring for the backend-owned exclusion
+between a deployed runtime and its debugger. The state model and the reasons for
+the lease-based design are defined in the
+[deployed flow and debugger exclusion architecture](../architecture/deployed-flow-debug-exclusion.md).
+
 ## Rollout
 
 The API applies `AddFlowDebugLeaseAndExecutionMetadata` automatically during
