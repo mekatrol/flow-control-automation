@@ -23,6 +23,16 @@
               <AppSvg :src="getNodeIconUrl(definition.icon)" size="100%" />
             </template>
           </AppButton>
+          <svg
+            :ref="(element) => setDragPreviewElement(definition.nodeType, element)"
+            class="palette-drag-preview"
+            :width="definition.defaultSize.width + dragPreviewPadding * 2"
+            :height="definition.defaultSize.height + dragPreviewPadding * 2"
+            :viewBox="`${-dragPreviewPadding} ${-dragPreviewPadding} ${definition.defaultSize.width + dragPreviewPadding * 2} ${definition.defaultSize.height + dragPreviewPadding * 2}`"
+            aria-hidden="true"
+          >
+            <AppFlowNode :node="previewNode(definition)" :selected="false" />
+          </svg>
         </div>
       </section>
     </div>
@@ -72,23 +82,61 @@ export const groupNodeTypes = (
 </script>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, type ComponentPublicInstance } from 'vue';
 
 import AppButton from '@/components/AppButton.vue';
 import AppFilter from '@/components/AppFilter.vue';
 import AppSvg from '@/components/AppSvg.vue';
 import { EVENTS } from '@/constants/events';
-import type { FlowNodeType } from '@/features/flows/types';
+import AppFlowNode from '@/features/flows/components/AppFlowNode.vue';
+import { createDefaultNode } from '@/features/flows/graph/createNode';
+import type { FlowNode, FlowNodeType } from '@/features/flows/types';
 
 const emit = defineEmits<{
   (event: typeof EVENTS.ADD, type: FlowNodeType): void;
 }>();
 const filter = ref('');
 const groups = computed(() => groupNodeTypes(filterNodeTypes(filter.value)));
+// Ports extend six pixels beyond the body and markers start eight pixels above
+// it. Include a little stroke clearance so the browser's drag bitmap captures
+// the complete canvas rendering.
+const dragPreviewPadding = 10;
+const dragPreviewElements = new Map<FlowNodeType, SVGSVGElement>();
+const previewNodes = new Map<FlowNodeType, FlowNode>();
+
+const previewNode = (definition: FlowNodeTypeDefinition): FlowNode => {
+  const existing = previewNodes.get(definition.nodeType);
+  if (existing) return existing;
+  const node = createDefaultNode(
+    definition.nodeType,
+    { x: 0, y: 0 },
+    0,
+    `palette-preview-${definition.nodeType}`
+  );
+  previewNodes.set(definition.nodeType, node);
+  return node;
+};
+
+const setDragPreviewElement = (
+  type: FlowNodeType,
+  element: Element | ComponentPublicInstance | null
+): void => {
+  if (element instanceof SVGSVGElement) dragPreviewElements.set(type, element);
+  else dragPreviewElements.delete(type);
+};
 
 const startPaletteDrag = (type: FlowNodeType, event: DragEvent): void => {
   event.dataTransfer?.setData('application/x-flow-node-function-type', type);
-  if (event.dataTransfer) event.dataTransfer.effectAllowed = 'copy';
+  if (!event.dataTransfer) return;
+  event.dataTransfer.effectAllowed = 'copy';
+  const preview = dragPreviewElements.get(type);
+  if (!preview) return;
+  const definition = getNodeTypeDefinition(type);
+  event.dataTransfer.setDragImage(
+    preview,
+    definition.defaultSize.width / 2 + dragPreviewPadding,
+    definition.defaultSize.height / 2 + dragPreviewPadding
+  );
 };
 </script>
 
@@ -124,6 +172,15 @@ section {
 .palette-item {
   display: grid;
   min-width: 0;
+}
+
+.palette-drag-preview {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: -1;
+  overflow: visible;
+  pointer-events: none;
 }
 
 .palette-add-button {

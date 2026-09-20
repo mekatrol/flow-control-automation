@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 
 import AppFlowNodePalette, {
@@ -31,6 +31,27 @@ describe('node palette filtering and grouping', () => {
     const addActions = wrapper.findAll('button.palette-add-button');
     expect(addActions).toHaveLength(1);
     expect(addActions[0]?.text()).toContain('Pulse');
+  });
+
+  it('uses the rendered canvas node as the drag image', async () => {
+    const wrapper = mount(AppFlowNodePalette);
+    const average = wrapper
+      .findAll('button.palette-add-button')
+      .find((action) => action.text().includes('Average'));
+    const setDragImage = vi.fn();
+    const dataTransfer = {
+      effectAllowed: 'none',
+      setData: vi.fn(),
+      setDragImage
+    };
+
+    await average?.trigger('dragstart', { dataTransfer });
+
+    const preview = wrapper.get(
+      'svg.palette-drag-preview:has([data-node-id="palette-preview-average"])'
+    );
+    expect(preview.attributes('viewBox')).toBe('-10 -10 92 92');
+    expect(setDragImage).toHaveBeenCalledWith(preview.element, 46, 46);
   });
 
   /**
