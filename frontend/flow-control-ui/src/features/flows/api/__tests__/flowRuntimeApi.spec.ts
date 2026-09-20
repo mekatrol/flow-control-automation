@@ -86,6 +86,22 @@ describe('flow runtime API', () => {
     ).toThrow(/invalid value/);
   });
 
+  it('normalizes backend faulted states for the runtime UI', () => {
+    const faulted = parseFlowRuntimeSnapshot({
+      ...snapshot,
+      state: 'faulted',
+      nodes: {
+        'temperature-average': {
+          state: 'faulted',
+          updatedAt: snapshot.updatedAt
+        }
+      }
+    });
+
+    expect(faulted.state).toBe('error');
+    expect(faulted.nodes['temperature-average']?.state).toBe('error');
+  });
+
   /**
    * Purpose: Protects the behavioral contract that reports invalid responses and request failures consistently.
    * Description: Exercises reports invalid responses and request failures consistently from its arranged starting state and

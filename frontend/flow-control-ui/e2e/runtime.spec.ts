@@ -19,6 +19,12 @@ test('confirms deployment and announces successful and failed runtime updates', 
   page
 }) => {
   let deployShouldFail = false;
+  const draftFlow = { ...sampleFlows[0]!, deployedRevision: 1 };
+  const deployedFlow = { ...draftFlow, status: 'deployed' as const };
+  await page.route('**/api/flows/climate-control', (route) => route.fulfill({ json: draftFlow }));
+  await page.route('**/api/flows/climate-control/deployed', (route) =>
+    route.fulfill({ json: deployedFlow })
+  );
   await page.route('**/api/flows/climate-control/deploy', async (route) => {
     if (deployShouldFail) {
       await route.fulfill({ status: 503, json: { message: 'startup failed' } });
@@ -60,6 +66,8 @@ test('confirms deployment and announces successful and failed runtime updates', 
   // confirms deployment and announces successful and failed runtime updates.
   await expect(page.getByRole('status', { name: 'Runtime state: running' })).toBeVisible();
 
+  await page.getByRole('button', { name: 'Deployed', exact: true }).click();
+
   // Expected outcome: `page.getByRole('button', { name: /Average temperature, Calculator node, running/ })` is visible to the user.
   // Acceptance criteria: `page.getByRole('button', { name: /Average temperature, Calculator node, running/ })` must be visible, because this condition proves that
   // confirms deployment and announces successful and failed runtime updates.
@@ -88,6 +96,8 @@ test('confirms deployment and announces successful and failed runtime updates', 
   // Acceptance criteria: `runtimeNode.locator('rect.connector-port')` must resolve to exactly 2 elements, because this condition proves that
   // confirms deployment and announces successful and failed runtime updates.
   await expect(runtimeNode.locator('rect.connector-port')).toHaveCount(2);
+
+  await page.getByRole('button', { name: 'Draft', exact: true }).click();
 
   deployShouldFail = true;
   await page.getByRole('button', { name: 'Deploy flow' }).click();
@@ -119,11 +129,11 @@ test('announces runtime errors and clears stale node values after disconnect', a
     await route.fulfill({
       json: {
         flowId: 'climate-control',
-        state: 'error',
+        state: 'faulted',
         updatedAt: '2026-07-14T08:02:00+10:00',
         nodes: {
           'temperature-average': {
-            state: 'error',
+            state: 'faulted',
             updatedAt: '2026-07-14T08:02:00+10:00'
           }
         }
@@ -175,6 +185,58 @@ test('announces deployed node state independently of colour', async ({ page }) =
   await expect(
     page.getByRole('button', { name: /Watering pulse, Pulse node, deployed/ })
   ).toBeVisible();
+});
+
+test('keeps running function node state current only in the deployed design view', async ({
+  page
+}) => {
+  let requestCount = 0;
+  const draftFlow = { ...sampleFlows[0]!, deployedRevision: 1 };
+  const deployedFlow = { ...draftFlow, status: 'deployed' as const };
+  await page.route('**/api/flows/climate-control', (route) => route.fulfill({ json: draftFlow }));
+  await page.route('**/api/flows/climate-control/deployed', (route) =>
+    route.fulfill({ json: deployedFlow })
+  );
+  await page.route('**/api/flows/climate-control/runtime', async (route) => {
+    requestCount += 1;
+    const value = requestCount > 1;
+    if (requestCount > 1) await new Promise((resolve) => setTimeout(resolve, 300));
+    await route.fulfill({
+      json: {
+        flowId: 'climate-control',
+        state: 'running',
+        updatedAt: new Date(2026, 6, 14, 8, 1, requestCount).toISOString(),
+        nodes: {
+          'temperature-average': {
+            state: 'running',
+            value,
+            updatedAt: new Date(2026, 6, 14, 8, 1, requestCount).toISOString()
+          }
+        }
+      }
+    });
+  });
+
+  await page.goto('/flows/climate-control');
+
+  await expect(
+    page.getByRole('button', { name: /Average temperature, Calculator node, running/ })
+  ).toHaveCount(0);
+  const requestsBeforeDeployedView = requestCount;
+  await page.waitForTimeout(600);
+  expect(requestCount).toBe(requestsBeforeDeployedView);
+
+  await page.getByRole('button', { name: 'Deployed', exact: true }).click();
+  const functionNode = page.getByRole('button', {
+    name: /Average temperature, Calculator node, running/
+  });
+  await expect(functionNode).toBeVisible();
+  await expect.poll(() => requestCount).toBeGreaterThan(1);
+  await expect(page.locator('.spinner-overlay')).toBeHidden();
+  await expect(functionNode).toHaveAccessibleName(
+    /Average temperature, Calculator node, running, true/
+  );
+  expect(requestCount).toBeGreaterThan(1);
 });
 
 /**

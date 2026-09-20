@@ -36,23 +36,38 @@ export interface ConnectorRuntimeValue {
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
+
 const isDate = (value: unknown): value is string =>
   typeof value === 'string' && !Number.isNaN(Date.parse(value));
+
+const flowRuntimeState = (value: unknown): FlowRuntimeState | undefined =>
+  value === 'faulted'
+    ? 'error'
+    : ['stopped', 'running', 'error'].includes(String(value))
+      ? (value as FlowRuntimeState)
+      : undefined;
+
+const nodeRuntimeState = (value: unknown): NodeRuntimeState | undefined =>
+  value === 'faulted'
+    ? 'error'
+    : ['idle', 'running', 'stopped', 'error'].includes(String(value))
+      ? (value as NodeRuntimeState)
+      : undefined;
 
 export const parseFlowRuntimeSnapshot = (payload: unknown): FlowRuntimeSnapshot => {
   if (!isRecord(payload)) throw new TypeError('Runtime snapshot must be an object.');
   if (typeof payload.flowId !== 'string' || !payload.flowId)
     throw new TypeError('Runtime snapshot requires a flow ID.');
-  if (!['stopped', 'running', 'error'].includes(String(payload.state)))
-    throw new TypeError('Runtime snapshot has an invalid flow state.');
+  const state = flowRuntimeState(payload.state);
+  if (!state) throw new TypeError('Runtime snapshot has an invalid flow state.');
   if (!isDate(payload.updatedAt)) throw new TypeError('Runtime snapshot has an invalid timestamp.');
   if (!isRecord(payload.nodes)) throw new TypeError('Runtime snapshot requires node states.');
 
   const nodes: Record<string, NodeRuntimeSnapshot> = {};
   for (const [nodeId, candidate] of Object.entries(payload.nodes)) {
     if (!isRecord(candidate)) throw new TypeError(`Runtime node ${nodeId} must be an object.`);
-    if (!['idle', 'running', 'stopped', 'error'].includes(String(candidate.state)))
-      throw new TypeError(`Runtime node ${nodeId} has an invalid state.`);
+    const nodeState = nodeRuntimeState(candidate.state);
+    if (!nodeState) throw new TypeError(`Runtime node ${nodeId} has an invalid state.`);
     if (!isDate(candidate.updatedAt))
       throw new TypeError(`Runtime node ${nodeId} has an invalid timestamp.`);
     if (
@@ -75,7 +90,7 @@ export const parseFlowRuntimeSnapshot = (payload: unknown): FlowRuntimeSnapshot 
         throw new TypeError(`Runtime node ${nodeId} has an invalid typed value.`);
     }
     nodes[nodeId] = {
-      state: candidate.state as NodeRuntimeState,
+      state: nodeState,
       ...(typeof candidate.value === 'boolean' ? { value: candidate.value } : {}),
       ...(isRecord(candidate.typedValue)
         ? { typedValue: candidate.typedValue as unknown as RuntimeTypedValue }
@@ -85,7 +100,7 @@ export const parseFlowRuntimeSnapshot = (payload: unknown): FlowRuntimeSnapshot 
   }
   return {
     flowId: payload.flowId,
-    state: payload.state as FlowRuntimeState,
+    state,
     updatedAt: payload.updatedAt,
     nodes
   };
@@ -93,7 +108,11 @@ export const parseFlowRuntimeSnapshot = (payload: unknown): FlowRuntimeSnapshot 
 
 const requestRuntime = async (url: string, init: RequestInit): Promise<FlowRuntimeSnapshot> => {
   try {
-    const response = await waitForFetch(url, init);
+    const response = await waitForFetch(url, init, {
+      // Runtime snapshots are telemetry. Refreshing them must not block the
+      // workspace or display the global busy cursor while a flow is running.
+      trackWait: init.method !== 'GET'
+    });
     if (!response.ok) {
       let message = `Runtime request failed with status ${response.status}.`;
       try {

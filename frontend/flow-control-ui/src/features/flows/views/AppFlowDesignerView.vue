@@ -389,6 +389,8 @@ let loadController: AbortController | undefined;
 const loadGuard = createLatestRequestGuard();
 const pendingRoute = ref<string>();
 let allowNavigation = false;
+let runtimePolling: ReturnType<typeof window.setInterval> | undefined;
+let runtimePollPending = false;
 
 watch(debugTargets, (targets) => {
   if (!targets.some((target) => target.id === debugTargetId.value)) debugTargetId.value = 'server';
@@ -412,7 +414,11 @@ const execution = useRuntimeContext({
 });
 const isSimulatorWorkspace = computed(() => workspaceMode.value === WorkspaceMode.Simulator);
 const isDebuggerWorkspace = computed(() => workspaceMode.value === WorkspaceMode.Debugger);
-const canvasRuntime = execution.canvasRuntime;
+const canvasRuntime = computed(() =>
+  isSimulatorWorkspace.value || isDebuggerWorkspace.value || isDeployedVersion.value
+    ? execution.canvasRuntime.value
+    : undefined
+);
 const simulatorIo = execution.io;
 const showCanvasDefaultValues = computed(
   () => isSimulatorWorkspace.value || isDebuggerWorkspace.value
@@ -722,21 +728,48 @@ const loadFlow = async (flowId: string): Promise<void> => {
 
 const refreshRuntime = async (flowId = props.flowId): Promise<void> => {
   try {
-    await withSpinner(
-      () => {
-        runtimeError.value = undefined;
-      },
-      () => flowRuntimeApi.getRuntime(flowId),
-      (snapshot) => {
-        if (snapshot.flowId !== flowId) throw new Error('Runtime state belongs to another flow.');
-        runtimeStore.applySnapshot(snapshot);
-      }
-    );
+    runtimeError.value = undefined;
+    const snapshot = await flowRuntimeApi.getRuntime(flowId);
+    if (snapshot.flowId !== flowId) throw new Error('Runtime state belongs to another flow.');
+    runtimeStore.applySnapshot(snapshot);
   } catch (error) {
     runtimeStore.disconnect(flowId);
     runtimeError.value = runtimeFailureMessage(error, 'Unable to load runtime state.');
   }
 };
+
+const stopRuntimePolling = (): void => {
+  if (runtimePolling !== undefined) window.clearInterval(runtimePolling);
+  runtimePolling = undefined;
+};
+
+const pollRuntime = async (flowId: string): Promise<void> => {
+  if (runtimePollPending) return;
+  runtimePollPending = true;
+  try {
+    const snapshot = await flowRuntimeApi.getRuntime(flowId);
+    if (props.flowId !== flowId || snapshot.flowId !== flowId) return;
+    runtimeStore.applySnapshot(snapshot);
+    runtimeError.value = undefined;
+  } catch (error) {
+    if (props.flowId !== flowId) return;
+    runtimeStore.disconnect(flowId);
+    runtimeError.value = runtimeFailureMessage(error, 'Unable to load runtime state.');
+  } finally {
+    runtimePollPending = false;
+  }
+};
+
+watch(
+  [workspaceMode, isDeployedVersion, () => runtime.value?.state],
+  ([mode, deployed, state]) => {
+    stopRuntimePolling();
+    if (mode !== WorkspaceMode.Design || !deployed || state !== 'running') return;
+    const activeFlowId = props.flowId;
+    runtimePolling = window.setInterval(() => void pollRuntime(activeFlowId), 500);
+  },
+  { immediate: true }
+);
 
 const openDeployConfirmation = (): void => {
   deployDialog.value?.showModal();
@@ -869,6 +902,7 @@ watch(
 watch(selectedContextId, () => void validateAllPointReferences());
 onMounted(() => void loadExecutionContexts());
 onBeforeUnmount(() => {
+  stopRuntimePolling();
   loadGuard.invalidate();
   loadController?.abort();
   controllerTemplates.cancel();
