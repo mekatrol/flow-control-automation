@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using Server.Common.Errors;
 using System.Collections.Concurrent;
 
 namespace Server.Services.FlowExecution.ExecutionContext;
@@ -5,7 +7,8 @@ namespace Server.Services.FlowExecution.ExecutionContext;
 internal sealed class FlowDebugSuspensionCoordinator(
     IFlowDebugLeaseRepository leases,
     IFlowRuntimeService runtime,
-    IFlowDeploymentService deployment) : IFlowDebugSuspensionCoordinator
+    IFlowDeploymentService deployment,
+    ILogger<FlowDebugSuspensionCoordinator> logger) : IFlowDebugSuspensionCoordinator
 {
     private static readonly ConcurrentDictionary<string, SemaphoreSlim> Gates = new(StringComparer.Ordinal);
 
@@ -20,7 +23,21 @@ internal sealed class FlowDebugSuspensionCoordinator(
         try
         {
             var suspended = flow.DeployedVersion is not null && !flow.Disabled;
-            var lease = await leases.AcquireAsync(flow.Id, contextId, suspended, cancellationToken);
+            FlowDebugLease lease;
+
+            try
+            {
+                lease = await leases.AcquireAsync(flow.Id, contextId, suspended, cancellationToken);
+            }
+            catch (FlowDebugLeaseConflictException)
+            {
+                FlowDebugTelemetry._leaseAcquisitionConflicts.Add(1);
+                logger.LogInformation(
+                    "Debug lease acquisition conflicted for flow {FlowId} and context {ExecutionContextId}.",
+                    flow.Id,
+                    contextId);
+                throw;
+            }
 
             if (suspended)
             {
@@ -29,8 +46,18 @@ internal sealed class FlowDebugSuspensionCoordinator(
 
             return lease;
         }
-        catch
+        catch (FlowDebugLeaseConflictException)
         {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            FlowDebugTelemetry._suspensionFailures.Add(1);
+            logger.LogError(
+                exception,
+                "Failed to suspend flow {FlowId} for debug context {ExecutionContextId}.",
+                flow.Id,
+                contextId);
             await leases.ReleaseAsync(flow.Id, contextId, CancellationToken.None);
             throw;
         }
@@ -59,7 +86,20 @@ internal sealed class FlowDebugSuspensionCoordinator(
 
             if (lease.SuspendedEnabledDeployment && !flow.Disabled && flow.DeployedVersion is not null)
             {
-                await deployment.DeployAsync(DeployedFlow(flow), cancellationToken);
+                try
+                {
+                    await deployment.DeployAsync(DeployedFlow(flow), cancellationToken);
+                }
+                catch (Exception exception)
+                {
+                    FlowDebugTelemetry._resumeFailures.Add(1);
+                    logger.LogError(
+                        exception,
+                        "Failed to resume flow {FlowId} after debug context {ExecutionContextId} stopped.",
+                        flow.Id,
+                        contextId);
+                    throw;
+                }
             }
 
             return await leases.ReleaseAsync(flow.Id, contextId, cancellationToken);

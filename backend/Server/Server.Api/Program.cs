@@ -4,12 +4,16 @@ using Server.Api.Security;
 using Server.Compiler.Extensions;
 using Server.Services;
 using Server.Services.ServiceExtensions;
+using System.Diagnostics.Metrics;
 
 namespace Server.Api;
 
 public partial class Program
 {
     private const string LocalSettingsFileName = "appsettings.Local.json";
+    private static readonly Meter _flowDebugMeter = new("FlowControl.FlowDebug");
+    private static readonly Counter<long> _staleLeaseRecoveries = _flowDebugMeter.CreateCounter<long>(
+        "flow_debug.stale_lease_recoveries");
 
     private static async Task Main(string[] args)
     {
@@ -67,9 +71,18 @@ public partial class Program
             var debugLeases = scope.ServiceProvider
                 .GetRequiredService<IFlowDebugLeaseRepository>();
             var timeProvider = scope.ServiceProvider.GetRequiredService<TimeProvider>();
-            await debugLeases.ReleaseExpiredAsync(
+            var staleLeases = await debugLeases.ReleaseExpiredAsync(
                 timeProvider.GetUtcNow().AddTicks(1),
                 app.Lifetime.ApplicationStopping);
+
+            if (staleLeases.Count > 0)
+            {
+                _staleLeaseRecoveries.Add(staleLeases.Count);
+                app.Logger.LogWarning(
+                    "Recovered {LeaseCount} stale debug leases left by a previous API process.",
+                    staleLeases.Count);
+            }
+
             var dataValidator =
                 scope.ServiceProvider.GetRequiredService<IStartupDataValidator>();
             await dataValidator.ValidateAsync(app.Lifetime.ApplicationStopping);

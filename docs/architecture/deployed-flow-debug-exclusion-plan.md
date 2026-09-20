@@ -385,7 +385,7 @@ uses one combined unsaved-change/debug-context confirmation which awaits a
 successful backend stop. Browser unload prompts without treating a best-effort
 request as authoritative, while same-flow workspace navigation remains intact.
 
-### Phase 4: Hardening and rollout
+### Phase 4: Hardening and rollout (complete)
 
 - Exercise controller and server debugger targets, process restart, lease
   expiry, failed deploy resume, and slow/failing stop paths.
@@ -394,6 +394,15 @@ request as authoritative, while same-flow workspace navigation remains intact.
   failures.
 - Deploy the migration before or with code that reads the new fields. Treat
   missing timestamps as null and no lease as not temporarily disabled.
+
+Completed 2026-09-20. Added structured operational logs and
+`FlowControl.FlowDebug` counters for acquisition conflicts, stale recovery,
+suspend/resume failures, forced stops, and timestamp checkpoint failures.
+Added an operations runbook covering migration ordering, the single-process
+deployment constraint, post-deploy smoke tests, failure injection, and alerting
+guidance. Focused architecture, persistence, execution-context, and runtime
+tests pass; the full backend suite still contains unrelated compiler fixture
+failures recorded during verification.
 
 ## Verification plan
 

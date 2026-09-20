@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Server.Common.Services;
 using Server.Compiler.Contracts;
 using Server.Services.Points.Runtime;
@@ -12,7 +13,8 @@ internal sealed class FlowRuntimeService(
     IFlowVirtualMachineFactory machines,
     IFlowPointAdapter points,
     IVirtualPointRuntimeStore virtualPoints,
-    IServiceScopeFactory? scopeFactory = null) : IFlowRuntimeService, IFlowRuntimeDeploymentService, IDisposable
+    IServiceScopeFactory? scopeFactory = null,
+    ILogger<FlowRuntimeService>? logger = null) : IFlowRuntimeService, IFlowRuntimeDeploymentService, IDisposable
 {
     public FlowRuntimeService(
         TimeProvider timeProvider,
@@ -331,11 +333,16 @@ internal sealed class FlowRuntimeService(
         {
             throw;
         }
-        catch (Exception)
+        catch (Exception exception)
         {
             // Runtime execution remains healthy when an eventually-consistent
             // metadata checkpoint fails; the next cadence retries persistence.
             _metadataCheckpoints.TryRemove(flowId, out _);
+            FlowDebugTelemetry._executionTimestampCheckpointFailures.Add(1);
+            logger?.LogWarning(
+                exception,
+                "Failed to checkpoint the last execution timestamp for flow {FlowId}.",
+                flowId);
         }
     }
 

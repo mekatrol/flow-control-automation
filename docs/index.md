@@ -37,6 +37,7 @@ the managed server and supported hardware controllers.
 
 - [Virtual-point operations](operations/virtual-points.md)
 - [Live-output commissioning](operations/live-output-commissioning.md)
+- [Deployed flow debug exclusion](operations/deployed-flow-debug-exclusion.md)
 
 ## Development and testing
 

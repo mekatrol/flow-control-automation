@@ -1,4 +1,5 @@
 #pragma warning disable IDE0011, CC0001, CC0002, CC0003
+using Microsoft.Extensions.Logging;
 using Server.Compiler.Services;
 using Server.Services.FlowExecution.Debugging;
 using Server.Services.FlowExecution.Deployment;
@@ -18,7 +19,8 @@ internal sealed class FlowExecutionContextService(
     FlowExecutionContextRegistry contexts,
     IFlowDebugLeaseRepository leases,
     IFlowDebugSuspensionCoordinator suspension,
-    TimeProvider timeProvider) : IFlowExecutionContextService
+    TimeProvider timeProvider,
+    ILogger<FlowExecutionContextService> logger) : IFlowExecutionContextService
 {
     public async Task<FlowExecutionContext> CreateAsync(CreateFlowExecutionContext request, CancellationToken token)
     {
@@ -157,6 +159,11 @@ internal sealed class FlowExecutionContextService(
                         Message = "The deployed flow was re-enabled from another client."
                     }
                 };
+                FlowDebugTelemetry._forcedStops.Add(1, new KeyValuePair<string, object?>("reason", "reenable"));
+                logger.LogInformation(
+                    "Debug context {ExecutionContextId} for flow {FlowId} was stopped by re-enable.",
+                    entry.Id,
+                    flowId);
             }
             finally
             {
@@ -201,6 +208,13 @@ internal sealed class FlowExecutionContextService(
 
                 if (entry.Mode == FlowExecutionMode.Debugger)
                 {
+                    FlowDebugTelemetry._forcedStops.Add(
+                        1,
+                        new KeyValuePair<string, object?>("reason", "lease_expired"));
+                    logger.LogWarning(
+                        "Debug context {ExecutionContextId} for flow {FlowId} was stopped after its lease expired.",
+                        entry.Id,
+                        entry.FlowId);
                     await suspension.ReleaseAsync(
                         await flows.GetAsync(entry.FlowId, CancellationToken.None),
                         entry.Id,
