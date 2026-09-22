@@ -8,14 +8,14 @@
       <p class="demo-intro__eyebrow">Component showcase</p>
       <h1>AppListView demo</h1>
       <p>
-        A client-side example with 207 generated records. Try the text filter, sortable headings,
+        An API-backed example with 207 generated records. Try the text filter, sortable headings,
         page-size selector, pagination, row selection, and reset action.
       </p>
 
       <dl class="query-state" aria-label="Current list query">
         <div>
           <dt>Matching rows</dt>
-          <dd>{{ filteredRows.length }} / {{ allRows.length }}</dd>
+          <dd>{{ result.totalItems }} / {{ result.totalAvailableItems }}</dd>
         </div>
         <div>
           <dt>Page</dt>
@@ -47,13 +47,15 @@
           {{ option }}
         </label>
       </fieldset>
+
+      <p v-if="error" class="api-error" role="alert">{{ error }}</p>
     </div>
 
     <!--
-      AppListView is a controlled component: the parent supplies rows and query,
-      and handles `query-change` to update them. AppListView renders the controls,
-      table, empty/loading states, and pagination, but deliberately does not fetch,
-      filter, sort, or paginate data itself.
+      AppListView is a controlled component: the store supplies rows and query,
+      and handles `query-change` by asking the API for another page. AppListView
+      renders the controls, table, empty/loading states, and pagination, but
+      deliberately does not fetch, filter, sort, or paginate data itself.
 
       Important props:
       - `id` prefixes accessible title, description, and filter element IDs. Use a
@@ -83,12 +85,13 @@
       title="Generated devices"
       description="A feature-complete AppListView example using local mock data."
       :columns="columns"
-      :rows="visibleRows"
+      :rows="result.items"
       :query="query"
-      :total-items="filteredRows.length"
+      :total-items="result.totalItems"
+      :loading="loading"
       :page-size-options="pageSizeOptions"
       empty-message="No generated devices match that filter."
-      @query-change="updateQuery"
+      @query-change="handleQueryChange"
       @filter-clear="lastEvent = 'Filter cleared'"
       @sort-clear="lastEvent = 'Sort cleared'"
       @reset="lastEvent = 'Query reset'"
@@ -179,57 +182,21 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { storeToRefs } from 'pinia';
 
 import AppListView from '@/components/list-view/AppListView.vue';
-import type { ListColumn, ListQuery, ListRow } from '@/models';
-
-// A row may contain any application fields, but must extend ListRow and have an
-// `id` (string or number). AppListView uses that ID as the Vue row key.
-type DeviceStatus = 'Active' | 'Idle' | 'Offline' | 'Maintenance';
-
-interface DemoRow extends ListRow {
-  id: number;
-  name: string;
-  serialNumber: string;
-  type: string;
-  location: string;
-  owner: string;
-  status: DeviceStatus;
-  utilisation: number;
-  lastSeen: string;
-}
-
-const deviceTypes = ['Flow meter', 'Pressure sensor', 'Valve controller', 'Temperature probe'];
-const locations = ['Sydney', 'Melbourne', 'Brisbane', 'Perth', 'Adelaide', 'Newcastle'];
-const owners = ['Operations', 'Facilities', 'Quality', 'Engineering', 'Production'];
-const statuses: DeviceStatus[] = ['Active', 'Idle', 'Offline', 'Maintenance'];
-
-// Mock data is generated once when the module is loaded. Replace this array with
-// API results in a real page. The formulas make all 207 rows deterministic while
-// still producing enough variation to demonstrate filtering and sorting.
-const allRows: DemoRow[] = Array.from({ length: 207 }, (_, index) => {
-  const number = index + 1;
-  const date = new Date(Date.UTC(2026, 8, 22, 6, 0));
-  date.setUTCHours(date.getUTCHours() - index * 5);
-
-  return {
-    id: number,
-    name: `Device ${String(number).padStart(3, '0')}`,
-    serialNumber: `FC-${2026 + (index % 3)}-${String(1000 + number)}`,
-    type: deviceTypes[index % deviceTypes.length]!,
-    location: locations[(index * 5) % locations.length]!,
-    owner: owners[(index * 3) % owners.length]!,
-    status: statuses[(index * 7) % statuses.length]!,
-    utilisation: (index * 17 + 23) % 101,
-    lastSeen: date.toISOString()
-  };
-});
+import { useListViewDemoStore } from '@/features/listViewDemo/stores/listViewDemo';
+import type {
+  DemoDeviceListQuery,
+  DemoDeviceRow
+} from '@/features/listViewDemo/stores/listViewDemo';
+import type { ListColumn } from '@/models';
 
 // Column `key` values are type-checked against DemoRow. Set `sortable` only when
 // the parent can sort that field. Widths populate the table colgroup, and `align`
 // controls the matching header and body cell alignment.
-const columns: ListColumn<DemoRow>[] = [
+const columns: ListColumn<DemoDeviceRow>[] = [
   { key: 'name', label: 'Device', sortable: true, width: '15rem' },
   { key: 'type', label: 'Type', sortable: true, width: '12rem' },
   { key: 'location', label: 'Location', sortable: true, width: '10rem' },
@@ -239,71 +206,20 @@ const columns: ListColumn<DemoRow>[] = [
   { key: 'lastSeen', label: 'Last seen', sortable: true, width: '13rem' }
 ];
 
-// The parent owns the complete query. Page numbers are one-based. A null `sort`
-// displays the source order; this demo starts sorted by name ascending.
-const query = ref<ListQuery<DemoRow>>({
-  page: 1,
-  pageSize: 25,
-  filter: '',
-  sort: { column: 'name', direction: 'asc' }
-});
+// Pinia holds the request query, current API page, and request status. storeToRefs
+// preserves reactivity while exposing those values conveniently to the template.
+const demoStore = useListViewDemoStore();
+const { query, result, loading, error } = storeToRefs(demoStore);
 
 // The available values can come from application configuration. This demo lets
 // the user change the prop interactively; keep at least one value enabled.
 const availablePageSizes = [2, 5, 10, 20];
 const pageSizeOptions = ref<number[]>([2, 5, 10, 20]);
-const selectedRow = ref<DemoRow | null>(null);
+const selectedRow = ref<DemoDeviceRow | null>(null);
 const lastEvent = ref('Ready — select a row or change the query');
 
-// FILTERING: AppListView emits the submitted text in `query-change` and resets
-// the page to 1. The parent decides which fields participate in matching. For
-// server-side lists, send query.value.filter to the API instead of filtering here.
-const filteredRows = computed(() => {
-  const filter = query.value.filter.trim().toLocaleLowerCase();
-  if (!filter) return allRows;
-
-  return allRows.filter((row) =>
-    [row.name, row.serialNumber, row.type, row.location, row.owner, row.status].some((value) =>
-      value.toLocaleLowerCase().includes(filter)
-    )
-  );
-});
-
-// SORTING: clicking a sortable heading emits its key and direction and resets the
-// page to 1. Copy before sorting so the filtered array is never mutated. A real
-// server-backed page would translate these values into its API's sort parameters.
-const sortedRows = computed(() => {
-  const sort = query.value.sort;
-  if (!sort) return filteredRows.value;
-
-  const direction = sort.direction === 'asc' ? 1 : -1;
-  return [...filteredRows.value].sort((left, right) => {
-    const leftValue = left[sort.column];
-    const rightValue = right[sort.column];
-
-    if (typeof leftValue === 'number' && typeof rightValue === 'number') {
-      return (leftValue - rightValue) * direction;
-    }
-
-    return (
-      String(leftValue).localeCompare(String(rightValue), undefined, {
-        numeric: true,
-        sensitivity: 'base'
-      }) * direction
-    );
-  });
-});
-
-// PAGINATION: AppListView needs only the current page's rows. The unpaginated
-// filtered count is passed separately as `total-items`, allowing it to calculate
-// page count and render both pagination controls correctly.
-const visibleRows = computed(() => {
-  const start = (query.value.page - 1) * query.value.pageSize;
-  return sortedRows.value.slice(start, start + query.value.pageSize);
-});
-
-// These two values are demo-only display helpers; AppListView does not require
-// either of them.
+// These display-only summaries derive from API metadata. They do not transform
+// the returned row collection or duplicate server-side list behavior.
 const sortSummary = computed(() => {
   if (!query.value.sort) return 'None';
   const column = columns.find(({ key }) => key === query.value.sort?.column);
@@ -311,19 +227,19 @@ const sortSummary = computed(() => {
 });
 
 const visibleRange = computed(() => {
-  if (filteredRows.value.length === 0) return '0';
-  const first = (query.value.page - 1) * query.value.pageSize + 1;
-  const last = first + visibleRows.value.length - 1;
+  if (result.value.totalItems === 0) return '0';
+  const first = (result.value.page - 1) * result.value.pageSize + 1;
+  const last = first + result.value.items.length - 1;
   return `${first}–${last}`;
 });
 
-// QUERY EVENTS: every filter, sorting, page, and page-size interaction produces
-// one complete query object. Assigning it here causes the computed data pipeline
-// and AppListView props to update reactively.
-const updateQuery = (nextQuery: ListQuery<DemoRow>): void => {
-  query.value = nextQuery;
+// QUERY EVENTS: AppListView emits a complete query for filter, sort, page, and
+// page-size changes. The view forwards it to the store; only the API transforms
+// the 207-row database and returns the requested page.
+const handleQueryChange = (nextQuery: DemoDeviceListQuery): void => {
   selectedRow.value = null;
   lastEvent.value = `Query changed: page ${nextQuery.page}, ${nextQuery.pageSize} rows per page`;
+  void demoStore.updateQuery(nextQuery);
 };
 
 // If the current page size is removed, select the first remaining option and
@@ -339,7 +255,7 @@ const togglePageSizeOption = (option: number): void => {
   pageSizeOptions.value = nextOptions;
 
   if (!nextOptions.includes(query.value.pageSize)) {
-    query.value = { ...query.value, page: 1, pageSize: nextOptions[0]! };
+    void demoStore.updateQuery({ ...query.value, page: 1, pageSize: nextOptions[0]! });
   }
 
   lastEvent.value = `Page-size options changed: ${nextOptions.join(', ')}`;
@@ -348,7 +264,7 @@ const togglePageSizeOption = (option: number): void => {
 // ROW EVENTS: row-click fires for the row background/cells, but AppListView avoids
 // firing it when the original click came from an interactive child such as a link,
 // button, input, or select.
-const selectRow = (row: DemoRow): void => {
+const selectRow = (row: DemoDeviceRow): void => {
   selectedRow.value = row;
   lastEvent.value = `Row clicked: ${row.name}`;
 };
@@ -357,6 +273,11 @@ const formatDate = (value: string): string =>
   new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(
     new Date(value)
   );
+
+// Route lifecycle owns request lifecycle: fetch the first server page on entry
+// and abort any outstanding mock request when navigating away.
+onMounted(() => void demoStore.load());
+onBeforeUnmount(() => demoStore.cancel());
 </script>
 
 <style scoped>
@@ -448,6 +369,11 @@ const formatDate = (value: string): string =>
 .page-size-config label:has(input:disabled) {
   cursor: not-allowed;
   opacity: 0.65;
+}
+
+.api-error {
+  margin: 0;
+  color: var(--color-status-danger, #b42318);
 }
 
 .list-heading {
