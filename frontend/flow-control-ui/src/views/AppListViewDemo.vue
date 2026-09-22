@@ -182,10 +182,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 
 import AppListView from '@/components/list-view/AppListView.vue';
+import { useServerListQuery } from '@/composables/useServerPagination';
 import { useListViewDemoStore } from '@/features/listViewDemo/stores/listViewDemo';
 import type {
   DemoDeviceListQuery,
@@ -209,12 +210,23 @@ const columns: ListColumn<DemoDeviceRow>[] = [
 // Pinia holds the request query, current API page, and request status. storeToRefs
 // preserves reactivity while exposing those values conveniently to the template.
 const demoStore = useListViewDemoStore();
-const { query, result, loading, error } = storeToRefs(demoStore);
+const { result, loading, error } = storeToRefs(demoStore);
 
 // The available values can come from application configuration. This demo lets
 // the user change the prop interactively; keep at least one value enabled.
 const availablePageSizes = [2, 5, 10, 20];
 const pageSizeOptions = ref<number[]>([2, 5, 10, 20]);
+const defaultQuery: DemoDeviceListQuery = {
+  page: 1,
+  pageSize: 10,
+  filter: '',
+  sort: { column: 'name', direction: 'asc' }
+};
+const { query, setQuery } = useServerListQuery<DemoDeviceRow>({
+  defaults: defaultQuery,
+  pageSizeOptions: availablePageSizes,
+  sortableColumns: columns.filter(({ sortable }) => sortable).map(({ key }) => key)
+});
 const selectedRow = ref<DemoDeviceRow | null>(null);
 const lastEvent = ref('Ready — select a row or change the query');
 
@@ -239,7 +251,7 @@ const visibleRange = computed(() => {
 const handleQueryChange = (nextQuery: DemoDeviceListQuery): void => {
   selectedRow.value = null;
   lastEvent.value = `Query changed: page ${nextQuery.page}, ${nextQuery.pageSize} rows per page`;
-  void demoStore.updateQuery(nextQuery);
+  setQuery(nextQuery);
 };
 
 // If the current page size is removed, select the first remaining option and
@@ -255,7 +267,7 @@ const togglePageSizeOption = (option: number): void => {
   pageSizeOptions.value = nextOptions;
 
   if (!nextOptions.includes(query.value.pageSize)) {
-    void demoStore.updateQuery({ ...query.value, page: 1, pageSize: nextOptions[0]! });
+    setQuery({ ...query.value, page: 1, pageSize: nextOptions[0]! });
   }
 
   lastEvent.value = `Page-size options changed: ${nextOptions.join(', ')}`;
@@ -274,9 +286,18 @@ const formatDate = (value: string): string =>
     new Date(value)
   );
 
-// Route lifecycle owns request lifecycle: fetch the first server page on entry
-// and abort any outstanding mock request when navigating away.
-onMounted(() => void demoStore.load());
+// Query changes include browser back/forward navigation as well as list controls.
+watch(
+  query,
+  async (nextQuery) => {
+    await demoStore.updateQuery(nextQuery);
+    if (demoStore.query.page !== nextQuery.page) {
+      setQuery({ ...nextQuery, page: demoStore.query.page });
+    }
+  },
+  { deep: true, immediate: true }
+);
+
 onBeforeUnmount(() => demoStore.cancel());
 </script>
 
