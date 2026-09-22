@@ -16,7 +16,8 @@ export const ROUTE_NAMES = {
   pointSources: 'point-sources',
   pointSourceNew: 'point-source-new',
   pointSourceDetail: 'point-source-detail',
-  credentials: 'credentials'
+  credentials: 'credentials',
+  demo: 'demo'
 };
 
 export type RouteName = (typeof ROUTE_NAMES)[keyof typeof ROUTE_NAMES];
@@ -112,6 +113,11 @@ export const routes: RouteRecordRaw[] = [
         path: 'credentials',
         name: ROUTE_NAMES.credentials,
         component: () => import('@/features/credentials/views/AppCredentialManagerView.vue')
+      },
+      {
+        path: 'demo',
+        name: ROUTE_NAMES.demo,
+        component: () => import('@/views/AppListViewDemo.vue')
       }
     ]
   }
