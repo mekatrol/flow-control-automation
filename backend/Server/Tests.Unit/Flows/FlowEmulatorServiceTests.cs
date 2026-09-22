@@ -59,7 +59,7 @@ public sealed class FlowEmulatorServiceTests
         var service = provider.GetRequiredService<IFlowEmulatorService>();
         var created = await service.CreateAsync(Source(), default);
 
-        service.SetInputs(created.EmulatorId, [new EmulatorInputChange("input-01", FlowVmValue.FromBoolean(true), EffectiveAtMilliseconds: 10)]);
+        service.SetInputs(created.EmulatorId, [new EmulatorInputChange("controller-a/input-01", FlowVmValue.FromBoolean(true), EffectiveAtMilliseconds: 10)]);
         var before = service.Advance(created.EmulatorId, 9, scan: true);
         var after = service.Advance(created.EmulatorId, 1, scan: true);
 
@@ -77,7 +77,7 @@ public sealed class FlowEmulatorServiceTests
         await using var provider = CreateProvider(new MachineFactory());
         var service = provider.GetRequiredService<IFlowEmulatorService>();
         var created = await service.CreateAsync(Source(), default);
-        service.SetInputs(created.EmulatorId, [new EmulatorInputChange("input-01", FlowVmValue.FromBoolean(true))]);
+        service.SetInputs(created.EmulatorId, [new EmulatorInputChange("controller-a/input-01", FlowVmValue.FromBoolean(true))]);
         service.InjectFault(created.EmulatorId, "output_failure");
 
         var snapshot = service.Advance(created.EmulatorId, 0, scan: true);
@@ -105,7 +105,7 @@ public sealed class FlowEmulatorServiceTests
         var created = await service.CreateAsync(source, default);
 
         var updated = service.ApplyInputsAndStep(created.EmulatorId,
-            [new EmulatorInputChange("input-01", FlowVmValue.FromNumber(21.5))]);
+            [new EmulatorInputChange("controller-a/input-01", FlowVmValue.FromNumber(21.5))]);
 
         Assert.Multiple(() =>
         {
@@ -128,6 +128,7 @@ public sealed class FlowEmulatorServiceTests
                 NodeType = FlowNodeType.DigitalInput,
                 Configuration = new Dictionary<string, JsonElement>
                 {
+                    ["pointSourceId"] = JsonSerializer.SerializeToElement("controller-a"),
                     ["pointId"] = JsonSerializer.SerializeToElement("input-01")
                 }
             }
@@ -197,7 +198,7 @@ public sealed class FlowEmulatorServiceTests
                 ++_scan,
                 sampledAtMilliseconds,
                 [input.TypedValue],
-                [new FlowVmCommand("output-01", input.TypedValue)]);
+                [new FlowVmCommand("controller-a/output-01", input.TypedValue)]);
         }
 
         public void Reset() => _scan = 0;

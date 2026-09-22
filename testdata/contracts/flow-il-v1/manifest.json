@@ -4,7 +4,7 @@
     {
       "id": "valid-two-button-and",
       "artifactLength": 1096,
-      "artifactSha256": "4892bb5f01895b891258a842d6132ffc950a8a0b989748721baca31c27a30f11",
+      "artifactSha256": "231883f17f2b6aa74e7d67a8cf0a795fd5c02b632ac25fb5eb68fa3a2f4f9f38",
       "expected": {
         "valid": true,
         "reason": "ok",
@@ -13,8 +13,8 @@
     },
     {
       "id": "valid-memory-feedback",
-      "artifactLength": 1066,
-      "artifactSha256": "f3148702d0bfa45406dfe6d8e381f0614127389fd2b0d4e57efb2747b681cebe",
+      "artifactLength": 1090,
+      "artifactSha256": "fc353d69b78b6e50b5cbac78fea4906f0005390a757d754f0eeea52dbf6ec585",
       "expected": {
         "valid": true,
         "reason": "ok",
@@ -33,8 +33,8 @@
     },
     {
       "id": "valid-numeric-language",
-      "artifactLength": 1028,
-      "artifactSha256": "a876f97ec6455ae92603d55d7cf7c63d42d203d9788b6466ac00950a2ff4a5db",
+      "artifactLength": 1036,
+      "artifactSha256": "20772824a7b074264a2b1748392a0a8877ebdf098d9fef7470698297d87de6d1",
       "expected": {
         "valid": true,
         "reason": "ok",
@@ -64,7 +64,7 @@
     {
       "id": "valid-source-order-permutation",
       "artifactLength": 1096,
-      "artifactSha256": "4892bb5f01895b891258a842d6132ffc950a8a0b989748721baca31c27a30f11",
+      "artifactSha256": "231883f17f2b6aa74e7d67a8cf0a795fd5c02b632ac25fb5eb68fa3a2f4f9f38",
       "expected": {
         "valid": true,
         "reason": "ok",

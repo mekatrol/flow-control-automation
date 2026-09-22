@@ -332,7 +332,11 @@ test('recovers from a failed save without losing edits', async ({ page }) => {
   // recovers from a failed save without losing edits.
   await expect(averageNode).toBeVisible();
   await averageNode.click();
-  await page.getByRole('textbox', { name: 'Node label' }).fill('Retry-safe average');
+  await page.getByRole('textbox', { name: 'Node label' }).evaluate((element) => {
+    const input = element as HTMLInputElement;
+    input.value = 'Retry-safe average';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
   await page.getByRole('button', { name: 'Save flow' }).click();
 
   // Expected outcome: `page.getByRole('button', { name: 'Saving…' })` prevents interaction.
@@ -414,13 +418,13 @@ test('protects dirty navigation and supports explicit discard', async ({ page })
   // Expected outcome: `page.getByRole('alertdialog', { name: 'Discard unsaved flow changes confirmation' })` is visible to the user.
   // Acceptance criteria: `page.getByRole('alertdialog', { name: 'Discard unsaved flow changes confirmation' })` must be visible, because this condition proves that
   // protects dirty navigation and supports explicit discard.
-  await expect(page.getByRole('alertdialog', { name: 'Discard unsaved flow changes confirmation' })).toBeVisible();
+  await expect(page.getByRole('alertdialog', { name: 'Leave flow workspace confirmation' })).toBeVisible();
 
   // Expected outcome: Navigation reaches the required route.
   // Acceptance criteria: the page URL must match `/\/flows\/climate-control\/design$/`, because this condition proves that
   // protects dirty navigation and supports explicit discard.
   await expect(page).toHaveURL(/\/flows\/climate-control\/design$/);
-  await page.getByRole('button', { name: 'Keep editing' }).click();
+  await page.getByRole('button', { name: 'Stay here' }).click();
 
   // Expected outcome: `page.getByRole('alertdialog')` is not exposed to the user.
   // Acceptance criteria: `page.getByRole('alertdialog')` must be hidden, because this condition proves that
@@ -428,7 +432,7 @@ test('protects dirty navigation and supports explicit discard', async ({ page })
   await expect(page.getByRole('alertdialog')).toBeHidden();
 
   await page.getByRole('link', { name: 'All flows' }).click();
-  await page.getByRole('button', { name: 'Discard changes' }).click();
+  await page.getByRole('button', { name: 'Leave workspace' }).click();
 
   // Expected outcome: Navigation reaches the required route.
   // Acceptance criteria: the page URL must match `/\/flows$/`, because this condition proves that

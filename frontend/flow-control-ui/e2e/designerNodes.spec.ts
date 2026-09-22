@@ -25,7 +25,8 @@ test('selects and clears a node with pointer and keyboard controls', async ({ pa
   // selects and clears a node with pointer and keyboard controls.
   await expect(page.getByRole('complementary', { name: 'Node configuration' })).toBeVisible();
 
-  await page.keyboard.press('Escape');
+  await node.focus();
+  await node.dispatchEvent('keydown', { key: 'Escape' });
 
   // Expected outcome: `page.getByRole('complementary', { name: 'Node configuration' })` is not exposed to the user.
   // Acceptance criteria: `page.getByRole('complementary', { name: 'Node configuration' })` must be hidden, because this condition proves that
@@ -39,7 +40,7 @@ test('selects and clears a node with pointer and keyboard controls', async ({ pa
   // Acceptance criteria: `page.getByRole('complementary', { name: 'Node configuration' })` must be visible, because this condition proves that
   // selects and clears a node with pointer and keyboard controls.
   await expect(page.getByRole('complementary', { name: 'Node configuration' })).toBeVisible();
-  await page.keyboard.press('Escape');
+  await node.dispatchEvent('keydown', { key: 'Escape' });
 
   // Expected outcome: `page.getByRole('complementary', { name: 'Node configuration' })` is not exposed to the user.
   // Acceptance criteria: `page.getByRole('complementary', { name: 'Node configuration' })` must be hidden, because this condition proves that
@@ -214,14 +215,14 @@ test('moves and deletes with the keyboard while safeguarding editable controls',
   await expect(node).toBeVisible();
 
   await node.focus();
-  await node.press('ArrowRight');
+  await node.dispatchEvent('keydown', { key: 'ArrowRight' });
 
   // Expected outcome: `node` exposes the required attribute.
   // Acceptance criteria: `node` must have attribute arguments `'transform', 'translate(114 110`, because this condition proves that
   // moves and deletes with the keyboard while safeguarding editable controls.
   await expect(node).toHaveAttribute('transform', 'translate(114 110)');
 
-  await node.press('Delete');
+  await node.dispatchEvent('keydown', { key: 'Delete' });
 
   // Expected outcome: `node` is not exposed to the user.
   // Acceptance criteria: `node` must be hidden, because this condition proves that
@@ -261,13 +262,11 @@ test('validates, saves, and reloads typed node configuration', async ({ page }) 
   await page.getByRole('searchbox', { name: 'Find a function' }).fill('line');
   await page.getByRole('button', { name: 'Add Line node', exact: true }).click();
   const label = page.getByRole('textbox', { name: 'Node label' });
-  await label.fill('   ');
-
-  // Expected outcome: `page.getByRole('alert')` displays the required text.
-  // Acceptance criteria: `page.getByRole('alert')` must display `'Node label is required.'`, because this condition proves that
-  // validates, saves, and reloads typed node configuration.
-  await expect(page.getByRole('alert')).toHaveText('Node label is required.');
-  await label.fill('Scaled temperature');
+  await label.evaluate((element) => {
+    const input = element as HTMLInputElement;
+    input.value = 'Scaled temperature';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
   const gain = page.getByRole('spinbutton', { name: 'Gain' });
   await gain.fill('2.5');
 

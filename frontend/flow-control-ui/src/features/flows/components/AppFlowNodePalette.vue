@@ -30,8 +30,9 @@
             :height="definition.defaultSize.height + dragPreviewPadding * 2"
             :viewBox="`${-dragPreviewPadding} ${-dragPreviewPadding} ${definition.defaultSize.width + dragPreviewPadding * 2} ${definition.defaultSize.height + dragPreviewPadding * 2}`"
             aria-hidden="true"
+            inert
           >
-            <AppFlowNode :node="previewNode(definition)" :selected="false" />
+            <AppFlowNode :node="previewNode(definition)" :selected="false" preview />
           </svg>
         </div>
       </section>

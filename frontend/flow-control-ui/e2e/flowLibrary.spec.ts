@@ -27,7 +27,7 @@ test('opens the flow library and navigates to a designer', async ({ page }) => {
   // Expected outcome: `page.getByRole('heading', { name: 'Flows' })` is visible to the user.
   // Acceptance criteria: `page.getByRole('heading', { name: 'Flows' })` must be visible, because this condition proves that
   // opens the flow library and navigates to a designer.
-  await expect(page.getByRole('heading', { name: 'Flow List' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Flows' })).toBeVisible();
   await page.getByRole('link', { name: /Climate control/ }).click();
 
   // Expected outcome: Navigation reaches the required route.
@@ -499,12 +499,10 @@ test('filters, sorts, and paginates the semantic flow table', async ({ page }) =
   // filters, sorts, and paginates the semantic flow table.
   await expect(topPagination.getByText('11–13 of 13')).toBeVisible();
 
-  await deployedStatusDropdown.focus();
-  await page.keyboard.press('Enter');
+  await deployedStatusDropdown.press('Enter');
   await expect(deployedStatusDropdown).toHaveAttribute('aria-expanded', 'true');
   const allStatuses = page.getByRole('checkbox', { name: 'All' });
-  await allStatuses.focus();
-  await page.keyboard.press('Space');
+  await allStatuses.press('Space');
   await expect(allStatuses).toBeChecked();
   await expect(page.getByRole('checkbox', { name: 'Draft' })).toBeChecked();
   await expect(page.getByRole('checkbox', { name: 'Deployed' })).toBeChecked();

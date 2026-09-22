@@ -38,17 +38,17 @@ describe('node palette filtering and grouping', () => {
     const average = wrapper
       .findAll('button.palette-add-button')
       .find((action) => action.text().includes('Average'));
-    const setDragImage = vi.fn();
+    const setDragImage = vi.fn<(image: Element, x: number, y: number) => void>();
     const dataTransfer = {
       effectAllowed: 'none',
-      setData: vi.fn(),
+      setData: vi.fn<(format: string, data: string) => void>(),
       setDragImage
     };
 
     await average?.trigger('dragstart', { dataTransfer });
 
     const preview = wrapper.get(
-      'svg.palette-drag-preview:has([data-node-id="palette-preview-average"])'
+      'svg.palette-drag-preview:has(#flow-node-tooltip-palette-preview-average)'
     );
     expect(preview.attributes('viewBox')).toBe('-10 -10 92 92');
     expect(setDragImage).toHaveBeenCalledWith(preview.element, 46, 46);

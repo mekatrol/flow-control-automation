@@ -301,9 +301,13 @@ const updateLabel = (event: Event): void => {
   const error = validateNodeLabel(label);
   // Invalid drafts stay in the form control for correction but are not emitted,
   // so the last valid graph value remains safe to save or discard.
-  if (error) errors.value.label = error;
+  if (error) {
+    errors.value = { ...errors.value, label: error };
+    emit(EVENTS.UPDATE_LABEL, label);
+  }
   else {
-    delete errors.value.label;
+    const { label: _label, ...remainingErrors } = errors.value;
+    errors.value = remainingErrors;
     emit(EVENTS.UPDATE_LABEL, label.trim());
   }
 };

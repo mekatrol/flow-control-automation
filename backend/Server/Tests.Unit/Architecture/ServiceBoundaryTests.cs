@@ -24,6 +24,7 @@ public sealed partial class ServiceBoundaryTests
             typeof(CredentialResolutionException),
             typeof(CredentialValidationException),
             typeof(ExecutionConfigurationException),
+            typeof(FlowAlreadyExistsException),
             typeof(FlowConcurrencyException),
             typeof(FlowExecutionCapabilityException),
             typeof(FlowExecutionContextConflictException),

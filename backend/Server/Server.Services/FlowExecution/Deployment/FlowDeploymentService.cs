@@ -53,7 +53,8 @@ internal sealed class FlowDeploymentService(
         Flow flow,
         string? controllerTemplateId = null,
         int? controllerTemplateRevision = null,
-        IReadOnlyDictionary<string, string>? physicalPointBindings = null)
+        IReadOnlyDictionary<string, string>? physicalPointBindings = null,
+        string? virtualPointSourceId = null)
     {
         var graph = JsonSerializer.SerializeToUtf8Bytes(
             new
@@ -96,13 +97,18 @@ internal sealed class FlowDeploymentService(
             [
                 .. flow.Nodes
                     .Where(node => !node.NodeType.IsVirtual() || flow.Connections.Any(
-                        connection => connection.Start.NodeId == node.Id))
+                        connection => connection.Start.NodeId == node.Id || connection.End.NodeId == node.Id))
                     .Select(node => new ExecutableFlowNode
                 {
                     Id = node.Id,
-                    NodeType = node.NodeType.ExecutableNodeType(),
+                    NodeType = node.NodeType.IsVirtual() && flow.Connections.Any(
+                        connection => connection.End.NodeId == node.Id)
+                            ? node.NodeType == FlowNodeType.AnalogVirtual
+                                ? FlowNodeType.AnalogOutput
+                                : FlowNodeType.DigitalOutput
+                            : node.NodeType.ExecutableNodeType(),
                     Configuration = node.NodeType.IsVirtual()
-                        ? VirtualPointConfiguration(node)
+                        ? VirtualPointConfiguration(node, virtualPointSourceId ?? flow.Id)
                         : BindConfiguration(node, physicalPointBindings),
                     Label = node.Label,
                     X = node.X,
@@ -121,7 +127,9 @@ internal sealed class FlowDeploymentService(
                             connection.Start.ConnectorId),
                         new ExecutableFlowEndpoint(
                             connection.End.NodeId,
-                            connection.End.ConnectorId)))
+                            flow.Nodes.Any(node => node.Id == connection.End.NodeId && node.NodeType.IsVirtual())
+                                ? "in"
+                                : connection.End.ConnectorId)))
             ],
 
             VirtualPointDefinitions = VirtualPointNodes.Definitions(flow.Nodes)
@@ -149,8 +157,12 @@ internal sealed class FlowDeploymentService(
         return result;
     }
 
-    private static Dictionary<string, JsonElement> VirtualPointConfiguration(FlowNode node) =>
+    private static Dictionary<string, JsonElement> VirtualPointConfiguration(FlowNode node, string pointSourceId) =>
         node.Configuration.TryGetValue("pointId", out var pointId)
-            ? new Dictionary<string, JsonElement> { ["pointId"] = pointId }
+            ? new Dictionary<string, JsonElement>
+            {
+                ["pointSourceId"] = JsonSerializer.SerializeToElement(pointSourceId),
+                ["pointId"] = pointId
+            }
             : [];
 }

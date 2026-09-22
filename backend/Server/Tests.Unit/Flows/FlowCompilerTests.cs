@@ -236,6 +236,7 @@ public sealed class FlowCompilerTests
             {
                 Points = [.. request.Target.Points.Select(point => new VirtualAutomationPoint
                 {
+                    SourceId = point.SourceId,
                     Id = point.Id,
                     Name = point.Name,
                     Direction = point.Direction,
@@ -315,12 +316,13 @@ public sealed class FlowCompilerTests
         {
             Assert.That(result.Schedule, Is.EqualTo(new[]
             {
-                "constant-2",
+                "constant-true",
                 "memory-1",
+                "or-1",
                 "output-01-node"
             }));
-            Assert.That(result.MaximumWorkPerScan, Is.EqualTo(5));
-            Assert.That(result.WorkingBytes, Is.EqualTo(128));
+            Assert.That(result.MaximumWorkPerScan, Is.EqualTo(6));
+            Assert.That(result.WorkingBytes, Is.EqualTo(192));
             Assert.That(result.MaximumSnapshotBytes, Is.EqualTo(16384));
         });
     }
@@ -365,7 +367,7 @@ public sealed class FlowCompilerTests
         AssertDiagnostic(
             () => _compiler.Compile(request),
             FlowCompilationDiagnosticCode.MissingPoint,
-            $"/points/{source.Nodes[0].Configuration["pointId"].GetString()}");
+            $"/points/{source.Nodes[0].Configuration["pointSourceId"].GetString()}~1{source.Nodes[0].Configuration["pointId"].GetString()}");
     }
 
     [Test]
@@ -510,7 +512,7 @@ public sealed class FlowCompilerTests
         using var machine = CreateMachine(compilation.Artifact);
 
         bool Scan(bool input, ulong sampledAt) => machine
-            .Scan([new("input", input)], sampledAt)
+            .Scan([new("controller/input", input)], sampledAt)
             .Commands.Single()
             .TypedValue.Boolean;
 
@@ -559,7 +561,7 @@ public sealed class FlowCompilerTests
         using var machine = CreateMachine(compilation.Artifact);
 
         var scan = machine.Scan(
-            [new FlowVmInput("input-a", FlowVmValue.FromNumber(9)), new FlowVmInput("input-b", FlowVmValue.FromNumber(5))],
+            [new FlowVmInput("controller/input-a", FlowVmValue.FromNumber(9)), new FlowVmInput("controller/input-b", FlowVmValue.FromNumber(5))],
             1);
 
         Assert.That(scan.Commands.Single().TypedValue.Number, Is.EqualTo(1.8));
@@ -591,21 +593,21 @@ public sealed class FlowCompilerTests
         var compilation = _compiler.Compile(BuildCompilationRequest(source));
         using var machine = CreateMachine(compilation.Artifact);
 
-        var good = machine.Scan([new("input-a", FlowVmValue.FromNumber(9)), new("input-b", FlowVmValue.FromNumber(3))], 1);
-        var failed = machine.Scan([new("input-a", FlowVmValue.FromNumber(9)), new("input-b", FlowVmValue.FromNumber(0))], 2);
-        var overflow = machine.Scan([new("input-a", FlowVmValue.FromNumber(double.MaxValue)), new("input-b", FlowVmValue.FromNumber(0.5))], 3);
-        var recovered = machine.Scan([new("input-a", FlowVmValue.FromNumber(-12)), new("input-b", FlowVmValue.FromNumber(3))], 4);
+        var good = machine.Scan([new("controller/input-a", FlowVmValue.FromNumber(9)), new("controller/input-b", FlowVmValue.FromNumber(3))], 1);
+        var failed = machine.Scan([new("controller/input-a", FlowVmValue.FromNumber(9)), new("controller/input-b", FlowVmValue.FromNumber(0))], 2);
+        var overflow = machine.Scan([new("controller/input-a", FlowVmValue.FromNumber(double.MaxValue)), new("controller/input-b", FlowVmValue.FromNumber(0.5))], 3);
+        var recovered = machine.Scan([new("controller/input-a", FlowVmValue.FromNumber(-12)), new("controller/input-b", FlowVmValue.FromNumber(3))], 4);
 
         Assert.Multiple(() =>
         {
-            Assert.That(good.Commands.Single(command => command.PointId == "value-output").TypedValue.Number, Is.EqualTo(3));
-            Assert.That(good.Commands.Single(command => command.PointId == "error-output").TypedValue.Boolean, Is.False);
-            Assert.That(failed.Commands.Single(command => command.PointId == "value-output").TypedValue.Number, Is.EqualTo(3));
-            Assert.That(failed.Commands.Single(command => command.PointId == "error-output").TypedValue.Boolean, Is.True);
-            Assert.That(overflow.Commands.Single(command => command.PointId == "value-output").TypedValue.Number, Is.EqualTo(3));
-            Assert.That(overflow.Commands.Single(command => command.PointId == "error-output").TypedValue.Boolean, Is.True);
-            Assert.That(recovered.Commands.Single(command => command.PointId == "value-output").TypedValue.Number, Is.EqualTo(-4));
-            Assert.That(recovered.Commands.Single(command => command.PointId == "error-output").TypedValue.Boolean, Is.False);
+            Assert.That(good.Commands.Single(command => command.PointId == "controller/value-output").TypedValue.Number, Is.EqualTo(3));
+            Assert.That(good.Commands.Single(command => command.PointId == "controller/error-output").TypedValue.Boolean, Is.False);
+            Assert.That(failed.Commands.Single(command => command.PointId == "controller/value-output").TypedValue.Number, Is.EqualTo(3));
+            Assert.That(failed.Commands.Single(command => command.PointId == "controller/error-output").TypedValue.Boolean, Is.True);
+            Assert.That(overflow.Commands.Single(command => command.PointId == "controller/value-output").TypedValue.Number, Is.EqualTo(3));
+            Assert.That(overflow.Commands.Single(command => command.PointId == "controller/error-output").TypedValue.Boolean, Is.True);
+            Assert.That(recovered.Commands.Single(command => command.PointId == "controller/value-output").TypedValue.Number, Is.EqualTo(-4));
+            Assert.That(recovered.Commands.Single(command => command.PointId == "controller/error-output").TypedValue.Boolean, Is.False);
         });
     }
 
@@ -644,7 +646,7 @@ public sealed class FlowCompilerTests
         using var machine = CreateMachine(compilation.Artifact);
 
         bool Scan(bool input, ulong sampledAt) => machine
-            .Scan([new("input", input)], sampledAt)
+            .Scan([new("controller/input", input)], sampledAt)
             .Commands.Single()
             .TypedValue.Boolean;
 
@@ -685,7 +687,7 @@ public sealed class FlowCompilerTests
         using var machine = CreateMachine(compilation.Artifact);
 
         bool Scan(bool enabled, ulong sampledAt) => machine
-            .Scan([new("enable", enabled)], sampledAt)
+            .Scan([new("controller/enable", enabled)], sampledAt)
             .Commands.Single().TypedValue.Boolean;
 
         Assert.Multiple(() =>
@@ -733,7 +735,7 @@ public sealed class FlowCompilerTests
 
         for (ulong sampledAt = 0; sampledAt <= 1_000; sampledAt += 10)
         {
-            count = machine.Scan([new("enable", true)], sampledAt).Commands.Single().TypedValue.Number;
+            count = machine.Scan([new("controller/enable", true)], sampledAt).Commands.Single().TypedValue.Number;
         }
 
         Assert.That(count, Is.EqualTo(3D));
@@ -776,9 +778,9 @@ public sealed class FlowCompilerTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(machine.Scan([new("count", true), new("reset", false)], 0).Commands.Single().TypedValue.Number, Is.EqualTo(1D));
-            Assert.That(machine.Scan([new("count", false), new("reset", true)], 1).Commands.Single().TypedValue.Number, Is.EqualTo(0D));
-            Assert.That(machine.Scan([new("count", true), new("reset", true)], 2).Commands.Single().TypedValue.Number, Is.EqualTo(0D));
+            Assert.That(machine.Scan([new("controller/count", true), new("controller/reset", false)], 0).Commands.Single().TypedValue.Number, Is.EqualTo(1D));
+            Assert.That(machine.Scan([new("controller/count", false), new("controller/reset", true)], 1).Commands.Single().TypedValue.Number, Is.EqualTo(0D));
+            Assert.That(machine.Scan([new("controller/count", true), new("controller/reset", true)], 2).Commands.Single().TypedValue.Number, Is.EqualTo(0D));
         });
     }
 
@@ -958,7 +960,13 @@ public sealed class FlowCompilerTests
     }
 
     private static Dictionary<string, JsonElement> Config(string key, object value) =>
-        new() { [key] = JsonSerializer.SerializeToElement(value) };
+        key == "pointId"
+            ? new()
+            {
+                ["pointSourceId"] = JsonSerializer.SerializeToElement("controller"),
+                [key] = JsonSerializer.SerializeToElement(value)
+            }
+            : new() { [key] = JsonSerializer.SerializeToElement(value) };
 
     private static Dictionary<string, JsonElement> Config(params (string Key, object Value)[] values) =>
         values.ToDictionary(value => value.Key, value => JsonSerializer.SerializeToElement(value.Value), StringComparer.Ordinal);

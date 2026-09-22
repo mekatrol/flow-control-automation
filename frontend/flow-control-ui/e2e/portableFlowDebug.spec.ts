@@ -2,6 +2,7 @@ import { expect, test } from './fixtures/flowTest';
 
 const flow = {
   id: 'portable-debug',
+  revision: 1,
   name: 'Portable debug',
   description: 'Runs entirely on the server VM.',
   status: 'draft',
@@ -26,29 +27,20 @@ const flow = {
 };
 
 const session = (revision: number, state = 'ready'): Record<string, unknown> => ({
-  debugSessionId: 'server-session',
+  id: 'server-session',
   flowId: flow.id,
   revision,
-  lifecycleState: state,
-  mode: 'manual',
-  tickNumber: 0,
+  lifecycle: state,
+  mode: 'debugger',
   leaseRemainingMilliseconds: 0,
-  lastReasonCode: 0,
-  lastReason: 'ok',
-  lastReasonPath: '',
-  affectedOutputPoints: [],
-  liveOutputEnabled: false,
-  host: 'server',
   capabilities: {
-    stepTick: true,
-    stepNode: true,
-    stepInstruction: true,
-    continue: true,
-    pause: true,
-    runTo: true,
-    maximumBreakpoints: 32,
-    maximumInspectableSlots: 256
+    canRun: true, canPause: true, canStop: true, canRestart: true,
+    canStepTick: true, canStepNode: true, canStepInstruction: true,
+    canUseBreakpoints: true, canRunTo: true, canEditInputs: false,
+    canAdvanceVirtualTime: false, canInjectFaults: false, canResetIo: false,
+    canEnableLiveOutputs: false, locksFlowEditing: true
   },
+  presentation: { modeLabel: 'Debugger', hostLabel: 'Server', isSimulated: false, usesPhysicalIo: false },
   breakpoints: [],
   inspection:
     state === 'paused'
@@ -67,18 +59,18 @@ const session = (revision: number, state = 'ready'): Record<string, unknown> => 
 test('loads and steps a server debug session without a controller', async ({ page }) => {
   let revision = 1;
   await page.route('**/api/flows/portable-debug', (route) => route.fulfill({ json: flow }));
-  await page.route('**/api/flows/portable-debug/debug-sessions', async (route) => {
-    const body = route.request().postDataJSON() as { host: string; source: { revision: number } };
-    expect(body.host).toBe('server');
-    revision = body.source.revision;
+  await page.route('**/api/flows/portable-debug/execution-contexts', async (route) => {
+    const body = route.request().postDataJSON() as { targetId: string; expectedRevision: number };
+    expect(body.targetId).toBe('server');
+    revision = body.expectedRevision;
     await route.fulfill({ status: 201, json: session(revision) });
   });
   await page.route(
-    '**/api/flows/portable-debug/debug-sessions/server-session/step-instruction',
+    '**/api/execution-contexts/server-session/step-instruction',
     (route) => route.fulfill({ json: session(revision, 'paused') })
   );
-  await page.route('**/api/flows/portable-debug/debug-sessions/server-session/stop', (route) =>
-    route.fulfill({ status: 204 })
+  await page.route('**/api/execution-contexts/server-session/stop', (route) =>
+    route.fulfill({ json: session(revision, 'stopped') })
   );
 
   await page.goto('/flows/portable-debug');
@@ -87,7 +79,7 @@ test('loads and steps a server debug session without a controller', async ({ pag
   await page.reload();
   await expect(page.getByRole('link', { name: 'Debug' })).toHaveAttribute('aria-current', 'page');
   await expect(page.getByLabel('Debug target')).toHaveValue('server');
-  await page.getByRole('button', { name: 'Load' }).click();
+  await page.getByRole('button', { name: 'Create context' }).click();
   await page.getByRole('button', { name: 'Step instruction' }).click();
 
   await expect(page.getByLabel('Paused execution frame')).toContainText('Node constant-1');

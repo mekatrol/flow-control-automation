@@ -289,7 +289,8 @@ import { useControllerTemplatesStore } from '@/features/controllerTemplates/stor
 import { useFlowsStore } from '@/features/flows/stores/flows';
 import type { ZOrderCommand } from '@/features/flows/graph/zOrder';
 import { FlowApiError, flowApi } from '@/features/flows/api/flowApi';
-import { flowRuntimeApi } from '@/features/flows/api/flowRuntimeApi';
+import { flowRuntimeApi, type ConnectorRuntimeValue } from '@/features/flows/api/flowRuntimeApi';
+import { DataDirectionType, DataQualityType, DataType } from '@/types/serverTypes';
 import { createLatestRequestGuard } from '@/features/flows/api/latestRequest';
 import { useFlowRuntimeStore } from '@/features/flows/stores/flowRuntime';
 import type {
@@ -436,7 +437,39 @@ const leaveConfirmationMessage = computed(() => {
     return 'This flow is currently being debugged. Leaving will stop the debug context and resume the deployed version if debugging suspended it.';
   return 'This flow has changes that have not been saved. Leaving will discard them.';
 });
-const debugConnectorValues = computed(() => undefined);
+const debugConnectorValues = computed(() => {
+  const currentFlow = flow.value;
+  const snapshot = debugSnapshot.value;
+  if (!currentFlow || !snapshot || debugSnapshotStale.value) return undefined;
+  const values: Record<string, Record<string, ConnectorRuntimeValue>> = {};
+  const add = (
+    nodeId: string,
+    typed: NonNullable<(typeof snapshot.nodes)[number]['typedValue']>,
+    state: ConnectorRuntimeValue['state']
+  ): void => {
+    const node = currentFlow.nodes.find((item) => item.id === nodeId);
+    if (!node) return;
+    const value = typed.type === DataType.Number ? String(typed.number) : String(typed.value);
+    values[nodeId] ??= {};
+    for (const connector of node.connectors.filter(
+      (item) => item.direction === DataDirectionType.Output
+    ))
+      values[nodeId]![connector.id] = {
+        value,
+        quality: typed.quality ?? DataQualityType.Good,
+        state
+      };
+  };
+  for (const item of snapshot.nodes)
+    if (item.typedValue) add(item.nodeId, item.typedValue, 'committed');
+  for (const [nodeId, typed] of Object.entries(debugInspection.value?.nodeValues ?? {}))
+    add(nodeId, typed, 'paused-frame');
+  for (const connection of currentFlow.connections) {
+    const source = values[connection.start.nodeId]?.[connection.start.connectorId];
+    if (source) (values[connection.end.nodeId] ??= {})[connection.end.connectorId] = source;
+  }
+  return values;
+});
 const debugLifecycle = computed(() =>
   execution.lifecycle.value === 'faulted'
     ? 'fault'

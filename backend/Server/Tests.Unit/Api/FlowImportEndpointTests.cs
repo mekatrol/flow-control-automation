@@ -58,8 +58,8 @@ internal sealed class FlowImportEndpointTests
             Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
             Assert.That(result.Saved, Is.True);
             Assert.That(result.Flow.Id, Is.EqualTo("imported-feedback"));
-            Assert.That(loaded!.Nodes, Has.Count.EqualTo(3));
-            Assert.That(loaded.Connections, Has.Count.EqualTo(2));
+            Assert.That(loaded!.Nodes, Has.Count.EqualTo(4));
+            Assert.That(loaded.Connections, Has.Count.EqualTo(4));
         });
     }
 

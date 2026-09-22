@@ -24,13 +24,13 @@
         class="point-row"
         :class="{ selected: point.pointId === selectedPointId }"
       >
-        <span class="point-name">{{ point.pointId }}</span>
+        <span class="point-name">{{ point.displayPointId }}</span>
         <template v-if="point.direction === DataDirectionType.Input">
           <input
             v-if="point.definition.valueType === AutomationPointValueType.Digital"
             v-model="draft[point.pointId]"
             type="checkbox"
-            :aria-label="`${point.pointId} simulated value`"
+            :aria-label="`${point.displayPointId} simulated value`"
             :data-point-id="point.pointId"
             @change="markDirty(point.pointId)"
           />
@@ -39,7 +39,7 @@
             v-model="draft[point.pointId]"
             type="text"
             inputmode="decimal"
-            :aria-label="`${point.pointId} simulated value`"
+            :aria-label="`${point.displayPointId} simulated value`"
             :data-point-id="point.pointId"
             @input="markDirty(point.pointId)"
           />
@@ -51,13 +51,13 @@
     <section v-if="connectedPoints.length" aria-labelledby="connected-points-heading">
       <h3 id="connected-points-heading">Connected points</h3>
       <div v-for="point in connectedPoints" :key="point.pointId" class="point-row">
-        <span class="point-name">{{ point.pointId }}</span>
+        <span class="point-name">{{ point.displayPointId }}</span>
         <template v-if="point.direction === DataDirectionType.Input">
           <input
             v-if="point.definition.valueType === AutomationPointValueType.Digital"
             v-model="draft[point.pointId]"
             type="checkbox"
-            :aria-label="`${point.pointId} simulated value`"
+            :aria-label="`${point.displayPointId} simulated value`"
             @change="markDirty(point.pointId)"
           />
           <input
@@ -65,7 +65,7 @@
             v-model="draft[point.pointId]"
             type="text"
             inputmode="decimal"
-            :aria-label="`${point.pointId} simulated value`"
+            :aria-label="`${point.displayPointId} simulated value`"
             @input="markDirty(point.pointId)"
           />
           <small>{{ point.definition.units ?? '' }}</small>
@@ -97,6 +97,7 @@ import {
 
 interface SimulationPoint {
   pointId: string;
+  displayPointId: string;
   definition: VirtualPointDefinition;
   direction: typeof DataDirectionType.Input | typeof DataDirectionType.Output;
   value: EmulatorValue;
@@ -146,9 +147,16 @@ const points = computed<SimulationPoint[]>(() => {
     if (!input && !output) continue;
     const localPointId = String(node.configuration.pointId ?? '');
     const pointSourceId = String(node.configuration.pointSourceId ?? '');
-    const pointId = pointSourceId ? `${pointSourceId}/${localPointId}` : localPointId;
+    const runtimePointIds = [
+      ...(props.snapshot?.inputs ?? []).map((input) => input.pointId),
+      ...(props.snapshot?.outputHistory ?? []).map((output) => output.outputId)
+    ];
+    const pointId = pointSourceId
+      ? `${pointSourceId}/${localPointId}`
+      : (runtimePointIds.find((id) => id === localPointId || id.endsWith(`/${localPointId}`)) ??
+        localPointId);
     if (!pointId || result.has(pointId)) continue;
-    const flowDefinition = flowDefinitions.value.get(pointId);
+    const flowDefinition = flowDefinitions.value.get(localPointId);
     const definition = flowDefinition ?? contextDefinitions.value.get(pointId);
     if (!definition) continue;
     const numeric = definition.valueType === AutomationPointValueType.Analog;
@@ -163,6 +171,7 @@ const points = computed<SimulationPoint[]>(() => {
     };
     result.set(pointId, {
       pointId,
+      displayPointId: localPointId,
       definition,
       direction: input ? DataDirectionType.Input : DataDirectionType.Output,
       value: (input ? inputValues : outputValues).get(pointId) ?? fallback,

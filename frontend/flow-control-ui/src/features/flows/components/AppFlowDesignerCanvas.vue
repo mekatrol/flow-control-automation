@@ -154,6 +154,7 @@
               :current="node.id === currentNodeId"
               :breakpoint-positions="breakpointPositions(node.id)"
               :connector-values="connectorValues?.[node.id]"
+              :on-keydown="handleCanvasKeydown"
               @[EVENTS.SELECT]="handleNodeSelection"
               @[EVENTS.DRAG_START]="handleDragStart"
               @[EVENTS.CONNECTOR_PRESS]="handleConnectorPress"
@@ -500,7 +501,12 @@ const handleCanvasKeydown = (event: KeyboardEvent): void => {
     cancelConnection();
     return;
   }
-  if (handleSelectionKeydown(event)) return;
+  if (handleSelectionKeydown(event)) {
+    if (event.target instanceof HTMLElement || event.target instanceof SVGElement) {
+      event.target.blur();
+    }
+    return;
+  }
   const nodeId = selectedNodeId.value;
   const selectedLinkId = selectedConnectionId.value;
   if (!nodeId && !selectedLinkId) return;

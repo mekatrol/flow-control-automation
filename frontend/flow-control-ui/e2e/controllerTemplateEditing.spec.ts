@@ -91,7 +91,7 @@ test('validates and saves a custom template with keyboard controls', async ({ pa
   // Expected outcome: `page.getByText('Controller template YAML is valid.')` is present in the rendered document.
   // Acceptance criteria: `page.getByText('Controller template YAML is valid.')` must be attached to the document, because this condition proves that
   // validates and saves a custom template with keyboard controls.
-  await expect(page.getByText('Controller template YAML is valid.')).toBeAttached();
+  await expect(page.getByText('Controller template is valid.')).toBeAttached();
   await page.getByRole('button', { name: 'Save' }).press('Enter');
 
   // Expected outcome: Navigation reaches the required route.

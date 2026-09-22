@@ -553,7 +553,7 @@ internal sealed partial class ExecutionConfigurationService(
 
         foreach (var flow in programs)
         {
-            var source = FlowDeploymentService.ToExecutableSource(flow, templateId, templateRevision, bindings);
+            var source = FlowDeploymentService.ToExecutableSource(flow, templateId, templateRevision, bindings, definition.Id);
             FlowCompilationResult result;
 
             try

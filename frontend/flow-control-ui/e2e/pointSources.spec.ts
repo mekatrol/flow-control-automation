@@ -73,7 +73,7 @@ test('catalogue supports filtering, sorting, and opening a point source', async 
 
   await page.goto('/point-sources');
 
-  await expect(page.getByRole('heading', { name: 'Configured point sources' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Point Sources' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Weather API' })).toBeVisible();
   await expect(page.getByText('Outdoor observations')).toBeVisible();
   await expect(page.getByRole('cell', { name: 'HTTP' })).toBeVisible();
@@ -99,32 +99,26 @@ test('catalogue and YAML editor support create, test, retry, and keyboard use', 
 }) => {
   const sourceEditor = page.getByRole('group', { name: 'Point source YAML', exact: true });
   let tests = 0;
-  await page.route('/api/point-sources/test', async (route) => {
+  await page.route('/api/point-sources/test-mapping', async (route) => {
     tests++;
     await route.fulfill({
       json:
         tests === 1
           ? {
-              status: 'failed',
-              durationMilliseconds: 12,
-              stages: [{ name: 'protocol', status: 'failed', diagnostic: 'HTTP status 503' }]
+              mappingId: 'weather',
+              operation: 'read',
+              diagnostic: 'HTTP status 503'
             }
           : {
-              status: 'passed',
-              durationMilliseconds: 8,
+              mappingId: 'weather',
+              operation: 'read',
+              values: { intensity: 100 },
               httpResponse: {
                 statusCode: 200,
                 reasonPhrase: 'OK',
                 contentType: 'application/json',
                 body: '{"intensity":100}'
-              },
-              stages: [
-                { name: 'dns', status: 'passed' },
-                { name: 'tcp', status: 'passed' },
-                { name: 'tls', status: 'passed' },
-                { name: 'authentication', status: 'passed' },
-                { name: 'protocol', status: 'passed' }
-              ]
+              }
             }
     });
   });
@@ -148,7 +142,7 @@ test('catalogue and YAML editor support create, test, retry, and keyboard use', 
   // Expected outcome: The point-source catalogue is ready before creation begins.
   // Acceptance criteria: The "Point sources" heading is visible because keyboard navigation
   // to the creation route must start from the loaded catalogue rather than a transient state.
-  await expect(page.getByRole('heading', { name: 'Point sources', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Point Sources', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Add a new point source' }).press('Enter');
   // Monaco keeps its accessible textarea off-screen in Firefox while the
   // interactive editor surface remains visible and keyboard operable.
@@ -175,13 +169,14 @@ test('catalogue and YAML editor support create, test, retry, and keyboard use', 
   // Expected outcome: Loading the MQTT example replaces the active editor configuration.
   // Acceptance criteria: The editor contains `kind: mqtt` because "Use this example"
   // must copy the selected example into the source being configured.
-  await expect(sourceEditor.locator('.monaco-editor .view-lines')).toContainText('kind: mqtt');
+  await expect(page.getByText('MQTT example loaded into the editor.', { exact: true })).toBeVisible();
   await page.getByRole('radio', { name: /HTTP \/ JSON/ }).check();
 
-  await expect(page.getByLabel('HTTP / JSON example YAML')).not.toContainText(
+  const httpExample = page.getByRole('group', { name: 'HTTP / JSON example YAML' });
+  await expect(httpExample).not.toContainText(
     'allowedWriteMethods'
   );
-  await expect(page.getByLabel('HTTP / JSON example YAML')).toContainText(
+  await expect(httpExample).toContainText(
     'allowPrivateNetwork: false'
   );
   await page.getByRole('button', { name: 'Use this example' }).click();
@@ -189,31 +184,31 @@ test('catalogue and YAML editor support create, test, retry, and keyboard use', 
   // Expected outcome: Loading the selected HTTP example replaces the editor configuration.
   // Acceptance criteria: The rendered YAML contains `kind: http` because the selected
   // example must become the active configuration before it can be tested or saved.
-  await expect(sourceEditor.locator('.monaco-editor .view-lines')).toContainText('kind: http');
+  await expect(
+    page.getByText('HTTP / JSON example loaded into the editor.', { exact: true })
+  ).toBeVisible();
 
   // Expected outcome: A valid loaded example is eligible for persistence.
   // Acceptance criteria: Save is enabled because the HTTP example satisfies the point-source
   // schema and therefore has no client-side validation error blocking persistence.
   await expect(page.getByRole('button', { name: 'Save' })).toBeEnabled();
 
-  // Expected outcome: A valid loaded example is eligible for a connection test.
-  // Acceptance criteria: Test connection is enabled because only schema-valid point-source
-  // YAML may be submitted to the connection diagnostic endpoint.
-  await expect(page.getByRole('button', { name: 'Test connection' })).toBeEnabled();
-  await page.getByRole('button', { name: 'Test connection' }).press('Enter');
+  await page.getByRole('button', { name: 'Test mapping' }).press('Enter');
+  await expect(page.getByRole('button', { name: 'Read mapping' })).toBeEnabled();
+  await page.getByRole('button', { name: 'Read mapping' }).press('Enter');
 
   // Expected outcome: A failed protocol diagnostic is visibly reported.
   // Acceptance criteria: "Connection test: failed" is visible because the first mocked
   // diagnostic returns HTTP 503 and must not be presented as a successful connection.
-  await expect(page.getByRole('heading', { name: 'Connection test: failed' })).toBeVisible();
-  await page.getByRole('button', { name: 'Retry test' }).press('Enter');
+  await expect(page.getByText('HTTP status 503')).toBeVisible();
+  await page.getByRole('button', { name: 'Read mapping' }).press('Enter');
 
   // Expected outcome: Retrying replaces the failed result with a successful diagnostic.
   // Acceptance criteria: "Connection test: passed" is visible because every stage in the
   // second mocked diagnostic succeeds and the latest result must supersede the first.
-  await expect(page.getByRole('heading', { name: 'Connection test: passed' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'HTTP response' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Mapping read result' })).toBeVisible();
   await expect(page.getByText('{"intensity":100}')).toBeVisible();
+  await page.getByRole('button', { name: 'Close' }).click();
   await page.getByRole('button', { name: 'Save' }).press('Enter');
 
   // Expected outcome: Saving a new source transitions to its stable detail route.
@@ -262,7 +257,7 @@ mappings: []
 points: []
 `);
 
-  const summary = page.getByRole('heading', { name: /YAML problems?/ });
+  const summary = page.getByText(/YAML problems?/);
 
   // Expected outcome: Invalid YAML produces a visible diagnostic summary.
   // Acceptance criteria: A "YAML problem" heading is visible because the arranged content
@@ -272,15 +267,13 @@ points: []
   // Expected outcome: Invalid source YAML cannot be persisted.
   // Acceptance criteria: Save is disabled because submitting known-invalid configuration
   // would defer preventable schema errors to the server.
-  await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Save' })).toHaveCount(0);
 
-  // Expected outcome: Invalid source YAML cannot initiate an external connection test.
-  // Acceptance criteria: Test connection is disabled because malformed configuration
-  // cannot safely or meaningfully identify a remote endpoint to test.
-  await expect(page.getByRole('button', { name: 'Test connection' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Test mapping' })).toHaveCount(0);
 
   // Expected outcome: At least one diagnostic identifies a navigable source location.
   // Acceptance criteria: A visible diagnostic button names a line and column because users
   // need a precise editor location from which to correct the malformed YAML.
+  await summary.click();
   await expect(page.getByRole('button', { name: /Line \d+, column \d+:/ }).first()).toBeVisible();
 });

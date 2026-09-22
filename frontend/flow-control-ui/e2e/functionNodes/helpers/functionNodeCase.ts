@@ -123,19 +123,6 @@ export const runFunctionNodeCase = async (
   await saveFlow(page, flowId);
   const simulation = await startSimulation(page, flowId);
   try {
-    if (
-      testCase.pauseSimulation ||
-      testCase.vectors.some(({ advanceMs }) => advanceMs !== undefined)
-    ) {
-      const response = await page.request.post(
-        `/api/flows/${encodeURIComponent(simulation.flowId)}/simulator-sessions/${encodeURIComponent(simulation.sessionId)}/pause`
-      );
-      expect(response.ok(), await response.text()).toBeTruthy();
-      // The test pauses through the API, so allow the UI's 250 ms session poll
-      // to observe that state before applying inputs. Otherwise the UI still
-      // believes it is running and automatically resumes after each apply.
-      await page.waitForTimeout(300);
-    }
     for (const vector of testCase.vectors) {
       let values: Record<string, boolean | number> | undefined;
       if (inputs.length) {
@@ -146,14 +133,16 @@ export const runFunctionNodeCase = async (
           ])
         );
         await applyInputs(page, values);
+      } else {
+        await page.getByRole('button', { name: 'Step tick' }).click();
       }
       if (vector.expectedBeforeAdvance !== undefined) {
         await expectOutput(page, outputPointIds[output.id]!, vector.expectedBeforeAdvance);
       }
       if (vector.advanceMs !== undefined) {
         const response = await page.request.post(
-          `/api/flows/${encodeURIComponent(simulation.flowId)}/simulator-sessions/${encodeURIComponent(simulation.sessionId)}/advance`,
-          { data: { milliseconds: vector.advanceMs, scan: true } }
+          `/api/execution-contexts/${encodeURIComponent(simulation.sessionId)}/advance`,
+          { data: { milliseconds: vector.advanceMs } }
         );
         expect(response.ok(), await response.text()).toBeTruthy();
         if (values) await applyInputs(page, values);
@@ -164,6 +153,6 @@ export const runFunctionNodeCase = async (
       }
     }
   } finally {
-    await stopSimulation(page, simulation);
+    if (!page.isClosed()) await stopSimulation(page, simulation);
   }
 };

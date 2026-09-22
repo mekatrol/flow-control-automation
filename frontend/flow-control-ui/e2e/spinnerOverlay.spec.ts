@@ -9,8 +9,10 @@ const changeWaitCount = async (
 ): Promise<void> => {
   await page.evaluate(async (waitAction) => {
     // @ts-expect-error The path is resolved by the browser-facing Vite module graph.
-    const { useWait } = await import('/src/composables/useWait.ts');
-    useWait()[waitAction]();
+    const { useSpinner } = await import('/src/composables/useSpinner.ts');
+    const spinner = useSpinner();
+    if (waitAction === 'wait') spinner.showSpinner();
+    else spinner.hideSpinner();
   }, action);
 };
 

@@ -2,6 +2,7 @@ import { expect, test } from './fixtures/flowTest';
 
 const flow = {
   id: 'simulator-lifecycle',
+  revision: 1,
   name: 'Simulator lifecycle',
   description: 'Draft simulation.',
   status: 'draft',
@@ -25,22 +26,35 @@ const flow = {
   connections: []
 };
 const session = (state: string, revision: number, tick = 0): Record<string, unknown> => ({
-  sessionId: 'simulator-session',
+  id: 'simulator-session',
   flowId: flow.id,
-  sourceRevision: revision,
-  sourceDigest: 'sha256-draft',
-  lifecycleState: state,
+  revision,
+  mode: 'simulator',
+  lifecycle: state,
   leaseRemainingMilliseconds: 900000,
   breakpoints: [],
   capabilities: {
-    stepTick: true,
-    stepNode: true,
-    stepInstruction: true,
-    continue: true,
-    pause: true,
-    runTo: true,
-    maximumBreakpoints: 32,
-    maximumInspectableSlots: 256
+    canRun: true,
+    canPause: true,
+    canStop: true,
+    canRestart: true,
+    canStepTick: true,
+    canStepNode: true,
+    canStepInstruction: true,
+    canUseBreakpoints: true,
+    canRunTo: true,
+    canEditInputs: true,
+    canAdvanceVirtualTime: true,
+    canInjectFaults: true,
+    canResetIo: true,
+    canEnableLiveOutputs: false,
+    locksFlowEditing: false
+  },
+  presentation: {
+    modeLabel: 'Simulator',
+    hostLabel: 'Server',
+    isSimulated: true,
+    usesPhysicalIo: false
   },
   snapshot: tick
     ? {
@@ -69,18 +83,18 @@ test('starts and stops a draft simulation with keyboard-operable controls', asyn
   let starts = 0;
   let revision = 1;
   await page.route('**/api/flows/simulator-lifecycle', (route) => route.fulfill({ json: flow }));
-  await page.route('**/api/flows/simulator-lifecycle/simulator-sessions', async (route) => {
+  await page.route('**/api/flows/simulator-lifecycle/execution-contexts', async (route) => {
     starts += 1;
-    revision = (route.request().postDataJSON() as { source: { revision: number } }).source.revision;
+    revision = (route.request().postDataJSON() as { expectedRevision: number }).expectedRevision;
     await route.fulfill({ status: 201, json: session('ready', revision) });
   });
   await page.route(
-    '**/api/flows/simulator-lifecycle/simulator-sessions/simulator-session/run',
+    '**/api/execution-contexts/simulator-session/run',
     (route) => route.fulfill({ json: session('running', revision, 1) })
   );
   await page.route(
-    '**/api/flows/simulator-lifecycle/simulator-sessions/simulator-session',
-    (route) => route.fulfill({ status: 204 })
+    '**/api/execution-contexts/simulator-session/stop',
+    (route) => route.fulfill({ json: session('stopped', revision, 1) })
   );
 
   await page.goto('/flows/simulator-lifecycle');
@@ -91,16 +105,17 @@ test('starts and stops a draft simulation with keyboard-operable controls', asyn
     'aria-current',
     'page'
   );
-  await page.getByRole('button', { name: 'Start simulation' }).focus();
+  await page.getByRole('button', { name: 'Create context' }).focus();
   await page.keyboard.press('Enter');
+  await page.getByRole('button', { name: 'Run', exact: true }).click();
   await expect(
     page.getByRole('status', { name: undefined }).filter({ hasText: 'running' })
   ).toBeVisible();
   expect(starts).toBe(1);
-  await page.getByRole('button', { name: 'Stop simulation' }).focus();
+  await page.getByRole('button', { name: 'Stop', exact: true }).focus();
   await page.keyboard.press('Enter');
   await expect(
-    page.getByLabel('Simulation controls').getByRole('status').filter({ hasText: 'stopped' })
+    page.getByLabel('Flow debugging').getByRole('status').filter({ hasText: 'stopped' })
   ).toBeVisible();
   await page.getByRole('link', { name: 'All flows' }).click();
   await expect(page).toHaveURL(/\/flows$/);

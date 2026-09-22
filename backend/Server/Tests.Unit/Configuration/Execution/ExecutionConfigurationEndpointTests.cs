@@ -100,6 +100,7 @@ internal sealed class ExecutionConfigurationEndpointTests
                     Connectors = [new FlowConnector("in", "Input", DataDirectionType.Input, DataType.Number, "left")],
                     Configuration = new Dictionary<string, System.Text.Json.JsonElement>
                     {
+                        ["pointSourceId"] = System.Text.Json.JsonSerializer.SerializeToElement("climate"),
                         ["pointId"] = System.Text.Json.JsonSerializer.SerializeToElement("temp-setpoint")
                     }
                 },

@@ -1,5 +1,5 @@
 <template>
-  <AppButton text="YAML help" :icon="helpIcon" :disabled="loading" @click="open" />
+  <AppButton text="YAML help" :icon="helpIcon" @click="open" />
   <Teleport to="body">
     <aside v-if="visible" class="guidance" aria-label="YAML configuration guidance">
       <header>

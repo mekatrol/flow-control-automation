@@ -54,6 +54,32 @@ internal sealed class FlowCompilationTargetResolver(
         var pointsById = allPoints.ToDictionary(
             point => new PointIdentity(point.SourceId!, point.Id));
 
+        foreach (var reference in PointReferences(source))
+        {
+            var definition = source.VirtualPointDefinitions.SingleOrDefault(item =>
+                string.Equals(item.Key, reference.PointId, StringComparison.Ordinal));
+
+            if (definition is not null)
+            {
+                pointsById.TryAdd(
+                    new PointIdentity(reference.PointSourceId, reference.PointId),
+                    new VirtualAutomationPoint
+                    {
+                        SourceId = reference.PointSourceId,
+                        Id = definition.Key,
+                        Name = definition.Key,
+                        Enabled = true,
+                        Direction = DataDirectionType.Value,
+                        ValueType = definition.ValueType,
+                        Units = definition.Units,
+                        Readable = definition.Readable,
+                        Commandable = definition.Commandable,
+                        Persistence = definition.Persistence.ToString().ToLowerInvariant(),
+                        Revision = 1
+                    });
+            }
+        }
+
         var resolvedPoints = new List<AutomationPoint>();
 
         foreach (var reference in PointReferences(source))

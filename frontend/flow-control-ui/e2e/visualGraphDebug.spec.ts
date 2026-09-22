@@ -2,6 +2,7 @@ import { expect, test } from './fixtures/flowTest';
 
 const flow = {
   id: 'visual-debug',
+  revision: 1,
   name: 'Visual debug',
   description: 'Connector inspection.',
   status: 'draft',
@@ -29,31 +30,24 @@ const session = (
   paused = false,
   breakpoints: unknown[] = []
 ): Record<string, unknown> => ({
-  debugSessionId: 'session',
+  id: 'session',
   flowId: flow.id,
   revision,
-  lifecycleState: paused ? 'paused' : 'ready',
-  mode: 'manual',
-  tickNumber: 1,
+  lifecycle: paused ? 'paused' : 'ready',
+  mode: 'debugger',
   leaseRemainingMilliseconds: 0,
   lastReasonCode: 0,
   lastReason: 'ok',
   lastReasonPath: '',
-  affectedOutputPoints: [],
-  liveOutputEnabled: false,
-  host: 'server',
-  executionOrder: ['constant'],
   breakpoints,
   capabilities: {
-    stepTick: true,
-    stepNode: true,
-    stepInstruction: true,
-    continue: true,
-    pause: true,
-    runTo: true,
-    maximumBreakpoints: 32,
-    maximumInspectableSlots: 256
+    canRun: true, canPause: true, canStop: true, canRestart: true,
+    canStepTick: true, canStepNode: true, canStepInstruction: true,
+    canUseBreakpoints: true, canRunTo: true, canEditInputs: false,
+    canAdvanceVirtualTime: false, canInjectFaults: false, canResetIo: false,
+    canEnableLiveOutputs: false, locksFlowEditing: true
   },
+  presentation: { modeLabel: 'Debugger', hostLabel: 'Server', isSimulated: false, usesPhysicalIo: false },
   snapshot: {
     debugSessionId: 'session',
     flowId: flow.id,
@@ -96,11 +90,11 @@ const session = (
 
 const runningSession = (revision: number, value: boolean): Record<string, unknown> => {
   const result = session(revision, true) as {
-    lifecycleState: string;
+    lifecycle: string;
     snapshot: { lifecycleState: string };
     inspection: { nodeValues: { constant: { value: boolean } } };
   };
-  result.lifecycleState = 'running';
+  result.lifecycle = 'running';
   result.snapshot.lifecycleState = 'running';
   result.inspection.nodeValues.constant.value = value;
   return result;
@@ -119,20 +113,20 @@ test('shows connector frame values and keyboard-accessible breakpoint positions'
   let revision = 1;
   const after = { nodeId: 'constant', position: 'after' };
   await page.route('**/api/flows/visual-debug', (route) => route.fulfill({ json: flow }));
-  await page.route('**/api/flows/visual-debug/debug-sessions', async (route) => {
-    revision = (route.request().postDataJSON() as { source: { revision: number } }).source.revision;
+  await page.route('**/api/flows/visual-debug/execution-contexts', async (route) => {
+    revision = (route.request().postDataJSON() as { expectedRevision: number }).expectedRevision;
     await route.fulfill({ status: 201, json: session(revision) });
   });
-  await page.route('**/api/flows/visual-debug/debug-sessions/session/breakpoints', (route) =>
+  await page.route('**/api/execution-contexts/session/breakpoints', (route) =>
     route.fulfill({ json: session(revision, false, [after]) })
   );
-  await page.route('**/api/flows/visual-debug/debug-sessions/session/step-instruction', (route) =>
+  await page.route('**/api/execution-contexts/session/step-instruction', (route) =>
     route.fulfill({ json: session(revision, true, [after]) })
   );
 
   await page.goto('/flows/visual-debug');
   await page.getByRole('link', { name: 'Debug' }).click();
-  await page.getByRole('button', { name: 'Load' }).click();
+  await page.getByRole('button', { name: 'Create context' }).click();
   const constantNode = page.getByRole('button', { name: /Enabled, Digital Constant node/ });
   await constantNode.focus();
   await page.keyboard.press('Enter');
@@ -153,19 +147,19 @@ test('shows connector frame values and keyboard-accessible breakpoint positions'
 test('refreshes debugger values while a session is running', async ({ page }) => {
   let revision = 1;
   await page.route('**/api/flows/visual-debug', (route) => route.fulfill({ json: flow }));
-  await page.route('**/api/flows/visual-debug/debug-sessions', async (route) => {
-    revision = (route.request().postDataJSON() as { source: { revision: number } }).source.revision;
+  await page.route('**/api/flows/visual-debug/execution-contexts', async (route) => {
+    revision = (route.request().postDataJSON() as { expectedRevision: number }).expectedRevision;
     await route.fulfill({ status: 201, json: session(revision) });
   });
-  await page.route('**/api/flows/visual-debug/debug-sessions/session/run', (route) =>
+  await page.route('**/api/execution-contexts/session/run', (route) =>
     route.fulfill({ json: runningSession(revision, false) })
   );
-  await page.route('**/api/flows/visual-debug/debug-sessions/session', (route) =>
+  await page.route('**/api/execution-contexts/session', (route) =>
     route.fulfill({ json: runningSession(revision, true) })
   );
 
   await page.goto('/flows/visual-debug/debugger');
-  await page.getByRole('button', { name: 'Load' }).click();
+  await page.getByRole('button', { name: 'Create context' }).click();
   await page.getByRole('button', { name: 'Run', exact: true }).click();
 
   await expect(page.locator('[data-node-id="constant"]')).toHaveAttribute(
@@ -180,19 +174,19 @@ test('refreshes debugger values while a session is running', async ({ page }) =>
 test('shows running node status before the first debug snapshot is available', async ({ page }) => {
   let revision = 1;
   await page.route('**/api/flows/visual-debug', (route) => route.fulfill({ json: flow }));
-  await page.route('**/api/flows/visual-debug/debug-sessions', async (route) => {
-    revision = (route.request().postDataJSON() as { source: { revision: number } }).source.revision;
+  await page.route('**/api/flows/visual-debug/execution-contexts', async (route) => {
+    revision = (route.request().postDataJSON() as { expectedRevision: number }).expectedRevision;
     await route.fulfill({ status: 201, json: session(revision) });
   });
-  await page.route('**/api/flows/visual-debug/debug-sessions/session/run', (route) =>
+  await page.route('**/api/execution-contexts/session/run', (route) =>
     route.fulfill({ json: runningSessionWithoutSnapshot(revision) })
   );
-  await page.route('**/api/flows/visual-debug/debug-sessions/session', (route) =>
+  await page.route('**/api/execution-contexts/session', (route) =>
     route.fulfill({ json: runningSessionWithoutSnapshot(revision) })
   );
 
   await page.goto('/flows/visual-debug/debugger');
-  await page.getByRole('button', { name: 'Load' }).click();
+  await page.getByRole('button', { name: 'Create context' }).click();
   await page.getByRole('button', { name: 'Run', exact: true }).click();
 
   await expect(page.locator('[data-node-id="constant"]')).toHaveAttribute(

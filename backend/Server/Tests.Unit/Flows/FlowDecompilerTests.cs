@@ -165,7 +165,7 @@ public sealed class FlowDecompilerTests
     }
 
     [TestCase("valid-two-button-and", 4, 3)]
-    [TestCase("valid-memory-feedback", 3, 2)]
+    [TestCase("valid-memory-feedback", 4, 4)]
     public void RecoversAValidDeterministicDesignerFlow(
         string fixture,
         int nodeCount,
@@ -206,7 +206,7 @@ public sealed class FlowDecompilerTests
 
             Assert.That(
                 memory.Configuration["value"].GetDouble(),
-                Is.EqualTo(2));
+                Is.Zero);
 
             Assert.That(
                 result.Flow.Nodes
@@ -217,9 +217,9 @@ public sealed class FlowDecompilerTests
 
             Assert.That(
                 result.Flow.Connections.Any(connection =>
-                    connection.Start.NodeId == "constant-2"
+                    connection.Start.NodeId == "constant-true"
                     && connection.End ==
-                    new FlowEndpoint("memory-1", "in")),
+                    new FlowEndpoint("or-1", "a")),
                 Is.True);
         });
     }
@@ -496,6 +496,10 @@ public sealed class FlowDecompilerTests
                                 FlowNodeType.AnalogOutput)
                         .Select(node => new PhysicalAutomationPoint
                         {
+                            SourceId =
+                                node.Configuration["pointSourceId"]
+                                    .GetString()!,
+
                             Id =
                                 node.Configuration["pointId"]
                                     .GetString()!,
@@ -514,20 +518,13 @@ public sealed class FlowDecompilerTests
                                     : DataDirectionType.Output,
 
                             ValueType =
-                                node.NodeType.ToString()
-                                    .StartsWith(
-                                        "analog",
-                                        StringComparison.Ordinal)
+                                node.NodeType is
+                                    FlowNodeType.AnalogInput or
+                                    FlowNodeType.AnalogOutput
                                     ? AutomationPointValueType.Analog
                                     : AutomationPointValueType.Digital,
 
-                            Units =
-                                node.NodeType.ToString()
-                                    .StartsWith(
-                                        "analog",
-                                        StringComparison.Ordinal)
-                                    ? analogUnits
-                                    : null,
+                            Units = analogUnits,
 
                             Readable =
                                 node.NodeType.ToString()
@@ -544,9 +541,7 @@ public sealed class FlowDecompilerTests
                             Persistence = "volatile",
                             Revision = 1
                         })
-                        .DistinctBy(
-                            point => point.Id,
-                            StringComparer.Ordinal)
+                        .DistinctBy(point => (point.SourceId, point.Id))
                 ]
             }
         };

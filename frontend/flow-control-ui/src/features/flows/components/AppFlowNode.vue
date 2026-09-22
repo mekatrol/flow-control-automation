@@ -1,11 +1,11 @@
 <template>
   <g
     class="flow-node"
-    :data-node-id="node.id"
+    :data-node-id="preview ? undefined : node.id"
     :data-node-category="definition.category"
     :class="{ selected, current, breakpoint: breakpointPositions?.length }"
-    role="group"
-    :aria-label="nodeAriaLabel"
+    :role="preview ? 'presentation' : 'group'"
+    :aria-label="preview ? undefined : nodeAriaLabel"
     @mouseenter="showTooltip"
     @mouseleave="hideTooltip"
     @focusin="showTooltip"
@@ -15,16 +15,14 @@
       class="node-selector"
       :data-node-category="definition.category"
       :transform="transform"
-      role="button"
-      tabindex="0"
-      :aria-label="nodeAriaLabel"
-      :aria-describedby="tooltipId"
-      :aria-pressed="selected"
+      :role="preview ? 'presentation' : 'button'"
+      :tabindex="preview ? undefined : 0"
+      :aria-label="preview ? undefined : nodeAriaLabel"
+      :aria-describedby="preview ? undefined : tooltipId"
+      :aria-pressed="preview ? undefined : selected"
       @click="emit(EVENTS.SELECT, node.id)"
       @pointerdown.stop="emit(EVENTS.DRAG_START, node.id, $event)"
-      @keydown.enter.prevent="emit(EVENTS.SELECT, node.id)"
-      @keydown.space.prevent="emit(EVENTS.SELECT, node.id)"
-      @keydown.esc.stop="dismissTooltip"
+      @keydown.stop="handleKeydown"
     >
       <rect
         class="node-body"
@@ -121,6 +119,7 @@ import type { ConnectorRuntimeValue } from '@/features/flows/api/flowRuntimeApi'
 const props = defineProps<{
   node: FlowNode;
   selected: boolean;
+  preview?: boolean;
   status?: 'draft' | 'deployed' | 'idle' | 'running' | 'stopped' | 'error';
   statusValue?: string;
   connectionStart?: FlowConnectionEndpoint;
@@ -128,6 +127,7 @@ const props = defineProps<{
   current?: boolean;
   breakpointPositions?: ('before' | 'after')[];
   connectorValues?: Record<string, ConnectorRuntimeValue>;
+  onKeydown?: (event: KeyboardEvent) => void;
 }>();
 
 const emit = defineEmits<{
@@ -141,24 +141,27 @@ const emit = defineEmits<{
 
 const tooltipWidth = 180;
 const tooltipVisible = ref(false);
-const tooltipDismissed = ref(false);
 
 const tooltipId = computed(
   () => `flow-node-tooltip-${props.node.id.replace(/[^a-zA-Z0-9_-]/g, '-')}`
 );
 
 const showTooltip = (): void => {
-  if (!tooltipDismissed.value) tooltipVisible.value = true;
+  tooltipVisible.value = true;
 };
 
 const hideTooltip = (): void => {
   tooltipVisible.value = false;
-  tooltipDismissed.value = false;
 };
 
-const dismissTooltip = (): void => {
-  tooltipVisible.value = false;
-  tooltipDismissed.value = true;
+const handleKeydown = (event: KeyboardEvent): void => {
+  if (event.key === 'Escape') tooltipVisible.value = false;
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault();
+    emit(EVENTS.SELECT, props.node.id);
+    return;
+  }
+  props.onKeydown?.(event);
 };
 
 // A node is positioned by translating one SVG group. Its body, label, status,

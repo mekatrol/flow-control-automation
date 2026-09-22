@@ -89,20 +89,21 @@ test('the frontend proxy reaches the .NET backend compatibility surface', async 
   expect(credentialMetadata).not.toHaveProperty('password');
 
   const sourceYaml = `schemaVersion: 1
-sources:
-  - id: ${sourceId}
-    name: Compatibility source ${suffix}
-    enabled: true
-    kind: http
-    connection:
-      baseUrl: https://example.test
-      maximumResponseBytes: 1024
-    credentialRef: secret://${credentialId}
-    tls:
-      verifyServerCertificate: true
-    timeouts:
-      connectMilliseconds: 100
-      requestMilliseconds: 100
+id: ${sourceId}
+name: Compatibility source ${suffix}
+enabled: true
+kind: http
+connection:
+  baseUrl: https://example.test
+  maximumResponseBytes: 1024
+credentialRef: secret://${credentialId}
+tls:
+  verifyServerCertificate: true
+timeouts:
+  connectMilliseconds: 100
+  requestMilliseconds: 100
+mappings: []
+points: []
 `;
   const sourceResponse = await request.post('/api/point-sources', {
     data: sourceYaml,
@@ -112,7 +113,7 @@ sources:
   // Expected outcome: `sourceResponse.status()` has the required value.
   // Acceptance criteria: `sourceResponse.status()` must be `201`, because this condition proves that
   // the frontend proxy reaches the .NET backend compatibility surface.
-  expect(sourceResponse.status()).toBe(201);
+  expect(sourceResponse.status(), await sourceResponse.text()).toBe(201);
   const sources = await request.get('/api/point-sources?page=1&pageSize=50');
 
   // Expected outcome: The HTTP operation succeeds.

@@ -19,14 +19,14 @@ public sealed class ManagedFlowVirtualMachineTests
         using var machine = Machine("valid-two-button-and");
 
         var result = machine.Scan(
-            [new("input-01", first), new("input-08", second)],
+            [new("controller/input-01", first), new("controller/input-08", second)],
             sampledAtMilliseconds: 10);
 
         Assert.Multiple(() =>
         {
             Assert.That(result.ScanNumber, Is.EqualTo(1));
             Assert.That(result.Commands, Has.Count.EqualTo(1));
-            Assert.That(result.Commands[0].PointId, Is.EqualTo("output-01"));
+            Assert.That(result.Commands[0].PointId, Is.EqualTo("controller/output-01"));
             Assert.That(result.Commands[0].TypedValue.Boolean, Is.EqualTo(expected));
         });
     }
@@ -45,9 +45,9 @@ public sealed class ManagedFlowVirtualMachineTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(first.Commands.Single().TypedValue.Number, Is.EqualTo(2));
-            Assert.That(second.Commands.Single().TypedValue.Number, Is.EqualTo(2));
-            Assert.That(reset.Commands.Single().TypedValue.Number, Is.EqualTo(2));
+            Assert.That(first.Commands.Single().TypedValue.Number, Is.EqualTo(0));
+            Assert.That(second.Commands.Single().TypedValue.Number, Is.EqualTo(1));
+            Assert.That(reset.Commands.Single().TypedValue.Number, Is.EqualTo(0));
             Assert.That(reset.ScanNumber, Is.EqualTo(1));
         });
     }
@@ -57,10 +57,10 @@ public sealed class ManagedFlowVirtualMachineTests
     {
         using var machine = Machine("valid-two-button-and");
 
-        var initial = machine.BeginScan([new("input-01", true), new("input-08", true)], 1);
+        var initial = machine.BeginScan([new("controller/input-01", true), new("controller/input-08", true)], 1);
         var stepped = machine.StepInstruction();
         machine.AbortScan();
-        var completed = machine.Scan([new("input-01", true), new("input-08", true)], 2);
+        var completed = machine.Scan([new("controller/input-01", true), new("controller/input-08", true)], 2);
 
         Assert.Multiple(() =>
         {
@@ -76,7 +76,7 @@ public sealed class ManagedFlowVirtualMachineTests
         using var machine = Machine("valid-two-button-and");
 
         FlowVmScanResult action() => machine.Scan(
-            [new("input-01", FlowVmValue.FromBoolean(true, DataQualityType.Bad)), new("input-08", true)],
+            [new("controller/input-01", FlowVmValue.FromBoolean(true, DataQualityType.Bad)), new("controller/input-08", true)],
             1);
 
         Assert.That(action, Throws.TypeOf<FlowVmException>()
