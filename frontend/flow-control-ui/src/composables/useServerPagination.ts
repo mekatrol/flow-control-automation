@@ -220,7 +220,7 @@ export const useServerPagination = (options: ServerPaginationOptions = {}): Serv
   // totals and may correct the requested page after the first response arrives.
   const query = ref(options.initialQuery ?? '');
   const page = ref(Math.max(1, options.initialPage ?? 1));
-  const pageSize = ref(options.initialPageSize ?? 10);
+  const pageSize = ref(options.initialPageSize ?? 10); 
   const sortDirection = ref<SortDirection>(options.initialSortDirection ?? 'ascending');
   const totalItems = ref(0);
   const pageCount = ref(1);

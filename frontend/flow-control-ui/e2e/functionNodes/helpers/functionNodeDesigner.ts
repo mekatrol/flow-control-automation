@@ -77,7 +77,26 @@ export const configureSelectedNode = async (
       const checkbox = panel.getByRole('checkbox', { name: label });
       if ((await checkbox.isChecked()) !== value) await checkbox.click();
     } else if (typeof value === 'number') {
-      await panel.getByRole('spinbutton', { name: label }).fill(String(value));
+      const control = panel.getByRole('spinbutton', { name: label });
+      await control.fill(String(value));
+      await control.blur();
+      await expect(control).toHaveValue(String(value));
+    } else if (label === 'Weekly schedule') {
+      const schedule = JSON.parse(value) as Record<string, Array<{ on: string; off: string }>>;
+      await panel.getByRole('button', { name: 'Edit schedule' }).click();
+      const dialog = page.getByRole('dialog', { name: 'Edit weekly schedule' });
+      for (const [day, periods] of Object.entries(schedule)) {
+        const daySection = dialog.locator('.schedule-day').filter({
+          has: page.getByText(`${day[0]!.toUpperCase()}${day.slice(1)}`, { exact: true })
+        });
+        for (const [index, period] of periods.entries()) {
+          await daySection.getByRole('button', { name: 'Add period' }).click();
+          const inputs = daySection.locator('input[type="time"]');
+          await inputs.nth(index * 2).fill(period.on);
+          await inputs.nth(index * 2 + 1).fill(period.off);
+        }
+      }
+      await dialog.getByRole('button', { name: 'Save schedule' }).click();
     } else {
       const control = panel
         .getByText(label, { exact: true })

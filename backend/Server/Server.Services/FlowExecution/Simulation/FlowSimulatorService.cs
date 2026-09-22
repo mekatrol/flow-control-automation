@@ -165,7 +165,7 @@ internal sealed class FlowSimulatorService(
         entry.StopContinuous();
 
         try { await Debug(entry.Registry).StopAsync(flowId, sessionId, cancellationToken); }
-        finally { sessions.Remove(flowId, sessionId); }
+        finally { sessions.Remove(flowId, entry); }
     }
 
     public Task ClearAsync(CancellationToken cancellationToken)

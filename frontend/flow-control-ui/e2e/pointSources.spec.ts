@@ -208,7 +208,10 @@ test('catalogue and YAML editor support create, test, retry, and keyboard use', 
   // second mocked diagnostic succeeds and the latest result must supersede the first.
   await expect(page.getByRole('heading', { name: 'Mapping read result' })).toBeVisible();
   await expect(page.getByText('{"intensity":100}')).toBeVisible();
-  await page.getByRole('button', { name: 'Close' }).click();
+  await page
+    .getByRole('dialog', { name: 'Test a mapping' })
+    .getByRole('button', { name: 'Close' })
+    .press('Enter');
   await page.getByRole('button', { name: 'Save' }).press('Enter');
 
   // Expected outcome: Saving a new source transitions to its stable detail route.
@@ -240,7 +243,7 @@ test('reports schema and indentation errors before a source can be tested or sav
   await expect(sourceEditor.locator('.monaco-editor')).toBeVisible({
     timeout: 60_000
   });
-  await sourceEditor.locator('.monaco-editor .view-lines').click();
+  await sourceEditor.getByRole('textbox', { name: 'Point source YAML' }).focus();
   await page.keyboard.press('ControlOrMeta+A');
   await page.keyboard.insertText(`schemaVersion: 1
 id: broken-mqtt

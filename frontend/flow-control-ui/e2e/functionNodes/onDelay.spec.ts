@@ -6,7 +6,7 @@ test(
     configuration: { 'Duration (ms)': 0 },
     vectors: [
       { inputs: { in: false }, expected: false },
-      { inputs: { in: true }, expected: true },
+      { inputs: { in: true }, expectedBeforeAdvance: false, advanceMs: 1, expected: true },
       { inputs: { in: false }, expected: false }
     ]
   })

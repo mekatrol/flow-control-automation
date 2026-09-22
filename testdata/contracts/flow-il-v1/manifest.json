@@ -24,7 +24,7 @@
     {
       "id": "valid-expanded-boolean",
       "artifactLength": 1671,
-      "artifactSha256": "2721344e1aae7a1af1870e73686e415cd14ea4e19ea4bf4e6ee9a5f93f742e43",
+      "artifactSha256": "0bfb806c2c1f0c8a6a356ded4812c6a162f971180eb6557511f18ed2319c0d7b",
       "expected": {
         "valid": true,
         "reason": "ok",
@@ -54,7 +54,7 @@
     {
       "id": "valid-analog-points",
       "artifactLength": 984,
-      "artifactSha256": "7064be093ddd67dfe252cc1a84df9d9890b20b84f01972da72434a2c4e705163",
+      "artifactSha256": "658f3b86b1cd2af11cc553192d2001c2583d13dff643f2bb99bd32e847633125",
       "expected": {
         "valid": true,
         "reason": "ok",
